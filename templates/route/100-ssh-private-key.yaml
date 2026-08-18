@@ -1,8 +1,9 @@
 id: route-ssh-private-key
 priority: 100
-# Exposed PEM private key — deliberately short, obviously-truncated stub, not a real key.
-# Matches any bundle whose required words announce a "PRIVATE KEY" header (the whole
-# key-exposure family). The bundle's exact BEGIN line is guaranteed by appendMissingTokens.
+# Exposed PEM private key — full-length body (not a 4-line stub) so it reads as a real
+# exported RSA key. Matches any bundle whose required words announce a "PRIVATE KEY" header
+# (the whole key-exposure family). The bundle's exact BEGIN line is guaranteed by
+# appendMissingTokens. Every line is a per-attacker decoy value; the key authenticates nowhere.
 match:
   body_word_contains: ['PRIVATE KEY']
 response:
@@ -10,10 +11,29 @@ response:
     Content-Type: "application/x-pem-file"
   body: |
     -----BEGIN RSA PRIVATE KEY-----
-    {{fake.pem-a:b64:64}}
-    {{fake.pem-b:b64:64}}
-    {{fake.pem-c:b64:64}}
-    {{fake.pem-d:b64:64}}
+    {{fake.pem01:b64:64}}
+    {{fake.pem02:b64:64}}
+    {{fake.pem03:b64:64}}
+    {{fake.pem04:b64:64}}
+    {{fake.pem05:b64:64}}
+    {{fake.pem06:b64:64}}
+    {{fake.pem07:b64:64}}
+    {{fake.pem08:b64:64}}
+    {{fake.pem09:b64:64}}
+    {{fake.pem10:b64:64}}
+    {{fake.pem11:b64:64}}
+    {{fake.pem12:b64:64}}
+    {{fake.pem13:b64:64}}
+    {{fake.pem14:b64:64}}
+    {{fake.pem15:b64:64}}
+    {{fake.pem16:b64:64}}
+    {{fake.pem17:b64:64}}
+    {{fake.pem18:b64:64}}
+    {{fake.pem19:b64:64}}
+    {{fake.pem20:b64:64}}
+    {{fake.pem21:b64:64}}
+    {{fake.pem22:b64:64}}
+    {{fake.pemZZ:b64:40}}
     -----END RSA PRIVATE KEY-----
 taunt: { mode: line, open: '#' }
 expect: ['BEGIN', 'PRIVATE KEY']

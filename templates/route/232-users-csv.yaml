@@ -16,8 +16,12 @@ response:
   body: |
     id,username,email,password_hash,role
     1,admin,admin@example.com,$2y$10${{fake.u1:hex:53}},superadmin
-    2,jdoe,jane.doe@example.com,$2y$10${{fake.u2:hex:53}},editor
-    3,bsmith,bob.smith@example.com,$2y$10${{fake.u3:hex:53}},user
-    4,service,svc@example.com,$2y$10${{fake.u4:hex:53}},api
+    2,jdoe,jane.doe@example.com,$2y$10${{fake.u2:hex:53}},admin
+    3,bsmith,bob.smith@example.com,$2y$10${{fake.u3:hex:53}},editor
+    4,mwilson,mike.wilson@example.com,$2y$10${{fake.u4:hex:53}},user
+    5,svcapi,api@example.com,$2y$10${{fake.u5:hex:53}},api
+    6,helpdesk,support@example.com,$2y$10${{fake.u6:hex:53}},support
+    7,financeops,finance@example.com,$2y$10${{fake.u7:hex:53}},finance
+    8,rpatel,raj.patel@example.com,$2y$10${{fake.u8:hex:53}},user
 taunt: { mode: line, open: '#' }
-expect: ['password_hash', 'admin@example.com']
+expect: ['password_hash', '@example.com']

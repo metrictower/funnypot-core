@@ -67,28 +67,34 @@ final class RouteTemplateEmulator extends AbstractEmulator
     }
 
     /**
-     * Prepend the "nice try" banner in the file's own comment syntax. Modes:
-     *   - line:         per-line prefix (# , -- )
-     *   - block:        one flattened comment ( <!-- … --> )
-     *   - inline_field: a JSON field inserted after the opening brace ( "_comment": "…" )
+     * Append the "nice try" banner + ASCII troll in the file's own comment syntax, AFTER the body
+     * so a human reads the (fabricated) secrets first and only then hits the taunt. Modes:
+     *   - line:         each taunt line prefixed with the file's comment token (# , -- , ; )
+     *   - block:        the taunt wrapped in one open/close comment ( <!-- … --> )
+     *   - inline_field: a JSON string field after the opening brace ( "_comment": "…" ) — JSON has
+     *                   no comment syntax, so this is the only way to keep the document parseable.
      *
      * @param array<string,mixed> $taunt
      */
     private function applyTaunt(string $body, array $taunt): string
     {
         $mode = (string) ($taunt['mode'] ?? 'line');
+        // Banner text, a blank spacer, then the troll — all raw (no prefix yet).
+        $lines = array_merge($this->tauntLines(), [''], $this->tauntArt());
 
         if ($mode === 'block') {
             $open = (string) ($taunt['open'] ?? '<!--');
             $close = (string) ($taunt['close'] ?? '-->');
 
-            return $open . ' ' . str_replace("\n", ' ', $this->tauntBanner('')) . ' ' . $close . "\n" . $body;
+            return $body . "\n" . $open . "\n" . implode("\n", $lines) . "\n" . $close . "\n";
         }
 
         if ($mode === 'inline_field') {
+            // JSON: ride the taunt in as a string field so the document still parses. json_encode
+            // handles the newlines / backslashes / quotes in the art.
             $key = (string) ($taunt['key'] ?? '_comment');
-            $note = trim(str_replace('"', "'", str_replace("\n", ' ', $this->tauntBanner(''))));
-            $field = '  "' . $key . '": "' . $note . '",';
+            $value = (string) json_encode(implode("\n", $lines), JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+            $field = '  ' . (string) json_encode($key) . ': ' . $value . ',';
             $nl = strpos($body, "\n");
             if ($nl === false) {
                 return $body;
@@ -97,9 +103,13 @@ final class RouteTemplateEmulator extends AbstractEmulator
             return substr($body, 0, $nl + 1) . $field . "\n" . substr($body, $nl + 1);
         }
 
-        // line mode
+        // line mode: prefix each taunt line with the file's comment token so the doc still parses.
         $open = (string) ($taunt['open'] ?? '#');
+        $commented = array_map(
+            static fn (string $l): string => $l === '' ? $open : $open . ' ' . $l,
+            $lines
+        );
 
-        return $this->tauntBanner($open) . "\n" . $body;
+        return $body . "\n" . implode("\n", $commented) . "\n";
     }
 }

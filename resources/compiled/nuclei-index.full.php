@@ -83881,6 +83881,17 @@ return array (
       ),
       'name' => 'phpMyAdmin login',
     ),
+    'route-npmrc' => 
+    array (
+      'sev' => 'high',
+      'tags' => 
+      array (
+        0 => 'exposure',
+        1 => 'npm',
+        2 => 'secrets',
+      ),
+      'name' => 'Exposed .npmrc',
+    ),
   ),
   'routes' => 
   array (
@@ -93376,6 +93387,24 @@ return array (
             0 => 'text/html',
             1 => 'application/javascript',
             2 => 'application/json',
+          ),
+        ),
+        1 => 
+        array (
+          's' => 200,
+          'bw' => 
+          array (
+            0 => ':_authToken',
+          ),
+          'nf' => 
+          array (
+          ),
+          'pid' => 'route-npmrc',
+          'sev' => 'high',
+          'sig' => 0,
+          't' => 
+          array (
+            0 => 'route-npmrc',
           ),
         ),
       ),
@@ -297844,6 +297873,54 @@ a</title>',
           't' => 
           array (
             0 => 'route-phpmyadmin',
+          ),
+        ),
+      ),
+    ),
+    'GET /npmrc' => 
+    array (
+      'b' => 
+      array (
+        0 => 
+        array (
+          's' => 200,
+          'bw' => 
+          array (
+            0 => ':_authToken',
+          ),
+          'nf' => 
+          array (
+          ),
+          'pid' => 'route-npmrc',
+          'sev' => 'high',
+          'sig' => 0,
+          't' => 
+          array (
+            0 => 'route-npmrc',
+          ),
+        ),
+      ),
+    ),
+    'GET /backup/.npmrc' => 
+    array (
+      'b' => 
+      array (
+        0 => 
+        array (
+          's' => 200,
+          'bw' => 
+          array (
+            0 => ':_authToken',
+          ),
+          'nf' => 
+          array (
+          ),
+          'pid' => 'route-npmrc',
+          'sev' => 'high',
+          'sig' => 0,
+          't' => 
+          array (
+            0 => 'route-npmrc',
           ),
         ),
       ),

@@ -1,0 +1,22 @@
+id: route-npmrc
+priority: 95
+# Exposed .npmrc — enriches the npm-token nuclei bundle with a believable leaked auth config:
+# a default-registry npm token plus a scoped GitHub Packages token, so an attacker's own gitleaks
+# run fires both the npm_ and ghp_ rules off one drop. Per-attacker inert decoys; nothing
+# authenticates anywhere. (Enrich, not new_page: the npm-token bundle already owns /.npmrc.)
+match:
+  pid: [npm]
+  template_needle: [npmrc, npm-token, npm-registry]
+  body_word_contains: ['_authToken=']
+response:
+  headers:
+    Content-Type: "text/plain; charset=utf-8"
+  body: |
+    //registry.npmjs.org/:_authToken=npm_{{fake.npmtok:hex:36}}
+
+    @acme:registry=https://npm.pkg.github.com
+    //npm.pkg.github.com/:_authToken=ghp_{{fake.ghtok:hex:36}}
+
+    always-auth=true
+taunt: { mode: line, open: '#' }
+expect: [':_authToken=npm_', 'ghp_']

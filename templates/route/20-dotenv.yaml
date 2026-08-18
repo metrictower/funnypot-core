@@ -1,29 +1,67 @@
 id: route-dotenv
 priority: 20
-# Exposed .env — every value a decoy: localhost/example.com hosts, inert dummy secrets.
+# Exposed production .env for a believable SaaS. Every value is an inert decoy rendered per
+# attacker (so the file can't be fingerprinted by a constant), but each is shaped to match the
+# exact regex a secret scanner (gitleaks / trufflehog / nuclei) fires on — so an attacker who runs
+# their own tooling over the loot gets a screen full of "valid" findings and chases dead keys.
+# Inert by construction: RFC-2606 example.com hosts, non-resolving RDS/ElastiCache hostnames, and
+# random key bodies that authenticate nowhere. AWS id + secret are kept adjacent because trufflehog
+# only emits an AWS finding when it co-locates the pair.
+# The exposed-.env nuclei bundle is keyed by CVE id (not an "env" string), so match it by a
+# required body word instead of a template-name needle — APP_DEBUG= is specific to a .env file.
 match:
   template_needle: [dotenv, env-, exposed-config, environment]
+  body_word_contains: ['APP_DEBUG=']
 response:
   headers:
-    Content-Type: "text/plain; charset=utf-8"
+    # The exposed-.env nuclei template (CVE-2017-16894) matches a Content-Type of
+    # application/octet-stream, so serve that or the rich body fails the bundle's header matcher.
+    Content-Type: "application/octet-stream"
   body: |
-    APP_NAME={{pick:Acme,Platform,Portal,Service}}
+    APP_NAME={{pick:Acme,Northwind,Contoso,Fabrikam,Initech}}
     APP_ENV=production
-    APP_KEY=base64:{{fake.appkey:hex:32}}==
+    APP_KEY=base64:{{pick:8x+/kvyxtznxg1ze6wzztbwh3pku3qm9e7+ce0dbmmg=,sm2+uav1+o9c9tnl777ld5/3b758w9+qqeidkufm28q=,d9j1wc1sjd3wyenwqnmi4z19qkovzm0k4ucb8m1t8uz=,wot2/yyjrpyf3avfr57yic6/ym2hptd5nw8vr/gj6/c=,95sbjj3f53blmkpoc23ztub1wgkfatmkmgfk9z+pd1o=,0v934meeeixr/ybapd89hzr79sja0t5xcuadfdx10z4=}}
     APP_DEBUG=false
     APP_URL=https://app.example.com
 
-    DB_CONNECTION=mysql
-    DB_HOST=127.0.0.1
-    DB_PORT=3306
-    DB_DATABASE=app_production
-    DB_USERNAME=app_ro
-    DB_PASSWORD={{fake.dbpass:hex:24}}
+    LOG_CHANNEL=stack
 
+    DB_CONNECTION=pgsql
+    DB_HOST=db-{{fake.pghost:hex:6}}.cluster-cg{{fake.pgacct:hex:9}}.eu-west-1.rds.amazonaws.com
+    DB_PORT=5432
+    DB_DATABASE=app_production
+    DB_USERNAME=app_prod
+    DB_PASSWORD={{fake.pgpass:hex:24}}
+
+    REDIS_HOST=cache-{{fake.redishost:hex:6}}.0001.euw1.cache.amazonaws.com
+    REDIS_PORT=6379
+    REDIS_PASSWORD={{fake.redispass:hex:32}}
+
+    # AWS — S3 uploads + SES
+    AWS_ACCESS_KEY_ID=AKIA{{pick:Q3F7K2LMN5PXR6TZ,H4G6D3WQ7VZ2NPXF,T7B5K4M2XQWL3RNC,F2N6R3Q7ZTXWK5LM,D5W3F7K2M6QZRXTN,L6Q2X7T3N5FWKMRZ}}
+    AWS_SECRET_ACCESS_KEY={{fake.awssecret:b64:40}}
+    AWS_DEFAULT_REGION=eu-west-1
+    AWS_BUCKET={{pick:acme,northwind,contoso,fabrikam,initech}}-prod-uploads
+
+    # Stripe — billing
+    STRIPE_KEY=pk_live_{{fake.stripe_pk:hex:24}}
+    STRIPE_SECRET=sk_live_{{fake.stripe_sk:hex:24}}
+    STRIPE_WEBHOOK_SECRET=whsec_{{fake.stripe_whsec:hex:32}}
+
+    # Mail — SendGrid
     MAIL_MAILER=smtp
-    MAIL_HOST=smtp.example.com
+    MAIL_HOST=smtp.sendgrid.net
     MAIL_PORT=587
-    MAIL_USERNAME=no-reply@example.com
-    MAIL_PASSWORD={{fake.mail:hex:20}}
+    MAIL_USERNAME=apikey
+    SENDGRID_API_KEY=SG.{{fake.sg1:hex:22}}.{{fake.sg2:hex:43}}
+
+    JWT_SECRET={{fake.jwtsecret:hex:64}}
+    SLACK_WEBHOOK_URL=https://hooks.slack.com/services/T{{fake.slackt:hex:8}}/B{{fake.slackb:hex:8}}/{{fake.slacktok:hex:24}}
 taunt: { mode: line, open: '#' }
-expect: ['APP_KEY=base64:', 'DB_PASSWORD=']
+expect:
+  - 'APP_KEY=base64:'
+  - 'AWS_ACCESS_KEY_ID=AKIA'
+  - 'AWS_SECRET_ACCESS_KEY='
+  - 'STRIPE_SECRET=sk_live_'
+  - 'whsec_'
+  - 'SENDGRID_API_KEY=SG.'

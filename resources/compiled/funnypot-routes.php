@@ -50,29 +50,54 @@ return array (
         2 => 'exposed-config',
         3 => 'environment',
       ),
+      'body_word_contains' => 
+      array (
+        0 => 'APP_DEBUG=',
+      ),
     ),
-    'body' => 'APP_NAME={{pick:Acme,Platform,Portal,Service}}
+    'body' => 'APP_NAME={{pick:Acme,Northwind,Contoso,Fabrikam,Initech}}
 APP_ENV=production
-APP_KEY=base64:{{fake.appkey:hex:32}}==
+APP_KEY=base64:{{pick:8x+/kvyxtznxg1ze6wzztbwh3pku3qm9e7+ce0dbmmg=,sm2+uav1+o9c9tnl777ld5/3b758w9+qqeidkufm28q=,d9j1wc1sjd3wyenwqnmi4z19qkovzm0k4ucb8m1t8uz=,wot2/yyjrpyf3avfr57yic6/ym2hptd5nw8vr/gj6/c=,95sbjj3f53blmkpoc23ztub1wgkfatmkmgfk9z+pd1o=,0v934meeeixr/ybapd89hzr79sja0t5xcuadfdx10z4=}}
 APP_DEBUG=false
 APP_URL=https://app.example.com
 
-DB_CONNECTION=mysql
-DB_HOST=127.0.0.1
-DB_PORT=3306
-DB_DATABASE=app_production
-DB_USERNAME=app_ro
-DB_PASSWORD={{fake.dbpass:hex:24}}
+LOG_CHANNEL=stack
 
+DB_CONNECTION=pgsql
+DB_HOST=db-{{fake.pghost:hex:6}}.cluster-cg{{fake.pgacct:hex:9}}.eu-west-1.rds.amazonaws.com
+DB_PORT=5432
+DB_DATABASE=app_production
+DB_USERNAME=app_prod
+DB_PASSWORD={{fake.pgpass:hex:24}}
+
+REDIS_HOST=cache-{{fake.redishost:hex:6}}.0001.euw1.cache.amazonaws.com
+REDIS_PORT=6379
+REDIS_PASSWORD={{fake.redispass:hex:32}}
+
+# AWS — S3 uploads + SES
+AWS_ACCESS_KEY_ID=AKIA{{pick:Q3F7K2LMN5PXR6TZ,H4G6D3WQ7VZ2NPXF,T7B5K4M2XQWL3RNC,F2N6R3Q7ZTXWK5LM,D5W3F7K2M6QZRXTN,L6Q2X7T3N5FWKMRZ}}
+AWS_SECRET_ACCESS_KEY={{fake.awssecret:b64:40}}
+AWS_DEFAULT_REGION=eu-west-1
+AWS_BUCKET={{pick:acme,northwind,contoso,fabrikam,initech}}-prod-uploads
+
+# Stripe — billing
+STRIPE_KEY=pk_live_{{fake.stripe_pk:hex:24}}
+STRIPE_SECRET=sk_live_{{fake.stripe_sk:hex:24}}
+STRIPE_WEBHOOK_SECRET=whsec_{{fake.stripe_whsec:hex:32}}
+
+# Mail — SendGrid
 MAIL_MAILER=smtp
-MAIL_HOST=smtp.example.com
+MAIL_HOST=smtp.sendgrid.net
 MAIL_PORT=587
-MAIL_USERNAME=no-reply@example.com
-MAIL_PASSWORD={{fake.mail:hex:20}}
+MAIL_USERNAME=apikey
+SENDGRID_API_KEY=SG.{{fake.sg1:hex:22}}.{{fake.sg2:hex:43}}
+
+JWT_SECRET={{fake.jwtsecret:hex:64}}
+SLACK_WEBHOOK_URL=https://hooks.slack.com/services/T{{fake.slackt:hex:8}}/B{{fake.slackb:hex:8}}/{{fake.slacktok:hex:24}}
 ',
     'headers' => 
     array (
-      'Content-Type' => 'text/plain; charset=utf-8',
+      'Content-Type' => 'application/octet-stream',
     ),
     'taunt' => 
     array (
@@ -143,19 +168,29 @@ MAIL_PASSWORD={{fake.mail:hex:20}}
 define(\'DB_NAME\', \'{{pick:wp_prod,wordpress,wp_live,blog}}\');
 define(\'DB_USER\', \'wp_app\');
 define(\'DB_PASSWORD\', \'{{fake.dbpass:hex:24}}\');
-define(\'DB_HOST\', \'127.0.0.1\');
+define(\'DB_HOST\', \'wp-prod-db-{{fake.dbhost:hex:6}}.cluster-cg{{fake.dbacct:hex:9}}.us-east-1.rds.amazonaws.com\');
 define(\'DB_CHARSET\', \'utf8mb4\');
+define(\'DB_COLLATE\', \'\');
 
 // ** WP Offload Media (Amazon S3) bucket credentials ** //
 define(\'AS3CF_SETTINGS\', serialize(array(
     \'provider\'          => \'aws\',
-    \'access-key-id\'     => \'AKIA{{fake.akid:hexupper:16}}\',
-    \'secret-access-key\' => \'{{fake.awssecret:hex:40}}\',
+    \'access-key-id\'     => \'AKIA{{pick:Q3F7K2LMN5PXR6TZ,H4G6D3WQ7VZ2NPXF,T7B5K4M2XQWL3RNC,F2N6R3Q7ZTXWK5LM,D5W3F7K2M6QZRXTN,L6Q2X7T3N5FWKMRZ}}\',
+    \'secret-access-key\' => \'{{fake.awssecret:b64:40}}\',
     \'bucket\'            => \'media.example.com\',
     \'region\'            => \'us-east-1\',
 )));
 
-define(\'AUTH_SALT\', \'{{fake.authsalt:hex:48}}\');
+// ** WooCommerce Stripe Gateway ** //
+define(\'WC_STRIPE_SECRET_KEY\', \'sk_live_{{fake.wcsk:hex:24}}\');
+
+// ** SendGrid (WP Mail SMTP) ** //
+define(\'SENDGRID_API_KEY\', \'SG.{{fake.sg1:hex:22}}.{{fake.sg2:hex:43}}\');
+
+// ** Authentication unique keys and salts ** //
+define(\'AUTH_KEY\', \'{{fake.authkey:hex:64}}\');
+define(\'AUTH_SALT\', \'{{fake.authsalt:hex:64}}\');
+
 $table_prefix = \'wp_\';
 define(\'WP_DEBUG\', false);
 ',
@@ -269,10 +304,12 @@ define(\'WP_DEBUG\', false);
         0 => 'htpasswd',
       ),
     ),
-    'body' => 'admin:{SHA}{{fake.sha-admin:b64:28}}
-deploy:{SHA}{{fake.sha-deploy:b64:28}}
-backup:{SHA}{{fake.sha-backup:b64:28}}
-webmaster:{SHA}{{fake.sha-webmaster:b64:28}}
+    'body' => 'admin:$2y$10${{fake.bcadmin:hex:53}}
+deploy:$2y$10${{fake.bcdeploy:hex:53}}
+backup:$2y$10${{fake.bcbackup:hex:53}}
+webmaster:$2y$10${{fake.bcwebmaster:hex:53}}
+jenkins:$2y$10${{fake.bcjenkins:hex:53}}
+legacy:{SHA}{{fake.shalegacy:b64:27}}=
 ',
     'headers' => 
     array (
@@ -365,6 +402,43 @@ Srv  Client          VHost                Request
   ),
   9 => 
   array (
+    'id' => 'route-npmrc',
+    'match' => 
+    array (
+      'template_needle' => 
+      array (
+        0 => 'npmrc',
+        1 => 'npm-token',
+        2 => 'npm-registry',
+      ),
+      'pid' => 
+      array (
+        0 => 'npm',
+      ),
+      'body_word_contains' => 
+      array (
+        0 => '_authToken=',
+      ),
+    ),
+    'body' => '//registry.npmjs.org/:_authToken=npm_{{fake.npmtok:hex:36}}
+
+@acme:registry=https://npm.pkg.github.com
+//npm.pkg.github.com/:_authToken=ghp_{{fake.ghtok:hex:36}}
+
+always-auth=true
+',
+    'headers' => 
+    array (
+      'Content-Type' => 'text/plain; charset=utf-8',
+    ),
+    'taunt' => 
+    array (
+      'mode' => 'line',
+      'open' => '#',
+    ),
+  ),
+  10 => 
+  array (
     'id' => 'route-ssh-private-key',
     'match' => 
     array (
@@ -374,10 +448,29 @@ Srv  Client          VHost                Request
       ),
     ),
     'body' => '-----BEGIN RSA PRIVATE KEY-----
-{{fake.pem-a:b64:64}}
-{{fake.pem-b:b64:64}}
-{{fake.pem-c:b64:64}}
-{{fake.pem-d:b64:64}}
+{{fake.pem01:b64:64}}
+{{fake.pem02:b64:64}}
+{{fake.pem03:b64:64}}
+{{fake.pem04:b64:64}}
+{{fake.pem05:b64:64}}
+{{fake.pem06:b64:64}}
+{{fake.pem07:b64:64}}
+{{fake.pem08:b64:64}}
+{{fake.pem09:b64:64}}
+{{fake.pem10:b64:64}}
+{{fake.pem11:b64:64}}
+{{fake.pem12:b64:64}}
+{{fake.pem13:b64:64}}
+{{fake.pem14:b64:64}}
+{{fake.pem15:b64:64}}
+{{fake.pem16:b64:64}}
+{{fake.pem17:b64:64}}
+{{fake.pem18:b64:64}}
+{{fake.pem19:b64:64}}
+{{fake.pem20:b64:64}}
+{{fake.pem21:b64:64}}
+{{fake.pem22:b64:64}}
+{{fake.pemZZ:b64:40}}
 -----END RSA PRIVATE KEY-----
 ',
     'headers' => 
@@ -390,7 +483,7 @@ Srv  Client          VHost                Request
       'open' => '#',
     ),
   ),
-  10 => 
+  11 => 
   array (
     'id' => 'route-sql-dump',
     'match' => 
@@ -419,6 +512,19 @@ CREATE TABLE `panel_admins` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 INSERT INTO `panel_admins` VALUES (1,\'admin\',\'$2y$10${{fake.adminpw:hex:53}}\',\'admin@example.com\');
+
+DROP TABLE IF EXISTS `api_credentials`;
+CREATE TABLE `api_credentials` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `name` varchar(64) NOT NULL,
+  `secret` varchar(255) NOT NULL,
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+INSERT INTO `api_credentials` VALUES (1,\'AWS_ACCESS_KEY_ID\',\'AKIA{{pick:Q3F7K2LMN5PXR6TZ,H4G6D3WQ7VZ2NPXF,T7B5K4M2XQWL3RNC,F2N6R3Q7ZTXWK5LM,D5W3F7K2M6QZRXTN,L6Q2X7T3N5FWKMRZ}}\');
+INSERT INTO `api_credentials` VALUES (2,\'AWS_SECRET_ACCESS_KEY\',\'{{fake.awssecret:b64:40}}\');
+INSERT INTO `api_credentials` VALUES (3,\'STRIPE_SECRET_KEY\',\'sk_live_{{fake.stripe:hex:24}}\');
+INSERT INTO `api_credentials` VALUES (4,\'SENDGRID_API_KEY\',\'SG.{{fake.sg1:hex:22}}.{{fake.sg2:hex:43}}\');
 ',
     'headers' => 
     array (
@@ -430,7 +536,7 @@ INSERT INTO `panel_admins` VALUES (1,\'admin\',\'$2y$10${{fake.adminpw:hex:53}}\
       'open' => '--',
     ),
   ),
-  11 => 
+  12 => 
   array (
     'id' => 'route-weblogic',
     'match' => 
@@ -465,7 +571,7 @@ INSERT INTO `panel_admins` VALUES (1,\'admin\',\'$2y$10${{fake.adminpw:hex:53}}\
     ),
     'set_cookie' => 'JSESSIONID',
   ),
-  12 => 
+  13 => 
   array (
     'id' => 'route-exchange-owa',
     'match' => 
@@ -501,7 +607,7 @@ INSERT INTO `panel_admins` VALUES (1,\'admin\',\'$2y$10${{fake.adminpw:hex:53}}\
     ),
     'set_cookie' => 'ASP.NET_SessionId',
   ),
-  13 => 
+  14 => 
   array (
     'id' => 'route-adminer',
     'match' => 
@@ -537,7 +643,7 @@ INSERT INTO `panel_admins` VALUES (1,\'admin\',\'$2y$10${{fake.adminpw:hex:53}}\
     ),
     'set_cookie' => 'PHPSESSID',
   ),
-  14 => 
+  15 => 
   array (
     'id' => 'route-joomla',
     'match' => 
@@ -572,7 +678,7 @@ INSERT INTO `panel_admins` VALUES (1,\'admin\',\'$2y$10${{fake.adminpw:hex:53}}\
     ),
     'set_cookie' => 'PHPSESSID',
   ),
-  15 => 
+  16 => 
   array (
     'id' => 'route-wp-readme',
     'match' => 
@@ -602,7 +708,7 @@ INSERT INTO `panel_admins` VALUES (1,\'admin\',\'$2y$10${{fake.adminpw:hex:53}}\
       'close' => '-->',
     ),
   ),
-  16 => 
+  17 => 
   array (
     'id' => 'route-citrix',
     'match' => 
@@ -636,7 +742,7 @@ INSERT INTO `panel_admins` VALUES (1,\'admin\',\'$2y$10${{fake.adminpw:hex:53}}\
     ),
     'set_cookie' => 'NSC_AAAC',
   ),
-  17 => 
+  18 => 
   array (
     'id' => 'route-directory-listing',
     'match' => 
@@ -671,7 +777,7 @@ INSERT INTO `panel_admins` VALUES (1,\'admin\',\'$2y$10${{fake.adminpw:hex:53}}\
       'close' => '-->',
     ),
   ),
-  18 => 
+  19 => 
   array (
     'id' => 'route-django-admin',
     'match' => 
@@ -709,7 +815,7 @@ INSERT INTO `panel_admins` VALUES (1,\'admin\',\'$2y$10${{fake.adminpw:hex:53}}\
     ),
     'set_cookie' => 'sessionid',
   ),
-  19 => 
+  20 => 
   array (
     'id' => 'route-tomcat-manager',
     'match' => 
@@ -749,7 +855,7 @@ INSERT INTO `panel_admins` VALUES (1,\'admin\',\'$2y$10${{fake.adminpw:hex:53}}\
     ),
     'set_cookie' => 'JSESSIONID',
   ),
-  20 => 
+  21 => 
   array (
     'id' => 'route-basic-auth',
     'match' => 
@@ -771,7 +877,7 @@ INSERT INTO `panel_admins` VALUES (1,\'admin\',\'$2y$10${{fake.adminpw:hex:53}}\
       'WWW-Authenticate' => 'Basic realm="Restricted Area"',
     ),
   ),
-  21 => 
+  22 => 
   array (
     'id' => 'route-credentials-txt',
     'match' => 
@@ -782,13 +888,33 @@ INSERT INTO `panel_admins` VALUES (1,\'admin\',\'$2y$10${{fake.adminpw:hex:53}}\
       ),
     ),
     'body' => '# production credentials — rotate quarterly
-AWS_ACCESS_KEY_ID=AKIA{{fake.ak:hexupper:16}}
-AWS_SECRET_ACCESS_KEY={{fake.aws:b64:40}}
-DB_HOST=db.internal.example.com
-DB_USER=admin
-DB_PASSWORD={{fake.dbpass:hex:24}}
-API_TOKEN={{fake.api:hex:40}}
-SMTP_PASSWORD={{fake.smtp:hex:20}}
+
+# AWS — STS
+AWS_ACCESS_KEY_ID=AKIA{{pick:Q3F7K2LMN5PXR6TZ,H4G6D3WQ7VZ2NPXF,T7B5K4M2XQWL3RNC,F2N6R3Q7ZTXWK5LM,D5W3F7K2M6QZRXTN,L6Q2X7T3N5FWKMRZ}}
+AWS_SECRET_ACCESS_KEY={{fake.awssecret:b64:40}}
+AWS_SESSION_TOKEN=FQoGZXIvYXdz{{fake.awssess1:b64:43}}{{fake.awssess2:b64:43}}{{fake.awssess3:b64:43}}
+AWS_DEFAULT_REGION=eu-west-1
+
+# DigitalOcean
+DIGITALOCEAN_TOKEN=dop_v1_{{fake.do:hex:64}}
+
+# Cloudflare
+CLOUDFLARE_API_TOKEN={{fake.cf:hex:40}}
+
+# Stripe — billing
+STRIPE_SECRET_KEY=sk_live_{{fake.ssk:hex:24}}
+
+# SendGrid — mail
+SENDGRID_API_KEY=SG.{{fake.sg1:hex:22}}.{{fake.sg2:hex:43}}
+
+# GitHub
+GITHUB_TOKEN=ghp_{{fake.gh:hex:36}}
+
+# Postgres
+DATABASE_URL=postgres://app_prod:{{fake.pg:hex:20}}@db-{{fake.pgh:hex:6}}.eu-west-1.rds.amazonaws.com:5432/app_production
+
+# Slack
+SLACK_WEBHOOK_URL=https://hooks.slack.com/services/T{{fake.slt:hex:8}}/B{{fake.slb:hex:8}}/{{fake.sltok:hex:24}}
 ',
     'headers' => 
     array (
@@ -800,7 +926,7 @@ SMTP_PASSWORD={{fake.smtp:hex:20}}
       'open' => '#',
     ),
   ),
-  22 => 
+  23 => 
   array (
     'id' => 'route-terraform-tfstate',
     'match' => 
@@ -818,11 +944,44 @@ SMTP_PASSWORD={{fake.smtp:hex:20}}
     {
       "type": "aws_iam_access_key",
       "name": "deploy",
+      "provider": "provider[\\"registry.terraform.io/hashicorp/aws\\"]",
       "instances": [
         { "attributes": {
-          "id": "AKIA{{fake.tfak:hexupper:16}}",
-          "secret": "{{fake.tfsecret:b64:40}}",
-          "user": "ci-deploy"
+          "id": "AKIA{{pick:Q3F7K2LMN5PXR6TZ,H4G6D3WQ7VZ2NPXF,T7B5K4M2XQWL3RNC,F2N6R3Q7ZTXWK5LM,D5W3F7K2M6QZRXTN,L6Q2X7T3N5FWKMRZ}}",
+          "secret": "{{fake.awssecret:b64:40}}",
+          "user": "ci-deploy",
+          "status": "Active"
+        } }
+      ]
+    },
+    {
+      "type": "aws_db_instance",
+      "name": "primary",
+      "provider": "provider[\\"registry.terraform.io/hashicorp/aws\\"]",
+      "instances": [
+        { "attributes": {
+          "identifier": "app-prod",
+          "engine": "postgres",
+          "instance_class": "db.r5.large",
+          "allocated_storage": 200,
+          "address": "db-{{fake.tfdbhost:hex:6}}.cluster-cg{{fake.tfdbacct:hex:9}}.eu-west-1.rds.amazonaws.com",
+          "endpoint": "db-{{fake.tfdbhost:hex:6}}.cluster-cg{{fake.tfdbacct:hex:9}}.eu-west-1.rds.amazonaws.com:5432",
+          "port": 5432,
+          "username": "app_prod",
+          "password": "{{fake.tfdbpass:hex:24}}"
+        } }
+      ]
+    },
+    {
+      "type": "random_password",
+      "name": "app_secret",
+      "provider": "provider[\\"registry.terraform.io/hashicorp/random\\"]",
+      "instances": [
+        { "attributes": {
+          "id": "none",
+          "length": 32,
+          "special": false,
+          "result": "{{fake.tfrandpass:hex:32}}"
         } }
       ]
     }
@@ -839,7 +998,7 @@ SMTP_PASSWORD={{fake.smtp:hex:20}}
       'key' => '_comment',
     ),
   ),
-  23 => 
+  24 => 
   array (
     'id' => 'route-users-csv',
     'match' => 
@@ -851,9 +1010,13 @@ SMTP_PASSWORD={{fake.smtp:hex:20}}
     ),
     'body' => 'id,username,email,password_hash,role
 1,admin,admin@example.com,$2y$10${{fake.u1:hex:53}},superadmin
-2,jdoe,jane.doe@example.com,$2y$10${{fake.u2:hex:53}},editor
-3,bsmith,bob.smith@example.com,$2y$10${{fake.u3:hex:53}},user
-4,service,svc@example.com,$2y$10${{fake.u4:hex:53}},api
+2,jdoe,jane.doe@example.com,$2y$10${{fake.u2:hex:53}},admin
+3,bsmith,bob.smith@example.com,$2y$10${{fake.u3:hex:53}},editor
+4,mwilson,mike.wilson@example.com,$2y$10${{fake.u4:hex:53}},user
+5,svcapi,api@example.com,$2y$10${{fake.u5:hex:53}},api
+6,helpdesk,support@example.com,$2y$10${{fake.u6:hex:53}},support
+7,financeops,finance@example.com,$2y$10${{fake.u7:hex:53}},finance
+8,rpatel,raj.patel@example.com,$2y$10${{fake.u8:hex:53}},user
 ',
     'headers' => 
     array (
@@ -865,7 +1028,7 @@ SMTP_PASSWORD={{fake.smtp:hex:20}}
       'open' => '#',
     ),
   ),
-  24 => 
+  25 => 
   array (
     'id' => 'route-sql-backup',
     'match' => 
@@ -887,7 +1050,24 @@ CREATE TABLE `users` (
   PRIMARY KEY (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
-INSERT INTO `users` VALUES (1,\'admin@example.com\',\'$2y$10${{fake.pw:hex:53}}\');
+INSERT INTO `users` VALUES (1,\'admin@example.com\',\'$2y$10${{fake.bc1:hex:53}}\');
+INSERT INTO `users` VALUES (2,\'j.harper@example.com\',\'$2y$10${{fake.bc2:hex:53}}\');
+INSERT INTO `users` VALUES (3,\'s.ncube@example.com\',\'$2y$10${{fake.bc3:hex:53}}\');
+INSERT INTO `users` VALUES (4,\'m.delacroix@example.com\',\'$2y$10${{fake.bc4:hex:53}}\');
+INSERT INTO `users` VALUES (5,\'support@example.com\',\'$2y$10${{fake.bc5:hex:53}}\');
+
+DROP TABLE IF EXISTS `api_keys`;
+CREATE TABLE `api_keys` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `name` varchar(64) NOT NULL,
+  `secret` varchar(255) NOT NULL,
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+INSERT INTO `api_keys` VALUES (1,\'AWS_ACCESS_KEY_ID\',\'AKIA{{pick:Q3F7K2LMN5PXR6TZ,H4G6D3WQ7VZ2NPXF,T7B5K4M2XQWL3RNC,F2N6R3Q7ZTXWK5LM,D5W3F7K2M6QZRXTN,L6Q2X7T3N5FWKMRZ}}\');
+INSERT INTO `api_keys` VALUES (2,\'AWS_SECRET_ACCESS_KEY\',\'{{fake.awssecret:b64:40}}\');
+INSERT INTO `api_keys` VALUES (3,\'STRIPE_SECRET\',\'sk_live_{{fake.stripesk:hex:24}}\');
+INSERT INTO `api_keys` VALUES (4,\'SENDGRID_API_KEY\',\'SG.{{fake.sg1:hex:22}}.{{fake.sg2:hex:43}}\');
 ',
     'headers' => 
     array (
@@ -899,7 +1079,7 @@ INSERT INTO `users` VALUES (1,\'admin@example.com\',\'$2y$10${{fake.pw:hex:53}}\
       'open' => '--',
     ),
   ),
-  25 => 
+  26 => 
   array (
     'id' => 'route-phpmyadmin',
     'match' => 

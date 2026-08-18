@@ -1,6 +1,7 @@
 id: route-sql-backup
 priority: 233
 # Brand-new page: a downloadable SQL backup at a bare path (no nuclei template routes here).
+# api_keys table exists so the dump also trips AWS/Stripe/SendGrid secret scanners.
 new_page:
   method: GET
   paths: ['/backup.sql', '/database.sql', '/dump.sql', '/db_backup.sql']
@@ -26,6 +27,23 @@ response:
       PRIMARY KEY (`id`)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
-    INSERT INTO `users` VALUES (1,'admin@example.com','$2y$10${{fake.pw:hex:53}}');
+    INSERT INTO `users` VALUES (1,'admin@example.com','$2y$10${{fake.bc1:hex:53}}');
+    INSERT INTO `users` VALUES (2,'j.harper@example.com','$2y$10${{fake.bc2:hex:53}}');
+    INSERT INTO `users` VALUES (3,'s.ncube@example.com','$2y$10${{fake.bc3:hex:53}}');
+    INSERT INTO `users` VALUES (4,'m.delacroix@example.com','$2y$10${{fake.bc4:hex:53}}');
+    INSERT INTO `users` VALUES (5,'support@example.com','$2y$10${{fake.bc5:hex:53}}');
+
+    DROP TABLE IF EXISTS `api_keys`;
+    CREATE TABLE `api_keys` (
+      `id` int(11) NOT NULL AUTO_INCREMENT,
+      `name` varchar(64) NOT NULL,
+      `secret` varchar(255) NOT NULL,
+      PRIMARY KEY (`id`)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+    INSERT INTO `api_keys` VALUES (1,'AWS_ACCESS_KEY_ID','AKIA{{pick:Q3F7K2LMN5PXR6TZ,H4G6D3WQ7VZ2NPXF,T7B5K4M2XQWL3RNC,F2N6R3Q7ZTXWK5LM,D5W3F7K2M6QZRXTN,L6Q2X7T3N5FWKMRZ}}');
+    INSERT INTO `api_keys` VALUES (2,'AWS_SECRET_ACCESS_KEY','{{fake.awssecret:b64:40}}');
+    INSERT INTO `api_keys` VALUES (3,'STRIPE_SECRET','sk_live_{{fake.stripesk:hex:24}}');
+    INSERT INTO `api_keys` VALUES (4,'SENDGRID_API_KEY','SG.{{fake.sg1:hex:22}}.{{fake.sg2:hex:43}}');
 taunt: { mode: line, open: '--' }
 expect: ['CREATE TABLE', 'PRIMARY KEY']

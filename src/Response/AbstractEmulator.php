@@ -85,18 +85,54 @@ abstract class AbstractEmulator implements EndpointEmulator
     }
 
     /**
+     * The taunt text lines, raw (no comment prefix). Plain text only — never markup that could
+     * trip a forbidden substring; the composer validates the served body regardless.
+     *
+     * @return string[]
+     */
+    protected function tauntLines(): array
+    {
+        return [
+            'nice try.',
+            'this endpoint is a honeypot. every secret above is fabricated and inert.',
+            'your request, and your IP address, have been logged.',
+        ];
+    }
+
+    /**
+     * The troll face, raw (no comment prefix). Braille (U+28xx) line art — the blanks are U+2800
+     * braille-blank, not spaces, so it stays aligned under any comment prefix. Survives JSON via
+     * JSON_UNESCAPED_UNICODE at the inline_field call site.
+     *
+     * @return string[]
+     */
+    protected function tauntArt(): array
+    {
+        return [
+            '⠀⠀⠀⠀⠀⣀⣠⠤⠶⠶⣖⡛⠛⠿⠿⠯⠭⠍⠉⣉⠛⠚⠛⠲⣄⠀⠀⠀⠀⠀',
+            '⠀⠀⢀⡴⠋⠁⠀⡉⠁⢐⣒⠒⠈⠁⠀⠀⠀⠈⠁⢂⢅⡂⠀⠀⠘⣧⠀⠀⠀⠀',
+            '⠀⠀⣼⠀⠀⠀⠁⠀⠀⠀⠂⠀⠀⠀⠀⢀⣀⣤⣤⣄⡈⠈⠀⠀⠀⠘⣇⠀⠀⠀',
+            '⢠⡾⠡⠄⠀⠀⠾⠿⠿⣷⣦⣤⠀⠀⣾⣋⡤⠿⠿⠿⠿⠆⠠⢀⣀⡒⠼⢷⣄⠀',
+            '⣿⠊⠊⠶⠶⢦⣄⡄⠀⢀⣿⠀⠀⠀⠈⠁⠀⠀⠙⠳⠦⠶⠞⢋⣍⠉⢳⡄⠈⣧',
+            '⢹⣆⡂⢀⣿⠀⠀⡀⢴⣟⠁⠀⢀⣠⣘⢳⡖⠀⠀⣀⣠⡴⠞⠋⣽⠷⢠⠇⠀⣼',
+            '⠀⢻⡀⢸⣿⣷⢦⣄⣀⣈⣳⣆⣀⣀⣤⣭⣴⠚⠛⠉⣹⣧⡴⣾⠋⠀⠀⣘⡼⠃',
+            '⠀⢸⡇⢸⣷⣿⣤⣏⣉⣙⣏⣉⣹⣁⣀⣠⣼⣶⡾⠟⢻⣇⡼⠁⠀⠀⣰⠋⠀⠀',
+            '⠀⢸⡇⠸⣿⡿⣿⢿⡿⢿⣿⠿⠿⣿⠛⠉⠉⢧⠀⣠⡴⠋⠀⠀⠀⣠⠇⠀⠀⠀',
+            '⠀⢸⠀⠀⠹⢯⣽⣆⣷⣀⣻⣀⣀⣿⣄⣤⣴⠾⢛⡉⢄⡢⢔⣠⠞⠁⠀⠀⠀⠀',
+            '⠀⢸⠀⠀⠀⠢⣀⠀⠈⠉⠉⠉⠉⣉⣀⠠⣐⠦⠑⣊⡥⠞⠋⠀⠀⠀⠀⠀⠀⠀',
+            '⠀⢸⡀⠀⠁⠂⠀⠀⠀⠀⠀⠀⠒⠈⠁⣀⡤⠞⠋⠁⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀',
+            '⠀⠀⠙⠶⢤⣤⣤⣤⣤⡤⠴⠖⠚⠛⠉⠁⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀',
+        ];
+    }
+
+    /**
      * "Nice try" banner in the file's comment syntax. Plain text only — never contains
      * markup that could trip a forbidden substring; the composer validates regardless.
      */
     protected function tauntBanner(string $open, string $close = ''): string
     {
-        $lines = [
-            'nice try.',
-            'this endpoint is a honeypot. nothing here is real.',
-            'your scan has been logged.',
-        ];
         $out = [];
-        foreach ($lines as $line) {
+        foreach ($this->tauntLines() as $line) {
             $out[] = $close === '' ? ($open . ' ' . $line) : ($open . ' ' . $line . ' ' . $close);
         }
 
