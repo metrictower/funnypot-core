@@ -94,7 +94,7 @@ abstract class AbstractEmulator implements EndpointEmulator
     {
         return [
             'nice try.',
-            'this endpoint is a honeypot. every secret above is fabricated and inert.',
+            'every secret above is fabricated and inert.',
             'your request, and your IP address, have been logged.',
         ];
     }
