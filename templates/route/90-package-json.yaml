@@ -1,0 +1,28 @@
+id: route-package-json
+priority: 90
+# package.json (also package-lock.json) — plausible manifest of common public deps.
+match:
+  template_needle: [package-json]
+response:
+  headers:
+    Content-Type: "application/json; charset=utf-8"
+  body: |
+    {
+      "name": "@example/{{pick:web-app,dashboard,storefront,admin-ui}}",
+      "version": "{{pick:1.4.2,3.0.1,2.11.0,0.9.7}}",
+      "private": true,
+      "description": "Internal web frontend.",
+      "scripts": {
+        "build": "vite build",
+        "test": "vitest run"
+      },
+      "dependencies": {
+        "react": "^18.2.0",
+        "axios": "^1.6.0"
+      },
+      "devDependencies": {
+        "vite": "^5.0.0"
+      }
+    }
+taunt: { mode: inline_field, key: '_comment' }
+expect: ['"name":', '"version":']

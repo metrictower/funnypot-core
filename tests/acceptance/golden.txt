@@ -1,0 +1,17 @@
+git-config
+configuration-listing
+webpack-config
+npm-debug-log
+npm-log-file
+appveyor-configuration-file
+ssh-authorized-keys
+config-rb
+exposed-bzr
+karma-config-js
+buildpath-file-disclosure
+tyk-gateway-detect
+aws-credentials
+prtg-detect
+esafenet-cdg-default-login
+xerox-default-login
+CVE-2019-13392

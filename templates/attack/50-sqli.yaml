@@ -1,0 +1,12 @@
+id: attack-sqli
+severity: high
+priority: 50
+tags: [attack, sqli]
+match:
+  - in: request
+    regex: '(?:''\s*or\s*''?1''?\s*=\s*''?1|"\s*or\s*"?1"?\s*=|\bunion\s+(?:all\s+)?select\b|\bor\s+1\s*=\s*1\b|information_schema|sleep\(\d|''\s*--|\bwaitfor\s+delay\b)'
+response:
+  headers:
+    Content-Type: "text/html; charset=utf-8"
+  body: "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '' at line 1\n"
+expect: ["SQL syntax"]

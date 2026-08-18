@@ -1,0 +1,14 @@
+id: attack-ssti-twig
+severity: high
+priority: 44
+tags: [attack, ssti, twig]
+# Twig/Jinja string-multiply probe 7*'7' evaluates to "7777777". Higher priority than the
+# numeric rule so the quoted variant wins. Known probe -> known result; never evaluated.
+match:
+  - in: request
+    regex: '(?:\{\{|\$\{|\#\{|<%=?)\s*7\s*\*\s*[''"]7'
+response:
+  headers:
+    Content-Type: "text/html; charset=utf-8"
+  body: "7777777\n"
+expect: ["7777777"]

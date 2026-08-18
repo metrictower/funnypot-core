@@ -1,0 +1,46 @@
+{
+    "name": "bobbymaher/funnypot-core",
+    "description": "funnypot core engine: turn a scanner's own nuclei detection template into a matching fake-vulnerable HTTP response. Pure-PHP runtime, inert by default.",
+    "type": "library",
+    "license": "MIT",
+    "require": {
+        "php": ">=8.0"
+    },
+    "require-dev": {
+        "nyholm/psr7": "^1.8",
+        "phpunit/phpunit": "^9.5",
+        "psr/http-factory": "^1.1",
+        "psr/http-message": "^2.0",
+        "psr/http-server-middleware": "^1.0",
+        "symfony/yaml": "^5.4 || ^6.0"
+    },
+    "suggest": {
+        "ext-sodium": "Required only for the pure-PHP SSH honeypot server (Protocol\\Ssh): curve25519 key exchange + ed25519 host key.",
+        "ext-openssl": "Required only for the pure-PHP SSH honeypot server (Protocol\\Ssh): the aes256-ctr transport cipher.",
+        "symfony/yaml": "Required only to compile templates (bin/funnypot). Runtime needs PHP alone.",
+        "illuminate/support": "Required only to use the Laravel bridge (Laravel\\FunnypotServiceProvider).",
+        "psr/http-server-middleware": "Required only to use the PSR-15 adapter (Http\\HoneypotMiddleware).",
+        "psr/http-message": "Required only to use the PSR-15 adapter (Http\\PsrRequestMapper / Http\\PsrResponseMapper).",
+        "psr/http-factory": "Required only to use the PSR-15 adapter (response/stream factories passed to Http\\HoneypotMiddleware)."
+    },
+    "autoload": {
+        "psr-4": {
+            "Funnypot\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Funnypot\\Tests\\": "tests/"
+        }
+    },
+    "config": {
+        "sort-packages": true
+    },
+    "extra": {
+        "laravel": {
+            "providers": [
+                "Funnypot\\Laravel\\FunnypotServiceProvider"
+            ]
+        }
+    }
+}

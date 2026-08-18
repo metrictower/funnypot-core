@@ -1,0 +1,15 @@
+id: attack-open-redirect
+severity: medium
+status: 302
+priority: 60
+tags: [attack, redirect, open-redirect]
+# A redirect-style param carrying an external URL. Location bounded-reflects it (decoded,
+# so an encoded CRLF becomes real CR/LF and is declined by the header-safety guard).
+match:
+  - in: query
+    regex: '(?:url|redirect|redirect_uri|redirect_url|next|dest|destination|return|returnurl|returnto|goto|target|continue|forward)=((?:https?:)?//[^&]+)'
+response:
+  headers:
+    Content-Type: "text/html; charset=utf-8"
+    Location: "{{urldecode:match.1}}"
+  body: "<html><head><title>302 Found</title></head><body>Redirecting...</body></html>"

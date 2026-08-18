@@ -1,0 +1,18 @@
+id: attack-confluence-26134
+severity: critical
+priority: 5
+tags: [attack, rce, confluence, ognl, cve-2022-26134]
+# Confluence OGNL injection. The exploit sends ${...(#...)...} in the URL and checks the
+# response for an X-Cmd-Response header carrying the command output. We return the uid
+# marker in that header (single-line, header-safe) and a plausible Confluence page. OGNL is
+# never evaluated. The OGNL markers (# / @ / getRuntime) keep this off plain ${7*7} SSTI.
+match:
+  - in: request
+    dotall: true
+    regex: '\$\{.*(?:#context|#cmd|@java|@org\.|getRuntime|ProcessBuilder|Runtime)'
+response:
+  headers:
+    Content-Type: "text/html;charset=UTF-8"
+    X-Cmd-Response: "{{canned.uid}}"
+  body: "<!DOCTYPE html><html><head><title>Log In - Confluence</title></head><body><div id=\"main\">Confluence</div></body></html>"
+expect: ["uid=0(root)"]

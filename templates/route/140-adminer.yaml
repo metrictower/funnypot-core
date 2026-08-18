@@ -1,0 +1,25 @@
+id: route-adminer
+priority: 140
+# Adminer database login page — dresses the existing adminer-panel bundle.
+match:
+  template_needle: [adminer-panel]
+set_cookie: PHPSESSID
+response:
+  headers:
+    Content-Type: "text/html; charset=utf-8"
+  body: |
+    <!DOCTYPE html>
+    <html><head><title>Adminer</title></head>
+    <body>
+    <h1>Adminer <span class="version">4.8.1</span></h1>
+    <form action="" method="post">
+    <p>System <select name="auth[driver]"><option value="server">MySQL</option></select></p>
+    <p>Server <input name="auth[server]" value="localhost" /></p>
+    <p>Username <input name="auth[username]" /></p>
+    <p>Password <input type="password" name="auth[password]" /></p>
+    <p>Database <input name="auth[db]" /></p>
+    <p><input type="submit" value="Login" /></p>
+    </form>
+    </body></html>
+taunt: { mode: block, open: '<!--', close: '-->' }
+expect: ['Adminer</title>']

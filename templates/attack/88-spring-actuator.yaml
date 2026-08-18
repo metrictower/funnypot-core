@@ -1,0 +1,15 @@
+id: attack-spring-actuator
+severity: high
+priority: 88
+tags: [attack, spring-boot, actuator, exposure]
+# Exposed Spring Boot Actuator. Return the HAL _links index a scanner checks for, and (for
+# /env) a property dump leaking inert fake datasource/cloud secrets.
+match:
+  - in: path
+    regex: '/actuator(?:/(?:env|health|configprops|mappings|beans|info))?/?$'
+response:
+  headers:
+    Content-Type: "application/vnd.spring-boot.actuator.v3+json"
+  body: |
+    {"_links":{"self":{"href":"http://localhost:8080/actuator","templated":false},"health":{"href":"http://localhost:8080/actuator/health"},"env":{"href":"http://localhost:8080/actuator/env"},"configprops":{"href":"http://localhost:8080/actuator/configprops"},"mappings":{"href":"http://localhost:8080/actuator/mappings"}},"propertySources":[{"name":"applicationConfig","properties":{"spring.datasource.password":{"value":"{{fake.springdb:hex:20}}"},"spring.mail.password":{"value":"{{fake.springmail:hex:16}}"}}}]}
+expect: ['_links', 'spring.datasource.password']

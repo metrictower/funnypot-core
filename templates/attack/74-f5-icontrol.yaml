@@ -1,0 +1,15 @@
+id: attack-f5-1388
+severity: critical
+priority: 76
+tags: [attack, rce, f5, big-ip, cve-2022-1388]
+# F5 BIG-IP iControl REST auth bypass (POST /mgmt/tm/util/bash, utilCmdArgs=-c <cmd>). Return
+# the runstate JSON with canned command output. The command is never executed.
+match:
+  - in: path
+    contains: "/mgmt/tm/util/bash"
+response:
+  headers:
+    Content-Type: "application/json; charset=UTF-8"
+  body: |
+    {"kind":"tm:util:bash:runstate","command":"run","utilCmdArgs":"-c id","commandResult":"uid=0(root) gid=0(root) groups=0(root)\n"}
+expect: ['tm:util:bash:runstate', 'uid=0(root)']

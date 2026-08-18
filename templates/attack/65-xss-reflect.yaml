@@ -1,0 +1,19 @@
+id: attack-xss
+severity: medium
+priority: 65
+tags: [attack, xss]
+# Reflected XSS: the one rule that echoes attacker bytes — the bounded exception to
+# "never reflect input". ONLY the matched payload ({{match.0}}) is reflected, into a fixed
+# page; nothing else from the request, nothing stored. dotall so <script>.*?</script> spans
+# newlines. Runs last (broad regex) so more specific classes win first.
+match:
+  - in: request
+    dotall: true
+    regex: '<script[^>]*>.*?</script>|<svg[^>]*>.*?</svg>|<img[^>]*\son\w+\s*=[^>]*>|<[a-z][a-z0-9]*[^>]*\son(?:error|load|mouseover|focus)\s*=[^>]*>'
+response:
+  headers:
+    Content-Type: "text/html; charset=utf-8"
+  body: |
+    <!doctype html><html><head><title>Search</title></head><body>
+    <h1>Search results</h1><p>No results found for: {{match.0}}</p>
+    </body></html>

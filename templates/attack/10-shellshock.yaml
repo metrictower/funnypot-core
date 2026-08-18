@@ -1,0 +1,13 @@
+id: attack-shellshock
+severity: critical
+priority: 10
+tags: [attack, rce, shellshock, cve-2014-6271]
+# The bash function-def prefix arrives in a request header (UA/Referer/Cookie).
+match:
+  - in: header
+    contains: "() {"
+response:
+  headers:
+    Content-Type: "text/plain; charset=utf-8"
+  body: "{{canned.passwd}}"
+expect: ["root:x:0:0"]

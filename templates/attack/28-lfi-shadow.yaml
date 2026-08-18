@@ -1,0 +1,14 @@
+id: attack-lfi-shadow
+severity: high
+priority: 28
+tags: [attack, lfi, traversal]
+# LFI targeting /etc/shadow -> fake shadow with non-cracking hashes. Ahead of the generic
+# unix rule (which would otherwise serve passwd for a shadow request).
+match:
+  - in: request
+    regex: 'etc/shadow'
+response:
+  headers:
+    Content-Type: "text/plain; charset=utf-8"
+  body: "{{canned.shadow}}"
+expect: [":0:99999:7:::"]

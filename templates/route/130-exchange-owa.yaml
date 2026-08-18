@@ -1,0 +1,24 @@
+id: route-exchange-owa
+priority: 130
+# Exchange / OWA logon page — dresses the existing microsoft-exchange-panel bundle.
+match:
+  template_needle: [microsoft-exchange-panel, exchange-admin]
+set_cookie: ASP.NET_SessionId
+response:
+  headers:
+    Content-Type: "text/html; charset=utf-8"
+  body: |
+    <!DOCTYPE html>
+    <html><head><title>Outlook</title></head>
+    <body>
+    <div id="loginArea">
+    <h1>Exchange Admin Center</h1>
+    <form action="/owa/auth.owa" method="POST">
+    <input name="username" type="text" placeholder="domain\user" />
+    <input name="password" type="password" />
+    <input type="submit" value="sign in" />
+    </form>
+    </div>
+    </body></html>
+taunt: { mode: block, open: '<!--', close: '-->' }
+expect: ['Exchange Admin Center']

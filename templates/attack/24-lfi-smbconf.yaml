@@ -1,0 +1,26 @@
+id: attack-lfi-smbconf
+severity: high
+priority: 24
+tags: [attack, lfi, traversal, smb, citrix]
+# Traversal to a product config path (Citrix ADC smb.conf and kin). Generalizes LFI past
+# /etc/passwd: a request naming smb.conf gets a fake smb.conf. Higher priority than the
+# generic unix rule so the traversal doesn't just serve passwd.
+match:
+  - in: request
+    regex: 'smb\.conf'
+response:
+  headers:
+    Content-Type: "text/plain; charset=utf-8"
+  body: |
+    [global]
+       workgroup = WORKGROUP
+       server string = %h server (Samba)
+       security = user
+       map to guest = Bad User
+       log file = /var/log/samba/log.%m
+       max log size = 1000
+    [printers]
+       comment = All Printers
+       path = /var/spool/samba
+       browseable = no
+expect: ["[global]"]

@@ -1,0 +1,22 @@
+id: attack-geoserver-36401
+severity: critical
+priority: 78
+tags: [attack, rce, geoserver, cve-2024-36401]
+# GeoServer OGC XPath evaluation RCE. The exec()/Runtime payload arrives in an OGC request to
+# /geoserver/...; return the command output in a plausible OGC exception. Never executed.
+match:
+  - in: path
+    contains: "/geoserver/"
+  - in: request
+    regex: '(?:exec\(|Runtime|ProcessBuilder|Strings\.|geoserver.{0,40}(?:ows|wfs|wms).{0,60}(?:exec|`))'
+response:
+  headers:
+    Content-Type: "application/xml; charset=UTF-8"
+  body: |
+    <?xml version="1.0" encoding="UTF-8"?>
+    <ows:ExceptionReport version="2.0.0" xmlns:ows="http://www.opengis.net/ows/1.1">
+      <ows:Exception exceptionCode="NoApplicableCode">
+        <ows:ExceptionText>uid=0(root) gid=0(root) groups=0(root)</ows:ExceptionText>
+      </ows:Exception>
+    </ows:ExceptionReport>
+expect: ['ExceptionReport', 'uid=0(root)']

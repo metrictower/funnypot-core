@@ -1,0 +1,19 @@
+id: route-wp-readme
+priority: 160
+# WordPress readme.html (version disclosure) — dresses the wordpress-readme-file bundle.
+match:
+  template_needle: [wordpress-readme-file]
+response:
+  headers:
+    Content-Type: "text/html; charset=UTF-8"
+  body: |
+    <!DOCTYPE html>
+    <html><head><title>WordPress &#8250; ReadMe</title></head>
+    <body>
+    <h1 id="logo">WordPress</h1>
+    <p>Version {{pick:6.4.2,6.3.1,5.9.3,6.2.2}}</p>
+    <h2>Installation</h2>
+    <p>Famous 5-minute install.</p>
+    </body></html>
+taunt: { mode: block, open: '<!--', close: '-->' }
+expect: ['WordPress &#8250; ReadMe']

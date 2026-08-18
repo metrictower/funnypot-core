@@ -1,0 +1,36 @@
+id: route-terraform-tfstate
+priority: 231
+# Brand-new page: a leaked terraform.tfstate with fake IAM secrets in cleartext.
+new_page:
+  method: GET
+  paths: ['/terraform.tfstate', '/.terraform/terraform.tfstate', '/infra/terraform.tfstate']
+  sig: 0
+  status: 200
+  severity: high
+  tags: [exposure, terraform, secrets]
+  name: 'Exposed terraform.tfstate'
+  body_words: ['"terraform_version"']
+response:
+  headers:
+    Content-Type: "application/json"
+  body: |
+    {
+      "version": 4,
+      "terraform_version": "1.6.2",
+      "serial": 42,
+      "resources": [
+        {
+          "type": "aws_iam_access_key",
+          "name": "deploy",
+          "instances": [
+            { "attributes": {
+              "id": "AKIA{{fake.tfak:hexupper:16}}",
+              "secret": "{{fake.tfsecret:b64:40}}",
+              "user": "ci-deploy"
+            } }
+          ]
+        }
+      ]
+    }
+taunt: { mode: inline_field, key: '_comment' }
+expect: ['"terraform_version"', 'aws_iam_access_key']

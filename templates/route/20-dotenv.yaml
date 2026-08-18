@@ -1,0 +1,29 @@
+id: route-dotenv
+priority: 20
+# Exposed .env — every value a decoy: localhost/example.com hosts, inert dummy secrets.
+match:
+  template_needle: [dotenv, env-, exposed-config, environment]
+response:
+  headers:
+    Content-Type: "text/plain; charset=utf-8"
+  body: |
+    APP_NAME={{pick:Acme,Platform,Portal,Service}}
+    APP_ENV=production
+    APP_KEY=base64:{{fake.appkey:hex:32}}==
+    APP_DEBUG=false
+    APP_URL=https://app.example.com
+
+    DB_CONNECTION=mysql
+    DB_HOST=127.0.0.1
+    DB_PORT=3306
+    DB_DATABASE=app_production
+    DB_USERNAME=app_ro
+    DB_PASSWORD={{fake.dbpass:hex:24}}
+
+    MAIL_MAILER=smtp
+    MAIL_HOST=smtp.example.com
+    MAIL_PORT=587
+    MAIL_USERNAME=no-reply@example.com
+    MAIL_PASSWORD={{fake.mail:hex:20}}
+taunt: { mode: line, open: '#' }
+expect: ['APP_KEY=base64:', 'DB_PASSWORD=']

@@ -1,0 +1,26 @@
+id: route-django-admin
+priority: 190
+# Django admin login — dresses the existing django-admin-panel bundle.
+match:
+  template_needle: [django-admin-panel, default-django-page]
+set_cookie: sessionid
+response:
+  headers:
+    Content-Type: "text/html; charset=utf-8"
+  body: |
+    <!DOCTYPE html>
+    <html lang="en"><head><title>Log in | Django site admin</title></head>
+    <body class="login">
+    <div id="container">
+    <div id="header"><h1 id="site-name">Django administration</h1></div>
+    <div id="content">
+    <form action="/admin/login/" method="post" id="login-form">
+    <div class="form-row"><label>Username:</label><input type="text" name="username" /></div>
+    <div class="form-row"><label>Password:</label><input type="password" name="password" /></div>
+    <div class="submit-row"><input type="submit" value="Log in" /></div>
+    </form>
+    </div>
+    </div>
+    </body></html>
+taunt: { mode: block, open: '<!--', close: '-->' }
+expect: ['Django administration']

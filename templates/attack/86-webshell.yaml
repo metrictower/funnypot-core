@@ -1,0 +1,22 @@
+id: attack-webshell-panel
+severity: critical
+priority: 86
+tags: [attack, webshell, backdoor]
+# A probe hitting a known webshell filename or supplying a cmd= param gets a believable
+# c99/WSO-style panel with canned command output — the marker attackers grep to confirm the
+# backdoor "works". Nothing is executed; the output is static canned data.
+match:
+  - in: request
+    regex: '(?:/(?:c99|wso|r57|b374k|shell|cmd|alfa|indoxploit)\.php|(?:^|[?&\s])(?:cmd|command|exec|shell_exec|passthru)=)'
+response:
+  headers:
+    Content-Type: "text/html; charset=utf-8"
+  body: |
+    <html><head><title>Shell</title></head><body bgcolor="black" text="green">
+    <b>uname:</b> Linux web01 5.15.0 x86_64 GNU/Linux<br>
+    <b>user:</b> uid=33(www-data) gid=33(www-data) groups=33(www-data)<br>
+    <pre>$ id
+    uid=33(www-data) gid=33(www-data) groups=33(www-data)
+    $ </pre>
+    </body></html>
+expect: ['uid=33(www-data)']

@@ -1,0 +1,16 @@
+id: attack-citrix-bleed-4966
+severity: critical
+priority: 84
+tags: [attack, citrix, netscaler, memory-leak, cve-2023-4966]
+# Citrix Bleed: a request to the OpenID config endpoint (exploited with an oversized repeated
+# Host header) leaks memory containing a session token. Return a fabricated leaked token blob.
+match:
+  - in: path
+    contains: "/oauth/idp/.well-known/openid-configuration"
+response:
+  headers:
+    Content-Type: "application/json; charset=utf-8"
+  body: |
+    {"issuer":"https://gateway.example.com/oauth/idp","authorization_endpoint":"https://gateway.example.com/oauth/idp/login"}
+    {{fake.bleed:hex:60}}{{fake.bleed2:hex:60}}
+expect: ['authorization_endpoint']

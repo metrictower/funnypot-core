@@ -1,0 +1,13 @@
+id: attack-lfi-group
+severity: high
+priority: 29
+tags: [attack, lfi, traversal]
+# LFI targeting /etc/group -> fake group file. Ahead of the generic unix rule.
+match:
+  - in: request
+    regex: 'etc/group'
+response:
+  headers:
+    Content-Type: "text/plain; charset=utf-8"
+  body: "{{canned.group}}"
+expect: ["root:x:0:"]

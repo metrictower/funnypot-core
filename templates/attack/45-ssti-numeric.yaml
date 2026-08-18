@@ -1,0 +1,14 @@
+id: attack-ssti-numeric
+severity: high
+priority: 45
+tags: [attack, ssti]
+# SSTI probe {{7*7}} / ${7*7} / #{7*7} / <%= 7*7 %> evaluates to 49. Known probe -> known
+# result; the expression is never evaluated.
+match:
+  - in: request
+    regex: '(?:\{\{|\$\{|\#\{|<%=?)\s*7\s*\*\s*7'
+response:
+  headers:
+    Content-Type: "text/html; charset=utf-8"
+  body: "49\n"
+expect: ["49"]

@@ -1,0 +1,17 @@
+id: attack-fortios-40684
+severity: critical
+priority: 80
+tags: [attack, fortinet, fortios, auth-bypass, cve-2022-40684]
+# FortiOS/FortiProxy admin auth bypass via the trusted Forwarded header. A request to the
+# admin API with a Forwarded header returns the admin account list without credentials.
+match:
+  - in: path
+    contains: "/api/v2/cmdb/system/admin"
+  - in: header:Forwarded
+    contains: "for="
+response:
+  headers:
+    Content-Type: "application/json"
+  body: |
+    {"http_method":"GET","results":[{"name":"admin","accprofile":"super_admin","trusthost1":"0.0.0.0 0.0.0.0","q_origin_key":"admin"}],"vdom":"root","path":"system","name":"admin","status":"success","http_status":200}
+expect: ['super_admin', '"status":"success"']

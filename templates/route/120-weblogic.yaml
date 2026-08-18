@@ -1,0 +1,23 @@
+id: route-weblogic
+priority: 120
+# Oracle WebLogic admin console login — dresses the existing weblogic nuclei bundle.
+match:
+  template_needle: [weblogic-login, weblogic]
+set_cookie: JSESSIONID
+response:
+  headers:
+    Content-Type: "text/html; charset=UTF-8"
+  body: |
+    <!DOCTYPE html>
+    <html><head><title>Oracle WebLogic Server Administration Console</title></head>
+    <body>
+    <h1>Oracle WebLogic Server Administration Console</h1>
+    <p>WebLogic Server Version: 10.3.6.0</p>
+    <form action="/console/j_security_check" method="post">
+    <label>Username</label><input name="j_username" type="text" />
+    <label>Password</label><input name="j_password" type="password" />
+    <input type="submit" value="Login" />
+    </form>
+    </body></html>
+taunt: { mode: block, open: '<!--', close: '-->' }
+expect: ['WebLogic', '10.3.6.0']

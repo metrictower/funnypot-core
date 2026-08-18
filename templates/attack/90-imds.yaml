@@ -1,0 +1,23 @@
+id: attack-cloud-imds
+severity: high
+priority: 90
+tags: [attack, ssrf, cloud-metadata, imds]
+# A direct probe for the cloud instance-metadata service (AWS/GCP/Azure paths). Return a
+# well-formed fake IAM credential blob — inert, seeded per attacker. No outbound call is ever
+# made (the OOB-SSRF variant is deliberately not emulated).
+match:
+  - in: path
+    regex: '(?:/latest/meta-data/iam/security-credentials|/latest/dynamic/instance-identity|/computeMetadata/v1/|/metadata/instance)'
+response:
+  headers:
+    Content-Type: "application/json"
+  body: |
+    {
+      "Code" : "Success",
+      "Type" : "AWS-HMAC",
+      "AccessKeyId" : "ASIA{{fake.imdsak:hexupper:16}}",
+      "SecretAccessKey" : "{{fake.imdssecret:b64:40}}",
+      "Token" : "{{fake.imdstoken:b64:100}}",
+      "Expiration" : "2030-01-01T00:00:00Z"
+    }
+expect: ['AccessKeyId', 'SecretAccessKey']

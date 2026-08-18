@@ -1,0 +1,27 @@
+id: route-sql-dump
+priority: 110
+# Exposed SQL dump / database backup — DDL markers in a plausible schema + one seed row.
+# Admin password is an inert fakeHex stub; all emails @example.com.
+match:
+  template_needle: [database-backup, sql-dump, sql-backup, mysql-dump, db-dump]
+response:
+  headers:
+    Content-Type: "application/sql"
+  body: |
+    -- MySQL dump 10.13  Distrib 8.0.36
+    --
+    -- Host: localhost    Database: {{pick:froxlor,app_prod,cms,billing}}
+    -- ------------------------------------------------------
+
+    DROP TABLE IF EXISTS `panel_admins`;
+    CREATE TABLE `panel_admins` (
+      `adminid` int(11) NOT NULL AUTO_INCREMENT,
+      `loginname` varchar(50) NOT NULL DEFAULT '',
+      `password` varchar(255) NOT NULL DEFAULT '',
+      `email` varchar(255) NOT NULL DEFAULT '',
+      PRIMARY KEY (`adminid`)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+    INSERT INTO `panel_admins` VALUES (1,'admin','$2y$10${{fake.adminpw:hex:53}}','admin@example.com');
+taunt: { mode: line, open: '--' }
+expect: ['CREATE TABLE', 'PRIMARY KEY']

@@ -1,0 +1,27 @@
+id: route-tomcat-manager
+priority: 200
+# Exposed Tomcat Web Application Manager — dresses the existing nuclei tomcat bundle.
+match:
+  template_needle: [apache-tomcat-exposed, tomcat-default-login, tomcat]
+set_cookie: JSESSIONID
+response:
+  headers:
+    Content-Type: "text/html;charset=utf-8"
+  body: |
+    <!DOCTYPE html>
+    <html><head><title>/manager</title></head>
+    <body>
+    <h1>Tomcat Web Application Manager</h1>
+    <table>
+    <tr><th>Path</th><th>Version</th><th>Display Name</th><th>Running</th><th>Sessions</th></tr>
+    <tr><td>/</td><td>None</td><td>Welcome to Tomcat</td><td>true</td><td>0</td></tr>
+    <tr><td>/manager</td><td>None</td><td>Tomcat Manager Application</td><td>true</td><td>1</td></tr>
+    </table>
+    <h2>Server Information</h2>
+    <table>
+    <tr><th>Tomcat Version</th><th>JVM Version</th><th>OS Name</th></tr>
+    <tr><td>Apache Tomcat/{{pick:9.0.71,8.5.87,10.1.7}}</td><td>17.0.6+10</td><td>Linux</td></tr>
+    </table>
+    </body></html>
+taunt: { mode: block, open: '<!--', close: '-->' }
+expect: ['Tomcat Web Application Manager', 'Server Information', 'Tomcat Version']

@@ -1,0 +1,23 @@
+id: route-users-csv
+priority: 232
+# Brand-new page: an exported users.csv with fake accounts + inert bcrypt-shaped hashes.
+new_page:
+  method: GET
+  paths: ['/users.csv', '/export/users.csv', '/backup/users.csv']
+  sig: 0
+  status: 200
+  severity: medium
+  tags: [exposure, pii, credentials]
+  name: 'Exposed users.csv'
+  body_words: ['password_hash']
+response:
+  headers:
+    Content-Type: "text/csv; charset=utf-8"
+  body: |
+    id,username,email,password_hash,role
+    1,admin,admin@example.com,$2y$10${{fake.u1:hex:53}},superadmin
+    2,jdoe,jane.doe@example.com,$2y$10${{fake.u2:hex:53}},editor
+    3,bsmith,bob.smith@example.com,$2y$10${{fake.u3:hex:53}},user
+    4,service,svc@example.com,$2y$10${{fake.u4:hex:53}},api
+taunt: { mode: line, open: '#' }
+expect: ['password_hash', 'admin@example.com']

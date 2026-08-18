@@ -1,0 +1,15 @@
+id: attack-ivanti-21887
+severity: critical
+priority: 82
+tags: [attack, ivanti, connect-secure, rce, cve-2023-46805, cve-2024-21887]
+# Ivanti Connect Secure auth-bypass traversal + command-injection chain. The keys-status /
+# system-information API path (with traversal) returns command output. Never executed.
+match:
+  - in: request
+    regex: '/api/v1/(?:totp/user-backup-code|license/keys-status|system/system-information)'
+response:
+  headers:
+    Content-Type: "application/json"
+  body: |
+    {"web_server_version":"22.6R2","system":"Linux","result":"uid=0(root) gid=0(root) groups=0(root)\n"}
+expect: ['uid=0(root)', 'web_server_version']

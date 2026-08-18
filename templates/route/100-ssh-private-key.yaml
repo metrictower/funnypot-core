@@ -1,0 +1,19 @@
+id: route-ssh-private-key
+priority: 100
+# Exposed PEM private key — deliberately short, obviously-truncated stub, not a real key.
+# Matches any bundle whose required words announce a "PRIVATE KEY" header (the whole
+# key-exposure family). The bundle's exact BEGIN line is guaranteed by appendMissingTokens.
+match:
+  body_word_contains: ['PRIVATE KEY']
+response:
+  headers:
+    Content-Type: "application/x-pem-file"
+  body: |
+    -----BEGIN RSA PRIVATE KEY-----
+    {{fake.pem-a:b64:64}}
+    {{fake.pem-b:b64:64}}
+    {{fake.pem-c:b64:64}}
+    {{fake.pem-d:b64:64}}
+    -----END RSA PRIVATE KEY-----
+taunt: { mode: line, open: '#' }
+expect: ['BEGIN', 'PRIVATE KEY']

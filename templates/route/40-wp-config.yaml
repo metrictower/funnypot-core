@@ -1,0 +1,35 @@
+id: route-wp-config
+priority: 40
+# Leaked wp-config.php backup with DB creds + WP Offload Media (S3) keys — all decoys.
+match:
+  template_needle: [wpconfig-aws-keys, aws-credentials, wp-config]
+response:
+  headers:
+    Content-Type: "text/plain; charset=utf-8"
+  body: |
+    <?php
+    /**
+     * The base configuration for WordPress (backup copy).
+     */
+
+    // ** Database settings ** //
+    define('DB_NAME', '{{pick:wp_prod,wordpress,wp_live,blog}}');
+    define('DB_USER', 'wp_app');
+    define('DB_PASSWORD', '{{fake.dbpass:hex:24}}');
+    define('DB_HOST', '127.0.0.1');
+    define('DB_CHARSET', 'utf8mb4');
+
+    // ** WP Offload Media (Amazon S3) bucket credentials ** //
+    define('AS3CF_SETTINGS', serialize(array(
+        'provider'          => 'aws',
+        'access-key-id'     => 'AKIA{{fake.akid:hexupper:16}}',
+        'secret-access-key' => '{{fake.awssecret:hex:40}}',
+        'bucket'            => 'media.example.com',
+        'region'            => 'us-east-1',
+    )));
+
+    define('AUTH_SALT', '{{fake.authsalt:hex:48}}');
+    $table_prefix = 'wp_';
+    define('WP_DEBUG', false);
+taunt: { mode: line, open: '#' }
+expect: ['access-key-id', "define('DB_PASSWORD'"]

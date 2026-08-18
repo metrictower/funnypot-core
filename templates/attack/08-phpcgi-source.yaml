@@ -1,0 +1,20 @@
+id: attack-phpcgi-1823
+severity: high
+priority: 8
+tags: [attack, php-cgi, source-disclosure, cve-2012-1823]
+# php-cgi argument injection: GET /index.php?-s makes php-cgi print the highlighted source.
+# The query string is a bare option (-s source, -d define, -w strip). We return fake
+# highlighted PHP source carrying the tell-tale highlight spans + a juicy fake credential.
+match:
+  - in: query
+    regex: '^-[sdw](?:[+ &=]|$)'
+response:
+  headers:
+    Content-Type: "text/html"
+  body: |
+    <code><span style="color: #000000">
+    <span style="color: #0000BB">&lt;?php<br /></span>
+    <span style="color: #007700">$db </span><span style="color: #0000BB">= new mysqli</span><span style="color: #007700">(</span><span style="color: #DD0000">"localhost"</span><span style="color: #007700">, </span><span style="color: #DD0000">"root"</span><span style="color: #007700">, </span><span style="color: #DD0000">"S3cr3tP@ss"</span><span style="color: #007700">);<br /></span>
+    <span style="color: #0000BB">?&gt;</span>
+    </span></code>
+expect: ["<span style"]

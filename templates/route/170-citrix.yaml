@@ -1,0 +1,24 @@
+id: route-citrix
+priority: 170
+# Citrix Gateway logon page — dresses the existing citrix-adc-gateway-panel bundle. The
+# _ctxstxt_CitrixCopyright JS variable is the exact marker the nuclei template checks for.
+match:
+  template_needle: [citrix-adc-gateway-panel]
+set_cookie: NSC_AAAC
+response:
+  headers:
+    Content-Type: "text/html; charset=utf-8"
+  body: |
+    <!DOCTYPE html>
+    <html><head><title>Citrix Gateway</title></head>
+    <body>
+    <div class="CTXMSAM_LogonFont">Citrix Gateway</div>
+    <script type="text/javascript">var _ctxstxt_CitrixCopyright = "Citrix Systems, Inc. All rights reserved.";</script>
+    <form method="post" action="/cgi/login">
+    <input name="login" type="text" />
+    <input name="passwd" type="password" />
+    <input type="submit" value="Log On" />
+    </form>
+    </body></html>
+taunt: { mode: block, open: '<!--', close: '-->' }
+expect: ['_ctxstxt_CitrixCopyright']

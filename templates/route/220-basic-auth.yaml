@@ -1,0 +1,25 @@
+id: route-basic-auth
+priority: 220
+# Brand-new page: a Basic-Auth-protected directory returning a 401 challenge.
+new_page:
+  method: GET
+  paths: ['/private/']
+  sig: 0
+  status: 401
+  severity: low
+  tags: [basic-auth, 401, exposure]
+  name: 'Basic Auth challenge'
+  body_words: ['Authorization Required']
+  typed_headers:
+    WWW-Authenticate: ['Basic realm=']
+response:
+  headers:
+    Content-Type: "text/html; charset=iso-8859-1"
+    WWW-Authenticate: 'Basic realm="Restricted Area"'
+  body: |
+    <!DOCTYPE HTML PUBLIC "-//IETF//DTD HTML 2.0//EN">
+    <html><head><title>401 Authorization Required</title></head>
+    <body><h1>Authorization Required</h1>
+    <p>This server could not verify that you are authorized to access the document requested.</p>
+    </body></html>
+expect: ['Authorization Required']

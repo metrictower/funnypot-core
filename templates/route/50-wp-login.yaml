@@ -1,0 +1,37 @@
+id: route-wp-login
+priority: 50
+# WordPress wp-login.php with open registration; all links point at an example.com blog.
+match:
+  template_needle: [wordpress-login, wp-enabled-registration, wp-registration-enabled]
+set_cookie: PHPSESSID
+response:
+  headers:
+    Content-Type: "text/html; charset=UTF-8"
+  body: |
+    <!DOCTYPE html>
+    <html lang="en-US">
+    <head>
+    <meta charset="UTF-8" />
+    <title>Log In &lsaquo; {{pick:Example Site,Acme Blog,Company News,The Portal}} &#8212; WordPress</title>
+    <link rel='stylesheet' href='https://blog.example.com/wp-includes/css/dist/block-library/style.min.css' />
+    </head>
+    <body class="login no-js login-action-login wp-core-ui">
+    <div id="login">
+    <h1><a href="https://blog.example.com/">Example Site</a></h1>
+    <p class="message register">Register For This Site</p>
+    <form name="loginform" id="loginform" action="https://blog.example.com/wp-login.php" method="post">
+    <p><label>Username or Email Address<br />
+    <input type="text" name="log" class="input" /></label></p>
+    <p><label>Password<br />
+    <input type="password" name="pwd" class="input" /></label></p>
+    <p class="submit"><input type="submit" name="wp-submit" value="Log In" /></p>
+    </form>
+    <p id="nav">
+    <a href="https://blog.example.com/wp-login.php?action=register">Register</a> |
+    <a href="https://blog.example.com/wp-login.php?action=lostpassword">Lost your password?</a>
+    </p>
+    </div>
+    </body>
+    </html>
+taunt: { mode: block, open: '<!--', close: '-->' }
+expect: ['Register For This Site', 'wp-login.php']

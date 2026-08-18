@@ -1,0 +1,31 @@
+id: route-sql-backup
+priority: 233
+# Brand-new page: a downloadable SQL backup at a bare path (no nuclei template routes here).
+new_page:
+  method: GET
+  paths: ['/backup.sql', '/database.sql', '/dump.sql', '/db_backup.sql']
+  sig: 0
+  status: 200
+  severity: high
+  tags: [exposure, database, backup]
+  name: 'Exposed SQL backup'
+  body_words: ['CREATE TABLE']
+response:
+  headers:
+    Content-Type: "application/sql"
+  body: |
+    -- MySQL dump 10.13  Distrib 8.0.36
+    -- Host: localhost    Database: {{pick:app_prod,cms,billing,shop}}
+    -- ------------------------------------------------------
+
+    DROP TABLE IF EXISTS `users`;
+    CREATE TABLE `users` (
+      `id` int(11) NOT NULL AUTO_INCREMENT,
+      `email` varchar(255) NOT NULL,
+      `password` varchar(255) NOT NULL,
+      PRIMARY KEY (`id`)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+    INSERT INTO `users` VALUES (1,'admin@example.com','$2y$10${{fake.pw:hex:53}}');
+taunt: { mode: line, open: '--' }
+expect: ['CREATE TABLE', 'PRIMARY KEY']

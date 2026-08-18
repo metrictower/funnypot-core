@@ -1,0 +1,25 @@
+id: route-joomla
+priority: 150
+# Joomla administrator login — dresses the existing joomla-panel bundle. The generator
+# meta tag is the exact marker the nuclei template looks for.
+match:
+  template_needle: [joomla-panel]
+set_cookie: PHPSESSID
+response:
+  headers:
+    Content-Type: "text/html; charset=utf-8"
+  body: |
+    <!DOCTYPE html>
+    <html><head>
+    <meta name="generator" content="Joomla! - Open Source Content Management" />
+    <title>Administration - Login</title>
+    </head>
+    <body>
+    <form action="/administrator/index.php" method="post">
+    <input name="username" type="text" />
+    <input name="passwd" type="password" />
+    <button type="submit">Log in</button>
+    </form>
+    </body></html>
+taunt: { mode: block, open: '<!--', close: '-->' }
+expect: ['content="Joomla! - Open Source Content Management"']

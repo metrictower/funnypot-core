@@ -1,0 +1,13 @@
+id: attack-xxe
+severity: high
+priority: 20
+tags: [attack, xxe, file-disclosure]
+# XML body declaring an external entity pointing at a local file. We never parse it.
+match:
+  - in: body
+    regex: '<!ENTITY\s+\S+\s+SYSTEM\s+["''\s]*(?:file:|https?:|php:)'
+response:
+  headers:
+    Content-Type: "application/xml; charset=utf-8"
+  body: "{{canned.passwd}}"
+expect: ["root:x:0:0"]

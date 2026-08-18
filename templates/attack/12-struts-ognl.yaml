@@ -1,0 +1,16 @@
+id: attack-struts-ognl
+severity: critical
+priority: 12
+tags: [attack, rce, struts, ognl, cve-2017-5638]
+# Struts2 OGNL RCE. The payload arrives in Content-Type (%{...(#cmd=...)...}); we never
+# evaluate OGNL, just return the uid marker the exploit checks for. dotall: the payload
+# spans the whole header value between %{ and the injection markers.
+match:
+  - in: header:Content-Type
+    dotall: true
+    regex: '%\{.*(?:#context|#cmd|#_memberAccess|\(#|multipart/form-data.*[({])'
+response:
+  headers:
+    Content-Type: "text/html; charset=utf-8"
+  body: "{{canned.uid}}"
+expect: ["uid=0(root)"]

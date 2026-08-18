@@ -1,0 +1,7 @@
+/vendor/
+composer.lock
+demo/storage/
+scripts/deploy.env
+
+.claude/
+demo/storage/*.sqlite*

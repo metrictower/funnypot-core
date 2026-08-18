@@ -1,0 +1,15 @@
+id: attack-lfi-unix
+severity: high
+priority: 31
+tags: [attack, lfi, traversal]
+# Path traversal or a unix LFI target -> fake /etc/passwd with the root:x:0:0 marker.
+# Matches both raw (../) and percent-encoded (..%2f) forms; the request surface also folds
+# in a decoded copy, so an encoded traversal is caught either way. Never reads a real file.
+match:
+  - in: request
+    regex: '(?:\.\.[\\/]|%2e%2e|\.\.%2f|\.\.%5c|etc/passwd|etc/shadow|/proc/self/environ|wp-config\.php%00)'
+response:
+  headers:
+    Content-Type: "text/plain; charset=utf-8"
+  body: "{{canned.passwd}}"
+expect: ["root:x:0:0"]

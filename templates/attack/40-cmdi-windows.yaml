@@ -1,0 +1,21 @@
+id: attack-cmdi-windows
+severity: critical
+priority: 40
+tags: [attack, rce, command-injection, windows]
+# Shell metacharacter immediately before a Windows recon command -> fake ipconfig output.
+# We never run a command; the body is static. Higher priority than the unix rule.
+match:
+  - in: request
+    regex: '(?:[;|&\n`]|\$\(|%0a|%7c|%26)\s*(?:ipconfig|systeminfo|dir\b|type\s)'
+response:
+  headers:
+    Content-Type: "text/plain; charset=utf-8"
+  body: |
+    Windows IP Configuration
+
+    Ethernet adapter Ethernet0:
+       Connection-specific DNS Suffix  . :
+       IPv4 Address. . . . . . . . . . . : 192.0.2.15
+       Subnet Mask . . . . . . . . . . . : 255.255.255.0
+       Default Gateway . . . . . . . . . : 192.0.2.1
+expect: ["Windows IP Configuration"]

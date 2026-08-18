@@ -1,0 +1,14 @@
+id: attack-lfi-environ
+severity: high
+priority: 25
+tags: [attack, lfi, traversal, proc]
+# LFI targeting /proc/self/environ -> fake NUL-separated environ with PATH=/USER= markers.
+# Ahead of the generic unix rule so the right file is served, not passwd.
+match:
+  - in: request
+    regex: '/proc/self/environ'
+response:
+  headers:
+    Content-Type: "text/plain; charset=utf-8"
+  body: "{{canned.environ}}"
+expect: ["PATH="]

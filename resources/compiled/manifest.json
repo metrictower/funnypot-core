@@ -1,0 +1,42 @@
+{
+    "schema": 1,
+    "source": "projectdiscovery/nuclei-templates",
+    "license": "MIT (c) 2025 ProjectDiscovery, Inc.",
+    "upstream_tag": "2ec9141",
+    "upstream_sha": "2ec914123864439c3618e7e9ae72d32d0eb56df7",
+    "built_at": "2026-08-17T14:04:52+00:00",
+    "templates_seen": 11196,
+    "templates_in": 6343,
+    "templates_indexed": 6343,
+    "route_keys": 5107,
+    "multi_bundle_keys": 276,
+    "largest_bundle_count": 1325,
+    "persona_cap": {
+        "n": 40,
+        "capped_path_count": 3,
+        "capped_paths": {
+            "GET /": {
+                "bundles_before": 1325,
+                "bundles_after": 40,
+                "implausible_dropped": 15,
+                "detect_ids": 1590
+            },
+            "GET /index.php": {
+                "bundles_before": 187,
+                "bundles_after": 40,
+                "implausible_dropped": 1,
+                "detect_ids": 208
+            },
+            "GET /login": {
+                "bundles_before": 118,
+                "bundles_after": 40,
+                "implausible_dropped": 0,
+                "detect_ids": 126
+            }
+        },
+        "deferred_cross_path_coherence": "Phase 3.5: persona is picked independently per path (seed % sum(w)), so a single scan can get e.g. WordPress at / and Jenkins at /index.php. Residual tell, not blocking; fix by choosing one product family per attacker from a global weighted table."
+    },
+    "sha256": "adb34e4ee0eb9997c4e16fcacec8564354f68a89ea7f03ef34973b8a3641551f",
+    "skipped_count": 4853,
+    "artifact_bytes": 6304799
+}

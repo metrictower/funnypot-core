@@ -1,0 +1,30 @@
+id: route-xmlrpc
+priority: 30
+# WordPress xmlrpc.php methodResponse — describes methods only, implements nothing.
+match:
+  template_needle: [xmlrpc, xml-rpc]
+response:
+  headers:
+    Content-Type: "text/xml; charset=UTF-8"
+  body: |
+    <?xml version="1.0" encoding="UTF-8"?>
+    <methodResponse>
+      <params>
+        <param>
+          <value>
+          <array><data>
+          <value><string>system.multicall</string></value>
+          <value><string>system.listMethods</string></value>
+          <value><string>system.getCapabilities</string></value>
+          <value><string>wp.getUsersBlogs</string></value>
+          <value><string>wp.getPost</string></value>
+          <value><string>wp.getPosts</string></value>
+          <value><string>wp.getOptions</string></value>
+          <value><string>pingback.ping</string></value>
+          </data></array>
+          </value>
+        </param>
+      </params>
+    </methodResponse>
+taunt: { mode: block, open: '<!--', close: '-->' }
+expect: ['methodResponse', 'system.multicall']

@@ -1,0 +1,14 @@
+id: attack-php-glastopf
+severity: critical
+priority: 46
+tags: [attack, rce, php-injection, glastopf]
+# Glastopf-style PHP-injection probe: a [php]...[/php] block calling a command function on a
+# recon command. Known probe -> canned uid marker. The code is never executed.
+match:
+  - in: request
+    regex: '\[php\][\s\S]*?(?:system|passthru|exec|shell_exec|popen)\s*\(\s*[''"]?(?:id|whoami|uname)'
+response:
+  headers:
+    Content-Type: "text/html; charset=utf-8"
+  body: "{{canned.uid}}"
+expect: ["uid=0(root)"]

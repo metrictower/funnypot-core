@@ -1,0 +1,14 @@
+id: attack-phpunit-rce
+severity: critical
+priority: 15
+tags: [attack, rce, phpunit, cve-2017-9841]
+# POST to eval-stdin.php with an <?php ... md5(x) ...?> probe. We compute md5(x) — never eval.
+match:
+  - in: path
+    contains: "eval-stdin.php"
+  - in: body
+    regex: 'md5\(["'']?([^)"'']+)["'']?\)'
+response:
+  headers:
+    Content-Type: "text/html; charset=utf-8"
+  body: "{{compute.md5:match.1}}"
