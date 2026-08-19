@@ -67,17 +67,94 @@ final class Honeypot implements Engine
         return new self(PhpArrayStore::fromPackage(), $config, $observer);
     }
 
+    /**
+     * Back-compat detection shim: detect() is classify() against an empty SiteProfile, projected
+     * to its Detection. No caller breaks (two-phase design §2.1).
+     */
     public function detect(RequestContext $r): Detection
     {
+        return $this->classify($r, SiteProfile::empty())->detection;
+    }
+
+    /**
+     * Content detection only (two-phase design §2.1): route resolution, then — on a miss — the
+     * attack-payload matcher, consulting the SiteProfile real-route oracle. Always safe to call:
+     * no gates, no I/O, no side effects. Answers "what is this request, as content?" — never
+     * "should we act?". The request-shape bot signals ride on the Verdict (Phase 1b).
+     */
+    public function classify(RequestContext $r, SiteProfile $profile): Verdict
+    {
+        $signals = $this->botSignals($r);
+        $anomaly = $signals->weight;
+
         $resolved = $this->resolveEntry($r->method, $r->path);
-        if ($resolved === null) {
-            return Detection::none();
+        if ($resolved !== null) {
+            [$key, $entry] = $resolved;
+            $bundles = $entry['b'] ?? [];
+
+            // An entry with no servable bundles, or a path the host declares as a genuine route,
+            // is not a probe — never shadow a live endpoint (M2). Mirrors respond()'s early null.
+            if ($bundles === [] || $profile->hasRoute($r->method, PathNormalizer::normalize($r->path))) {
+                return new Verdict(Verdict::CLEAN, Detection::none(), '', $anomaly, $signals, null);
+            }
+
+            $detection = $this->detectionFor($key, $this->detectIds($entry));
+            $handle = FakeHandle::route($key);
+
+            // A bare root/homepage entry (all bundles sig=1) is an ordinary-visitor path: classify
+            // clean natively (the probe-signature predicate is a policy input, not content). Keep
+            // the handle so the policy can still synthesize when it supplies one.
+            $classification = ($detection->isEmpty() || $this->isRootEntry($bundles))
+                ? Verdict::CLEAN
+                : Verdict::SCANNER_PROBE;
+
+            return new Verdict($classification, $detection, $detection->highestSeverity, $anomaly, $signals, $handle);
         }
-        [$key, $entry] = $resolved;
 
-        $detection = $this->detectionFor($key, $this->detectIds($entry));
+        if ($this->attackEmulator !== null) {
+            $matched = $this->attackEmulator->matchRule($r);
+            if ($matched !== null) {
+                $rule = $matched['rule'];
+                $detection = TemplateAttackEmulator::detectionForRule($rule);
+                $handle = FakeHandle::attack((string) ($rule['id'] ?? 'attack'), $matched['captures']);
 
-        return $detection->isEmpty() ? Detection::none() : $detection;
+                return new Verdict(
+                    Verdict::ATTACK_CLASS,
+                    $detection,
+                    $detection->highestSeverity,
+                    $anomaly,
+                    $signals,
+                    $handle
+                );
+            }
+        }
+
+        return new Verdict(Verdict::CLEAN, Detection::none(), '', $anomaly, $signals, null);
+    }
+
+    /**
+     * True when every servable bundle for an entry is a root/homepage class (sig=1).
+     *
+     * @param array<int,array<string,mixed>> $bundles
+     */
+    private function isRootEntry(array $bundles): bool
+    {
+        foreach ($bundles as $bundle) {
+            if ((int) ($bundle['sig'] ?? 0) !== 1) {
+                return false;
+            }
+        }
+
+        return $bundles !== [];
+    }
+
+    /**
+     * Request-shape bot signals (decision S / design §2.4). Placeholder in Phase 1 (an empty set);
+     * Phase 1b computes the header-presence / self-consistency / structural features here.
+     */
+    private function botSignals(RequestContext $r): BotSignalSet
+    {
+        return BotSignalSet::empty();
     }
 
     /**
