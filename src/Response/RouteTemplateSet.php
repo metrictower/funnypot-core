@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Funnypot\Response;
 
+use Funnypot\Rules\RulesLocator;
+
 /**
  * The compiled route-template rules, priority-ordered, consumed by RouteTemplateEmulator.
  * findRule() reproduces the old per-emulator supports() logic as data: first rule (by
@@ -26,10 +28,13 @@ final class RouteTemplateSet
         return new self(is_array($rules) ? $rules : []);
     }
 
-    /** Build against the route rules compiled into the package. */
+    /**
+     * Build against the route rules — a RulesUpdater-managed copy under the configured data
+     * dir when present, else the copy compiled into the package (RulesLocator decides).
+     */
     public static function fromPackage(): self
     {
-        return self::fromFile(dirname(__DIR__, 2) . '/resources/compiled/funnypot-routes.php');
+        return self::fromFile(RulesLocator::resolve('funnypot-routes.php'));
     }
 
     /**

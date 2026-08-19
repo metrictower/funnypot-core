@@ -6,6 +6,7 @@ namespace Funnypot\Template;
 
 use Funnypot\Detection;
 use Funnypot\RequestContext;
+use Funnypot\Rules\RulesLocator;
 use Funnypot\SynthesizedResponse;
 use Funnypot\TemplateMatch;
 
@@ -43,10 +44,13 @@ final class TemplateAttackEmulator
         return new self(is_array($rules) ? $rules : [], $canary);
     }
 
-    /** Build against the attack rules compiled into the package. */
+    /**
+     * Build against the attack rules — a RulesUpdater-managed copy under the configured data
+     * dir when present, else the copy compiled into the package (RulesLocator decides).
+     */
     public static function fromPackage(array $canary = []): self
     {
-        return self::fromFile(dirname(__DIR__, 2) . '/resources/compiled/funnypot-attack.php', $canary);
+        return self::fromFile(RulesLocator::resolve('funnypot-attack.php'), $canary);
     }
 
     /**

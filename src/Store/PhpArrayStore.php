@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Funnypot\Store;
 
 use Funnypot\Contracts\CompiledStore;
+use Funnypot\Rules\RulesLocator;
 use InvalidArgumentException;
 
 /**
@@ -72,13 +73,30 @@ final class PhpArrayStore implements CompiledStore
     }
 
     /**
-     * Load the full prebuilt index shipped with the package (the real ~5k-template
-     * artifact produced by the compiler). `nuclei-index.php` alongside it is a small
-     * hand-written fixture used only by unit tests, not this.
+     * Load the full prebuilt index. RulesLocator prefers a RulesUpdater-managed copy under
+     * the configured data dir and otherwise returns the artifact shipped with the package
+     * (the real ~5k-template artifact produced by the compiler). `nuclei-index.php` alongside
+     * it is a small hand-written fixture used only by unit tests, not this.
      */
     public static function fromPackage(): self
     {
-        return self::fromFile(dirname(__DIR__, 2) . '/resources/compiled/nuclei-index.full.php');
+        return self::fromFile(RulesLocator::resolve('nuclei-index.full.php'));
+    }
+
+    /**
+     * Drop the parsed-index cache for $path (or all paths). Called by RulesUpdater right
+     * after an atomic swap so a long-lived worker stops serving the pre-swap array — a
+     * rename alone does not evict this in-process cache.
+     */
+    public static function forget(?string $path = null): void
+    {
+        if ($path === null) {
+            self::$fileCache = [];
+
+            return;
+        }
+
+        unset(self::$fileCache[$path]);
     }
 
     public function lookup(string $key): ?array
