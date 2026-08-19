@@ -153,3 +153,51 @@ both on. Before that it is exactly today's `diewithBadResponse()`.
 
 None of the above is applied by this change. This file is the plan, not the
 patch.
+
+## 5. Two-phase engine contract (classify + synthesize)
+
+The engine is a **position-blind, action-free** two-phase evaluator
+(`Funnypot\Contracts\Evaluator`, which `Funnypot\Engine` extends):
+
+```php
+public function classify(RequestContext $r, SiteProfile $profile): Verdict;
+public function synthesize(Verdict $verdict, SiteProfile $profile, string $seed): ?SynthesizedResponse;
+```
+
+- **`classify()`** — content detection only. Cheap, always safe to call, no I/O,
+  no gates, no side effects. It resolves the route, runs the attack-payload
+  matcher on a miss, consults the `SiteProfile` real-route oracle, and computes
+  the request-shape bot signals. It returns a `Verdict`:
+
+  ```
+  Verdict { classification: clean|scanner-probe|attack-class|suspicious,
+            detection: Detection, severity, anomaly, signals: BotSignalSet,
+            fakeHandle: ?FakeHandle }
+  ```
+
+  `Verdict.signals` (the `BotSignalSet`) and `anomaly` are **INPUT-side only** —
+  never emitted in a response — and the *composite* "is this a bot?" decision is
+  the policy's, never core's. `anomaly` / a single weak signal alone never
+  justifies deceiving.
+
+- **`synthesize()`** — the retained deception content (nuclei-inversion +
+  template/attack fakes + STYLE). Invoked **only** when the caller's policy chose
+  to deceive; core never decides that. Pure function of `(verdict, profile,
+  seed)` + the compiled store: same inputs ⇒ same bytes. It returns `null` to
+  degrade to the caller's 404 — the engine only ever *upgrades* a 404, never
+  emits a 5xx.
+
+`SiteProfile` (declared stack + a `routeExists` oracle) and the deterministic
+`seed` flow in as **data**, so one engine serves every position×action combo
+(deceive/​block × BEFORE/​FALLBACK) with no code change: `SiteProfile::empty()` is
+the classic FALLBACK/404 honeypot; a real `routeExists` oracle is the BEFORE-
+position deceptive WAF (a fake `/wp-login.php` never collides with a real one).
+
+`detect()` and `respond()` are the **LEGACY facade**: `detect($r)` is
+`classify($r, SiteProfile::empty())->detection`, and `respond()` is
+classify()+synthesize() with the old `Config` gates + `Observer` + serve-delay
+layered back on. New consumers drive the two phases through **funnypot-policy**
+(which decides WHEN to call synthesize); a thin host adapter bridges core's
+native types to the policy package's `Port\EvaluatorInterface`. The LLM fake
+stays app-side, modeled as a `FakeHandle{kind:'llm'}` synthesizer the host
+injects — core builds only the engine-native route/attack fakes.
