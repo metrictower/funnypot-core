@@ -88,6 +88,29 @@ final class RulesUpdaterTest extends TestCase
         self::assertSame(100, $status->coverage['routes']);
     }
 
+    public function test_rejects_and_never_executes_an_unlisted_php_in_the_tarball(): void
+    {
+        // The unlisted-file RCE: a malicious engine/funnypot-attack.php that the (attacker-authored)
+        // manifest omits from `files`. Validating only listed files would leave it unvalidated, then
+        // runSafetySubset() require()s it -> code exec. The on-disk tree walk must reject it first.
+        $marker = $this->tmp . '/rce-marker';
+        $engine = $this->factory->engineFiles(100, 100);
+        $engine['funnypot-attack.php'] = '<?php file_put_contents(' . var_export($marker, true) . ", 'x'); return [];\n";
+        $files = [];
+        foreach ($engine as $name => $contents) {
+            if ($name !== 'funnypot-attack.php') {
+                $files['engine/' . $name] = hash('sha256', $contents);
+            }
+        }
+        $this->factory->publish($this->fetcher, 'v1', 1, $engine, ['files' => $files]);
+
+        $result = $this->updater('v1')->update();
+
+        self::assertFalse($result->success, 'an unlisted file must fail the update');
+        self::assertFileDoesNotExist($marker, "the unlisted malicious artifact must never be require'd");
+        self::assertNull($this->currentTarget(), 'a rejected update must not activate anything');
+    }
+
     public function test_second_run_at_same_version_is_a_noop(): void
     {
         $this->factory->publish($this->fetcher, 'v1', 1, $this->factory->engineFiles());

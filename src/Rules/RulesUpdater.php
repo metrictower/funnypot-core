@@ -34,6 +34,13 @@ final class RulesUpdater
         'funnypot-routes-index.php',
     ];
 
+    /** Upper bound on the DECOMPRESSED release (the .tar inside the .gz): a signed gzip bomb must not
+     *  be able to fill the disk. The real release is ~6 MB; this is a generous floor. */
+    private const MAX_EXTRACTED_BYTES = 128 * 1024 * 1024;
+
+    /** Upper bound on file count in a release (an inode-exhaustion / second gzip-bomb floor). */
+    private const MAX_ENTRIES = 8000;
+
     private string $dataDir;
     private string $channel;
     private ?string $pinnedVersion;
@@ -137,12 +144,21 @@ final class RulesUpdater
             // 7. Per-file sha256 against the manifest; every listed file present, none missing.
             $this->verifyFileHashes($partial, (array) $manifest['files']);
 
-            // 8. Every .php artifact must be a pure literal before it can ever be require'd.
+            // 8. The manifest is the COMPLETE allowlist. Walk the extracted tree: reject any symlink
+            //    and any file the manifest does not list, then prove EVERY .php physically on disk is
+            //    a pure literal before it can ever be require'd. Validating the ON-DISK set (not just
+            //    the listed set) is what closes the unlisted-file RCE: an attacker-authored manifest
+            //    can omit a malicious .php from `files`, but it cannot keep it off disk, and
+            //    runSafetySubset() below require()s the engine artifacts.
             $engineDir = $partial . '/engine';
-            foreach ((array) $manifest['files'] as $rel => $_) {
-                if (substr((string) $rel, -4) === '.php') {
+            $listed = (array) $manifest['files'];
+            foreach ($this->listTreeFiles($partial) as $rel) {
+                if (!isset($listed[$rel])) {
+                    throw new RulesUpdateException(RulesUpdateException::REASON_BAD_MANIFEST, "Unlisted file in release: {$rel}.");
+                }
+                if (substr($rel, -4) === '.php') {
                     try {
-                        $this->validator->validateFile($partial . '/' . $rel, (string) $rel);
+                        $this->validator->validateFile($partial . '/' . $rel, $rel);
                     } catch (PhpLiteralViolation $e) {
                         throw new RulesUpdateException(RulesUpdateException::REASON_NOT_LITERAL, $e->getMessage());
                     }
@@ -444,6 +460,15 @@ final class RulesUpdater
 
     private function extractTarball(string $bytes, string $partial): void
     {
+        // Bound the decompressed size up front via the gzip ISIZE trailer (uncompressed size mod
+        // 2^32) so a signed gzip bomb cannot fill the disk during extraction. listTreeFiles()
+        // enforces the count/size caps afterward as belt-and-braces.
+        if (strlen($bytes) >= 4) {
+            $trailer = unpack('V', substr($bytes, -4));
+            if (($trailer[1] ?? 0) > self::MAX_EXTRACTED_BYTES) {
+                throw new RulesUpdateException(RulesUpdateException::REASON_EXTRACT_FAILED, 'Release decompresses beyond the size cap.');
+            }
+        }
         $this->ensureDir($partial);
         $tarPath = $partial . '/release.tar.gz';
         if (@file_put_contents($tarPath, $bytes) === false) {
@@ -478,6 +503,41 @@ final class RulesUpdater
             $this->rename($partial . '/root/' . $item, $partial . '/' . $item);
         }
         @rmdir($partial . '/root');
+    }
+
+    /**
+     * Recursively list regular files under $base as '/'-joined relative paths. Rejects ANY symlink
+     * outright (a tar symlink entry could otherwise redirect a later write outside the tree) and
+     * enforces the file-count + total-size floors against a decompression bomb.
+     *
+     * @return string[]
+     */
+    private function listTreeFiles(string $base): array
+    {
+        $out = [];
+        $size = 0;
+        $it = new \RecursiveIteratorIterator(
+            new \RecursiveDirectoryIterator($base, \FilesystemIterator::SKIP_DOTS),
+            \RecursiveIteratorIterator::SELF_FIRST
+        );
+        foreach ($it as $item) {
+            if ($item->isLink()) {
+                throw new RulesUpdateException(RulesUpdateException::REASON_EXTRACT_FAILED, 'Release contains a symlink.');
+            }
+            if (!$item->isFile()) {
+                continue;
+            }
+            if (count($out) >= self::MAX_ENTRIES) {
+                throw new RulesUpdateException(RulesUpdateException::REASON_EXTRACT_FAILED, 'Release exceeds the file-count cap.');
+            }
+            $size += (int) $item->getSize();
+            if ($size > self::MAX_EXTRACTED_BYTES) {
+                throw new RulesUpdateException(RulesUpdateException::REASON_EXTRACT_FAILED, 'Release exceeds the size cap.');
+            }
+            $out[] = ltrim(str_replace('\\', '/', substr($item->getPathname(), strlen($base) + 1)), '/');
+        }
+
+        return $out;
     }
 
     /**
@@ -525,8 +585,10 @@ final class RulesUpdater
             throw new RulesUpdateException(RulesUpdateException::REASON_SWAP_FAILED, 'Could not activate the new release.');
         }
 
-        // A rename alone is not hot under a persistent worker: invalidate opcache for the stable
-        // paths and drop PhpArrayStore's in-process parsed-index cache.
+        // Invalidate opcache + drop this process's parsed-index cache. NOTE: this runs in the updater
+        // (CLI/cron) process and CANNOT reach live php-fpm / RoadRunner workers — those keep serving
+        // the pre-swap rules until they recycle or are signalled to reload (see docs/RULES-UPDATE.md).
+        // A future realpath-keyed PhpArrayStore cache would let live workers self-invalidate.
         if (function_exists('opcache_invalidate')) {
             foreach (self::ENGINE_ARTIFACTS as $artifact) {
                 @opcache_invalidate($current . '/' . $artifact, true);
