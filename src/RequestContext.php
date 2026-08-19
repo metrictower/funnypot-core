@@ -20,7 +20,10 @@ final class RequestContext
         public array $headers = [],
         public ?string $rawBody = null,
         public string $host = '',
-        public string $scheme = 'https'
+        public string $scheme = 'https',
+        // Wire HTTP version ('1.1', '2', '3', or '' when unknown). Read only by the request-shape
+        // bot-signal self-consistency checks (an HTTP/2 request must not carry a Connection header).
+        public string $httpVersion = ''
     ) {
     }
 
@@ -58,6 +61,10 @@ final class RequestContext
             $rawBody = $raw === false || $raw === '' ? null : $raw;
         }
 
+        // SERVER_PROTOCOL is like 'HTTP/1.1' or 'HTTP/2.0'; keep just the version token.
+        $protocol = (string) ($_SERVER['SERVER_PROTOCOL'] ?? '');
+        $httpVersion = strncmp($protocol, 'HTTP/', 5) === 0 ? substr($protocol, 5) : '';
+
         return new self(
             (string) $method,
             $path,
@@ -65,7 +72,8 @@ final class RequestContext
             $headers,
             $rawBody,
             (string) ($_SERVER['HTTP_HOST'] ?? ''),
-            $scheme
+            $scheme,
+            $httpVersion
         );
     }
 }

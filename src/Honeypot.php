@@ -149,12 +149,205 @@ final class Honeypot implements Engine
     }
 
     /**
-     * Request-shape bot signals (decision S / design §2.4). Placeholder in Phase 1 (an empty set);
-     * Phase 1b computes the header-presence / self-consistency / structural features here.
+     * Request-shape bot signals (decision S / design §2.4): header-presence, fetch-metadata /
+     * client-hint absence, self-consistency contradictions, and a digit-stripped structural
+     * header fingerprint. Cheap, position-blind, no I/O. Each fires a flag and adds a small
+     * weight; the composite "is this a bot?" call is the policy's, never core's. No version-age
+     * detection — the digit-stripping tolerates old-but-legit clients.
+     *
+     * INPUT-side only: nothing computed here is ever emitted in a response (invariant #1).
      */
     private function botSignals(RequestContext $r): BotSignalSet
     {
-        return BotSignalSet::empty();
+        $h = $this->lowercaseHeaders($r->headers);
+        $ua = isset($h['user-agent']) ? trim($h['user-agent']) : '';
+        $uaClass = $this->classifyUserAgent($ua);
+
+        $flags = [];
+        $weight = 0;
+
+        // Header presence — the coarsest signal.
+        if (!isset($h['accept'])) {
+            $flags[BotSignalSet::MISSING_ACCEPT] = true;
+            $weight += 5;
+        }
+        if (!isset($h['accept-language'])) {
+            $flags[BotSignalSet::MISSING_ACCEPT_LANGUAGE] = true;
+            $weight += 5;
+        }
+        if (!isset($h['accept-encoding'])) {
+            $flags[BotSignalSet::MISSING_ACCEPT_ENCODING] = true;
+            $weight += 5;
+        }
+        if ($ua === '') {
+            $flags[BotSignalSet::EMPTY_USER_AGENT] = true;
+            $weight += 10;
+        }
+        if ($uaClass === BotSignalSet::UA_SCANNER) {
+            $flags[BotSignalSet::SCANNER_USER_AGENT] = true;
+            $weight += 20;
+        }
+
+        $claimsBrowser = stripos($ua, 'mozilla') !== false;
+        $claimsChromium = preg_match('/chrome|chromium|crios|edg\//i', $ua) === 1;
+        $hasFetchMeta = isset($h['sec-fetch-site']) || isset($h['sec-fetch-mode'])
+            || isset($h['sec-fetch-dest']) || isset($h['sec-fetch-user']);
+        $hasClientHints = isset($h['sec-ch-ua']) || isset($h['sec-ch-ua-mobile'])
+            || isset($h['sec-ch-ua-platform']);
+
+        // Fetch-metadata / client-hint absence — low weight alone; leans on the pairing below.
+        if (!$hasFetchMeta) {
+            $flags[BotSignalSet::MISSING_FETCH_METADATA] = true;
+            $weight += 2;
+        }
+        if (!$hasClientHints) {
+            $flags[BotSignalSet::MISSING_CLIENT_HINTS] = true;
+            $weight += 2;
+        }
+
+        // Self-consistency contradictions — a contradiction beats an absence.
+        if ($claimsChromium && !$hasClientHints && !$hasFetchMeta) {
+            $flags[BotSignalSet::UA_CLAIMS_BROWSER_NO_HINTS] = true;
+            $weight += 15;
+        }
+        if ($claimsBrowser && isset($h['accept']) && trim($h['accept']) === '*/*') {
+            $flags[BotSignalSet::ACCEPT_WILDCARD_FROM_BROWSER] = true;
+            $weight += 10;
+        }
+        if ($this->isHttp2($r->httpVersion) && isset($h['connection'])) {
+            $flags[BotSignalSet::H2_FORBIDDEN_CONNECTION] = true;
+            $weight += 15;
+        }
+        if (isset($h['accept-encoding']) && stripos($h['accept-encoding'], 'gzip') === false) {
+            $flags[BotSignalSet::ACCEPT_ENCODING_NO_GZIP] = true;
+            $weight += 5;
+        }
+        if ($this->platformMismatch($ua, $h)) {
+            $flags[BotSignalSet::UA_PLATFORM_MISMATCH] = true;
+            $weight += 10;
+        }
+
+        return new BotSignalSet($flags, $weight, $uaClass, $this->structuralFingerprint($r->headers));
+    }
+
+    /**
+     * @param array<string,string> $headers
+     * @return array<string,string> name lower-cased (case-insensitive access)
+     */
+    private function lowercaseHeaders(array $headers): array
+    {
+        $out = [];
+        foreach ($headers as $name => $value) {
+            $out[strtolower((string) $name)] = (string) $value;
+        }
+
+        return $out;
+    }
+
+    /** Coarse UA class. Tool names are matched INPUT-side only and never emitted. */
+    private function classifyUserAgent(string $ua): string
+    {
+        if ($ua === '') {
+            return BotSignalSet::UA_EMPTY;
+        }
+        if (preg_match('/nmap|sqlmap|nuclei|nikto|masscan|zgrab|acunetix|nessus|wpscan|dirbuster|gobuster|ffuf|feroxbuster|arachni|httpx|zaproxy|semrush/i', $ua) === 1) {
+            return BotSignalSet::UA_SCANNER;
+        }
+        if (preg_match('#curl|wget|python-requests|python-urllib|urllib|go-http-client|libwww|okhttp|axios|node-fetch|guzzle|java/|apache-httpclient|ruby|perl|winhttp#i', $ua) === 1) {
+            return BotSignalSet::UA_SCRIPT;
+        }
+        if (stripos($ua, 'mozilla') !== false) {
+            return BotSignalSet::UA_BROWSER;
+        }
+
+        return BotSignalSet::UA_UNKNOWN;
+    }
+
+    private function isHttp2(string $version): bool
+    {
+        return strncmp($version, '2', 1) === 0 || strncmp($version, '3', 1) === 0;
+    }
+
+    /**
+     * UA-declared OS vs the Sec-CH-UA-Platform hint. A mismatch (UA says Windows, hint says Linux)
+     * is a sharp forgery signal. Only fires when BOTH are known.
+     *
+     * @param array<string,string> $h lower-cased headers
+     */
+    private function platformMismatch(string $ua, array $h): bool
+    {
+        if (!isset($h['sec-ch-ua-platform'])) {
+            return false;
+        }
+        $hint = strtolower(trim($h['sec-ch-ua-platform'], " \t\"'"));
+        $uaOs = $this->userAgentOs($ua);
+        if ($hint === '' || $uaOs === '') {
+            return false;
+        }
+        // Normalize the hint to the UA vocabulary.
+        if ($hint === 'macos') {
+            $hint = 'mac';
+        }
+
+        return $hint !== $uaOs;
+    }
+
+    private function userAgentOs(string $ua): string
+    {
+        if (stripos($ua, 'windows') !== false) {
+            return 'windows';
+        }
+        if (stripos($ua, 'android') !== false) {
+            return 'android';
+        }
+        if (stripos($ua, 'iphone') !== false || stripos($ua, 'ipad') !== false) {
+            return 'ios';
+        }
+        if (stripos($ua, 'mac os') !== false || stripos($ua, 'macintosh') !== false) {
+            return 'mac';
+        }
+        if (stripos($ua, 'linux') !== false || stripos($ua, 'x11') !== false) {
+            return 'linux';
+        }
+
+        return '';
+    }
+
+    /** Comma-list headers whose internal token order is not significant. */
+    private const LIST_HEADERS = [
+        'accept' => true,
+        'accept-encoding' => true,
+        'accept-language' => true,
+        'accept-charset' => true,
+        'connection' => true,
+        'sec-ch-ua' => true,
+        'te' => true,
+        'cache-control' => true,
+    ];
+
+    /**
+     * Digit-stripped, list-sorted structural header fingerprint (the JA4-H idea in PHP): strip
+     * version digits from values and sort list-header tokens, so a Chromium version bump or a
+     * reordered Accept keep the same fingerprint; header order + count still distinguish client
+     * families (browser vs curl/python/Go). A feature on the Verdict, never an emitted value.
+     *
+     * @param array<string,string> $headers
+     */
+    private function structuralFingerprint(array $headers): string
+    {
+        $parts = [];
+        foreach ($headers as $name => $value) {
+            $lname = strtolower((string) $name);
+            $v = preg_replace('/\d+/', '', (string) $value);
+            if (isset(self::LIST_HEADERS[$lname])) {
+                $tokens = array_map('trim', explode(',', (string) $v));
+                sort($tokens);
+                $v = implode(',', $tokens);
+            }
+            $parts[] = $lname . '=' . $v;
+        }
+
+        return count($headers) . ':' . implode('&', $parts);
     }
 
     /**
