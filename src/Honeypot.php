@@ -104,9 +104,7 @@ final class Honeypot implements Engine
             // A bare root/homepage entry (all bundles sig=1) is an ordinary-visitor path: classify
             // clean natively (the probe-signature predicate is a policy input, not content). Keep
             // the handle so the policy can still synthesize when it supplies one.
-            $classification = ($detection->isEmpty() || $this->isRootEntry($bundles))
-                ? Verdict::CLEAN
-                : Verdict::SCANNER_PROBE;
+            $classification = $this->isRootEntry($bundles) ? Verdict::CLEAN : Verdict::SCANNER_PROBE;
 
             return new Verdict($classification, $detection, $detection->highestSeverity, $anomaly, $signals, $handle);
         }
@@ -391,86 +389,92 @@ final class Honeypot implements Engine
         return null;
     }
 
+    /**
+     * Back-compat facade over classify() + synthesize() (two-phase design §6.6). Core is
+     * position-blind and action-free; this method layers the LEGACY Config gates + Observer +
+     * serve-delay back on so the existing app (and this suite) keep byte-identical behavior until
+     * the caller migrates to funnypot-policy. New consumers call classify()/synthesize() directly.
+     */
     public function respond(RequestContext $r): ?SynthesizedResponse
     {
-        // Ground-truth switches first: a tripped kill switch or a trusted scanner must
-        // NEVER see a fake, and respond mode must be explicitly enabled.
-        if ($this->config->killSwitchTripped()) {
-            return null;
-        }
-        if (!$this->config->respondEnabled()) {
-            return null;
-        }
-        if ($this->config->isTrusted($r)) {
+        // Ground-truth switches first: a tripped kill switch or a trusted scanner must NEVER see a
+        // fake, and respond mode must be explicitly enabled. No observer, no work (as before).
+        if ($this->config->killSwitchTripped() || !$this->config->respondEnabled() || $this->config->isTrusted($r)) {
             return null;
         }
 
-        // matched-only guarantee: a miss returns null so the app serves its real 404 —
-        // unless an injection payload is present and attack emulation is on.
-        $resolved = $this->resolveEntry($r->method, $r->path);
-        if ($resolved === null) {
-            return $this->tryAttack($r);
-        }
-        [$key, $entry] = $resolved;
+        // FALLBACK position: no real app behind the engine, so an empty SiteProfile.
+        $verdict = $this->classify($r, SiteProfile::empty());
+        $seed = $this->config->seedFor($r);
 
-        $allBundles = $entry['b'] ?? [];
-        if ($allBundles === []) {
+        if ($verdict->classification === Verdict::ATTACK_CLASS) {
+            return $this->respondAttack($r, $verdict, $seed);
+        }
+
+        $handle = $verdict->fakeHandle;
+        if ($handle === null || $handle->kind !== FakeHandle::KIND_ROUTE) {
+            // A genuine miss / real route / empty entry: the app serves its own 404 (no observer).
             return null;
         }
 
-        // Detection covers EVERY routed template — the probe matched them regardless of
-        // what we choose to serve (on a capped key that is the full 'd' id-list, wider
-        // than the served 'b' set). Signal the app before any serve decision.
-        $detection = $this->detectionFor($key, $this->detectIds($entry));
-        $this->observer->onDetection($r, $detection);
+        // A routed probe. Detection covers EVERY routed template (the full 'd' id-list); signal
+        // the app before any serve decision.
+        $this->observer->onDetection($r, $verdict->detection);
 
         if (!$this->config->gateOpen($r)) {
             return $this->declined($r, Outcome::GATE_CLOSED);
         }
 
-        // Filter to servable candidates BEFORE the persona pick: excluded bundles and
-        // bundles above the severity ceiling are removed so a seed never lands on a
-        // refused bundle and leaves a coverage hole.
-        $candidates = $this->candidates($allBundles);
-        if ($candidates === []) {
-            return $this->declined($r, Outcome::NO_CANDIDATE);
-        }
-
-        $bundle = PersonaSelector::pick($candidates, $this->config->seedFor($r));
-        if ($bundle === null) {
-            return $this->declined($r, Outcome::NO_CANDIDATE);
-        }
-
-        // Root / homepage-class entries never fake-vuln ordinary visitors.
-        if ((int) ($bundle['sig'] ?? 0) === 1 && !$this->config->hasProbeSignature($r)) {
+        // Root / homepage-class entries (classified clean) never fake-vuln an ordinary visitor
+        // unless the app's probe-signature predicate says so.
+        if ($verdict->classification === Verdict::CLEAN && !$this->config->hasProbeSignature($r)) {
             return $this->declined($r, Outcome::NO_SIGNATURE);
         }
 
-        if (!$this->observer->shouldRespond($r, $detection)) {
+        $built = $this->buildFake($verdict, SiteProfile::empty(), $seed);
+        if ($built['r'] === null) {
+            return $this->declined($r, $built['reason']);
+        }
+
+        if (!$this->observer->shouldRespond($r, $verdict->detection)) {
             return $this->declined($r, Outcome::VETOED);
         }
 
-        $satisfies = $this->detectionFor($key, $bundle['t'] ?? []);
-        $response = $this->synthesizer->synthesize($bundle, $satisfies, $this->config->seedFor($r));
-        if ($response === null) {
-            return $this->declined($r, Outcome::UNSYNTHESIZABLE);
+        $this->serveDelay();
+        $this->observer->onOutcome($r, $built['r'], Outcome::SERVED);
+
+        return $built['r'];
+    }
+
+    /**
+     * The attack-class branch of the facade. Emulation bypasses the app-suspicion gate (an
+     * injection payload is its own signal), exactly as the legacy path did; kill-switch / mode /
+     * trusted are already applied above.
+     */
+    private function respondAttack(RequestContext $r, Verdict $verdict, string $seed): ?SynthesizedResponse
+    {
+        $this->observer->onDetection($r, $verdict->detection);
+
+        $built = $this->buildFake($verdict, SiteProfile::empty(), $seed);
+        if ($built['r'] === null) {
+            return $this->declined($r, $built['reason']);
         }
 
-        // Never emit an oversized body (no tarpit/amplifier unless the app opts in).
-        if (strlen($response->body) > $this->config->maxBodyBytes) {
-            return $this->declined($r, Outcome::OVER_CAP);
-        }
+        $this->serveDelay();
+        $this->observer->onOutcome($r, $built['r'], Outcome::SERVED);
 
-        // Pause (base + random jitter) so responses aren't the instant, uniform sub-ms
-        // replies that fingerprint a honeypot. No-op when both latency knobs are 0.
-        $delay = $this->config->serveDelayMicros();
-        if ($delay > 0) {
-            usleep($delay);
-        }
+        return $built['r'];
+    }
 
-        $this->observer->onOutcome($r, $response, Outcome::SERVED);
-
-        return $response;
+    /**
+     * Build a fake from a Verdict's fakeHandle (two-phase design §2.2). Invoked only when the
+     * caller's policy chose to deceive — core never decides that. Pure function of (verdict,
+     * profile, seed) + the compiled store: same inputs => same bytes. null is the sole "no fake"
+     * signal (degrade to the caller's 404); a synthesis fault never escapes as a 5xx.
+     */
+    public function synthesize(Verdict $verdict, SiteProfile $profile, string $seed): ?SynthesizedResponse
+    {
+        return $this->buildFake($verdict, $profile, $seed)['r'];
     }
 
     private function declined(RequestContext $r, string $reason): ?SynthesizedResponse
@@ -480,42 +484,110 @@ final class Honeypot implements Engine
         return null;
     }
 
-    /**
-     * When no template routes, try interactive attack-class emulation on the request's
-     * payload (LFI/SQLi/SSTI/command-injection/reflected-XSS). Only runs when opted in;
-     * reached only after the kill-switch, mode, and trusted-bypass checks. Honours the
-     * severity ceiling (fake RCE stays off by default) and the body-size cap.
-     */
-    private function tryAttack(RequestContext $r): ?SynthesizedResponse
+    /** Pause (base + random jitter) so replies aren't instant/uniform. No-op when latency is 0. */
+    private function serveDelay(): void
     {
-        if ($this->attackEmulator === null) {
-            return null;
-        }
-
-        // Seed fake values from the persona so a given attacker sees stable, but per-attacker
-        // distinct, fabricated secrets (not one shared seed-0 value that would fingerprint).
-        $attack = $this->attackEmulator->emulate($r, crc32($this->config->seedFor($r)));
-        if ($attack === null) {
-            return null;
-        }
-
-        $this->observer->onDetection($r, $attack->satisfies);
-
-        if (Severity::exceeds($attack->satisfies->highestSeverity, $this->config->severityCeiling)) {
-            return $this->declined($r, Outcome::NO_CANDIDATE);
-        }
-        if (strlen($attack->body) > $this->config->maxBodyBytes) {
-            return $this->declined($r, Outcome::OVER_CAP);
-        }
-
         $delay = $this->config->serveDelayMicros();
         if ($delay > 0) {
             usleep($delay);
         }
+    }
 
-        $this->observer->onOutcome($r, $attack, Outcome::SERVED);
+    /**
+     * The synthesis core shared by synthesize() and the respond() facade: turn a fakeHandle into
+     * a fake or a decline reason. Content-integrity only (candidates / persona / ceiling / exclude
+     * / size cap for a route; render + ceiling + cap for an attack) — no gates, no observer, no
+     * delay. The WHEN/whether/side-effect decisions are the caller's (the facade / the policy).
+     *
+     * @return array{r:?SynthesizedResponse,reason:string}
+     */
+    private function buildFake(Verdict $verdict, SiteProfile $profile, string $seed): array
+    {
+        $handle = $verdict->fakeHandle;
+        if ($handle === null) {
+            return ['r' => null, 'reason' => Outcome::NO_CANDIDATE];
+        }
+        if ($handle->kind === FakeHandle::KIND_ROUTE) {
+            return $this->buildRouteFake($handle, $profile, $seed);
+        }
+        if ($handle->kind === FakeHandle::KIND_ATTACK) {
+            return $this->buildAttackFake($handle, $seed);
+        }
 
-        return $attack;
+        // Unknown / llm kinds are host-injected synthesizers; core builds nothing.
+        return ['r' => null, 'reason' => Outcome::UNSYNTHESIZABLE];
+    }
+
+    /**
+     * @return array{r:?SynthesizedResponse,reason:string}
+     */
+    private function buildRouteFake(FakeHandle $handle, SiteProfile $profile, string $seed): array
+    {
+        $key = (string) $handle->key;
+
+        // Never shadow a declared real route (BEFORE position). The key is '<METHOD> <path>'.
+        $sp = strpos($key, ' ');
+        if ($sp !== false && $profile->hasRoute(substr($key, 0, $sp), substr($key, $sp + 1))) {
+            return ['r' => null, 'reason' => Outcome::NO_CANDIDATE];
+        }
+
+        $entry = $this->store->lookup($key);
+        $allBundles = $entry === null ? [] : ($entry['b'] ?? []);
+
+        // Filter to servable candidates BEFORE the persona pick: excluded bundles and bundles
+        // above the severity ceiling are removed so a seed never lands on a refused bundle.
+        $candidates = $this->candidates($allBundles);
+        if ($candidates === []) {
+            return ['r' => null, 'reason' => Outcome::NO_CANDIDATE];
+        }
+
+        $bundle = PersonaSelector::pick($candidates, $seed);
+        if ($bundle === null) {
+            return ['r' => null, 'reason' => Outcome::NO_CANDIDATE];
+        }
+
+        $satisfies = $this->detectionFor($key, $bundle['t'] ?? []);
+        $response = $this->synthesizer->synthesize($bundle, $satisfies, $seed);
+        if ($response === null) {
+            return ['r' => null, 'reason' => Outcome::UNSYNTHESIZABLE];
+        }
+
+        // Never emit an oversized body (no tarpit/amplifier unless the app opts in).
+        if (strlen($response->body) > $this->config->maxBodyBytes) {
+            return ['r' => null, 'reason' => Outcome::OVER_CAP];
+        }
+
+        return ['r' => $response, 'reason' => Outcome::SERVED];
+    }
+
+    /**
+     * @return array{r:?SynthesizedResponse,reason:string}
+     */
+    private function buildAttackFake(FakeHandle $handle, string $seed): array
+    {
+        if ($this->attackEmulator === null) {
+            return ['r' => null, 'reason' => Outcome::NO_CANDIDATE];
+        }
+
+        $rule = $this->attackEmulator->ruleById((string) $handle->ruleId);
+        if ($rule === null) {
+            return ['r' => null, 'reason' => Outcome::NO_CANDIDATE];
+        }
+
+        // Seed fake values from the persona so a given attacker sees stable, but per-attacker
+        // distinct, fabricated secrets (not one shared seed-0 value that would fingerprint).
+        $response = $this->attackEmulator->renderRule($rule, $handle->captures, crc32($seed));
+        if ($response === null) {
+            return ['r' => null, 'reason' => Outcome::UNSYNTHESIZABLE]; // CRLF header-split guard
+        }
+        if (Severity::exceeds($response->satisfies->highestSeverity, $this->config->severityCeiling)) {
+            return ['r' => null, 'reason' => Outcome::NO_CANDIDATE];
+        }
+        if (strlen($response->body) > $this->config->maxBodyBytes) {
+            return ['r' => null, 'reason' => Outcome::OVER_CAP];
+        }
+
+        return ['r' => $response, 'reason' => Outcome::SERVED];
     }
 
     /**
