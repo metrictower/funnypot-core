@@ -1,0 +1,31 @@
+{
+    "tag": "v4.29.0",
+    "sha": "ab3ccd5fcd691424ba3f320d4040c61417270193",
+    "built_at": "2026-08-19T10:08:30+00:00",
+    "source": "coreruleset",
+    "paranoia_level_max": 1,
+    "rules_kept": 76,
+    "rules_skipped": 563,
+    "classes": {
+        "sqli": {
+            "rules": 19,
+            "branches": 19,
+            "pm_phrases_dropped": 0
+        },
+        "xss": {
+            "rules": 24,
+            "branches": 24,
+            "pm_phrases_dropped": 0
+        },
+        "lfi": {
+            "rules": 5,
+            "branches": 427,
+            "pm_phrases_dropped": 0
+        },
+        "rce": {
+            "rules": 28,
+            "branches": 7,
+            "pm_phrases_dropped": 668
+        }
+    }
+}

@@ -1,0 +1,2817 @@
+[
+    {
+        "id": "901001",
+        "file": "REQUEST-901-INITIALIZATION.conf",
+        "reason": "opaque-operator:@eq"
+    },
+    {
+        "id": "901100",
+        "file": "REQUEST-901-INITIALIZATION.conf",
+        "reason": "opaque-operator:@eq"
+    },
+    {
+        "id": "901110",
+        "file": "REQUEST-901-INITIALIZATION.conf",
+        "reason": "opaque-operator:@eq"
+    },
+    {
+        "id": "901111",
+        "file": "REQUEST-901-INITIALIZATION.conf",
+        "reason": "opaque-operator:@eq"
+    },
+    {
+        "id": "901115",
+        "file": "REQUEST-901-INITIALIZATION.conf",
+        "reason": "opaque-operator:@eq"
+    },
+    {
+        "id": "901120",
+        "file": "REQUEST-901-INITIALIZATION.conf",
+        "reason": "opaque-operator:@eq"
+    },
+    {
+        "id": "901125",
+        "file": "REQUEST-901-INITIALIZATION.conf",
+        "reason": "opaque-operator:@eq"
+    },
+    {
+        "id": "901130",
+        "file": "REQUEST-901-INITIALIZATION.conf",
+        "reason": "opaque-operator:@eq"
+    },
+    {
+        "id": "901140",
+        "file": "REQUEST-901-INITIALIZATION.conf",
+        "reason": "opaque-operator:@eq"
+    },
+    {
+        "id": "901141",
+        "file": "REQUEST-901-INITIALIZATION.conf",
+        "reason": "opaque-operator:@eq"
+    },
+    {
+        "id": "901142",
+        "file": "REQUEST-901-INITIALIZATION.conf",
+        "reason": "opaque-operator:@eq"
+    },
+    {
+        "id": "901143",
+        "file": "REQUEST-901-INITIALIZATION.conf",
+        "reason": "opaque-operator:@eq"
+    },
+    {
+        "id": "901160",
+        "file": "REQUEST-901-INITIALIZATION.conf",
+        "reason": "opaque-operator:@eq"
+    },
+    {
+        "id": "901162",
+        "file": "REQUEST-901-INITIALIZATION.conf",
+        "reason": "opaque-operator:@eq"
+    },
+    {
+        "id": "901168",
+        "file": "REQUEST-901-INITIALIZATION.conf",
+        "reason": "opaque-operator:@eq"
+    },
+    {
+        "id": "901163",
+        "file": "REQUEST-901-INITIALIZATION.conf",
+        "reason": "opaque-operator:@eq"
+    },
+    {
+        "id": "901164",
+        "file": "REQUEST-901-INITIALIZATION.conf",
+        "reason": "opaque-operator:@eq"
+    },
+    {
+        "id": "901165",
+        "file": "REQUEST-901-INITIALIZATION.conf",
+        "reason": "opaque-operator:@eq"
+    },
+    {
+        "id": "901171",
+        "file": "REQUEST-901-INITIALIZATION.conf",
+        "reason": "opaque-operator:@eq"
+    },
+    {
+        "id": "901510",
+        "file": "REQUEST-901-INITIALIZATION.conf",
+        "reason": "opaque-operator:@eq"
+    },
+    {
+        "id": "901167",
+        "file": "REQUEST-901-INITIALIZATION.conf",
+        "reason": "opaque-operator:@eq"
+    },
+    {
+        "id": "901169",
+        "file": "REQUEST-901-INITIALIZATION.conf",
+        "reason": "opaque-operator:@eq"
+    },
+    {
+        "id": "901170",
+        "file": "REQUEST-901-INITIALIZATION.conf",
+        "reason": "opaque-operator:@eq"
+    },
+    {
+        "id": "901320",
+        "file": "REQUEST-901-INITIALIZATION.conf",
+        "reason": "opaque-operator:@eq"
+    },
+    {
+        "id": "901340",
+        "file": "REQUEST-901-INITIALIZATION.conf",
+        "reason": "negated-operator"
+    },
+    {
+        "id": "901350",
+        "file": "REQUEST-901-INITIALIZATION.conf",
+        "reason": "opaque-operator:@eq"
+    },
+    {
+        "id": "901400",
+        "file": "REQUEST-901-INITIALIZATION.conf",
+        "reason": "opaque-operator:@eq"
+    },
+    {
+        "id": "901410",
+        "file": "REQUEST-901-INITIALIZATION.conf",
+        "reason": "no-funnypot-archetype-for-class"
+    },
+    {
+        "id": "901450",
+        "file": "REQUEST-901-INITIALIZATION.conf",
+        "reason": "negated-operator"
+    },
+    {
+        "id": "901500",
+        "file": "REQUEST-901-INITIALIZATION.conf",
+        "reason": "opaque-operator:@lt"
+    },
+    {
+        "id": "905100",
+        "file": "REQUEST-905-COMMON-EXCEPTIONS.conf",
+        "reason": "opaque-operator:@streq"
+    },
+    {
+        "id": "905110",
+        "file": "REQUEST-905-COMMON-EXCEPTIONS.conf",
+        "reason": "opaque-operator:@ipMatch"
+    },
+    {
+        "id": "911011",
+        "file": "REQUEST-911-METHOD-ENFORCEMENT.conf",
+        "reason": "opaque-operator:@lt"
+    },
+    {
+        "id": "911012",
+        "file": "REQUEST-911-METHOD-ENFORCEMENT.conf",
+        "reason": "opaque-operator:@lt"
+    },
+    {
+        "id": "911100",
+        "file": "REQUEST-911-METHOD-ENFORCEMENT.conf",
+        "reason": "negated-operator"
+    },
+    {
+        "id": "911013",
+        "file": "REQUEST-911-METHOD-ENFORCEMENT.conf",
+        "reason": "opaque-operator:@lt"
+    },
+    {
+        "id": "911014",
+        "file": "REQUEST-911-METHOD-ENFORCEMENT.conf",
+        "reason": "opaque-operator:@lt"
+    },
+    {
+        "id": "911015",
+        "file": "REQUEST-911-METHOD-ENFORCEMENT.conf",
+        "reason": "opaque-operator:@lt"
+    },
+    {
+        "id": "911016",
+        "file": "REQUEST-911-METHOD-ENFORCEMENT.conf",
+        "reason": "opaque-operator:@lt"
+    },
+    {
+        "id": "911017",
+        "file": "REQUEST-911-METHOD-ENFORCEMENT.conf",
+        "reason": "opaque-operator:@lt"
+    },
+    {
+        "id": "911018",
+        "file": "REQUEST-911-METHOD-ENFORCEMENT.conf",
+        "reason": "opaque-operator:@lt"
+    },
+    {
+        "id": "913011",
+        "file": "REQUEST-913-SCANNER-DETECTION.conf",
+        "reason": "opaque-operator:@lt"
+    },
+    {
+        "id": "913012",
+        "file": "REQUEST-913-SCANNER-DETECTION.conf",
+        "reason": "opaque-operator:@lt"
+    },
+    {
+        "id": "913100",
+        "file": "REQUEST-913-SCANNER-DETECTION.conf",
+        "reason": "no-funnypot-archetype-for-class"
+    },
+    {
+        "id": "913013",
+        "file": "REQUEST-913-SCANNER-DETECTION.conf",
+        "reason": "opaque-operator:@lt"
+    },
+    {
+        "id": "913014",
+        "file": "REQUEST-913-SCANNER-DETECTION.conf",
+        "reason": "opaque-operator:@lt"
+    },
+    {
+        "id": "913015",
+        "file": "REQUEST-913-SCANNER-DETECTION.conf",
+        "reason": "opaque-operator:@lt"
+    },
+    {
+        "id": "913016",
+        "file": "REQUEST-913-SCANNER-DETECTION.conf",
+        "reason": "opaque-operator:@lt"
+    },
+    {
+        "id": "913017",
+        "file": "REQUEST-913-SCANNER-DETECTION.conf",
+        "reason": "opaque-operator:@lt"
+    },
+    {
+        "id": "913018",
+        "file": "REQUEST-913-SCANNER-DETECTION.conf",
+        "reason": "opaque-operator:@lt"
+    },
+    {
+        "id": "920011",
+        "file": "REQUEST-920-PROTOCOL-ENFORCEMENT.conf",
+        "reason": "opaque-operator:@lt"
+    },
+    {
+        "id": "920012",
+        "file": "REQUEST-920-PROTOCOL-ENFORCEMENT.conf",
+        "reason": "opaque-operator:@lt"
+    },
+    {
+        "id": "920100",
+        "file": "REQUEST-920-PROTOCOL-ENFORCEMENT.conf",
+        "reason": "negated-operator"
+    },
+    {
+        "id": "920120",
+        "file": "REQUEST-920-PROTOCOL-ENFORCEMENT.conf",
+        "reason": "negated-operator"
+    },
+    {
+        "id": "920160",
+        "file": "REQUEST-920-PROTOCOL-ENFORCEMENT.conf",
+        "reason": "negated-operator"
+    },
+    {
+        "id": "920170",
+        "file": "REQUEST-920-PROTOCOL-ENFORCEMENT.conf",
+        "reason": "no-funnypot-archetype-for-class"
+    },
+    {
+        "id": "920171",
+        "file": "REQUEST-920-PROTOCOL-ENFORCEMENT.conf",
+        "reason": "no-funnypot-archetype-for-class"
+    },
+    {
+        "id": "920180",
+        "file": "REQUEST-920-PROTOCOL-ENFORCEMENT.conf",
+        "reason": "negated-operator"
+    },
+    {
+        "id": "920181",
+        "file": "REQUEST-920-PROTOCOL-ENFORCEMENT.conf",
+        "reason": "negated-operator"
+    },
+    {
+        "id": "920190",
+        "file": "REQUEST-920-PROTOCOL-ENFORCEMENT.conf",
+        "reason": "no-funnypot-archetype-for-class"
+    },
+    {
+        "id": "920660",
+        "file": "REQUEST-920-PROTOCOL-ENFORCEMENT.conf",
+        "reason": "opaque-operator:@gt"
+    },
+    {
+        "id": "920210",
+        "file": "REQUEST-920-PROTOCOL-ENFORCEMENT.conf",
+        "reason": "no-funnypot-archetype-for-class"
+    },
+    {
+        "id": "920250",
+        "file": "REQUEST-920-PROTOCOL-ENFORCEMENT.conf",
+        "reason": "opaque-operator:@eq"
+    },
+    {
+        "id": "920260",
+        "file": "REQUEST-920-PROTOCOL-ENFORCEMENT.conf",
+        "reason": "no-funnypot-archetype-for-class"
+    },
+    {
+        "id": "920270",
+        "file": "REQUEST-920-PROTOCOL-ENFORCEMENT.conf",
+        "reason": "opaque-operator:@validateByteRange"
+    },
+    {
+        "id": "920280",
+        "file": "REQUEST-920-PROTOCOL-ENFORCEMENT.conf",
+        "reason": "opaque-operator:@eq"
+    },
+    {
+        "id": "920290",
+        "file": "REQUEST-920-PROTOCOL-ENFORCEMENT.conf",
+        "reason": "no-funnypot-archetype-for-class"
+    },
+    {
+        "id": "920310",
+        "file": "REQUEST-920-PROTOCOL-ENFORCEMENT.conf",
+        "reason": "no-funnypot-archetype-for-class"
+    },
+    {
+        "id": "920311",
+        "file": "REQUEST-920-PROTOCOL-ENFORCEMENT.conf",
+        "reason": "no-funnypot-archetype-for-class"
+    },
+    {
+        "id": "920330",
+        "file": "REQUEST-920-PROTOCOL-ENFORCEMENT.conf",
+        "reason": "no-funnypot-archetype-for-class"
+    },
+    {
+        "id": "920340",
+        "file": "REQUEST-920-PROTOCOL-ENFORCEMENT.conf",
+        "reason": "negated-operator"
+    },
+    {
+        "id": "920350",
+        "file": "REQUEST-920-PROTOCOL-ENFORCEMENT.conf",
+        "reason": "no-funnypot-archetype-for-class"
+    },
+    {
+        "id": "920380",
+        "file": "REQUEST-920-PROTOCOL-ENFORCEMENT.conf",
+        "reason": "opaque-operator:@eq"
+    },
+    {
+        "id": "920360",
+        "file": "REQUEST-920-PROTOCOL-ENFORCEMENT.conf",
+        "reason": "opaque-operator:@eq"
+    },
+    {
+        "id": "920370",
+        "file": "REQUEST-920-PROTOCOL-ENFORCEMENT.conf",
+        "reason": "opaque-operator:@eq"
+    },
+    {
+        "id": "920390",
+        "file": "REQUEST-920-PROTOCOL-ENFORCEMENT.conf",
+        "reason": "opaque-operator:@eq"
+    },
+    {
+        "id": "920400",
+        "file": "REQUEST-920-PROTOCOL-ENFORCEMENT.conf",
+        "reason": "opaque-operator:@eq"
+    },
+    {
+        "id": "920410",
+        "file": "REQUEST-920-PROTOCOL-ENFORCEMENT.conf",
+        "reason": "opaque-operator:@eq"
+    },
+    {
+        "id": "920470",
+        "file": "REQUEST-920-PROTOCOL-ENFORCEMENT.conf",
+        "reason": "negated-operator"
+    },
+    {
+        "id": "920420",
+        "file": "REQUEST-920-PROTOCOL-ENFORCEMENT.conf",
+        "reason": "no-funnypot-archetype-for-class"
+    },
+    {
+        "id": "920480",
+        "file": "REQUEST-920-PROTOCOL-ENFORCEMENT.conf",
+        "reason": "no-funnypot-archetype-for-class"
+    },
+    {
+        "id": "920530",
+        "file": "REQUEST-920-PROTOCOL-ENFORCEMENT.conf",
+        "reason": "no-funnypot-archetype-for-class"
+    },
+    {
+        "id": "920640",
+        "file": "REQUEST-920-PROTOCOL-ENFORCEMENT.conf",
+        "reason": "opaque-operator:@gt"
+    },
+    {
+        "id": "920430",
+        "file": "REQUEST-920-PROTOCOL-ENFORCEMENT.conf",
+        "reason": "negated-operator"
+    },
+    {
+        "id": "920440",
+        "file": "REQUEST-920-PROTOCOL-ENFORCEMENT.conf",
+        "reason": "no-funnypot-archetype-for-class"
+    },
+    {
+        "id": "920500",
+        "file": "REQUEST-920-PROTOCOL-ENFORCEMENT.conf",
+        "reason": "no-funnypot-archetype-for-class"
+    },
+    {
+        "id": "920450",
+        "file": "REQUEST-920-PROTOCOL-ENFORCEMENT.conf",
+        "reason": "no-funnypot-archetype-for-class"
+    },
+    {
+        "id": "920520",
+        "file": "REQUEST-920-PROTOCOL-ENFORCEMENT.conf",
+        "reason": "opaque-operator:@gt"
+    },
+    {
+        "id": "920600",
+        "file": "REQUEST-920-PROTOCOL-ENFORCEMENT.conf",
+        "reason": "negated-operator"
+    },
+    {
+        "id": "920539",
+        "file": "REQUEST-920-PROTOCOL-ENFORCEMENT.conf",
+        "reason": "opaque-operator:@streq"
+    },
+    {
+        "id": "920540",
+        "file": "REQUEST-920-PROTOCOL-ENFORCEMENT.conf",
+        "reason": "no-funnypot-archetype-for-class"
+    },
+    {
+        "id": "920610",
+        "file": "REQUEST-920-PROTOCOL-ENFORCEMENT.conf",
+        "reason": "opaque-operator:@contains"
+    },
+    {
+        "id": "920620",
+        "file": "REQUEST-920-PROTOCOL-ENFORCEMENT.conf",
+        "reason": "opaque-operator:@gt"
+    },
+    {
+        "id": "920013",
+        "file": "REQUEST-920-PROTOCOL-ENFORCEMENT.conf",
+        "reason": "opaque-operator:@lt"
+    },
+    {
+        "id": "920014",
+        "file": "REQUEST-920-PROTOCOL-ENFORCEMENT.conf",
+        "reason": "opaque-operator:@lt"
+    },
+    {
+        "id": "920200",
+        "file": "REQUEST-920-PROTOCOL-ENFORCEMENT.conf",
+        "reason": "no-funnypot-archetype-for-class"
+    },
+    {
+        "id": "920201",
+        "file": "REQUEST-920-PROTOCOL-ENFORCEMENT.conf",
+        "reason": "opaque-operator:@endsWith"
+    },
+    {
+        "id": "920230",
+        "file": "REQUEST-920-PROTOCOL-ENFORCEMENT.conf",
+        "reason": "no-funnypot-archetype-for-class"
+    },
+    {
+        "id": "920271",
+        "file": "REQUEST-920-PROTOCOL-ENFORCEMENT.conf",
+        "reason": "opaque-operator:@validateByteRange"
+    },
+    {
+        "id": "920320",
+        "file": "REQUEST-920-PROTOCOL-ENFORCEMENT.conf",
+        "reason": "opaque-operator:@eq"
+    },
+    {
+        "id": "920121",
+        "file": "REQUEST-920-PROTOCOL-ENFORCEMENT.conf",
+        "reason": "no-funnypot-archetype-for-class"
+    },
+    {
+        "id": "920451",
+        "file": "REQUEST-920-PROTOCOL-ENFORCEMENT.conf",
+        "reason": "no-funnypot-archetype-for-class"
+    },
+    {
+        "id": "920240",
+        "file": "REQUEST-920-PROTOCOL-ENFORCEMENT.conf",
+        "reason": "opaque-operator:@streq"
+    },
+    {
+        "id": "920650",
+        "file": "REQUEST-920-PROTOCOL-ENFORCEMENT.conf",
+        "reason": "opaque-operator:@eq"
+    },
+    {
+        "id": "920015",
+        "file": "REQUEST-920-PROTOCOL-ENFORCEMENT.conf",
+        "reason": "opaque-operator:@lt"
+    },
+    {
+        "id": "920016",
+        "file": "REQUEST-920-PROTOCOL-ENFORCEMENT.conf",
+        "reason": "opaque-operator:@lt"
+    },
+    {
+        "id": "920272",
+        "file": "REQUEST-920-PROTOCOL-ENFORCEMENT.conf",
+        "reason": "opaque-operator:@validateByteRange"
+    },
+    {
+        "id": "920300",
+        "file": "REQUEST-920-PROTOCOL-ENFORCEMENT.conf",
+        "reason": "opaque-operator:@eq"
+    },
+    {
+        "id": "920490",
+        "file": "REQUEST-920-PROTOCOL-ENFORCEMENT.conf",
+        "reason": "opaque-operator:@ge"
+    },
+    {
+        "id": "920510",
+        "file": "REQUEST-920-PROTOCOL-ENFORCEMENT.conf",
+        "reason": "opaque-operator:@gt"
+    },
+    {
+        "id": "920521",
+        "file": "REQUEST-920-PROTOCOL-ENFORCEMENT.conf",
+        "reason": "negated-operator"
+    },
+    {
+        "id": "920017",
+        "file": "REQUEST-920-PROTOCOL-ENFORCEMENT.conf",
+        "reason": "opaque-operator:@lt"
+    },
+    {
+        "id": "920018",
+        "file": "REQUEST-920-PROTOCOL-ENFORCEMENT.conf",
+        "reason": "opaque-operator:@lt"
+    },
+    {
+        "id": "920202",
+        "file": "REQUEST-920-PROTOCOL-ENFORCEMENT.conf",
+        "reason": "opaque-operator:@endsWith"
+    },
+    {
+        "id": "920273",
+        "file": "REQUEST-920-PROTOCOL-ENFORCEMENT.conf",
+        "reason": "opaque-operator:@validateByteRange"
+    },
+    {
+        "id": "920274",
+        "file": "REQUEST-920-PROTOCOL-ENFORCEMENT.conf",
+        "reason": "opaque-operator:@validateByteRange"
+    },
+    {
+        "id": "920275",
+        "file": "REQUEST-920-PROTOCOL-ENFORCEMENT.conf",
+        "reason": "negated-operator"
+    },
+    {
+        "id": "920460",
+        "file": "REQUEST-920-PROTOCOL-ENFORCEMENT.conf",
+        "reason": "no-funnypot-archetype-for-class"
+    },
+    {
+        "id": "921011",
+        "file": "REQUEST-921-PROTOCOL-ATTACK.conf",
+        "reason": "opaque-operator:@lt"
+    },
+    {
+        "id": "921012",
+        "file": "REQUEST-921-PROTOCOL-ATTACK.conf",
+        "reason": "opaque-operator:@lt"
+    },
+    {
+        "id": "921110",
+        "file": "REQUEST-921-PROTOCOL-ATTACK.conf",
+        "reason": "no-funnypot-archetype-for-class"
+    },
+    {
+        "id": "921120",
+        "file": "REQUEST-921-PROTOCOL-ATTACK.conf",
+        "reason": "no-funnypot-archetype-for-class"
+    },
+    {
+        "id": "921130",
+        "file": "REQUEST-921-PROTOCOL-ATTACK.conf",
+        "reason": "no-funnypot-archetype-for-class"
+    },
+    {
+        "id": "921140",
+        "file": "REQUEST-921-PROTOCOL-ATTACK.conf",
+        "reason": "no-funnypot-archetype-for-class"
+    },
+    {
+        "id": "921150",
+        "file": "REQUEST-921-PROTOCOL-ATTACK.conf",
+        "reason": "no-funnypot-archetype-for-class"
+    },
+    {
+        "id": "921160",
+        "file": "REQUEST-921-PROTOCOL-ATTACK.conf",
+        "reason": "no-funnypot-archetype-for-class"
+    },
+    {
+        "id": "921190",
+        "file": "REQUEST-921-PROTOCOL-ATTACK.conf",
+        "reason": "no-funnypot-archetype-for-class"
+    },
+    {
+        "id": "921200",
+        "file": "REQUEST-921-PROTOCOL-ATTACK.conf",
+        "reason": "no-funnypot-archetype-for-class"
+    },
+    {
+        "id": "921421",
+        "file": "REQUEST-921-PROTOCOL-ATTACK.conf",
+        "reason": "no-funnypot-archetype-for-class"
+    },
+    {
+        "id": "921240",
+        "file": "REQUEST-921-PROTOCOL-ATTACK.conf",
+        "reason": "no-funnypot-archetype-for-class"
+    },
+    {
+        "id": "921250",
+        "file": "REQUEST-921-PROTOCOL-ATTACK.conf",
+        "reason": "opaque-operator:@streq"
+    },
+    {
+        "id": "921013",
+        "file": "REQUEST-921-PROTOCOL-ATTACK.conf",
+        "reason": "opaque-operator:@lt"
+    },
+    {
+        "id": "921014",
+        "file": "REQUEST-921-PROTOCOL-ATTACK.conf",
+        "reason": "opaque-operator:@lt"
+    },
+    {
+        "id": "921151",
+        "file": "REQUEST-921-PROTOCOL-ATTACK.conf",
+        "reason": "no-funnypot-archetype-for-class"
+    },
+    {
+        "id": "921422",
+        "file": "REQUEST-921-PROTOCOL-ATTACK.conf",
+        "reason": "no-funnypot-archetype-for-class"
+    },
+    {
+        "id": "921015",
+        "file": "REQUEST-921-PROTOCOL-ATTACK.conf",
+        "reason": "opaque-operator:@lt"
+    },
+    {
+        "id": "921016",
+        "file": "REQUEST-921-PROTOCOL-ATTACK.conf",
+        "reason": "opaque-operator:@lt"
+    },
+    {
+        "id": "921230",
+        "file": "REQUEST-921-PROTOCOL-ATTACK.conf",
+        "reason": "opaque-operator:@gt"
+    },
+    {
+        "id": "921170",
+        "file": "REQUEST-921-PROTOCOL-ATTACK.conf",
+        "reason": "no-funnypot-archetype-for-class"
+    },
+    {
+        "id": "921180",
+        "file": "REQUEST-921-PROTOCOL-ATTACK.conf",
+        "reason": "opaque-operator:@gt"
+    },
+    {
+        "id": "921210",
+        "file": "REQUEST-921-PROTOCOL-ATTACK.conf",
+        "reason": "no-funnypot-archetype-for-class"
+    },
+    {
+        "id": "921017",
+        "file": "REQUEST-921-PROTOCOL-ATTACK.conf",
+        "reason": "opaque-operator:@lt"
+    },
+    {
+        "id": "921018",
+        "file": "REQUEST-921-PROTOCOL-ATTACK.conf",
+        "reason": "opaque-operator:@lt"
+    },
+    {
+        "id": "921220",
+        "file": "REQUEST-921-PROTOCOL-ATTACK.conf",
+        "reason": "no-funnypot-archetype-for-class"
+    },
+    {
+        "id": "922100",
+        "file": "REQUEST-922-MULTIPART-ATTACK.conf",
+        "reason": "negated-operator"
+    },
+    {
+        "id": "922140",
+        "file": "REQUEST-922-MULTIPART-ATTACK.conf",
+        "reason": "opaque-operator:@gt"
+    },
+    {
+        "id": "922150",
+        "file": "REQUEST-922-MULTIPART-ATTACK.conf",
+        "reason": "no-funnypot-archetype-for-class"
+    },
+    {
+        "id": "922110",
+        "file": "REQUEST-922-MULTIPART-ATTACK.conf",
+        "reason": "negated-operator"
+    },
+    {
+        "id": "922120",
+        "file": "REQUEST-922-MULTIPART-ATTACK.conf",
+        "reason": "no-funnypot-archetype-for-class"
+    },
+    {
+        "id": "922130",
+        "file": "REQUEST-922-MULTIPART-ATTACK.conf",
+        "reason": "no-funnypot-archetype-for-class"
+    },
+    {
+        "id": "930011",
+        "file": "REQUEST-930-APPLICATION-ATTACK-LFI.conf",
+        "reason": "opaque-operator:@lt"
+    },
+    {
+        "id": "930012",
+        "file": "REQUEST-930-APPLICATION-ATTACK-LFI.conf",
+        "reason": "opaque-operator:@lt"
+    },
+    {
+        "id": "930013",
+        "file": "REQUEST-930-APPLICATION-ATTACK-LFI.conf",
+        "reason": "opaque-operator:@lt"
+    },
+    {
+        "id": "930014",
+        "file": "REQUEST-930-APPLICATION-ATTACK-LFI.conf",
+        "reason": "opaque-operator:@lt"
+    },
+    {
+        "id": "930121",
+        "file": "REQUEST-930-APPLICATION-ATTACK-LFI.conf",
+        "reason": "paranoia-level/2"
+    },
+    {
+        "id": "930015",
+        "file": "REQUEST-930-APPLICATION-ATTACK-LFI.conf",
+        "reason": "opaque-operator:@lt"
+    },
+    {
+        "id": "930016",
+        "file": "REQUEST-930-APPLICATION-ATTACK-LFI.conf",
+        "reason": "opaque-operator:@lt"
+    },
+    {
+        "id": "930017",
+        "file": "REQUEST-930-APPLICATION-ATTACK-LFI.conf",
+        "reason": "opaque-operator:@lt"
+    },
+    {
+        "id": "930018",
+        "file": "REQUEST-930-APPLICATION-ATTACK-LFI.conf",
+        "reason": "opaque-operator:@lt"
+    },
+    {
+        "id": "931011",
+        "file": "REQUEST-931-APPLICATION-ATTACK-RFI.conf",
+        "reason": "opaque-operator:@lt"
+    },
+    {
+        "id": "931012",
+        "file": "REQUEST-931-APPLICATION-ATTACK-RFI.conf",
+        "reason": "opaque-operator:@lt"
+    },
+    {
+        "id": "931100",
+        "file": "REQUEST-931-APPLICATION-ATTACK-RFI.conf",
+        "reason": "no-funnypot-archetype-for-class"
+    },
+    {
+        "id": "931110",
+        "file": "REQUEST-931-APPLICATION-ATTACK-RFI.conf",
+        "reason": "no-funnypot-archetype-for-class"
+    },
+    {
+        "id": "931120",
+        "file": "REQUEST-931-APPLICATION-ATTACK-RFI.conf",
+        "reason": "no-funnypot-archetype-for-class"
+    },
+    {
+        "id": "931013",
+        "file": "REQUEST-931-APPLICATION-ATTACK-RFI.conf",
+        "reason": "opaque-operator:@lt"
+    },
+    {
+        "id": "931014",
+        "file": "REQUEST-931-APPLICATION-ATTACK-RFI.conf",
+        "reason": "opaque-operator:@lt"
+    },
+    {
+        "id": "931130",
+        "file": "REQUEST-931-APPLICATION-ATTACK-RFI.conf",
+        "reason": "no-funnypot-archetype-for-class"
+    },
+    {
+        "id": "931131",
+        "file": "REQUEST-931-APPLICATION-ATTACK-RFI.conf",
+        "reason": "no-funnypot-archetype-for-class"
+    },
+    {
+        "id": "931015",
+        "file": "REQUEST-931-APPLICATION-ATTACK-RFI.conf",
+        "reason": "opaque-operator:@lt"
+    },
+    {
+        "id": "931016",
+        "file": "REQUEST-931-APPLICATION-ATTACK-RFI.conf",
+        "reason": "opaque-operator:@lt"
+    },
+    {
+        "id": "931017",
+        "file": "REQUEST-931-APPLICATION-ATTACK-RFI.conf",
+        "reason": "opaque-operator:@lt"
+    },
+    {
+        "id": "931018",
+        "file": "REQUEST-931-APPLICATION-ATTACK-RFI.conf",
+        "reason": "opaque-operator:@lt"
+    },
+    {
+        "id": "932011",
+        "file": "REQUEST-932-APPLICATION-ATTACK-RCE.conf",
+        "reason": "opaque-operator:@lt"
+    },
+    {
+        "id": "932012",
+        "file": "REQUEST-932-APPLICATION-ATTACK-RCE.conf",
+        "reason": "opaque-operator:@lt"
+    },
+    {
+        "id": "932013",
+        "file": "REQUEST-932-APPLICATION-ATTACK-RCE.conf",
+        "reason": "opaque-operator:@lt"
+    },
+    {
+        "id": "932014",
+        "file": "REQUEST-932-APPLICATION-ATTACK-RCE.conf",
+        "reason": "opaque-operator:@lt"
+    },
+    {
+        "id": "932371",
+        "file": "REQUEST-932-APPLICATION-ATTACK-RCE.conf",
+        "reason": "paranoia-level/2"
+    },
+    {
+        "id": "932231",
+        "file": "REQUEST-932-APPLICATION-ATTACK-RCE.conf",
+        "reason": "paranoia-level/2"
+    },
+    {
+        "id": "932131",
+        "file": "REQUEST-932-APPLICATION-ATTACK-RCE.conf",
+        "reason": "paranoia-level/2"
+    },
+    {
+        "id": "932200",
+        "file": "REQUEST-932-APPLICATION-ATTACK-RCE.conf",
+        "reason": "paranoia-level/2"
+    },
+    {
+        "id": "932205",
+        "file": "REQUEST-932-APPLICATION-ATTACK-RCE.conf",
+        "reason": "paranoia-level/2"
+    },
+    {
+        "id": "932206",
+        "file": "REQUEST-932-APPLICATION-ATTACK-RCE.conf",
+        "reason": "paranoia-level/2"
+    },
+    {
+        "id": "932207",
+        "file": "REQUEST-932-APPLICATION-ATTACK-RCE.conf",
+        "reason": "paranoia-level/2"
+    },
+    {
+        "id": "932220",
+        "file": "REQUEST-932-APPLICATION-ATTACK-RCE.conf",
+        "reason": "paranoia-level/2"
+    },
+    {
+        "id": "932240",
+        "file": "REQUEST-932-APPLICATION-ATTACK-RCE.conf",
+        "reason": "paranoia-level/2"
+    },
+    {
+        "id": "932281",
+        "file": "REQUEST-932-APPLICATION-ATTACK-RCE.conf",
+        "reason": "paranoia-level/2"
+    },
+    {
+        "id": "932210",
+        "file": "REQUEST-932-APPLICATION-ATTACK-RCE.conf",
+        "reason": "paranoia-level/2"
+    },
+    {
+        "id": "932271",
+        "file": "REQUEST-932-APPLICATION-ATTACK-RCE.conf",
+        "reason": "paranoia-level/2"
+    },
+    {
+        "id": "932300",
+        "file": "REQUEST-932-APPLICATION-ATTACK-RCE.conf",
+        "reason": "paranoia-level/2"
+    },
+    {
+        "id": "932310",
+        "file": "REQUEST-932-APPLICATION-ATTACK-RCE.conf",
+        "reason": "paranoia-level/2"
+    },
+    {
+        "id": "932320",
+        "file": "REQUEST-932-APPLICATION-ATTACK-RCE.conf",
+        "reason": "paranoia-level/2"
+    },
+    {
+        "id": "932236",
+        "file": "REQUEST-932-APPLICATION-ATTACK-RCE.conf",
+        "reason": "paranoia-level/2"
+    },
+    {
+        "id": "932239",
+        "file": "REQUEST-932-APPLICATION-ATTACK-RCE.conf",
+        "reason": "paranoia-level/2"
+    },
+    {
+        "id": "932161",
+        "file": "REQUEST-932-APPLICATION-ATTACK-RCE.conf",
+        "reason": "paranoia-level/2"
+    },
+    {
+        "id": "932390",
+        "file": "REQUEST-932-APPLICATION-ATTACK-RCE.conf",
+        "reason": "paranoia-level/2"
+    },
+    {
+        "id": "932015",
+        "file": "REQUEST-932-APPLICATION-ATTACK-RCE.conf",
+        "reason": "opaque-operator:@lt"
+    },
+    {
+        "id": "932016",
+        "file": "REQUEST-932-APPLICATION-ATTACK-RCE.conf",
+        "reason": "opaque-operator:@lt"
+    },
+    {
+        "id": "932232",
+        "file": "REQUEST-932-APPLICATION-ATTACK-RCE.conf",
+        "reason": "paranoia-level/3"
+    },
+    {
+        "id": "932237",
+        "file": "REQUEST-932-APPLICATION-ATTACK-RCE.conf",
+        "reason": "paranoia-level/3"
+    },
+    {
+        "id": "932238",
+        "file": "REQUEST-932-APPLICATION-ATTACK-RCE.conf",
+        "reason": "paranoia-level/3"
+    },
+    {
+        "id": "932290",
+        "file": "REQUEST-932-APPLICATION-ATTACK-RCE.conf",
+        "reason": "paranoia-level/3"
+    },
+    {
+        "id": "932190",
+        "file": "REQUEST-932-APPLICATION-ATTACK-RCE.conf",
+        "reason": "paranoia-level/3"
+    },
+    {
+        "id": "932350",
+        "file": "REQUEST-932-APPLICATION-ATTACK-RCE.conf",
+        "reason": "paranoia-level/3"
+    },
+    {
+        "id": "932301",
+        "file": "REQUEST-932-APPLICATION-ATTACK-RCE.conf",
+        "reason": "paranoia-level/3"
+    },
+    {
+        "id": "932311",
+        "file": "REQUEST-932-APPLICATION-ATTACK-RCE.conf",
+        "reason": "paranoia-level/3"
+    },
+    {
+        "id": "932321",
+        "file": "REQUEST-932-APPLICATION-ATTACK-RCE.conf",
+        "reason": "paranoia-level/3"
+    },
+    {
+        "id": "932331",
+        "file": "REQUEST-932-APPLICATION-ATTACK-RCE.conf",
+        "reason": "paranoia-level/3"
+    },
+    {
+        "id": "932017",
+        "file": "REQUEST-932-APPLICATION-ATTACK-RCE.conf",
+        "reason": "opaque-operator:@lt"
+    },
+    {
+        "id": "932018",
+        "file": "REQUEST-932-APPLICATION-ATTACK-RCE.conf",
+        "reason": "opaque-operator:@lt"
+    },
+    {
+        "id": "933011",
+        "file": "REQUEST-933-APPLICATION-ATTACK-PHP.conf",
+        "reason": "opaque-operator:@lt"
+    },
+    {
+        "id": "933012",
+        "file": "REQUEST-933-APPLICATION-ATTACK-PHP.conf",
+        "reason": "opaque-operator:@lt"
+    },
+    {
+        "id": "933100",
+        "file": "REQUEST-933-APPLICATION-ATTACK-PHP.conf",
+        "reason": "no-funnypot-archetype-for-class"
+    },
+    {
+        "id": "933110",
+        "file": "REQUEST-933-APPLICATION-ATTACK-PHP.conf",
+        "reason": "no-funnypot-archetype-for-class"
+    },
+    {
+        "id": "933120",
+        "file": "REQUEST-933-APPLICATION-ATTACK-PHP.conf",
+        "reason": "no-funnypot-archetype-for-class"
+    },
+    {
+        "id": "933130",
+        "file": "REQUEST-933-APPLICATION-ATTACK-PHP.conf",
+        "reason": "no-funnypot-archetype-for-class"
+    },
+    {
+        "id": "933135",
+        "file": "REQUEST-933-APPLICATION-ATTACK-PHP.conf",
+        "reason": "no-funnypot-archetype-for-class"
+    },
+    {
+        "id": "933140",
+        "file": "REQUEST-933-APPLICATION-ATTACK-PHP.conf",
+        "reason": "no-funnypot-archetype-for-class"
+    },
+    {
+        "id": "933200",
+        "file": "REQUEST-933-APPLICATION-ATTACK-PHP.conf",
+        "reason": "no-funnypot-archetype-for-class"
+    },
+    {
+        "id": "933150",
+        "file": "REQUEST-933-APPLICATION-ATTACK-PHP.conf",
+        "reason": "no-funnypot-archetype-for-class"
+    },
+    {
+        "id": "933160",
+        "file": "REQUEST-933-APPLICATION-ATTACK-PHP.conf",
+        "reason": "no-funnypot-archetype-for-class"
+    },
+    {
+        "id": "933170",
+        "file": "REQUEST-933-APPLICATION-ATTACK-PHP.conf",
+        "reason": "no-funnypot-archetype-for-class"
+    },
+    {
+        "id": "933180",
+        "file": "REQUEST-933-APPLICATION-ATTACK-PHP.conf",
+        "reason": "no-funnypot-archetype-for-class"
+    },
+    {
+        "id": "933210",
+        "file": "REQUEST-933-APPLICATION-ATTACK-PHP.conf",
+        "reason": "no-funnypot-archetype-for-class"
+    },
+    {
+        "id": "933220",
+        "file": "REQUEST-933-APPLICATION-ATTACK-PHP.conf",
+        "reason": "no-funnypot-archetype-for-class"
+    },
+    {
+        "id": "933013",
+        "file": "REQUEST-933-APPLICATION-ATTACK-PHP.conf",
+        "reason": "opaque-operator:@lt"
+    },
+    {
+        "id": "933014",
+        "file": "REQUEST-933-APPLICATION-ATTACK-PHP.conf",
+        "reason": "opaque-operator:@lt"
+    },
+    {
+        "id": "933151",
+        "file": "REQUEST-933-APPLICATION-ATTACK-PHP.conf",
+        "reason": "no-funnypot-archetype-for-class"
+    },
+    {
+        "id": "933152",
+        "file": "REQUEST-933-APPLICATION-ATTACK-PHP.conf",
+        "reason": "no-funnypot-archetype-for-class"
+    },
+    {
+        "id": "933153",
+        "file": "REQUEST-933-APPLICATION-ATTACK-PHP.conf",
+        "reason": "no-funnypot-archetype-for-class"
+    },
+    {
+        "id": "933015",
+        "file": "REQUEST-933-APPLICATION-ATTACK-PHP.conf",
+        "reason": "opaque-operator:@lt"
+    },
+    {
+        "id": "933016",
+        "file": "REQUEST-933-APPLICATION-ATTACK-PHP.conf",
+        "reason": "opaque-operator:@lt"
+    },
+    {
+        "id": "933131",
+        "file": "REQUEST-933-APPLICATION-ATTACK-PHP.conf",
+        "reason": "no-funnypot-archetype-for-class"
+    },
+    {
+        "id": "933161",
+        "file": "REQUEST-933-APPLICATION-ATTACK-PHP.conf",
+        "reason": "no-funnypot-archetype-for-class"
+    },
+    {
+        "id": "933111",
+        "file": "REQUEST-933-APPLICATION-ATTACK-PHP.conf",
+        "reason": "no-funnypot-archetype-for-class"
+    },
+    {
+        "id": "933190",
+        "file": "REQUEST-933-APPLICATION-ATTACK-PHP.conf",
+        "reason": "opaque-operator:@pm"
+    },
+    {
+        "id": "933211",
+        "file": "REQUEST-933-APPLICATION-ATTACK-PHP.conf",
+        "reason": "no-funnypot-archetype-for-class"
+    },
+    {
+        "id": "933017",
+        "file": "REQUEST-933-APPLICATION-ATTACK-PHP.conf",
+        "reason": "opaque-operator:@lt"
+    },
+    {
+        "id": "933018",
+        "file": "REQUEST-933-APPLICATION-ATTACK-PHP.conf",
+        "reason": "opaque-operator:@lt"
+    },
+    {
+        "id": "934011",
+        "file": "REQUEST-934-APPLICATION-ATTACK-GENERIC.conf",
+        "reason": "opaque-operator:@lt"
+    },
+    {
+        "id": "934012",
+        "file": "REQUEST-934-APPLICATION-ATTACK-GENERIC.conf",
+        "reason": "opaque-operator:@lt"
+    },
+    {
+        "id": "934110",
+        "file": "REQUEST-934-APPLICATION-ATTACK-GENERIC.conf",
+        "reason": "no-funnypot-archetype-for-class"
+    },
+    {
+        "id": "934190",
+        "file": "REQUEST-934-APPLICATION-ATTACK-GENERIC.conf",
+        "reason": "no-funnypot-archetype-for-class"
+    },
+    {
+        "id": "934170",
+        "file": "REQUEST-934-APPLICATION-ATTACK-GENERIC.conf",
+        "reason": "no-funnypot-archetype-for-class"
+    },
+    {
+        "id": "934200",
+        "file": "REQUEST-934-APPLICATION-ATTACK-GENERIC.conf",
+        "reason": "no-funnypot-archetype-for-class"
+    },
+    {
+        "id": "934013",
+        "file": "REQUEST-934-APPLICATION-ATTACK-GENERIC.conf",
+        "reason": "opaque-operator:@lt"
+    },
+    {
+        "id": "934014",
+        "file": "REQUEST-934-APPLICATION-ATTACK-GENERIC.conf",
+        "reason": "opaque-operator:@lt"
+    },
+    {
+        "id": "934101",
+        "file": "REQUEST-934-APPLICATION-ATTACK-GENERIC.conf",
+        "reason": "paranoia-level/2"
+    },
+    {
+        "id": "934120",
+        "file": "REQUEST-934-APPLICATION-ATTACK-GENERIC.conf",
+        "reason": "no-funnypot-archetype-for-class"
+    },
+    {
+        "id": "934140",
+        "file": "REQUEST-934-APPLICATION-ATTACK-GENERIC.conf",
+        "reason": "paranoia-level/2"
+    },
+    {
+        "id": "934180",
+        "file": "REQUEST-934-APPLICATION-ATTACK-GENERIC.conf",
+        "reason": "no-funnypot-archetype-for-class"
+    },
+    {
+        "id": "934220",
+        "file": "REQUEST-934-APPLICATION-ATTACK-GENERIC.conf",
+        "reason": "no-funnypot-archetype-for-class"
+    },
+    {
+        "id": "934015",
+        "file": "REQUEST-934-APPLICATION-ATTACK-GENERIC.conf",
+        "reason": "opaque-operator:@lt"
+    },
+    {
+        "id": "934016",
+        "file": "REQUEST-934-APPLICATION-ATTACK-GENERIC.conf",
+        "reason": "opaque-operator:@lt"
+    },
+    {
+        "id": "934210",
+        "file": "REQUEST-934-APPLICATION-ATTACK-GENERIC.conf",
+        "reason": "no-funnypot-archetype-for-class"
+    },
+    {
+        "id": "934017",
+        "file": "REQUEST-934-APPLICATION-ATTACK-GENERIC.conf",
+        "reason": "opaque-operator:@lt"
+    },
+    {
+        "id": "934018",
+        "file": "REQUEST-934-APPLICATION-ATTACK-GENERIC.conf",
+        "reason": "opaque-operator:@lt"
+    },
+    {
+        "id": "941011",
+        "file": "REQUEST-941-APPLICATION-ATTACK-XSS.conf",
+        "reason": "opaque-operator:@lt"
+    },
+    {
+        "id": "941012",
+        "file": "REQUEST-941-APPLICATION-ATTACK-XSS.conf",
+        "reason": "opaque-operator:@lt"
+    },
+    {
+        "id": "941010",
+        "file": "REQUEST-941-APPLICATION-ATTACK-XSS.conf",
+        "reason": "negated-operator"
+    },
+    {
+        "id": "941100",
+        "file": "REQUEST-941-APPLICATION-ATTACK-XSS.conf",
+        "reason": "opaque-operator:@detectXSS"
+    },
+    {
+        "id": "941180",
+        "file": "REQUEST-941-APPLICATION-ATTACK-XSS.conf",
+        "reason": "opaque-operator:@pm"
+    },
+    {
+        "id": "941013",
+        "file": "REQUEST-941-APPLICATION-ATTACK-XSS.conf",
+        "reason": "opaque-operator:@lt"
+    },
+    {
+        "id": "941014",
+        "file": "REQUEST-941-APPLICATION-ATTACK-XSS.conf",
+        "reason": "opaque-operator:@lt"
+    },
+    {
+        "id": "941101",
+        "file": "REQUEST-941-APPLICATION-ATTACK-XSS.conf",
+        "reason": "opaque-operator:@detectXSS"
+    },
+    {
+        "id": "941150",
+        "file": "REQUEST-941-APPLICATION-ATTACK-XSS.conf",
+        "reason": "paranoia-level/2"
+    },
+    {
+        "id": "941181",
+        "file": "REQUEST-941-APPLICATION-ATTACK-XSS.conf",
+        "reason": "opaque-operator:@contains"
+    },
+    {
+        "id": "941320",
+        "file": "REQUEST-941-APPLICATION-ATTACK-XSS.conf",
+        "reason": "paranoia-level/2"
+    },
+    {
+        "id": "941330",
+        "file": "REQUEST-941-APPLICATION-ATTACK-XSS.conf",
+        "reason": "paranoia-level/2"
+    },
+    {
+        "id": "941340",
+        "file": "REQUEST-941-APPLICATION-ATTACK-XSS.conf",
+        "reason": "paranoia-level/2"
+    },
+    {
+        "id": "941380",
+        "file": "REQUEST-941-APPLICATION-ATTACK-XSS.conf",
+        "reason": "paranoia-level/2"
+    },
+    {
+        "id": "941015",
+        "file": "REQUEST-941-APPLICATION-ATTACK-XSS.conf",
+        "reason": "opaque-operator:@lt"
+    },
+    {
+        "id": "941016",
+        "file": "REQUEST-941-APPLICATION-ATTACK-XSS.conf",
+        "reason": "opaque-operator:@lt"
+    },
+    {
+        "id": "941017",
+        "file": "REQUEST-941-APPLICATION-ATTACK-XSS.conf",
+        "reason": "opaque-operator:@lt"
+    },
+    {
+        "id": "941018",
+        "file": "REQUEST-941-APPLICATION-ATTACK-XSS.conf",
+        "reason": "opaque-operator:@lt"
+    },
+    {
+        "id": "942011",
+        "file": "REQUEST-942-APPLICATION-ATTACK-SQLI.conf",
+        "reason": "opaque-operator:@lt"
+    },
+    {
+        "id": "942012",
+        "file": "REQUEST-942-APPLICATION-ATTACK-SQLI.conf",
+        "reason": "opaque-operator:@lt"
+    },
+    {
+        "id": "942100",
+        "file": "REQUEST-942-APPLICATION-ATTACK-SQLI.conf",
+        "reason": "opaque-operator:@detectSQLi"
+    },
+    {
+        "id": "942013",
+        "file": "REQUEST-942-APPLICATION-ATTACK-SQLI.conf",
+        "reason": "opaque-operator:@lt"
+    },
+    {
+        "id": "942014",
+        "file": "REQUEST-942-APPLICATION-ATTACK-SQLI.conf",
+        "reason": "opaque-operator:@lt"
+    },
+    {
+        "id": "942120",
+        "file": "REQUEST-942-APPLICATION-ATTACK-SQLI.conf",
+        "reason": "paranoia-level/2"
+    },
+    {
+        "id": "942130",
+        "file": "REQUEST-942-APPLICATION-ATTACK-SQLI.conf",
+        "reason": "paranoia-level/2"
+    },
+    {
+        "id": "942131",
+        "file": "REQUEST-942-APPLICATION-ATTACK-SQLI.conf",
+        "reason": "paranoia-level/2"
+    },
+    {
+        "id": "942150",
+        "file": "REQUEST-942-APPLICATION-ATTACK-SQLI.conf",
+        "reason": "paranoia-level/2"
+    },
+    {
+        "id": "942180",
+        "file": "REQUEST-942-APPLICATION-ATTACK-SQLI.conf",
+        "reason": "paranoia-level/2"
+    },
+    {
+        "id": "942200",
+        "file": "REQUEST-942-APPLICATION-ATTACK-SQLI.conf",
+        "reason": "paranoia-level/2"
+    },
+    {
+        "id": "942210",
+        "file": "REQUEST-942-APPLICATION-ATTACK-SQLI.conf",
+        "reason": "paranoia-level/2"
+    },
+    {
+        "id": "942260",
+        "file": "REQUEST-942-APPLICATION-ATTACK-SQLI.conf",
+        "reason": "paranoia-level/2"
+    },
+    {
+        "id": "942300",
+        "file": "REQUEST-942-APPLICATION-ATTACK-SQLI.conf",
+        "reason": "paranoia-level/2"
+    },
+    {
+        "id": "942310",
+        "file": "REQUEST-942-APPLICATION-ATTACK-SQLI.conf",
+        "reason": "paranoia-level/2"
+    },
+    {
+        "id": "942330",
+        "file": "REQUEST-942-APPLICATION-ATTACK-SQLI.conf",
+        "reason": "paranoia-level/2"
+    },
+    {
+        "id": "942340",
+        "file": "REQUEST-942-APPLICATION-ATTACK-SQLI.conf",
+        "reason": "paranoia-level/2"
+    },
+    {
+        "id": "942361",
+        "file": "REQUEST-942-APPLICATION-ATTACK-SQLI.conf",
+        "reason": "paranoia-level/2"
+    },
+    {
+        "id": "942362",
+        "file": "REQUEST-942-APPLICATION-ATTACK-SQLI.conf",
+        "reason": "paranoia-level/2"
+    },
+    {
+        "id": "942370",
+        "file": "REQUEST-942-APPLICATION-ATTACK-SQLI.conf",
+        "reason": "paranoia-level/2"
+    },
+    {
+        "id": "942380",
+        "file": "REQUEST-942-APPLICATION-ATTACK-SQLI.conf",
+        "reason": "paranoia-level/2"
+    },
+    {
+        "id": "942390",
+        "file": "REQUEST-942-APPLICATION-ATTACK-SQLI.conf",
+        "reason": "paranoia-level/2"
+    },
+    {
+        "id": "942400",
+        "file": "REQUEST-942-APPLICATION-ATTACK-SQLI.conf",
+        "reason": "paranoia-level/2"
+    },
+    {
+        "id": "942410",
+        "file": "REQUEST-942-APPLICATION-ATTACK-SQLI.conf",
+        "reason": "paranoia-level/2"
+    },
+    {
+        "id": "942470",
+        "file": "REQUEST-942-APPLICATION-ATTACK-SQLI.conf",
+        "reason": "paranoia-level/2"
+    },
+    {
+        "id": "942480",
+        "file": "REQUEST-942-APPLICATION-ATTACK-SQLI.conf",
+        "reason": "paranoia-level/2"
+    },
+    {
+        "id": "942430",
+        "file": "REQUEST-942-APPLICATION-ATTACK-SQLI.conf",
+        "reason": "paranoia-level/2"
+    },
+    {
+        "id": "942440",
+        "file": "REQUEST-942-APPLICATION-ATTACK-SQLI.conf",
+        "reason": "paranoia-level/2"
+    },
+    {
+        "id": "942450",
+        "file": "REQUEST-942-APPLICATION-ATTACK-SQLI.conf",
+        "reason": "paranoia-level/2"
+    },
+    {
+        "id": "942510",
+        "file": "REQUEST-942-APPLICATION-ATTACK-SQLI.conf",
+        "reason": "paranoia-level/2"
+    },
+    {
+        "id": "942520",
+        "file": "REQUEST-942-APPLICATION-ATTACK-SQLI.conf",
+        "reason": "paranoia-level/2"
+    },
+    {
+        "id": "942521",
+        "file": "REQUEST-942-APPLICATION-ATTACK-SQLI.conf",
+        "reason": "paranoia-level/2"
+    },
+    {
+        "id": "942522",
+        "file": "REQUEST-942-APPLICATION-ATTACK-SQLI.conf",
+        "reason": "paranoia-level/2"
+    },
+    {
+        "id": "942101",
+        "file": "REQUEST-942-APPLICATION-ATTACK-SQLI.conf",
+        "reason": "opaque-operator:@detectSQLi"
+    },
+    {
+        "id": "942152",
+        "file": "REQUEST-942-APPLICATION-ATTACK-SQLI.conf",
+        "reason": "paranoia-level/2"
+    },
+    {
+        "id": "942321",
+        "file": "REQUEST-942-APPLICATION-ATTACK-SQLI.conf",
+        "reason": "paranoia-level/2"
+    },
+    {
+        "id": "942015",
+        "file": "REQUEST-942-APPLICATION-ATTACK-SQLI.conf",
+        "reason": "opaque-operator:@lt"
+    },
+    {
+        "id": "942016",
+        "file": "REQUEST-942-APPLICATION-ATTACK-SQLI.conf",
+        "reason": "opaque-operator:@lt"
+    },
+    {
+        "id": "942251",
+        "file": "REQUEST-942-APPLICATION-ATTACK-SQLI.conf",
+        "reason": "paranoia-level/3"
+    },
+    {
+        "id": "942490",
+        "file": "REQUEST-942-APPLICATION-ATTACK-SQLI.conf",
+        "reason": "paranoia-level/3"
+    },
+    {
+        "id": "942420",
+        "file": "REQUEST-942-APPLICATION-ATTACK-SQLI.conf",
+        "reason": "paranoia-level/3"
+    },
+    {
+        "id": "942431",
+        "file": "REQUEST-942-APPLICATION-ATTACK-SQLI.conf",
+        "reason": "paranoia-level/3"
+    },
+    {
+        "id": "942460",
+        "file": "REQUEST-942-APPLICATION-ATTACK-SQLI.conf",
+        "reason": "paranoia-level/3"
+    },
+    {
+        "id": "942511",
+        "file": "REQUEST-942-APPLICATION-ATTACK-SQLI.conf",
+        "reason": "paranoia-level/3"
+    },
+    {
+        "id": "942530",
+        "file": "REQUEST-942-APPLICATION-ATTACK-SQLI.conf",
+        "reason": "paranoia-level/3"
+    },
+    {
+        "id": "942017",
+        "file": "REQUEST-942-APPLICATION-ATTACK-SQLI.conf",
+        "reason": "opaque-operator:@lt"
+    },
+    {
+        "id": "942018",
+        "file": "REQUEST-942-APPLICATION-ATTACK-SQLI.conf",
+        "reason": "opaque-operator:@lt"
+    },
+    {
+        "id": "942421",
+        "file": "REQUEST-942-APPLICATION-ATTACK-SQLI.conf",
+        "reason": "paranoia-level/4"
+    },
+    {
+        "id": "942432",
+        "file": "REQUEST-942-APPLICATION-ATTACK-SQLI.conf",
+        "reason": "paranoia-level/4"
+    },
+    {
+        "id": "943011",
+        "file": "REQUEST-943-APPLICATION-ATTACK-SESSION-FIXATION.conf",
+        "reason": "opaque-operator:@lt"
+    },
+    {
+        "id": "943012",
+        "file": "REQUEST-943-APPLICATION-ATTACK-SESSION-FIXATION.conf",
+        "reason": "opaque-operator:@lt"
+    },
+    {
+        "id": "943100",
+        "file": "REQUEST-943-APPLICATION-ATTACK-SESSION-FIXATION.conf",
+        "reason": "no-funnypot-archetype-for-class"
+    },
+    {
+        "id": "943110",
+        "file": "REQUEST-943-APPLICATION-ATTACK-SESSION-FIXATION.conf",
+        "reason": "no-funnypot-archetype-for-class"
+    },
+    {
+        "id": "943120",
+        "file": "REQUEST-943-APPLICATION-ATTACK-SESSION-FIXATION.conf",
+        "reason": "no-funnypot-archetype-for-class"
+    },
+    {
+        "id": "943013",
+        "file": "REQUEST-943-APPLICATION-ATTACK-SESSION-FIXATION.conf",
+        "reason": "opaque-operator:@lt"
+    },
+    {
+        "id": "943014",
+        "file": "REQUEST-943-APPLICATION-ATTACK-SESSION-FIXATION.conf",
+        "reason": "opaque-operator:@lt"
+    },
+    {
+        "id": "943015",
+        "file": "REQUEST-943-APPLICATION-ATTACK-SESSION-FIXATION.conf",
+        "reason": "opaque-operator:@lt"
+    },
+    {
+        "id": "943016",
+        "file": "REQUEST-943-APPLICATION-ATTACK-SESSION-FIXATION.conf",
+        "reason": "opaque-operator:@lt"
+    },
+    {
+        "id": "943017",
+        "file": "REQUEST-943-APPLICATION-ATTACK-SESSION-FIXATION.conf",
+        "reason": "opaque-operator:@lt"
+    },
+    {
+        "id": "943018",
+        "file": "REQUEST-943-APPLICATION-ATTACK-SESSION-FIXATION.conf",
+        "reason": "opaque-operator:@lt"
+    },
+    {
+        "id": "944011",
+        "file": "REQUEST-944-APPLICATION-ATTACK-JAVA.conf",
+        "reason": "opaque-operator:@lt"
+    },
+    {
+        "id": "944012",
+        "file": "REQUEST-944-APPLICATION-ATTACK-JAVA.conf",
+        "reason": "opaque-operator:@lt"
+    },
+    {
+        "id": "944140",
+        "file": "REQUEST-944-APPLICATION-ATTACK-JAVA.conf",
+        "reason": "no-funnypot-archetype-for-class"
+    },
+    {
+        "id": "944013",
+        "file": "REQUEST-944-APPLICATION-ATTACK-JAVA.conf",
+        "reason": "opaque-operator:@lt"
+    },
+    {
+        "id": "944014",
+        "file": "REQUEST-944-APPLICATION-ATTACK-JAVA.conf",
+        "reason": "opaque-operator:@lt"
+    },
+    {
+        "id": "944151",
+        "file": "REQUEST-944-APPLICATION-ATTACK-JAVA.conf",
+        "reason": "paranoia-level/2"
+    },
+    {
+        "id": "944200",
+        "file": "REQUEST-944-APPLICATION-ATTACK-JAVA.conf",
+        "reason": "paranoia-level/2"
+    },
+    {
+        "id": "944210",
+        "file": "REQUEST-944-APPLICATION-ATTACK-JAVA.conf",
+        "reason": "paranoia-level/2"
+    },
+    {
+        "id": "944240",
+        "file": "REQUEST-944-APPLICATION-ATTACK-JAVA.conf",
+        "reason": "paranoia-level/2"
+    },
+    {
+        "id": "944250",
+        "file": "REQUEST-944-APPLICATION-ATTACK-JAVA.conf",
+        "reason": "paranoia-level/2"
+    },
+    {
+        "id": "944260",
+        "file": "REQUEST-944-APPLICATION-ATTACK-JAVA.conf",
+        "reason": "paranoia-level/2"
+    },
+    {
+        "id": "944015",
+        "file": "REQUEST-944-APPLICATION-ATTACK-JAVA.conf",
+        "reason": "opaque-operator:@lt"
+    },
+    {
+        "id": "944016",
+        "file": "REQUEST-944-APPLICATION-ATTACK-JAVA.conf",
+        "reason": "opaque-operator:@lt"
+    },
+    {
+        "id": "944300",
+        "file": "REQUEST-944-APPLICATION-ATTACK-JAVA.conf",
+        "reason": "paranoia-level/3"
+    },
+    {
+        "id": "944017",
+        "file": "REQUEST-944-APPLICATION-ATTACK-JAVA.conf",
+        "reason": "opaque-operator:@lt"
+    },
+    {
+        "id": "944018",
+        "file": "REQUEST-944-APPLICATION-ATTACK-JAVA.conf",
+        "reason": "opaque-operator:@lt"
+    },
+    {
+        "id": "944152",
+        "file": "REQUEST-944-APPLICATION-ATTACK-JAVA.conf",
+        "reason": "paranoia-level/4"
+    },
+    {
+        "id": "949052",
+        "file": "REQUEST-949-BLOCKING-EVALUATION.conf",
+        "reason": "opaque-operator:@ge"
+    },
+    {
+        "id": "949152",
+        "file": "REQUEST-949-BLOCKING-EVALUATION.conf",
+        "reason": "opaque-operator:@ge"
+    },
+    {
+        "id": "949053",
+        "file": "REQUEST-949-BLOCKING-EVALUATION.conf",
+        "reason": "opaque-operator:@ge"
+    },
+    {
+        "id": "949153",
+        "file": "REQUEST-949-BLOCKING-EVALUATION.conf",
+        "reason": "opaque-operator:@ge"
+    },
+    {
+        "id": "949054",
+        "file": "REQUEST-949-BLOCKING-EVALUATION.conf",
+        "reason": "opaque-operator:@ge"
+    },
+    {
+        "id": "949154",
+        "file": "REQUEST-949-BLOCKING-EVALUATION.conf",
+        "reason": "opaque-operator:@ge"
+    },
+    {
+        "id": "949055",
+        "file": "REQUEST-949-BLOCKING-EVALUATION.conf",
+        "reason": "opaque-operator:@ge"
+    },
+    {
+        "id": "949155",
+        "file": "REQUEST-949-BLOCKING-EVALUATION.conf",
+        "reason": "opaque-operator:@ge"
+    },
+    {
+        "id": "949060",
+        "file": "REQUEST-949-BLOCKING-EVALUATION.conf",
+        "reason": "opaque-operator:@ge"
+    },
+    {
+        "id": "949160",
+        "file": "REQUEST-949-BLOCKING-EVALUATION.conf",
+        "reason": "opaque-operator:@ge"
+    },
+    {
+        "id": "949061",
+        "file": "REQUEST-949-BLOCKING-EVALUATION.conf",
+        "reason": "opaque-operator:@ge"
+    },
+    {
+        "id": "949161",
+        "file": "REQUEST-949-BLOCKING-EVALUATION.conf",
+        "reason": "opaque-operator:@ge"
+    },
+    {
+        "id": "949062",
+        "file": "REQUEST-949-BLOCKING-EVALUATION.conf",
+        "reason": "opaque-operator:@ge"
+    },
+    {
+        "id": "949162",
+        "file": "REQUEST-949-BLOCKING-EVALUATION.conf",
+        "reason": "opaque-operator:@ge"
+    },
+    {
+        "id": "949063",
+        "file": "REQUEST-949-BLOCKING-EVALUATION.conf",
+        "reason": "opaque-operator:@ge"
+    },
+    {
+        "id": "949163",
+        "file": "REQUEST-949-BLOCKING-EVALUATION.conf",
+        "reason": "opaque-operator:@ge"
+    },
+    {
+        "id": "949111",
+        "file": "REQUEST-949-BLOCKING-EVALUATION.conf",
+        "reason": "opaque-operator:@ge"
+    },
+    {
+        "id": "949110",
+        "file": "REQUEST-949-BLOCKING-EVALUATION.conf",
+        "reason": "opaque-operator:@ge"
+    },
+    {
+        "id": "949011",
+        "file": "REQUEST-949-BLOCKING-EVALUATION.conf",
+        "reason": "opaque-operator:@lt"
+    },
+    {
+        "id": "949012",
+        "file": "REQUEST-949-BLOCKING-EVALUATION.conf",
+        "reason": "opaque-operator:@lt"
+    },
+    {
+        "id": "949013",
+        "file": "REQUEST-949-BLOCKING-EVALUATION.conf",
+        "reason": "opaque-operator:@lt"
+    },
+    {
+        "id": "949014",
+        "file": "REQUEST-949-BLOCKING-EVALUATION.conf",
+        "reason": "opaque-operator:@lt"
+    },
+    {
+        "id": "949015",
+        "file": "REQUEST-949-BLOCKING-EVALUATION.conf",
+        "reason": "opaque-operator:@lt"
+    },
+    {
+        "id": "949016",
+        "file": "REQUEST-949-BLOCKING-EVALUATION.conf",
+        "reason": "opaque-operator:@lt"
+    },
+    {
+        "id": "949017",
+        "file": "REQUEST-949-BLOCKING-EVALUATION.conf",
+        "reason": "opaque-operator:@lt"
+    },
+    {
+        "id": "949018",
+        "file": "REQUEST-949-BLOCKING-EVALUATION.conf",
+        "reason": "opaque-operator:@lt"
+    },
+    {
+        "id": "950021",
+        "file": "RESPONSE-950-DATA-LEAKAGES.conf",
+        "reason": "opaque-operator:@eq"
+    },
+    {
+        "id": "950010",
+        "file": "RESPONSE-950-DATA-LEAKAGES.conf",
+        "reason": "opaque-operator:@pm"
+    },
+    {
+        "id": "950011",
+        "file": "RESPONSE-950-DATA-LEAKAGES.conf",
+        "reason": "opaque-operator:@lt"
+    },
+    {
+        "id": "950012",
+        "file": "RESPONSE-950-DATA-LEAKAGES.conf",
+        "reason": "opaque-operator:@lt"
+    },
+    {
+        "id": "950130",
+        "file": "RESPONSE-950-DATA-LEAKAGES.conf",
+        "reason": "no-funnypot-archetype-for-class"
+    },
+    {
+        "id": "950140",
+        "file": "RESPONSE-950-DATA-LEAKAGES.conf",
+        "reason": "no-funnypot-archetype-for-class"
+    },
+    {
+        "id": "950150",
+        "file": "RESPONSE-950-DATA-LEAKAGES.conf",
+        "reason": "no-funnypot-archetype-for-class"
+    },
+    {
+        "id": "950013",
+        "file": "RESPONSE-950-DATA-LEAKAGES.conf",
+        "reason": "opaque-operator:@lt"
+    },
+    {
+        "id": "950014",
+        "file": "RESPONSE-950-DATA-LEAKAGES.conf",
+        "reason": "opaque-operator:@lt"
+    },
+    {
+        "id": "950100",
+        "file": "RESPONSE-950-DATA-LEAKAGES.conf",
+        "reason": "no-funnypot-archetype-for-class"
+    },
+    {
+        "id": "950015",
+        "file": "RESPONSE-950-DATA-LEAKAGES.conf",
+        "reason": "opaque-operator:@lt"
+    },
+    {
+        "id": "950016",
+        "file": "RESPONSE-950-DATA-LEAKAGES.conf",
+        "reason": "opaque-operator:@lt"
+    },
+    {
+        "id": "950017",
+        "file": "RESPONSE-950-DATA-LEAKAGES.conf",
+        "reason": "opaque-operator:@lt"
+    },
+    {
+        "id": "950018",
+        "file": "RESPONSE-950-DATA-LEAKAGES.conf",
+        "reason": "opaque-operator:@lt"
+    },
+    {
+        "id": "951010",
+        "file": "RESPONSE-951-DATA-LEAKAGES-SQL.conf",
+        "reason": "opaque-operator:@pm"
+    },
+    {
+        "id": "951011",
+        "file": "RESPONSE-951-DATA-LEAKAGES-SQL.conf",
+        "reason": "opaque-operator:@lt"
+    },
+    {
+        "id": "951012",
+        "file": "RESPONSE-951-DATA-LEAKAGES-SQL.conf",
+        "reason": "opaque-operator:@lt"
+    },
+    {
+        "id": "951100",
+        "file": "RESPONSE-951-DATA-LEAKAGES-SQL.conf",
+        "reason": "negated-operator"
+    },
+    {
+        "id": "951110",
+        "file": "RESPONSE-951-DATA-LEAKAGES-SQL.conf",
+        "reason": "no-funnypot-archetype-for-class"
+    },
+    {
+        "id": "951120",
+        "file": "RESPONSE-951-DATA-LEAKAGES-SQL.conf",
+        "reason": "no-funnypot-archetype-for-class"
+    },
+    {
+        "id": "951130",
+        "file": "RESPONSE-951-DATA-LEAKAGES-SQL.conf",
+        "reason": "no-funnypot-archetype-for-class"
+    },
+    {
+        "id": "951140",
+        "file": "RESPONSE-951-DATA-LEAKAGES-SQL.conf",
+        "reason": "no-funnypot-archetype-for-class"
+    },
+    {
+        "id": "951150",
+        "file": "RESPONSE-951-DATA-LEAKAGES-SQL.conf",
+        "reason": "no-funnypot-archetype-for-class"
+    },
+    {
+        "id": "951160",
+        "file": "RESPONSE-951-DATA-LEAKAGES-SQL.conf",
+        "reason": "no-funnypot-archetype-for-class"
+    },
+    {
+        "id": "951170",
+        "file": "RESPONSE-951-DATA-LEAKAGES-SQL.conf",
+        "reason": "no-funnypot-archetype-for-class"
+    },
+    {
+        "id": "951180",
+        "file": "RESPONSE-951-DATA-LEAKAGES-SQL.conf",
+        "reason": "no-funnypot-archetype-for-class"
+    },
+    {
+        "id": "951190",
+        "file": "RESPONSE-951-DATA-LEAKAGES-SQL.conf",
+        "reason": "no-funnypot-archetype-for-class"
+    },
+    {
+        "id": "951200",
+        "file": "RESPONSE-951-DATA-LEAKAGES-SQL.conf",
+        "reason": "no-funnypot-archetype-for-class"
+    },
+    {
+        "id": "951210",
+        "file": "RESPONSE-951-DATA-LEAKAGES-SQL.conf",
+        "reason": "no-funnypot-archetype-for-class"
+    },
+    {
+        "id": "951220",
+        "file": "RESPONSE-951-DATA-LEAKAGES-SQL.conf",
+        "reason": "no-funnypot-archetype-for-class"
+    },
+    {
+        "id": "951230",
+        "file": "RESPONSE-951-DATA-LEAKAGES-SQL.conf",
+        "reason": "no-funnypot-archetype-for-class"
+    },
+    {
+        "id": "951240",
+        "file": "RESPONSE-951-DATA-LEAKAGES-SQL.conf",
+        "reason": "no-funnypot-archetype-for-class"
+    },
+    {
+        "id": "951250",
+        "file": "RESPONSE-951-DATA-LEAKAGES-SQL.conf",
+        "reason": "no-funnypot-archetype-for-class"
+    },
+    {
+        "id": "951260",
+        "file": "RESPONSE-951-DATA-LEAKAGES-SQL.conf",
+        "reason": "no-funnypot-archetype-for-class"
+    },
+    {
+        "id": "951013",
+        "file": "RESPONSE-951-DATA-LEAKAGES-SQL.conf",
+        "reason": "opaque-operator:@lt"
+    },
+    {
+        "id": "951014",
+        "file": "RESPONSE-951-DATA-LEAKAGES-SQL.conf",
+        "reason": "opaque-operator:@lt"
+    },
+    {
+        "id": "951015",
+        "file": "RESPONSE-951-DATA-LEAKAGES-SQL.conf",
+        "reason": "opaque-operator:@lt"
+    },
+    {
+        "id": "951016",
+        "file": "RESPONSE-951-DATA-LEAKAGES-SQL.conf",
+        "reason": "opaque-operator:@lt"
+    },
+    {
+        "id": "951017",
+        "file": "RESPONSE-951-DATA-LEAKAGES-SQL.conf",
+        "reason": "opaque-operator:@lt"
+    },
+    {
+        "id": "951018",
+        "file": "RESPONSE-951-DATA-LEAKAGES-SQL.conf",
+        "reason": "opaque-operator:@lt"
+    },
+    {
+        "id": "952010",
+        "file": "RESPONSE-952-DATA-LEAKAGES-JAVA.conf",
+        "reason": "opaque-operator:@pm"
+    },
+    {
+        "id": "952011",
+        "file": "RESPONSE-952-DATA-LEAKAGES-JAVA.conf",
+        "reason": "opaque-operator:@lt"
+    },
+    {
+        "id": "952012",
+        "file": "RESPONSE-952-DATA-LEAKAGES-JAVA.conf",
+        "reason": "opaque-operator:@lt"
+    },
+    {
+        "id": "952110",
+        "file": "RESPONSE-952-DATA-LEAKAGES-JAVA.conf",
+        "reason": "no-funnypot-archetype-for-class"
+    },
+    {
+        "id": "952013",
+        "file": "RESPONSE-952-DATA-LEAKAGES-JAVA.conf",
+        "reason": "opaque-operator:@lt"
+    },
+    {
+        "id": "952014",
+        "file": "RESPONSE-952-DATA-LEAKAGES-JAVA.conf",
+        "reason": "opaque-operator:@lt"
+    },
+    {
+        "id": "952015",
+        "file": "RESPONSE-952-DATA-LEAKAGES-JAVA.conf",
+        "reason": "opaque-operator:@lt"
+    },
+    {
+        "id": "952016",
+        "file": "RESPONSE-952-DATA-LEAKAGES-JAVA.conf",
+        "reason": "opaque-operator:@lt"
+    },
+    {
+        "id": "952017",
+        "file": "RESPONSE-952-DATA-LEAKAGES-JAVA.conf",
+        "reason": "opaque-operator:@lt"
+    },
+    {
+        "id": "952018",
+        "file": "RESPONSE-952-DATA-LEAKAGES-JAVA.conf",
+        "reason": "opaque-operator:@lt"
+    },
+    {
+        "id": "953010",
+        "file": "RESPONSE-953-DATA-LEAKAGES-PHP.conf",
+        "reason": "opaque-operator:@pm"
+    },
+    {
+        "id": "953011",
+        "file": "RESPONSE-953-DATA-LEAKAGES-PHP.conf",
+        "reason": "opaque-operator:@lt"
+    },
+    {
+        "id": "953012",
+        "file": "RESPONSE-953-DATA-LEAKAGES-PHP.conf",
+        "reason": "opaque-operator:@lt"
+    },
+    {
+        "id": "953100",
+        "file": "RESPONSE-953-DATA-LEAKAGES-PHP.conf",
+        "reason": "no-funnypot-archetype-for-class"
+    },
+    {
+        "id": "953110",
+        "file": "RESPONSE-953-DATA-LEAKAGES-PHP.conf",
+        "reason": "no-funnypot-archetype-for-class"
+    },
+    {
+        "id": "953120",
+        "file": "RESPONSE-953-DATA-LEAKAGES-PHP.conf",
+        "reason": "no-funnypot-archetype-for-class"
+    },
+    {
+        "id": "953013",
+        "file": "RESPONSE-953-DATA-LEAKAGES-PHP.conf",
+        "reason": "opaque-operator:@lt"
+    },
+    {
+        "id": "953014",
+        "file": "RESPONSE-953-DATA-LEAKAGES-PHP.conf",
+        "reason": "opaque-operator:@lt"
+    },
+    {
+        "id": "953101",
+        "file": "RESPONSE-953-DATA-LEAKAGES-PHP.conf",
+        "reason": "no-funnypot-archetype-for-class"
+    },
+    {
+        "id": "953015",
+        "file": "RESPONSE-953-DATA-LEAKAGES-PHP.conf",
+        "reason": "opaque-operator:@lt"
+    },
+    {
+        "id": "953016",
+        "file": "RESPONSE-953-DATA-LEAKAGES-PHP.conf",
+        "reason": "opaque-operator:@lt"
+    },
+    {
+        "id": "953017",
+        "file": "RESPONSE-953-DATA-LEAKAGES-PHP.conf",
+        "reason": "opaque-operator:@lt"
+    },
+    {
+        "id": "953018",
+        "file": "RESPONSE-953-DATA-LEAKAGES-PHP.conf",
+        "reason": "opaque-operator:@lt"
+    },
+    {
+        "id": "954010",
+        "file": "RESPONSE-954-DATA-LEAKAGES-IIS.conf",
+        "reason": "opaque-operator:@pm"
+    },
+    {
+        "id": "954011",
+        "file": "RESPONSE-954-DATA-LEAKAGES-IIS.conf",
+        "reason": "opaque-operator:@lt"
+    },
+    {
+        "id": "954012",
+        "file": "RESPONSE-954-DATA-LEAKAGES-IIS.conf",
+        "reason": "opaque-operator:@lt"
+    },
+    {
+        "id": "954100",
+        "file": "RESPONSE-954-DATA-LEAKAGES-IIS.conf",
+        "reason": "no-funnypot-archetype-for-class"
+    },
+    {
+        "id": "954110",
+        "file": "RESPONSE-954-DATA-LEAKAGES-IIS.conf",
+        "reason": "no-funnypot-archetype-for-class"
+    },
+    {
+        "id": "954120",
+        "file": "RESPONSE-954-DATA-LEAKAGES-IIS.conf",
+        "reason": "no-funnypot-archetype-for-class"
+    },
+    {
+        "id": "954130",
+        "file": "RESPONSE-954-DATA-LEAKAGES-IIS.conf",
+        "reason": "negated-operator"
+    },
+    {
+        "id": "954013",
+        "file": "RESPONSE-954-DATA-LEAKAGES-IIS.conf",
+        "reason": "opaque-operator:@lt"
+    },
+    {
+        "id": "954014",
+        "file": "RESPONSE-954-DATA-LEAKAGES-IIS.conf",
+        "reason": "opaque-operator:@lt"
+    },
+    {
+        "id": "954101",
+        "file": "RESPONSE-954-DATA-LEAKAGES-IIS.conf",
+        "reason": "no-funnypot-archetype-for-class"
+    },
+    {
+        "id": "954015",
+        "file": "RESPONSE-954-DATA-LEAKAGES-IIS.conf",
+        "reason": "opaque-operator:@lt"
+    },
+    {
+        "id": "954016",
+        "file": "RESPONSE-954-DATA-LEAKAGES-IIS.conf",
+        "reason": "opaque-operator:@lt"
+    },
+    {
+        "id": "954017",
+        "file": "RESPONSE-954-DATA-LEAKAGES-IIS.conf",
+        "reason": "opaque-operator:@lt"
+    },
+    {
+        "id": "954018",
+        "file": "RESPONSE-954-DATA-LEAKAGES-IIS.conf",
+        "reason": "opaque-operator:@lt"
+    },
+    {
+        "id": "955010",
+        "file": "RESPONSE-955-WEB-SHELLS.conf",
+        "reason": "opaque-operator:@pm"
+    },
+    {
+        "id": "955011",
+        "file": "RESPONSE-955-WEB-SHELLS.conf",
+        "reason": "opaque-operator:@lt"
+    },
+    {
+        "id": "955012",
+        "file": "RESPONSE-955-WEB-SHELLS.conf",
+        "reason": "opaque-operator:@lt"
+    },
+    {
+        "id": "955100",
+        "file": "RESPONSE-955-WEB-SHELLS.conf",
+        "reason": "response-side-variable"
+    },
+    {
+        "id": "955110",
+        "file": "RESPONSE-955-WEB-SHELLS.conf",
+        "reason": "response-side-variable"
+    },
+    {
+        "id": "955120",
+        "file": "RESPONSE-955-WEB-SHELLS.conf",
+        "reason": "response-side-variable"
+    },
+    {
+        "id": "955130",
+        "file": "RESPONSE-955-WEB-SHELLS.conf",
+        "reason": "response-side-variable"
+    },
+    {
+        "id": "955140",
+        "file": "RESPONSE-955-WEB-SHELLS.conf",
+        "reason": "response-side-variable"
+    },
+    {
+        "id": "955150",
+        "file": "RESPONSE-955-WEB-SHELLS.conf",
+        "reason": "response-side-variable"
+    },
+    {
+        "id": "955160",
+        "file": "RESPONSE-955-WEB-SHELLS.conf",
+        "reason": "response-side-variable"
+    },
+    {
+        "id": "955170",
+        "file": "RESPONSE-955-WEB-SHELLS.conf",
+        "reason": "response-side-variable"
+    },
+    {
+        "id": "955180",
+        "file": "RESPONSE-955-WEB-SHELLS.conf",
+        "reason": "response-side-variable"
+    },
+    {
+        "id": "955190",
+        "file": "RESPONSE-955-WEB-SHELLS.conf",
+        "reason": "response-side-variable"
+    },
+    {
+        "id": "955200",
+        "file": "RESPONSE-955-WEB-SHELLS.conf",
+        "reason": "response-side-variable"
+    },
+    {
+        "id": "955210",
+        "file": "RESPONSE-955-WEB-SHELLS.conf",
+        "reason": "response-side-variable"
+    },
+    {
+        "id": "955220",
+        "file": "RESPONSE-955-WEB-SHELLS.conf",
+        "reason": "response-side-variable"
+    },
+    {
+        "id": "955230",
+        "file": "RESPONSE-955-WEB-SHELLS.conf",
+        "reason": "response-side-variable"
+    },
+    {
+        "id": "955240",
+        "file": "RESPONSE-955-WEB-SHELLS.conf",
+        "reason": "response-side-variable"
+    },
+    {
+        "id": "955250",
+        "file": "RESPONSE-955-WEB-SHELLS.conf",
+        "reason": "response-side-variable"
+    },
+    {
+        "id": "955260",
+        "file": "RESPONSE-955-WEB-SHELLS.conf",
+        "reason": "response-side-variable"
+    },
+    {
+        "id": "955270",
+        "file": "RESPONSE-955-WEB-SHELLS.conf",
+        "reason": "response-side-variable"
+    },
+    {
+        "id": "955280",
+        "file": "RESPONSE-955-WEB-SHELLS.conf",
+        "reason": "response-side-variable"
+    },
+    {
+        "id": "955290",
+        "file": "RESPONSE-955-WEB-SHELLS.conf",
+        "reason": "response-side-variable"
+    },
+    {
+        "id": "955300",
+        "file": "RESPONSE-955-WEB-SHELLS.conf",
+        "reason": "opaque-operator:@contains"
+    },
+    {
+        "id": "955310",
+        "file": "RESPONSE-955-WEB-SHELLS.conf",
+        "reason": "response-side-variable"
+    },
+    {
+        "id": "955320",
+        "file": "RESPONSE-955-WEB-SHELLS.conf",
+        "reason": "response-side-variable"
+    },
+    {
+        "id": "955330",
+        "file": "RESPONSE-955-WEB-SHELLS.conf",
+        "reason": "response-side-variable"
+    },
+    {
+        "id": "955340",
+        "file": "RESPONSE-955-WEB-SHELLS.conf",
+        "reason": "response-side-variable"
+    },
+    {
+        "id": "955400",
+        "file": "RESPONSE-955-WEB-SHELLS.conf",
+        "reason": "response-side-variable"
+    },
+    {
+        "id": "955013",
+        "file": "RESPONSE-955-WEB-SHELLS.conf",
+        "reason": "opaque-operator:@lt"
+    },
+    {
+        "id": "955014",
+        "file": "RESPONSE-955-WEB-SHELLS.conf",
+        "reason": "opaque-operator:@lt"
+    },
+    {
+        "id": "955350",
+        "file": "RESPONSE-955-WEB-SHELLS.conf",
+        "reason": "opaque-operator:@contains"
+    },
+    {
+        "id": "955015",
+        "file": "RESPONSE-955-WEB-SHELLS.conf",
+        "reason": "opaque-operator:@lt"
+    },
+    {
+        "id": "955016",
+        "file": "RESPONSE-955-WEB-SHELLS.conf",
+        "reason": "opaque-operator:@lt"
+    },
+    {
+        "id": "955017",
+        "file": "RESPONSE-955-WEB-SHELLS.conf",
+        "reason": "opaque-operator:@lt"
+    },
+    {
+        "id": "955018",
+        "file": "RESPONSE-955-WEB-SHELLS.conf",
+        "reason": "opaque-operator:@lt"
+    },
+    {
+        "id": "956010",
+        "file": "RESPONSE-956-DATA-LEAKAGES-RUBY.conf",
+        "reason": "opaque-operator:@pm"
+    },
+    {
+        "id": "956011",
+        "file": "RESPONSE-956-DATA-LEAKAGES-RUBY.conf",
+        "reason": "opaque-operator:@lt"
+    },
+    {
+        "id": "956012",
+        "file": "RESPONSE-956-DATA-LEAKAGES-RUBY.conf",
+        "reason": "opaque-operator:@lt"
+    },
+    {
+        "id": "956100",
+        "file": "RESPONSE-956-DATA-LEAKAGES-RUBY.conf",
+        "reason": "no-funnypot-archetype-for-class"
+    },
+    {
+        "id": "956013",
+        "file": "RESPONSE-956-DATA-LEAKAGES-RUBY.conf",
+        "reason": "opaque-operator:@lt"
+    },
+    {
+        "id": "956014",
+        "file": "RESPONSE-956-DATA-LEAKAGES-RUBY.conf",
+        "reason": "opaque-operator:@lt"
+    },
+    {
+        "id": "956110",
+        "file": "RESPONSE-956-DATA-LEAKAGES-RUBY.conf",
+        "reason": "no-funnypot-archetype-for-class"
+    },
+    {
+        "id": "956015",
+        "file": "RESPONSE-956-DATA-LEAKAGES-RUBY.conf",
+        "reason": "opaque-operator:@lt"
+    },
+    {
+        "id": "956016",
+        "file": "RESPONSE-956-DATA-LEAKAGES-RUBY.conf",
+        "reason": "opaque-operator:@lt"
+    },
+    {
+        "id": "956017",
+        "file": "RESPONSE-956-DATA-LEAKAGES-RUBY.conf",
+        "reason": "opaque-operator:@lt"
+    },
+    {
+        "id": "956018",
+        "file": "RESPONSE-956-DATA-LEAKAGES-RUBY.conf",
+        "reason": "opaque-operator:@lt"
+    },
+    {
+        "id": "959052",
+        "file": "RESPONSE-959-BLOCKING-EVALUATION.conf",
+        "reason": "opaque-operator:@ge"
+    },
+    {
+        "id": "959152",
+        "file": "RESPONSE-959-BLOCKING-EVALUATION.conf",
+        "reason": "opaque-operator:@ge"
+    },
+    {
+        "id": "959053",
+        "file": "RESPONSE-959-BLOCKING-EVALUATION.conf",
+        "reason": "opaque-operator:@ge"
+    },
+    {
+        "id": "959153",
+        "file": "RESPONSE-959-BLOCKING-EVALUATION.conf",
+        "reason": "opaque-operator:@ge"
+    },
+    {
+        "id": "959054",
+        "file": "RESPONSE-959-BLOCKING-EVALUATION.conf",
+        "reason": "opaque-operator:@ge"
+    },
+    {
+        "id": "959154",
+        "file": "RESPONSE-959-BLOCKING-EVALUATION.conf",
+        "reason": "opaque-operator:@ge"
+    },
+    {
+        "id": "959055",
+        "file": "RESPONSE-959-BLOCKING-EVALUATION.conf",
+        "reason": "opaque-operator:@ge"
+    },
+    {
+        "id": "959155",
+        "file": "RESPONSE-959-BLOCKING-EVALUATION.conf",
+        "reason": "opaque-operator:@ge"
+    },
+    {
+        "id": "959060",
+        "file": "RESPONSE-959-BLOCKING-EVALUATION.conf",
+        "reason": "opaque-operator:@ge"
+    },
+    {
+        "id": "959160",
+        "file": "RESPONSE-959-BLOCKING-EVALUATION.conf",
+        "reason": "opaque-operator:@ge"
+    },
+    {
+        "id": "959061",
+        "file": "RESPONSE-959-BLOCKING-EVALUATION.conf",
+        "reason": "opaque-operator:@ge"
+    },
+    {
+        "id": "959161",
+        "file": "RESPONSE-959-BLOCKING-EVALUATION.conf",
+        "reason": "opaque-operator:@ge"
+    },
+    {
+        "id": "959062",
+        "file": "RESPONSE-959-BLOCKING-EVALUATION.conf",
+        "reason": "opaque-operator:@ge"
+    },
+    {
+        "id": "959162",
+        "file": "RESPONSE-959-BLOCKING-EVALUATION.conf",
+        "reason": "opaque-operator:@ge"
+    },
+    {
+        "id": "959063",
+        "file": "RESPONSE-959-BLOCKING-EVALUATION.conf",
+        "reason": "opaque-operator:@ge"
+    },
+    {
+        "id": "959163",
+        "file": "RESPONSE-959-BLOCKING-EVALUATION.conf",
+        "reason": "opaque-operator:@ge"
+    },
+    {
+        "id": "959101",
+        "file": "RESPONSE-959-BLOCKING-EVALUATION.conf",
+        "reason": "opaque-operator:@ge"
+    },
+    {
+        "id": "959100",
+        "file": "RESPONSE-959-BLOCKING-EVALUATION.conf",
+        "reason": "opaque-operator:@ge"
+    },
+    {
+        "id": "959011",
+        "file": "RESPONSE-959-BLOCKING-EVALUATION.conf",
+        "reason": "opaque-operator:@lt"
+    },
+    {
+        "id": "959012",
+        "file": "RESPONSE-959-BLOCKING-EVALUATION.conf",
+        "reason": "opaque-operator:@lt"
+    },
+    {
+        "id": "959013",
+        "file": "RESPONSE-959-BLOCKING-EVALUATION.conf",
+        "reason": "opaque-operator:@lt"
+    },
+    {
+        "id": "959014",
+        "file": "RESPONSE-959-BLOCKING-EVALUATION.conf",
+        "reason": "opaque-operator:@lt"
+    },
+    {
+        "id": "959015",
+        "file": "RESPONSE-959-BLOCKING-EVALUATION.conf",
+        "reason": "opaque-operator:@lt"
+    },
+    {
+        "id": "959016",
+        "file": "RESPONSE-959-BLOCKING-EVALUATION.conf",
+        "reason": "opaque-operator:@lt"
+    },
+    {
+        "id": "959017",
+        "file": "RESPONSE-959-BLOCKING-EVALUATION.conf",
+        "reason": "opaque-operator:@lt"
+    },
+    {
+        "id": "959018",
+        "file": "RESPONSE-959-BLOCKING-EVALUATION.conf",
+        "reason": "opaque-operator:@lt"
+    },
+    {
+        "id": "980041",
+        "file": "RESPONSE-980-CORRELATION.conf",
+        "reason": "opaque-operator:@eq"
+    },
+    {
+        "id": "980042",
+        "file": "RESPONSE-980-CORRELATION.conf",
+        "reason": "opaque-operator:@ge"
+    },
+    {
+        "id": "980043",
+        "file": "RESPONSE-980-CORRELATION.conf",
+        "reason": "opaque-operator:@eq"
+    },
+    {
+        "id": "980044",
+        "file": "RESPONSE-980-CORRELATION.conf",
+        "reason": "opaque-operator:@ge"
+    },
+    {
+        "id": "980045",
+        "file": "RESPONSE-980-CORRELATION.conf",
+        "reason": "opaque-operator:@ge"
+    },
+    {
+        "id": "980046",
+        "file": "RESPONSE-980-CORRELATION.conf",
+        "reason": "opaque-operator:@lt"
+    },
+    {
+        "id": "980047",
+        "file": "RESPONSE-980-CORRELATION.conf",
+        "reason": "opaque-operator:@ge"
+    },
+    {
+        "id": "980048",
+        "file": "RESPONSE-980-CORRELATION.conf",
+        "reason": "opaque-operator:@ge"
+    },
+    {
+        "id": "980049",
+        "file": "RESPONSE-980-CORRELATION.conf",
+        "reason": "opaque-operator:@lt"
+    },
+    {
+        "id": "980050",
+        "file": "RESPONSE-980-CORRELATION.conf",
+        "reason": "opaque-operator:@gt"
+    },
+    {
+        "id": "980051",
+        "file": "RESPONSE-980-CORRELATION.conf",
+        "reason": "opaque-operator:@lt"
+    },
+    {
+        "id": "980011",
+        "file": "RESPONSE-980-CORRELATION.conf",
+        "reason": "opaque-operator:@lt"
+    },
+    {
+        "id": "980012",
+        "file": "RESPONSE-980-CORRELATION.conf",
+        "reason": "opaque-operator:@lt"
+    },
+    {
+        "id": "980013",
+        "file": "RESPONSE-980-CORRELATION.conf",
+        "reason": "opaque-operator:@lt"
+    },
+    {
+        "id": "980014",
+        "file": "RESPONSE-980-CORRELATION.conf",
+        "reason": "opaque-operator:@lt"
+    },
+    {
+        "id": "980015",
+        "file": "RESPONSE-980-CORRELATION.conf",
+        "reason": "opaque-operator:@lt"
+    },
+    {
+        "id": "980016",
+        "file": "RESPONSE-980-CORRELATION.conf",
+        "reason": "opaque-operator:@lt"
+    },
+    {
+        "id": "980017",
+        "file": "RESPONSE-980-CORRELATION.conf",
+        "reason": "opaque-operator:@lt"
+    },
+    {
+        "id": "980018",
+        "file": "RESPONSE-980-CORRELATION.conf",
+        "reason": "opaque-operator:@lt"
+    },
+    {
+        "id": "932250",
+        "file": "coreruleset",
+        "reason": "combined-regex-budget"
+    },
+    {
+        "id": "932260",
+        "file": "coreruleset",
+        "reason": "combined-regex-budget"
+    },
+    {
+        "id": "932340",
+        "file": "coreruleset",
+        "reason": "combined-regex-budget"
+    },
+    {
+        "id": "932330",
+        "file": "coreruleset",
+        "reason": "combined-regex-budget"
+    },
+    {
+        "id": "932170",
+        "file": "coreruleset",
+        "reason": "combined-regex-budget"
+    },
+    {
+        "id": "932171",
+        "file": "coreruleset",
+        "reason": "combined-regex-budget"
+    },
+    {
+        "id": "932175",
+        "file": "coreruleset",
+        "reason": "combined-regex-budget"
+    },
+    {
+        "id": "932370",
+        "file": "coreruleset",
+        "reason": "combined-regex-budget"
+    },
+    {
+        "id": "932380",
+        "file": "coreruleset",
+        "reason": "combined-regex-budget"
+    },
+    {
+        "id": "934100",
+        "file": "coreruleset",
+        "reason": "combined-regex-budget"
+    },
+    {
+        "id": "934130",
+        "file": "coreruleset",
+        "reason": "combined-regex-budget"
+    },
+    {
+        "id": "934150",
+        "file": "coreruleset",
+        "reason": "combined-regex-budget"
+    },
+    {
+        "id": "934160",
+        "file": "coreruleset",
+        "reason": "combined-regex-budget"
+    },
+    {
+        "id": "944100",
+        "file": "coreruleset",
+        "reason": "combined-regex-budget"
+    },
+    {
+        "id": "944110",
+        "file": "coreruleset",
+        "reason": "combined-regex-budget"
+    },
+    {
+        "id": "944120",
+        "file": "coreruleset",
+        "reason": "combined-regex-budget"
+    },
+    {
+        "id": "944150",
+        "file": "coreruleset",
+        "reason": "combined-regex-budget"
+    }
+]
