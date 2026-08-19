@@ -1,7 +1,7 @@
 # Runtime rule updates
 
 Consumers stop running `composer update` for daily/weekly rule changes. A separate
-[`funnypot-rules`](https://github.com/bobbymaher/funnypot-rules) repo distributes **signed** rule
+[`funnypot-rules`](https://github.com/metrictower/funnypot-rules) repo distributes **signed** rule
 artifacts; `funnypot-core` gains a callable updater (`Funnypot\Rules\RulesUpdater`, a CLI, and a
 Laravel command) that fetches and hot-swaps rules at runtime.
 

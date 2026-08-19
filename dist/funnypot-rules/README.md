@@ -1,6 +1,6 @@
 # funnypot-rules
 
-Signed, versioned rule artifacts for [funnypot-core](https://github.com/bobbymaher/funnypot-core).
+Signed, versioned rule artifacts for [funnypot-core](https://github.com/metrictower/funnypot-core).
 Consumers pull fresh nuclei/CRS-derived detection rules at runtime — **no `composer update`** —
 via `funnypot-core`'s built-in `Funnypot\Rules\RulesUpdater` (CLI: `funnypot rules:update`).
 

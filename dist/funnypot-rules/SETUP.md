@@ -20,7 +20,7 @@ funnypot-core-held signing secret. This scaffold is only the distribution repo's
 
 ## Steps
 
-1. **Create the repo.** `github.com/bobbymaher/funnypot-rules` (public, MIT). Copy this scaffold's
+1. **Create the repo.** `github.com/metrictower/funnypot-rules` (public, MIT). Copy this scaffold's
    `README.md`, `channels.json`, and `.github/workflows/verify-release.yml` into it.
 
 2. **Generate the keypair** (needs the PHP sodium extension):

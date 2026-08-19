@@ -324,7 +324,7 @@ function handleRulesCommand(string $command, array $args): int
         $dataDir,
         $opts['channel'] ?? 'stable',
         $opts['version'] ?? null,
-        $opts['repo'] ?? 'https://github.com/bobbymaher/funnypot-rules'
+        $opts['repo'] ?? 'https://github.com/metrictower/funnypot-rules'
     );
 
     switch ($command) {

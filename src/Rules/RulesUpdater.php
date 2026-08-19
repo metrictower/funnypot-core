@@ -61,7 +61,7 @@ final class RulesUpdater
         string $dataDir,
         string $channel = 'stable',
         ?string $pinnedVersion = null,
-        string $repoBaseUrl = 'https://github.com/bobbymaher/funnypot-rules',
+        string $repoBaseUrl = 'https://github.com/metrictower/funnypot-rules',
         ?HttpFetcher $fetcher = null,
         ?SignatureVerifier $verifier = null,
         ?PhpLiteralValidator $validator = null,

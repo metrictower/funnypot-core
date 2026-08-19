@@ -12,7 +12,7 @@ name: publish-rules
 # between "what the PR validated" and "what actually landed"). Signing is the last step, so the
 # signature attests those gates passed on this exact commit.
 #
-# Manual setup (see dist/funnypot-rules/SETUP.md): create the bobbymaher/funnypot-rules repo,
+# Manual setup (see dist/funnypot-rules/SETUP.md): create the metrictower/funnypot-rules repo,
 # run keygen.sh, store the private key as the FUNNYPOT_RULES_SIGNING_KEY secret, a
 # contents:write PAT to funnypot-rules as FUNNYPOT_RULES_RELEASE_TOKEN, and commit the public
 # key into resources/rules-signing-keys.php.
@@ -65,7 +65,7 @@ jobs:
       - name: Create the versioned release on funnypot-rules
         uses: softprops/action-gh-release@v2
         with:
-          repository: bobbymaher/funnypot-rules
+          repository: metrictower/funnypot-rules
           token: ${{ secrets.FUNNYPOT_RULES_RELEASE_TOKEN }}
           tag_name: ${{ steps.pkg.outputs.version }}
           name: ${{ steps.pkg.outputs.version }}
@@ -79,7 +79,7 @@ jobs:
       - name: Update the channels pointer
         uses: softprops/action-gh-release@v2
         with:
-          repository: bobbymaher/funnypot-rules
+          repository: metrictower/funnypot-rules
           token: ${{ secrets.FUNNYPOT_RULES_RELEASE_TOKEN }}
           tag_name: channels
           name: channels

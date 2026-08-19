@@ -17,7 +17,7 @@ use PharData;
  */
 final class ReleaseFactory
 {
-    public string $baseUrl = 'https://github.com/bobbymaher/funnypot-rules';
+    public string $baseUrl = 'https://github.com/metrictower/funnypot-rules';
     private string $secretKey;
     private string $publicKey;
     private string $workDir;

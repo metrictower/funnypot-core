@@ -49,7 +49,7 @@ final class RulesUpdateCommand extends \Illuminate\Console\Command
             $dataDir,
             (string) ($cfg['channel'] ?? 'stable'),
             ($cfg['pinned_version'] ?? null) !== '' ? ($cfg['pinned_version'] ?? null) : null,
-            (string) ($cfg['repo'] ?? 'https://github.com/bobbymaher/funnypot-rules')
+            (string) ($cfg['repo'] ?? 'https://github.com/metrictower/funnypot-rules')
         );
 
         if ($this->option('status')) {

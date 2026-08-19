@@ -16,7 +16,7 @@ by default (detect only); respond mode is opt-in and gated by your own suspicion
 
 > Want to **run** a honeypot, not embed one? The standalone app builds on this package and adds a live
 > dashboard, a pure-PHP SSH server, a fake shell, and 18 TCP service emulators:
-> **[github.com/bobbymaher/funnypot](https://github.com/bobbymaher/funnypot)**.
+> **[github.com/metrictower/funnypot](https://github.com/metrictower/funnypot)**.
 
 ## What it does
 
@@ -41,7 +41,7 @@ by default (detect only); respond mode is opt-in and gated by your own suspicion
 ## Install
 
 ```bash
-composer require bobbymaher/funnypot-core
+composer require metrictower/funnypot-core
 ```
 
 ## Detect mode (always safe)

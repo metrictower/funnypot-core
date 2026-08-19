@@ -29,7 +29,7 @@ jobs:
       - name: Download + verify the latest release against the committed public key
         run: |
           php -r '
-            $repo = "bobbymaher/funnypot-rules";
+            $repo = "metrictower/funnypot-rules";
             // Resolve the signed channels pointer.
             $ch = json_decode(file_get_contents("https://github.com/$repo/releases/download/channels/channels.json"), true);
             $version = $ch["latest"] ?? "";

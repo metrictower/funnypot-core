@@ -1,5 +1,5 @@
 {
-    "name": "bobbymaher/funnypot-core",
+    "name": "metrictower/funnypot-core",
     "description": "funnypot core engine: turn a scanner's own nuclei detection template into a matching fake-vulnerable HTTP response. Pure-PHP runtime, inert by default.",
     "type": "library",
     "license": "MIT",

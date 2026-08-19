@@ -80,7 +80,7 @@ return [
         'data_dir' => env('FUNNYPOT_RULES_DIR', null),
         'channel' => env('FUNNYPOT_RULES_CHANNEL', 'stable'),
         'pinned_version' => env('FUNNYPOT_RULES_VERSION', null),
-        'repo' => env('FUNNYPOT_RULES_REPO', 'https://github.com/bobbymaher/funnypot-rules'),
+        'repo' => env('FUNNYPOT_RULES_REPO', 'https://github.com/metrictower/funnypot-rules'),
         // Alarm if the last successful update check is older than this many hours (a wedged
         // updater silently goes blind). 0 disables the staleness check.
         'staleness_alarm_hours' => (int) env('FUNNYPOT_RULES_STALENESS_HOURS', 72),

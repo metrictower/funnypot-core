@@ -6,7 +6,7 @@
 > templates' matchers (respond mode). A scanner then walks away with a fat, *coherent* vuln
 > report, wasting the attacker's time.
 
-Package: `bobbymaher/funnypot` · namespace `Funnypot\` · PHP `>=8.0`
+Package: `metrictower/funnypot` · namespace `Funnypot\` · PHP `>=8.0`
 (promoted constructors; no enums / `readonly` / `never`). Runtime require = PHP only;
 `symfony/yaml` is a compile-time dev/suggest dep. Ships a prebuilt compiled artifact so
 `composer require` needs no build step.
