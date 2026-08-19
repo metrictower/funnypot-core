@@ -31,6 +31,10 @@ $argvv = $argv;
 array_shift($argvv);
 $command = array_shift($argvv) ?? '';
 
+if (strncmp($command, 'rules:', 6) === 0) {
+    exit(handleRulesCommand($command, $argvv));
+}
+
 if ($command === 'compile-emulators') {
     $dir = $root . '/templates/attack';
     $out = $root . '/resources/compiled/funnypot-attack.php';
@@ -240,6 +244,9 @@ if ($command !== 'compile') {
     fwrite(STDERR, "       funnypot compile-routes [<route-template-dir>] [--out=PATH]\n");
     fwrite(STDERR, "       funnypot merge-routes [<index>] [--fragment=PATH] [--out=PATH]\n");
     fwrite(STDERR, "       funnypot compile-crs <coreruleset-rules-dir> [--out=PATH] [--pl=N]\n");
+    fwrite(STDERR, "       funnypot rules:update [--data-dir=PATH] [--channel=stable] [--version=vX]\n");
+    fwrite(STDERR, "       funnypot rules:status [--data-dir=PATH]\n");
+    fwrite(STDERR, "       funnypot rules:rollback [--data-dir=PATH] [--to=vX]\n");
     exit($command === '' || $command === 'help' || $command === '--help' ? 0 : 2);
 }
 
@@ -287,6 +294,66 @@ fwrite(STDOUT, "  skipped:  {$paths['skipped']}\n");
 fwrite(STDOUT, "  sha256:   {$paths['sha256']}\n");
 
 exit(0);
+
+/**
+ * `funnypot rules:update|status|rollback` — the runtime rules-update surface. Fetches a
+ * signed rules release and hot-swaps it into a data dir the engine prefers over its bundled
+ * artifacts, with no composer update. Exit codes: 0 = rules are good (updated, already
+ * current, or read); 1 = an update was attempted and failed (rules unchanged — worth an
+ * alert, not a page: the honeypot is still up); 2 = usage/config error.
+ *
+ * @param string[] $args
+ */
+function handleRulesCommand(string $command, array $args): int
+{
+    $opts = [];
+    foreach ($args as $arg) {
+        if (preg_match('/^--([a-z-]+)=(.*)$/', $arg, $m) === 1) {
+            $opts[$m[1]] = $m[2];
+        }
+    }
+
+    $dataDir = $opts['data-dir'] ?? (getenv('FUNNYPOT_RULES_DIR') ?: '');
+    if ($dataDir === '') {
+        fwrite(STDERR, "error: no data dir. Pass --data-dir=PATH or set FUNNYPOT_RULES_DIR.\n");
+
+        return 2;
+    }
+
+    $updater = new Funnypot\Rules\RulesUpdater(
+        $dataDir,
+        $opts['channel'] ?? 'stable',
+        $opts['version'] ?? null,
+        $opts['repo'] ?? 'https://github.com/bobbymaher/funnypot-rules'
+    );
+
+    switch ($command) {
+        case 'rules:update':
+            $r = $updater->update();
+            fwrite($r->success ? STDOUT : STDERR, $r->message . "\n");
+            fwrite(STDOUT, json_encode($r->toArray(), JSON_UNESCAPED_SLASHES) . "\n");
+
+            return $r->success ? 0 : 1;
+
+        case 'rules:rollback':
+            $r = $updater->rollback($opts['to'] ?? null);
+            fwrite($r->success ? STDOUT : STDERR, $r->message . "\n");
+            fwrite(STDOUT, json_encode($r->toArray(), JSON_UNESCAPED_SLASHES) . "\n");
+
+            return $r->success ? 0 : 1;
+
+        case 'rules:status':
+            $s = $updater->status();
+            fwrite(STDOUT, json_encode($s->toArray(), JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES) . "\n");
+
+            return 0;
+
+        default:
+            fwrite(STDERR, "usage: funnypot rules:update|rules:status|rules:rollback [--data-dir=PATH] [--channel=stable] [--version=vX] [--to=vX]\n");
+
+            return 2;
+    }
+}
 
 /**
  * Best-effort upstream tag + sha from the templates repo (or an ancestor).
