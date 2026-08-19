@@ -1,0 +1,11 @@
+# Trimmed sample of OWASP CoreRuleSet lfi-os-files.data (v4.29.0, Apache-2.0).
+# One OS-file phrase per line; '#' comments and blank lines are ignored by @pmFromFile.
+.bash_history
+.htpasswd
+.ssh/id_rsa
+/etc/passwd
+/etc/shadow
+/proc/self/environ
+/windows/win.ini
+boot.ini
+wp-config.php
