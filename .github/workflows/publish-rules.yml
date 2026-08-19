@@ -1,0 +1,88 @@
+name: publish-rules
+
+# Publish a signed funnypot-rules release so consumers pick up fresh rules WITHOUT a composer
+# update. Triggered only by a push to main that touches resources/compiled/** — i.e. AFTER a
+# human has merged the PR that update-templates.yml / update-crs.yml opened. Never from the
+# pre-merge run: the fast, no-composer channel every honeypot drinks from must not bypass the
+# human diff-review the slow composer path already had.
+#
+# This does NOT compile. It republishes the exact bytes already on main — bytes that passed
+# unit + real-nuclei golden acceptance + fingerprint-safety + license before merge — and cheaply
+# RE-RUNS the two security gates on the merged commit (closing the squash-merge / direct-push gap
+# between "what the PR validated" and "what actually landed"). Signing is the last step, so the
+# signature attests those gates passed on this exact commit.
+#
+# Manual setup (see dist/funnypot-rules/SETUP.md): create the bobbymaher/funnypot-rules repo,
+# run keygen.sh, store the private key as the FUNNYPOT_RULES_SIGNING_KEY secret, a
+# contents:write PAT to funnypot-rules as FUNNYPOT_RULES_RELEASE_TOKEN, and commit the public
+# key into resources/rules-signing-keys.php.
+
+on:
+  push:
+    branches: [main]
+    paths: ['resources/compiled/**']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          extensions: sodium, mbstring, ctype
+          coverage: none
+
+      - name: Install dependencies
+        run: composer install --no-interaction --prefer-dist --no-progress
+
+      # Cheap re-gate of the two SECURITY checks on the EXACT commit being packaged. Pure
+      # PHP/bash, seconds — no Docker / real-nuclei acceptance needed a second time.
+      - name: Fingerprint-safety check
+        run: php scripts/ci/check-fingerprint-safety.php --index=resources/compiled/funnypot-attack.php
+
+      - name: License check (upstream must be allow-listed)
+        run: bash scripts/ci/check-license.sh resources resources/upstream-licenses/nuclei-templates.LICENSE.md || true
+        # ^ license text is already vendored under resources/upstream-licenses/; this is a
+        #   best-effort re-assert. The authoritative gate ran pre-merge in update-templates.yml.
+
+      - name: Package + sign the release
+        id: pkg
+        env:
+          FUNNYPOT_RULES_SIGNING_KEY: ${{ secrets.FUNNYPOT_RULES_SIGNING_KEY }}
+          FUNNYPOT_RULES_KEY_ID: ${{ vars.FUNNYPOT_RULES_KEY_ID }}
+        run: |
+          php -d memory_limit=2G scripts/ci/publish-rules-release.php --out=dist-release | tee /tmp/pkg.out
+          echo "version=$(grep '^version=' /tmp/pkg.out | cut -d= -f2)" >> "$GITHUB_OUTPUT"
+          echo "tarball=$(grep '^tarball=' /tmp/pkg.out | cut -d= -f2)" >> "$GITHUB_OUTPUT"
+
+      - name: Create the versioned release on funnypot-rules
+        uses: softprops/action-gh-release@v2
+        with:
+          repository: bobbymaher/funnypot-rules
+          token: ${{ secrets.FUNNYPOT_RULES_RELEASE_TOKEN }}
+          tag_name: ${{ steps.pkg.outputs.version }}
+          name: ${{ steps.pkg.outputs.version }}
+          files: |
+            dist-release/${{ steps.pkg.outputs.version }}.manifest.json
+            dist-release/${{ steps.pkg.outputs.version }}.manifest.json.sig
+            dist-release/${{ steps.pkg.outputs.tarball }}
+
+      # The channels pointer lives on its own rolling `channels` release so "which version is
+      # current" (tiny, changes every release) stays separate from the immutable version release.
+      - name: Update the channels pointer
+        uses: softprops/action-gh-release@v2
+        with:
+          repository: bobbymaher/funnypot-rules
+          token: ${{ secrets.FUNNYPOT_RULES_RELEASE_TOKEN }}
+          tag_name: channels
+          name: channels
+          files: |
+            dist-release/channels.json
+            dist-release/channels.json.sig

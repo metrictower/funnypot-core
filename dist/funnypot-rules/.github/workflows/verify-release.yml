@@ -1,0 +1,52 @@
+name: verify-release
+
+# Canary. On a schedule, re-download the latest funnypot-rules release and verify its ed25519
+# signature against the committed public key. Catches "signing broke" or "the CDN served
+# something odd" independently of any consumer ever polling — a release that no longer verifies
+# is a page-worthy event, not something to discover when a fleet stops updating.
+
+on:
+  schedule:
+    - cron: '0 7 * * *'   # daily 07:00 UTC
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          extensions: sodium
+          coverage: none
+
+      - name: Download + verify the latest release against the committed public key
+        run: |
+          php -r '
+            $repo = "bobbymaher/funnypot-rules";
+            // Resolve the signed channels pointer.
+            $ch = json_decode(file_get_contents("https://github.com/$repo/releases/download/channels/channels.json"), true);
+            $version = $ch["latest"] ?? "";
+            if ($version === "") { fwrite(STDERR, "no latest channel\n"); exit(1); }
+            $base = "https://github.com/$repo/releases/download/$version/";
+            $manifest = file_get_contents($base . "$version.manifest.json");
+            $sig = file_get_contents($base . "$version.manifest.json.sig");
+            $pub = base64_decode(trim(file_get_contents("keys/ed25519.pub")), true);
+            if ($pub === false || strlen($pub) !== 32) { fwrite(STDERR, "bad committed public key\n"); exit(1); }
+            if (!sodium_crypto_sign_verify_detached($sig, $manifest, $pub)) {
+              fwrite(STDERR, "SIGNATURE VERIFY FAILED for $version\n"); exit(1);
+            }
+            // Tarball digest must match the signed manifest.
+            $m = json_decode($manifest, true);
+            $tar = file_get_contents($base . $m["tarball"]);
+            if (hash("sha256", $tar) !== strtolower($m["tarball_sha256"])) {
+              fwrite(STDERR, "TARBALL SHA MISMATCH for $version\n"); exit(1);
+            }
+            echo "OK: $version verifies against the committed key.\n";
+          '
