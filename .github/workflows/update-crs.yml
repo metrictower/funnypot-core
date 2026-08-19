@@ -1,0 +1,100 @@
+name: update-crs
+
+# Keep funnypot's CRS-derived attack templates in lock-step with OWASP CoreRuleSet. Weekly
+# (and on demand) this pulls the latest coreruleset release, re-derives the broadened
+# attack-class templates, proves correctness + fingerprint-safety + license, and opens a PR —
+# only if everything is green. Never commits directly, never auto-merges.
+#
+# CRS feeds TIER 2 (TemplateAttackEmulator) only; it never touches the nuclei routing corpus,
+# so a byte-exact nuclei response always wins over this generic attack-class emulation.
+
+on:
+  schedule:
+    - cron: '0 6 * * 2'   # Tuesdays 06:00 UTC — offset from update-templates.yml (Mondays)
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'coreruleset tag (blank = latest release)'
+        required: false
+        default: ''
+      paranoia:
+        description: 'max paranoia level to import (1 = CRS production-safe default)'
+        required: false
+        default: '1'
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  recompile:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          extensions: mbstring, ctype
+          coverage: none
+
+      - name: Install dependencies
+        run: composer install --no-interaction --prefer-dist --no-progress
+
+      - name: Resolve coreruleset tag
+        id: crs
+        run: |
+          TAG="${{ github.event.inputs.tag }}"
+          if [ -z "$TAG" ]; then
+            TAG=$(git ls-remote --tags --sort=-v:refname \
+              https://github.com/coreruleset/coreruleset.git \
+              | grep -oE 'refs/tags/v[0-9]+\.[0-9]+\.[0-9]+$' | head -1 | sed 's#refs/tags/##')
+          fi
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+          echo "Selected coreruleset tag: $TAG"
+
+      - name: Fetch coreruleset
+        run: |
+          git clone --depth 1 --branch "${{ steps.crs.outputs.tag }}" \
+            https://github.com/coreruleset/coreruleset.git /tmp/coreruleset
+
+      - name: License check (upstream must be on the allow-list)
+        run: bash scripts/ci/check-license.sh /tmp/coreruleset resources/upstream-licenses/coreruleset.LICENSE.md
+
+      - name: Re-derive CRS attack templates
+        run: |
+          PL="${{ github.event.inputs.paranoia }}"
+          php -d memory_limit=2G bin/funnypot compile-crs /tmp/coreruleset/rules --pl="${PL:-1}"
+
+      - name: Fold CRS templates into the runtime emulator index
+        run: php bin/funnypot compile-emulators
+
+      - name: Unit + compiler tests
+        run: vendor/bin/phpunit
+
+      - name: Fingerprint-safety check
+        run: php scripts/ci/check-fingerprint-safety.php --index=resources/compiled/funnypot-attack.php
+
+      - name: Open PR with refreshed CRS templates
+        uses: peter-evans/create-pull-request@v6
+        with:
+          commit-message: "chore: refresh attack-crs templates from coreruleset ${{ steps.crs.outputs.tag }}"
+          branch: auto/update-crs
+          delete-branch: true
+          title: "Update CRS-derived attack templates — coreruleset ${{ steps.crs.outputs.tag }}"
+          body: |
+            Automated refresh from coreruleset `${{ steps.crs.outputs.tag }}`.
+
+            PL1 rules only (by default); opaque-operator, higher-paranoia, response-side, and
+            uncombinable rules are recorded in `resources/skipped-crs.json`. The unit/compiler
+            suite, fingerprint-safety, and license checks all passed.
+
+            CRS feeds TIER 2 only — a byte-exact nuclei response always wins over this
+            generic attack-class emulation. Review before merging; never auto-merged.
+          add-paths: |
+            templates/attack-crs/
+            resources/compiled/funnypot-attack.php
+            resources/compiled/crs-manifest.json
+            resources/skipped-crs.json
+            resources/upstream-licenses/coreruleset.LICENSE.md

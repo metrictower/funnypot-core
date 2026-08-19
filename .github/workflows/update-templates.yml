@@ -73,6 +73,12 @@ jobs:
       - name: Golden acceptance (real nuclei)
         run: bash tests/acceptance/run.sh
 
+      - name: License check (upstream must be on the allow-list)
+        run: bash scripts/ci/check-license.sh /tmp/nuclei-templates resources/upstream-licenses/nuclei-templates.LICENSE.md
+
+      - name: Fingerprint-safety check
+        run: php scripts/ci/check-fingerprint-safety.php --index=resources/compiled/funnypot-attack.php
+
       - name: Open PR with refreshed index
         uses: peter-evans/create-pull-request@v6
         with:
@@ -93,3 +99,4 @@ jobs:
             resources/compiled/funnypot-routes.php
             resources/compiled/funnypot-routes-index.php
             resources/compiled/funnypot-protocols.php
+            resources/upstream-licenses/nuclei-templates.LICENSE.md
