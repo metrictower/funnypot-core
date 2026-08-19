@@ -28,6 +28,7 @@ final class StructuralTest extends TestCase
             'LaravelResponseMapper.php',
             'HoneypotMiddleware.php',
             'Console/UpdateTemplatesCommand.php',
+            'Console/RulesUpdateCommand.php',
         ];
 
         foreach ($expected as $relative) {
@@ -101,6 +102,27 @@ final class StructuralTest extends TestCase
 
         self::assertStringContainsString('funnypot:update', $contents);
         self::assertStringContainsString('extends \\Illuminate\\Console\\Command', $contents);
+    }
+
+    public function test_rules_update_command_declares_its_signature_and_is_registered(): void
+    {
+        $cmd = (string) file_get_contents(self::LARAVEL_SRC . '/Console/RulesUpdateCommand.php');
+        self::assertStringContainsString('funnypot:rules-update', $cmd);
+        self::assertStringContainsString('extends \\Illuminate\\Console\\Command', $cmd);
+
+        // The provider must register it and wire the data dir into RulesLocator.
+        $provider = (string) file_get_contents(self::LARAVEL_SRC . '/FunnypotServiceProvider.php');
+        self::assertStringContainsString('Console\\RulesUpdateCommand::class', $provider);
+        self::assertStringContainsString('RulesLocator::useDataDir', $provider);
+    }
+
+    public function test_config_declares_the_rules_update_block(): void
+    {
+        $contents = (string) file_get_contents(__DIR__ . '/../../config/funnypot.php');
+        self::assertMatchesRegularExpression("/'rules'\\s*=>/", $contents);
+        foreach (['data_dir', 'channel', 'pinned_version', 'repo', 'staleness_alarm_hours'] as $key) {
+            self::assertMatchesRegularExpression("/'{$key}'\\s*=>/", $contents, "rules config missing '{$key}'");
+        }
     }
 
     public function test_composer_json_declares_auto_discovery_and_keeps_illuminate_out_of_require(): void

@@ -24,6 +24,13 @@ final class FunnypotServiceProvider extends \Illuminate\Support\ServiceProvider
     {
         $this->mergeConfigFrom(__DIR__ . '/../../config/funnypot.php', 'funnypot');
 
+        // Point rule resolution at the configured data dir so the engine prefers a
+        // RulesUpdater-managed release over the bundled floor. Unset = today's behaviour.
+        $dataDir = $this->app['config']->get('funnypot.rules.data_dir');
+        if (is_string($dataDir) && $dataDir !== '') {
+            \Funnypot\Rules\RulesLocator::useDataDir($dataDir);
+        }
+
         $this->app->singleton(Engine::class, function ($app): Engine {
             $config = (array) $app['config']->get('funnypot', []);
 
@@ -48,6 +55,7 @@ final class FunnypotServiceProvider extends \Illuminate\Support\ServiceProvider
 
         $this->commands([
             Console\UpdateTemplatesCommand::class,
+            Console\RulesUpdateCommand::class,
         ]);
     }
 

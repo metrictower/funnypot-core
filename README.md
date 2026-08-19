@@ -146,6 +146,27 @@ response — **nuclei-exact beats CRS-generic**. CRS is a coverage multiplier fo
 tier-1 source. Full detail, and how to regenerate (`bin/funnypot compile-crs`), in
 [`docs/CRS.md`](docs/CRS.md).
 
+## Runtime rule updates (no composer update)
+
+Rules move roughly weekly (nuclei-templates tags, CRS releases). Instead of a `composer update`
+per change, a honeypot can fetch **signed** rule releases at runtime and hot-swap them:
+
+```bash
+funnypot rules:update  --data-dir=/var/lib/funnypot/rules   # fetch, verify, atomic swap
+funnypot rules:status  --data-dir=/var/lib/funnypot/rules
+funnypot rules:rollback --data-dir=/var/lib/funnypot/rules  # network-free, to a retained release
+```
+
+Laravel: schedule `php artisan funnypot:rules-update` (config block `funnypot.rules`). With no
+`data_dir` configured, nothing changes — the engine loads only the bundled artifacts, exactly as
+before. Because the compiled artifacts are `require`d PHP, an update is verified in depth before
+anything is loaded: an **ed25519 signature** against a public key vendored *inside this package*
+(never fetched), a per-file **sha256** cross-check, a **pure-array-literal** proof of every `.php`
+(no code can execute on load), a **ReDoS** budget on every regex, a fingerprint-leak re-scan, and
+an **anti-blinding** coverage floor. Any failure keeps the current rules — the honeypot never
+serves empty. Full mechanism, trust model, and operator runbook:
+[`docs/RULES-UPDATE.md`](docs/RULES-UPDATE.md).
+
 ## Safety
 
 funnypot can only mislead an attacker, never help one.

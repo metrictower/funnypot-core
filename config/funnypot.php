@@ -70,4 +70,20 @@ return [
     // template ids or tags to never serve
     'exclude' => [],
 
+    // Runtime rules updates (Funnypot\Rules\RulesUpdater). INERT by default: with no
+    // data_dir the engine loads only the bundled compiled artifacts, exactly as before.
+    // Point data_dir at a writable dir OWNED BY A DEDICATED NON-WEB USER (0755, files
+    // 0644, read-only to the web user, outside the web root — never 0777) and schedule
+    // `funnypot:rules-update` to pick up signed rule releases without a composer update.
+    // See docs/RULES-UPDATE.md.
+    'rules' => [
+        'data_dir' => env('FUNNYPOT_RULES_DIR', null),
+        'channel' => env('FUNNYPOT_RULES_CHANNEL', 'stable'),
+        'pinned_version' => env('FUNNYPOT_RULES_VERSION', null),
+        'repo' => env('FUNNYPOT_RULES_REPO', 'https://github.com/bobbymaher/funnypot-rules'),
+        // Alarm if the last successful update check is older than this many hours (a wedged
+        // updater silently goes blind). 0 disables the staleness check.
+        'staleness_alarm_hours' => (int) env('FUNNYPOT_RULES_STALENESS_HOURS', 72),
+    ],
+
 ];
