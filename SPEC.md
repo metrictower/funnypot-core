@@ -13,6 +13,10 @@ Package: `bobbymaher/funnypot` · namespace `Funnypot\` · PHP `>=8.0`
 
 Derived from `projectdiscovery/nuclei-templates` (**MIT**, © 2025 ProjectDiscovery, Inc.).
 Verbatim notice ships at `resources/UPSTREAM-LICENSE.md`; compiler stamps the upstream tag+SHA.
+Generic attack-class recall (sqli/xss/lfi/rce) is additionally broadened from
+`coreruleset/coreruleset` (**Apache-2.0**) into tier-2 attack templates only — never the tier-1
+routing corpus, so nuclei-exact always beats CRS-generic. Separate notice at
+`resources/UPSTREAM-LICENSE-CRS.md`; see `docs/CRS.md`.
 
 ---
 

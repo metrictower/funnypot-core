@@ -27,6 +27,11 @@ by default (detect only); respond mode is opt-in and gated by your own suspicion
 - **Attack-class emulators.** Reflects LFI, SQLi, command injection, SSTI, XXE, shellshock, Struts
   OGNL, open redirect, reflected XSS and cloud-IMDS probes on any path, with canned inert markers
   (`root:x:0:0`, `uid=0(root)`).
+- **CRS-broadened coverage.** Recall for the generic attack classes (SQLi/XSS/LFI/RCE) is widened
+  from the upstream [OWASP CoreRuleSet](https://github.com/coreruleset/coreruleset): its portable
+  PL1 rules are aggregated into one broadened match per class, behind funnypot's SAME response
+  archetype. It never invents a per-rule response and never touches the nuclei corpus — see
+  [`docs/CRS.md`](docs/CRS.md).
 - **Product and route decoys.** Believable `.git/config`, `.env`, `wp-config`, `phpinfo`, `.htpasswd`,
   `server-status`, SSH keys, SQL dumps, phpMyAdmin and more.
 - **Anti-fingerprint.** One coherent product persona per attacker (deterministic, spoof-proof seed)
@@ -125,6 +130,22 @@ serves its own 404. `symfony/yaml` is only needed by the compiler (`bin/funnypot
 runs weekly against the latest nuclei-templates release. See [`SPEC.md`](SPEC.md) and
 [`docs/PERSONA-CAP.md`](docs/PERSONA-CAP.md).
 
+### Response precedence
+
+`respond()` decides what to serve in a fixed order — an earlier tier always wins:
+
+1. **Nuclei-exact (tier 1).** The request routes to a compiled nuclei template or route decoy →
+   a byte-exact response derived from what that scanner probes for.
+2. **CRS-generic / attack-class (tier 2).** No route matched → `TemplateAttackEmulator` emulates a
+   generic attack class (hand-authored rules first, then the CRS-broadened alternation) from a
+   hand-authored response archetype.
+3. **LLM fake, then plain 404 (tiers 3–4, app layer).**
+
+So a request matching BOTH a nuclei template AND a CRS attack class always gets the nuclei-exact
+response — **nuclei-exact beats CRS-generic**. CRS is a coverage multiplier for tier 2, never a
+tier-1 source. Full detail, and how to regenerate (`bin/funnypot compile-crs`), in
+[`docs/CRS.md`](docs/CRS.md).
+
 ## Safety
 
 funnypot can only mislead an attacker, never help one.
@@ -152,4 +173,8 @@ bash tests/acceptance/run.sh       # real nuclei (Docker) vs a php -S server (go
 MIT, see [LICENSE](LICENSE). Derived in part from
 [projectdiscovery/nuclei-templates](https://github.com/projectdiscovery/nuclei-templates)
 (MIT, © 2025 ProjectDiscovery, Inc.); the upstream notice is kept at
-[`resources/UPSTREAM-LICENSE.md`](resources/UPSTREAM-LICENSE.md).
+[`resources/UPSTREAM-LICENSE.md`](resources/UPSTREAM-LICENSE.md). The CRS-broadened attack
+templates are derived from [OWASP CoreRuleSet](https://github.com/coreruleset/coreruleset)
+(Apache-2.0); its separate notice and statement of changes are at
+[`resources/UPSTREAM-LICENSE-CRS.md`](resources/UPSTREAM-LICENSE-CRS.md). A CI license gate
+(`scripts/ci/check-license.sh`, SPDX allow-list) enforces this on every upstream refresh.
