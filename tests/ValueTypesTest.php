@@ -159,13 +159,25 @@ final class ValueTypesTest extends TestCase
         self::assertFalse($c->attackEmulation);
 
         $derived = SynthesisConfig::fromConfig(new Config(
-            severityCeiling: 'critical',
-            attackEmulation: true,
-            exclude: ['t-crit'],
-            nucleiReflection: false,
-            maxBodyBytes: 1024,
-            serverHeader: 'nginx',
-            poweredBy: 'PHP/8.2'
+            'detect',                            // mode
+            null,                                // gate
+            'matched-only',                      // pathScope
+            null,                                // personaSeed
+            'coherent',                          // personaBreadth
+            \Funnypot\Response\Style::MINIMAL,   // responseStyle
+            'critical',                          // severityCeiling
+            1024,                                // maxBodyBytes
+            0,                                   // latencyMs
+            0,                                   // latencyJitterMs
+            true,                                // attackEmulation
+            null,                                // trustedBypass
+            null,                                // killSwitch
+            null,                                // probeSignature
+            '',                                  // seedSalt
+            ['t-crit'],                          // exclude
+            false,                               // nucleiReflection
+            'nginx',                             // serverHeader
+            'PHP/8.2'                            // poweredBy
         ));
         self::assertSame('critical', $derived->severityCeiling);
         self::assertTrue($derived->attackEmulation);

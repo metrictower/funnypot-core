@@ -23,10 +23,12 @@ final class NewPageRoutingTest extends TestCase
         $store = new PhpArrayStore(require __DIR__ . '/../resources/compiled/nuclei-index.full.php');
 
         return new Honeypot($store, new Config(
-            mode: 'respond',
-            gate: static fn (RequestContext $r): bool => true,
-            responseStyle: 'realistic',
-            personaSeed: static fn (RequestContext $r): string => 'fixed'
+            'respond',                                                        // mode
+            static function (RequestContext $r): bool { return true; },       // gate
+            'matched-only',                                                   // pathScope
+            static function (RequestContext $r): string { return 'fixed'; },  // personaSeed
+            'coherent',                                                       // personaBreadth
+            'realistic'                                                       // responseStyle
         ));
     }
 

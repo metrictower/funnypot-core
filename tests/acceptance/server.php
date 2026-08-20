@@ -30,11 +30,12 @@ $store = PhpArrayStore::fromFile($root . '/resources/compiled/nuclei-index.full.
 // fires nuclei (minimal | realistic | taunt).
 $style = getenv('NI_STYLE') ?: 'minimal';
 $config = new Config(
-    mode: 'respond',
-    gate: static fn (RequestContext $r): bool => true,
-    pathScope: 'any',
-    personaSeed: static fn (RequestContext $r): string => 'acceptance-fixed-persona',
-    responseStyle: $style
+    'respond',                                                                          // mode
+    static function (RequestContext $r): bool { return true; },                          // gate
+    'any',                                                                              // pathScope
+    static function (RequestContext $r): string { return 'acceptance-fixed-persona'; }, // personaSeed
+    'coherent',                                                                         // personaBreadth
+    $style                                                                              // responseStyle
 );
 $inverter = new Honeypot($store, $config);
 

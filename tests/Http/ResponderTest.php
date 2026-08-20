@@ -26,8 +26,8 @@ final class ResponderTest extends TestCase
     public function test_forwards_a_hit_to_respond(): void
     {
         $inverter = new Honeypot($this->store(), new Config(
-            mode: 'respond',
-            gate: static fn (RequestContext $r): bool => true
+            'respond',                                                   // mode
+            static function (RequestContext $r): bool { return true; }   // gate
         ));
 
         $response = Responder::forRequest($inverter, new RequestContext('GET', '/.git/config'));
@@ -38,7 +38,7 @@ final class ResponderTest extends TestCase
 
     public function test_forwards_a_miss_as_null(): void
     {
-        $inverter = new Honeypot($this->store(), new Config(mode: 'respond'));
+        $inverter = new Honeypot($this->store(), new Config('respond'));
 
         self::assertNull(Responder::forRequest($inverter, new RequestContext('GET', '/totally/legit/page')));
     }

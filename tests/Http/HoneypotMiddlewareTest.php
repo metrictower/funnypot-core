@@ -27,8 +27,8 @@ final class HoneypotMiddlewareTest extends TestCase
     private function middleware(string $mode = 'respond'): HoneypotMiddleware
     {
         $inverter = new Honeypot($this->store(), new Config(
-            mode: $mode,
-            gate: static fn (RequestContext $r): bool => true
+            $mode,                                                       // mode
+            static function (RequestContext $r): bool { return true; }   // gate
         ));
 
         $factory = new Psr17Factory();
@@ -40,7 +40,8 @@ final class HoneypotMiddlewareTest extends TestCase
     {
         $request = new ServerRequest('GET', 'https://example.test/.git/config');
         $handler = new class implements RequestHandlerInterface {
-            public bool $called = false;
+            /** @var bool */
+            public $called = false;
 
             public function handle(ServerRequestInterface $request): ResponseInterface
             {
@@ -64,8 +65,10 @@ final class HoneypotMiddlewareTest extends TestCase
     {
         $request = new ServerRequest('GET', 'https://example.test/totally/legit/page');
         $handler = new class implements RequestHandlerInterface {
-            public bool $called = false;
-            public ?ServerRequestInterface $received = null;
+            /** @var bool */
+            public $called = false;
+            /** @var ServerRequestInterface|null */
+            public $received = null;
 
             public function handle(ServerRequestInterface $request): ResponseInterface
             {
@@ -92,7 +95,8 @@ final class HoneypotMiddlewareTest extends TestCase
     {
         $request = new ServerRequest('GET', 'https://example.test/.git/config');
         $handler = new class implements RequestHandlerInterface {
-            public ?ServerRequestInterface $received = null;
+            /** @var ServerRequestInterface|null */
+            public $received = null;
 
             public function handle(ServerRequestInterface $request): ResponseInterface
             {

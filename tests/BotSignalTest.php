@@ -210,7 +210,7 @@ final class BotSignalTest extends TestCase
         // value may appear anywhere in the response (invariant #1 / fingerprint-safety).
         $engine = new Honeypot(
             new PhpArrayStore(require __DIR__ . '/../resources/compiled/nuclei-index.php'),
-            new Config(mode: 'respond', gate: static fn (RequestContext $r): bool => true)
+            new Config('respond', static function (RequestContext $r): bool { return true; })
         );
         $r = new RequestContext('GET', '/.git/config', '', ['User-Agent' => 'sqlmap/1.5.2']);
 

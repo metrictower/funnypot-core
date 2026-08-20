@@ -14,7 +14,7 @@ use Funnypot\Rules\RulesUpdateException;
 final class ArrayFetcher implements HttpFetcher
 {
     /** @var array<string,string> */
-    private array $map;
+    private $map;
 
     /** @param array<string,string> $map url => bytes */
     public function __construct(array $map = [])

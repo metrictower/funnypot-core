@@ -28,7 +28,19 @@ final class ClassifyTest extends TestCase
 
     private function engine(bool $attack = false): Honeypot
     {
-        return new Honeypot($this->store(), new Config(attackEmulation: $attack));
+        return new Honeypot($this->store(), new Config(
+            'detect',                            // mode
+            null,                                // gate
+            'matched-only',                      // pathScope
+            null,                                // personaSeed
+            'coherent',                          // personaBreadth
+            \Funnypot\Response\Style::MINIMAL,   // responseStyle
+            'high',                              // severityCeiling
+            65536,                               // maxBodyBytes
+            0,                                   // latencyMs
+            0,                                   // latencyJitterMs
+            $attack                              // attackEmulation
+        ));
     }
 
     public function test_classify_detection_matches_detect_for_a_routed_probe(): void

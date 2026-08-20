@@ -14,7 +14,8 @@ use PHPUnit\Framework\TestCase;
  */
 final class RulesLocatorTest extends TestCase
 {
-    private string $tmp;
+    /** @var string */
+    private $tmp;
 
     protected function setUp(): void
     {

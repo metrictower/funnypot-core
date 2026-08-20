@@ -14,7 +14,8 @@ use PHPUnit\Framework\TestCase;
  */
 final class CompilerAdmissionTest extends TestCase
 {
-    private string $dir = '';
+    /** @var string */
+    private $dir = '';
 
     protected function setUp(): void
     {

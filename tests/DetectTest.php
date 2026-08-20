@@ -27,8 +27,8 @@ final class DetectTest extends TestCase
     private function respondInverter(): Honeypot
     {
         return new Honeypot($this->store(), new Config(
-            mode: 'respond',
-            gate: static fn (RequestContext $r): bool => true
+            'respond',                                                   // mode
+            static function (RequestContext $r): bool { return true; }   // gate
         ));
     }
 
@@ -143,7 +143,7 @@ final class DetectTest extends TestCase
 
     public function test_respond_requires_an_open_gate(): void
     {
-        $inv = new Honeypot($this->store(), new Config(mode: 'respond'));
+        $inv = new Honeypot($this->store(), new Config('respond'));
 
         // Gate defaults closed (no predicate) -> no fake served.
         self::assertNull($inv->respond(new RequestContext('GET', '/.git/config')));
@@ -152,9 +152,18 @@ final class DetectTest extends TestCase
     public function test_trusted_bypass_suppresses_response(): void
     {
         $inv = new Honeypot($this->store(), new Config(
-            mode: 'respond',
-            gate: static fn (RequestContext $r): bool => true,
-            trustedBypass: static fn (RequestContext $r): bool => true
+            'respond',                                                   // mode
+            static function (RequestContext $r): bool { return true; },  // gate
+            'matched-only',                                              // pathScope
+            null,                                                        // personaSeed
+            'coherent',                                                  // personaBreadth
+            \Funnypot\Response\Style::MINIMAL,                           // responseStyle
+            'high',                                                      // severityCeiling
+            65536,                                                       // maxBodyBytes
+            0,                                                           // latencyMs
+            0,                                                           // latencyJitterMs
+            false,                                                       // attackEmulation
+            static function (RequestContext $r): bool { return true; }   // trustedBypass
         ));
 
         self::assertNull($inv->respond(new RequestContext('GET', '/.git/config')));

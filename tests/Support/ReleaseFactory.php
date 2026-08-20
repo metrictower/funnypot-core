@@ -17,11 +17,20 @@ use PharData;
  */
 final class ReleaseFactory
 {
-    public string $baseUrl = 'https://github.com/metrictower/funnypot-rules';
-    private string $secretKey;
-    private string $publicKey;
-    private string $workDir;
-    private int $tarSeq = 0;
+    /** @var string */
+    public $baseUrl = 'https://github.com/metrictower/funnypot-rules';
+
+    /** @var string */
+    private $secretKey;
+
+    /** @var string */
+    private $publicKey;
+
+    /** @var string */
+    private $workDir;
+
+    /** @var int */
+    private $tarSeq = 0;
 
     public function __construct(string $workDir)
     {
