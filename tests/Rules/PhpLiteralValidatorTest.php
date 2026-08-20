@@ -26,7 +26,10 @@ final class PhpLiteralValidatorTest extends TestCase
         return dirname(__DIR__, 2) . '/resources/compiled/' . $name;
     }
 
-    /** @dataProvider realArtifacts */
+    /**
+     * @dataProvider realArtifacts
+     * @group large-artifact
+     */
     public function test_accepts_the_real_compiled_artifacts(string $file): void
     {
         $path = $this->compiled($file);

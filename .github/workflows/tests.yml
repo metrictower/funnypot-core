@@ -12,7 +12,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        php: ['8.0', '8.1', '8.2', '8.3', '8.4']
+        php: ['7.3', '8.0', '8.1', '8.2', '8.3', '8.4']
     steps:
       - uses: actions/checkout@v4
 
@@ -27,7 +27,17 @@ jobs:
         run: composer install --no-interaction --prefer-dist --no-progress
 
       - name: Unit + compiler tests
-        run: vendor/bin/phpunit
+        # On PHP 7.3 the tokenizer crashes the process when it token_get_all()s the
+        # ~5.8 MB compiled nuclei index while the rest of the suite runs in the same
+        # invocation, so that one case is split into its own run via the
+        # `large-artifact` group. 8.x tokenizes it fine in one pass.
+        run: |
+          if [ "${{ matrix.php }}" = "7.3" ]; then
+            vendor/bin/phpunit --exclude-group large-artifact
+            vendor/bin/phpunit --group large-artifact
+          else
+            vendor/bin/phpunit
+          fi
 
   acceptance:
     name: Real-nuclei acceptance (Docker)
