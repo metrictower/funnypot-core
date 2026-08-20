@@ -4,6 +4,14 @@
 [![PHP](https://img.shields.io/badge/php-%3E%3D8.0-777bb3.svg)](composer.json)
 [![Runtime](https://img.shields.io/badge/runtime-PHP--only-blue.svg)](#how-it-works)
 
+> **Not sure you're in the right place?**
+> - Want a ready-to-run **honeypot box** to deploy → [funnypot](https://github.com/metrictower/funnypot)
+> - Protecting a **Laravel** app → [funnypot-laravel](https://github.com/metrictower/funnypot-laravel)
+> - Protecting a **WordPress** site → [funnypot-wordpress](https://github.com/metrictower/funnypot-wordpress)
+> - Embedding the deception/detection **engine** in your own PHP / PSR-15 app → funnypot-core **← you are here**
+> - Querying / reporting to the **IP-reputation service** from code (the SDK) → [funnypot-mainnet-client](https://github.com/metrictower/funnypot-mainnet-client)
+> - Building on the low-level **decision/policy engine** → [funnypot-policy](https://github.com/metrictower/funnypot-policy)
+
 **The HTTP deception engine behind funnypot.** It answers a scanner's probe with the fake-vulnerable
 response the scanner was fishing for. It is the inverse of a [nuclei](https://github.com/projectdiscovery/nuclei)
 scan: instead of sending a probe and reading the reply to decide "this host is vulnerable", it reads
@@ -83,31 +91,18 @@ if ($response !== null) {
 // nothing matched: serve your normal 404
 ```
 
-### Laravel: send 404s to funnypot
+### Using Laravel?
 
-The service provider (`Funnypot\Laravel\FunnypotServiceProvider`) auto-registers. Route your 404 path
-through the engine and fall back to your own 404 when funnypot has nothing to say:
+Use **[funnypot-laravel](https://github.com/metrictower/funnypot-laravel)**
+(`composer require metrictower/funnypot-laravel`) — the ServiceProvider + middleware drop-in. This
+repo is the framework-agnostic engine.
 
-```php
-// app/Exceptions/Handler.php, render(), on a NotFoundHttpException
-use Funnypot\Engine;
-use Funnypot\Http\Responder;
-use Funnypot\Laravel\LaravelRequestMapper;
-use Funnypot\Laravel\LaravelResponseMapper;
+### Any other framework (PSR-15)
 
-$context     = LaravelRequestMapper::map($request);
-$synthesized = Responder::forRequest(app(Engine::class), $context);
-if ($synthesized !== null) {
-    return LaravelResponseMapper::map($synthesized);
-}
-// else fall through to your normal 404 view
-```
-
-The published `config/funnypot.php` defaults to `mode = detect` (inert). Start detect-only, watch the
-logs, then set `mode = respond` and supply a `gate`. Full drop-in:
-[`examples/laravel-exception-handler.php`](examples/laravel-exception-handler.php); step-by-step
-rollout: [`docs/INTEGRATION.md`](docs/INTEGRATION.md). A PSR-15 middleware
-(`Funnypot\Http\HoneypotMiddleware`) is available for non-Laravel apps.
+Wire the engine directly. A PSR-15 middleware (`Funnypot\Http\HoneypotMiddleware`) sends matched
+probes an inert fake and passes everything else through, so your app serves its own 404 on a miss.
+Start detect-only, watch the logs, then set `mode = respond` and supply a `gate`. Step-by-step
+rollout: [`docs/INTEGRATION.md`](docs/INTEGRATION.md).
 
 ## Response styles
 
