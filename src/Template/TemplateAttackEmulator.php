@@ -70,6 +70,23 @@ final class TemplateAttackEmulator
 
     public function emulate(RequestContext $r, int $seed = 0): ?SynthesizedResponse
     {
+        $matched = $this->matchRule($r);
+        if ($matched === null) {
+            return null;
+        }
+
+        return $this->renderRule($matched['rule'], $matched['captures'], $seed);
+    }
+
+    /**
+     * The match half of emulate(), render-free — so classify() can recognize an attack class
+     * (and capture the ruleId + reflected groups) without building a body. First enabled rule
+     * whose conditions all hold wins.
+     *
+     * @return array{rule:array<string,mixed>,captures:array<int|string,string>}|null
+     */
+    public function matchRule(RequestContext $r): ?array
+    {
         foreach ($this->rules as $rule) {
             if ($this->disabled !== [] && isset($this->disabled[(string) ($rule['id'] ?? '')])) {
                 continue;
@@ -79,38 +96,77 @@ final class TemplateAttackEmulator
                 continue;
             }
 
-            $response = $rule['response'] ?? [];
-            $body = $this->renderer->render((string) ($response['body'] ?? ''), $captures, $seed, $this->canary);
-
-            $headers = [];
-            foreach ((array) ($response['headers'] ?? []) as $name => $value) {
-                $headers[(string) $name] = $this->renderer->render((string) $value, $captures, $seed, $this->canary);
-            }
-            if ($headers === []) {
-                $headers = ['Content-Type' => 'text/plain; charset=utf-8'];
-            }
-
-            // C8: a rendered header value (e.g. a reflected redirect Location) must not carry
-            // CR/LF/NUL. If it does, decline this rule (no header splitting).
-            foreach ($headers as $name => $value) {
-                if (preg_match('/[\r\n\x00]/', (string) $name) === 1 || preg_match('/[\r\n\x00]/', $value) === 1) {
-                    return null;
-                }
-            }
-
-            $id = (string) ($rule['id'] ?? 'attack');
-            $severity = (string) ($rule['severity'] ?? 'high');
-            $detection = new Detection(
-                true,
-                [new TemplateMatch($id, $severity, array_map('strval', (array) ($rule['tags'] ?? [])), $id)],
-                $id,
-                $severity
-            );
-
-            return new SynthesizedResponse((int) ($rule['status'] ?? 200), $headers, $body, $detection);
+            return ['rule' => $rule, 'captures' => $captures];
         }
 
         return null;
+    }
+
+    /**
+     * The render half of emulate(): turn a matched rule + its captures into a response. Returns
+     * null when a rendered header would carry CR/LF/NUL (the C8 header-splitting guard). Kept
+     * separate so synthesize() can render a rule the Verdict already named.
+     *
+     * @param array<string,mixed>          $rule
+     * @param array<int|string,string>     $captures
+     */
+    public function renderRule(array $rule, array $captures, int $seed): ?SynthesizedResponse
+    {
+        $response = $rule['response'] ?? [];
+        $body = $this->renderer->render((string) ($response['body'] ?? ''), $captures, $seed, $this->canary);
+
+        $headers = [];
+        foreach ((array) ($response['headers'] ?? []) as $name => $value) {
+            $headers[(string) $name] = $this->renderer->render((string) $value, $captures, $seed, $this->canary);
+        }
+        if ($headers === []) {
+            $headers = ['Content-Type' => 'text/plain; charset=utf-8'];
+        }
+
+        // C8: a rendered header value (e.g. a reflected redirect Location) must not carry
+        // CR/LF/NUL. If it does, decline this rule (no header splitting).
+        foreach ($headers as $name => $value) {
+            if (preg_match('/[\r\n\x00]/', (string) $name) === 1 || preg_match('/[\r\n\x00]/', $value) === 1) {
+                return null;
+            }
+        }
+
+        return new SynthesizedResponse((int) ($rule['status'] ?? 200), $headers, $body, self::detectionForRule($rule));
+    }
+
+    /**
+     * Look up an enabled-or-not rule by id, for synthesize() rendering a Verdict's attack handle.
+     *
+     * @return array<string,mixed>|null
+     */
+    public function ruleById(string $id): ?array
+    {
+        foreach ($this->rules as $rule) {
+            if ((string) ($rule['id'] ?? '') === $id) {
+                return $rule;
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * The Detection a matched attack rule satisfies — the single source of the attack match
+     * shape shared by classify() and the render half.
+     *
+     * @param array<string,mixed> $rule
+     */
+    public static function detectionForRule(array $rule): Detection
+    {
+        $id = (string) ($rule['id'] ?? 'attack');
+        $severity = (string) ($rule['severity'] ?? 'high');
+
+        return new Detection(
+            true,
+            [new TemplateMatch($id, $severity, array_map('strval', (array) ($rule['tags'] ?? [])), $id)],
+            $id,
+            $severity
+        );
     }
 
     /** Attacker-controlled surfaces are capped before regex to bound catastrophic backtracking. */

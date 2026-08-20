@@ -67,17 +67,285 @@ final class Honeypot implements Engine
         return new self(PhpArrayStore::fromPackage(), $config, $observer);
     }
 
+    /**
+     * Back-compat detection shim: detect() is classify() against an empty SiteProfile, projected
+     * to its Detection. No caller breaks (two-phase design §2.1).
+     */
     public function detect(RequestContext $r): Detection
     {
+        return $this->classify($r, SiteProfile::empty())->detection;
+    }
+
+    /**
+     * Content detection only (two-phase design §2.1): route resolution, then — on a miss — the
+     * attack-payload matcher, consulting the SiteProfile real-route oracle. Always safe to call:
+     * no gates, no I/O, no side effects. Answers "what is this request, as content?" — never
+     * "should we act?". The request-shape bot signals ride on the Verdict (Phase 1b).
+     */
+    public function classify(RequestContext $r, SiteProfile $profile): Verdict
+    {
+        $signals = $this->botSignals($r);
+        $anomaly = $signals->weight;
+
         $resolved = $this->resolveEntry($r->method, $r->path);
-        if ($resolved === null) {
-            return Detection::none();
+        if ($resolved !== null) {
+            [$key, $entry] = $resolved;
+            $bundles = $entry['b'] ?? [];
+
+            // An entry with no servable bundles, or a path the host declares as a genuine route,
+            // is not a probe — never shadow a live endpoint (M2). Mirrors respond()'s early null.
+            if ($bundles === [] || $profile->hasRoute($r->method, PathNormalizer::normalize($r->path))) {
+                return new Verdict(Verdict::CLEAN, Detection::none(), '', $anomaly, $signals, null);
+            }
+
+            $detection = $this->detectionFor($key, $this->detectIds($entry));
+            $handle = FakeHandle::route($key);
+
+            // A bare root/homepage entry (all bundles sig=1) is an ordinary-visitor path: classify
+            // clean natively (the probe-signature predicate is a policy input, not content). Keep
+            // the handle so the policy can still synthesize when it supplies one.
+            $classification = $this->isRootEntry($bundles) ? Verdict::CLEAN : Verdict::SCANNER_PROBE;
+
+            return new Verdict($classification, $detection, $detection->highestSeverity, $anomaly, $signals, $handle);
         }
-        [$key, $entry] = $resolved;
 
-        $detection = $this->detectionFor($key, $this->detectIds($entry));
+        if ($this->attackEmulator !== null) {
+            $matched = $this->attackEmulator->matchRule($r);
+            if ($matched !== null) {
+                $rule = $matched['rule'];
+                $detection = TemplateAttackEmulator::detectionForRule($rule);
+                $handle = FakeHandle::attack((string) ($rule['id'] ?? 'attack'), $matched['captures']);
 
-        return $detection->isEmpty() ? Detection::none() : $detection;
+                return new Verdict(
+                    Verdict::ATTACK_CLASS,
+                    $detection,
+                    $detection->highestSeverity,
+                    $anomaly,
+                    $signals,
+                    $handle
+                );
+            }
+        }
+
+        return new Verdict(Verdict::CLEAN, Detection::none(), '', $anomaly, $signals, null);
+    }
+
+    /**
+     * True when every servable bundle for an entry is a root/homepage class (sig=1).
+     *
+     * @param array<int,array<string,mixed>> $bundles
+     */
+    private function isRootEntry(array $bundles): bool
+    {
+        foreach ($bundles as $bundle) {
+            if ((int) ($bundle['sig'] ?? 0) !== 1) {
+                return false;
+            }
+        }
+
+        return $bundles !== [];
+    }
+
+    /**
+     * Request-shape bot signals (decision S / design §2.4): header-presence, fetch-metadata /
+     * client-hint absence, self-consistency contradictions, and a digit-stripped structural
+     * header fingerprint. Cheap, position-blind, no I/O. Each fires a flag and adds a small
+     * weight; the composite "is this a bot?" call is the policy's, never core's. No version-age
+     * detection — the digit-stripping tolerates old-but-legit clients.
+     *
+     * INPUT-side only: nothing computed here is ever emitted in a response (invariant #1).
+     */
+    private function botSignals(RequestContext $r): BotSignalSet
+    {
+        $h = $this->lowercaseHeaders($r->headers);
+        $ua = isset($h['user-agent']) ? trim($h['user-agent']) : '';
+        $uaClass = $this->classifyUserAgent($ua);
+
+        $flags = [];
+        $weight = 0;
+
+        // Header presence — the coarsest signal.
+        if (!isset($h['accept'])) {
+            $flags[BotSignalSet::MISSING_ACCEPT] = true;
+            $weight += 5;
+        }
+        if (!isset($h['accept-language'])) {
+            $flags[BotSignalSet::MISSING_ACCEPT_LANGUAGE] = true;
+            $weight += 5;
+        }
+        if (!isset($h['accept-encoding'])) {
+            $flags[BotSignalSet::MISSING_ACCEPT_ENCODING] = true;
+            $weight += 5;
+        }
+        if ($ua === '') {
+            $flags[BotSignalSet::EMPTY_USER_AGENT] = true;
+            $weight += 10;
+        }
+        if ($uaClass === BotSignalSet::UA_SCANNER) {
+            $flags[BotSignalSet::SCANNER_USER_AGENT] = true;
+            $weight += 20;
+        }
+
+        $claimsBrowser = stripos($ua, 'mozilla') !== false;
+        $claimsChromium = preg_match('/chrome|chromium|crios|edg\//i', $ua) === 1;
+        $hasFetchMeta = isset($h['sec-fetch-site']) || isset($h['sec-fetch-mode'])
+            || isset($h['sec-fetch-dest']) || isset($h['sec-fetch-user']);
+        $hasClientHints = isset($h['sec-ch-ua']) || isset($h['sec-ch-ua-mobile'])
+            || isset($h['sec-ch-ua-platform']);
+
+        // Fetch-metadata / client-hint absence — low weight alone; leans on the pairing below.
+        if (!$hasFetchMeta) {
+            $flags[BotSignalSet::MISSING_FETCH_METADATA] = true;
+            $weight += 2;
+        }
+        if (!$hasClientHints) {
+            $flags[BotSignalSet::MISSING_CLIENT_HINTS] = true;
+            $weight += 2;
+        }
+
+        // Self-consistency contradictions — a contradiction beats an absence.
+        if ($claimsChromium && !$hasClientHints && !$hasFetchMeta) {
+            $flags[BotSignalSet::UA_CLAIMS_BROWSER_NO_HINTS] = true;
+            $weight += 15;
+        }
+        if ($claimsBrowser && isset($h['accept']) && trim($h['accept']) === '*/*') {
+            $flags[BotSignalSet::ACCEPT_WILDCARD_FROM_BROWSER] = true;
+            $weight += 10;
+        }
+        if ($this->isHttp2($r->httpVersion) && isset($h['connection'])) {
+            $flags[BotSignalSet::H2_FORBIDDEN_CONNECTION] = true;
+            $weight += 15;
+        }
+        if (isset($h['accept-encoding']) && stripos($h['accept-encoding'], 'gzip') === false) {
+            $flags[BotSignalSet::ACCEPT_ENCODING_NO_GZIP] = true;
+            $weight += 5;
+        }
+        if ($this->platformMismatch($ua, $h)) {
+            $flags[BotSignalSet::UA_PLATFORM_MISMATCH] = true;
+            $weight += 10;
+        }
+
+        return new BotSignalSet($flags, $weight, $uaClass, $this->structuralFingerprint($r->headers));
+    }
+
+    /**
+     * @param array<string,string> $headers
+     * @return array<string,string> name lower-cased (case-insensitive access)
+     */
+    private function lowercaseHeaders(array $headers): array
+    {
+        $out = [];
+        foreach ($headers as $name => $value) {
+            $out[strtolower((string) $name)] = (string) $value;
+        }
+
+        return $out;
+    }
+
+    /** Coarse UA class. Tool names are matched INPUT-side only and never emitted. */
+    private function classifyUserAgent(string $ua): string
+    {
+        if ($ua === '') {
+            return BotSignalSet::UA_EMPTY;
+        }
+        if (preg_match('/nmap|sqlmap|nuclei|nikto|masscan|zgrab|acunetix|nessus|wpscan|dirbuster|gobuster|ffuf|feroxbuster|arachni|httpx|zaproxy|semrush/i', $ua) === 1) {
+            return BotSignalSet::UA_SCANNER;
+        }
+        if (preg_match('#curl|wget|python-requests|python-urllib|urllib|go-http-client|libwww|okhttp|axios|node-fetch|guzzle|java/|apache-httpclient|ruby|perl|winhttp#i', $ua) === 1) {
+            return BotSignalSet::UA_SCRIPT;
+        }
+        if (stripos($ua, 'mozilla') !== false) {
+            return BotSignalSet::UA_BROWSER;
+        }
+
+        return BotSignalSet::UA_UNKNOWN;
+    }
+
+    private function isHttp2(string $version): bool
+    {
+        return strncmp($version, '2', 1) === 0 || strncmp($version, '3', 1) === 0;
+    }
+
+    /**
+     * UA-declared OS vs the Sec-CH-UA-Platform hint. A mismatch (UA says Windows, hint says Linux)
+     * is a sharp forgery signal. Only fires when BOTH are known.
+     *
+     * @param array<string,string> $h lower-cased headers
+     */
+    private function platformMismatch(string $ua, array $h): bool
+    {
+        if (!isset($h['sec-ch-ua-platform'])) {
+            return false;
+        }
+        $hint = strtolower(trim($h['sec-ch-ua-platform'], " \t\"'"));
+        $uaOs = $this->userAgentOs($ua);
+        if ($hint === '' || $uaOs === '') {
+            return false;
+        }
+        // Normalize the hint to the UA vocabulary.
+        if ($hint === 'macos') {
+            $hint = 'mac';
+        }
+
+        return $hint !== $uaOs;
+    }
+
+    private function userAgentOs(string $ua): string
+    {
+        if (stripos($ua, 'windows') !== false) {
+            return 'windows';
+        }
+        if (stripos($ua, 'android') !== false) {
+            return 'android';
+        }
+        if (stripos($ua, 'iphone') !== false || stripos($ua, 'ipad') !== false) {
+            return 'ios';
+        }
+        if (stripos($ua, 'mac os') !== false || stripos($ua, 'macintosh') !== false) {
+            return 'mac';
+        }
+        if (stripos($ua, 'linux') !== false || stripos($ua, 'x11') !== false) {
+            return 'linux';
+        }
+
+        return '';
+    }
+
+    /** Comma-list headers whose internal token order is not significant. */
+    private const LIST_HEADERS = [
+        'accept' => true,
+        'accept-encoding' => true,
+        'accept-language' => true,
+        'accept-charset' => true,
+        'connection' => true,
+        'sec-ch-ua' => true,
+        'te' => true,
+        'cache-control' => true,
+    ];
+
+    /**
+     * Digit-stripped, list-sorted structural header fingerprint (the JA4-H idea in PHP): strip
+     * version digits from values and sort list-header tokens, so a Chromium version bump or a
+     * reordered Accept keep the same fingerprint; header order + count still distinguish client
+     * families (browser vs curl/python/Go). A feature on the Verdict, never an emitted value.
+     *
+     * @param array<string,string> $headers
+     */
+    private function structuralFingerprint(array $headers): string
+    {
+        $parts = [];
+        foreach ($headers as $name => $value) {
+            $lname = strtolower((string) $name);
+            $v = preg_replace('/\d+/', '', (string) $value);
+            if (isset(self::LIST_HEADERS[$lname])) {
+                $tokens = array_map('trim', explode(',', (string) $v));
+                sort($tokens);
+                $v = implode(',', $tokens);
+            }
+            $parts[] = $lname . '=' . $v;
+        }
+
+        return count($headers) . ':' . implode('&', $parts);
     }
 
     /**
@@ -121,86 +389,92 @@ final class Honeypot implements Engine
         return null;
     }
 
+    /**
+     * Back-compat facade over classify() + synthesize() (two-phase design §6.6). Core is
+     * position-blind and action-free; this method layers the LEGACY Config gates + Observer +
+     * serve-delay back on so the existing app (and this suite) keep byte-identical behavior until
+     * the caller migrates to funnypot-policy. New consumers call classify()/synthesize() directly.
+     */
     public function respond(RequestContext $r): ?SynthesizedResponse
     {
-        // Ground-truth switches first: a tripped kill switch or a trusted scanner must
-        // NEVER see a fake, and respond mode must be explicitly enabled.
-        if ($this->config->killSwitchTripped()) {
-            return null;
-        }
-        if (!$this->config->respondEnabled()) {
-            return null;
-        }
-        if ($this->config->isTrusted($r)) {
+        // Ground-truth switches first: a tripped kill switch or a trusted scanner must NEVER see a
+        // fake, and respond mode must be explicitly enabled. No observer, no work (as before).
+        if ($this->config->killSwitchTripped() || !$this->config->respondEnabled() || $this->config->isTrusted($r)) {
             return null;
         }
 
-        // matched-only guarantee: a miss returns null so the app serves its real 404 —
-        // unless an injection payload is present and attack emulation is on.
-        $resolved = $this->resolveEntry($r->method, $r->path);
-        if ($resolved === null) {
-            return $this->tryAttack($r);
-        }
-        [$key, $entry] = $resolved;
+        // FALLBACK position: no real app behind the engine, so an empty SiteProfile.
+        $verdict = $this->classify($r, SiteProfile::empty());
+        $seed = $this->config->seedFor($r);
 
-        $allBundles = $entry['b'] ?? [];
-        if ($allBundles === []) {
+        if ($verdict->classification === Verdict::ATTACK_CLASS) {
+            return $this->respondAttack($r, $verdict, $seed);
+        }
+
+        $handle = $verdict->fakeHandle;
+        if ($handle === null || $handle->kind !== FakeHandle::KIND_ROUTE) {
+            // A genuine miss / real route / empty entry: the app serves its own 404 (no observer).
             return null;
         }
 
-        // Detection covers EVERY routed template — the probe matched them regardless of
-        // what we choose to serve (on a capped key that is the full 'd' id-list, wider
-        // than the served 'b' set). Signal the app before any serve decision.
-        $detection = $this->detectionFor($key, $this->detectIds($entry));
-        $this->observer->onDetection($r, $detection);
+        // A routed probe. Detection covers EVERY routed template (the full 'd' id-list); signal
+        // the app before any serve decision.
+        $this->observer->onDetection($r, $verdict->detection);
 
         if (!$this->config->gateOpen($r)) {
             return $this->declined($r, Outcome::GATE_CLOSED);
         }
 
-        // Filter to servable candidates BEFORE the persona pick: excluded bundles and
-        // bundles above the severity ceiling are removed so a seed never lands on a
-        // refused bundle and leaves a coverage hole.
-        $candidates = $this->candidates($allBundles);
-        if ($candidates === []) {
-            return $this->declined($r, Outcome::NO_CANDIDATE);
-        }
-
-        $bundle = PersonaSelector::pick($candidates, $this->config->seedFor($r));
-        if ($bundle === null) {
-            return $this->declined($r, Outcome::NO_CANDIDATE);
-        }
-
-        // Root / homepage-class entries never fake-vuln ordinary visitors.
-        if ((int) ($bundle['sig'] ?? 0) === 1 && !$this->config->hasProbeSignature($r)) {
+        // Root / homepage-class entries (classified clean) never fake-vuln an ordinary visitor
+        // unless the app's probe-signature predicate says so.
+        if ($verdict->classification === Verdict::CLEAN && !$this->config->hasProbeSignature($r)) {
             return $this->declined($r, Outcome::NO_SIGNATURE);
         }
 
-        if (!$this->observer->shouldRespond($r, $detection)) {
+        $built = $this->buildFake($verdict, SiteProfile::empty(), $seed);
+        if ($built['r'] === null) {
+            return $this->declined($r, $built['reason']);
+        }
+
+        if (!$this->observer->shouldRespond($r, $verdict->detection)) {
             return $this->declined($r, Outcome::VETOED);
         }
 
-        $satisfies = $this->detectionFor($key, $bundle['t'] ?? []);
-        $response = $this->synthesizer->synthesize($bundle, $satisfies, $this->config->seedFor($r));
-        if ($response === null) {
-            return $this->declined($r, Outcome::UNSYNTHESIZABLE);
+        $this->serveDelay();
+        $this->observer->onOutcome($r, $built['r'], Outcome::SERVED);
+
+        return $built['r'];
+    }
+
+    /**
+     * The attack-class branch of the facade. Emulation bypasses the app-suspicion gate (an
+     * injection payload is its own signal), exactly as the legacy path did; kill-switch / mode /
+     * trusted are already applied above.
+     */
+    private function respondAttack(RequestContext $r, Verdict $verdict, string $seed): ?SynthesizedResponse
+    {
+        $this->observer->onDetection($r, $verdict->detection);
+
+        $built = $this->buildFake($verdict, SiteProfile::empty(), $seed);
+        if ($built['r'] === null) {
+            return $this->declined($r, $built['reason']);
         }
 
-        // Never emit an oversized body (no tarpit/amplifier unless the app opts in).
-        if (strlen($response->body) > $this->config->maxBodyBytes) {
-            return $this->declined($r, Outcome::OVER_CAP);
-        }
+        $this->serveDelay();
+        $this->observer->onOutcome($r, $built['r'], Outcome::SERVED);
 
-        // Pause (base + random jitter) so responses aren't the instant, uniform sub-ms
-        // replies that fingerprint a honeypot. No-op when both latency knobs are 0.
-        $delay = $this->config->serveDelayMicros();
-        if ($delay > 0) {
-            usleep($delay);
-        }
+        return $built['r'];
+    }
 
-        $this->observer->onOutcome($r, $response, Outcome::SERVED);
-
-        return $response;
+    /**
+     * Build a fake from a Verdict's fakeHandle (two-phase design §2.2). Invoked only when the
+     * caller's policy chose to deceive — core never decides that. Pure function of (verdict,
+     * profile, seed) + the compiled store: same inputs => same bytes. null is the sole "no fake"
+     * signal (degrade to the caller's 404); a synthesis fault never escapes as a 5xx.
+     */
+    public function synthesize(Verdict $verdict, SiteProfile $profile, string $seed): ?SynthesizedResponse
+    {
+        return $this->buildFake($verdict, $profile, $seed)['r'];
     }
 
     private function declined(RequestContext $r, string $reason): ?SynthesizedResponse
@@ -210,42 +484,110 @@ final class Honeypot implements Engine
         return null;
     }
 
-    /**
-     * When no template routes, try interactive attack-class emulation on the request's
-     * payload (LFI/SQLi/SSTI/command-injection/reflected-XSS). Only runs when opted in;
-     * reached only after the kill-switch, mode, and trusted-bypass checks. Honours the
-     * severity ceiling (fake RCE stays off by default) and the body-size cap.
-     */
-    private function tryAttack(RequestContext $r): ?SynthesizedResponse
+    /** Pause (base + random jitter) so replies aren't instant/uniform. No-op when latency is 0. */
+    private function serveDelay(): void
     {
-        if ($this->attackEmulator === null) {
-            return null;
-        }
-
-        // Seed fake values from the persona so a given attacker sees stable, but per-attacker
-        // distinct, fabricated secrets (not one shared seed-0 value that would fingerprint).
-        $attack = $this->attackEmulator->emulate($r, crc32($this->config->seedFor($r)));
-        if ($attack === null) {
-            return null;
-        }
-
-        $this->observer->onDetection($r, $attack->satisfies);
-
-        if (Severity::exceeds($attack->satisfies->highestSeverity, $this->config->severityCeiling)) {
-            return $this->declined($r, Outcome::NO_CANDIDATE);
-        }
-        if (strlen($attack->body) > $this->config->maxBodyBytes) {
-            return $this->declined($r, Outcome::OVER_CAP);
-        }
-
         $delay = $this->config->serveDelayMicros();
         if ($delay > 0) {
             usleep($delay);
         }
+    }
 
-        $this->observer->onOutcome($r, $attack, Outcome::SERVED);
+    /**
+     * The synthesis core shared by synthesize() and the respond() facade: turn a fakeHandle into
+     * a fake or a decline reason. Content-integrity only (candidates / persona / ceiling / exclude
+     * / size cap for a route; render + ceiling + cap for an attack) — no gates, no observer, no
+     * delay. The WHEN/whether/side-effect decisions are the caller's (the facade / the policy).
+     *
+     * @return array{r:?SynthesizedResponse,reason:string}
+     */
+    private function buildFake(Verdict $verdict, SiteProfile $profile, string $seed): array
+    {
+        $handle = $verdict->fakeHandle;
+        if ($handle === null) {
+            return ['r' => null, 'reason' => Outcome::NO_CANDIDATE];
+        }
+        if ($handle->kind === FakeHandle::KIND_ROUTE) {
+            return $this->buildRouteFake($handle, $profile, $seed);
+        }
+        if ($handle->kind === FakeHandle::KIND_ATTACK) {
+            return $this->buildAttackFake($handle, $seed);
+        }
 
-        return $attack;
+        // Unknown / llm kinds are host-injected synthesizers; core builds nothing.
+        return ['r' => null, 'reason' => Outcome::UNSYNTHESIZABLE];
+    }
+
+    /**
+     * @return array{r:?SynthesizedResponse,reason:string}
+     */
+    private function buildRouteFake(FakeHandle $handle, SiteProfile $profile, string $seed): array
+    {
+        $key = (string) $handle->key;
+
+        // Never shadow a declared real route (BEFORE position). The key is '<METHOD> <path>'.
+        $sp = strpos($key, ' ');
+        if ($sp !== false && $profile->hasRoute(substr($key, 0, $sp), substr($key, $sp + 1))) {
+            return ['r' => null, 'reason' => Outcome::NO_CANDIDATE];
+        }
+
+        $entry = $this->store->lookup($key);
+        $allBundles = $entry === null ? [] : ($entry['b'] ?? []);
+
+        // Filter to servable candidates BEFORE the persona pick: excluded bundles and bundles
+        // above the severity ceiling are removed so a seed never lands on a refused bundle.
+        $candidates = $this->candidates($allBundles);
+        if ($candidates === []) {
+            return ['r' => null, 'reason' => Outcome::NO_CANDIDATE];
+        }
+
+        $bundle = PersonaSelector::pick($candidates, $seed);
+        if ($bundle === null) {
+            return ['r' => null, 'reason' => Outcome::NO_CANDIDATE];
+        }
+
+        $satisfies = $this->detectionFor($key, $bundle['t'] ?? []);
+        $response = $this->synthesizer->synthesize($bundle, $satisfies, $seed);
+        if ($response === null) {
+            return ['r' => null, 'reason' => Outcome::UNSYNTHESIZABLE];
+        }
+
+        // Never emit an oversized body (no tarpit/amplifier unless the app opts in).
+        if (strlen($response->body) > $this->config->maxBodyBytes) {
+            return ['r' => null, 'reason' => Outcome::OVER_CAP];
+        }
+
+        return ['r' => $response, 'reason' => Outcome::SERVED];
+    }
+
+    /**
+     * @return array{r:?SynthesizedResponse,reason:string}
+     */
+    private function buildAttackFake(FakeHandle $handle, string $seed): array
+    {
+        if ($this->attackEmulator === null) {
+            return ['r' => null, 'reason' => Outcome::NO_CANDIDATE];
+        }
+
+        $rule = $this->attackEmulator->ruleById((string) $handle->ruleId);
+        if ($rule === null) {
+            return ['r' => null, 'reason' => Outcome::NO_CANDIDATE];
+        }
+
+        // Seed fake values from the persona so a given attacker sees stable, but per-attacker
+        // distinct, fabricated secrets (not one shared seed-0 value that would fingerprint).
+        $response = $this->attackEmulator->renderRule($rule, $handle->captures, crc32($seed));
+        if ($response === null) {
+            return ['r' => null, 'reason' => Outcome::UNSYNTHESIZABLE]; // CRLF header-split guard
+        }
+        if (Severity::exceeds($response->satisfies->highestSeverity, $this->config->severityCeiling)) {
+            return ['r' => null, 'reason' => Outcome::NO_CANDIDATE];
+        }
+        if (strlen($response->body) > $this->config->maxBodyBytes) {
+            return ['r' => null, 'reason' => Outcome::OVER_CAP];
+        }
+
+        return ['r' => $response, 'reason' => Outcome::SERVED];
     }
 
     /**
