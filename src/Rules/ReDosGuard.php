@@ -26,8 +26,11 @@ namespace Funnypot\Rules;
  */
 final class ReDosGuard
 {
-    private int $backtrackBudget;
-    private int $surfaceBytes;
+    /** @var int */
+    private $backtrackBudget;
+
+    /** @var int */
+    private $surfaceBytes;
 
     public function __construct(int $backtrackBudget = 200000, int $surfaceBytes = 64)
     {

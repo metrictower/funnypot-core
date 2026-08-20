@@ -12,10 +12,18 @@ namespace Funnypot\Response;
  */
 final class EmulatedContent
 {
+    /** @var string */
+    public $body;
+
+    /** @var array<string,string> */
+    public $headers;
+
     /** @param array<string,string> $headers */
     public function __construct(
-        public string $body,
-        public array $headers = []
+        string $body,
+        array $headers = []
     ) {
+        $this->body = $body;
+        $this->headers = $headers;
     }
 }

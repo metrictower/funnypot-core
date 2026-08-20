@@ -25,12 +25,23 @@ use Funnypot\Compiler\Matcher\WordMatcherInverter;
  */
 final class Classifier
 {
-    private WordMatcherInverter $word;
-    private StatusMatcherInverter $status;
-    private SizeMatcherInverter $size;
-    private BinaryMatcherInverter $binary;
-    private RegexWitnessGenerator $regex;
-    private DslInverter $dsl;
+    /** @var WordMatcherInverter */
+    private $word;
+
+    /** @var StatusMatcherInverter */
+    private $status;
+
+    /** @var SizeMatcherInverter */
+    private $size;
+
+    /** @var BinaryMatcherInverter */
+    private $binary;
+
+    /** @var RegexWitnessGenerator */
+    private $regex;
+
+    /** @var DslInverter */
+    private $dsl;
 
     /** Preferred status when a template pins none but must avoid some. */
     private const STATUS_FALLBACKS = [200, 404, 403, 500, 301, 302, 401, 400];
@@ -184,7 +195,9 @@ final class Classifier
         if ($r->statusAllowed !== null) {
             $candidates = array_values(array_filter(
                 $r->statusAllowed,
-                static fn (int $s): bool => !isset($forbidden[$s])
+                static function (int $s) use ($forbidden): bool {
+                    return !isset($forbidden[$s]);
+                }
             ));
             if ($candidates === []) {
                 return false;

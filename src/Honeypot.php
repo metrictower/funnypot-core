@@ -23,20 +23,33 @@ use Funnypot\Template\TemplateAttackEmulator;
  */
 final class Honeypot implements Engine
 {
-    private Config $config;
-    private Observer $observer;
-    private ResponseSynthesizer $synthesizer;
-    private ?TemplateAttackEmulator $attackEmulator;
+    /** @var CompiledStore */
+    private $store;
+
+    /** @var Config */
+    private $config;
+
+    /** @var Observer */
+    private $observer;
+
+    /** @var ResponseSynthesizer */
+    private $synthesizer;
+
+    /** @var TemplateAttackEmulator|null */
+    private $attackEmulator;
 
     /** @var string[] template ids/pids/tags never served: Config->exclude merged with the disabled catalog set */
-    private array $effectiveExclude;
-    private bool $nucleiEnabled;
+    private $effectiveExclude;
+
+    /** @var bool */
+    private $nucleiEnabled;
 
     public function __construct(
-        private CompiledStore $store,
+        CompiledStore $store,
         ?Config $config = null,
         ?Observer $observer = null
     ) {
+        $this->store = $store;
         $this->config = $config ?? new Config();
         $this->observer = $observer ?? new NullObserver();
         $this->synthesizer = new ResponseSynthesizer(

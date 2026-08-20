@@ -78,8 +78,12 @@ final class TemplateLoader
             $paths = [$paths];
         }
         $paths = array_values(array_filter(
-            array_map(static fn ($p): string => (string) $p, (array) $paths),
-            static fn (string $p): bool => $p !== ''
+            array_map(static function ($p): string {
+                return (string) $p;
+            }, (array) $paths),
+            static function (string $p): bool {
+                return $p !== '';
+            }
         ));
 
         // A raw request carries its own method + target in the first request line; lift

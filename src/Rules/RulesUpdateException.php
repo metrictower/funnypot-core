@@ -32,7 +32,8 @@ final class RulesUpdateException extends RuntimeException
     public const REASON_NOT_RETAINED = 'not-retained';
     public const REASON_CONFIG = 'config';
 
-    private string $reason;
+    /** @var string */
+    private $reason;
 
     public function __construct(string $reason, string $message)
     {

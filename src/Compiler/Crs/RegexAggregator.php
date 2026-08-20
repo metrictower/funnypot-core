@@ -91,7 +91,9 @@ final class RegexAggregator
     /** @param string[] $branches */
     private function assemble(array $branches): string
     {
-        $wrapped = array_map(static fn (string $b): string => '(?:' . $b . ')', $branches);
+        $wrapped = array_map(static function (string $b): string {
+            return '(?:' . $b . ')';
+        }, $branches);
 
         return '(?J)(?:' . implode('|', $wrapped) . ')';
     }

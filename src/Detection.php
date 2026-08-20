@@ -22,13 +22,29 @@ final class Detection
         'critical' => 5,
     ];
 
+    /** @var bool */
+    public $matched;
+
+    /** @var TemplateMatch[] */
+    public $matches;
+
+    /** @var string */
+    public $clusterKey;
+
+    /** @var string */
+    public $highestSeverity;
+
     /** @param TemplateMatch[] $matches */
     public function __construct(
-        public bool $matched,
-        public array $matches = [],
-        public string $clusterKey = '',
-        public string $highestSeverity = ''
+        bool $matched,
+        array $matches = [],
+        string $clusterKey = '',
+        string $highestSeverity = ''
     ) {
+        $this->matched = $matched;
+        $this->matches = $matches;
+        $this->clusterKey = $clusterKey;
+        $this->highestSeverity = $highestSeverity;
     }
 
     public static function none(): self
@@ -44,7 +60,9 @@ final class Detection
     /** @return string[] */
     public function templateIds(): array
     {
-        return array_map(static fn (TemplateMatch $m): string => $m->id, $this->matches);
+        return array_map(static function (TemplateMatch $m): string {
+            return $m->id;
+        }, $this->matches);
     }
 
     /** @return string[] */

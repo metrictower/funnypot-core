@@ -88,21 +88,26 @@ final class FunnypotServiceProvider extends \Illuminate\Support\ServiceProvider
             $seedSalt = (string) $app['config']->get('app.key', '');
         }
 
+        // Positional call against Config's constructor order (7.3 has no named args). The two
+        // middle params the old named call skipped — latencyJitterMs, attackEmulation — are
+        // passed here at their defaults; params after exclude keep theirs.
         return new Config(
-            mode: (string) ($config['mode'] ?? 'detect'),
-            gate: $config['gate'] ?? null,
-            pathScope: (string) ($config['path_scope'] ?? 'matched-only'),
-            personaSeed: $config['persona_seed'] ?? null,
-            personaBreadth: (string) ($config['persona_breadth'] ?? 'coherent'),
-            responseStyle: (string) ($config['response_style'] ?? \Funnypot\Response\Style::MINIMAL),
-            severityCeiling: (string) ($config['severity_ceiling'] ?? 'high'),
-            maxBodyBytes: (int) ($config['max_body_bytes'] ?? 65536),
-            latencyMs: (int) ($config['latency_ms'] ?? 0),
-            trustedBypass: $config['trusted_bypass'] ?? null,
-            killSwitch: $config['kill_switch'] ?? null,
-            probeSignature: $config['probe_signature'] ?? null,
-            seedSalt: $seedSalt,
-            exclude: (array) ($config['exclude'] ?? [])
+            (string) ($config['mode'] ?? 'detect'),                                     // mode
+            $config['gate'] ?? null,                                                    // gate
+            (string) ($config['path_scope'] ?? 'matched-only'),                         // pathScope
+            $config['persona_seed'] ?? null,                                            // personaSeed
+            (string) ($config['persona_breadth'] ?? 'coherent'),                        // personaBreadth
+            (string) ($config['response_style'] ?? \Funnypot\Response\Style::MINIMAL),  // responseStyle
+            (string) ($config['severity_ceiling'] ?? 'high'),                           // severityCeiling
+            (int) ($config['max_body_bytes'] ?? 65536),                                 // maxBodyBytes
+            (int) ($config['latency_ms'] ?? 0),                                         // latencyMs
+            0,                                                                          // latencyJitterMs
+            false,                                                                      // attackEmulation
+            $config['trusted_bypass'] ?? null,                                          // trustedBypass
+            $config['kill_switch'] ?? null,                                             // killSwitch
+            $config['probe_signature'] ?? null,                                         // probeSignature
+            $seedSalt,                                                                  // seedSalt
+            (array) ($config['exclude'] ?? [])                                          // exclude
         );
     }
 }

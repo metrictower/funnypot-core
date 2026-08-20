@@ -50,7 +50,9 @@ final class WordMatcherInverter
         if (!is_array($words)) {
             $words = [$words];
         }
-        $words = array_values(array_map(static fn ($w): string => (string) $w, $words));
+        $words = array_values(array_map(static function ($w): string {
+            return (string) $w;
+        }, $words));
         if ($words === []) {
             return MatcherResult::out('word-empty');
         }
@@ -109,7 +111,9 @@ final class WordMatcherInverter
         // Positive words.
         $resolvable = array_values(array_filter(
             $decoded,
-            static fn (string $w): bool => DynamicLiteralScreen::isResolvable($w)
+            static function (string $w): bool {
+                return DynamicLiteralScreen::isResolvable($w);
+            }
         ));
 
         // A3: the header/all corpus (all_headers) is `Key: value\n` with NO status line,

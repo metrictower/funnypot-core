@@ -16,7 +16,8 @@ namespace Funnypot\Rules;
  */
 final class SignatureVerifier
 {
-    private KeyRing $keyRing;
+    /** @var KeyRing */
+    private $keyRing;
 
     public function __construct(KeyRing $keyRing)
     {

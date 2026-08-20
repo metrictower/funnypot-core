@@ -16,11 +16,20 @@ use Funnypot\Support\PathNormalizer;
  */
 final class Compiler
 {
-    private TemplateLoader $loader;
-    private ClusterableFilter $gateA;
-    private Classifier $gateB;
-    private BundlePartitioner $partitioner;
-    private PersonaCap $cap;
+    /** @var TemplateLoader */
+    private $loader;
+
+    /** @var ClusterableFilter */
+    private $gateA;
+
+    /** @var Classifier */
+    private $gateB;
+
+    /** @var BundlePartitioner */
+    private $partitioner;
+
+    /** @var PersonaCap */
+    private $cap;
 
     public function __construct()
     {

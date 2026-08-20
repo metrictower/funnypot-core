@@ -11,12 +11,28 @@ namespace Funnypot;
  */
 final class SynthesizedResponse
 {
+    /** @var int */
+    public $status;
+
+    /** @var array<string,string> */
+    public $headers;
+
+    /** @var string */
+    public $body;
+
+    /** @var Detection */
+    public $satisfies;
+
     /** @param array<string,string> $headers */
     public function __construct(
-        public int $status,
-        public array $headers,
-        public string $body,
-        public Detection $satisfies
+        int $status,
+        array $headers,
+        string $body,
+        Detection $satisfies
     ) {
+        $this->status = $status;
+        $this->headers = $headers;
+        $this->body = $body;
+        $this->satisfies = $satisfies;
     }
 }

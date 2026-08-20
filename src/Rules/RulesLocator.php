@@ -26,11 +26,11 @@ namespace Funnypot\Rules;
  */
 final class RulesLocator
 {
-    /** Process-global data-dir override, set by the Laravel bridge or tests. Null = use env. */
-    private static ?string $dataDir = null;
+    /** @var string|null Process-global data-dir override, set by the Laravel bridge or tests. Null = use env. */
+    private static $dataDir = null;
 
-    /** True once useDataDir() has been called, so an explicit null override wins over env. */
-    private static bool $overridden = false;
+    /** @var bool True once useDataDir() has been called, so an explicit null override wins over env. */
+    private static $overridden = false;
 
     /**
      * Point resolution at a data dir for this process (or pass null to force the bundled

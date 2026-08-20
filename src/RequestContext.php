@@ -12,19 +12,53 @@ namespace Funnypot;
  */
 final class RequestContext
 {
+    /** @var string */
+    public $method;
+
+    /** @var string */
+    public $path;
+
+    /** @var string */
+    public $query;
+
+    /** @var array<string,string> */
+    public $headers;
+
+    /** @var string|null */
+    public $rawBody;
+
+    /** @var string */
+    public $host;
+
+    /** @var string */
+    public $scheme;
+
+    /**
+     * @var string Wire HTTP version ('1.1', '2', '3', or '' when unknown). Read only by the
+     * request-shape bot-signal self-consistency checks (an HTTP/2 request must not carry a
+     * Connection header).
+     */
+    public $httpVersion;
+
     /** @param array<string,string> $headers */
     public function __construct(
-        public string $method,
-        public string $path,
-        public string $query = '',
-        public array $headers = [],
-        public ?string $rawBody = null,
-        public string $host = '',
-        public string $scheme = 'https',
-        // Wire HTTP version ('1.1', '2', '3', or '' when unknown). Read only by the request-shape
-        // bot-signal self-consistency checks (an HTTP/2 request must not carry a Connection header).
-        public string $httpVersion = ''
+        string $method,
+        string $path,
+        string $query = '',
+        array $headers = [],
+        ?string $rawBody = null,
+        string $host = '',
+        string $scheme = 'https',
+        string $httpVersion = ''
     ) {
+        $this->method = $method;
+        $this->path = $path;
+        $this->query = $query;
+        $this->headers = $headers;
+        $this->rawBody = $rawBody;
+        $this->host = $host;
+        $this->scheme = $scheme;
+        $this->httpVersion = $httpVersion;
     }
 
     /**

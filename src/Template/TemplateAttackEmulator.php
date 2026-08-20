@@ -20,19 +20,28 @@ use Funnypot\TemplateMatch;
  */
 final class TemplateAttackEmulator
 {
-    private DirectiveRenderer $renderer;
+    /** @var DirectiveRenderer */
+    private $renderer;
 
     /** @var array<string,true> rule ids the operator has switched off */
-    private array $disabled = [];
+    private $disabled = [];
+
+    /** @var array<int,array<string,mixed>> compiled attack rules */
+    private $rules;
+
+    /** @var array<string,string> operator tripwire tokens */
+    private $canary;
 
     /**
      * @param array<int,array<string,mixed>> $rules  compiled attack rules
      * @param array<string,string>           $canary operator tripwire tokens
      */
     public function __construct(
-        private array $rules,
-        private array $canary = []
+        array $rules,
+        array $canary = []
     ) {
+        $this->rules = $rules;
+        $this->canary = $canary;
         $this->renderer = new DirectiveRenderer();
     }
 

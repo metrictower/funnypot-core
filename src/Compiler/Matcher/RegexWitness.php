@@ -22,10 +22,17 @@ final class RegexWitness
     private const MAX_LEN = 512;
     private const MAX_DEPTH = 40;
 
-    private string $s;
-    private int $i = 0;
-    private int $n;
-    private bool $failed = false;
+    /** @var string */
+    private $s;
+
+    /** @var int */
+    private $i = 0;
+
+    /** @var int */
+    private $n;
+
+    /** @var bool */
+    private $failed = false;
 
     private function __construct(string $pattern)
     {

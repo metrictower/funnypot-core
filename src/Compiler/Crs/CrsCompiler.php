@@ -30,12 +30,21 @@ final class CrsCompiler
     /** Per-class combined-regex byte budget; keeps each alternation under PCRE's compile limit. */
     private const MAX_COMBINED_BYTES = 45000;
 
-    private CrsRuleParser $parser;
-    private CrsArchetypes $archetypes;
-    private FingerprintGuard $guard;
+    /** @var CrsRuleParser */
+    private $parser;
 
-    public function __construct(private string $rootDir)
+    /** @var CrsArchetypes */
+    private $archetypes;
+
+    /** @var FingerprintGuard */
+    private $guard;
+
+    /** @var string */
+    private $rootDir;
+
+    public function __construct(string $rootDir)
     {
+        $this->rootDir = $rootDir;
         $this->parser = new CrsRuleParser();
         $this->archetypes = new CrsArchetypes($rootDir);
         $this->guard = FingerprintGuard::fromPackage();
@@ -69,7 +78,7 @@ final class CrsCompiler
             }
 
             $class = (string) $rule->attackClass;
-            $classes[$class] ??= ['rx' => [], 'pm' => [], 'rules' => [], 'severity' => 'low'];
+            $classes[$class] = $classes[$class] ?? ['rx' => [], 'pm' => [], 'rules' => [], 'severity' => 'low'];
 
             [$kind, $branches] = $this->branchesFor($rule, $rulesDir);
             if ($branches === []) {
@@ -197,7 +206,9 @@ final class CrsCompiler
         // @rx first (higher signal, keep-first), then @pmFromFile literals (trim-first).
         $ordered = array_merge($data['rx'], $data['pm']);
         $result = (new RegexAggregator())->build(
-            array_map(static fn (array $e): string => $e['branch'], $ordered),
+            array_map(static function (array $e): string {
+                return $e['branch'];
+            }, $ordered),
             self::MAX_COMBINED_BYTES
         );
         if ($result['regex'] === null) {

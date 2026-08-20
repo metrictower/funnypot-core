@@ -26,21 +26,77 @@ final class LoadedTemplate
      *                                                 (raw/payloads/body/fuzzing/unsafe/name/req-condition)
      * @param int                   $rawRequestCount  raw HTTP requests in the block (0 when not raw)
      */
+    /** @var string */
+    public $id;
+
+    /** @var string */
+    public $severity;
+
+    /** @var string[] */
+    public $tags;
+
+    /** @var string */
+    public $product;
+
+    /** @var string */
+    public $name;
+
+    /** @var string */
+    public $method;
+
+    /** @var string[] raw path strings incl. {{BaseURL}} prefix */
+    public $paths;
+
+    /** @var array<int,mixed> raw matcher blocks (assoc arrays) */
+    public $matchers;
+
+    /** @var string */
+    public $matchersCondition;
+
+    /** @var int */
+    public $requestCount;
+
+    /** @var bool */
+    public $hasFlow;
+
+    /** @var array<string,mixed> raw first-request keys used by Gate A (raw/payloads/body/fuzzing/unsafe/name/req-condition) */
+    public $eligibilitySignals;
+
+    /** @var string */
+    public $rawText;
+
+    /** @var int raw HTTP requests in the block (0 when not raw) */
+    public $rawRequestCount;
+
     public function __construct(
-        public string $id,
-        public string $severity,
-        public array $tags,
-        public string $product,
-        public string $name,
-        public string $method,
-        public array $paths,
-        public array $matchers,
-        public string $matchersCondition,
-        public int $requestCount,
-        public bool $hasFlow,
-        public array $eligibilitySignals,
-        public string $rawText,
-        public int $rawRequestCount = 0
+        string $id,
+        string $severity,
+        array $tags,
+        string $product,
+        string $name,
+        string $method,
+        array $paths,
+        array $matchers,
+        string $matchersCondition,
+        int $requestCount,
+        bool $hasFlow,
+        array $eligibilitySignals,
+        string $rawText,
+        int $rawRequestCount = 0
     ) {
+        $this->id = $id;
+        $this->severity = $severity;
+        $this->tags = $tags;
+        $this->product = $product;
+        $this->name = $name;
+        $this->method = $method;
+        $this->paths = $paths;
+        $this->matchers = $matchers;
+        $this->matchersCondition = $matchersCondition;
+        $this->requestCount = $requestCount;
+        $this->hasFlow = $hasFlow;
+        $this->eligibilitySignals = $eligibilitySignals;
+        $this->rawText = $rawText;
+        $this->rawRequestCount = $rawRequestCount;
     }
 }

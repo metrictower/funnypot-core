@@ -14,13 +14,15 @@ namespace Funnypot\Compiler\Matcher;
  */
 final class MatcherResult
 {
-    public bool $ok = true;
-    public string $reason = '';
+    /** @var bool */
+    public $ok = true;
+    /** @var string */
+    public $reason = '';
 
     /** @var string[] substrings required present in the body */
-    public array $bodyWords = [];
+    public $bodyWords = [];
     /** @var string[] substrings required present in the header block */
-    public array $headerWords = [];
+    public $headerWords = [];
     /**
      * Per-typed-header required substrings: canonical header name → substrings that must
      * appear in THAT header's value (nuclei's `part: content_type`/`server`/… regions).
@@ -30,25 +32,25 @@ final class MatcherResult
      *
      * @var array<string,string[]>
      */
-    public array $typedHeader = [];
+    public $typedHeader = [];
     /** @var string[] substrings that must be ABSENT from the body */
-    public array $forbidden = [];
+    public $forbidden = [];
     /** @var string[] substrings that must be ABSENT from the header block */
-    public array $headerForbidden = [];
+    public $headerForbidden = [];
 
     /** @var int[]|null allowed status set (OR-only); null = unconstrained by this matcher */
-    public ?array $statusAllowed = null;
+    public $statusAllowed = null;
     /** @var int[] statuses that must NOT be emitted */
-    public array $statusForbidden = [];
+    public $statusForbidden = [];
 
     /** @var array{op:string,n:int}|null body-length constraint: op in eq|min|max */
-    public ?array $size = null;
+    public $size = null;
 
     /** @var string[] regex witnesses (validated) to place in the body */
-    public array $regexWitness = [];
+    public $regexWitness = [];
 
-    /** A1/A4: this matcher constrains the entire body, so its bundle holds nothing else. */
-    public bool $wholeBodyExclusive = false;
+    /** @var bool A1/A4: this matcher constrains the entire body, so its bundle holds nothing else. */
+    public $wholeBodyExclusive = false;
 
     public static function in(): self
     {

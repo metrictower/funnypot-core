@@ -9,12 +9,28 @@ namespace Funnypot;
  */
 final class TemplateMatch
 {
+    /** @var string */
+    public $id;
+
+    /** @var string */
+    public $severity;
+
+    /** @var string[] */
+    public $tags;
+
+    /** @var string */
+    public $name;
+
     /** @param string[] $tags */
     public function __construct(
-        public string $id,
-        public string $severity,
-        public array $tags,
-        public string $name = ''
+        string $id,
+        string $severity,
+        array $tags,
+        string $name = ''
     ) {
+        $this->id = $id;
+        $this->severity = $severity;
+        $this->tags = $tags;
+        $this->name = $name;
     }
 }

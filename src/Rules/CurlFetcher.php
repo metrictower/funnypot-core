@@ -16,9 +16,13 @@ namespace Funnypot\Rules;
 final class CurlFetcher implements HttpFetcher
 {
     /** @var string[] lower-case hosts this fetcher will talk to */
-    private array $allowedHosts;
-    private int $maxBytes;
-    private int $timeoutSeconds;
+    private $allowedHosts;
+
+    /** @var int */
+    private $maxBytes;
+
+    /** @var int */
+    private $timeoutSeconds;
 
     /**
      * @param string[] $allowedHosts

@@ -41,21 +41,41 @@ final class RulesUpdater
     /** Upper bound on file count in a release (an inode-exhaustion / second gzip-bomb floor). */
     private const MAX_ENTRIES = 8000;
 
-    private string $dataDir;
-    private string $channel;
-    private ?string $pinnedVersion;
-    private string $repoBaseUrl;
-    private int $retention;
-    private float $coverageFloorRatio;
+    /** @var string */
+    private $dataDir;
 
-    private HttpFetcher $fetcher;
-    private SignatureVerifier $verifier;
-    private PhpLiteralValidator $validator;
-    private ReDosGuard $redos;
-    private FingerprintGuard $fingerprint;
+    /** @var string */
+    private $channel;
 
-    /** Test seam: overrides the first-install coverage baseline so tests need no 6 MB fixture. */
-    private ?array $packagedCoverageOverride = null;
+    /** @var string|null */
+    private $pinnedVersion;
+
+    /** @var string */
+    private $repoBaseUrl;
+
+    /** @var int */
+    private $retention;
+
+    /** @var float */
+    private $coverageFloorRatio;
+
+    /** @var HttpFetcher */
+    private $fetcher;
+
+    /** @var SignatureVerifier */
+    private $verifier;
+
+    /** @var PhpLiteralValidator */
+    private $validator;
+
+    /** @var ReDosGuard */
+    private $redos;
+
+    /** @var FingerprintGuard */
+    private $fingerprint;
+
+    /** @var array|null Test seam: overrides the first-install coverage baseline so tests need no 6 MB fixture. */
+    private $packagedCoverageOverride = null;
 
     public function __construct(
         string $dataDir,
@@ -235,7 +255,9 @@ final class RulesUpdater
             }
 
             if ($toVersion === null) {
-                $candidates = array_values(array_filter($retained, fn ($v) => $v !== $current));
+                $candidates = array_values(array_filter($retained, function ($v) use ($current) {
+                    return $v !== $current;
+                }));
                 if ($candidates === []) {
                     throw new RulesUpdateException(RulesUpdateException::REASON_NOT_RETAINED, 'No retained release other than the current one.');
                 }

@@ -13,8 +13,12 @@ namespace Funnypot;
  */
 final class Honeytoken
 {
-    public function __construct(private string $key)
+    /** @var string */
+    private $key;
+
+    public function __construct(string $key)
     {
+        $this->key = $key;
     }
 
     /** A `Set-Cookie` value planting the signed bait. */

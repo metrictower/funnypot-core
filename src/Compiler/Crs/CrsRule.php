@@ -28,18 +28,58 @@ final class CrsRule
      * @param string|null $attackClass  funnypot attack class derived from an attack-* tag we archetype, else null
      * @param string      $sourceFile   basename of the .conf the rule came from
      */
+    /** @var string CRS rule id, e.g. "942140" */
+    public $id;
+
+    /** @var string operator name without the leading @, e.g. "rx", "pmFromFile", "detectSQLi" */
+    public $operator;
+
+    /** @var string the operator argument (regex text, or a .data filename) */
+    public $argument;
+
+    /** @var bool the operator was written "!@..." (a NOT match) */
+    public $negated;
+
+    /** @var string[] the target variables, e.g. ["ARGS", "REQUEST_COOKIES"] */
+    public $variables;
+
+    /** @var string[] every tag: value, verbatim */
+    public $tags;
+
+    /** @var string CRS severity token, e.g. "CRITICAL" (empty when absent) */
+    public $severity;
+
+    /** @var int|null from tag "paranoia-level/N"; null when the rule carries no PL tag */
+    public $paranoiaLevel;
+
+    /** @var string|null funnypot attack class derived from an attack-* tag we archetype, else null */
+    public $attackClass;
+
+    /** @var string basename of the .conf the rule came from */
+    public $sourceFile;
+
     public function __construct(
-        public string $id,
-        public string $operator,
-        public string $argument,
-        public bool $negated,
-        public array $variables,
-        public array $tags,
-        public string $severity,
-        public ?int $paranoiaLevel,
-        public ?string $attackClass,
-        public string $sourceFile
+        string $id,
+        string $operator,
+        string $argument,
+        bool $negated,
+        array $variables,
+        array $tags,
+        string $severity,
+        ?int $paranoiaLevel,
+        ?string $attackClass,
+        string $sourceFile
     ) {
+        $this->id = $id;
+        $this->operator = $operator;
+        $this->argument = $argument;
+        $this->negated = $negated;
+        $this->variables = $variables;
+        $this->tags = $tags;
+        $this->severity = $severity;
+        $this->paranoiaLevel = $paranoiaLevel;
+        $this->attackClass = $attackClass;
+        $this->sourceFile = $sourceFile;
     }
 
     /** True when every target variable is a response-side surface funnypot never sees. */

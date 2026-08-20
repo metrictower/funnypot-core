@@ -54,7 +54,9 @@ final class RegexWitnessGenerator
         if (!is_array($patterns)) {
             $patterns = [$patterns];
         }
-        $patterns = array_values(array_map(static fn ($p): string => (string) $p, $patterns));
+        $patterns = array_values(array_map(static function ($p): string {
+            return (string) $p;
+        }, $patterns));
         if ($patterns === []) {
             return MatcherResult::out('regex-empty');
         }

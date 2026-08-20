@@ -20,12 +20,17 @@ use Funnypot\Template\DirectiveRenderer;
  */
 final class RouteTemplateEmulator extends AbstractEmulator
 {
-    private DirectiveRenderer $renderer;
+    /** @var RouteTemplateSet */
+    private $set;
+
+    /** @var DirectiveRenderer */
+    private $renderer;
 
     public function __construct(
-        private RouteTemplateSet $set,
+        RouteTemplateSet $set,
         ?DirectiveRenderer $renderer = null
     ) {
+        $this->set = $set;
         $this->renderer = $renderer ?? new DirectiveRenderer();
     }
 
@@ -106,7 +111,9 @@ final class RouteTemplateEmulator extends AbstractEmulator
         // line mode: prefix each taunt line with the file's comment token so the doc still parses.
         $open = (string) ($taunt['open'] ?? '#');
         $commented = array_map(
-            static fn (string $l): string => $l === '' ? $open : $open . ' ' . $l,
+            static function (string $l) use ($open): string {
+                return $l === '' ? $open : $open . ' ' . $l;
+            },
             $lines
         );
 

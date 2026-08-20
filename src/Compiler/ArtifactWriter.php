@@ -13,7 +13,8 @@ use RuntimeException;
  */
 final class ArtifactWriter
 {
-    private PhpArrayExporter $exporter;
+    /** @var PhpArrayExporter */
+    private $exporter;
 
     public function __construct()
     {
