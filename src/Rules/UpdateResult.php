@@ -11,13 +11,23 @@ namespace Funnypot\Rules;
  */
 final class UpdateResult
 {
-    public bool $success;
-    public bool $changed;
-    /** Short machine tag: 'updated', 'already-current', 'rolled-back', or a REASON_* on failure. */
-    public string $status;
-    public ?string $fromVersion;
-    public ?string $toVersion;
-    public string $message;
+    /** @var bool */
+    public $success;
+
+    /** @var bool */
+    public $changed;
+
+    /** @var string Short machine tag: 'updated', 'already-current', 'rolled-back', or a REASON_* on failure. */
+    public $status;
+
+    /** @var string|null */
+    public $fromVersion;
+
+    /** @var string|null */
+    public $toVersion;
+
+    /** @var string */
+    public $message;
 
     public function __construct(
         bool $success,

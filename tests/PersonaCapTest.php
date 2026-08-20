@@ -14,7 +14,8 @@ use PHPUnit\Framework\TestCase;
  */
 final class PersonaCapTest extends TestCase
 {
-    private PersonaCap $cap;
+    /** @var PersonaCap */
+    private $cap;
 
     protected function setUp(): void
     {

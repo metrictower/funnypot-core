@@ -12,7 +12,7 @@ namespace Funnypot\Response;
 final class EmulatorRegistry
 {
     /** @var EndpointEmulator[] */
-    private array $emulators;
+    private $emulators;
 
     /** @param EndpointEmulator[] $emulators */
     public function __construct(array $emulators)

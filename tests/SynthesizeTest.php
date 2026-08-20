@@ -79,7 +79,19 @@ final class SynthesizeTest extends TestCase
 
     public function test_synthesize_renders_an_attack_verdict_with_reflected_captures(): void
     {
-        $engine = new Honeypot($this->store(), new Config(attackEmulation: true));
+        $engine = new Honeypot($this->store(), new Config(
+            'detect',                            // mode
+            null,                                // gate
+            'matched-only',                      // pathScope
+            null,                                // personaSeed
+            'coherent',                          // personaBreadth
+            \Funnypot\Response\Style::MINIMAL,   // responseStyle
+            'high',                              // severityCeiling
+            65536,                               // maxBodyBytes
+            0,                                   // latencyMs
+            0,                                   // latencyJitterMs
+            true                                 // attackEmulation
+        ));
         $payload = '<script>alert(document.domain)</script>';
         $verdict = $engine->classify(new RequestContext('GET', '/search', 'q=' . $payload), SiteProfile::empty());
 
@@ -95,12 +107,36 @@ final class SynthesizeTest extends TestCase
     public function test_attack_synthesis_honours_the_severity_ceiling(): void
     {
         // command-injection is critical; the default 'high' ceiling refuses to fabricate it.
-        $high = new Honeypot($this->store(), new Config(attackEmulation: true));
+        $high = new Honeypot($this->store(), new Config(
+            'detect',                            // mode
+            null,                                // gate
+            'matched-only',                      // pathScope
+            null,                                // personaSeed
+            'coherent',                          // personaBreadth
+            \Funnypot\Response\Style::MINIMAL,   // responseStyle
+            'high',                              // severityCeiling
+            65536,                               // maxBodyBytes
+            0,                                   // latencyMs
+            0,                                   // latencyJitterMs
+            true                                 // attackEmulation
+        ));
         $v = $high->classify(new RequestContext('GET', '/ping', 'host=127.0.0.1;id'), SiteProfile::empty());
         self::assertSame(Verdict::ATTACK_CLASS, $v->classification);
         self::assertNull($high->synthesize($v, SiteProfile::empty(), 'x'));
 
-        $critical = new Honeypot($this->store(), new Config(attackEmulation: true, severityCeiling: 'critical'));
+        $critical = new Honeypot($this->store(), new Config(
+            'detect',                            // mode
+            null,                                // gate
+            'matched-only',                      // pathScope
+            null,                                // personaSeed
+            'coherent',                          // personaBreadth
+            \Funnypot\Response\Style::MINIMAL,   // responseStyle
+            'critical',                          // severityCeiling
+            65536,                               // maxBodyBytes
+            0,                                   // latencyMs
+            0,                                   // latencyJitterMs
+            true                                 // attackEmulation
+        ));
         $v2 = $critical->classify(new RequestContext('GET', '/ping', 'host=127.0.0.1;id'), SiteProfile::empty());
         $fake = $critical->synthesize($v2, SiteProfile::empty(), 'x');
         self::assertNotNull($fake);
@@ -128,7 +164,12 @@ final class SynthesizeTest extends TestCase
         // The facade is exactly classify()+synthesize() with the gates layered on: an open-gate
         // respond() and a direct synthesize() produce the same body.
         $store = $this->store();
-        $facade = new Honeypot($store, new Config(mode: 'respond', gate: static fn (RequestContext $r): bool => true, personaSeed: static fn (RequestContext $r): string => 'fixed'));
+        $facade = new Honeypot($store, new Config(
+            'respond',                                                        // mode
+            static function (RequestContext $r): bool { return true; },       // gate
+            'matched-only',                                                   // pathScope
+            static function (RequestContext $r): string { return 'fixed'; }   // personaSeed
+        ));
         $pure = new Honeypot($store);
 
         $r = new RequestContext('GET', '/.git/config');

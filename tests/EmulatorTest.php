@@ -23,10 +23,12 @@ final class EmulatorTest extends TestCase
     private function inverter(string $style): Honeypot
     {
         return new Honeypot($this->store(), new Config(
-            mode: 'respond',
-            gate: static fn (RequestContext $r): bool => true,
-            responseStyle: $style,
-            personaSeed: static fn (RequestContext $r): string => 'fixed'
+            'respond',                                                        // mode
+            static function (RequestContext $r): bool { return true; },       // gate
+            'matched-only',                                                   // pathScope
+            static function (RequestContext $r): string { return 'fixed'; },  // personaSeed
+            'coherent',                                                       // personaBreadth
+            $style                                                            // responseStyle
         ));
     }
 

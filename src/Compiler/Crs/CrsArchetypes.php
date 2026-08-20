@@ -34,8 +34,12 @@ final class CrsArchetypes
         'rce' => ['id' => 'attack-crs-rce', 'from' => 'templates/attack/41-cmdi-unix.yaml', 'severity' => 'critical', 'priority' => 953],
     ];
 
-    public function __construct(private string $rootDir)
+    /** @var string */
+    private $rootDir;
+
+    public function __construct(string $rootDir)
     {
+        $this->rootDir = $rootDir;
     }
 
     /** @return string[] the attack classes an archetype exists for */
@@ -127,11 +131,13 @@ final class CrsArchetypes
      */
     private function sanitize(array $response): array
     {
-        $strip = static fn (string $s): string => (string) preg_replace(
-            '/\{\{\s*(?:urldecode:)?match\.[^}]*\}\}/',
-            '',
-            $s
-        );
+        $strip = static function (string $s): string {
+            return (string) preg_replace(
+                '/\{\{\s*(?:urldecode:)?match\.[^}]*\}\}/',
+                '',
+                $s
+            );
+        };
 
         $response['body'] = $strip($response['body']);
         $headers = [];

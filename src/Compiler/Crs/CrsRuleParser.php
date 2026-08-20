@@ -207,7 +207,9 @@ final class CrsRuleParser
             $vars[] = $colon === false ? $token : substr($token, 0, $colon);
         }
 
-        return array_values(array_filter($vars, static fn (string $v): bool => $v !== ''));
+        return array_values(array_filter($vars, static function (string $v): bool {
+            return $v !== '';
+        }));
     }
 
     /**

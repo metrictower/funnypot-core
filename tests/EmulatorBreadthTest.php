@@ -22,7 +22,7 @@ use PHPUnit\Framework\TestCase;
 final class EmulatorBreadthTest extends TestCase
 {
     /** @var array<string,mixed>|null */
-    private static ?array $index = null;
+    private static $index = null;
 
     private function set(): RouteTemplateSet
     {

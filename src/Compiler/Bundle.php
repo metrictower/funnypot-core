@@ -16,26 +16,30 @@ final class Bundle
     /** Emitted-body word cap (§2). `t` still records every routed template. */
     private const BODY_WORD_CAP = 64;
 
-    public ?int $status = null;
+    /** @var int|null */
+    public $status = null;
     /** @var string[] */
-    public array $bodyWords = [];
+    public $bodyWords = [];
     /** @var string[] */
-    public array $headerWords = [];
+    public $headerWords = [];
     /** @var string[] */
-    public array $forbidden = [];
+    public $forbidden = [];
     /** @var string[] */
-    public array $headerForbidden = [];
+    public $headerForbidden = [];
     /** @var string[] */
-    public array $regexWitness = [];
+    public $regexWitness = [];
     /** @var array<string,string[]> canonical header name → required substrings in that header */
-    public array $typedHeader = [];
+    public $typedHeader = [];
     /** @var array{op:string,n:int}|null */
-    public ?array $size = null;
-    public bool $wholeBodyExclusive = false;
-    public string $product = '';
-    public string $severity = '';
+    public $size = null;
+    /** @var bool */
+    public $wholeBodyExclusive = false;
+    /** @var string */
+    public $product = '';
+    /** @var string */
+    public $severity = '';
     /** @var string[] provenance: routed template ids */
-    public array $templateIds = [];
+    public $templateIds = [];
 
     public function isEmpty(): bool
     {

@@ -124,10 +124,17 @@ final class AttackEmulatorTest extends TestCase
         $store = new PhpArrayStore(require __DIR__ . '/../resources/compiled/nuclei-index.php');
 
         return new Honeypot($store, new Config(
-            mode: 'respond',
-            gate: static fn (RequestContext $r): bool => true,
-            severityCeiling: $overrides['severityCeiling'] ?? 'high',
-            attackEmulation: $overrides['attackEmulation'] ?? true
+            'respond',                                                        // mode
+            static function (RequestContext $r): bool { return true; },       // gate
+            'matched-only',                                                   // pathScope
+            null,                                                             // personaSeed
+            'coherent',                                                       // personaBreadth
+            \Funnypot\Response\Style::MINIMAL,                                // responseStyle
+            $overrides['severityCeiling'] ?? 'high',                          // severityCeiling
+            65536,                                                            // maxBodyBytes
+            0,                                                                // latencyMs
+            0,                                                                // latencyJitterMs
+            $overrides['attackEmulation'] ?? true                            // attackEmulation
         ));
     }
 
@@ -142,7 +149,7 @@ final class AttackEmulatorTest extends TestCase
     public function test_attack_emulation_off_by_default(): void
     {
         $store = new PhpArrayStore(require __DIR__ . '/../resources/compiled/nuclei-index.php');
-        $inv = new Honeypot($store, new Config(mode: 'respond', gate: static fn (RequestContext $r): bool => true));
+        $inv = new Honeypot($store, new Config('respond', static function (RequestContext $r): bool { return true; }));
 
         self::assertNull($inv->respond(new RequestContext('GET', '/nope', 'file=../../etc/passwd')));
     }

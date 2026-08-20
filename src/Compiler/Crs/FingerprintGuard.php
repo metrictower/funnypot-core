@@ -19,10 +19,10 @@ use RuntimeException;
 final class FingerprintGuard
 {
     /** @var string[] */
-    private array $literals;
+    private $literals;
 
     /** @var string[] */
-    private array $patterns;
+    private $patterns;
 
     /**
      * @param string[] $literals case-insensitive substrings that must not appear

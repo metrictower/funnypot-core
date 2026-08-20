@@ -23,11 +23,23 @@ final class HoneypotMiddleware implements MiddlewareInterface
 {
     public const ATTRIBUTE_DETECTION = 'funnypot.detection';
 
+    /** @var Engine */
+    private $inverter;
+
+    /** @var ResponseFactoryInterface */
+    private $responseFactory;
+
+    /** @var StreamFactoryInterface */
+    private $streamFactory;
+
     public function __construct(
-        private Engine $inverter,
-        private ResponseFactoryInterface $responseFactory,
-        private StreamFactoryInterface $streamFactory
+        Engine $inverter,
+        ResponseFactoryInterface $responseFactory,
+        StreamFactoryInterface $streamFactory
     ) {
+        $this->inverter = $inverter;
+        $this->responseFactory = $responseFactory;
+        $this->streamFactory = $streamFactory;
     }
 
     public function process(ServerRequestInterface $request, RequestHandlerInterface $handler): ResponseInterface

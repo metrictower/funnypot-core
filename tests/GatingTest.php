@@ -56,21 +56,28 @@ final class GatingTest extends TestCase
     private function openConfig(array $overrides = []): Config
     {
         return new Config(
-            mode: $overrides['mode'] ?? 'respond',
-            gate: $overrides['gate'] ?? static fn (RequestContext $r): bool => true,
-            personaSeed: $overrides['personaSeed'] ?? static fn (RequestContext $r): string => 'seed-x',
-            severityCeiling: $overrides['severityCeiling'] ?? 'high',
-            maxBodyBytes: $overrides['maxBodyBytes'] ?? 65536,
-            trustedBypass: $overrides['trustedBypass'] ?? null,
-            killSwitch: $overrides['killSwitch'] ?? null,
-            probeSignature: $overrides['probeSignature'] ?? null,
-            exclude: $overrides['exclude'] ?? []
+            $overrides['mode'] ?? 'respond',                                                  // mode
+            $overrides['gate'] ?? static function (RequestContext $r): bool { return true; },  // gate
+            'matched-only',                                                                    // pathScope
+            $overrides['personaSeed'] ?? static function (RequestContext $r): string { return 'seed-x'; }, // personaSeed
+            'coherent',                                                                        // personaBreadth
+            \Funnypot\Response\Style::MINIMAL,                                                 // responseStyle
+            $overrides['severityCeiling'] ?? 'high',                                           // severityCeiling
+            $overrides['maxBodyBytes'] ?? 65536,                                               // maxBodyBytes
+            0,                                                                                 // latencyMs
+            0,                                                                                 // latencyJitterMs
+            false,                                                                             // attackEmulation
+            $overrides['trustedBypass'] ?? null,                                               // trustedBypass
+            $overrides['killSwitch'] ?? null,                                                  // killSwitch
+            $overrides['probeSignature'] ?? null,                                              // probeSignature
+            '',                                                                                // seedSalt
+            $overrides['exclude'] ?? []                                                        // exclude
         );
     }
 
     public function test_kill_switch_suppresses_everything(): void
     {
-        $c = $this->openConfig(['killSwitch' => static fn (): bool => true]);
+        $c = $this->openConfig(['killSwitch' => static function (): bool { return true; }]);
         self::assertNull($this->respond($c, '/multi'));
     }
 
@@ -88,8 +95,8 @@ final class GatingTest extends TestCase
 
     public function test_persona_selection_is_deterministic_per_seed(): void
     {
-        $a = $this->respond($this->openConfig(['personaSeed' => static fn (RequestContext $r): string => 'same']), '/multi');
-        $b = $this->respond($this->openConfig(['personaSeed' => static fn (RequestContext $r): string => 'same']), '/multi');
+        $a = $this->respond($this->openConfig(['personaSeed' => static function (RequestContext $r): string { return 'same'; }]), '/multi');
+        $b = $this->respond($this->openConfig(['personaSeed' => static function (RequestContext $r): string { return 'same'; }]), '/multi');
 
         self::assertNotNull($a);
         self::assertNotNull($b);
@@ -100,7 +107,7 @@ final class GatingTest extends TestCase
     {
         $bodies = [];
         foreach (['s0', 's1', 's2', 's3', 's4', 's5', 's6', 's7'] as $seed) {
-            $r = $this->respond($this->openConfig(['personaSeed' => static fn (RequestContext $req): string => $seed]), '/multi');
+            $r = $this->respond($this->openConfig(['personaSeed' => static function (RequestContext $req) use ($seed): string { return $seed; }]), '/multi');
             self::assertNotNull($r);
             $bodies[$r->body] = true;
         }
@@ -121,7 +128,7 @@ final class GatingTest extends TestCase
         self::assertNull($this->respond($this->openConfig(), '/root'));
         // ...but fires when the app's probeSignature predicate says so.
         $r = $this->respond(
-            $this->openConfig(['probeSignature' => static fn (RequestContext $req): bool => true]),
+            $this->openConfig(['probeSignature' => static function (RequestContext $req): bool { return true; }]),
             '/root'
         );
         self::assertNotNull($r);
@@ -134,7 +141,7 @@ final class GatingTest extends TestCase
         // the critical is removed BEFORE selection, so EVERY seed serves the low bundle
         // — never a null hole from the seed landing on the refused critical.
         foreach (['s0', 's1', 's2', 's3', 's4', 's5'] as $seed) {
-            $r = $this->respond($this->openConfig(['personaSeed' => static fn (RequestContext $req): string => $seed]), '/mixed');
+            $r = $this->respond($this->openConfig(['personaSeed' => static function (RequestContext $req) use ($seed): string { return $seed; }]), '/mixed');
             self::assertNotNull($r, "seed {$seed} left a coverage hole");
             self::assertSame(200, $r->status);
             self::assertStringContainsString('LOWMIX', $r->body);
@@ -156,9 +163,9 @@ final class GatingTest extends TestCase
     {
         $observer = new class implements \Funnypot\Observer {
             /** @var string[] */
-            public array $detections = [];
+            public $detections = [];
             /** @var string[] */
-            public array $outcomes = [];
+            public $outcomes = [];
 
             public function onDetection(RequestContext $r, \Funnypot\Detection $d): void
             {
@@ -180,7 +187,7 @@ final class GatingTest extends TestCase
         $inv = new Honeypot($this->store(), $this->openConfig(), $observer);
         $inv->respond(new RequestContext('GET', '/multi'));
         // Gate-closed path.
-        $inv2 = new Honeypot($this->store(), new Config(mode: 'respond'), $observer);
+        $inv2 = new Honeypot($this->store(), new Config('respond'), $observer);
         $inv2->respond(new RequestContext('GET', '/multi'));
 
         self::assertSame(['/multi', '/multi'], $observer->detections);

@@ -15,9 +15,14 @@ use PHPUnit\Framework\TestCase;
  */
 final class ClassifierTest extends TestCase
 {
-    private TemplateLoader $loader;
-    private ClusterableFilter $gateA;
-    private Classifier $gateB;
+    /** @var TemplateLoader */
+    private $loader;
+
+    /** @var ClusterableFilter */
+    private $gateA;
+
+    /** @var Classifier */
+    private $gateB;
 
     protected function setUp(): void
     {

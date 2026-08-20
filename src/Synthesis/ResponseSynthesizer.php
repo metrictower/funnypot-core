@@ -42,11 +42,20 @@ use Funnypot\SynthesizedResponse;
  */
 final class ResponseSynthesizer
 {
-    private string $lastSkipReason = '';
-    private ?EmulatorRegistry $emulators;
-    private string $style;
-    private ?string $serverHeader;
-    private ?string $poweredBy;
+    /** @var string */
+    private $lastSkipReason = '';
+
+    /** @var EmulatorRegistry|null */
+    private $emulators;
+
+    /** @var string */
+    private $style;
+
+    /** @var string|null */
+    private $serverHeader;
+
+    /** @var string|null */
+    private $poweredBy;
 
     public function __construct(
         ?EmulatorRegistry $emulators = null,

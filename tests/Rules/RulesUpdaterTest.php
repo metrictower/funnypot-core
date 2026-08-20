@@ -19,9 +19,14 @@ use PHPUnit\Framework\TestCase;
  */
 final class RulesUpdaterTest extends TestCase
 {
-    private string $tmp;
-    private ArrayFetcher $fetcher;
-    private ReleaseFactory $factory;
+    /** @var string */
+    private $tmp;
+
+    /** @var ArrayFetcher */
+    private $fetcher;
+
+    /** @var ReleaseFactory */
+    private $factory;
 
     protected function setUp(): void
     {

@@ -20,8 +20,11 @@ use PHPUnit\Framework\TestCase;
  */
 final class RecoveryTest extends TestCase
 {
-    private Classifier $classifier;
-    private ResponseSynthesizer $synth;
+    /** @var Classifier */
+    private $classifier;
+
+    /** @var ResponseSynthesizer */
+    private $synth;
 
     protected function setUp(): void
     {

@@ -45,28 +45,108 @@ final class Config
      *                                       returns it altered (e.g. role=admin) is a HIGH-signal
      *                                       privilege-escalation attempt. null ⇒ feature off.
      */
+    /** @var string off | detect | respond */
+    public $mode;
+
+    /** @var Closure|null fn(RequestContext):bool — app suspicion predicate; null ⇒ closed (false) */
+    public $gate;
+
+    /** @var string matched-only (only compiled paths) | any */
+    public $pathScope;
+
+    /** @var Closure|null fn(RequestContext):string — determinism source; null ⇒ host + salt */
+    public $personaSeed;
+
+    /** @var string coherent (one product persona) | greedy */
+    public $personaBreadth;
+
+    /** @var string minimal | realistic | taunt (see Response\Style) */
+    public $responseStyle;
+
+    /** @var string refuse to fabricate anything stronger than this */
+    public $severityCeiling;
+
+    /** @var int hard cap; a larger synthesized body is refused */
+    public $maxBodyBytes;
+
+    /** @var int optional tarpit delay applied by the emitter, never the core */
+    public $latencyMs;
+
+    /** @var int random jitter (ms) added to the base delay so replies aren't uniform */
+    public $latencyJitterMs;
+
+    /** @var bool interactive attack-class emulation on a route miss */
+    public $attackEmulation;
+
+    /** @var Closure|null fn(RequestContext):bool — own scanners; true ⇒ never serve fakes */
+    public $trustedBypass;
+
+    /** @var Closure|null fn():bool — true ⇒ respond disabled (un-poison) */
+    public $killSwitch;
+
+    /** @var Closure|null fn(RequestContext):bool — root/homepage (sig=1) fires ONLY when true; null ⇒ never */
+    public $probeSignature;
+
+    /** @var string per-deploy salt so persona differs per site */
+    public $seedSalt;
+
+    /** @var string[] template ids or tags to never serve */
+    public $exclude;
+
+    /** @var bool false drops every nuclei-corpus fake (attack and route emulations still serve) */
+    public $nucleiReflection;
+
+    /** @var string|null Server banner emitted on every response; null ⇒ don't force one */
+    public $serverHeader;
+
+    /** @var string|null X-Powered-By emitted on every response; null ⇒ omit */
+    public $poweredBy;
+
+    /** @var string|null HMAC key for the tamper-evident bait cookie; null ⇒ feature off */
+    public $honeytokenKey;
+
     public function __construct(
-        public string $mode = 'detect',
-        public ?Closure $gate = null,
-        public string $pathScope = 'matched-only',
-        public ?Closure $personaSeed = null,
-        public string $personaBreadth = 'coherent',
-        public string $responseStyle = Style::MINIMAL,
-        public string $severityCeiling = 'high',
-        public int $maxBodyBytes = 65536,
-        public int $latencyMs = 0,
-        public int $latencyJitterMs = 0,
-        public bool $attackEmulation = false,
-        public ?Closure $trustedBypass = null,
-        public ?Closure $killSwitch = null,
-        public ?Closure $probeSignature = null,
-        public string $seedSalt = '',
-        public array $exclude = [],
-        public bool $nucleiReflection = true,
-        public ?string $serverHeader = null,
-        public ?string $poweredBy = null,
-        public ?string $honeytokenKey = null
+        string $mode = 'detect',
+        ?Closure $gate = null,
+        string $pathScope = 'matched-only',
+        ?Closure $personaSeed = null,
+        string $personaBreadth = 'coherent',
+        string $responseStyle = Style::MINIMAL,
+        string $severityCeiling = 'high',
+        int $maxBodyBytes = 65536,
+        int $latencyMs = 0,
+        int $latencyJitterMs = 0,
+        bool $attackEmulation = false,
+        ?Closure $trustedBypass = null,
+        ?Closure $killSwitch = null,
+        ?Closure $probeSignature = null,
+        string $seedSalt = '',
+        array $exclude = [],
+        bool $nucleiReflection = true,
+        ?string $serverHeader = null,
+        ?string $poweredBy = null,
+        ?string $honeytokenKey = null
     ) {
+        $this->mode = $mode;
+        $this->gate = $gate;
+        $this->pathScope = $pathScope;
+        $this->personaSeed = $personaSeed;
+        $this->personaBreadth = $personaBreadth;
+        $this->responseStyle = $responseStyle;
+        $this->severityCeiling = $severityCeiling;
+        $this->maxBodyBytes = $maxBodyBytes;
+        $this->latencyMs = $latencyMs;
+        $this->latencyJitterMs = $latencyJitterMs;
+        $this->attackEmulation = $attackEmulation;
+        $this->trustedBypass = $trustedBypass;
+        $this->killSwitch = $killSwitch;
+        $this->probeSignature = $probeSignature;
+        $this->seedSalt = $seedSalt;
+        $this->exclude = $exclude;
+        $this->nucleiReflection = $nucleiReflection;
+        $this->serverHeader = $serverHeader;
+        $this->poweredBy = $poweredBy;
+        $this->honeytokenKey = $honeytokenKey;
     }
 
     public function respondEnabled(): bool

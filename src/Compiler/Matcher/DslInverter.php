@@ -26,8 +26,10 @@ use Funnypot\Compiler\DynamicLiteralScreen;
 final class DslInverter
 {
     /** @var array<int,array{t:string,v:string}> */
-    private array $tok = [];
-    private int $p = 0;
+    private $tok = [];
+
+    /** @var int */
+    private $p = 0;
 
     /**
      * @param array<string,mixed> $m
@@ -42,7 +44,9 @@ final class DslInverter
         if (!is_array($exprs)) {
             $exprs = [$exprs];
         }
-        $exprs = array_values(array_map(static fn ($e): string => (string) $e, $exprs));
+        $exprs = array_values(array_map(static function ($e): string {
+            return (string) $e;
+        }, $exprs));
         if ($exprs === []) {
             return MatcherResult::out('dsl-empty');
         }
@@ -375,7 +379,9 @@ final class DslInverter
         $r = MatcherResult::in();
         $resolvable = array_values(array_filter(
             $literals,
-            static fn (string $l): bool => DynamicLiteralScreen::isResolvable($l)
+            static function (string $l): bool {
+                return DynamicLiteralScreen::isResolvable($l);
+            }
         ));
 
         if ($forbid) {

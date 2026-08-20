@@ -16,9 +16,13 @@ use Funnypot\Rules\RulesLocator;
  */
 final class RouteTemplateSet
 {
+    /** @var array<int,array<string,mixed>> compiled route rules, priority-ordered */
+    private $rules;
+
     /** @param array<int,array<string,mixed>> $rules compiled route rules, priority-ordered */
-    public function __construct(private array $rules)
+    public function __construct(array $rules)
     {
+        $this->rules = $rules;
     }
 
     public static function fromFile(string $path): self

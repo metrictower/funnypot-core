@@ -13,7 +13,7 @@ namespace Funnypot\Rules;
 final class KeyRing
 {
     /** @var array<int,array{key_id:string,public_key:string,valid_from:?string,valid_until:?string}> */
-    private array $keys;
+    private $keys;
 
     /**
      * @param array<int,array<string,mixed>> $keys

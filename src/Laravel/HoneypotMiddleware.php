@@ -18,8 +18,12 @@ final class HoneypotMiddleware
 {
     public const ATTRIBUTE_DETECTION = 'funnypot.detection';
 
-    public function __construct(private Engine $inverter)
+    /** @var Engine */
+    private $inverter;
+
+    public function __construct(Engine $inverter)
     {
+        $this->inverter = $inverter;
     }
 
     /**

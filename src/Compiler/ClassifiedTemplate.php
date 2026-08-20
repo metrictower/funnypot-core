@@ -10,11 +10,23 @@ namespace Funnypot\Compiler;
  */
 final class ClassifiedTemplate
 {
+    /** @var bool */
+    public $in;
+
+    /** @var SatisfyPlan|null */
+    public $plan;
+
+    /** @var string */
+    public $reason;
+
     private function __construct(
-        public bool $in,
-        public ?SatisfyPlan $plan,
-        public string $reason
+        bool $in,
+        ?SatisfyPlan $plan,
+        string $reason
     ) {
+        $this->in = $in;
+        $this->plan = $plan;
+        $this->reason = $reason;
     }
 
     public static function in(SatisfyPlan $plan): self

@@ -28,9 +28,17 @@ final class CrsPrecedenceTest extends TestCase
         $store = new PhpArrayStore(require __DIR__ . '/../../resources/compiled/nuclei-index.php');
 
         return new Honeypot($store, new Config(
-            mode: 'respond',
-            gate: static fn (RequestContext $r): bool => true,
-            attackEmulation: true
+            'respond',                                                   // mode
+            static function (RequestContext $r): bool { return true; },  // gate
+            'matched-only',                                              // pathScope
+            null,                                                        // personaSeed
+            'coherent',                                                  // personaBreadth
+            \Funnypot\Response\Style::MINIMAL,                           // responseStyle
+            'high',                                                      // severityCeiling
+            65536,                                                       // maxBodyBytes
+            0,                                                           // latencyMs
+            0,                                                           // latencyJitterMs
+            true                                                         // attackEmulation
         ));
     }
 

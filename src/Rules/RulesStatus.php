@@ -11,15 +11,26 @@ namespace Funnypot\Rules;
  */
 final class RulesStatus
 {
-    public string $source;
-    public ?string $version;
-    public ?int $versionSeq;
-    public ?string $appliedAt;
-    public ?string $checkedAt;
+    /** @var string */
+    public $source;
+
+    /** @var string|null */
+    public $version;
+
+    /** @var int|null */
+    public $versionSeq;
+
+    /** @var string|null */
+    public $appliedAt;
+
+    /** @var string|null */
+    public $checkedAt;
+
     /** @var array<string,int> */
-    public array $coverage;
+    public $coverage;
+
     /** @var string[] versions retained on disk for network-free rollback */
-    public array $retained;
+    public $retained;
 
     /**
      * @param array<string,int> $coverage

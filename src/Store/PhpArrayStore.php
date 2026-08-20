@@ -24,13 +24,13 @@ use InvalidArgumentException;
 final class PhpArrayStore implements CompiledStore
 {
     /** @var array<string,mixed> */
-    private array $routes;
+    private $routes;
 
     /** @var array<string,mixed> */
-    private array $templates;
+    private $templates;
 
     /** @var array<string,mixed> */
-    private array $manifest;
+    private $manifest;
 
     /** @param array<string,mixed> $index */
     public function __construct(array $index)
@@ -45,7 +45,7 @@ final class PhpArrayStore implements CompiledStore
     }
 
     /** @var array<string,array<string,mixed>> parsed index cache, keyed by path */
-    private static array $fileCache = [];
+    private static $fileCache = [];
 
     public static function fromFile(string $path): self
     {
