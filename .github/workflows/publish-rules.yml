@@ -45,7 +45,7 @@ jobs:
       # Cheap re-gate of the two SECURITY checks on the EXACT commit being packaged. Pure
       # PHP/bash, seconds — no Docker / real-nuclei acceptance needed a second time.
       - name: Fingerprint-safety check
-        run: php scripts/ci/check-fingerprint-safety.php --index=resources/compiled/funnypot-attack.php
+        run: php scripts/ci/check-fingerprint-safety.php --index=resources/compiled/funnypot-attack.php --index=resources/compiled/funnypot-routes.php --index=resources/compiled/funnypot-param.php
 
       - name: License check (upstream must be allow-listed)
         run: bash scripts/ci/check-license.sh resources resources/upstream-licenses/nuclei-templates.LICENSE.md || true

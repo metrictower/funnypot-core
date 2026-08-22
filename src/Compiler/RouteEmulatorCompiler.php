@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Funnypot\Compiler;
 
+use Funnypot\Support\PersonaIdentity;
 use Funnypot\Template\DirectiveRenderer;
 use RuntimeException;
 use Symfony\Component\Yaml\Yaml;
@@ -173,6 +174,11 @@ final class RouteEmulatorCompiler
                 }
                 if (!$known) {
                     throw new RuntimeException("Route template {$file}: unknown directive '{{{$part}}}'. Vocabulary is closed — check for a typo.");
+                }
+                // persona.* is a CLOSED field set (unlike fake.NAME), so validate the whole path
+                // — a mistyped field would render '' at runtime and silently drop a marker.
+                if (strpos($part, 'persona.') === 0 && !in_array(substr($part, 8), PersonaIdentity::FIELDS, true)) {
+                    throw new RuntimeException("Route template {$file}: unknown persona field '{{{$part}}}'. Field set is closed — check for a typo.");
                 }
             }
         }

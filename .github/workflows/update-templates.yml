@@ -65,6 +65,9 @@ jobs:
           # and fold brand-new product pages back in (merge-routes is idempotent).
           php bin/funnypot compile-emulators
           php bin/funnypot compile-routes
+          # Param routes reserve ids against the freshly compiled attack set (build-fails on a
+          # cross-set id collision), so run this after compile-emulators.
+          php bin/funnypot compile-params
           php bin/funnypot merge-routes
 
       - name: Unit + compiler tests
@@ -77,7 +80,7 @@ jobs:
         run: bash scripts/ci/check-license.sh /tmp/nuclei-templates resources/upstream-licenses/nuclei-templates.LICENSE.md
 
       - name: Fingerprint-safety check
-        run: php scripts/ci/check-fingerprint-safety.php --index=resources/compiled/funnypot-attack.php
+        run: php scripts/ci/check-fingerprint-safety.php --index=resources/compiled/funnypot-attack.php --index=resources/compiled/funnypot-routes.php --index=resources/compiled/funnypot-param.php
 
       - name: Open PR with refreshed index
         uses: peter-evans/create-pull-request@v6
@@ -98,5 +101,6 @@ jobs:
             resources/compiled/funnypot-attack.php
             resources/compiled/funnypot-routes.php
             resources/compiled/funnypot-routes-index.php
+            resources/compiled/funnypot-param.php
             resources/compiled/funnypot-protocols.php
             resources/upstream-licenses/nuclei-templates.LICENSE.md

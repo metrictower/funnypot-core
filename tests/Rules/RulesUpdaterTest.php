@@ -191,6 +191,47 @@ final class RulesUpdaterTest extends TestCase
         self::assertNull($this->currentTarget());
     }
 
+    public function test_route_rule_fingerprint_leak_is_rejected(): void
+    {
+        // The installed engine serves ROUTE responses too, so runSafetySubset() re-scans the route
+        // artifact with the same dual-shape + set_cookie + taunt extraction as the attack surface. A
+        // detector signature anywhere an attacker can see it — body, a Set-Cookie name, a taunt
+        // comment — must fail the update before activation, never leak out on a served route.
+        $leakyRoutes = [
+            'body' => [['id' => 'route-x', 'match' => ['pid' => ['p']], 'body' => 'blocked by OWASP_CRS ruleset', 'headers' => []]],
+            'set_cookie' => [['id' => 'route-x', 'match' => ['pid' => ['p']], 'body' => 'ok', 'headers' => [], 'set_cookie' => 'modsecurity_session']],
+            'taunt.open' => [['id' => 'route-x', 'match' => ['pid' => ['p']], 'body' => 'ok', 'headers' => [], 'taunt' => ['mode' => 'line', 'open' => '# OWASP_CRS']]],
+        ];
+
+        $seq = 1;
+        foreach ($leakyRoutes as $surface => $routes) {
+            $version = 'v' . $seq;
+            $engine = $this->factory->engineFiles(100, 100);
+            $engine['funnypot-routes.php'] = $this->factory->literal($routes);
+            $this->factory->publish($this->fetcher, $version, $seq, $engine);
+
+            $result = $this->updater($version)->update();
+            self::assertFalse($result->success, "route {$surface} leak must fail the update");
+            self::assertSame('fingerprint-leak', $result->status, "route {$surface} leak");
+            self::assertNull($this->currentTarget(), "route {$surface} leak must not activate anything");
+            $seq++;
+        }
+    }
+
+    public function test_non_array_route_artifact_is_rejected(): void
+    {
+        // A route artifact whose literal is not a top-level array can't be scanned rule-by-rule;
+        // runSafetySubset() must reject it as a bad manifest, never skip the re-scan and swap it in.
+        $engine = $this->factory->engineFiles(100, 100);
+        $engine['funnypot-routes.php'] = $this->factory->literal('not-an-array');
+        $this->factory->publish($this->fetcher, 'v1', 1, $engine);
+
+        $result = $this->updater('v1')->update();
+        self::assertFalse($result->success);
+        self::assertSame('bad-manifest', $result->status);
+        self::assertNull($this->currentTarget());
+    }
+
     public function test_catastrophic_regex_is_rejected(): void
     {
         $rules = [[

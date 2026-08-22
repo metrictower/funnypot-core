@@ -82,6 +82,83 @@ final class FingerprintSafetyTest extends TestCase
         }
     }
 
+    public function test_every_compiled_route_response_is_clean(): void
+    {
+        $rules = require __DIR__ . '/../../resources/compiled/funnypot-routes.php';
+        $guard = $this->guard();
+
+        foreach ($rules as $rule) {
+            // Route rules carry served content at top level (no `response` nesting); the dual-shape
+            // fallback scans either shape. Cover body, headers, the Set-Cookie name, and the taunt
+            // comment-syntax strings — every served byte an attacker can see.
+            $response = $rule['response'] ?? $rule;
+            $hits = $guard->scan((string) ($response['body'] ?? ''));
+            foreach ((array) ($response['headers'] ?? []) as $name => $value) {
+                $hits = array_merge($hits, $guard->scan((string) $name), $guard->scan((string) $value));
+            }
+            $hits = array_merge($hits, $guard->scan((string) ($rule['set_cookie'] ?? '')));
+            if (isset($rule['taunt']) && is_array($rule['taunt'])) {
+                foreach (['open', 'close', 'key'] as $part) {
+                    $hits = array_merge($hits, $guard->scan((string) ($rule['taunt'][$part] ?? '')));
+                }
+            }
+            self::assertSame([], $hits, "fingerprint leak in {$rule['id']}: " . implode(', ', $hits));
+        }
+    }
+
+    public function test_every_compiled_param_response_is_clean(): void
+    {
+        $index = require __DIR__ . '/../../resources/compiled/funnypot-param.php';
+        $guard = $this->guard();
+
+        // The param artifact is bucketed; every served entry carries an attack-rule-shaped
+        // `response`, so scan the body + headers of each — served content an attacker can see.
+        foreach ((array) ($index['buckets'] ?? []) as $entries) {
+            foreach ((array) $entries as $entry) {
+                $response = $entry['response'] ?? [];
+                $hits = $guard->scan((string) ($response['body'] ?? ''));
+                foreach ((array) ($response['headers'] ?? []) as $name => $value) {
+                    $hits = array_merge($hits, $guard->scan((string) $name), $guard->scan((string) $value));
+                }
+                self::assertSame([], $hits, "fingerprint leak in {$entry['id']}: " . implode(', ', $hits));
+            }
+        }
+    }
+
+    public function test_the_ci_gate_flags_a_leak_in_a_param_entry_response(): void
+    {
+        // A param artifact is bucketed, so the gate must flatten to its entries before scanning.
+        // This one's entry response carries a detector signature — the gate must flag it. Written
+        // to a scratch file and pointed at via --index; nothing lands in the repo.
+        $index = [
+            'schema' => 1,
+            'buckets' => [
+                'leak' => [[
+                    'id' => 'param-leak-probe',
+                    'severity' => 'high',
+                    'tags' => ['param'],
+                    'status' => 200,
+                    'regex' => '^/leak/(?P<x>.+)$',
+                    'captures' => ['x'],
+                    'response' => ['headers' => [], 'body' => 'blocked by OWASP_CRS ruleset'],
+                ]],
+            ],
+        ];
+
+        $root = dirname(__DIR__, 2);
+        $script = $root . '/scripts/ci/check-fingerprint-safety.php';
+        $tmp = tempnam(sys_get_temp_dir(), 'fp-param-') . '.php';
+        file_put_contents($tmp, "<?php\n\nreturn " . var_export($index, true) . ";\n");
+
+        try {
+            exec('php ' . escapeshellarg($script) . ' --index=' . escapeshellarg($tmp) . ' 2>&1', $out, $code);
+            self::assertSame(1, $code, 'a param entry leak must fail the gate: ' . implode("\n", $out));
+            self::assertStringContainsString('fingerprint leak', implode("\n", $out));
+        } finally {
+            @unlink($tmp);
+        }
+    }
+
     public function test_the_ci_gate_script_passes_on_the_committed_artifact(): void
     {
         $root = dirname(__DIR__, 2);
@@ -90,5 +167,38 @@ final class FingerprintSafetyTest extends TestCase
 
         exec('php ' . escapeshellarg($script) . ' 2>&1', $out, $code);
         self::assertSame(0, $code, implode("\n", $out));
+    }
+
+    public function test_the_ci_gate_flags_a_leak_in_a_branch_case_response(): void
+    {
+        // A `branch` rule serves its case/default responses when a case fires, so those bodies must
+        // be scanned too. This rule's top-level response is clean but a branch case body carries a
+        // detector signature — the exact leak the branch descent must catch. The artifact is written
+        // to a scratch file and the gate is pointed at it via --index; nothing lands in the repo.
+        $rule = [
+            'id' => 'branch-leak-probe',
+            'response' => ['headers' => [], 'body' => 'clean top-level body'],
+            'behavior' => 'branch',
+            'branch' => [
+                'cases' => [[
+                    'when' => ['in' => 'query', 'contains' => 'x'],
+                    'response' => ['headers' => [], 'body' => 'blocked by OWASP_CRS ruleset'],
+                ]],
+                'default' => ['response' => ['headers' => [], 'body' => 'clean default']],
+            ],
+        ];
+
+        $root = dirname(__DIR__, 2);
+        $script = $root . '/scripts/ci/check-fingerprint-safety.php';
+        $tmp = tempnam(sys_get_temp_dir(), 'fp-branch-') . '.php';
+        file_put_contents($tmp, "<?php\n\nreturn " . var_export([$rule], true) . ";\n");
+
+        try {
+            exec('php ' . escapeshellarg($script) . ' --index=' . escapeshellarg($tmp) . ' 2>&1', $out, $code);
+            self::assertSame(1, $code, 'a branch case leak must fail the gate: ' . implode("\n", $out));
+            self::assertStringContainsString('fingerprint leak', implode("\n", $out));
+        } finally {
+            @unlink($tmp);
+        }
     }
 }

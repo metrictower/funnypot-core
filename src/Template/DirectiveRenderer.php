@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Funnypot\Template;
 
 use Funnypot\Attack\CannedData;
+use Funnypot\Support\PersonaIdentity;
 
 /**
  * Fills the bounded `{{...}}` directives in a template body/header value. This is the ONLY
@@ -24,6 +25,9 @@ use Funnypot\Attack\CannedData;
  *   {{compute.crc32:OPERAND}}
  *   {{pick:a,b,c}}                   seeded choice from a comma list
  *   {{canary.KEY}}                   operator-supplied tripwire token
+ *   {{persona.PATH}}                 one coherent fake identity for the seed (company, db, admin,
+ *                                    cloud) — PATH is a CLOSED field set (Support\PersonaIdentity);
+ *                                    an unknown subfield renders '' (never the literal)
  *   {{hex:AABBCC}}                   raw bytes hex2bin(AABBCC) — embed exact bytes (incl. >= 0x80)
  *                                    that the YAML \xNN transport can't carry byte-exact; non-hex
  *                                    chars are stripped, an odd digit count renders '' (never a
@@ -42,7 +46,16 @@ final class DirectiveRenderer
     ];
 
     /** The closed directive prefixes — used by the compile-time lint. */
-    public const KNOWN_PREFIXES = ['canned.', 'fake.', 'fakeHex:', 'hex:', 'match.', 'urldecode:match.', 'compute.md5:', 'compute.crc32:', 'pick:', 'canary.'];
+    public const KNOWN_PREFIXES = ['canned.', 'fake.', 'fakeHex:', 'hex:', 'match.', 'urldecode:match.', 'compute.md5:', 'compute.crc32:', 'pick:', 'canary.', 'persona.'];
+
+    /**
+     * One PersonaIdentity per seed. A renderer instance is long-lived and reused across many
+     * requests, so the memo is keyed by seed (not a single cached identity) — different seeds in
+     * flight must each resolve their own coherent identity.
+     *
+     * @var array<int,PersonaIdentity>
+     */
+    private $personaMemo = [];
 
     /**
      * @param string             $template body or header value carrying directives
@@ -143,9 +156,25 @@ final class DirectiveRenderer
         if (strpos($part, 'canary.') === 0) {
             return $canary[substr($part, 7)] ?? null;
         }
+        if (strpos($part, 'persona.') === 0) {
+            return $this->personaField($seed, substr($part, 8));
+        }
 
         // Unknown directive -> literal (fail safe; never execute). Compile-time lint catches typos.
         return $part;
+    }
+
+    /**
+     * Resolve one field of the seed's coherent persona identity. An unknown subfield renders ''
+     * (fail-safe) so a typo never leaks the literal directive; the compile-time lint rejects it.
+     */
+    private function personaField(int $seed, string $path): string
+    {
+        if (!isset($this->personaMemo[$seed])) {
+            $this->personaMemo[$seed] = PersonaIdentity::fromSeed($seed);
+        }
+
+        return $this->personaMemo[$seed]->field($path) ?? '';
     }
 
     /** @param array<int|string,string> $captures */

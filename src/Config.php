@@ -105,6 +105,9 @@ final class Config
     /** @var string|null HMAC key for the tamper-evident bait cookie; null ⇒ feature off */
     public $honeytokenKey;
 
+    /** @var string|null per-deploy persona-material override; null/'' ⇒ fall back to $seedSalt */
+    public $deploySeed;
+
     public function __construct(
         string $mode = 'detect',
         ?Closure $gate = null,
@@ -125,7 +128,8 @@ final class Config
         bool $nucleiReflection = true,
         ?string $serverHeader = null,
         ?string $poweredBy = null,
-        ?string $honeytokenKey = null
+        ?string $honeytokenKey = null,
+        ?string $deploySeed = null
     ) {
         $this->mode = $mode;
         $this->gate = $gate;
@@ -147,6 +151,7 @@ final class Config
         $this->serverHeader = $serverHeader;
         $this->poweredBy = $poweredBy;
         $this->honeytokenKey = $honeytokenKey;
+        $this->deploySeed = $deploySeed;
     }
 
     public function respondEnabled(): bool
@@ -205,5 +210,23 @@ final class Config
             : $r->host;
 
         return $base . '|' . $this->seedSalt;
+    }
+
+    /**
+     * Per-deploy, cross-request-stable seed (an int) for a single host-wide persona identity.
+     * It takes NO RequestContext on purpose: one deploy presents one coherent identity to every
+     * caller. Material is an explicit `deploySeed` when set, else the `seedSalt`.
+     *
+     * The `deploy\0` prefix uses a NUL separator that a `seedFor()` input can never contain: its
+     * inputs are a Host header or personaSeed value (neither of which may hold a NUL) joined to the
+     * salt with `|`. So the deploy-seed input space always carries a NUL and the persona-seed input
+     * space never does — they are disjoint, and their crc32s cannot collide by construction. (Host
+     * is attacker-controlled, so a `|` separator here would let `Host: deploy` reproduce this seed.)
+     */
+    public function deploySeed(): int
+    {
+        $m = ($this->deploySeed !== null && $this->deploySeed !== '') ? $this->deploySeed : $this->seedSalt;
+
+        return crc32("deploy\0" . $m);
     }
 }

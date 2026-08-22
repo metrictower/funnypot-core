@@ -36,6 +36,9 @@ return array (
       ),
       'body' => '<!DOCTYPE html><html><head><title>Log In - Confluence</title></head><body><div id="main">Confluence</div></body></html>',
     ),
+    'lit' => '${',
+    'lit_in' => 'request',
+    'lit_ci' => true,
   ),
   1 => 
   array (
@@ -107,6 +110,9 @@ return array (
 </body></html>
 ',
     ),
+    'lit' => '%ad',
+    'lit_in' => 'query',
+    'lit_ci' => true,
   ),
   3 => 
   array (
@@ -136,6 +142,9 @@ return array (
       ),
       'body' => '{{canned.passwd}}',
     ),
+    'lit' => '() {',
+    'lit_in' => 'header',
+    'lit_ci' => true,
   ),
   4 => 
   array (
@@ -167,6 +176,9 @@ return array (
       ),
       'body' => '{{canned.uid}}',
     ),
+    'lit' => '%{',
+    'lit_in' => 'header:Content-Type',
+    'lit_ci' => true,
   ),
   5 => 
   array (
@@ -201,6 +213,9 @@ return array (
       ),
       'body' => '{{compute.md5:match.1}}',
     ),
+    'lit' => 'eval-stdin.php',
+    'lit_in' => 'path',
+    'lit_ci' => true,
   ),
   6 => 
   array (
@@ -229,6 +244,9 @@ return array (
       ),
       'body' => '{{canned.passwd}}',
     ),
+    'lit' => '<!ENTITY',
+    'lit_in' => 'body',
+    'lit_ci' => true,
   ),
   7 => 
   array (
@@ -270,6 +288,9 @@ return array (
    browseable = no
 ',
     ),
+    'lit' => 'smb.conf',
+    'lit_in' => 'request',
+    'lit_ci' => true,
   ),
   8 => 
   array (
@@ -299,6 +320,9 @@ return array (
       ),
       'body' => '{{canned.environ}}',
     ),
+    'lit' => '/proc/self/environ',
+    'lit_in' => 'request',
+    'lit_ci' => true,
   ),
   9 => 
   array (
@@ -327,6 +351,9 @@ return array (
       ),
       'body' => '{{canned.shadow}}',
     ),
+    'lit' => 'etc/shadow',
+    'lit_in' => 'request',
+    'lit_ci' => true,
   ),
   10 => 
   array (
@@ -355,6 +382,9 @@ return array (
       ),
       'body' => '{{canned.group}}',
     ),
+    'lit' => 'etc/group',
+    'lit_in' => 'request',
+    'lit_ci' => true,
   ),
   11 => 
   array (
@@ -562,6 +592,9 @@ Ethernet adapter Ethernet0:
       ),
       'body' => '{{canned.uid}}',
     ),
+    'lit' => '[php]',
+    'lit_in' => 'request',
+    'lit_ci' => true,
   ),
   18 => 
   array (
@@ -726,6 +759,9 @@ Ethernet adapter Ethernet0:
 </body></html>
 ',
     ),
+    'lit' => 'graphapi/vendor/microsoft/microsoft-graph',
+    'lit_in' => 'path',
+    'lit_ci' => true,
   ),
   23 => 
   array (
@@ -757,6 +793,9 @@ Ethernet adapter Ethernet0:
       'body' => '{"kind":"tm:util:bash:runstate","command":"run","utilCmdArgs":"-c id","commandResult":"uid=0(root) gid=0(root) groups=0(root)\\n"}
 ',
     ),
+    'lit' => '/mgmt/tm/util/bash',
+    'lit_in' => 'path',
+    'lit_ci' => true,
   ),
   24 => 
   array (
@@ -797,6 +836,9 @@ Ethernet adapter Ethernet0:
 </ows:ExceptionReport>
 ',
     ),
+    'lit' => '/geoserver/',
+    'lit_in' => 'path',
+    'lit_ci' => true,
   ),
   25 => 
   array (
@@ -833,6 +875,9 @@ Ethernet adapter Ethernet0:
       'body' => '{"http_method":"GET","results":[{"name":"admin","accprofile":"super_admin","trusthost1":"0.0.0.0 0.0.0.0","q_origin_key":"admin"}],"vdom":"root","path":"system","name":"admin","status":"success","http_status":200}
 ',
     ),
+    'lit' => '/api/v2/cmdb/system/admin',
+    'lit_in' => 'path',
+    'lit_ci' => true,
   ),
   26 => 
   array (
@@ -865,6 +910,9 @@ Ethernet adapter Ethernet0:
       'body' => '{"web_server_version":"22.6R2","system":"Linux","result":"uid=0(root) gid=0(root) groups=0(root)\\n"}
 ',
     ),
+    'lit' => '/api/v1/',
+    'lit_in' => 'request',
+    'lit_ci' => true,
   ),
   27 => 
   array (
@@ -897,6 +945,9 @@ Ethernet adapter Ethernet0:
 {{fake.bleed:hex:60}}{{fake.bleed2:hex:60}}
 ',
     ),
+    'lit' => '/oauth/idp/.well-known/openid-configuration',
+    'lit_in' => 'path',
+    'lit_ci' => true,
   ),
   28 => 
   array (
@@ -962,6 +1013,9 @@ $ </pre>
       'body' => '{"_links":{"self":{"href":"http://localhost:8080/actuator","templated":false},"health":{"href":"http://localhost:8080/actuator/health"},"env":{"href":"http://localhost:8080/actuator/env"},"configprops":{"href":"http://localhost:8080/actuator/configprops"},"mappings":{"href":"http://localhost:8080/actuator/mappings"}},"propertySources":[{"name":"applicationConfig","properties":{"spring.datasource.password":{"value":"{{fake.springdb:hex:20}}"},"spring.mail.password":{"value":"{{fake.springmail:hex:16}}"}}}]}
 ',
     ),
+    'lit' => '/actuator',
+    'lit_in' => 'path',
+    'lit_ci' => true,
   ),
   30 => 
   array (

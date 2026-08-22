@@ -145,6 +145,7 @@ final class ReleaseFactory
             'funnypot-attack.php' => $this->literal($attackRules),
             'funnypot-routes.php' => $this->literal([]),
             'funnypot-routes-index.php' => $this->literal(['routes' => [], 'templates' => []]),
+            'funnypot-param.php' => $this->literal(['schema' => 1, 'buckets' => []]),
         ];
     }
 

@@ -1,0 +1,13 @@
+id: param-vite-fs
+severity: high
+priority: 10
+tags: [param, vite, lfi]
+# Reference param route for the tier. A parameterized path can't be keyed in the exact
+# O(1) store, so it is modeled as an attack-tier-style rule (compiled path regex + named
+# captures + a normal response body) dispatched via the prefix-bucket index. This one only
+# ECHOES the captured path — the real Vite /@fs file-read semantics are deferred.
+param: { method: GET, path: '/@fs/{path*}' }
+response:
+  headers: { Content-Type: 'text/plain; charset=utf-8' }
+  body: "// requested path: /@fs/{{match.path}}\n"
+expect: ['requested path: /@fs/']

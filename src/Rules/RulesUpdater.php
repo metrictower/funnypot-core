@@ -32,6 +32,7 @@ final class RulesUpdater
         'funnypot-attack.php',
         'funnypot-routes.php',
         'funnypot-routes-index.php',
+        'funnypot-param.php',
     ];
 
     /** Upper bound on the DECOMPRESSED release (the .tar inside the .gz): a signed gzip bomb must not
@@ -395,24 +396,30 @@ final class RulesUpdater
             throw new RulesUpdateException(RulesUpdateException::REASON_BAD_MANIFEST, 'Attack artifact did not return an array.');
         }
 
-        // (a) fingerprint-denylist re-scan: no upstream-detector signature may reach a response.
-        foreach ($rules as $rule) {
-            $response = (array) ($rule['response'] ?? []);
-            $texts = [(string) ($response['body'] ?? '')];
-            foreach ((array) ($response['headers'] ?? []) as $name => $value) {
-                $texts[] = (string) $name;
-                $texts[] = (string) $value;
-            }
-            foreach ($texts as $text) {
-                $hits = $this->fingerprint->scan($text);
-                if ($hits !== []) {
-                    throw new RulesUpdateException(
-                        RulesUpdateException::REASON_FINGERPRINT_LEAK,
-                        "Fingerprint leak in '" . (string) ($rule['id'] ?? '?') . "': " . implode(', ', $hits)
-                    );
-                }
+        // (a) fingerprint-denylist re-scan of every SERVED artifact: no upstream-detector signature
+        //     may reach a response. The installed engine serves BOTH attack responses and route
+        //     responses, so the route artifact is re-scanned too — same dual-shape + set_cookie +
+        //     taunt extraction as the CI gate. Any hit is fail-closed: we throw before the swap.
+        $this->rescanFingerprints($rules);
+        $routes = require $engineDir . '/funnypot-routes.php';
+        if (!is_array($routes)) {
+            throw new RulesUpdateException(RulesUpdateException::REASON_BAD_MANIFEST, 'Route artifact did not return an array.');
+        }
+        $this->rescanFingerprints($routes);
+
+        // The param artifact is served content too, but bucketed (`buckets[<seg>][] = entry`);
+        // flatten to its entries so the same rescan (each entry carries a `response`) covers it.
+        $params = require $engineDir . '/funnypot-param.php';
+        if (!is_array($params)) {
+            throw new RulesUpdateException(RulesUpdateException::REASON_BAD_MANIFEST, 'Param artifact did not return an array.');
+        }
+        $paramEntries = [];
+        foreach ((array) ($params['buckets'] ?? []) as $entries) {
+            foreach ((array) $entries as $entry) {
+                $paramEntries[] = $entry;
             }
         }
+        $this->rescanFingerprints($paramEntries);
 
         // (b) ReDoS budget on every incoming regex condition (runs on attacker input at runtime).
         $this->redos->inspectRules($rules);
@@ -435,6 +442,74 @@ final class RulesUpdater
                 );
             }
         }
+    }
+
+    /**
+     * Fingerprint-denylist re-scan of one served-response artifact. Every served byte an attacker
+     * can see must be covered, and there are two compiled shapes — attack rules nest served content
+     * under `response`, route rules carry it at top level — so both are scanned. A hit throws,
+     * rejecting the update before activation (invariant: a detector signature must never be served).
+     *
+     * @param array<int,mixed> $rules
+     */
+    private function rescanFingerprints(array $rules): void
+    {
+        foreach ($rules as $rule) {
+            if (!is_array($rule)) {
+                continue;
+            }
+            $texts = array_merge(
+                $this->servedTexts((array) ($rule['response'] ?? [])),
+                $this->servedTexts($rule)
+            );
+            foreach ($texts as $text) {
+                $hits = $this->fingerprint->scan($text);
+                if ($hits !== []) {
+                    throw new RulesUpdateException(
+                        RulesUpdateException::REASON_FINGERPRINT_LEAK,
+                        "Fingerprint leak in '" . (string) ($rule['id'] ?? '?') . "': " . implode(', ', $hits)
+                    );
+                }
+            }
+        }
+    }
+
+    /**
+     * Every scan-worthy served string in one rule-shaped array: the body, each header name/value,
+     * the Set-Cookie NAME emitted verbatim, and the taunt comment-syntax strings written into the
+     * body (see Response\RouteTemplateEmulator). A `branch` rule ALSO serves each case's response
+     * and the default's response when a case fires, so those are descended into (they never reach
+     * the top-level body). Branch responses are themselves body+headers shaped, so the same
+     * extraction covers them; the recursion terminates because a branch response carries no `branch`.
+     *
+     * @param array<string,mixed> $src
+     * @return string[]
+     */
+    private function servedTexts(array $src): array
+    {
+        $texts = [(string) ($src['body'] ?? '')];
+        foreach ((array) ($src['headers'] ?? []) as $name => $value) {
+            $texts[] = (string) $name;
+            $texts[] = (string) $value;
+        }
+        $texts[] = (string) ($src['set_cookie'] ?? '');
+        if (isset($src['taunt']) && is_array($src['taunt'])) {
+            foreach (['open', 'close', 'key'] as $part) {
+                $texts[] = (string) ($src['taunt'][$part] ?? '');
+            }
+        }
+        if (isset($src['branch']) && is_array($src['branch'])) {
+            foreach ((array) ($src['branch']['cases'] ?? []) as $case) {
+                if (is_array($case) && isset($case['response']) && is_array($case['response'])) {
+                    $texts = array_merge($texts, $this->servedTexts($case['response']));
+                }
+            }
+            if (isset($src['branch']['default']['response']) && is_array($src['branch']['default']['response'])) {
+                $texts = array_merge($texts, $this->servedTexts($src['branch']['default']['response']));
+            }
+        }
+
+        return $texts;
     }
 
     // ------------------------------------------------------- coverage counts

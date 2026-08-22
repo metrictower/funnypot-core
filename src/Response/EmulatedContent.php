@@ -18,12 +18,17 @@ final class EmulatedContent
     /** @var array<string,string> */
     public $headers;
 
+    /** @var int|null status override; null leaves the choice to the caller (the rule's status). */
+    public $status;
+
     /** @param array<string,string> $headers */
     public function __construct(
         string $body,
-        array $headers = []
+        array $headers = [],
+        ?int $status = null
     ) {
         $this->body = $body;
         $this->headers = $headers;
+        $this->status = $status;
     }
 }

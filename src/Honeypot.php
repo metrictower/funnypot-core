@@ -123,6 +123,26 @@ final class Honeypot implements Engine
         }
 
         if ($this->attackEmulator !== null) {
+            // Param-route tier: a parameterized path the exact store can't key, dispatched by
+            // prefix bucket. It sits BETWEEN the exact-store miss and the linear attack scan, and
+            // a hit returns here — so a matched param route skips the attack gauntlet entirely. The
+            // served entry is attack-rule shaped, so it rides the same ATTACK_CLASS handle + render.
+            $pm = $this->attackEmulator->matchParamRoute($r);
+            if ($pm !== null) {
+                $rule = $pm['rule'];
+                $detection = TemplateAttackEmulator::detectionForRule($rule);
+                $handle = FakeHandle::attack((string) ($rule['id'] ?? 'attack'), $pm['captures']);
+
+                return new Verdict(
+                    Verdict::ATTACK_CLASS,
+                    $detection,
+                    $detection->highestSeverity,
+                    $anomaly,
+                    $signals,
+                    $handle
+                );
+            }
+
             $matched = $this->attackEmulator->matchRule($r);
             if ($matched !== null) {
                 $rule = $matched['rule'];
@@ -444,7 +464,7 @@ final class Honeypot implements Engine
             return $this->declined($r, Outcome::NO_SIGNATURE);
         }
 
-        $built = $this->buildFake($verdict, SiteProfile::empty(), $seed);
+        $built = $this->buildFake($verdict, SiteProfile::empty(), $seed, $r);
         if ($built['r'] === null) {
             return $this->declined($r, $built['reason']);
         }
@@ -468,7 +488,7 @@ final class Honeypot implements Engine
     {
         $this->observer->onDetection($r, $verdict->detection);
 
-        $built = $this->buildFake($verdict, SiteProfile::empty(), $seed);
+        $built = $this->buildFake($verdict, SiteProfile::empty(), $seed, $r);
         if ($built['r'] === null) {
             return $this->declined($r, $built['reason']);
         }
@@ -512,9 +532,13 @@ final class Honeypot implements Engine
      * / size cap for a route; render + ceiling + cap for an attack) — no gates, no observer, no
      * delay. The WHEN/whether/side-effect decisions are the caller's (the facade / the policy).
      *
+     * $r is the live request, threaded ONLY on the facade path (respond) so a behavior primitive
+     * can consult it; the position-blind port (synthesize) leaves it null and any request-aware
+     * behavior degrades to its request-free default. It never affects route/persona synthesis.
+     *
      * @return array{r:?SynthesizedResponse,reason:string}
      */
-    private function buildFake(Verdict $verdict, SiteProfile $profile, string $seed): array
+    private function buildFake(Verdict $verdict, SiteProfile $profile, string $seed, ?RequestContext $r = null): array
     {
         $handle = $verdict->fakeHandle;
         if ($handle === null) {
@@ -524,7 +548,7 @@ final class Honeypot implements Engine
             return $this->buildRouteFake($handle, $profile, $seed);
         }
         if ($handle->kind === FakeHandle::KIND_ATTACK) {
-            return $this->buildAttackFake($handle, $seed);
+            return $this->buildAttackFake($handle, $seed, $r);
         }
 
         // Unknown / llm kinds are host-injected synthesizers; core builds nothing.
@@ -576,7 +600,7 @@ final class Honeypot implements Engine
     /**
      * @return array{r:?SynthesizedResponse,reason:string}
      */
-    private function buildAttackFake(FakeHandle $handle, string $seed): array
+    private function buildAttackFake(FakeHandle $handle, string $seed, ?RequestContext $r = null): array
     {
         if ($this->attackEmulator === null) {
             return ['r' => null, 'reason' => Outcome::NO_CANDIDATE];
@@ -588,8 +612,9 @@ final class Honeypot implements Engine
         }
 
         // Seed fake values from the persona so a given attacker sees stable, but per-attacker
-        // distinct, fabricated secrets (not one shared seed-0 value that would fingerprint).
-        $response = $this->attackEmulator->renderRule($rule, $handle->captures, crc32($seed));
+        // distinct, fabricated secrets (not one shared seed-0 value that would fingerprint). $r is
+        // present only on the facade path; the port leaves it null (behavior renders its default).
+        $response = $this->attackEmulator->renderRule($rule, $handle->captures, crc32($seed), $r);
         if ($response === null) {
             return ['r' => null, 'reason' => Outcome::UNSYNTHESIZABLE]; // CRLF header-split guard
         }

@@ -54,8 +54,9 @@ $shortSha = trim((string) @shell_exec('git -C ' . escapeshellarg($root) . ' rev-
 $version = getenv('FUNNYPOT_RULES_VERSION') ?: ('v' . gmdate('Y.m.d') . ($shortSha !== '' ? '-' . $shortSha : ''));
 $seq = (int) (getenv('FUNNYPOT_RULES_SEQ') ?: time());
 
-// The engine artifacts funnypot-core reads; each must exist and be a pure literal.
-$artifacts = ['nuclei-index.full.php', 'funnypot-attack.php', 'funnypot-routes.php', 'funnypot-routes-index.php'];
+// The engine artifacts funnypot-core reads; each must exist and be a pure literal. Must stay in
+// lock-step with RulesUpdater::ENGINE_ARTIFACTS — a release missing one is rejected on install.
+$artifacts = ['nuclei-index.full.php', 'funnypot-attack.php', 'funnypot-routes.php', 'funnypot-routes-index.php', 'funnypot-param.php'];
 
 // Stage engine/<artifact> and validate each is inert before it is ever shipped.
 require $root . '/vendor/autoload.php';

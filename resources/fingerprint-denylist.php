@@ -29,5 +29,8 @@ return [
         // A bare CRS rule id: six digits in the 9xxxxx request-rule range, not part of a
         // longer number. Serving one back would echo CRS's own rule numbering.
         '\b9\d{5}\b',
+        // ModSecurity with an underscore/hyphen separator (mod_security, mod-security,
+        // mod_security_id …); the bare `ModSecurity` literal misses these variants.
+        'mod[_-]?security',
     ],
 ];

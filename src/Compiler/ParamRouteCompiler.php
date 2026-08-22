@@ -1,0 +1,398 @@
+<?php
+
+declare(strict_types=1);
+
+namespace Funnypot\Compiler;
+
+use Funnypot\Support\PersonaIdentity;
+use Funnypot\Template\DirectiveRenderer;
+use RuntimeException;
+use Symfony\Component\Yaml\Yaml;
+
+/**
+ * Compiles funnypot param-route templates (YAML) into the frozen bucket index the runtime
+ * dispatches through. Build-time only (needs symfony/yaml); the emitted PHP array is pure
+ * data, so the runtime stays PHP-only.
+ *
+ * A parameterized path (`/@fs/{path}`) can't be keyed in the exact O(1) store, so it is
+ * modeled as an attack-tier-style rule: a compiled path `regex` + named `captures` + a normal
+ * `response` body. The runtime dispatches on the first literal path segment (the bucket key),
+ * so a param probe costs one hash probe + a bounded regex loop, never the linear attack scan.
+ * The served entry is shaped exactly like an attack rule, so it reuses the request-aware render
+ * path verbatim (renderRule / buildAttackFake / detectionForRule) — zero new render code.
+ *
+ * Path convention: `{name}` = one segment `(?P<name>[^/]+)`; a terminal `{name*}` spans the
+ * rest `(?P<name>.+)`. The first segment must be a literal — it is the bucket key.
+ *
+ * Same build-time guards as the attack/route compilers: unique ids (within the param set AND
+ * across the attack set — they share the runtime ruleById id-space), a closed directive
+ * vocabulary, no CR/LF in static headers, and an optional `expect:` marker assertion.
+ */
+final class ParamRouteCompiler
+{
+    /** A single prefix bucket must stay small enough that its regex loop is cheap. */
+    private const MAX_PATTERNS_PER_BUCKET = 32;
+
+    /**
+     * @param string   $dir         param-template dir (templates/param)
+     * @param string[] $reservedIds ids already used by the attack set — a param id may not collide
+     * @return array{schema:int,buckets:array<string,array<int,array<string,mixed>>>}
+     */
+    public function compile(string $dir, array $reservedIds = []): array
+    {
+        $files = glob(rtrim($dir, '/') . '/*.yaml') ?: [];
+        sort($files);
+
+        $reserved = array_flip(array_map('strval', $reservedIds));
+
+        $rows = [];
+        $seenIds = [];
+        foreach ($files as $file) {
+            $doc = Yaml::parseFile($file);
+            if (!is_array($doc)) {
+                throw new RuntimeException("Param template is not a mapping: {$file}");
+            }
+            $row = $this->normalize($doc, $file);
+
+            $id = $row['entry']['id'];
+            if (isset($seenIds[$id])) {
+                throw new RuntimeException("Duplicate param template id '{$id}' ({$file} and {$seenIds[$id]}).");
+            }
+            if (isset($reserved[$id])) {
+                throw new RuntimeException("Param template id '{$id}' ({$file}) collides with an attack rule id; the runtime looks rules up by id across both sets.");
+            }
+            $seenIds[$id] = $file;
+
+            $rows[] = $row;
+        }
+
+        // Group by bucket, order first-match-wins within a bucket (priority, then id), cap size.
+        $grouped = [];
+        foreach ($rows as $row) {
+            $grouped[$row['bucket']][] = $row;
+        }
+
+        $buckets = [];
+        foreach ($grouped as $seg => $list) {
+            usort($list, static function (array $a, array $b): int {
+                return $a['priority'] <=> $b['priority'] ?: strcmp($a['entry']['id'], $b['entry']['id']);
+            });
+            if (count($list) > self::MAX_PATTERNS_PER_BUCKET) {
+                throw new RuntimeException("Param bucket '{$seg}' has " . count($list) . ' patterns; the cap is ' . self::MAX_PATTERNS_PER_BUCKET . '.');
+            }
+            $buckets[$seg] = array_map(static function (array $row): array {
+                return $row['entry'];
+            }, $list);
+        }
+
+        return ['schema' => 1, 'buckets' => $buckets];
+    }
+
+    /**
+     * @param array<string,mixed> $doc
+     * @return array{bucket:string,entry:array<string,mixed>,priority:int}
+     */
+    private function normalize(array $doc, string $file): array
+    {
+        foreach (['id', 'param', 'response'] as $required) {
+            if (!isset($doc[$required])) {
+                throw new RuntimeException("Param template {$file} missing '{$required}'.");
+            }
+        }
+
+        $param = (array) $doc['param'];
+        if (!isset($param['path']) || (string) $param['path'] === '') {
+            throw new RuntimeException("Param template {$file}: param.path is required.");
+        }
+        [$bucket, $regex, $captures] = $this->compilePath((string) $param['path'], $file);
+
+        $method = strtoupper((string) ($param['method'] ?? 'GET'));
+        if (preg_match('/^[A-Z]+$/', $method) !== 1) {
+            throw new RuntimeException("Param template {$file}: param.method '{$method}' is not a bare HTTP method.");
+        }
+
+        $response = (array) $doc['response'];
+        $headers = array_map('strval', (array) ($response['headers'] ?? []));
+        $body = (string) ($response['body'] ?? '');
+        if ($body === '') {
+            throw new RuntimeException("Param template {$file}: response.body is required.");
+        }
+
+        $this->assertKnownDirectives($body, $file);
+        foreach ($headers as $name => $value) {
+            $this->assertKnownDirectives((string) $name, $file);
+            $this->assertKnownDirectives($value, $file);
+            $this->assertStaticHeaderClean((string) $name, $value, $file);
+        }
+        $this->assertMarkers($doc, $body, $headers, $file);
+
+        $entry = [
+            'id' => (string) $doc['id'],
+            'severity' => (string) ($doc['severity'] ?? 'high'),
+            'tags' => array_map('strval', (array) ($doc['tags'] ?? [])),
+            'status' => $this->normalizeStatus($doc['status'] ?? 200, $file),
+            'method' => $method,
+            'regex' => $regex,
+            'captures' => $captures,
+            'response' => [
+                'headers' => $headers,
+                'body' => $body,
+            ],
+        ];
+
+        // An optional named behavior primitive, same shape the attack tier renders. The base
+        // `response` stays the ultimate fallback; only `branch` exists this build.
+        if (isset($doc['behavior'])) {
+            $behavior = (string) $doc['behavior'];
+            if ($behavior !== 'branch') {
+                throw new RuntimeException("Param template {$file}: unknown behavior '{$behavior}'. This build knows only 'branch'.");
+            }
+            $entry['behavior'] = 'branch';
+            $entry['branch'] = $this->normalizeBranch((array) ($doc['branch'] ?? []), $file);
+        }
+
+        return ['bucket' => $bucket, 'entry' => $entry, 'priority' => (int) ($doc['priority'] ?? 100)];
+    }
+
+    /**
+     * Turn a param path template into a bucket key + anchored regex + ordered capture names.
+     * `{name}` -> one segment; a terminal `{name*}` -> the rest of the path. The path must begin
+     * with a literal segment (a root `{param}` is unbucketable and rejected).
+     *
+     * @return array{0:string,1:string,2:array<int,string>}
+     */
+    private function compilePath(string $path, string $file): array
+    {
+        if ($path[0] !== '/') {
+            throw new RuntimeException("Param template {$file}: path must begin with '/': {$path}");
+        }
+
+        // The first path segment is the bucket key; it must be a literal (no placeholder).
+        $firstSlash = strpos($path, '/', 1);
+        $seg = $firstSlash === false ? substr($path, 1) : substr($path, 1, $firstSlash - 1);
+        if ($seg === '' || strpos($seg, '{') !== false) {
+            throw new RuntimeException("Param template {$file}: path must begin with a literal segment (a root {param} is unbucketable): {$path}");
+        }
+
+        $regex = '^';
+        $captures = [];
+        $len = strlen($path);
+        $i = 0;
+        while ($i < $len) {
+            if ($path[$i] === '{') {
+                $close = strpos($path, '}', $i);
+                if ($close === false) {
+                    throw new RuntimeException("Param template {$file}: unterminated '{' in path: {$path}");
+                }
+                $inner = substr($path, $i + 1, $close - $i - 1);
+                $spanning = false;
+                if ($inner !== '' && substr($inner, -1) === '*') {
+                    $spanning = true;
+                    $inner = substr($inner, 0, -1);
+                }
+                if (preg_match('/^[A-Za-z_][A-Za-z0-9_]*$/', $inner) !== 1) {
+                    throw new RuntimeException("Param template {$file}: invalid capture name '{$inner}' in path {$path} (must be a PCRE group name).");
+                }
+                if (in_array($inner, $captures, true)) {
+                    throw new RuntimeException("Param template {$file}: duplicate capture name '{$inner}' in path {$path}.");
+                }
+                // A spanning `.+` swallows '/', so it may only be the final path token.
+                if ($spanning && $close !== $len - 1) {
+                    throw new RuntimeException("Param template {$file}: a spanning {{$inner}*} must be the last path segment: {$path}");
+                }
+                $captures[] = $inner;
+                $regex .= '(?P<' . $inner . '>' . ($spanning ? '.+' : '[^/]+') . ')';
+                $i = $close + 1;
+            } else {
+                $next = strpos($path, '{', $i);
+                $end = $next === false ? $len : $next;
+                $regex .= preg_quote(substr($path, $i, $end - $i), '~');
+                $i = $end;
+            }
+        }
+        $regex .= '$';
+
+        if ($captures === []) {
+            throw new RuntimeException("Param template {$file}: path has no {param} placeholder — key it in the exact store instead: {$path}");
+        }
+        // Author-only sanity: the emitted pattern must compile (it never sees attacker regex).
+        if (@preg_match('~' . $regex . '~', '') === false) {
+            throw new RuntimeException("Param template {$file}: compiled path regex is invalid: {$regex}");
+        }
+
+        return [$seg, $regex, $captures];
+    }
+
+    /**
+     * Normalize a `branch` behavior config into the runtime shape (same as the attack compiler):
+     * a non-empty `cases` list (each a `when` condition + a `response`) and an optional
+     * `default.response`. Every authored response is directive- and static-header-checked.
+     *
+     * @param array<string,mixed> $branch
+     * @return array<string,mixed>
+     */
+    private function normalizeBranch(array $branch, string $file): array
+    {
+        $cases = [];
+        foreach ((array) ($branch['cases'] ?? []) as $case) {
+            if (!is_array($case) || !isset($case['response'])) {
+                throw new RuntimeException("Param template {$file}: each branch case must be a mapping with 'when' + 'response'.");
+            }
+            $cases[] = [
+                'when' => $this->normalizeCondition((array) ($case['when'] ?? []), $file),
+                'response' => $this->normalizeBehaviorResponse((array) $case['response'], $file),
+            ];
+        }
+        if ($cases === []) {
+            throw new RuntimeException("Param template {$file}: behavior 'branch' needs at least one entry in 'branch.cases'.");
+        }
+
+        $out = ['cases' => $cases];
+        if (isset($branch['default'])) {
+            $default = (array) $branch['default'];
+            if (!isset($default['response'])) {
+                throw new RuntimeException("Param template {$file}: branch 'default' must author a 'response'.");
+            }
+            $out['default'] = ['response' => $this->normalizeBehaviorResponse((array) $default['response'], $file)];
+        }
+
+        return $out;
+    }
+
+    /**
+     * Normalize one match/`when` condition into the runtime shape: `in` + `regex`|`contains`,
+     * with the optional ci/dotall/capture switches carried through. Regexes are compile-checked.
+     *
+     * @param array<string,mixed> $cond
+     * @return array<string,mixed>
+     */
+    private function normalizeCondition(array $cond, string $file): array
+    {
+        if (!isset($cond['in'])) {
+            throw new RuntimeException("Param template {$file}: each condition needs 'in' + 'regex'|'contains'.");
+        }
+        $one = ['in' => (string) $cond['in']];
+        if (isset($cond['regex'])) {
+            $one['regex'] = (string) $cond['regex'];
+            if (@preg_match('~' . $one['regex'] . '~i' . (($cond['dotall'] ?? false) ? 's' : ''), '') === false) {
+                throw new RuntimeException("Param template {$file}: invalid regex: {$one['regex']}");
+            }
+        } elseif (isset($cond['contains'])) {
+            $one['contains'] = (string) $cond['contains'];
+        } else {
+            throw new RuntimeException("Param template {$file}: condition needs 'regex' or 'contains'.");
+        }
+        if (isset($cond['ci'])) {
+            $one['ci'] = (bool) $cond['ci'];
+        }
+        if (!empty($cond['dotall'])) {
+            $one['dotall'] = true;
+        }
+        if (!empty($cond['capture'])) {
+            $one['capture'] = true;
+        }
+
+        return $one;
+    }
+
+    /**
+     * Normalize + validate one behavior-case `response` (body + headers + optional status).
+     *
+     * @param array<string,mixed> $response
+     * @return array<string,mixed>
+     */
+    private function normalizeBehaviorResponse(array $response, string $file): array
+    {
+        $headers = array_map('strval', (array) ($response['headers'] ?? []));
+        $body = (string) ($response['body'] ?? '');
+
+        $this->assertKnownDirectives($body, $file);
+        foreach ($headers as $name => $value) {
+            $this->assertKnownDirectives((string) $name, $file);
+            $this->assertKnownDirectives($value, $file);
+            $this->assertStaticHeaderClean((string) $name, $value, $file);
+        }
+
+        $out = ['headers' => $headers, 'body' => $body];
+        if (isset($response['status'])) {
+            $out['status'] = $this->normalizeStatus($response['status'], $file);
+        }
+
+        return $out;
+    }
+
+    /**
+     * An HTTP status must be an integer in 100–599; anything else would emit an invalid status
+     * line at runtime, so reject it at build.
+     *
+     * @param mixed $raw
+     */
+    private function normalizeStatus($raw, string $file): int
+    {
+        $status = (int) $raw;
+        if ($status < 100 || $status > 599) {
+            throw new RuntimeException("Param template {$file}: response status '" . (string) $raw . "' is out of the 100-599 range.");
+        }
+
+        return $status;
+    }
+
+    /** Closed directive vocabulary — a `{{...}}` that isn't known is a typo that would render as dead literal text. */
+    private function assertKnownDirectives(string $text, string $file): void
+    {
+        $text = strtr($text, ['{{{{' => '', '}}}}' => '']);
+        if (!preg_match_all('/\{\{\s*([^}]+?)\s*\}\}/', $text, $all)) {
+            return;
+        }
+        foreach ($all[1] as $expr) {
+            foreach (array_map('trim', explode('|', $expr)) as $part) {
+                $known = false;
+                foreach (DirectiveRenderer::KNOWN_PREFIXES as $prefix) {
+                    if (strpos($part, $prefix) === 0) {
+                        $known = true;
+                        break;
+                    }
+                }
+                if (!$known) {
+                    throw new RuntimeException("Param template {$file}: unknown directive '{{{$part}}}'. Vocabulary is closed — check for a typo.");
+                }
+                if (strpos($part, 'persona.') === 0 && !in_array(substr($part, 8), PersonaIdentity::FIELDS, true)) {
+                    throw new RuntimeException("Param template {$file}: unknown persona field '{{{$part}}}'. Field set is closed — check for a typo.");
+                }
+            }
+        }
+    }
+
+    private function assertStaticHeaderClean(string $name, string $value, string $file): void
+    {
+        $staticValue = preg_replace('/\{\{\s*[^}]+?\s*\}\}/', '', $value);
+        if (preg_match('/[\r\n\x00]/', $name) === 1 || preg_match('/[\r\n\x00]/', (string) $staticValue) === 1) {
+            throw new RuntimeException("Param template {$file}: header '{$name}' has a CR/LF/NUL in its static text.");
+        }
+    }
+
+    /**
+     * Optional `expect:` — substrings the rendered response must carry when rendered with EMPTY
+     * captures + seed 0. Guards against a directive typo silently dropping a believable marker;
+     * targeting static text (e.g. `requested path: /@fs/`) keeps it stable under an empty render.
+     *
+     * @param array<string,mixed>  $doc
+     * @param array<string,string> $headers
+     */
+    private function assertMarkers(array $doc, string $body, array $headers, string $file): void
+    {
+        if (!isset($doc['expect'])) {
+            return;
+        }
+        $renderer = new DirectiveRenderer();
+        $rendered = $renderer->render($body);
+        foreach ($headers as $name => $value) {
+            $rendered .= "\n" . $name . ': ' . $renderer->render($value);
+        }
+        foreach ((array) $doc['expect'] as $marker) {
+            if (strpos($rendered, (string) $marker) === false) {
+                throw new RuntimeException("Param template {$file}: expected marker '{$marker}' not present in the rendered response.");
+            }
+        }
+    }
+}

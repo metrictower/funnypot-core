@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Funnypot\Tests;
 
 use Funnypot\RequestContext;
+use Funnypot\Support\PersonaIdentity;
 use Funnypot\Template\DirectiveRenderer;
 use Funnypot\Template\TemplateAttackEmulator;
 use PHPUnit\Framework\TestCase;
@@ -243,5 +244,53 @@ final class TemplateEngineTest extends TestCase
         self::assertSame('', $rr->render('{{hex:}}'));       // empty
         // Non-hex separators are stripped, leaving an even run of valid digits.
         self::assertSame("\xab\xcd", $rr->render('{{hex:ab:cd}}'));
+    }
+
+    // --- persona.* tokens ---
+
+    public function test_persona_token_matches_the_identity_field(): void
+    {
+        $rr = new DirectiveRenderer();
+        foreach ([7, 42, 12345] as $seed) {
+            self::assertSame(
+                PersonaIdentity::fromSeed($seed)->field('user.admin.email'),
+                $rr->render('{{persona.user.admin.email}}', [], $seed)
+            );
+        }
+    }
+
+    public function test_persona_tokens_in_one_body_are_a_coherent_pair(): void
+    {
+        // The company domain and the admin email in the same rendered body must agree — the whole
+        // point of a single coherent identity.
+        $rr = new DirectiveRenderer();
+        $seed = 88;
+        $out = $rr->render('domain={{persona.company.domain}} email={{persona.user.admin.email}}', [], $seed);
+        self::assertSame(1, preg_match('/domain=(\S+) email=\S+@(\S+)$/', $out, $m));
+        self::assertSame($m[1], $m[2], 'the email domain must equal the company domain in one body');
+    }
+
+    public function test_unknown_persona_subfield_renders_empty(): void
+    {
+        $rr = new DirectiveRenderer();
+        // Fail-safe: an unknown subfield renders '' — never the literal directive.
+        self::assertSame('', $rr->render('{{persona.company.bogus}}', [], 5));
+        self::assertStringNotContainsString('persona', $rr->render('x{{persona.company.bogus}}y', [], 5));
+    }
+
+    public function test_persona_addition_is_backward_compatible(): void
+    {
+        // A body of pre-existing directives must render BYTE-IDENTICAL to before persona.* existed.
+        // Expected values are the directives' own definitions, computed independently of the renderer.
+        $rr = new DirectiveRenderer();
+        $seed = 5;
+        $expectedFake = substr(hash('sha256', $seed . '|fake|k'), 0, 20);
+        self::assertSame($expectedFake, $rr->render('{{fake.k:hex:20}}', [], $seed));
+        self::assertStringContainsString('root:x:0:0', $rr->render('{{canned.passwd}}', [], $seed));
+        // A mixed body still resolves each pre-existing directive exactly as before.
+        self::assertSame(
+            $expectedFake . '|' . md5('abc'),
+            $rr->render('{{fake.k:hex:20}}|{{compute.md5:match.1}}', ['0' => 'z', '1' => 'abc'], $seed)
+        );
     }
 }
