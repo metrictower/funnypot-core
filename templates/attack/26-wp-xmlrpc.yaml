@@ -5,22 +5,56 @@ severity: high
 priority: 26
 tags: [attack, wordpress, xmlrpc]
 # Request-aware WordPress xmlrpc.php — POST method dispatch. Fires on any PREFIXED path ending
-# /xmlrpc.php (/wp/xmlrpc.php, /news/xmlrpc.php, …). The bare /xmlrpc.php is an exact-store
-# corpus key answered before the attack tier (still dressed by templates/route/30-xmlrpc.yaml);
-# retiring that shadow is deferred. The methodName is captured at the TOP level so the unknown-
-# method base response can reflect it — a branch-case capture would be discarded.
+# /xmlrpc.php (/wp/xmlrpc.php, /news/xmlrpc.php, …) and, since real WP dispatches PATH_INFO, on
+# /xmlrpc.php/extra too. Gated to POST: real WP answers any other verb with the 405 (rule 27), so
+# a GET/HEAD/PUT with a methodName body must fall through, never dispatch. All matching is
+# case-SENSITIVE (ci:false), mirroring a case-sensitive path fs and XML-RPC method names.
+#
+# The FIRST top-level <methodName> is captured (anchored after <methodCall>, skipping leading
+# comments so a decoy name can't win) into captures[1]; branch cases dispatch on that ONE parsed
+# method via the `match.1` surface, so a planted secondary <methodName> can't steer the dispatch,
+# and the unknown-method base reflects the true method.
 match:
   - in: path
-    regex: '(?:^|/)xmlrpc\.php$'
+    regex: '(?:^|/)xmlrpc\.php(?:/|$)'
+    ci: false
+  - in: method
+    regex: '^POST$'
+    ci: false
   - in: body
-    regex: '<methodName>\s*([\w.]{1,64})'
+    regex: '<methodCall\b[^>]*>\s*(?:<!--[\s\S]{0,1024}?-->\s*)*<methodName\b[^>]*>\s*(?:<!\[CDATA\[\s*)?([\w.]{0,64})'
     capture: true
+    ci: false
 status: 200
 behavior: branch
 branch:
   cases:
+    # ?rsd preempts method dispatch for ANY method/verb — real WP serves the RSD document first.
+    # Mirrors rule 27's rsd case (duplicated until a shared-snippet mechanism exists).
+    - when: { in: query, regex: '(?:^|&)rsd(?:[=&]|$)' }
+      response:
+        status: 200
+        headers: { Content-Type: "text/xml; charset=UTF-8" }
+        body: |
+          <?xml version="1.0" encoding="UTF-8"?>
+          <rsd version="1.0" xmlns="http://archipelago.phrasewise.com/rsd">
+            <service>
+              <engineName>WordPress</engineName>
+              <engineLink>https://wordpress.org/</engineLink>
+              <homePageLink>https://{{persona.company.domain}}/</homePageLink>
+              <apis>
+                <api name="WordPress" blogID="1" preferred="true" apiLink="https://{{persona.company.domain}}/xmlrpc.php" />
+                <api name="Movable Type" blogID="1" preferred="false" apiLink="https://{{persona.company.domain}}/xmlrpc.php" />
+                <api name="MetaWeblog" blogID="1" preferred="false" apiLink="https://{{persona.company.domain}}/xmlrpc.php" />
+                <api name="Blogger" blogID="1" preferred="false" apiLink="https://{{persona.company.domain}}/xmlrpc.php" />
+                <api name="WP-API" blogID="1" preferred="false" apiLink="https://{{persona.company.domain}}/wp-json/" />
+              </apis>
+            </service>
+          </rsd>
     # Introspection: the full advertised method list. Describes methods only, implements nothing.
-    - when: { in: body, regex: '<methodName>\s*system\.listMethods' }
+    # Every advertised name maps to a handled case below (none falls to the -32601 base) — real WP's
+    # list is array_keys() of its method map, so it has no unhandled or duplicate entries.
+    - when: { in: match.1, regex: '^system\.listMethods$', ci: false }
       response:
         headers: { Content-Type: "text/xml; charset=UTF-8" }
         body: |
@@ -33,7 +67,6 @@ branch:
             <value><string>system.multicall</string></value>
             <value><string>system.listMethods</string></value>
             <value><string>system.getCapabilities</string></value>
-            <value><string>demo.addTwoNumbers</string></value>
             <value><string>demo.sayHello</string></value>
             <value><string>pingback.extensions.getPingbacks</string></value>
             <value><string>pingback.ping</string></value>
@@ -67,7 +100,6 @@ branch:
             <value><string>wp.getPostFormats</string></value>
             <value><string>wp.getMediaLibrary</string></value>
             <value><string>wp.getMediaItem</string></value>
-            <value><string>wp.getCommentStatusList</string></value>
             <value><string>wp.getCommentCount</string></value>
             <value><string>wp.getComment</string></value>
             <value><string>wp.getComments</string></value>
@@ -80,7 +112,6 @@ branch:
             <value><string>wp.getPageStatusList</string></value>
             <value><string>wp.getPostStatusList</string></value>
             <value><string>wp.getCommentStatusList</string></value>
-            <value><string>wp.getMediaItem</string></value>
             <value><string>wp.getProfile</string></value>
             <value><string>wp.editProfile</string></value>
             <value><string>wp.getUsers</string></value>
@@ -118,7 +149,7 @@ branch:
             </params>
           </methodResponse>
     # Capabilities struct — describes the server, grants nothing.
-    - when: { in: body, regex: '<methodName>\s*system\.getCapabilities' }
+    - when: { in: match.1, regex: '^system\.getCapabilities$', ci: false }
       response:
         headers: { Content-Type: "text/xml; charset=UTF-8" }
         body: |
@@ -148,8 +179,9 @@ branch:
     # system.multicall — STOPGAP. A real multicall fans out N sub-calls to N result entries; that
     # needs the deferred `iterate` primitive. Until then, serve a fixed single-entry array carrying
     # the bad-credentials fault: bounded (no amplification) and, since brute tools wrap
-    # wp.getUsersBlogs here, it upholds the credential-oracle invariant — never authenticates.
-    - when: { in: body, regex: '<methodName>\s*system\.multicall' }
+    # wp.getUsersBlogs here, it upholds the credential-oracle invariant — never authenticates. The
+    # inner entry is serialized as IXR_Value would emit it (ragged 2-space struct, not re-indented).
+    - when: { in: match.1, regex: '^system\.multicall$', ci: false }
       response:
         headers: { Content-Type: "text/xml; charset=UTF-8" }
         body: |
@@ -159,17 +191,17 @@ branch:
               <param>
                 <value>
                 <array><data>
-                <value><struct>
-                  <member><name>faultCode</name><value><int>403</int></value></member>
-                  <member><name>faultString</name><value><string>Incorrect username or password.</string></value></member>
-                </struct></value>
-                </data></array>
+            <value><struct>
+            <member><name>faultCode</name><value><int>403</int></value></member>
+            <member><name>faultString</name><value><string>Incorrect username or password.</string></value></member>
+          </struct></value>
+          </data></array>
                 </value>
               </param>
             </params>
           </methodResponse>
     # Liveness probe.
-    - when: { in: body, regex: '<methodName>\s*demo\.sayHello' }
+    - when: { in: match.1, regex: '^demo\.sayHello$', ci: false }
       response:
         headers: { Content-Type: "text/xml; charset=UTF-8" }
         body: |
@@ -186,7 +218,7 @@ branch:
     # pingback.ping — ZERO EGRESS. Returns the authentic pre-fetch fault (target not usable) a real
     # WordPress emits BEFORE it would ever fetch the source URL. It is a static template response;
     # the source/target URIs are never read, so nothing here can touch the network.
-    - when: { in: body, regex: '<methodName>\s*pingback\.ping' }
+    - when: { in: match.1, regex: '^pingback\.ping$', ci: false }
       response:
         headers: { Content-Type: "text/xml; charset=UTF-8" }
         body: |
@@ -194,17 +226,23 @@ branch:
           <methodResponse>
             <fault>
               <value>
-              <struct>
-                <member><name>faultCode</name><value><int>33</int></value></member>
-                <member><name>faultString</name><value><string>The specified target URL cannot be used as a target. It either does not exist, or it is not a pingback-enabled resource.</string></value></member>
-              </struct>
+                <struct>
+                  <member>
+                    <name>faultCode</name>
+                    <value><int>33</int></value>
+                  </member>
+                  <member>
+                    <name>faultString</name>
+                    <value><string>The specified target URL cannot be used as a target. It either does not exist, or it is not a pingback-enabled resource.</string></value>
+                  </member>
+                </struct>
               </value>
             </fault>
           </methodResponse>
-    # Credential-brute ORACLE — the bait. Every wp./mt./metaWeblog./blogger. method requires auth;
-    # WordPress answers bad credentials with faultCode 403 "Incorrect username or password.". There
-    # is NO success branch anywhere: this looks like a real login oracle but never grants anything.
-    - when: { in: body, regex: '<methodName>\s*(?:wp|mt|metaWeblog|blogger)\.' }
+    # pingback.extensions.getPingbacks — advertised, so it must be handled (not the -32601 base).
+    # ZERO EGRESS: the honeypot has no such post, so real WP returns the "target does not exist"
+    # fault (code 32) without fetching anything. Static, no reflection.
+    - when: { in: match.1, regex: '^pingback\.extensions\.getPingbacks$', ci: false }
       response:
         headers: { Content-Type: "text/xml; charset=UTF-8" }
         body: |
@@ -212,15 +250,183 @@ branch:
           <methodResponse>
             <fault>
               <value>
-              <struct>
-                <member><name>faultCode</name><value><int>403</int></value></member>
-                <member><name>faultString</name><value><string>Incorrect username or password.</string></value></member>
-              </struct>
+                <struct>
+                  <member>
+                    <name>faultCode</name>
+                    <value><int>32</int></value>
+                  </member>
+                  <member>
+                    <name>faultString</name>
+                    <value><string>The specified target URL does not exist.</string></value>
+                  </member>
+                </struct>
+              </value>
+            </fault>
+          </methodResponse>
+    # mt.supportedMethods — UNAUTH/public in real WP: array_keys() of the method map, i.e. the same
+    # list system.listMethods returns. Not the credential oracle. Kept identical to the list above.
+    - when: { in: match.1, regex: '^mt\.supportedMethods$', ci: false }
+      response:
+        headers: { Content-Type: "text/xml; charset=UTF-8" }
+        body: |
+          <?xml version="1.0" encoding="UTF-8"?>
+          <methodResponse>
+            <params>
+              <param>
+                <value>
+                <array><data>
+            <value><string>system.multicall</string></value>
+            <value><string>system.listMethods</string></value>
+            <value><string>system.getCapabilities</string></value>
+            <value><string>demo.sayHello</string></value>
+            <value><string>pingback.extensions.getPingbacks</string></value>
+            <value><string>pingback.ping</string></value>
+            <value><string>mt.publishPost</string></value>
+            <value><string>mt.getTrackbackPings</string></value>
+            <value><string>mt.supportedTextFilters</string></value>
+            <value><string>mt.supportedMethods</string></value>
+            <value><string>mt.setPostCategories</string></value>
+            <value><string>mt.getPostCategories</string></value>
+            <value><string>mt.getRecentPostTitles</string></value>
+            <value><string>mt.getCategoryList</string></value>
+            <value><string>metaWeblog.getUsersBlogs</string></value>
+            <value><string>metaWeblog.deletePost</string></value>
+            <value><string>metaWeblog.newMediaObject</string></value>
+            <value><string>metaWeblog.getCategories</string></value>
+            <value><string>metaWeblog.getRecentPosts</string></value>
+            <value><string>metaWeblog.getPost</string></value>
+            <value><string>metaWeblog.editPost</string></value>
+            <value><string>metaWeblog.newPost</string></value>
+            <value><string>blogger.deletePost</string></value>
+            <value><string>blogger.editPost</string></value>
+            <value><string>blogger.newPost</string></value>
+            <value><string>blogger.getRecentPosts</string></value>
+            <value><string>blogger.getPost</string></value>
+            <value><string>blogger.getUserInfo</string></value>
+            <value><string>blogger.getUsersBlogs</string></value>
+            <value><string>wp.restoreRevision</string></value>
+            <value><string>wp.getRevisions</string></value>
+            <value><string>wp.getPostTypes</string></value>
+            <value><string>wp.getPostType</string></value>
+            <value><string>wp.getPostFormats</string></value>
+            <value><string>wp.getMediaLibrary</string></value>
+            <value><string>wp.getMediaItem</string></value>
+            <value><string>wp.getCommentCount</string></value>
+            <value><string>wp.getComment</string></value>
+            <value><string>wp.getComments</string></value>
+            <value><string>wp.deleteComment</string></value>
+            <value><string>wp.editComment</string></value>
+            <value><string>wp.newComment</string></value>
+            <value><string>wp.getOptions</string></value>
+            <value><string>wp.setOptions</string></value>
+            <value><string>wp.getPageTemplates</string></value>
+            <value><string>wp.getPageStatusList</string></value>
+            <value><string>wp.getPostStatusList</string></value>
+            <value><string>wp.getCommentStatusList</string></value>
+            <value><string>wp.getProfile</string></value>
+            <value><string>wp.editProfile</string></value>
+            <value><string>wp.getUsers</string></value>
+            <value><string>wp.getUser</string></value>
+            <value><string>wp.getTaxonomies</string></value>
+            <value><string>wp.getTaxonomy</string></value>
+            <value><string>wp.getTerms</string></value>
+            <value><string>wp.getTerm</string></value>
+            <value><string>wp.deleteTerm</string></value>
+            <value><string>wp.editTerm</string></value>
+            <value><string>wp.newTerm</string></value>
+            <value><string>wp.getPosts</string></value>
+            <value><string>wp.getPost</string></value>
+            <value><string>wp.deletePost</string></value>
+            <value><string>wp.editPost</string></value>
+            <value><string>wp.newPost</string></value>
+            <value><string>wp.getPageList</string></value>
+            <value><string>wp.editPage</string></value>
+            <value><string>wp.deletePage</string></value>
+            <value><string>wp.newPage</string></value>
+            <value><string>wp.getPages</string></value>
+            <value><string>wp.getPage</string></value>
+            <value><string>wp.getAuthors</string></value>
+            <value><string>wp.getTags</string></value>
+            <value><string>wp.getCategories</string></value>
+            <value><string>wp.newCategory</string></value>
+            <value><string>wp.deleteCategory</string></value>
+            <value><string>wp.suggestCategories</string></value>
+            <value><string>wp.uploadFile</string></value>
+            <value><string>wp.deleteFile</string></value>
+            <value><string>wp.getUsersBlogs</string></value>
+                </data></array>
+                </value>
+              </param>
+            </params>
+          </methodResponse>
+    # mt.supportedTextFilters — UNAUTH/public: real WP's default is an empty array (no text filters).
+    - when: { in: match.1, regex: '^mt\.supportedTextFilters$', ci: false }
+      response:
+        headers: { Content-Type: "text/xml; charset=UTF-8" }
+        body: |
+          <?xml version="1.0" encoding="UTF-8"?>
+          <methodResponse>
+            <params>
+              <param>
+                <value>
+                <array><data>
+          </data></array>
+                </value>
+              </param>
+            </params>
+          </methodResponse>
+    # mt.getTrackbackPings — UNAUTH/public: it takes a post id, not credentials. The honeypot has no
+    # posts, so real WP returns the "no such post" fault (code 404), never the credential oracle.
+    - when: { in: match.1, regex: '^mt\.getTrackbackPings$', ci: false }
+      response:
+        headers: { Content-Type: "text/xml; charset=UTF-8" }
+        body: |
+          <?xml version="1.0" encoding="UTF-8"?>
+          <methodResponse>
+            <fault>
+              <value>
+                <struct>
+                  <member>
+                    <name>faultCode</name>
+                    <value><int>404</int></value>
+                  </member>
+                  <member>
+                    <name>faultString</name>
+                    <value><string>Sorry, no such post.</string></value>
+                  </member>
+                </struct>
+              </value>
+            </fault>
+          </methodResponse>
+    # Credential-brute ORACLE — the bait. Every remaining wp./mt./metaWeblog./blogger. method
+    # requires auth; WordPress answers bad credentials with faultCode 403 "Incorrect username or
+    # password.". There is NO success branch anywhere: this looks like a real login oracle but never
+    # grants anything. Keep LAST so the public mt.* cases above are reached first.
+    - when: { in: match.1, regex: '^(?:wp|mt|metaWeblog|blogger)\.', ci: false }
+      response:
+        headers: { Content-Type: "text/xml; charset=UTF-8" }
+        body: |
+          <?xml version="1.0" encoding="UTF-8"?>
+          <methodResponse>
+            <fault>
+              <value>
+                <struct>
+                  <member>
+                    <name>faultCode</name>
+                    <value><int>403</int></value>
+                  </member>
+                  <member>
+                    <name>faultString</name>
+                    <value><string>Incorrect username or password.</string></value>
+                  </member>
+                </struct>
               </value>
             </fault>
           </methodResponse>
 # No branch default: an unknown method falls through to this base response — the -32601 fault,
-# reflecting the top-level captured method name via {{match.1}} (bounded to [\w.], so XML-safe).
+# reflecting the top-level captured method name via {{xml:match.1}}. The capture is bounded to
+# [\w.] so it is already XML-inert; the xml: escape is a render-layer backstop against a future
+# capture-class widening.
 response:
   headers: { Content-Type: "text/xml; charset=UTF-8" }
   body: |
@@ -228,10 +434,16 @@ response:
     <methodResponse>
       <fault>
         <value>
-        <struct>
-          <member><name>faultCode</name><value><int>-32601</int></value></member>
-          <member><name>faultString</name><value><string>server error. requested method {{match.1}} does not exist.</string></value></member>
-        </struct>
+          <struct>
+            <member>
+              <name>faultCode</name>
+              <value><int>-32601</int></value>
+            </member>
+            <member>
+              <name>faultString</name>
+              <value><string>server error. requested method {{xml:match.1}} does not exist.</string></value>
+            </member>
+          </struct>
         </value>
       </fault>
     </methodResponse>

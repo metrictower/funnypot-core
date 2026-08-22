@@ -340,12 +340,20 @@ return array (
       0 => 
       array (
         'in' => 'path',
-        'regex' => '(?:^|/)xmlrpc\\.php$',
+        'regex' => '(?:^|/)xmlrpc\\.php(?:/|$)',
+        'ci' => false,
       ),
       1 => 
       array (
+        'in' => 'method',
+        'regex' => '^POST$',
+        'ci' => false,
+      ),
+      2 => 
+      array (
         'in' => 'body',
-        'regex' => '<methodName>\\s*([\\w.]{1,64})',
+        'regex' => '<methodCall\\b[^>]*>\\s*(?:<!--[\\s\\S]{0,1024}?-->\\s*)*<methodName\\b[^>]*>\\s*(?:<!\\[CDATA\\[\\s*)?([\\w.]{0,64})',
+        'ci' => false,
         'capture' => true,
       ),
     ),
@@ -359,18 +367,24 @@ return array (
 <methodResponse>
   <fault>
     <value>
-    <struct>
-      <member><name>faultCode</name><value><int>-32601</int></value></member>
-      <member><name>faultString</name><value><string>server error. requested method {{match.1}} does not exist.</string></value></member>
-    </struct>
+      <struct>
+        <member>
+          <name>faultCode</name>
+          <value><int>-32601</int></value>
+        </member>
+        <member>
+          <name>faultString</name>
+          <value><string>server error. requested method {{xml:match.1}} does not exist.</string></value>
+        </member>
+      </struct>
     </value>
   </fault>
 </methodResponse>
 ',
     ),
-    'lit' => '<methodName>',
+    'lit' => '<methodCall',
     'lit_in' => 'body',
-    'lit_ci' => true,
+    'lit_ci' => false,
     'behavior' => 'branch',
     'branch' => 
     array (
@@ -380,8 +394,41 @@ return array (
         array (
           'when' => 
           array (
-            'in' => 'body',
-            'regex' => '<methodName>\\s*system\\.listMethods',
+            'in' => 'query',
+            'regex' => '(?:^|&)rsd(?:[=&]|$)',
+          ),
+          'response' => 
+          array (
+            'headers' => 
+            array (
+              'Content-Type' => 'text/xml; charset=UTF-8',
+            ),
+            'body' => '<?xml version="1.0" encoding="UTF-8"?>
+<rsd version="1.0" xmlns="http://archipelago.phrasewise.com/rsd">
+  <service>
+    <engineName>WordPress</engineName>
+    <engineLink>https://wordpress.org/</engineLink>
+    <homePageLink>https://{{persona.company.domain}}/</homePageLink>
+    <apis>
+      <api name="WordPress" blogID="1" preferred="true" apiLink="https://{{persona.company.domain}}/xmlrpc.php" />
+      <api name="Movable Type" blogID="1" preferred="false" apiLink="https://{{persona.company.domain}}/xmlrpc.php" />
+      <api name="MetaWeblog" blogID="1" preferred="false" apiLink="https://{{persona.company.domain}}/xmlrpc.php" />
+      <api name="Blogger" blogID="1" preferred="false" apiLink="https://{{persona.company.domain}}/xmlrpc.php" />
+      <api name="WP-API" blogID="1" preferred="false" apiLink="https://{{persona.company.domain}}/wp-json/" />
+    </apis>
+  </service>
+</rsd>
+',
+            'status' => 200,
+          ),
+        ),
+        1 => 
+        array (
+          'when' => 
+          array (
+            'in' => 'match.1',
+            'regex' => '^system\\.listMethods$',
+            'ci' => false,
           ),
           'response' => 
           array (
@@ -398,7 +445,6 @@ return array (
   <value><string>system.multicall</string></value>
   <value><string>system.listMethods</string></value>
   <value><string>system.getCapabilities</string></value>
-  <value><string>demo.addTwoNumbers</string></value>
   <value><string>demo.sayHello</string></value>
   <value><string>pingback.extensions.getPingbacks</string></value>
   <value><string>pingback.ping</string></value>
@@ -432,7 +478,6 @@ return array (
   <value><string>wp.getPostFormats</string></value>
   <value><string>wp.getMediaLibrary</string></value>
   <value><string>wp.getMediaItem</string></value>
-  <value><string>wp.getCommentStatusList</string></value>
   <value><string>wp.getCommentCount</string></value>
   <value><string>wp.getComment</string></value>
   <value><string>wp.getComments</string></value>
@@ -445,7 +490,6 @@ return array (
   <value><string>wp.getPageStatusList</string></value>
   <value><string>wp.getPostStatusList</string></value>
   <value><string>wp.getCommentStatusList</string></value>
-  <value><string>wp.getMediaItem</string></value>
   <value><string>wp.getProfile</string></value>
   <value><string>wp.editProfile</string></value>
   <value><string>wp.getUsers</string></value>
@@ -485,12 +529,13 @@ return array (
 ',
           ),
         ),
-        1 => 
+        2 => 
         array (
           'when' => 
           array (
-            'in' => 'body',
-            'regex' => '<methodName>\\s*system\\.getCapabilities',
+            'in' => 'match.1',
+            'regex' => '^system\\.getCapabilities$',
+            'ci' => false,
           ),
           'response' => 
           array (
@@ -524,12 +569,13 @@ return array (
 ',
           ),
         ),
-        2 => 
+        3 => 
         array (
           'when' => 
           array (
-            'in' => 'body',
-            'regex' => '<methodName>\\s*system\\.multicall',
+            'in' => 'match.1',
+            'regex' => '^system\\.multicall$',
+            'ci' => false,
           ),
           'response' => 
           array (
@@ -543,11 +589,11 @@ return array (
     <param>
       <value>
       <array><data>
-      <value><struct>
-        <member><name>faultCode</name><value><int>403</int></value></member>
-        <member><name>faultString</name><value><string>Incorrect username or password.</string></value></member>
-      </struct></value>
-      </data></array>
+  <value><struct>
+  <member><name>faultCode</name><value><int>403</int></value></member>
+  <member><name>faultString</name><value><string>Incorrect username or password.</string></value></member>
+</struct></value>
+</data></array>
       </value>
     </param>
   </params>
@@ -555,12 +601,13 @@ return array (
 ',
           ),
         ),
-        3 => 
+        4 => 
         array (
           'when' => 
           array (
-            'in' => 'body',
-            'regex' => '<methodName>\\s*demo\\.sayHello',
+            'in' => 'match.1',
+            'regex' => '^demo\\.sayHello$',
+            'ci' => false,
           ),
           'response' => 
           array (
@@ -581,12 +628,13 @@ return array (
 ',
           ),
         ),
-        4 => 
+        5 => 
         array (
           'when' => 
           array (
-            'in' => 'body',
-            'regex' => '<methodName>\\s*pingback\\.ping',
+            'in' => 'match.1',
+            'regex' => '^pingback\\.ping$',
+            'ci' => false,
           ),
           'response' => 
           array (
@@ -598,22 +646,29 @@ return array (
 <methodResponse>
   <fault>
     <value>
-    <struct>
-      <member><name>faultCode</name><value><int>33</int></value></member>
-      <member><name>faultString</name><value><string>The specified target URL cannot be used as a target. It either does not exist, or it is not a pingback-enabled resource.</string></value></member>
-    </struct>
+      <struct>
+        <member>
+          <name>faultCode</name>
+          <value><int>33</int></value>
+        </member>
+        <member>
+          <name>faultString</name>
+          <value><string>The specified target URL cannot be used as a target. It either does not exist, or it is not a pingback-enabled resource.</string></value>
+        </member>
+      </struct>
     </value>
   </fault>
 </methodResponse>
 ',
           ),
         ),
-        5 => 
+        6 => 
         array (
           'when' => 
           array (
-            'in' => 'body',
-            'regex' => '<methodName>\\s*(?:wp|mt|metaWeblog|blogger)\\.',
+            'in' => 'match.1',
+            'regex' => '^pingback\\.extensions\\.getPingbacks$',
+            'ci' => false,
           ),
           'response' => 
           array (
@@ -625,10 +680,219 @@ return array (
 <methodResponse>
   <fault>
     <value>
-    <struct>
-      <member><name>faultCode</name><value><int>403</int></value></member>
-      <member><name>faultString</name><value><string>Incorrect username or password.</string></value></member>
-    </struct>
+      <struct>
+        <member>
+          <name>faultCode</name>
+          <value><int>32</int></value>
+        </member>
+        <member>
+          <name>faultString</name>
+          <value><string>The specified target URL does not exist.</string></value>
+        </member>
+      </struct>
+    </value>
+  </fault>
+</methodResponse>
+',
+          ),
+        ),
+        7 => 
+        array (
+          'when' => 
+          array (
+            'in' => 'match.1',
+            'regex' => '^mt\\.supportedMethods$',
+            'ci' => false,
+          ),
+          'response' => 
+          array (
+            'headers' => 
+            array (
+              'Content-Type' => 'text/xml; charset=UTF-8',
+            ),
+            'body' => '<?xml version="1.0" encoding="UTF-8"?>
+<methodResponse>
+  <params>
+    <param>
+      <value>
+      <array><data>
+  <value><string>system.multicall</string></value>
+  <value><string>system.listMethods</string></value>
+  <value><string>system.getCapabilities</string></value>
+  <value><string>demo.sayHello</string></value>
+  <value><string>pingback.extensions.getPingbacks</string></value>
+  <value><string>pingback.ping</string></value>
+  <value><string>mt.publishPost</string></value>
+  <value><string>mt.getTrackbackPings</string></value>
+  <value><string>mt.supportedTextFilters</string></value>
+  <value><string>mt.supportedMethods</string></value>
+  <value><string>mt.setPostCategories</string></value>
+  <value><string>mt.getPostCategories</string></value>
+  <value><string>mt.getRecentPostTitles</string></value>
+  <value><string>mt.getCategoryList</string></value>
+  <value><string>metaWeblog.getUsersBlogs</string></value>
+  <value><string>metaWeblog.deletePost</string></value>
+  <value><string>metaWeblog.newMediaObject</string></value>
+  <value><string>metaWeblog.getCategories</string></value>
+  <value><string>metaWeblog.getRecentPosts</string></value>
+  <value><string>metaWeblog.getPost</string></value>
+  <value><string>metaWeblog.editPost</string></value>
+  <value><string>metaWeblog.newPost</string></value>
+  <value><string>blogger.deletePost</string></value>
+  <value><string>blogger.editPost</string></value>
+  <value><string>blogger.newPost</string></value>
+  <value><string>blogger.getRecentPosts</string></value>
+  <value><string>blogger.getPost</string></value>
+  <value><string>blogger.getUserInfo</string></value>
+  <value><string>blogger.getUsersBlogs</string></value>
+  <value><string>wp.restoreRevision</string></value>
+  <value><string>wp.getRevisions</string></value>
+  <value><string>wp.getPostTypes</string></value>
+  <value><string>wp.getPostType</string></value>
+  <value><string>wp.getPostFormats</string></value>
+  <value><string>wp.getMediaLibrary</string></value>
+  <value><string>wp.getMediaItem</string></value>
+  <value><string>wp.getCommentCount</string></value>
+  <value><string>wp.getComment</string></value>
+  <value><string>wp.getComments</string></value>
+  <value><string>wp.deleteComment</string></value>
+  <value><string>wp.editComment</string></value>
+  <value><string>wp.newComment</string></value>
+  <value><string>wp.getOptions</string></value>
+  <value><string>wp.setOptions</string></value>
+  <value><string>wp.getPageTemplates</string></value>
+  <value><string>wp.getPageStatusList</string></value>
+  <value><string>wp.getPostStatusList</string></value>
+  <value><string>wp.getCommentStatusList</string></value>
+  <value><string>wp.getProfile</string></value>
+  <value><string>wp.editProfile</string></value>
+  <value><string>wp.getUsers</string></value>
+  <value><string>wp.getUser</string></value>
+  <value><string>wp.getTaxonomies</string></value>
+  <value><string>wp.getTaxonomy</string></value>
+  <value><string>wp.getTerms</string></value>
+  <value><string>wp.getTerm</string></value>
+  <value><string>wp.deleteTerm</string></value>
+  <value><string>wp.editTerm</string></value>
+  <value><string>wp.newTerm</string></value>
+  <value><string>wp.getPosts</string></value>
+  <value><string>wp.getPost</string></value>
+  <value><string>wp.deletePost</string></value>
+  <value><string>wp.editPost</string></value>
+  <value><string>wp.newPost</string></value>
+  <value><string>wp.getPageList</string></value>
+  <value><string>wp.editPage</string></value>
+  <value><string>wp.deletePage</string></value>
+  <value><string>wp.newPage</string></value>
+  <value><string>wp.getPages</string></value>
+  <value><string>wp.getPage</string></value>
+  <value><string>wp.getAuthors</string></value>
+  <value><string>wp.getTags</string></value>
+  <value><string>wp.getCategories</string></value>
+  <value><string>wp.newCategory</string></value>
+  <value><string>wp.deleteCategory</string></value>
+  <value><string>wp.suggestCategories</string></value>
+  <value><string>wp.uploadFile</string></value>
+  <value><string>wp.deleteFile</string></value>
+  <value><string>wp.getUsersBlogs</string></value>
+      </data></array>
+      </value>
+    </param>
+  </params>
+</methodResponse>
+',
+          ),
+        ),
+        8 => 
+        array (
+          'when' => 
+          array (
+            'in' => 'match.1',
+            'regex' => '^mt\\.supportedTextFilters$',
+            'ci' => false,
+          ),
+          'response' => 
+          array (
+            'headers' => 
+            array (
+              'Content-Type' => 'text/xml; charset=UTF-8',
+            ),
+            'body' => '<?xml version="1.0" encoding="UTF-8"?>
+<methodResponse>
+  <params>
+    <param>
+      <value>
+      <array><data>
+</data></array>
+      </value>
+    </param>
+  </params>
+</methodResponse>
+',
+          ),
+        ),
+        9 => 
+        array (
+          'when' => 
+          array (
+            'in' => 'match.1',
+            'regex' => '^mt\\.getTrackbackPings$',
+            'ci' => false,
+          ),
+          'response' => 
+          array (
+            'headers' => 
+            array (
+              'Content-Type' => 'text/xml; charset=UTF-8',
+            ),
+            'body' => '<?xml version="1.0" encoding="UTF-8"?>
+<methodResponse>
+  <fault>
+    <value>
+      <struct>
+        <member>
+          <name>faultCode</name>
+          <value><int>404</int></value>
+        </member>
+        <member>
+          <name>faultString</name>
+          <value><string>Sorry, no such post.</string></value>
+        </member>
+      </struct>
+    </value>
+  </fault>
+</methodResponse>
+',
+          ),
+        ),
+        10 => 
+        array (
+          'when' => 
+          array (
+            'in' => 'match.1',
+            'regex' => '^(?:wp|mt|metaWeblog|blogger)\\.',
+            'ci' => false,
+          ),
+          'response' => 
+          array (
+            'headers' => 
+            array (
+              'Content-Type' => 'text/xml; charset=UTF-8',
+            ),
+            'body' => '<?xml version="1.0" encoding="UTF-8"?>
+<methodResponse>
+  <fault>
+    <value>
+      <struct>
+        <member>
+          <name>faultCode</name>
+          <value><int>403</int></value>
+        </member>
+        <member>
+          <name>faultString</name>
+          <value><string>Incorrect username or password.</string></value>
+        </member>
+      </struct>
     </value>
   </fault>
 </methodResponse>
@@ -659,14 +923,15 @@ return array (
       1 => 
       array (
         'in' => 'path',
-        'regex' => '(?:^|/)xmlrpc\\.php$',
+        'regex' => '(?:^|/)xmlrpc\\.php(?:/|$)',
+        'ci' => false,
       ),
     ),
     'response' => 
     array (
       'headers' => 
       array (
-        'Content-Type' => 'text/plain; charset=UTF-8',
+        'Content-Type' => 'text/plain;charset=UTF-8',
         'Allow' => 'POST',
       ),
       'body' => 'XML-RPC server accepts POST requests only.',
@@ -717,6 +982,7 @@ return array (
           array (
             'in' => 'method',
             'regex' => '^POST$',
+            'ci' => false,
           ),
           'response' => 
           array (
@@ -728,10 +994,16 @@ return array (
 <methodResponse>
   <fault>
     <value>
-    <struct>
-      <member><name>faultCode</name><value><int>-32700</int></value></member>
-      <member><name>faultString</name><value><string>parse error. not well formed</string></value></member>
-    </struct>
+      <struct>
+        <member>
+          <name>faultCode</name>
+          <value><int>-32700</int></value>
+        </member>
+        <member>
+          <name>faultString</name>
+          <value><string>parse error. not well formed</string></value>
+        </member>
+      </struct>
     </value>
   </fault>
 </methodResponse>

@@ -237,6 +237,18 @@ final class TemplateEngineTest extends TestCase
         self::assertStringNotContainsString('root:x:0:0', $out);
     }
 
+    public function test_xml_match_escapes_the_reflected_capture(): void
+    {
+        // Render-layer backstop: {{xml:match.N}} XML-escapes a reflected capture so a widened
+        // capture class can never inject markup into an XML body. A plain name is untouched.
+        $rr = new DirectiveRenderer();
+        self::assertSame(
+            'method &lt;b&gt;x&lt;/b&gt;&amp;&quot;&apos;',
+            $rr->render('method {{xml:match.1}}', ['1' => '<b>x</b>&"\''])
+        );
+        self::assertSame('method system.listMethods', $rr->render('method {{xml:match.1}}', ['1' => 'system.listMethods']));
+    }
+
     public function test_named_fake_is_reusable_and_independent(): void
     {
         $rr = new DirectiveRenderer();

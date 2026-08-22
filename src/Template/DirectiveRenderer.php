@@ -47,7 +47,7 @@ final class DirectiveRenderer
     ];
 
     /** The closed directive prefixes — used by the compile-time lint. */
-    public const KNOWN_PREFIXES = ['canned.', 'fake.', 'fakeHex:', 'hex:', 'match.', 'urldecode:match.', 'compute.md5:', 'compute.crc32:', 'pick:', 'canary.', 'persona.'];
+    public const KNOWN_PREFIXES = ['canned.', 'fake.', 'fakeHex:', 'hex:', 'match.', 'urldecode:match.', 'xml:match.', 'compute.md5:', 'compute.crc32:', 'pick:', 'canary.', 'persona.'];
 
     /**
      * One PersonaIdentity per seed. A renderer instance is long-lived and reused across many
@@ -172,6 +172,11 @@ final class DirectiveRenderer
         }
         if (strpos($part, 'urldecode:match.') === 0) {
             return rawurldecode($this->capture($captures, substr($part, 16)));
+        }
+        if (strpos($part, 'xml:match.') === 0) {
+            // XML-escape a reflected capture before it lands in an XML body — a render-layer backstop
+            // so a widened capture class can never inject markup into the fault XML.
+            return htmlspecialchars($this->capture($captures, substr($part, 10)), ENT_QUOTES | ENT_XML1, 'UTF-8');
         }
         if (strpos($part, 'match.') === 0) {
             return $this->capture($captures, substr($part, 6));

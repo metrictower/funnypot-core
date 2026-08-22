@@ -335,7 +335,10 @@ final class TemplateAttackEmulator
                 if (!isset($case['when'])) {
                     continue;
                 }
-                if ($this->evalConditions($r, [$case['when']]) !== null) {
+                // The top-level captures are visible to a case `when` via the `match.N` surface,
+                // so a branch can dispatch on the ONE parsed method the rule captured rather than
+                // re-scanning the whole body (which a planted secondary token could steer).
+                if ($this->evalConditions($r, [$case['when']], $captures) !== null) {
                     return $this->renderCaseResponse((array) ($case['response'] ?? []), $captures, $seed);
                 }
             }
@@ -570,13 +573,15 @@ final class TemplateAttackEmulator
      * top-level rule match and the `branch` primitive's per-case `when`.
      *
      * @param array<int,array<string,mixed>> $conds
+     * @param array<int|string,string>       $priorCaptures groups from the top-level match, exposed to a
+     *                                        condition via the `match.N` surface (empty for the top-level match)
      * @return array<int|string,string>|null
      */
-    private function evalConditions(RequestContext $r, array $conds): ?array
+    private function evalConditions(RequestContext $r, array $conds, array $priorCaptures = []): ?array
     {
         $captures = null;
         foreach ($conds as $cond) {
-            $surface = $this->surface($r, (string) ($cond['in'] ?? 'request'));
+            $surface = $this->surface($r, (string) ($cond['in'] ?? 'request'), $priorCaptures);
             if (strlen($surface) > self::MAX_SURFACE) {
                 $surface = substr($surface, 0, self::MAX_SURFACE);
             }
@@ -607,7 +612,10 @@ final class TemplateAttackEmulator
         return $captures ?? [];
     }
 
-    private function surface(RequestContext $r, string $in): string
+    /**
+     * @param array<int|string,string> $priorCaptures groups from the top-level match, for the `match.N` surface
+     */
+    private function surface(RequestContext $r, string $in, array $priorCaptures = []): string
     {
         if (strncmp($in, 'header:', 7) === 0) {
             $name = substr($in, 7);
@@ -618,6 +626,16 @@ final class TemplateAttackEmulator
             }
 
             return '';
+        }
+
+        // `match.N` / `match.NAME` — a top-level capture group, so a branch case can dispatch on the
+        // ONE method the rule parsed instead of re-scanning the body. Empty for the top-level match
+        // (no prior captures) and for an absent group.
+        if (strncmp($in, 'match.', 6) === 0) {
+            $ref = substr($in, 6);
+            $key = is_numeric($ref) ? (int) $ref : $ref;
+
+            return (string) ($priorCaptures[$key] ?? '');
         }
 
         switch ($in) {

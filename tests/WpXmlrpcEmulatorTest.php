@@ -77,7 +77,9 @@ final class WpXmlrpcEmulatorTest extends TestCase
         $r = $this->serve('GET', '/wp/xmlrpc.php');
         self::assertNotNull($r);
         self::assertSame(405, $r->status);
-        self::assertSame('text/plain; charset=UTF-8', $r->headers['Content-Type']);
+        // No space after the semicolon: real WP emits header('Content-Type: text/plain') and PHP's
+        // default_charset appends ';charset=UTF-8' (spaceless), unlike the explicit spaced XML form.
+        self::assertSame('text/plain;charset=UTF-8', $r->headers['Content-Type']);
         self::assertSame('POST', $r->headers['Allow']);
         // Byte-exact: the real WP die() output has NO trailing newline.
         self::assertSame('XML-RPC server accepts POST requests only.', $r->body);
@@ -318,5 +320,280 @@ final class WpXmlrpcEmulatorTest extends TestCase
         self::assertSame('verb-matched', $post->body);
 
         self::assertNull($emulator->emulate(new RequestContext('GET', '/anything')));
+    }
+
+    // --- dispatch-accuracy: the ONE captured top-level method decides, not a body re-scan ---------
+
+    public function test_planted_secondary_methodname_does_not_steer_dispatch(): void
+    {
+        // A decoy <methodName> planted inside a value must NOT flip an auth call to the public list.
+        $r = $this->serve(
+            'POST',
+            '/wp/xmlrpc.php',
+            '',
+            '<?xml version="1.0"?><methodCall><methodName>wp.getUsersBlogs</methodName>'
+            . '<value><string><methodName>system.listMethods</string></value></methodCall>'
+        );
+        self::assertNotNull($r);
+        self::assertStringContainsString('<int>403</int>', $r->body);
+        self::assertStringContainsString('Incorrect username or password.', $r->body);
+        // The full method list must not have been dumped.
+        self::assertStringNotContainsString('wp.getMediaItem', $r->body);
+    }
+
+    public function test_two_methodcalls_dispatch_on_the_first(): void
+    {
+        // First top-level method wins (real WP): an auth call followed by demo.sayHello is the oracle.
+        $r = $this->serve(
+            'POST',
+            '/wp/xmlrpc.php',
+            '',
+            '<methodCall><methodName>wp.getUsersBlogs</methodName></methodCall>'
+            . '<methodCall><methodName>demo.sayHello</methodName></methodCall>'
+        );
+        self::assertNotNull($r);
+        self::assertStringContainsString('<int>403</int>', $r->body);
+        self::assertStringNotContainsString('Hello!', $r->body);
+    }
+
+    public function test_decoy_methodname_in_a_comment_is_skipped(): void
+    {
+        // A leading comment carrying a decoy <methodName> must not be reflected or dispatched.
+        $r = $this->serve(
+            'POST',
+            '/wp/xmlrpc.php',
+            '',
+            '<!-- <methodName>aaa.decoy</methodName> --><methodCall><methodName>bbb.unknown</methodName></methodCall>'
+        );
+        self::assertNotNull($r);
+        self::assertStringContainsString('requested method bbb.unknown does not exist', $r->body);
+        self::assertStringNotContainsString('aaa.decoy', $r->body);
+
+        // Same trick against the oracle: the real method is the auth call, so 403, never the list.
+        $r2 = $this->serve(
+            'POST',
+            '/wp/xmlrpc.php',
+            '',
+            '<!-- <methodName>system.listMethods</methodName> --><methodCall><methodName>wp.getUsersBlogs</methodName></methodCall>'
+        );
+        self::assertNotNull($r2);
+        self::assertStringContainsString('<int>403</int>', $r2->body);
+        self::assertStringNotContainsString('wp.getMediaItem', $r2->body);
+    }
+
+    // --- verb-gating: only POST dispatches; every other verb is the 405 ---------------------------
+
+    public function test_non_post_verbs_with_a_methodcall_body_get_405(): void
+    {
+        foreach (['GET', 'HEAD', 'PUT', 'DELETE'] as $verb) {
+            $r = $this->serve($verb, '/wp/xmlrpc.php', '', '<methodCall><methodName>system.listMethods</methodName></methodCall>');
+            self::assertNotNull($r, $verb);
+            self::assertSame(405, $r->status, $verb);
+            self::assertSame('text/plain;charset=UTF-8', $r->headers['Content-Type'], $verb);
+            self::assertSame('POST', $r->headers['Allow'], $verb);
+            self::assertSame(['attack-wp-xmlrpc-get'], $r->satisfies->templateIds(), $verb);
+        }
+    }
+
+    public function test_lowercase_post_is_not_dispatched(): void
+    {
+        // WordPress's method check is case-sensitive: `post` != `POST`, so it is the 405, not a
+        // dispatch and not a -32700 parse fault.
+        $r = $this->serve('post', '/wp/xmlrpc.php', '', '<methodCall><methodName>system.listMethods</methodName></methodCall>');
+        self::assertNotNull($r);
+        self::assertSame(405, $r->status);
+    }
+
+    // --- listMethods coherence: unique + advertised == handled ------------------------------------
+
+    /** @return string[] the advertised method names from a system.listMethods response */
+    private function advertisedMethods(): array
+    {
+        $r = $this->serve('POST', '/wp/xmlrpc.php', '', '<methodCall><methodName>system.listMethods</methodName></methodCall>');
+        self::assertNotNull($r);
+        preg_match_all('/<string>([^<]+)<\/string>/', $r->body, $m);
+
+        return $m[1];
+    }
+
+    public function test_listmethods_has_no_duplicates(): void
+    {
+        $names = $this->advertisedMethods();
+        self::assertSame(array_values(array_unique($names)), $names, 'listMethods must have no duplicate names');
+        self::assertNotContains('demo.addTwoNumbers', $names, 'demo.addTwoNumbers needs arith-eval; keep it out of the list');
+    }
+
+    public function test_every_advertised_method_is_handled_not_minus32601(): void
+    {
+        foreach ($this->advertisedMethods() as $name) {
+            $r = $this->serve('POST', '/wp/xmlrpc.php', '', '<methodCall><methodName>' . $name . '</methodName></methodCall>');
+            self::assertNotNull($r, $name);
+            self::assertStringNotContainsString('-32601', $r->body, $name . ' is advertised but returns "does not exist"');
+        }
+    }
+
+    // --- public (unauthenticated) mt.* methods must not hit the credential oracle -----------------
+
+    public function test_mt_supported_methods_is_public_and_matches_the_list(): void
+    {
+        $r = $this->serve('POST', '/wp/xmlrpc.php', '', '<methodCall><methodName>mt.supportedMethods</methodName></methodCall>');
+        self::assertNotNull($r);
+        $this->assertWellFormedXml($r->body, 'mt.supportedMethods');
+        self::assertStringContainsString('<array>', $r->body);
+        self::assertStringNotContainsString('Incorrect username or password.', $r->body);
+        // Real WP returns the same method set as system.listMethods.
+        preg_match_all('/<string>([^<]+)<\/string>/', $r->body, $m);
+        self::assertSame($this->advertisedMethods(), $m[1]);
+    }
+
+    public function test_mt_supported_text_filters_is_public_empty_array(): void
+    {
+        $r = $this->serve('POST', '/wp/xmlrpc.php', '', '<methodCall><methodName>mt.supportedTextFilters</methodName></methodCall>');
+        self::assertNotNull($r);
+        $this->assertWellFormedXml($r->body, 'mt.supportedTextFilters');
+        self::assertStringContainsString('<array>', $r->body);
+        self::assertStringNotContainsString('Incorrect username or password.', $r->body);
+    }
+
+    public function test_mt_get_trackback_pings_is_public_no_such_post(): void
+    {
+        $r = $this->serve('POST', '/wp/xmlrpc.php', '', '<methodCall><methodName>mt.getTrackbackPings</methodName></methodCall>');
+        self::assertNotNull($r);
+        $this->assertWellFormedXml($r->body, 'mt.getTrackbackPings');
+        self::assertStringContainsString('<int>404</int>', $r->body);
+        self::assertStringContainsString('Sorry, no such post.', $r->body);
+        self::assertStringNotContainsString('Incorrect username or password.', $r->body);
+    }
+
+    public function test_pingback_extensions_getpingbacks_is_handled_zero_egress(): void
+    {
+        $target = 'http://169.254.169.254/latest/meta-data/';
+        $r = $this->serve(
+            'POST',
+            '/wp/xmlrpc.php',
+            '',
+            '<methodCall><methodName>pingback.extensions.getPingbacks</methodName>'
+            . '<params><param><value><string>' . $target . '</string></value></param></params></methodCall>'
+        );
+        self::assertNotNull($r);
+        $this->assertWellFormedXml($r->body, 'getPingbacks');
+        self::assertStringContainsString('<int>32</int>', $r->body);
+        self::assertStringContainsString('The specified target URL does not exist.', $r->body);
+        // Zero egress + no reflection.
+        self::assertStringNotContainsString('169.254.169.254', $r->body);
+    }
+
+    // --- fault envelope byte structure matches IXR_Error::getXml() ---------------------------------
+
+    public function test_fault_body_is_byte_exact_ixr(): void
+    {
+        $r = $this->serve('POST', '/wp/xmlrpc.php', '', '<methodCall><methodName>wp.getUsersBlogs</methodName></methodCall>');
+        self::assertNotNull($r);
+        $expected = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n"
+            . "<methodResponse>\n"
+            . "  <fault>\n"
+            . "    <value>\n"
+            . "      <struct>\n"
+            . "        <member>\n"
+            . "          <name>faultCode</name>\n"
+            . "          <value><int>403</int></value>\n"
+            . "        </member>\n"
+            . "        <member>\n"
+            . "          <name>faultString</name>\n"
+            . "          <value><string>Incorrect username or password.</string></value>\n"
+            . "        </member>\n"
+            . "      </struct>\n"
+            . "    </value>\n"
+            . "  </fault>\n"
+            . "</methodResponse>\n";
+        self::assertSame($expected, $r->body);
+    }
+
+    // --- case-sensitivity: path + method names are case-sensitive ---------------------------------
+
+    public function test_uppercase_path_does_not_match(): void
+    {
+        self::assertNull($this->serve('GET', '/wp/XMLRPC.PHP'));
+    }
+
+    public function test_case_variant_method_and_tag(): void
+    {
+        // A case-variant known method is an unknown method -> -32601 (reflects the variant name).
+        $r = $this->serve('POST', '/wp/xmlrpc.php', '', '<methodCall><methodName>system.LISTMETHODS</methodName></methodCall>');
+        self::assertNotNull($r);
+        self::assertStringContainsString('<int>-32601</int>', $r->body);
+
+        // A mixed-case <MethodName> tag is not the real tag -> falls to rule 27's -32700 parse fault.
+        $r2 = $this->serve('POST', '/wp/xmlrpc.php', '', '<methodCall><MethodName>system.listMethods</MethodName></methodCall>');
+        self::assertNotNull($r2);
+        self::assertStringContainsString('<int>-32700</int>', $r2->body);
+    }
+
+    // --- broadened parsing: attributes + CDATA on <methodName> ------------------------------------
+
+    public function test_methodname_with_attributes_and_cdata_dispatches(): void
+    {
+        $attr = $this->serve('POST', '/wp/xmlrpc.php', '', '<methodCall><methodName foo="bar">system.listMethods</methodName></methodCall>');
+        self::assertNotNull($attr);
+        self::assertStringContainsString('<methodResponse>', $attr->body);
+        self::assertStringContainsString('wp.getUsersBlogs', $attr->body);
+
+        $cdata = $this->serve('POST', '/wp/xmlrpc.php', '', '<methodCall><methodName><![CDATA[system.listMethods]]></methodName></methodCall>');
+        self::assertNotNull($cdata);
+        self::assertStringContainsString('wp.getUsersBlogs', $cdata->body);
+    }
+
+    // --- empty methodName is an unknown method, not a parse error ----------------------------------
+
+    public function test_empty_methodname_is_minus32601(): void
+    {
+        $r = $this->serve('POST', '/wp/xmlrpc.php', '', '<methodCall><methodName></methodName></methodCall>');
+        self::assertNotNull($r);
+        // Well-formed envelope, unknown ('') method -> -32601 with the authentic double space.
+        self::assertStringContainsString('<int>-32601</int>', $r->body);
+        self::assertStringContainsString('requested method  does not exist', $r->body);
+    }
+
+    // --- rsd precedence: ?rsd preempts dispatch even on a POST with a methodCall body --------------
+
+    public function test_post_rsd_returns_the_rsd_document(): void
+    {
+        $r = $this->serve('POST', '/wp/xmlrpc.php', 'rsd', '<methodCall><methodName>system.listMethods</methodName></methodCall>');
+        self::assertNotNull($r);
+        self::assertSame(200, $r->status);
+        self::assertSame('text/xml; charset=UTF-8', $r->headers['Content-Type']);
+        self::assertStringContainsString('<rsd', $r->body);
+        // The method list must NOT have been dispatched.
+        self::assertStringNotContainsString('wp.getUsersBlogs', $r->body);
+    }
+
+    // --- PATH_INFO: /xmlrpc.php/extra dispatches; lookalikes still never match ---------------------
+
+    public function test_path_info_after_xmlrpc_php_dispatches(): void
+    {
+        $get = $this->serve('GET', '/wp/xmlrpc.php/extra');
+        self::assertNotNull($get);
+        self::assertSame(405, $get->status);
+
+        $post = $this->serve('POST', '/wp/xmlrpc.php/extra', '', '<methodCall><methodName>system.listMethods</methodName></methodCall>');
+        self::assertNotNull($post);
+        self::assertStringContainsString('<methodResponse>', $post->body);
+
+        // The segment boundary still holds: a suffixed name never matches.
+        self::assertNull($this->serve('GET', '/xmlrpc.php.bak'));
+        self::assertNull($this->serve('GET', '/wp/notxmlrpc.php'));
+    }
+
+    // --- xml-escape backstop for the reflected method ---------------------------------------------
+
+    public function test_reflected_method_is_xml_escaped(): void
+    {
+        // The capture class [\w.] already stops at '<', so the reflected name is inert; assert the
+        // xml: render backstop leaves a normal name intact and never emits a raw tag.
+        $r = $this->serve('POST', '/wp/xmlrpc.php', '', '<methodCall><methodName>foo<script>alert(1)</script></methodName></methodCall>');
+        self::assertNotNull($r);
+        $this->assertWellFormedXml($r->body, 'xml-escaped reflection');
+        self::assertStringContainsString('requested method foo does not exist', $r->body);
+        self::assertStringNotContainsString('<script', $r->body);
     }
 }
