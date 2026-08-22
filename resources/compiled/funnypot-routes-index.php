@@ -181,6 +181,61 @@ return array (
       ),
       'name' => 'LLM gateway auth required',
     ),
+    'route-config-php' => 
+    array (
+      'sev' => 'high',
+      'tags' => 
+      array (
+        0 => 'exposure',
+        1 => 'config-disclosure',
+        2 => 'secrets',
+      ),
+      'name' => 'Exposed application config (config.php)',
+    ),
+    'route-envfile-prod' => 
+    array (
+      'sev' => 'high',
+      'tags' => 
+      array (
+        0 => 'exposure',
+        1 => 'config-disclosure',
+        2 => 'secrets',
+      ),
+      'name' => 'Exposed environment file (.env.production)',
+    ),
+    'route-secrets-json' => 
+    array (
+      'sev' => 'high',
+      'tags' => 
+      array (
+        0 => 'exposure',
+        1 => 'config-disclosure',
+        2 => 'secrets',
+      ),
+      'name' => 'Exposed secrets.json',
+    ),
+    'route-docker-compose' => 
+    array (
+      'sev' => 'high',
+      'tags' => 
+      array (
+        0 => 'exposure',
+        1 => 'config-disclosure',
+        2 => 'secrets',
+      ),
+      'name' => 'Exposed docker-compose.yml',
+    ),
+    'route-application-properties' => 
+    array (
+      'sev' => 'high',
+      'tags' => 
+      array (
+        0 => 'exposure',
+        1 => 'config-disclosure',
+        2 => 'secrets',
+      ),
+      'name' => 'Exposed Spring properties (application.properties)',
+    ),
   ),
   'routes' => 
   array (
@@ -818,6 +873,132 @@ return array (
         't' => 
         array (
           0 => 'route-llm-auth',
+        ),
+      ),
+    ),
+    'GET /config.php' => 
+    array (
+      0 => 
+      array (
+        's' => 200,
+        'bw' => 
+        array (
+          0 => 'DB_PASSWORD',
+        ),
+        'nf' => 
+        array (
+        ),
+        'pid' => 'route-config-php',
+        'sev' => 'high',
+        'sig' => 0,
+        't' => 
+        array (
+          0 => 'route-config-php',
+        ),
+      ),
+    ),
+    'GET /.env.production' => 
+    array (
+      0 => 
+      array (
+        's' => 200,
+        'bw' => 
+        array (
+          0 => 'AWS_SECRET_ACCESS_KEY',
+        ),
+        'nf' => 
+        array (
+        ),
+        'pid' => 'route-envfile-prod',
+        'sev' => 'high',
+        'sig' => 0,
+        't' => 
+        array (
+          0 => 'route-envfile-prod',
+        ),
+      ),
+    ),
+    'GET /.env.local' => 
+    array (
+      0 => 
+      array (
+        's' => 200,
+        'bw' => 
+        array (
+          0 => 'AWS_SECRET_ACCESS_KEY',
+        ),
+        'nf' => 
+        array (
+        ),
+        'pid' => 'route-envfile-prod',
+        'sev' => 'high',
+        'sig' => 0,
+        't' => 
+        array (
+          0 => 'route-envfile-prod',
+        ),
+      ),
+    ),
+    'GET /secrets.json' => 
+    array (
+      0 => 
+      array (
+        's' => 200,
+        'bw' => 
+        array (
+          0 => 'secretKey',
+        ),
+        'nf' => 
+        array (
+        ),
+        'pid' => 'route-secrets-json',
+        'sev' => 'high',
+        'sig' => 0,
+        't' => 
+        array (
+          0 => 'route-secrets-json',
+        ),
+      ),
+    ),
+    'GET /docker-compose.yml' => 
+    array (
+      0 => 
+      array (
+        's' => 200,
+        'bw' => 
+        array (
+          0 => 'services:',
+        ),
+        'nf' => 
+        array (
+        ),
+        'pid' => 'route-docker-compose',
+        'sev' => 'high',
+        'sig' => 0,
+        't' => 
+        array (
+          0 => 'route-docker-compose',
+        ),
+      ),
+    ),
+    'GET /application.properties' => 
+    array (
+      0 => 
+      array (
+        's' => 200,
+        'bw' => 
+        array (
+          0 => 'spring.datasource',
+        ),
+        'nf' => 
+        array (
+        ),
+        'pid' => 'route-application-properties',
+        'sev' => 'high',
+        'sig' => 0,
+        't' => 
+        array (
+          0 => 'route-application-properties',
         ),
       ),
     ),

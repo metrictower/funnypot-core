@@ -523,8 +523,8 @@ CREATE TABLE `api_credentials` (
   PRIMARY KEY (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
-INSERT INTO `api_credentials` VALUES (1,\'AWS_ACCESS_KEY_ID\',\'AKIA{{pick:Q3F7K2LMN5PXR6TZ,H4G6D3WQ7VZ2NPXF,T7B5K4M2XQWL3RNC,F2N6R3Q7ZTXWK5LM,D5W3F7K2M6QZRXTN,L6Q2X7T3N5FWKMRZ}}\');
-INSERT INTO `api_credentials` VALUES (2,\'AWS_SECRET_ACCESS_KEY\',\'{{fake.awssecret:b64:40}}\');
+INSERT INTO `api_credentials` VALUES (1,\'AWS_ACCESS_KEY_ID\',\'{{persona.cloud.aws.accessKeyId}}\');
+INSERT INTO `api_credentials` VALUES (2,\'AWS_SECRET_ACCESS_KEY\',\'{{persona.cloud.aws.secretKey}}\');
 INSERT INTO `api_credentials` VALUES (3,\'STRIPE_SECRET_KEY\',\'sk_live_{{fake.stripe:hex:24}}\');
 INSERT INTO `api_credentials` VALUES (4,\'SENDGRID_API_KEY\',\'SG.{{fake.sg1:hex:22}}.{{fake.sg2:hex:43}}\');
 ',
@@ -892,8 +892,8 @@ INSERT INTO `api_credentials` VALUES (4,\'SENDGRID_API_KEY\',\'SG.{{fake.sg1:hex
     'body' => '# production credentials — rotate quarterly
 
 # AWS — STS
-AWS_ACCESS_KEY_ID=AKIA{{pick:Q3F7K2LMN5PXR6TZ,H4G6D3WQ7VZ2NPXF,T7B5K4M2XQWL3RNC,F2N6R3Q7ZTXWK5LM,D5W3F7K2M6QZRXTN,L6Q2X7T3N5FWKMRZ}}
-AWS_SECRET_ACCESS_KEY={{fake.awssecret:b64:40}}
+AWS_ACCESS_KEY_ID={{persona.cloud.aws.accessKeyId}}
+AWS_SECRET_ACCESS_KEY={{persona.cloud.aws.secretKey}}
 AWS_SESSION_TOKEN=FQoGZXIvYXdz{{fake.awssess1:b64:43}}{{fake.awssess2:b64:43}}{{fake.awssess3:b64:43}}
 AWS_DEFAULT_REGION=eu-west-1
 
@@ -949,8 +949,8 @@ SLACK_WEBHOOK_URL=https://hooks.slack.com/services/T{{fake.slt:hex:8}}/B{{fake.s
       "provider": "provider[\\"registry.terraform.io/hashicorp/aws\\"]",
       "instances": [
         { "attributes": {
-          "id": "AKIA{{pick:Q3F7K2LMN5PXR6TZ,H4G6D3WQ7VZ2NPXF,T7B5K4M2XQWL3RNC,F2N6R3Q7ZTXWK5LM,D5W3F7K2M6QZRXTN,L6Q2X7T3N5FWKMRZ}}",
-          "secret": "{{fake.awssecret:b64:40}}",
+          "id": "{{persona.cloud.aws.accessKeyId}}",
+          "secret": "{{persona.cloud.aws.secretKey}}",
           "user": "ci-deploy",
           "status": "Active"
         } }
@@ -1066,8 +1066,8 @@ CREATE TABLE `api_keys` (
   PRIMARY KEY (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
-INSERT INTO `api_keys` VALUES (1,\'AWS_ACCESS_KEY_ID\',\'AKIA{{pick:Q3F7K2LMN5PXR6TZ,H4G6D3WQ7VZ2NPXF,T7B5K4M2XQWL3RNC,F2N6R3Q7ZTXWK5LM,D5W3F7K2M6QZRXTN,L6Q2X7T3N5FWKMRZ}}\');
-INSERT INTO `api_keys` VALUES (2,\'AWS_SECRET_ACCESS_KEY\',\'{{fake.awssecret:b64:40}}\');
+INSERT INTO `api_keys` VALUES (1,\'AWS_ACCESS_KEY_ID\',\'{{persona.cloud.aws.accessKeyId}}\');
+INSERT INTO `api_keys` VALUES (2,\'AWS_SECRET_ACCESS_KEY\',\'{{persona.cloud.aws.secretKey}}\');
 INSERT INTO `api_keys` VALUES (3,\'STRIPE_SECRET\',\'sk_live_{{fake.stripesk:hex:24}}\');
 INSERT INTO `api_keys` VALUES (4,\'SENDGRID_API_KEY\',\'SG.{{fake.sg1:hex:22}}.{{fake.sg2:hex:43}}\');
 ',
@@ -1476,6 +1476,349 @@ gitignore: false
     array (
       'mode' => 'inline_field',
       'key' => '_comment',
+    ),
+  ),
+  39 => 
+  array (
+    'id' => 'route-config-php',
+    'match' => 
+    array (
+      'pid' => 
+      array (
+        0 => 'route-config-php',
+      ),
+    ),
+    'body' => '<?php
+// Application configuration — production.
+
+define(\'DB_HOST\', \'{{persona.db.host}}\');
+define(\'DB_NAME\', \'{{persona.db.name}}\');
+define(\'DB_USER\', \'{{persona.db.user}}\');
+define(\'DB_PASSWORD\', \'{{persona.db.password}}\');
+
+define(\'STRIPE_SECRET_KEY\', \'{{persona.cloud.stripe.secretKey}}\');
+define(\'SENDGRID_API_KEY\', \'{{persona.cloud.sendgrid.apiKey}}\');
+define(\'JWT_SECRET\', \'{{persona.secret.jwt}}\');
+
+define(\'AWS_ACCESS_KEY_ID\', \'{{persona.cloud.aws.accessKeyId}}\');
+define(\'AWS_SECRET_ACCESS_KEY\', \'{{persona.cloud.aws.secretKey}}\');
+define(\'AWS_DEFAULT_REGION\', \'{{persona.cloud.aws.region}}\');
+',
+    'headers' => 
+    array (
+      'Content-Type' => 'text/plain; charset=utf-8',
+    ),
+    'taunt' => 
+    array (
+      'mode' => 'line',
+      'open' => '#',
+    ),
+  ),
+  40 => 
+  array (
+    'id' => 'route-envfile-prod',
+    'match' => 
+    array (
+      'pid' => 
+      array (
+        0 => 'route-envfile-prod',
+      ),
+    ),
+    'body' => 'APP_ENV=production
+APP_DEBUG=false
+
+DB_CONNECTION=pgsql
+DB_HOST={{persona.db.host}}
+DB_PORT=5432
+DB_DATABASE={{persona.db.name}}
+DB_USERNAME={{persona.db.user}}
+DB_PASSWORD={{persona.db.password}}
+
+AWS_ACCESS_KEY_ID={{persona.cloud.aws.accessKeyId}}
+AWS_SECRET_ACCESS_KEY={{persona.cloud.aws.secretKey}}
+AWS_DEFAULT_REGION={{persona.cloud.aws.region}}
+
+STRIPE_SECRET_KEY={{persona.cloud.stripe.secretKey}}
+SENDGRID_API_KEY={{persona.cloud.sendgrid.apiKey}}
+JWT_SECRET={{persona.secret.jwt}}
+',
+    'headers' => 
+    array (
+      'Content-Type' => 'text/plain; charset=utf-8',
+    ),
+    'taunt' => 
+    array (
+      'mode' => 'line',
+      'open' => '#',
+    ),
+  ),
+  41 => 
+  array (
+    'id' => 'route-secrets-json',
+    'match' => 
+    array (
+      'pid' => 
+      array (
+        0 => 'route-secrets-json',
+      ),
+    ),
+    'body' => '{
+"db": {
+  "host": "{{persona.db.host}}",
+  "name": "{{persona.db.name}}",
+  "user": "{{persona.db.user}}",
+  "password": "{{persona.db.password}}"
+},
+"aws": {
+  "accessKeyId": "{{persona.cloud.aws.accessKeyId}}",
+  "secretKey": "{{persona.cloud.aws.secretKey}}",
+  "region": "{{persona.cloud.aws.region}}"
+},
+"stripe": { "secretKey": "{{persona.cloud.stripe.secretKey}}" },
+"sendgrid": { "apiKey": "{{persona.cloud.sendgrid.apiKey}}" },
+"jwt": { "secret": "{{persona.secret.jwt}}" }
+}
+',
+    'headers' => 
+    array (
+      'Content-Type' => 'application/json',
+    ),
+    'taunt' => 
+    array (
+      'mode' => 'inline_field',
+      'key' => '_comment',
+    ),
+  ),
+  42 => 
+  array (
+    'id' => 'route-docker-compose',
+    'match' => 
+    array (
+      'pid' => 
+      array (
+        0 => 'route-docker-compose',
+      ),
+    ),
+    'body' => 'version: "3.8"
+services:
+  app:
+    image: registry.example.com/app:latest
+    ports:
+      - "8080:8080"
+    environment:
+      DATABASE_URL: postgres://{{persona.db.user}}:{{persona.db.password}}@db:5432/{{persona.db.name}}
+      AWS_ACCESS_KEY_ID: {{persona.cloud.aws.accessKeyId}}
+      AWS_SECRET_ACCESS_KEY: {{persona.cloud.aws.secretKey}}
+      STRIPE_SECRET_KEY: {{persona.cloud.stripe.secretKey}}
+      SENDGRID_API_KEY: {{persona.cloud.sendgrid.apiKey}}
+      JWT_SECRET: {{persona.secret.jwt}}
+  db:
+    image: postgres:15
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: {{persona.db.user}}
+      POSTGRES_PASSWORD: {{persona.db.password}}
+      POSTGRES_DB: {{persona.db.name}}
+  redis:
+    image: redis:7
+    ports:
+      - "6379:6379"
+  mailhog:
+    image: mailhog/mailhog
+    ports:
+      - "587:587"
+',
+    'headers' => 
+    array (
+      'Content-Type' => 'text/yaml; charset=utf-8',
+    ),
+    'taunt' => 
+    array (
+      'mode' => 'line',
+      'open' => '#',
+    ),
+  ),
+  43 => 
+  array (
+    'id' => 'route-application-properties',
+    'match' => 
+    array (
+      'pid' => 
+      array (
+        0 => 'route-application-properties',
+      ),
+    ),
+    'body' => 'spring.datasource.url=jdbc:postgresql://{{persona.db.host}}:5432/{{persona.db.name}}
+spring.datasource.username={{persona.db.user}}
+spring.datasource.password={{persona.db.password}}
+
+stripe.secret-key={{persona.cloud.stripe.secretKey}}
+sendgrid.api-key={{persona.cloud.sendgrid.apiKey}}
+jwt.secret={{persona.secret.jwt}}
+
+cloud.aws.credentials.access-key={{persona.cloud.aws.accessKeyId}}
+cloud.aws.credentials.secret-key={{persona.cloud.aws.secretKey}}
+cloud.aws.region.static={{persona.cloud.aws.region}}
+',
+    'headers' => 
+    array (
+      'Content-Type' => 'text/plain; charset=utf-8',
+    ),
+    'taunt' => 
+    array (
+      'mode' => 'line',
+      'open' => '#',
+    ),
+  ),
+  44 => 
+  array (
+    'id' => 'route-application-yml',
+    'match' => 
+    array (
+      'template_needle' => 
+      array (
+        0 => 'application-yaml',
+      ),
+    ),
+    'body' => 'runtime: java
+spring:
+  datasource:
+    url: jdbc:postgresql://{{persona.db.host}}:5432/{{persona.db.name}}
+    username: {{persona.db.user}}
+    password: {{persona.db.password}}
+stripe:
+  secret-key: {{persona.cloud.stripe.secretKey}}
+sendgrid:
+  api-key: {{persona.cloud.sendgrid.apiKey}}
+jwt:
+  secret: {{persona.secret.jwt}}
+cloud:
+  aws:
+    access-key: {{persona.cloud.aws.accessKeyId}}
+    secret-key: {{persona.cloud.aws.secretKey}}
+    region: {{persona.cloud.aws.region}}
+',
+    'headers' => 
+    array (
+      'Content-Type' => 'text/yaml; charset=utf-8',
+    ),
+    'taunt' => 
+    array (
+      'mode' => 'line',
+      'open' => '#',
+    ),
+  ),
+  45 => 
+  array (
+    'id' => 'route-settings-json',
+    'match' => 
+    array (
+      'template_needle' => 
+      array (
+        0 => 'vscode-settings',
+      ),
+    ),
+    'body' => '{
+"version": "0.2.0",
+"configurations": [
+{
+"name": "Launch app",
+"type": "node",
+"request": "launch",
+"program": "/srv/app/server.js",
+"env": {
+"ANTHROPIC_API_KEY": "{{persona.cloud.anthropic.apiKey}}",
+"DATABASE_URL": "postgres://{{persona.db.user}}:{{persona.db.password}}@{{persona.db.host}}:5432/{{persona.db.name}}"
+}
+}
+]
+}
+',
+    'headers' => 
+    array (
+      'Content-Type' => 'application/json',
+    ),
+    'taunt' => 
+    array (
+      'mode' => 'inline_field',
+      'key' => '_comment',
+    ),
+  ),
+  46 => 
+  array (
+    'id' => 'route-web-config',
+    'match' => 
+    array (
+      'template_needle' => 
+      array (
+        0 => 'web-config',
+      ),
+    ),
+    'body' => '<?xml version="1.0" encoding="utf-8"?>
+<configuration>
+  <connectionStrings>
+    <add name="DefaultConnection" connectionString="Server={{persona.db.host}};Database={{persona.db.name}};User Id={{persona.db.user}};Password={{persona.db.password}};" providerName="System.Data.SqlClient" />
+  </connectionStrings>
+  <appSettings>
+    <add key="Stripe:SecretKey" value="{{persona.cloud.stripe.secretKey}}" />
+    <add key="SendGrid:ApiKey" value="{{persona.cloud.sendgrid.apiKey}}" />
+    <add key="Jwt:Secret" value="{{persona.secret.jwt}}" />
+    <add key="AWS:AccessKeyId" value="{{persona.cloud.aws.accessKeyId}}" />
+    <add key="AWS:SecretAccessKey" value="{{persona.cloud.aws.secretKey}}" />
+  </appSettings>
+  <system.webServer>
+    <security>
+      <requestFiltering>
+        <hiddenSegments>
+          <add segment="bin" />
+        </hiddenSegments>
+      </requestFiltering>
+    </security>
+  </system.webServer>
+</configuration>
+',
+    'headers' => 
+    array (
+      'Content-Type' => 'application/xml',
+    ),
+    'taunt' => 
+    array (
+      'mode' => 'block',
+      'open' => '<!--',
+      'close' => '-->',
+    ),
+  ),
+  47 => 
+  array (
+    'id' => 'route-config-js-firebase',
+    'match' => 
+    array (
+      'template_needle' => 
+      array (
+        0 => 'firebase-config-exposure',
+      ),
+    ),
+    'body' => '// Firebase web app configuration
+const firebaseConfig = {
+  apiKey: "{{persona.cloud.google.apiKey}}",
+  authDomain: "{{persona.company.slug}}.firebaseapp.com",
+  databaseURL: "https://{{persona.company.slug}}.firebaseio.com",
+  projectId: "{{persona.company.slug}}",
+  storageBucket: "{{persona.company.slug}}.appspot.com",
+  messagingSenderId: "{{fake.fbsender:hex:12}}",
+  appId: "1:{{fake.fbappnum:hex:12}}:web:{{fake.fbappid:hex:16}}"
+};
+firebase.initializeApp(firebaseConfig);
+',
+    'headers' => 
+    array (
+      'Content-Type' => 'application/javascript',
+    ),
+    'taunt' => 
+    array (
+      'mode' => 'line',
+      'open' => '//',
     ),
   ),
 );

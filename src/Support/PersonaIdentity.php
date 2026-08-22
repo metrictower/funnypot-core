@@ -25,6 +25,8 @@ final class PersonaIdentity
         'user.admin.username', 'user.admin.email', 'user.admin.password', 'user.admin.passwordHash',
         'cloud.aws.accessKeyId', 'cloud.aws.secretKey', 'cloud.aws.region',
         'cloud.anthropic.apiKey', 'cloud.openai.apiKey', 'cloud.github.copilotToken',
+        'cloud.stripe.secretKey', 'cloud.sendgrid.apiKey', 'cloud.google.apiKey',
+        'secret.jwt',
     ];
 
     /**
@@ -124,6 +126,16 @@ final class PersonaIdentity
             'cloud.openai.apiKey' => 'sk-' . self::base62($seed, 'openai_k', 20) . 'T3BlbkFJ' . self::base62($seed, 'openai_k2', 20),
             // GitHub Copilot user-to-server token: 'ghu_' + 36.
             'cloud.github.copilotToken' => 'ghu_' . self::base62($seed, 'copilot_k', 36),
+
+            // Config-file-disclosure secrets — the credentials a leaked config file carries. Each
+            // shape is exact so a secret scanner over the loot bites: Stripe live secret key
+            // ('sk_live_' + 24 base62), SendGrid key ('SG.' + 22 + '.' + 43), Google API key
+            // ('AIza' + 35 url-safe-base64), and a 64-hex JWT signing secret. Rendered per attacker
+            // and coherent across every file the same host discloses them in.
+            'cloud.stripe.secretKey' => 'sk_live_' . self::base62($seed, 'stripe_sk', 24),
+            'cloud.sendgrid.apiKey' => 'SG.' . self::base62($seed, 'sg1', 22) . '.' . self::base62($seed, 'sg2', 43),
+            'cloud.google.apiKey' => 'AIza' . substr(self::base64url((string) hex2bin(self::h($seed, 'google_k'))), 0, 35),
+            'secret.jwt' => substr(self::h($seed, 'jwt_secret'), 0, 64),
         ];
 
         return new self($fields);

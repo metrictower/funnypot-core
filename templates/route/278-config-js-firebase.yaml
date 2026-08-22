@@ -1,0 +1,31 @@
+id: route-config-js-firebase
+priority: 278
+# Enrich (NOT new_page): the corpus routes /config.js (+ /public/config.js) to the
+# `firebase-config-exposure` bundle (body words apiKey: / authDomain: / databaseURL: /
+# storageBucket:). Minimal synth would emit those bare keys; here we dress it into a real
+# firebaseConfig block carrying a scanner-shaped Google API key, persona-seeded and coherent with
+# the host's company identity (the Firebase project + bucket derive from the same slug).
+match:
+  template_needle: [firebase-config-exposure]
+response:
+  headers:
+    Content-Type: "application/javascript"
+  body: |
+    // Firebase web app configuration
+    const firebaseConfig = {
+      apiKey: "{{persona.cloud.google.apiKey}}",
+      authDomain: "{{persona.company.slug}}.firebaseapp.com",
+      databaseURL: "https://{{persona.company.slug}}.firebaseio.com",
+      projectId: "{{persona.company.slug}}",
+      storageBucket: "{{persona.company.slug}}.appspot.com",
+      messagingSenderId: "{{fake.fbsender:hex:12}}",
+      appId: "1:{{fake.fbappnum:hex:12}}:web:{{fake.fbappid:hex:16}}"
+    };
+    firebase.initializeApp(firebaseConfig);
+taunt: { mode: line, open: '//' }
+expect:
+  - 'apiKey:'
+  - 'authDomain:'
+  - 'databaseURL:'
+  - 'storageBucket:'
+  - 'AIza'

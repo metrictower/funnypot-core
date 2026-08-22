@@ -41,8 +41,8 @@ response:
       PRIMARY KEY (`id`)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
-    INSERT INTO `api_keys` VALUES (1,'AWS_ACCESS_KEY_ID','AKIA{{pick:Q3F7K2LMN5PXR6TZ,H4G6D3WQ7VZ2NPXF,T7B5K4M2XQWL3RNC,F2N6R3Q7ZTXWK5LM,D5W3F7K2M6QZRXTN,L6Q2X7T3N5FWKMRZ}}');
-    INSERT INTO `api_keys` VALUES (2,'AWS_SECRET_ACCESS_KEY','{{fake.awssecret:b64:40}}');
+    INSERT INTO `api_keys` VALUES (1,'AWS_ACCESS_KEY_ID','{{persona.cloud.aws.accessKeyId}}');
+    INSERT INTO `api_keys` VALUES (2,'AWS_SECRET_ACCESS_KEY','{{persona.cloud.aws.secretKey}}');
     INSERT INTO `api_keys` VALUES (3,'STRIPE_SECRET','sk_live_{{fake.stripesk:hex:24}}');
     INSERT INTO `api_keys` VALUES (4,'SENDGRID_API_KEY','SG.{{fake.sg1:hex:22}}.{{fake.sg2:hex:43}}');
 taunt: { mode: line, open: '--' }

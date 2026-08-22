@@ -1,0 +1,34 @@
+id: route-application-properties
+priority: 274
+# Brand-new page: a leaked Spring Boot application.properties — DB datasource creds plus the
+# cloud/mail secrets a real properties file carries, all persona-seeded for cross-file coherence.
+new_page:
+  method: GET
+  paths: ['/application.properties']
+  sig: 0
+  status: 200
+  severity: high
+  tags: [exposure, config-disclosure, secrets]
+  name: 'Exposed Spring properties (application.properties)'
+  body_words: ['spring.datasource']
+response:
+  headers:
+    Content-Type: "text/plain; charset=utf-8"
+  body: |
+    spring.datasource.url=jdbc:postgresql://{{persona.db.host}}:5432/{{persona.db.name}}
+    spring.datasource.username={{persona.db.user}}
+    spring.datasource.password={{persona.db.password}}
+
+    stripe.secret-key={{persona.cloud.stripe.secretKey}}
+    sendgrid.api-key={{persona.cloud.sendgrid.apiKey}}
+    jwt.secret={{persona.secret.jwt}}
+
+    cloud.aws.credentials.access-key={{persona.cloud.aws.accessKeyId}}
+    cloud.aws.credentials.secret-key={{persona.cloud.aws.secretKey}}
+    cloud.aws.region.static={{persona.cloud.aws.region}}
+taunt: { mode: line, open: '#' }
+expect:
+  - 'spring.datasource.password='
+  - 'AKIA'
+  - 'sk_live_'
+  - 'SG.'

@@ -1,0 +1,41 @@
+id: route-web-config
+priority: 277
+# Enrich (NOT new_page): the corpus routes /web.config to the `web-config` bundle (body words
+# `<configuration>` / `<system.webServer>`). Minimal synth would emit those bare tags; here we dress
+# it into a real ASP.NET web.config whose connectionStrings and appSettings leak the SQL Server DB
+# creds and the Stripe/SendGrid/JWT/AWS secrets, persona-seeded for cross-file coherence.
+match:
+  template_needle: [web-config]
+response:
+  headers:
+    Content-Type: "application/xml"
+  body: |
+    <?xml version="1.0" encoding="utf-8"?>
+    <configuration>
+      <connectionStrings>
+        <add name="DefaultConnection" connectionString="Server={{persona.db.host}};Database={{persona.db.name}};User Id={{persona.db.user}};Password={{persona.db.password}};" providerName="System.Data.SqlClient" />
+      </connectionStrings>
+      <appSettings>
+        <add key="Stripe:SecretKey" value="{{persona.cloud.stripe.secretKey}}" />
+        <add key="SendGrid:ApiKey" value="{{persona.cloud.sendgrid.apiKey}}" />
+        <add key="Jwt:Secret" value="{{persona.secret.jwt}}" />
+        <add key="AWS:AccessKeyId" value="{{persona.cloud.aws.accessKeyId}}" />
+        <add key="AWS:SecretAccessKey" value="{{persona.cloud.aws.secretKey}}" />
+      </appSettings>
+      <system.webServer>
+        <security>
+          <requestFiltering>
+            <hiddenSegments>
+              <add segment="bin" />
+            </hiddenSegments>
+          </requestFiltering>
+        </security>
+      </system.webServer>
+    </configuration>
+taunt: { mode: block, open: '<!--', close: '-->' }
+expect:
+  - '<configuration>'
+  - '<system.webServer>'
+  - 'AKIA'
+  - 'sk_live_'
+  - 'SG.'

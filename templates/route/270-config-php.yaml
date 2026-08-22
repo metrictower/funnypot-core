@@ -1,0 +1,39 @@
+id: route-config-php
+priority: 270
+# Brand-new page: a leaked PHP app config (config.php) — the classic "the real config was left in
+# the webroot" exposure. Ships DB creds, Stripe/SendGrid keys, and a JWT secret, all persona-seeded
+# so the same host discloses the SAME secrets here as in every other leaked config file.
+new_page:
+  method: GET
+  paths: ['/config.php']
+  sig: 0
+  status: 200
+  severity: high
+  tags: [exposure, config-disclosure, secrets]
+  name: 'Exposed application config (config.php)'
+  body_words: ['DB_PASSWORD']
+response:
+  headers:
+    Content-Type: "text/plain; charset=utf-8"
+  body: |
+    <?php
+    // Application configuration — production.
+
+    define('DB_HOST', '{{persona.db.host}}');
+    define('DB_NAME', '{{persona.db.name}}');
+    define('DB_USER', '{{persona.db.user}}');
+    define('DB_PASSWORD', '{{persona.db.password}}');
+
+    define('STRIPE_SECRET_KEY', '{{persona.cloud.stripe.secretKey}}');
+    define('SENDGRID_API_KEY', '{{persona.cloud.sendgrid.apiKey}}');
+    define('JWT_SECRET', '{{persona.secret.jwt}}');
+
+    define('AWS_ACCESS_KEY_ID', '{{persona.cloud.aws.accessKeyId}}');
+    define('AWS_SECRET_ACCESS_KEY', '{{persona.cloud.aws.secretKey}}');
+    define('AWS_DEFAULT_REGION', '{{persona.cloud.aws.region}}');
+taunt: { mode: line, open: '#' }
+expect:
+  - "define('DB_PASSWORD'"
+  - 'AKIA'
+  - 'sk_live_'
+  - 'SG.'

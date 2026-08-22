@@ -1,0 +1,54 @@
+id: route-docker-compose
+priority: 273
+# Brand-new page: a leaked docker-compose.yml left in the webroot. The service environment blocks
+# carry the DB password and cloud secrets (persona-seeded, coherent with the host's other configs),
+# exactly where a scanner harvests them.
+new_page:
+  method: GET
+  paths: ['/docker-compose.yml']
+  sig: 0
+  status: 200
+  severity: high
+  tags: [exposure, config-disclosure, secrets]
+  name: 'Exposed docker-compose.yml'
+  body_words: ['services:']
+response:
+  headers:
+    Content-Type: "text/yaml; charset=utf-8"
+  body: |
+    version: "3.8"
+    services:
+      app:
+        image: registry.example.com/app:latest
+        ports:
+          - "8080:8080"
+        environment:
+          DATABASE_URL: postgres://{{persona.db.user}}:{{persona.db.password}}@db:5432/{{persona.db.name}}
+          AWS_ACCESS_KEY_ID: {{persona.cloud.aws.accessKeyId}}
+          AWS_SECRET_ACCESS_KEY: {{persona.cloud.aws.secretKey}}
+          STRIPE_SECRET_KEY: {{persona.cloud.stripe.secretKey}}
+          SENDGRID_API_KEY: {{persona.cloud.sendgrid.apiKey}}
+          JWT_SECRET: {{persona.secret.jwt}}
+      db:
+        image: postgres:15
+        ports:
+          - "5432:5432"
+        environment:
+          POSTGRES_USER: {{persona.db.user}}
+          POSTGRES_PASSWORD: {{persona.db.password}}
+          POSTGRES_DB: {{persona.db.name}}
+      redis:
+        image: redis:7
+        ports:
+          - "6379:6379"
+      mailhog:
+        image: mailhog/mailhog
+        ports:
+          - "587:587"
+taunt: { mode: line, open: '#' }
+expect:
+  - 'services:'
+  - 'AKIA'
+  - 'sk_live_'
+  - 'SG.'
+  - 'POSTGRES_PASSWORD'

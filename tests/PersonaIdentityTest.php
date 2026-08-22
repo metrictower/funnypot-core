@@ -110,6 +110,38 @@ final class PersonaIdentityTest extends TestCase
         }
     }
 
+    public function test_config_disclosure_secrets_match_scanner_regexes(): void
+    {
+        // Config-file-disclosure secrets: same rule as the AI keys — a secret scanner only bites
+        // when the shape matches byte-for-byte, so assert each regex exactly over a range of seeds,
+        // require determinism, and require spread (never collapse to one value).
+        $patterns = [
+            'cloud.stripe.secretKey' => '/^sk_live_[0-9a-zA-Z]{24}$/',
+            'cloud.sendgrid.apiKey' => '/^SG\.[0-9A-Za-z]{22}\.[0-9A-Za-z]{43}$/',
+            'cloud.google.apiKey' => '/^AIza[0-9A-Za-z\-_]{35}$/',
+            'secret.jwt' => '/^[0-9a-f]{64}$/',
+        ];
+        $spread = ['cloud.stripe.secretKey' => [], 'cloud.sendgrid.apiKey' => [], 'cloud.google.apiKey' => [], 'secret.jwt' => []];
+
+        for ($seed = 0; $seed <= 50; $seed++) {
+            $p = PersonaIdentity::fromSeed($seed);
+            foreach ($patterns as $field => $re) {
+                $value = (string) $p->field($field);
+                self::assertSame(1, preg_match($re, $value), "seed {$seed}: {$field} must match {$re} exactly");
+                self::assertSame(
+                    $value,
+                    (string) PersonaIdentity::fromSeed($seed)->field($field),
+                    "seed {$seed}: {$field} must be deterministic"
+                );
+                $spread[$field][$value] = true;
+            }
+        }
+
+        foreach ($patterns as $field => $re) {
+            self::assertGreaterThan(1, count($spread[$field]), "{$field} must spread across seeds, not collapse to one value");
+        }
+    }
+
     public function test_region_is_from_the_known_set(): void
     {
         $regions = [];

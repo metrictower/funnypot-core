@@ -1,0 +1,36 @@
+id: route-application-yml
+priority: 275
+# Enrich (NOT new_page): the corpus routes /application.yml (+ /application.yaml, /app.yaml,
+# /app.yml) to the `application-yaml` bundle, whose only body word is `runtime:`. Minimal synth
+# would emit a bare `runtime:` line; here we dress it into a full Spring Boot application.yml
+# disclosing DB datasource creds and the cloud/mail/JWT secrets, persona-seeded so it agrees with
+# the host's other leaked configs. The bundle forbids HTML/XML markers, which this YAML never carries.
+match:
+  template_needle: [application-yaml]
+response:
+  headers:
+    Content-Type: "text/yaml; charset=utf-8"
+  body: |
+    runtime: java
+    spring:
+      datasource:
+        url: jdbc:postgresql://{{persona.db.host}}:5432/{{persona.db.name}}
+        username: {{persona.db.user}}
+        password: {{persona.db.password}}
+    stripe:
+      secret-key: {{persona.cloud.stripe.secretKey}}
+    sendgrid:
+      api-key: {{persona.cloud.sendgrid.apiKey}}
+    jwt:
+      secret: {{persona.secret.jwt}}
+    cloud:
+      aws:
+        access-key: {{persona.cloud.aws.accessKeyId}}
+        secret-key: {{persona.cloud.aws.secretKey}}
+        region: {{persona.cloud.aws.region}}
+taunt: { mode: line, open: '#' }
+expect:
+  - 'runtime:'
+  - 'AKIA'
+  - 'sk_live_'
+  - 'SG.'

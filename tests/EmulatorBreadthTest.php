@@ -56,6 +56,15 @@ final class EmulatorBreadthTest extends TestCase
             'citrix gateway logon'             => ['GET /logon/LogonPoint/index.html', 0, 'route-citrix'],
             'apache directory listing'         => ['GET /backup/', 0, 'route-directory-listing'],
             'django admin login'               => ['GET /admin/login/', 1, 'route-django-admin'],
+
+            // Config-file disclosure pack (M8) enrich rules — each dresses a bundle the corpus
+            // already routes to. A SPECIFIC needle (not a broad `config`) keeps the enrich from
+            // hijacking an unrelated bundle; the satisfaction asserts below are the guard that a
+            // dropped bw/nf/hw would silently fall back to minimal synth.
+            'application.yml enrich'           => ['GET /application.yml', 0, 'route-application-yml'],
+            'settings.json enrich'             => ['GET /settings.json', 0, 'route-settings-json'],
+            'web.config enrich'                => ['GET /web.config', 0, 'route-web-config'],
+            'config.js firebase enrich'        => ['GET /config.js', 0, 'route-config-js-firebase'],
         ];
     }
 

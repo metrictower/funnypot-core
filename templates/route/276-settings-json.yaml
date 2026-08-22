@@ -1,0 +1,34 @@
+id: route-settings-json
+priority: 276
+# Enrich (NOT new_page): the corpus routes /settings.json (+ /.vscode/settings.json, launch.json,
+# tasks.json) to the `vscode-settings` bundle (body words `launch` / `configurations`, typed
+# Content-Type application/json). Minimal synth would emit only those bare words; here we dress it
+# into a real VS Code launch.json whose config `env` leaks the Anthropic API key and the DB URL,
+# persona-seeded. The body starts with a lone `{` so the JSON taunt keeps it parseable.
+match:
+  template_needle: [vscode-settings]
+response:
+  headers:
+    Content-Type: "application/json"
+  body: |
+    {
+    "version": "0.2.0",
+    "configurations": [
+    {
+    "name": "Launch app",
+    "type": "node",
+    "request": "launch",
+    "program": "/srv/app/server.js",
+    "env": {
+    "ANTHROPIC_API_KEY": "{{persona.cloud.anthropic.apiKey}}",
+    "DATABASE_URL": "postgres://{{persona.db.user}}:{{persona.db.password}}@{{persona.db.host}}:5432/{{persona.db.name}}"
+    }
+    }
+    ]
+    }
+taunt: { mode: inline_field, key: '_comment' }
+expect:
+  - 'sk-ant-api03-'
+  - 'ANTHROPIC_API_KEY'
+  - 'launch'
+  - 'configurations'

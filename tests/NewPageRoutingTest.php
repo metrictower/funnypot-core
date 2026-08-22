@@ -93,7 +93,80 @@ final class NewPageRoutingTest extends TestCase
             'llm chat auth'           => ['/v1/chat', 401, 'invalid_request_error', 'application/json'],
             'llm completions auth'    => ['/v1/completions', 401, 'invalid_request_error', 'application/json'],
             'v1/models enrich'        => ['/v1/models', 200, '"owned_by":"openai"', 'application/json'],
+
+            // Config-file disclosure pack (M8). Each leaks persona-seeded secrets and MUST serve the
+            // Content-Type its file/endpoint type implies (a mismatch is a honeypot tell).
+            'config.php'             => ['/config.php', 200, 'DB_PASSWORD', 'text/plain; charset=utf-8'],
+            '.env.production'        => ['/.env.production', 200, 'AWS_SECRET_ACCESS_KEY', 'text/plain; charset=utf-8'],
+            '.env.local'             => ['/.env.local', 200, 'AWS_SECRET_ACCESS_KEY', 'text/plain; charset=utf-8'],
+            'secrets.json'           => ['/secrets.json', 200, 'secretKey', 'application/json'],
+            'docker-compose.yml'     => ['/docker-compose.yml', 200, 'services:', 'text/yaml; charset=utf-8'],
+            'application.properties' => ['/application.properties', 200, 'spring.datasource', 'text/plain; charset=utf-8'],
         ];
+    }
+
+    public function test_config_json_pages_stay_parseable(): void
+    {
+        // /secrets.json (a new page) and /settings.json (an enrich) both carry the JSON taunt as a
+        // "_comment" field so the document still parses. Sweep seeds × styles and prove json_decode
+        // returns a non-null array in every case — a broken taunt or an unescaped secret would fail.
+        foreach (['/secrets.json', '/settings.json'] as $path) {
+            foreach (['realistic', 'taunt'] as $style) {
+                for ($seed = 0; $seed <= 30; $seed++) {
+                    $resp = $this->seededInverter((string) $seed, $style)->respond(new RequestContext('GET', $path));
+                    self::assertNotNull($resp, "{$path} [{$style}] seed {$seed} must serve a fake");
+                    self::assertSame('application/json', $resp->headers['Content-Type'] ?? null, "{$path} [{$style}] seed {$seed} Content-Type");
+                    $decoded = json_decode($resp->body, true);
+                    self::assertIsArray($decoded, "{$path} [{$style}] seed {$seed} must be a JSON object, got: " . $resp->body);
+                }
+            }
+        }
+    }
+
+    public function test_config_secrets_are_coherent_across_surfaces(): void
+    {
+        // One host presents one identity: the AWS key pair and the Stripe/SendGrid/JWT secrets must
+        // be byte-identical in every config file that discloses them, so two leaked files never
+        // contradict each other. Extract each secret from each surface and require a single value.
+        $inv = $this->inverter();
+        $surfaces = ['/.env.production', '/application.yml', '/application.properties', '/secrets.json', '/web.config', '/config.php'];
+        $patterns = [
+            'aws' => '/AKIA[A-Z2-7]{16}/',
+            'stripe' => '/sk_live_[0-9a-zA-Z]{24}/',
+            'sendgrid' => '/SG\.[0-9A-Za-z]{22}\.[0-9A-Za-z]{43}/',
+            'jwt' => '/\b[0-9a-f]{64}\b/',
+        ];
+        $seen = [];
+        foreach ($surfaces as $path) {
+            $resp = $inv->respond(new RequestContext('GET', $path));
+            self::assertNotNull($resp, "{$path} must serve a fake");
+            foreach ($patterns as $label => $re) {
+                self::assertSame(1, preg_match($re, $resp->body, $m), "{$path} must disclose a {$label} secret");
+                $seen[$label][$m[0]] = true;
+            }
+        }
+        foreach (array_keys($patterns) as $label) {
+            self::assertCount(1, $seen[$label], "the {$label} secret must be identical across every surface");
+        }
+    }
+
+    public function test_migrated_aws_templates_render_persona_pair(): void
+    {
+        // The four legacy templates that shared a fingerprintable 6-value AWS `pick` now render the
+        // persona identity's key pair: a well-formed AKIA id, never a doubled `AKIAAKIA` (which a
+        // leftover literal `AKIA` prefix in front of the persona value would produce). Two of them
+        // must agree on the pair, proving per-seed coherence replaced the shared constant.
+        $inv = $this->inverter();
+        $paths = ['/install/froxlor.sql', '/credentials.txt', '/terraform.tfstate', '/backup.sql'];
+        $ids = [];
+        foreach ($paths as $path) {
+            $resp = $inv->respond(new RequestContext('GET', $path));
+            self::assertNotNull($resp, "{$path} must serve a fake");
+            self::assertSame(1, preg_match('/AKIA[A-Z2-7]{16}/', $resp->body, $m), "{$path} must render a persona AWS access key id");
+            self::assertStringNotContainsString('AKIAAKIA', $resp->body, "{$path} must not double the AKIA prefix");
+            $ids[$path] = $m[0];
+        }
+        self::assertSame($ids['/install/froxlor.sql'], $ids['/backup.sql'], 'migrated files share the persona AWS key for one seed');
     }
 
     public function test_v1_models_enrich_serves_openai_list(): void
