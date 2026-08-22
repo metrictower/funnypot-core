@@ -45,8 +45,8 @@ response:
               "engine": "postgres",
               "instance_class": "db.r5.large",
               "allocated_storage": 200,
-              "address": "db-{{fake.tfdbhost:hex:6}}.cluster-cg{{fake.tfdbacct:hex:9}}.eu-west-1.rds.amazonaws.com",
-              "endpoint": "db-{{fake.tfdbhost:hex:6}}.cluster-cg{{fake.tfdbacct:hex:9}}.eu-west-1.rds.amazonaws.com:5432",
+              "address": "db-{{fake.tfdbhost:hex:12}}.cluster-cg{{fake.tfdbacct:hex:9}}.eu-west-1.rds.amazonaws.com",
+              "endpoint": "db-{{fake.tfdbhost:hex:12}}.cluster-cg{{fake.tfdbacct:hex:9}}.eu-west-1.rds.amazonaws.com:5432",
               "port": 5432,
               "username": "app_prod",
               "password": "{{fake.tfdbpass:hex:24}}"

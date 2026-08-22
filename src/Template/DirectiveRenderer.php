@@ -126,18 +126,32 @@ final class DirectiveRenderer
                 return substr(rtrim(strtr(base64_encode((string) hex2bin($digest)), '+/', '-_'), '='), 0, $len);
             }
             if ($enc === 'dec') {
-                // All-digit field (e.g. a Firebase sender id / project number). Each digest hex char
-                // maps to one decimal digit; re-hash to extend past one digest's 64 chars.
+                // All-digit field (e.g. a Firebase sender id / GCP project number). Draw each digit
+                // uniformly by rejection-sampling digest bytes: a byte >= 250 is discarded so the
+                // accepted range 0..249 is an exact multiple of 10 and byte % 10 carries no low-digit
+                // skew. The first digit also rejects 0 — a real project/sender number never has a
+                // leading zero. Deterministic per (seed, name); re-hash (raw) to extend past 32 bytes.
                 $digits = '';
-                $material = $digest;
+                $material = (string) hex2bin($digest);
+                $pos = 0;
                 while (strlen($digits) < $len) {
-                    for ($i = 0, $c = strlen($material); $i < $c; $i++) {
-                        $digits .= (string) (hexdec($material[$i]) % 10);
+                    if ($pos >= strlen($material)) {
+                        $material = hash('sha256', $material, true);
+                        $pos = 0;
                     }
-                    $material = hash('sha256', $material);
+                    $byte = ord($material[$pos]);
+                    $pos++;
+                    if ($byte >= 250) {
+                        continue;
+                    }
+                    $digit = $byte % 10;
+                    if ($digits === '' && $digit === 0) {
+                        continue;
+                    }
+                    $digits .= (string) $digit;
                 }
 
-                return substr($digits, 0, $len);
+                return $digits;
             }
 
             return substr($digest, 0, $len);

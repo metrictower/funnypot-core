@@ -169,7 +169,7 @@ SLACK_WEBHOOK_URL=https://hooks.slack.com/services/T{{fake.slackt:hex:8}}/B{{fak
 define(\'DB_NAME\', \'{{pick:wp_prod,wordpress,wp_live,blog}}\');
 define(\'DB_USER\', \'wp_app\');
 define(\'DB_PASSWORD\', \'{{fake.dbpass:hex:24}}\');
-define(\'DB_HOST\', \'wp-prod-db-{{fake.dbhost:hex:6}}.cluster-cg{{fake.dbacct:hex:9}}.us-east-1.rds.amazonaws.com\');
+define(\'DB_HOST\', \'wp-prod-db-{{fake.dbhost:hex:12}}.cluster-cg{{fake.dbacct:hex:9}}.us-east-1.rds.amazonaws.com\');
 define(\'DB_CHARSET\', \'utf8mb4\');
 define(\'DB_COLLATE\', \'\');
 
@@ -910,8 +910,9 @@ SENDGRID_API_KEY={{persona.cloud.sendgrid.apiKey}}
 # GitHub
 GITHUB_TOKEN=ghp_{{fake.gh:hex:36}}
 
-# Postgres
-DATABASE_URL=postgres://{{persona.db.user}}:{{fake.pg:hex:20}}@db-{{fake.pgh:hex:12}}.{{persona.cloud.aws.region}}.rds.amazonaws.com:5432/{{persona.db.name}}
+# Postgres — the persona DB credential end-to-end (user/password/host/name), so every
+# config-pack surface that discloses this DB (settings.json, web.config, .env.*) agrees.
+DATABASE_URL=postgres://{{persona.db.user}}:{{persona.db.password}}@{{persona.db.host}}:5432/{{persona.db.name}}
 
 # Slack
 SLACK_WEBHOOK_URL=https://hooks.slack.com/services/T{{fake.slt:hex:8}}/B{{fake.slb:hex:8}}/{{fake.sltok:hex:24}}
@@ -964,8 +965,8 @@ SLACK_WEBHOOK_URL=https://hooks.slack.com/services/T{{fake.slt:hex:8}}/B{{fake.s
           "engine": "postgres",
           "instance_class": "db.r5.large",
           "allocated_storage": 200,
-          "address": "db-{{fake.tfdbhost:hex:6}}.cluster-cg{{fake.tfdbacct:hex:9}}.eu-west-1.rds.amazonaws.com",
-          "endpoint": "db-{{fake.tfdbhost:hex:6}}.cluster-cg{{fake.tfdbacct:hex:9}}.eu-west-1.rds.amazonaws.com:5432",
+          "address": "db-{{fake.tfdbhost:hex:12}}.cluster-cg{{fake.tfdbacct:hex:9}}.eu-west-1.rds.amazonaws.com",
+          "endpoint": "db-{{fake.tfdbhost:hex:12}}.cluster-cg{{fake.tfdbacct:hex:9}}.eu-west-1.rds.amazonaws.com:5432",
           "port": 5432,
           "username": "app_prod",
           "password": "{{fake.tfdbpass:hex:24}}"

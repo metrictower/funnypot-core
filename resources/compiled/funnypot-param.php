@@ -59,13 +59,13 @@ APP_URL=https://app.example.com
 LOG_CHANNEL=stack
 
 DB_CONNECTION=pgsql
-DB_HOST=db-{{fake.pghost:hex:6}}.cluster-cg{{fake.pgacct:hex:9}}.eu-west-1.rds.amazonaws.com
+DB_HOST=db-{{fake.pghost:hex:12}}.cluster-cg{{fake.pgacct:hex:9}}.eu-west-1.rds.amazonaws.com
 DB_PORT=5432
 DB_DATABASE=app_production
 DB_USERNAME=app_prod
 DB_PASSWORD={{fake.pgpass:hex:24}}
 
-REDIS_HOST=cache-{{fake.redishost:hex:6}}.0001.euw1.cache.amazonaws.com
+REDIS_HOST=cache-{{fake.redishost:hex:12}}.0001.euw1.cache.amazonaws.com
 REDIS_PORT=6379
 REDIS_PASSWORD={{fake.redispass:hex:32}}
 
@@ -130,7 +130,7 @@ region = {{persona.cloud.aws.region}}
 define(\'DB_NAME\', \'{{pick:wp_prod,wordpress,wp_live,blog}}\');
 define(\'DB_USER\', \'wp_app\');
 define(\'DB_PASSWORD\', \'{{fake.dbpass:hex:24}}\');
-define(\'DB_HOST\', \'wp-prod-db-{{fake.dbhost:hex:6}}.cluster-cg{{fake.dbacct:hex:9}}.us-east-1.rds.amazonaws.com\');
+define(\'DB_HOST\', \'wp-prod-db-{{fake.dbhost:hex:12}}.cluster-cg{{fake.dbacct:hex:9}}.us-east-1.rds.amazonaws.com\');
 define(\'DB_CHARSET\', \'utf8mb4\');
 define(\'DB_COLLATE\', \'\');
 

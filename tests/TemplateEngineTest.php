@@ -177,6 +177,44 @@ final class TemplateEngineTest extends TestCase
         self::assertNotSame($a, $c);    // varies by seed
     }
 
+    public function test_renderer_dec_is_uniform_nonzero_and_deterministic(): void
+    {
+        $rr = new DirectiveRenderer();
+        // Length is exactly N, first digit is never 0 (a real project/sender number has none),
+        // and the value is deterministic per (seed, name).
+        $a = $rr->render('{{fake.projno:dec:12}}', [], 42);
+        $b = $rr->render('{{fake.projno:dec:12}}', [], 42);
+        self::assertSame(12, strlen($a));
+        self::assertTrue(ctype_digit($a));
+        self::assertNotSame('0', $a[0]);
+        self::assertSame($a, $b);                                            // deterministic
+        self::assertNotSame($a, $rr->render('{{fake.projno:dec:12}}', [], 7)); // varies by seed
+        // Same name renders the same value twice in one body (so a sender id can be reused in appId).
+        $pair = $rr->render('{{fake.s:dec:12}}|{{fake.s:dec:12}}', [], 9);
+        [$x, $y] = explode('|', $pair);
+        self::assertSame($x, $y);
+
+        // No leading zero across a wide seed sweep, and the digit VALUES are roughly uniform (the
+        // old %10-of-a-hex-nibble draw folded a-f onto 0-5, doubling low digits). Tally all non-
+        // leading digits over the sweep and require every digit within a loose band of the mean.
+        $tally = array_fill(0, 10, 0);
+        $total = 0;
+        for ($seed = 0; $seed <= 500; $seed++) {
+            $v = $rr->render('{{fake.projno:dec:20}}', [], $seed);
+            self::assertSame(20, strlen($v), "seed {$seed} length");
+            self::assertNotSame('0', $v[0], "seed {$seed} leading zero");
+            for ($i = 1, $n = strlen($v); $i < $n; $i++) {
+                $tally[(int) $v[$i]]++;
+                $total++;
+            }
+        }
+        $mean = $total / 10;
+        foreach ($tally as $d => $count) {
+            self::assertGreaterThan($mean * 0.8, $count, "digit {$d} under-represented — draw is skewed");
+            self::assertLessThan($mean * 1.2, $count, "digit {$d} over-represented — draw is skewed");
+        }
+    }
+
     public function test_renderer_alternative_falls_through(): void
     {
         $rr = new DirectiveRenderer();

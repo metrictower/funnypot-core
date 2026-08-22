@@ -49,6 +49,29 @@ final class NewPageRoutingTest extends TestCase
     }
 
     /**
+     * Like seededInverter, but with the attack + param tiers live so a `/@fs/{path}` vite-fs
+     * request dispatches its traversal-read disclosure (the param tier is off by default).
+     */
+    private function paramInverter(string $seed, string $style): Honeypot
+    {
+        $store = new PhpArrayStore(require __DIR__ . '/../resources/compiled/nuclei-index.full.php');
+
+        return new Honeypot($store, new Config(
+            'respond',
+            static function (RequestContext $r): bool { return true; },
+            'matched-only',
+            static function (RequestContext $r) use ($seed): string { return $seed; },
+            'coherent',
+            $style,
+            'high',
+            65536,
+            0,
+            0,
+            true // attackEmulation ⇒ builds the emulator, which loads the param buckets
+        ));
+    }
+
+    /**
      * @dataProvider pages
      */
     public function test_new_page_routes_and_serves(string $path, int $status, string $marker, string $contentType): void
@@ -150,6 +173,27 @@ final class NewPageRoutingTest extends TestCase
             }
             self::assertCount(1, $seen, "the {$label} secret must be identical across every surface that discloses it");
         }
+
+        // The DB password is the SAME persona secret wherever it is disclosed, but in surface-specific
+        // syntax (DATABASE_URL userinfo, DB_PASSWORD=, connectionString Password=, POSTGRES_PASSWORD:).
+        // Extract per surface and require byte-identity — a hex-shape or non-persona password on any one
+        // surface (the old credentials.txt tell) would contradict the rest.
+        $dbPw = [
+            '/.env.production'    => '/DB_PASSWORD=([A-Za-z0-9._~-]+)/',
+            '/.env.local'         => '/DB_PASSWORD=([A-Za-z0-9._~-]+)/',
+            '/settings.json'      => '#postgres://[^:@/]+:([A-Za-z0-9._~-]+)@#',
+            '/web.config'         => '/Password=([A-Za-z0-9._~-]+);/',
+            '/docker-compose.yml' => '/POSTGRES_PASSWORD:\s*([A-Za-z0-9._~-]+)/',
+            '/credentials.txt'    => '#postgres://[^:@/]+:([A-Za-z0-9._~-]+)@#',
+        ];
+        $pwSeen = [];
+        foreach ($dbPw as $path => $re) {
+            $resp = $inv->respond(new RequestContext('GET', $path));
+            self::assertNotNull($resp, "{$path} must serve a fake");
+            self::assertSame(1, preg_match($re, $resp->body, $m), "{$path} must disclose a DB password: " . $resp->body);
+            $pwSeen[$m[1]] = true;
+        }
+        self::assertCount(1, $pwSeen, 'the DB password must be identical across every surface that discloses it');
     }
 
     public function test_migrated_aws_templates_render_persona_pair(): void
@@ -204,20 +248,31 @@ final class NewPageRoutingTest extends TestCase
     public function test_firebase_ids_are_numeric_and_coherent(): void
     {
         // messagingSenderId must be an all-digit project number and the appId middle segment the SAME
-        // digits (1:<senderId>:web:...) — hex letters in a digits-only field are a tell.
-        $saw = false;
+        // digits (1:<senderId>:web:...) — hex letters in a digits-only field are a tell. A GCP project
+        // number never has a leading zero, so the id must start 1-9. The react bundle's Sentry DSN
+        // carries the same dec-encoded ids (org + project), pinned the same way.
+        $sawFirebase = false;
+        $sawSentry = false;
         for ($seed = 0; $seed <= 60; $seed++) {
             $resp = $this->seededInverter((string) $seed, 'realistic')->respond(new RequestContext('GET', '/config.js'));
             self::assertNotNull($resp);
-            if (($resp->headers['Content-Type'] ?? null) !== 'application/javascript') {
-                continue; // this seed landed on the react bundle, not firebase
+            if (($resp->headers['Content-Type'] ?? null) === 'application/javascript') {
+                $sawFirebase = true;
+                self::assertSame(1, preg_match('/messagingSenderId: "(\d+)"/', $resp->body, $m), "seed {$seed} senderId must be all digits: " . $resp->body);
+                self::assertTrue(ctype_digit($m[1]), "seed {$seed} senderId digits");
+                self::assertNotSame('0', $m[1][0], "seed {$seed} senderId must not have a leading zero: " . $resp->body);
+                self::assertStringContainsString('appId: "1:' . $m[1] . ':web:', $resp->body, "seed {$seed} appId must reuse the senderId");
+            } else {
+                // React runtime-env bundle: the Sentry DSN's org and project ids are numeric with no
+                // leading zero (a real Sentry org/project id is a positive integer).
+                self::assertSame(1, preg_match('#@o([0-9]+)\.ingest\.sentry\.io/([0-9]+)#', $resp->body, $m), "seed {$seed} sentry DSN shape: " . $resp->body);
+                self::assertNotSame('0', $m[1][0], "seed {$seed} sentry org id must not have a leading zero: " . $resp->body);
+                self::assertNotSame('0', $m[2][0], "seed {$seed} sentry project id must not have a leading zero: " . $resp->body);
+                $sawSentry = true;
             }
-            $saw = true;
-            self::assertSame(1, preg_match('/messagingSenderId: "(\d+)"/', $resp->body, $m), "seed {$seed} senderId must be all digits: " . $resp->body);
-            self::assertTrue(ctype_digit($m[1]), "seed {$seed} senderId digits");
-            self::assertStringContainsString('appId: "1:' . $m[1] . ':web:', $resp->body, "seed {$seed} appId must reuse the senderId");
         }
-        self::assertTrue($saw, 'sweep must land on the firebase bundle at least once');
+        self::assertTrue($sawFirebase, 'sweep must land on the firebase bundle at least once');
+        self::assertTrue($sawSentry, 'sweep must land on the react/sentry bundle at least once');
     }
 
     public function test_env_local_is_a_distinct_local_config(): void
@@ -322,15 +377,29 @@ final class NewPageRoutingTest extends TestCase
         // Render every disclosure surface across a wide seed sweep and require scan(body) empty — the
         // persona re-roll is what keeps the boundary-prone keys clean.
         $guard = FingerprintGuard::fromPackage();
+        // Every disclosure surface that carries a seed-derived hex/digit island — including the ones
+        // whose RDS/ElastiCache host fragments were the \b9\d{5}\b hazard (wp-config, terraform, and
+        // the vite-fs traversal-read bodies). A future hex island on any of these regresses here.
         $paths = [
             '/config.php', '/.env.production', '/.env.local', '/secrets.json', '/docker-compose.yml',
             '/application.properties', '/application.yml', '/settings.json', '/web.config', '/config.js',
             '/credentials.txt', '/backup.sql', '/install/froxlor.sql',
+            '/wp-config.php-backup', '/terraform.tfstate', '/.terraform/terraform.tfstate', '/infra/terraform.tfstate',
         ];
+        // The vite-fs `/@fs/{path}` param route serves per-target disclosure bodies (its own RDS/cache
+        // host islands live in the .env and wp-config.php loot targets), so exercise those too.
+        $paramPaths = ['/@fs/var/www/app/.env', '/@fs/var/www/html/wp-config.php'];
         for ($seed = 0; $seed <= 200; $seed++) {
             $inv = $this->seededInverter((string) $seed, 'realistic');
             foreach ($paths as $path) {
                 $resp = $inv->respond(new RequestContext('GET', $path));
+                self::assertNotNull($resp, "{$path} seed {$seed} must serve a fake");
+                $hits = $guard->scan($resp->body);
+                self::assertSame([], $hits, "{$path} seed {$seed} leaks a denied fingerprint token (" . implode(',', $hits) . "): " . $resp->body);
+            }
+            $paramInv = $this->paramInverter((string) $seed, 'realistic');
+            foreach ($paramPaths as $path) {
+                $resp = $paramInv->respond(new RequestContext('GET', $path));
                 self::assertNotNull($resp, "{$path} seed {$seed} must serve a fake");
                 $hits = $guard->scan($resp->body);
                 self::assertSame([], $hits, "{$path} seed {$seed} leaks a denied fingerprint token (" . implode(',', $hits) . "): " . $resp->body);

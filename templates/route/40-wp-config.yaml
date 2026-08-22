@@ -18,7 +18,7 @@ response:
     define('DB_NAME', '{{pick:wp_prod,wordpress,wp_live,blog}}');
     define('DB_USER', 'wp_app');
     define('DB_PASSWORD', '{{fake.dbpass:hex:24}}');
-    define('DB_HOST', 'wp-prod-db-{{fake.dbhost:hex:6}}.cluster-cg{{fake.dbacct:hex:9}}.us-east-1.rds.amazonaws.com');
+    define('DB_HOST', 'wp-prod-db-{{fake.dbhost:hex:12}}.cluster-cg{{fake.dbacct:hex:9}}.us-east-1.rds.amazonaws.com');
     define('DB_CHARSET', 'utf8mb4');
     define('DB_COLLATE', '');
 
