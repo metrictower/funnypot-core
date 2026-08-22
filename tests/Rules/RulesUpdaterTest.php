@@ -219,6 +219,21 @@ final class RulesUpdaterTest extends TestCase
                     'item' => ['headers' => [], 'body' => '<m/>'],
                 ],
             ]],
+            // iterate.response.headers is served on the multicall success path — a nested node the
+            // top-level body never carries. servedTexts() must descend into it so a leak there is
+            // rejected fetch-time; top-level body + wrap + item stay clean, so a catch proves it.
+            'iterate.response' => [[
+                'id' => 'attack-iterate-response-leak',
+                'match' => [['in' => 'query', 'contains' => 'x']],
+                'response' => ['headers' => [], 'body' => 'clean top-level'],
+                'behavior' => 'iterate',
+                'iterate' => [
+                    'parse' => 'xmlrpc-multicall', 'max_items' => 8,
+                    'wrap' => ['open' => '<r>', 'close' => '</r>'],
+                    'item' => ['headers' => [], 'body' => '<m/>'],
+                    'response' => ['headers' => ['X-Powered-By' => 'OWASP_CRS/3.3.0'], 'body' => ''],
+                ],
+            ]],
         ];
 
         $seq = 1;

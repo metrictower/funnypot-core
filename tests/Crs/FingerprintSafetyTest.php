@@ -240,6 +240,27 @@ final class FingerprintSafetyTest extends TestCase
         self::assertSame(1, $this->runGateOn([$rule]));
     }
 
+    public function test_the_ci_gate_flags_a_leak_in_iterate_response_headers(): void
+    {
+        // iterate.response.headers is served on the multicall success path (handleIterate renders
+        // it), yet it is a nested node the top-level body never carries. A detector signature planted
+        // in a served header value (top-level body + wrap + item all kept clean) must be caught by
+        // the iterate.response descent — the gap this probe pins closed.
+        $rule = [
+            'id' => 'iterate-response-header-leak-probe',
+            'response' => ['headers' => [], 'body' => 'clean top-level body'],
+            'behavior' => 'iterate',
+            'iterate' => [
+                'parse' => 'xmlrpc-multicall',
+                'max_items' => 8,
+                'wrap' => ['open' => '<r>', 'close' => '</r>'],
+                'item' => ['headers' => [], 'body' => 'clean item body'],
+                'response' => ['headers' => ['X-Pingback-Server' => 'mod_security 911100'], 'body' => ''],
+            ],
+        ];
+        self::assertSame(1, $this->runGateOn([$rule]));
+    }
+
     /**
      * Write a rule-set to a scratch artifact and run the CI gate against it via --index; returns the
      * gate's exit code. Nothing lands in the repo.

@@ -10,7 +10,9 @@ tags: [attack, wordpress, xmlrpc]
 # its two int arguments. A scanner probing for a live xmlrpc (the classic "does 7+7 come back as
 # 14" liveness/echo check) must get the real arithmetic, not a canned constant. The two <int>
 # operands are captured into named groups a,b and summed by the arith-eval primitive (a hand-written
-# integer parser — never eval; add only, so it cannot overflow into non-digit output at these bounds).
+# integer parser — never eval). The capture admits the full i4 width (up to 2147483647); an operand
+# past i4, or a sum that overflows on a 32-bit host, degrades to the -32602 fault (never non-digit
+# output) via arith-eval's operand bound and its is_int overflow guard.
 #
 # The operand capture is OPTIONAL in the match, so a bare/param-less demo.addTwoNumbers still matches
 # here (not rule 26): with no operands captured, arith-eval declines and the base "invalid method
@@ -23,7 +25,7 @@ match:
     regex: '^POST$'
     ci: false
   - in: body
-    regex: '<methodCall\b[^>]*>\s*(?:<!--[\s\S]{0,1024}?-->\s*)*<methodName\b[^>]*>\s*(?:<!\[CDATA\[\s*)?demo\.addTwoNumbers\b(?:[\s\S]{0,256}?<value>\s*<(?:int|i4)>\s*(?P<a>-?\d{1,9})\s*</(?:int|i4)>[\s\S]{0,256}?<value>\s*<(?:int|i4)>\s*(?P<b>-?\d{1,9})\s*</(?:int|i4)>)?'
+    regex: '<methodCall\b[^>]*>\s*(?:<!--[\s\S]{0,1024}?-->\s*)*<methodName\b[^>]*>\s*(?:<!\[CDATA\[\s*)?demo\.addTwoNumbers\b(?:[\s\S]{0,256}?<value>\s*<(?:int|i4)>\s*(?P<a>-?\d{1,10})\s*</(?:int|i4)>[\s\S]{0,256}?<value>\s*<(?:int|i4)>\s*(?P<b>-?\d{1,10})\s*</(?:int|i4)>)?'
     capture: true
     ci: false
 status: 200

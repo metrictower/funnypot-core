@@ -488,7 +488,9 @@ final class TemplateAttackEmulator
 
     /**
      * Apply a closed-set op to two magnitude-bounded operands. Returns null when an operand is out
-     * of bounds, or when a product overflows to float (a 32-bit host) — output must stay pure digits.
+     * of bounds, or when the result overflows to float (a 32-bit host) — output must stay pure
+     * digits. All three ops share the is_int overflow guard: on a 32-bit build add/sub can overflow
+     * ±2^31 just as mul can, and a float result would render as non-digit scientific notation.
      */
     private function arithApply(string $op, int $a, int $b, int $max): ?int
     {
@@ -496,10 +498,14 @@ final class TemplateAttackEmulator
             return null;
         }
         if ($op === 'add') {
-            return $a + $b;
+            $sum = $a + $b;
+
+            return is_int($sum) ? $sum : null;
         }
         if ($op === 'sub') {
-            return $a - $b;
+            $diff = $a - $b;
+
+            return is_int($diff) ? $diff : null;
         }
         $product = $a * $b;
         if (!is_int($product)) {
@@ -571,41 +577,78 @@ final class TemplateAttackEmulator
 
     /**
      * Parse the request body into a bounded sub-call list for `iterate`. The parser is a CLOSED set
-     * keyed by `parse` — a compiler-authored, token-bounded regex only (never an attacker regex), and
-     * the surface is capped before it runs, so there is no ReDoS. Returns the sub-calls (each
-     * ['method'=>string]), an empty list when none parse, or null on a PCRE error (fail-safe).
+     * keyed by `parse` — a compiler-authored, token-bounded regex only (never an attacker regex).
+     * Returns the sub-calls (each ['method'=>string]), an empty list when none parse, or null on a
+     * PCRE error (fail-safe).
      *
      * @param array<string,mixed> $config
      * @return array<int,array<string,string>>|null
      */
     private function iterateParse(array $config, string $body): ?array
     {
-        if (strlen($body) > self::MAX_SURFACE) {
-            $body = substr($body, 0, self::MAX_SURFACE);
-        }
         $parse = (string) (isset($config['parse']) ? $config['parse'] : '');
         if ($parse === 'xmlrpc-multicall') {
-            // Each XML-RPC multicall sub-call is a struct member `<name>methodName</name><value>
-            // <string>NAME</string>` — count those, capturing the method with the same bounded class
-            // the top-level xmlrpc rule uses. The surface cap plus the caller's array_slice bound the
-            // count twice.
-            $n = preg_match_all(
-                '~<name>\s*methodName\s*</name>\s*<value>\s*(?:<string>\s*)?([\w.]{0,64})~',
-                $body,
-                $m
-            );
-            if ($n === false || preg_last_error() !== PREG_NO_ERROR) {
-                return null;
-            }
-            $items = [];
-            foreach ($m[1] as $method) {
-                $items[] = ['method' => (string) $method];
-            }
-
-            return $items;
+            return $this->parseMulticall($body);
         }
 
         return null;
+    }
+
+    /**
+     * Structurally count the top-level sub-calls of an XML-RPC system.multicall, mirroring how real
+     * WordPress deserializes the call array and takes each element struct's `methodName` member.
+     *
+     * A flat body-wide count OVER-counts, because a sub-call whose params nest a struct member also
+     * named `methodName` would be counted as an extra sub-call. So this is depth-aware: it tracks
+     * `<struct>` nesting and counts a `methodName` member ONLY at the outermost struct depth (a
+     * sub-call), never one nested inside a sub-call's params.
+     *
+     * The walk is a single streaming pass over compiler-authored, literal-anchored tokens with
+     * bounded quantifiers (no attacker regex, no nested quantifier ⇒ linear, no ReDoS), advancing an
+     * offset rather than truncating the body — so the count is byte-position-independent for N up to
+     * the cap and never splits a sub-call mid-token. It stops once the hard fan-out cap is provably
+     * exceeded, bounding memory; the caller's array_slice is the amplification bound for N > cap.
+     *
+     * @return array<int,array<string,string>>|null null on a PCRE error (fail-safe)
+     */
+    private function parseMulticall(string $body): ?array
+    {
+        // Three literal-anchored tokens in one pass: a struct open, a struct close, and a
+        // `<name>methodName</name>` member (capturing the wrapped method with the same bounded class
+        // the top-level xmlrpc rule uses). The three are distinguished by the char after '<'.
+        $token = '~(<struct\b[^>]*>)|(</struct\s*>)|<name>\s*methodName\s*</name>\s*<value>\s*(?:<string>\s*)?([\w.]{0,64})~';
+        $items = [];
+        $depth = 0;
+        $offset = 0;
+        $len = strlen($body);
+        // One past the cap: enough to know N exceeds it (caller slices back to the cap), never more.
+        $stop = self::MAX_ITERATE_ITEMS + 1;
+        while ($offset < $len) {
+            $ok = preg_match($token, $body, $m, PREG_OFFSET_CAPTURE, $offset);
+            if ($ok === false || preg_last_error() !== PREG_NO_ERROR) {
+                return null;
+            }
+            if ($ok !== 1) {
+                break;
+            }
+            $whole = (string) $m[0][0];
+            $offset = $m[0][1] + max(1, strlen($whole));
+            $kind = isset($whole[1]) ? $whole[1] : '';
+            if ($kind === 's') { // <struct ...>
+                $depth++;
+            } elseif ($kind === '/') { // </struct>
+                if ($depth > 0) {
+                    $depth--;
+                }
+            } elseif ($depth === 1) { // a methodName member at the call-array's top level
+                $items[] = ['method' => (string) ($m[3][0] ?? '')];
+                if (count($items) >= $stop) {
+                    break;
+                }
+            }
+        }
+
+        return $items;
     }
 
     /**

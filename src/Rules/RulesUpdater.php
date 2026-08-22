@@ -529,15 +529,19 @@ final class RulesUpdater
         if (isset($src['arith-eval']['response']) && is_array($src['arith-eval']['response'])) {
             $texts = array_merge($texts, $this->servedTexts($src['arith-eval']['response']));
         }
-        // An `iterate` rule serves the wrap open/close body, the per-sub-call `item`, and the
-        // `empty`/`fallback` responses — nested served shapes, descended into so a fetched artifact
-        // with a leak in any of them is rejected fetch-time. None carries `iterate`, so this ends.
+        // An `iterate` rule serves the wrap open/close body, the per-sub-call `item`, the `response`
+        // headers on the multicall success path, and the `empty`/`fallback` responses — nested
+        // served shapes, descended into so a fetched artifact with a leak in any of them is rejected
+        // fetch-time. None carries `iterate`, so this ends.
         if (isset($src['iterate']) && is_array($src['iterate'])) {
             $it = $src['iterate'];
             $texts[] = (string) ($it['wrap']['open'] ?? '');
             $texts[] = (string) ($it['wrap']['close'] ?? '');
             if (isset($it['item']) && is_array($it['item'])) {
                 $texts = array_merge($texts, $this->servedTexts($it['item']));
+            }
+            if (isset($it['response']) && is_array($it['response'])) {
+                $texts = array_merge($texts, $this->servedTexts($it['response']));
             }
             foreach (['empty', 'fallback'] as $k) {
                 if (isset($it[$k]['response']) && is_array($it[$k]['response'])) {

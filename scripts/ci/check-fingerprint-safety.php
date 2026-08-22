@@ -138,14 +138,18 @@ foreach ($indexes as $index) {
         if (isset($rule['arith-eval']['response']) && is_array($rule['arith-eval']['response'])) {
             $texts = array_merge($texts, $collect($rule['arith-eval']['response']));
         }
-        // An `iterate` rule serves the wrap open/close body, the per-sub-call `item`, and the
-        // `empty`/`fallback` responses — all nested served shapes the top-level body never carries.
+        // An `iterate` rule serves the wrap open/close body, the per-sub-call `item`, the
+        // `response` headers on the multicall success path, and the `empty`/`fallback` responses —
+        // all nested served shapes the top-level body never carries.
         if (isset($rule['iterate']) && is_array($rule['iterate'])) {
             $it = $rule['iterate'];
             $texts[] = (string) ($it['wrap']['open'] ?? '');
             $texts[] = (string) ($it['wrap']['close'] ?? '');
             if (isset($it['item']) && is_array($it['item'])) {
                 $texts = array_merge($texts, $collect($it['item']));
+            }
+            if (isset($it['response']) && is_array($it['response'])) {
+                $texts = array_merge($texts, $collect($it['response']));
             }
             foreach (['empty', 'fallback'] as $k) {
                 if (isset($it[$k]['response']) && is_array($it[$k]['response'])) {

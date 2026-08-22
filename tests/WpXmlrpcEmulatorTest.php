@@ -222,6 +222,29 @@ final class WpXmlrpcEmulatorTest extends TestCase
         self::assertSame(64, substr_count($r->body, '<int>403</int>'), 'fan-out must be hard-capped at MAX_ITERATE_ITEMS');
     }
 
+    public function test_multicall_nested_methodname_counts_as_one_subcall(): void
+    {
+        // ONE real sub-call whose params nest a struct member ALSO named methodName. A flat body-wide
+        // count would emit two fault entries; the structural depth-aware count emits exactly one, as
+        // real WP does (N-in => N-out) — the nested member sits below the outermost struct depth.
+        $body = '<?xml version="1.0"?><methodCall><methodName>system.multicall</methodName>'
+            . '<params><param><value><array><data>'
+            . '<value><struct>'
+            . '<member><name>methodName</name><value><string>wp.getUsersBlogs</string></value></member>'
+            . '<member><name>params</name><value><array><data>'
+            . '<value><struct>'
+            . '<member><name>methodName</name><value><string>system.listMethods</string></value></member>'
+            . '</struct></value>'
+            . '</data></array></value></member>'
+            . '</struct></value>'
+            . '</data></array></value></param></params></methodCall>';
+        $r = $this->serve('POST', '/wp/xmlrpc.php', '', $body);
+        self::assertNotNull($r);
+        self::assertSame(['attack-wp-xmlrpc-multicall'], $r->satisfies->templateIds());
+        $this->assertWellFormedXml($r->body, 'nested-methodName multicall');
+        self::assertSame(1, substr_count($r->body, '<int>403</int>'), 'a nested methodName must not add a sub-call');
+    }
+
     public function test_multicall_with_no_subcalls_is_an_empty_array(): void
     {
         // A bare system.multicall parses zero sub-calls — real WP returns an empty array, and the
@@ -246,6 +269,31 @@ final class WpXmlrpcEmulatorTest extends TestCase
         $this->assertWellFormedXml($r->body, 'addTwoNumbers sum');
         self::assertStringContainsString('<int>45</int>', $r->body);
         self::assertStringNotContainsString('{{', $r->body);
+    }
+
+    public function test_add_two_numbers_accepts_full_i4_range(): void
+    {
+        // A 10-digit i4 operand (<= 2147483647) must sum — the capture admits the full i4 width, so a
+        // valid large operand returns the real arithmetic, not the invalid-params fault.
+        $r = $this->serve('POST', '/wp/xmlrpc.php', '', '<methodCall><methodName>demo.addTwoNumbers</methodName>'
+            . '<params><param><value><int>1500000000</int></value></param><param><value><int>1</int></value></param></params></methodCall>');
+        self::assertNotNull($r);
+        self::assertSame(200, $r->status);
+        $this->assertWellFormedXml($r->body, 'addTwoNumbers full-range sum');
+        self::assertStringContainsString('<int>1500000001</int>', $r->body);
+        self::assertStringNotContainsString('-32602', $r->body);
+    }
+
+    public function test_add_two_numbers_operand_past_i4_faults(): void
+    {
+        // An operand past the i4 max (> 2147483647) is not a valid i4 — arith-eval's operand bound
+        // declines to the plausible -32602 invalid-params fault, never a malformed non-digit sum.
+        $r = $this->serve('POST', '/wp/xmlrpc.php', '', '<methodCall><methodName>demo.addTwoNumbers</methodName>'
+            . '<params><param><value><int>3000000000</int></value></param><param><value><int>1</int></value></param></params></methodCall>');
+        self::assertNotNull($r);
+        $this->assertWellFormedXml($r->body, 'addTwoNumbers out-of-i4 fault');
+        self::assertStringContainsString('<int>-32602</int>', $r->body);
+        self::assertStringNotContainsString('-32601', $r->body);
     }
 
     public function test_add_two_numbers_bad_params_is_invalid_params_not_unknown_method(): void

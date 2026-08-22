@@ -94,6 +94,47 @@ final class BehaviorIterateTest extends TestCase
         self::assertSame(64, substr_count($r->body, '<m '), 'items must be hard-capped');
     }
 
+    public function test_nested_methodname_in_a_subcall_counts_once(): void
+    {
+        // ONE real sub-call whose params nest a struct member ALSO named methodName. A flat body-wide
+        // count would see two `methodName` members and emit two items; the structural depth-aware
+        // count emits exactly one (real WP: N-in ⇒ N-out), because the nested member sits below the
+        // outermost struct depth.
+        $nested = '<methodCall><methodName>system.multicall</methodName><params><param><value><array><data>'
+            . '<value><struct>'
+            . '<member><name>methodName</name><value><string>wp.getUsersBlogs</string></value></member>'
+            . '<member><name>params</name><value><array><data>'
+            . '<value><struct>'
+            . '<member><name>methodName</name><value><string>nested.decoy</string></value></member>'
+            . '</struct></value>'
+            . '</data></array></value></member>'
+            . '</struct></value>'
+            . '</data></array></value></param></params></methodCall>';
+        $r = $this->serve($this->iterateRule(), $nested);
+        self::assertNotNull($r);
+        self::assertSame(1, substr_count($r->body, '<m '), 'a nested methodName must not add a sub-call');
+        // The reflected method is the outer sub-call's, never the nested decoy.
+        self::assertStringContainsString('<m i="0">wp.getUsersBlogs</m>', $r->body);
+        self::assertStringNotContainsString('nested.decoy', $r->body);
+    }
+
+    public function test_count_is_byte_position_independent_for_a_large_body(): void
+    {
+        // 64 sub-calls padded so the body far exceeds MAX_SURFACE (32768). The count must stay exactly
+        // 64 — a pre-parse byte truncation would split a sub-call and undercount to neither N nor cap.
+        $sub = '<value><struct><member><name>methodName</name><value><string>wp.getUsersBlogs</string>'
+            . '</value></member></struct></value>';
+        $filler = '<!-- ' . str_repeat('A', 600) . ' -->'; // no struct/methodName tokens
+        $body = '<methodCall><methodName>system.multicall</methodName><params><param><value><array><data>'
+            . str_repeat($sub . $filler, 64)
+            . '</data></array></value></param></params></methodCall>';
+        self::assertGreaterThan(32768, strlen($body), 'body must exceed MAX_SURFACE for this regression');
+
+        $r = $this->serve($this->iterateRule(), $body);
+        self::assertNotNull($r);
+        self::assertSame(64, substr_count($r->body, '<m '), 'a large body with 64 sub-calls must not undercount');
+    }
+
     public function test_reflected_method_is_bounded_and_not_raw_markup(): void
     {
         // The parser's [\w.] class stops at '<', so a planted tag in the method position is never

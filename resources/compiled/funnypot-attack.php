@@ -276,7 +276,7 @@ return array (
       2 => 
       array (
         'in' => 'body',
-        'regex' => '<methodCall\\b[^>]*>\\s*(?:<!--[\\s\\S]{0,1024}?-->\\s*)*<methodName\\b[^>]*>\\s*(?:<!\\[CDATA\\[\\s*)?demo\\.addTwoNumbers\\b(?:[\\s\\S]{0,256}?<value>\\s*<(?:int|i4)>\\s*(?P<a>-?\\d{1,9})\\s*</(?:int|i4)>[\\s\\S]{0,256}?<value>\\s*<(?:int|i4)>\\s*(?P<b>-?\\d{1,9})\\s*</(?:int|i4)>)?',
+        'regex' => '<methodCall\\b[^>]*>\\s*(?:<!--[\\s\\S]{0,1024}?-->\\s*)*<methodName\\b[^>]*>\\s*(?:<!\\[CDATA\\[\\s*)?demo\\.addTwoNumbers\\b(?:[\\s\\S]{0,256}?<value>\\s*<(?:int|i4)>\\s*(?P<a>-?\\d{1,10})\\s*</(?:int|i4)>[\\s\\S]{0,256}?<value>\\s*<(?:int|i4)>\\s*(?P<b>-?\\d{1,10})\\s*</(?:int|i4)>)?',
         'ci' => false,
         'capture' => true,
       ),
