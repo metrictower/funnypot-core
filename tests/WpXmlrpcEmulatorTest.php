@@ -166,16 +166,97 @@ final class WpXmlrpcEmulatorTest extends TestCase
         }
     }
 
-    public function test_multicall_stopgap_is_a_bounded_fault_array(): void
+    /** Build a system.multicall body wrapping $n wp.getUsersBlogs credential-guess sub-calls. */
+    private function multicallBody(int $n, string $method = 'wp.getUsersBlogs'): string
     {
+        $sub = '<value><struct>'
+            . '<member><name>methodName</name><value><string>' . $method . '</string></value></member>'
+            . '<member><name>params</name><value><array><data>'
+            . '<value><array><data><value><string>admin</string></value><value><string>guess</string></value></data></array></value>'
+            . '</data></array></value></member>'
+            . '</struct></value>';
+        $body = '<?xml version="1.0"?><methodCall><methodName>system.multicall</methodName>'
+            . '<params><param><value><array><data>';
+        for ($i = 0; $i < $n; $i++) {
+            $body .= $sub;
+        }
+
+        return $body . '</data></array></value></param></params></methodCall>';
+    }
+
+    public function test_multicall_fans_out_one_fault_per_subcall(): void
+    {
+        // The iterate primitive emits ONE result entry per parsed sub-call — a true N-in→N-out
+        // multicall, not the old single-entry stopgap.
+        $r = $this->serve('POST', '/wp/xmlrpc.php', '', $this->multicallBody(3));
+        self::assertNotNull($r);
+        self::assertSame(['attack-wp-xmlrpc-multicall'], $r->satisfies->templateIds());
+        $this->assertWellFormedXml($r->body, 'multicall fan-out');
+        self::assertSame(3, substr_count($r->body, '<int>403</int>'), 'three sub-calls must yield three fault entries');
+        self::assertStringContainsString('Incorrect username or password.', $r->body);
+    }
+
+    public function test_multicall_upholds_the_credential_oracle(): void
+    {
+        // Even wrapping wp.getUsersBlogs (what brute tools multicall), every entry is the same
+        // bad-credentials fault — there is NO success entry: no blog-struct, no isAdmin/blogName.
+        $r = $this->serve('POST', '/wp/xmlrpc.php', '', $this->multicallBody(5));
+        self::assertNotNull($r);
+        self::assertSame(5, substr_count($r->body, '<int>403</int>'));
+        self::assertDoesNotMatchRegularExpression('/isAdmin|blogName|xmlrpc_url|blogid/i', $r->body);
+        // No sub-call is answered with a one-element success array (IXR wraps a multicall success as
+        // <array><data><value>…</value></data></array>); the only <string> values are the fault text.
+        preg_match_all('/<string>([^<]*)<\/string>/', $r->body, $m);
+        foreach ($m[1] as $s) {
+            self::assertSame('Incorrect username or password.', $s, 'a multicall entry leaked a non-fault value');
+        }
+    }
+
+    public function test_multicall_is_amplification_capped(): void
+    {
+        // A huge sub-call list is clamped by the code constant MAX_ITERATE_ITEMS (64) — no
+        // response amplification regardless of how many guesses are packed in.
+        $r = $this->serve('POST', '/wp/xmlrpc.php', '', $this->multicallBody(1000));
+        self::assertNotNull($r);
+        $this->assertWellFormedXml($r->body, 'capped multicall');
+        self::assertSame(64, substr_count($r->body, '<int>403</int>'), 'fan-out must be hard-capped at MAX_ITERATE_ITEMS');
+    }
+
+    public function test_multicall_with_no_subcalls_is_an_empty_array(): void
+    {
+        // A bare system.multicall parses zero sub-calls — real WP returns an empty array, and the
+        // response is still well-formed and carries no fault entry.
         $r = $this->serve('POST', '/wp/xmlrpc.php', '', '<methodCall><methodName>system.multicall</methodName></methodCall>');
         self::assertNotNull($r);
-        $this->assertWellFormedXml($r->body, 'multicall');
-        // Fixed single-entry array carrying the bad-creds fault: true fan-out is deferred (iterate).
-        self::assertStringContainsString('<array>', $r->body);
-        self::assertStringContainsString('<int>403</int>', $r->body);
-        self::assertStringContainsString('Incorrect username or password.', $r->body);
-        self::assertDoesNotMatchRegularExpression('/isAdmin|blogName|xmlrpc_url/i', $r->body);
+        self::assertSame(['attack-wp-xmlrpc-multicall'], $r->satisfies->templateIds());
+        $this->assertWellFormedXml($r->body, 'empty multicall');
+        self::assertStringContainsString('<array><data>', $r->body);
+        self::assertSame(0, substr_count($r->body, '<int>403</int>'));
+    }
+
+    // --- demo.addTwoNumbers: real arithmetic via the arith-eval primitive --------------------------
+
+    public function test_add_two_numbers_returns_the_sum(): void
+    {
+        $r = $this->serve('POST', '/wp/xmlrpc.php', '', '<methodCall><methodName>demo.addTwoNumbers</methodName>'
+            . '<params><param><value><int>44</int></value></param><param><value><int>1</int></value></param></params></methodCall>');
+        self::assertNotNull($r);
+        self::assertSame(['attack-wp-xmlrpc-addtwo'], $r->satisfies->templateIds());
+        self::assertSame(200, $r->status);
+        $this->assertWellFormedXml($r->body, 'addTwoNumbers sum');
+        self::assertStringContainsString('<int>45</int>', $r->body);
+        self::assertStringNotContainsString('{{', $r->body);
+    }
+
+    public function test_add_two_numbers_bad_params_is_invalid_params_not_unknown_method(): void
+    {
+        // A bare/param-less call still matches the addtwo rule; arith-eval declines and the base
+        // "invalid method parameters" fault is served — never -32601 (which would out the method).
+        $r = $this->serve('POST', '/wp/xmlrpc.php', '', '<methodCall><methodName>demo.addTwoNumbers</methodName></methodCall>');
+        self::assertNotNull($r);
+        $this->assertWellFormedXml($r->body, 'addTwoNumbers invalid params');
+        self::assertStringContainsString('<int>-32602</int>', $r->body);
+        self::assertStringNotContainsString('-32601', $r->body);
     }
 
     // --- pingback.ping: ZERO egress ---------------------------------------------------------
@@ -420,7 +501,8 @@ final class WpXmlrpcEmulatorTest extends TestCase
     {
         $names = $this->advertisedMethods();
         self::assertSame(array_values(array_unique($names)), $names, 'listMethods must have no duplicate names');
-        self::assertNotContains('demo.addTwoNumbers', $names, 'demo.addTwoNumbers needs arith-eval; keep it out of the list');
+        // demo.addTwoNumbers is now handled (by the arith-eval priority-23 rule), so it is advertised.
+        self::assertContains('demo.addTwoNumbers', $names, 'demo.addTwoNumbers is now implemented and must be advertised');
     }
 
     public function test_every_advertised_method_is_handled_not_minus32601(): void

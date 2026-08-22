@@ -1,0 +1,117 @@
+id: attack-wp-xmlrpc-multicall
+severity: high
+# Priority 23 sorts ahead of the 26 POST dispatcher, so system.multicall is handled here (true
+# fan-out) rather than by rule 26. A branch case cannot invoke a nested behavior, so the iterate
+# primitive gets its own top-level rule; it matches a disjoint method name from the addTwoNumbers
+# rule (also priority 23), so their mutual order is irrelevant.
+priority: 23
+tags: [attack, wordpress, xmlrpc]
+# WordPress system.multicall — a real multicall fans out N sub-calls to N result entries. Credential
+# brute tools abuse it to try many logins in one request (each sub-call wraps wp.getUsersBlogs with a
+# guess), so a believable reply must return ONE entry per sub-call. The iterate primitive parses the
+# sub-call structs from the body and emits one fixed 403 "bad credentials" fault per sub-call.
+#
+# CREDENTIAL-ORACLE INVARIANT: every entry is the SAME bad-credentials fault. There is no success
+# branch — no per-call <struct> with blogName/isAdmin, no reflection of the wrapped method — so the
+# fan-out looks like a real login oracle yet never authenticates, exactly as the rule-26 oracle does.
+# AMPLIFICATION-CAPPED: the item count is bounded by MAX_ITERATE_ITEMS in code (and the body surface
+# is capped before parse), so a huge sub-call list can never blow the response up. The parse regex is
+# code-authored and token-bounded — no attacker regex runs. ZERO EGRESS: pure string parse + render.
+match:
+  - in: path
+    regex: '(?:^|/)xmlrpc\.php(?:/|$)'
+    ci: false
+  - in: method
+    regex: '^POST$'
+    ci: false
+  - in: body
+    regex: '<methodCall\b[^>]*>\s*(?:<!--[\s\S]{0,1024}?-->\s*)*<methodName\b[^>]*>\s*(?:<!\[CDATA\[\s*)?system\.multicall\b'
+    ci: false
+status: 200
+behavior: iterate
+iterate:
+  source: body
+  parse: xmlrpc-multicall
+  max_items: 64
+  response:
+    headers: { Content-Type: "text/xml; charset=UTF-8" }
+  # Fixed 403 fault per sub-call — reflects NOTHING (upholds the credential oracle). Serialized as
+  # IXR_Value would emit it (ragged 2-space struct, not re-indented).
+  item:
+    body: |
+      <value><struct>
+      <member><name>faultCode</name><value><int>403</int></value></member>
+      <member><name>faultString</name><value><string>Incorrect username or password.</string></value></member>
+      </struct></value>
+  wrap:
+    open: |
+      <?xml version="1.0" encoding="UTF-8"?>
+      <methodResponse>
+        <params>
+          <param>
+            <value>
+            <array><data>
+    close: |
+      </data></array>
+            </value>
+          </param>
+        </params>
+      </methodResponse>
+  # Zero sub-calls parsed (e.g. a bare system.multicall) — real WP returns an empty array.
+  empty:
+    response:
+      headers: { Content-Type: "text/xml; charset=UTF-8" }
+      body: |
+        <?xml version="1.0" encoding="UTF-8"?>
+        <methodResponse>
+          <params>
+            <param>
+              <value>
+              <array><data>
+        </data></array>
+              </value>
+            </param>
+          </params>
+        </methodResponse>
+  # Port path (no request body) or an unparseable body — a single-entry bad-creds fault array, still
+  # bounded and still oracle-safe (no success entry).
+  fallback:
+    response:
+      headers: { Content-Type: "text/xml; charset=UTF-8" }
+      body: |
+        <?xml version="1.0" encoding="UTF-8"?>
+        <methodResponse>
+          <params>
+            <param>
+              <value>
+              <array><data>
+        <value><struct>
+        <member><name>faultCode</name><value><int>403</int></value></member>
+        <member><name>faultString</name><value><string>Incorrect username or password.</string></value></member>
+        </struct></value>
+        </data></array>
+              </value>
+            </param>
+          </params>
+        </methodResponse>
+# Ultimate fallback (required base response) — the same single-entry fault array as `fallback`, so
+# any unexpected path still answers with a plausible, oracle-safe multicall.
+response:
+  headers: { Content-Type: "text/xml; charset=UTF-8" }
+  body: |
+    <?xml version="1.0" encoding="UTF-8"?>
+    <methodResponse>
+      <params>
+        <param>
+          <value>
+          <array><data>
+    <value><struct>
+    <member><name>faultCode</name><value><int>403</int></value></member>
+    <member><name>faultString</name><value><string>Incorrect username or password.</string></value></member>
+    </struct></value>
+    </data></array>
+          </value>
+        </param>
+      </params>
+    </methodResponse>
+expect: ['methodResponse', 'faultCode', '403']

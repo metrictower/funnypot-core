@@ -191,6 +191,49 @@ final class RulesUpdaterTest extends TestCase
         self::assertNull($this->currentTarget());
     }
 
+    public function test_behavior_primitive_served_shape_fingerprint_leak_is_rejected(): void
+    {
+        // arith-eval serves its own `response`, and iterate serves wrap.open/close + the per-sub-call
+        // `item` — nested served shapes that never reach the top-level body. servedTexts() descends
+        // into each, so a detector signature planted there (top-level body kept clean) must fail the
+        // update before activation, proving the descent ran fetch-time.
+        $leakyRules = [
+            'arith-eval.response' => [[
+                'id' => 'attack-arith-leak',
+                'match' => [['in' => 'query', 'contains' => 'x']],
+                'response' => ['headers' => [], 'body' => 'clean top-level'],
+                'behavior' => 'arith-eval',
+                'arith-eval' => [
+                    'left' => 'a', 'right' => 'b', 'op' => 'add',
+                    'response' => ['headers' => [], 'body' => 'blocked by OWASP_CRS ruleset'],
+                ],
+            ]],
+            'iterate.wrap' => [[
+                'id' => 'attack-iterate-leak',
+                'match' => [['in' => 'query', 'contains' => 'x']],
+                'response' => ['headers' => [], 'body' => 'clean top-level'],
+                'behavior' => 'iterate',
+                'iterate' => [
+                    'parse' => 'xmlrpc-multicall', 'max_items' => 8,
+                    'wrap' => ['open' => 'detected via libinjection', 'close' => '</r>'],
+                    'item' => ['headers' => [], 'body' => '<m/>'],
+                ],
+            ]],
+        ];
+
+        $seq = 1;
+        foreach ($leakyRules as $shape => $rules) {
+            $version = 'v' . $seq;
+            $this->factory->publish($this->fetcher, $version, $seq, $this->factory->engineFiles(100, 100, $rules));
+
+            $result = $this->updater($version)->update();
+            self::assertFalse($result->success, "{$shape} leak must fail the update");
+            self::assertSame('fingerprint-leak', $result->status, "{$shape} leak");
+            self::assertNull($this->currentTarget(), "{$shape} leak must not activate anything");
+            $seq++;
+        }
+    }
+
     public function test_route_rule_fingerprint_leak_is_rejected(): void
     {
         // The installed engine serves ROUTE responses too, so runSafetySubset() re-scans the route

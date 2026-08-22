@@ -90,6 +90,16 @@ final class TemplateAttackEmulator
             'traversal-read' => function (array $config, array $captures, ?RequestContext $r, int $seed, Clock $clock, EphemeralStore $store): ?EmulatedContent {
                 return $this->handleTraversalRead($config, $captures, $seed);
             },
+            // Position-blind: computes over reflected captures only (a hand-written integer parser,
+            // never eval), so it renders identically on the facade and the port — $r/clock/store unused.
+            'arith-eval' => function (array $config, array $captures, ?RequestContext $r, int $seed, Clock $clock, EphemeralStore $store): ?EmulatedContent {
+                return $this->handleArithEval($config, $captures, $seed);
+            },
+            // Parses the request body into a bounded sub-call list and fans out one item per sub-call.
+            // Needs $r->rawBody, so it degrades to its request-free fallback on the position-blind port.
+            'iterate' => function (array $config, array $captures, ?RequestContext $r, int $seed, Clock $clock, EphemeralStore $store): ?EmulatedContent {
+                return $this->handleIterate($config, $captures, $r, $seed);
+            },
         ];
     }
 
@@ -365,6 +375,272 @@ final class TemplateAttackEmulator
     }
 
     /**
+     * The `arith-eval` behavior primitive: compute a small integer expression over reflected
+     * captures and render the rule's `response` with the result bound into a capture key. The
+     * computation is a hand-written integer parser (NEVER eval), the operator set is closed
+     * ({add,sub,mul} — no division, so it cannot divide by zero and cannot throw), and every
+     * operand is magnitude-bounded. Any grammar or bound miss returns null so renderRule falls
+     * back to the rule's base response — the only-upgrade-a-404 invariant, never a 500.
+     *
+     * Captures-only, so it renders identically on the facade and the position-blind port.
+     *
+     * @param array<string,mixed>      $config   the rule's `arith-eval` config
+     * @param array<int|string,string> $captures reflected capture groups from the top-level match
+     */
+    private function handleArithEval(array $config, array $captures, int $seed): ?EmulatedContent
+    {
+        $value = $this->arithCompute($config, $captures);
+        if ($value === null) {
+            return null;
+        }
+        // Pure digits (XML/HTML-inert) bound into the authored capture key, reflected via {{match.KEY}}.
+        $bind = (string) (isset($config['bind']) ? $config['bind'] : 'result');
+        $captures[$bind] = (string) $value;
+
+        $response = (array) (isset($config['response']) ? $config['response'] : []);
+        $status = isset($response['status']) ? (int) $response['status'] : null;
+
+        return $this->renderResponse($response, $captures, $seed, $status);
+    }
+
+    /**
+     * Compute an arith-eval result, or null on any grammar/bound miss. Two authored forms:
+     *  - fixed op:  `left`/`right` (capture keys) + `op` in {add,sub,mul};
+     *  - expression: `expr` (a capture key) holding "<int> <op> <int>", with `ops` naming the
+     *    operators authorized for that surface.
+     * Operands are parsed by a fixed anchored regex (digits only) and rejected outside ±max_operand
+     * (re-clamped here to ARITH_MAX_OPERAND regardless of the authored value, defence in depth).
+     *
+     * @param array<string,mixed>      $config
+     * @param array<int|string,string> $captures
+     */
+    private function arithCompute(array $config, array $captures): ?int
+    {
+        $max = isset($config['max_operand']) ? (int) $config['max_operand'] : self::ARITH_MAX_OPERAND;
+        if ($max < 1 || $max > self::ARITH_MAX_OPERAND) {
+            $max = self::ARITH_MAX_OPERAND;
+        }
+
+        if (isset($config['expr'])) {
+            $expr = (string) (isset($captures[(string) $config['expr']]) ? $captures[(string) $config['expr']] : '');
+            if (preg_match('/^\s*(-?\d{1,15})\s*([+\-*])\s*(-?\d{1,15})\s*$/', $expr, $m) !== 1) {
+                return null;
+            }
+            $op = $this->arithOpName($m[2]);
+            if ($op === null || !$this->arithOpAuthorized($op, $config)) {
+                return null;
+            }
+
+            return $this->arithApply($op, (int) $m[1], (int) $m[3], $max);
+        }
+
+        $op = (string) (isset($config['op']) ? $config['op'] : '');
+        if ($op !== 'add' && $op !== 'sub' && $op !== 'mul') {
+            return null;
+        }
+        $left = (string) (isset($captures[(string) ($config['left'] ?? '')]) ? $captures[(string) $config['left']] : '');
+        $right = (string) (isset($captures[(string) ($config['right'] ?? '')]) ? $captures[(string) $config['right']] : '');
+        if (preg_match('/^-?\d{1,15}$/', $left) !== 1 || preg_match('/^-?\d{1,15}$/', $right) !== 1) {
+            return null;
+        }
+
+        return $this->arithApply($op, (int) $left, (int) $right, $max);
+    }
+
+    /** Map an operator character to its op name, or null if it is not one of the closed set. */
+    private function arithOpName(string $char): ?string
+    {
+        if ($char === '+') {
+            return 'add';
+        }
+        if ($char === '-') {
+            return 'sub';
+        }
+        if ($char === '*') {
+            return 'mul';
+        }
+
+        return null;
+    }
+
+    /**
+     * Is $op both in the closed builtin set AND authorized by this config's `ops` list? An absent
+     * `ops` means no per-surface restriction beyond the closed set.
+     *
+     * @param array<string,mixed> $config
+     */
+    private function arithOpAuthorized(string $op, array $config): bool
+    {
+        if ($op !== 'add' && $op !== 'sub' && $op !== 'mul') {
+            return false;
+        }
+        if (!isset($config['ops'])) {
+            return true;
+        }
+        foreach ((array) $config['ops'] as $allowed) {
+            if ((string) $allowed === $op) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * Apply a closed-set op to two magnitude-bounded operands. Returns null when an operand is out
+     * of bounds, or when a product overflows to float (a 32-bit host) — output must stay pure digits.
+     */
+    private function arithApply(string $op, int $a, int $b, int $max): ?int
+    {
+        if ($a < -$max || $a > $max || $b < -$max || $b > $max) {
+            return null;
+        }
+        if ($op === 'add') {
+            return $a + $b;
+        }
+        if ($op === 'sub') {
+            return $a - $b;
+        }
+        $product = $a * $b;
+        if (!is_int($product)) {
+            return null;
+        }
+
+        return $product;
+    }
+
+    /**
+     * The `iterate` behavior primitive: parse the request body into a bounded list of sub-calls and
+     * render one `item` per sub-call, wrapped by `wrap.open`/`wrap.close`. Used to emulate an XML-RPC
+     * system.multicall fan-out: one fault entry per sub-call. Safety is structural — the number of
+     * items is capped by the CODE constant MAX_ITERATE_ITEMS regardless of the authored/actual count
+     * (no amplification), the surface is capped before the compiler-authored parse regex runs (no
+     * ReDoS, no attacker regex), and there is ZERO egress (pure string parse + render).
+     *
+     * The request is present only on the facade path; the position-blind port leaves $r null, so
+     * there is no body to parse and the primitive degrades to its request-free `fallback` (else the
+     * rule's base response). Any parse fault likewise degrades — never a 500.
+     *
+     * @param array<string,mixed>      $config   the rule's `iterate` config
+     * @param array<int|string,string> $captures reflected capture groups from the top-level match
+     */
+    private function handleIterate(array $config, array $captures, ?RequestContext $r, int $seed): ?EmulatedContent
+    {
+        if ($r === null) {
+            return $this->iterateFallback($config, $captures, $seed);
+        }
+        $items = $this->iterateParse($config, (string) ($r->rawBody ?? ''));
+        if ($items === null) {
+            return $this->iterateFallback($config, $captures, $seed);
+        }
+        if ($items === []) {
+            return $this->iterateEmpty($config, $captures, $seed);
+        }
+
+        // HARD cap in code: the authored max_items is already clamped at compile, but re-clamp here so
+        // a hand-crafted rules artifact can never make the fan-out amplify.
+        $cap = isset($config['max_items']) ? (int) $config['max_items'] : self::MAX_ITERATE_ITEMS;
+        if ($cap > self::MAX_ITERATE_ITEMS) {
+            $cap = self::MAX_ITERATE_ITEMS;
+        }
+        if ($cap < 1) {
+            $cap = 1;
+        }
+        $items = array_slice($items, 0, $cap);
+
+        $itemBody = (string) (isset($config['item']['body']) ? $config['item']['body'] : '');
+        $body = (string) (isset($config['wrap']['open']) ? $config['wrap']['open'] : '');
+        foreach ($items as $i => $item) {
+            // Per-item reflection rides the existing capture surface: {{xml:match.item.method}} (the
+            // bounded, XML-escaped sub-call method) and {{match.item.index}}.
+            $per = $captures;
+            $per['item.method'] = (string) $item['method'];
+            $per['item.index'] = (string) $i;
+            $body .= $this->renderer->render($itemBody, $per, $seed, $this->canary);
+        }
+        $body .= (string) (isset($config['wrap']['close']) ? $config['wrap']['close'] : '');
+
+        $headers = [];
+        foreach ((array) (isset($config['response']['headers']) ? $config['response']['headers'] : []) as $name => $value) {
+            $headers[(string) $name] = $this->renderer->render((string) $value, $captures, $seed, $this->canary);
+        }
+        $status = isset($config['response']['status']) ? (int) $config['response']['status'] : null;
+
+        return new EmulatedContent($body, $headers, $status);
+    }
+
+    /**
+     * Parse the request body into a bounded sub-call list for `iterate`. The parser is a CLOSED set
+     * keyed by `parse` — a compiler-authored, token-bounded regex only (never an attacker regex), and
+     * the surface is capped before it runs, so there is no ReDoS. Returns the sub-calls (each
+     * ['method'=>string]), an empty list when none parse, or null on a PCRE error (fail-safe).
+     *
+     * @param array<string,mixed> $config
+     * @return array<int,array<string,string>>|null
+     */
+    private function iterateParse(array $config, string $body): ?array
+    {
+        if (strlen($body) > self::MAX_SURFACE) {
+            $body = substr($body, 0, self::MAX_SURFACE);
+        }
+        $parse = (string) (isset($config['parse']) ? $config['parse'] : '');
+        if ($parse === 'xmlrpc-multicall') {
+            // Each XML-RPC multicall sub-call is a struct member `<name>methodName</name><value>
+            // <string>NAME</string>` — count those, capturing the method with the same bounded class
+            // the top-level xmlrpc rule uses. The surface cap plus the caller's array_slice bound the
+            // count twice.
+            $n = preg_match_all(
+                '~<name>\s*methodName\s*</name>\s*<value>\s*(?:<string>\s*)?([\w.]{0,64})~',
+                $body,
+                $m
+            );
+            if ($n === false || preg_last_error() !== PREG_NO_ERROR) {
+                return null;
+            }
+            $items = [];
+            foreach ($m[1] as $method) {
+                $items[] = ['method' => (string) $method];
+            }
+
+            return $items;
+        }
+
+        return null;
+    }
+
+    /**
+     * The request-free fallback for `iterate` (port path or a parse fault): the authored
+     * `fallback.response`, else null so renderRule serves the rule's base response.
+     *
+     * @param array<string,mixed>      $config
+     * @param array<int|string,string> $captures
+     */
+    private function iterateFallback(array $config, array $captures, int $seed): ?EmulatedContent
+    {
+        if (isset($config['fallback']['response'])) {
+            return $this->renderCaseResponse((array) $config['fallback']['response'], $captures, $seed);
+        }
+
+        return null;
+    }
+
+    /**
+     * The zero-sub-calls response for `iterate`: the authored `empty.response`, else null so
+     * renderRule serves the rule's base response.
+     *
+     * @param array<string,mixed>      $config
+     * @param array<int|string,string> $captures
+     */
+    private function iterateEmpty(array $config, array $captures, int $seed): ?EmulatedContent
+    {
+        if (isset($config['empty']['response'])) {
+            return $this->renderCaseResponse((array) $config['empty']['response'], $captures, $seed);
+        }
+
+        return null;
+    }
+
+    /**
      * The `traversal-read` behavior primitive: emulate a bounded arbitrary-file-read. The reflected
      * `path` capture is canonicalized purely in-string (NO filesystem access whatsoever), then matched
      * against the rule's authored `allow` list in order; the first hit renders its `content` (a
@@ -531,6 +807,12 @@ final class TemplateAttackEmulator
 
     /** Upper bound on segments the traversal-read canonicalizer walks — bounds the resolve loop. */
     private const MAX_TRAVERSAL_SEGMENTS = 4096;
+
+    /** Hard ceiling on an arith-eval operand's magnitude; the authored max_operand cannot exceed it. */
+    private const ARITH_MAX_OPERAND = 2147483647;
+
+    /** Hard ceiling on iterate fan-out items, enforced regardless of the authored count — no amplification. */
+    private const MAX_ITERATE_ITEMS = 64;
 
     /**
      * The literal pre-filter test for matchRule(): is the rule's required literal absent from the

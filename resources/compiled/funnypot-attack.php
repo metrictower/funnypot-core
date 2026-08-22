@@ -250,6 +250,244 @@ return array (
   ),
   7 => 
   array (
+    'id' => 'attack-wp-xmlrpc-addtwo',
+    'severity' => 'high',
+    'tags' => 
+    array (
+      0 => 'attack',
+      1 => 'wordpress',
+      2 => 'xmlrpc',
+    ),
+    'status' => 200,
+    'match' => 
+    array (
+      0 => 
+      array (
+        'in' => 'path',
+        'regex' => '(?:^|/)xmlrpc\\.php(?:/|$)',
+        'ci' => false,
+      ),
+      1 => 
+      array (
+        'in' => 'method',
+        'regex' => '^POST$',
+        'ci' => false,
+      ),
+      2 => 
+      array (
+        'in' => 'body',
+        'regex' => '<methodCall\\b[^>]*>\\s*(?:<!--[\\s\\S]{0,1024}?-->\\s*)*<methodName\\b[^>]*>\\s*(?:<!\\[CDATA\\[\\s*)?demo\\.addTwoNumbers\\b(?:[\\s\\S]{0,256}?<value>\\s*<(?:int|i4)>\\s*(?P<a>-?\\d{1,9})\\s*</(?:int|i4)>[\\s\\S]{0,256}?<value>\\s*<(?:int|i4)>\\s*(?P<b>-?\\d{1,9})\\s*</(?:int|i4)>)?',
+        'ci' => false,
+        'capture' => true,
+      ),
+    ),
+    'response' => 
+    array (
+      'headers' => 
+      array (
+        'Content-Type' => 'text/xml; charset=UTF-8',
+      ),
+      'body' => '<?xml version="1.0" encoding="UTF-8"?>
+<methodResponse>
+  <fault>
+    <value>
+      <struct>
+        <member>
+          <name>faultCode</name>
+          <value><int>-32602</int></value>
+        </member>
+        <member>
+          <name>faultString</name>
+          <value><string>server error. invalid method parameters</string></value>
+        </member>
+      </struct>
+    </value>
+  </fault>
+</methodResponse>
+',
+    ),
+    'lit' => '<methodCall',
+    'lit_in' => 'body',
+    'lit_ci' => false,
+    'behavior' => 'arith-eval',
+    'arith-eval' => 
+    array (
+      'response' => 
+      array (
+        'headers' => 
+        array (
+          'Content-Type' => 'text/xml; charset=UTF-8',
+        ),
+        'body' => '<?xml version="1.0" encoding="UTF-8"?>
+<methodResponse>
+  <params>
+    <param>
+      <value>
+      <int>{{match.sum}}</int>
+      </value>
+    </param>
+  </params>
+</methodResponse>
+',
+      ),
+      'left' => 'a',
+      'right' => 'b',
+      'op' => 'add',
+      'max_operand' => 2147483647,
+      'bind' => 'sum',
+    ),
+  ),
+  8 => 
+  array (
+    'id' => 'attack-wp-xmlrpc-multicall',
+    'severity' => 'high',
+    'tags' => 
+    array (
+      0 => 'attack',
+      1 => 'wordpress',
+      2 => 'xmlrpc',
+    ),
+    'status' => 200,
+    'match' => 
+    array (
+      0 => 
+      array (
+        'in' => 'path',
+        'regex' => '(?:^|/)xmlrpc\\.php(?:/|$)',
+        'ci' => false,
+      ),
+      1 => 
+      array (
+        'in' => 'method',
+        'regex' => '^POST$',
+        'ci' => false,
+      ),
+      2 => 
+      array (
+        'in' => 'body',
+        'regex' => '<methodCall\\b[^>]*>\\s*(?:<!--[\\s\\S]{0,1024}?-->\\s*)*<methodName\\b[^>]*>\\s*(?:<!\\[CDATA\\[\\s*)?system\\.multicall\\b',
+        'ci' => false,
+      ),
+    ),
+    'response' => 
+    array (
+      'headers' => 
+      array (
+        'Content-Type' => 'text/xml; charset=UTF-8',
+      ),
+      'body' => '<?xml version="1.0" encoding="UTF-8"?>
+<methodResponse>
+  <params>
+    <param>
+      <value>
+      <array><data>
+<value><struct>
+<member><name>faultCode</name><value><int>403</int></value></member>
+<member><name>faultString</name><value><string>Incorrect username or password.</string></value></member>
+</struct></value>
+</data></array>
+      </value>
+    </param>
+  </params>
+</methodResponse>
+',
+    ),
+    'lit' => '<methodCall',
+    'lit_in' => 'body',
+    'lit_ci' => false,
+    'behavior' => 'iterate',
+    'iterate' => 
+    array (
+      'source' => 'body',
+      'parse' => 'xmlrpc-multicall',
+      'max_items' => 64,
+      'item' => 
+      array (
+        'headers' => 
+        array (
+        ),
+        'body' => '<value><struct>
+<member><name>faultCode</name><value><int>403</int></value></member>
+<member><name>faultString</name><value><string>Incorrect username or password.</string></value></member>
+</struct></value>
+',
+      ),
+      'wrap' => 
+      array (
+        'open' => '<?xml version="1.0" encoding="UTF-8"?>
+<methodResponse>
+  <params>
+    <param>
+      <value>
+      <array><data>
+',
+        'close' => '</data></array>
+      </value>
+    </param>
+  </params>
+</methodResponse>
+',
+      ),
+      'response' => 
+      array (
+        'headers' => 
+        array (
+          'Content-Type' => 'text/xml; charset=UTF-8',
+        ),
+        'body' => '',
+      ),
+      'empty' => 
+      array (
+        'response' => 
+        array (
+          'headers' => 
+          array (
+            'Content-Type' => 'text/xml; charset=UTF-8',
+          ),
+          'body' => '<?xml version="1.0" encoding="UTF-8"?>
+<methodResponse>
+  <params>
+    <param>
+      <value>
+      <array><data>
+</data></array>
+      </value>
+    </param>
+  </params>
+</methodResponse>
+',
+        ),
+      ),
+      'fallback' => 
+      array (
+        'response' => 
+        array (
+          'headers' => 
+          array (
+            'Content-Type' => 'text/xml; charset=UTF-8',
+          ),
+          'body' => '<?xml version="1.0" encoding="UTF-8"?>
+<methodResponse>
+  <params>
+    <param>
+      <value>
+      <array><data>
+<value><struct>
+<member><name>faultCode</name><value><int>403</int></value></member>
+<member><name>faultString</name><value><string>Incorrect username or password.</string></value></member>
+</struct></value>
+</data></array>
+      </value>
+    </param>
+  </params>
+</methodResponse>
+',
+        ),
+      ),
+    ),
+  ),
+  9 => 
+  array (
     'id' => 'attack-lfi-smbconf',
     'severity' => 'high',
     'tags' => 
@@ -292,7 +530,7 @@ return array (
     'lit_in' => 'request',
     'lit_ci' => true,
   ),
-  8 => 
+  10 => 
   array (
     'id' => 'attack-lfi-environ',
     'severity' => 'high',
@@ -324,7 +562,7 @@ return array (
     'lit_in' => 'request',
     'lit_ci' => true,
   ),
-  9 => 
+  11 => 
   array (
     'id' => 'attack-wp-xmlrpc',
     'severity' => 'high',
@@ -446,6 +684,7 @@ return array (
   <value><string>system.listMethods</string></value>
   <value><string>system.getCapabilities</string></value>
   <value><string>demo.sayHello</string></value>
+  <value><string>demo.addTwoNumbers</string></value>
   <value><string>pingback.extensions.getPingbacks</string></value>
   <value><string>pingback.ping</string></value>
   <value><string>mt.publishPost</string></value>
@@ -574,38 +813,6 @@ return array (
           'when' => 
           array (
             'in' => 'match.1',
-            'regex' => '^system\\.multicall$',
-            'ci' => false,
-          ),
-          'response' => 
-          array (
-            'headers' => 
-            array (
-              'Content-Type' => 'text/xml; charset=UTF-8',
-            ),
-            'body' => '<?xml version="1.0" encoding="UTF-8"?>
-<methodResponse>
-  <params>
-    <param>
-      <value>
-      <array><data>
-  <value><struct>
-  <member><name>faultCode</name><value><int>403</int></value></member>
-  <member><name>faultString</name><value><string>Incorrect username or password.</string></value></member>
-</struct></value>
-</data></array>
-      </value>
-    </param>
-  </params>
-</methodResponse>
-',
-          ),
-        ),
-        4 => 
-        array (
-          'when' => 
-          array (
-            'in' => 'match.1',
             'regex' => '^demo\\.sayHello$',
             'ci' => false,
           ),
@@ -628,7 +835,7 @@ return array (
 ',
           ),
         ),
-        5 => 
+        4 => 
         array (
           'when' => 
           array (
@@ -662,7 +869,7 @@ return array (
 ',
           ),
         ),
-        6 => 
+        5 => 
         array (
           'when' => 
           array (
@@ -696,7 +903,7 @@ return array (
 ',
           ),
         ),
-        7 => 
+        6 => 
         array (
           'when' => 
           array (
@@ -720,6 +927,7 @@ return array (
   <value><string>system.listMethods</string></value>
   <value><string>system.getCapabilities</string></value>
   <value><string>demo.sayHello</string></value>
+  <value><string>demo.addTwoNumbers</string></value>
   <value><string>pingback.extensions.getPingbacks</string></value>
   <value><string>pingback.ping</string></value>
   <value><string>mt.publishPost</string></value>
@@ -803,7 +1011,7 @@ return array (
 ',
           ),
         ),
-        8 => 
+        7 => 
         array (
           'when' => 
           array (
@@ -831,7 +1039,7 @@ return array (
 ',
           ),
         ),
-        9 => 
+        8 => 
         array (
           'when' => 
           array (
@@ -865,7 +1073,7 @@ return array (
 ',
           ),
         ),
-        10 => 
+        9 => 
         array (
           'when' => 
           array (
@@ -902,7 +1110,7 @@ return array (
       ),
     ),
   ),
-  10 => 
+  12 => 
   array (
     'id' => 'attack-wp-xmlrpc-get',
     'severity' => 'info',
@@ -1014,7 +1222,7 @@ return array (
       ),
     ),
   ),
-  11 => 
+  13 => 
   array (
     'id' => 'attack-lfi-shadow',
     'severity' => 'high',
@@ -1045,7 +1253,7 @@ return array (
     'lit_in' => 'request',
     'lit_ci' => true,
   ),
-  12 => 
+  14 => 
   array (
     'id' => 'attack-lfi-group',
     'severity' => 'high',
@@ -1076,7 +1284,7 @@ return array (
     'lit_in' => 'request',
     'lit_ci' => true,
   ),
-  13 => 
+  15 => 
   array (
     'id' => 'attack-lfi-windows',
     'severity' => 'high',
@@ -1105,7 +1313,7 @@ return array (
       'body' => '{{canned.winini}}',
     ),
   ),
-  14 => 
+  16 => 
   array (
     'id' => 'attack-lfi-unix',
     'severity' => 'high',
@@ -1133,7 +1341,7 @@ return array (
       'body' => '{{canned.passwd}}',
     ),
   ),
-  15 => 
+  17 => 
   array (
     'id' => 'attack-cmdi-windows',
     'severity' => 'critical',
@@ -1169,7 +1377,7 @@ Ethernet adapter Ethernet0:
 ',
     ),
   ),
-  16 => 
+  18 => 
   array (
     'id' => 'attack-cmdi-unix',
     'severity' => 'critical',
@@ -1197,7 +1405,7 @@ Ethernet adapter Ethernet0:
       'body' => '{{canned.uid}}',
     ),
   ),
-  17 => 
+  19 => 
   array (
     'id' => 'attack-ssti-twig',
     'severity' => 'high',
@@ -1226,7 +1434,7 @@ Ethernet adapter Ethernet0:
 ',
     ),
   ),
-  18 => 
+  20 => 
   array (
     'id' => 'attack-ssti-numeric',
     'severity' => 'high',
@@ -1254,7 +1462,7 @@ Ethernet adapter Ethernet0:
 ',
     ),
   ),
-  19 => 
+  21 => 
   array (
     'id' => 'attack-php-glastopf',
     'severity' => 'critical',
@@ -1286,7 +1494,7 @@ Ethernet adapter Ethernet0:
     'lit_in' => 'request',
     'lit_ci' => true,
   ),
-  20 => 
+  22 => 
   array (
     'id' => 'attack-sqli',
     'severity' => 'high',
@@ -1314,7 +1522,7 @@ Ethernet adapter Ethernet0:
 ',
     ),
   ),
-  21 => 
+  23 => 
   array (
     'id' => 'attack-open-redirect',
     'severity' => 'medium',
@@ -1343,7 +1551,7 @@ Ethernet adapter Ethernet0:
       'body' => '<html><head><title>302 Found</title></head><body>Redirecting...</body></html>',
     ),
   ),
-  22 => 
+  24 => 
   array (
     'id' => 'attack-xss',
     'severity' => 'medium',
@@ -1374,7 +1582,7 @@ Ethernet adapter Ethernet0:
 ',
     ),
   ),
-  23 => 
+  25 => 
   array (
     'id' => 'attack-thinkphp-rce',
     'severity' => 'critical',
@@ -1410,7 +1618,7 @@ Ethernet adapter Ethernet0:
 ',
     ),
   ),
-  24 => 
+  26 => 
   array (
     'id' => 'attack-owncloud-49103',
     'severity' => 'high',
@@ -1453,7 +1661,7 @@ Ethernet adapter Ethernet0:
     'lit_in' => 'path',
     'lit_ci' => true,
   ),
-  25 => 
+  27 => 
   array (
     'id' => 'attack-f5-1388',
     'severity' => 'critical',
@@ -1487,7 +1695,7 @@ Ethernet adapter Ethernet0:
     'lit_in' => 'path',
     'lit_ci' => true,
   ),
-  26 => 
+  28 => 
   array (
     'id' => 'attack-geoserver-36401',
     'severity' => 'critical',
@@ -1530,7 +1738,7 @@ Ethernet adapter Ethernet0:
     'lit_in' => 'path',
     'lit_ci' => true,
   ),
-  27 => 
+  29 => 
   array (
     'id' => 'attack-fortios-40684',
     'severity' => 'critical',
@@ -1569,7 +1777,7 @@ Ethernet adapter Ethernet0:
     'lit_in' => 'path',
     'lit_ci' => true,
   ),
-  28 => 
+  30 => 
   array (
     'id' => 'attack-ivanti-21887',
     'severity' => 'critical',
@@ -1604,7 +1812,7 @@ Ethernet adapter Ethernet0:
     'lit_in' => 'request',
     'lit_ci' => true,
   ),
-  29 => 
+  31 => 
   array (
     'id' => 'attack-citrix-bleed-4966',
     'severity' => 'critical',
@@ -1639,7 +1847,7 @@ Ethernet adapter Ethernet0:
     'lit_in' => 'path',
     'lit_ci' => true,
   ),
-  30 => 
+  32 => 
   array (
     'id' => 'attack-webshell-panel',
     'severity' => 'critical',
@@ -1674,7 +1882,7 @@ $ </pre>
 ',
     ),
   ),
-  31 => 
+  33 => 
   array (
     'id' => 'attack-spring-actuator',
     'severity' => 'high',
@@ -1707,7 +1915,7 @@ $ </pre>
     'lit_in' => 'path',
     'lit_ci' => true,
   ),
-  32 => 
+  34 => 
   array (
     'id' => 'attack-cloud-imds',
     'severity' => 'high',
@@ -1744,7 +1952,7 @@ $ </pre>
 ',
     ),
   ),
-  33 => 
+  35 => 
   array (
     'id' => 'attack-crs-sqli',
     'severity' => 'high',
@@ -1774,7 +1982,7 @@ $ </pre>
 ',
     ),
   ),
-  34 => 
+  36 => 
   array (
     'id' => 'attack-crs-xss',
     'severity' => 'high',
@@ -1806,7 +2014,7 @@ $ </pre>
 ',
     ),
   ),
-  35 => 
+  37 => 
   array (
     'id' => 'attack-crs-lfi',
     'severity' => 'high',
@@ -1835,7 +2043,7 @@ $ </pre>
       'body' => '{{canned.passwd}}',
     ),
   ),
-  36 => 
+  38 => 
   array (
     'id' => 'attack-crs-rce',
     'severity' => 'critical',

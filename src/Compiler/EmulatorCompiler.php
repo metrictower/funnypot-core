@@ -137,14 +137,25 @@ final class EmulatorCompiler
 
         // An optional named behavior primitive. The base `response` above stays the ultimate
         // fallback; the behavior only picks the content when it fires. Unknown names are a build
-        // failure — this milestone ships only `branch` (the other primitives are deferred).
+        // failure — this build knows branch, arith-eval, and iterate (other primitives are deferred).
         if (isset($doc['behavior'])) {
             $behavior = (string) $doc['behavior'];
-            if ($behavior !== 'branch') {
-                throw new RuntimeException("Template {$file}: unknown behavior '{$behavior}'. This build knows only 'branch'.");
+            switch ($behavior) {
+                case 'branch':
+                    $rule['behavior'] = 'branch';
+                    $rule['branch'] = $this->normalizeBranch((array) ($doc['branch'] ?? []), $file);
+                    break;
+                case 'arith-eval':
+                    $rule['behavior'] = 'arith-eval';
+                    $rule['arith-eval'] = $this->normalizeArithEval((array) ($doc['arith-eval'] ?? []), $file);
+                    break;
+                case 'iterate':
+                    $rule['behavior'] = 'iterate';
+                    $rule['iterate'] = $this->normalizeIterate((array) ($doc['iterate'] ?? []), $file);
+                    break;
+                default:
+                    throw new RuntimeException("Template {$file}: unknown behavior '{$behavior}'. This build knows 'branch', 'arith-eval', 'iterate'.");
             }
-            $rule['behavior'] = 'branch';
-            $rule['branch'] = $this->normalizeBranch((array) ($doc['branch'] ?? []), $file);
         }
 
         return $rule;
@@ -224,6 +235,139 @@ final class EmulatorCompiler
                 throw new RuntimeException("Template {$file}: branch 'default' must author a 'response'.");
             }
             $out['default'] = ['response' => $this->normalizeBehaviorResponse((array) $default['response'], $file)];
+        }
+
+        return $out;
+    }
+
+    /** The closed arith-eval operator set — validated at build so an unknown op never compiles. */
+    private const ARITH_OPS = ['add', 'sub', 'mul'];
+
+    /** Hard ceiling on an arith-eval operand's magnitude; a larger authored max_operand is clamped down. */
+    private const ARITH_MAX_OPERAND = 2147483647;
+
+    /** The default operand bound when a template authors none. */
+    private const ARITH_MAX_OPERAND_DEFAULT = 1000000;
+
+    /** The closed set of iterate body parsers — an unknown `parse` is a build failure. */
+    private const ITERATE_PARSERS = ['xmlrpc-multicall'];
+
+    /** Hard ceiling on iterate fan-out items; a larger authored max_items is clamped down. */
+    private const MAX_ITERATE_ITEMS = 64;
+
+    /**
+     * Normalize an `arith-eval` behavior config. Exactly one authored form is required:
+     *  - fixed op:  `left` + `right` (capture keys) + `op` in {add,sub,mul};
+     *  - expression: `expr` (a capture key) + `ops` (the operators authorized on that surface).
+     * The `response` is directive- and static-header-checked like any base response; `max_operand`
+     * is clamped to [1, ARITH_MAX_OPERAND] and `bind` defaults to 'result'. Runtime computation is
+     * a hand-written integer parser (never eval) with no division — see TemplateAttackEmulator.
+     *
+     * @param array<string,mixed> $config
+     * @return array<string,mixed>
+     */
+    private function normalizeArithEval(array $config, string $file): array
+    {
+        if (!isset($config['response'])) {
+            throw new RuntimeException("Template {$file}: behavior 'arith-eval' must author a 'response'.");
+        }
+        $hasFixed = isset($config['left']) && isset($config['right']) && isset($config['op']);
+        $hasExpr = isset($config['expr']) && isset($config['ops']);
+        if ($hasFixed === $hasExpr) {
+            throw new RuntimeException("Template {$file}: behavior 'arith-eval' needs EXACTLY one of (left+right+op) or (expr+ops).");
+        }
+
+        $out = ['response' => $this->normalizeBehaviorResponse((array) $config['response'], $file)];
+
+        if ($hasFixed) {
+            $op = (string) $config['op'];
+            if (!in_array($op, self::ARITH_OPS, true)) {
+                throw new RuntimeException("Template {$file}: arith-eval op '{$op}' is not one of " . implode('|', self::ARITH_OPS) . '.');
+            }
+            $out['left'] = (string) $config['left'];
+            $out['right'] = (string) $config['right'];
+            $out['op'] = $op;
+        } else {
+            $ops = [];
+            foreach ((array) $config['ops'] as $op) {
+                $op = (string) $op;
+                if (!in_array($op, self::ARITH_OPS, true)) {
+                    throw new RuntimeException("Template {$file}: arith-eval op '{$op}' is not one of " . implode('|', self::ARITH_OPS) . '.');
+                }
+                $ops[] = $op;
+            }
+            if ($ops === []) {
+                throw new RuntimeException("Template {$file}: arith-eval 'ops' must list at least one of " . implode('|', self::ARITH_OPS) . '.');
+            }
+            $out['expr'] = (string) $config['expr'];
+            $out['ops'] = $ops;
+        }
+
+        $max = isset($config['max_operand']) ? (int) $config['max_operand'] : self::ARITH_MAX_OPERAND_DEFAULT;
+        if ($max < 1) {
+            $max = 1;
+        }
+        if ($max > self::ARITH_MAX_OPERAND) {
+            $max = self::ARITH_MAX_OPERAND;
+        }
+        $out['max_operand'] = $max;
+        $out['bind'] = isset($config['bind']) ? (string) $config['bind'] : 'result';
+
+        return $out;
+    }
+
+    /**
+     * Normalize an `iterate` behavior config: a closed-set `parse`, an `item` template rendered once
+     * per parsed sub-call, literal `wrap.open`/`wrap.close` body, and optional `response` (headers/
+     * status), `empty.response`, and `fallback.response`. Every served node is directive-checked like
+     * a base response; `max_items` is clamped to [1, MAX_ITERATE_ITEMS] so a template can never author
+     * an amplifying fan-out. The parse regex itself is code-authored (see TemplateAttackEmulator), so
+     * no attacker regex ever runs.
+     *
+     * @param array<string,mixed> $config
+     * @return array<string,mixed>
+     */
+    private function normalizeIterate(array $config, string $file): array
+    {
+        $parse = (string) ($config['parse'] ?? '');
+        if (!in_array($parse, self::ITERATE_PARSERS, true)) {
+            throw new RuntimeException("Template {$file}: behavior 'iterate' needs a known 'parse' (" . implode('|', self::ITERATE_PARSERS) . ").");
+        }
+        if (!isset($config['item']['body'])) {
+            throw new RuntimeException("Template {$file}: behavior 'iterate' must author an 'item.body'.");
+        }
+
+        $max = isset($config['max_items']) ? (int) $config['max_items'] : self::MAX_ITERATE_ITEMS;
+        if ($max < 1) {
+            $max = 1;
+        }
+        if ($max > self::MAX_ITERATE_ITEMS) {
+            $max = self::MAX_ITERATE_ITEMS;
+        }
+
+        // wrap.open / wrap.close are served BODY (multi-line XML), so they get the directive-vocab
+        // check but NOT the CR/LF static-header check — a body legitimately carries newlines.
+        $wrap = (array) ($config['wrap'] ?? []);
+        $open = (string) ($wrap['open'] ?? '');
+        $close = (string) ($wrap['close'] ?? '');
+        $this->assertKnownDirectives($open, $file);
+        $this->assertKnownDirectives($close, $file);
+
+        $out = [
+            'source' => 'body',
+            'parse' => $parse,
+            'max_items' => $max,
+            'item' => $this->normalizeBehaviorResponse((array) $config['item'], $file),
+            'wrap' => ['open' => $open, 'close' => $close],
+        ];
+
+        if (isset($config['response'])) {
+            $out['response'] = $this->normalizeBehaviorResponse((array) $config['response'], $file);
+        }
+        foreach (['empty', 'fallback'] as $k) {
+            if (isset($config[$k]['response'])) {
+                $out[$k] = ['response' => $this->normalizeBehaviorResponse((array) $config[$k]['response'], $file)];
+            }
         }
 
         return $out;

@@ -52,8 +52,9 @@ branch:
             </service>
           </rsd>
     # Introspection: the full advertised method list. Describes methods only, implements nothing.
-    # Every advertised name maps to a handled case below (none falls to the -32601 base) — real WP's
-    # list is array_keys() of its method map, so it has no unhandled or duplicate entries.
+    # Every advertised name is handled — by a case below, or (system.multicall, demo.addTwoNumbers)
+    # by a dedicated priority-23 rule that sorts ahead of this dispatcher — so none falls to the
+    # -32601 base. Real WP's list is array_keys() of its method map: no unhandled or duplicate entries.
     - when: { in: match.1, regex: '^system\.listMethods$', ci: false }
       response:
         headers: { Content-Type: "text/xml; charset=UTF-8" }
@@ -68,6 +69,7 @@ branch:
             <value><string>system.listMethods</string></value>
             <value><string>system.getCapabilities</string></value>
             <value><string>demo.sayHello</string></value>
+            <value><string>demo.addTwoNumbers</string></value>
             <value><string>pingback.extensions.getPingbacks</string></value>
             <value><string>pingback.ping</string></value>
             <value><string>mt.publishPost</string></value>
@@ -176,30 +178,8 @@ branch:
               </param>
             </params>
           </methodResponse>
-    # system.multicall — STOPGAP. A real multicall fans out N sub-calls to N result entries; that
-    # needs the deferred `iterate` primitive. Until then, serve a fixed single-entry array carrying
-    # the bad-credentials fault: bounded (no amplification) and, since brute tools wrap
-    # wp.getUsersBlogs here, it upholds the credential-oracle invariant — never authenticates. The
-    # inner entry is serialized as IXR_Value would emit it (ragged 2-space struct, not re-indented).
-    - when: { in: match.1, regex: '^system\.multicall$', ci: false }
-      response:
-        headers: { Content-Type: "text/xml; charset=UTF-8" }
-        body: |
-          <?xml version="1.0" encoding="UTF-8"?>
-          <methodResponse>
-            <params>
-              <param>
-                <value>
-                <array><data>
-            <value><struct>
-            <member><name>faultCode</name><value><int>403</int></value></member>
-            <member><name>faultString</name><value><string>Incorrect username or password.</string></value></member>
-          </struct></value>
-          </data></array>
-                </value>
-              </param>
-            </params>
-          </methodResponse>
+    # system.multicall is handled by the dedicated priority-23 iterate rule (true N-in→N-out fan-out),
+    # which sorts ahead of this dispatcher — so it never reaches a case here.
     # Liveness probe.
     - when: { in: match.1, regex: '^demo\.sayHello$', ci: false }
       response:
@@ -279,6 +259,7 @@ branch:
             <value><string>system.listMethods</string></value>
             <value><string>system.getCapabilities</string></value>
             <value><string>demo.sayHello</string></value>
+            <value><string>demo.addTwoNumbers</string></value>
             <value><string>pingback.extensions.getPingbacks</string></value>
             <value><string>pingback.ping</string></value>
             <value><string>mt.publishPost</string></value>

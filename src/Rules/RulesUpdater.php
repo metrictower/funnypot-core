@@ -524,6 +524,27 @@ final class RulesUpdater
                 $texts = array_merge($texts, $this->servedTexts($src['traversal-read']['default']['content']));
             }
         }
+        // An `arith-eval` rule serves its `response` on a computed hit — a nested node the top-level
+        // body never carries, so descend into it. A response carries no `arith-eval`, so this ends.
+        if (isset($src['arith-eval']['response']) && is_array($src['arith-eval']['response'])) {
+            $texts = array_merge($texts, $this->servedTexts($src['arith-eval']['response']));
+        }
+        // An `iterate` rule serves the wrap open/close body, the per-sub-call `item`, and the
+        // `empty`/`fallback` responses — nested served shapes, descended into so a fetched artifact
+        // with a leak in any of them is rejected fetch-time. None carries `iterate`, so this ends.
+        if (isset($src['iterate']) && is_array($src['iterate'])) {
+            $it = $src['iterate'];
+            $texts[] = (string) ($it['wrap']['open'] ?? '');
+            $texts[] = (string) ($it['wrap']['close'] ?? '');
+            if (isset($it['item']) && is_array($it['item'])) {
+                $texts = array_merge($texts, $this->servedTexts($it['item']));
+            }
+            foreach (['empty', 'fallback'] as $k) {
+                if (isset($it[$k]['response']) && is_array($it[$k]['response'])) {
+                    $texts = array_merge($texts, $this->servedTexts($it[$k]['response']));
+                }
+            }
+        }
 
         return $texts;
     }

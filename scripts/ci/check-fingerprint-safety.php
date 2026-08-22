@@ -133,6 +133,26 @@ foreach ($indexes as $index) {
                 $texts = array_merge($texts, $collect($rule['traversal-read']['default']['content']));
             }
         }
+        // An `arith-eval` rule serves its `response` when it computes a hit — a nested node that never
+        // reaches the top-level body, so descend into it.
+        if (isset($rule['arith-eval']['response']) && is_array($rule['arith-eval']['response'])) {
+            $texts = array_merge($texts, $collect($rule['arith-eval']['response']));
+        }
+        // An `iterate` rule serves the wrap open/close body, the per-sub-call `item`, and the
+        // `empty`/`fallback` responses — all nested served shapes the top-level body never carries.
+        if (isset($rule['iterate']) && is_array($rule['iterate'])) {
+            $it = $rule['iterate'];
+            $texts[] = (string) ($it['wrap']['open'] ?? '');
+            $texts[] = (string) ($it['wrap']['close'] ?? '');
+            if (isset($it['item']) && is_array($it['item'])) {
+                $texts = array_merge($texts, $collect($it['item']));
+            }
+            foreach (['empty', 'fallback'] as $k) {
+                if (isset($it[$k]['response']) && is_array($it[$k]['response'])) {
+                    $texts = array_merge($texts, $collect($it[$k]['response']));
+                }
+            }
+        }
         foreach ($texts as $text) {
             $hits = $guard->scan($text);
             if ($hits !== []) {

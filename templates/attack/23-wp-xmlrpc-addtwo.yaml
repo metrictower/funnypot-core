@@ -1,0 +1,73 @@
+id: attack-wp-xmlrpc-addtwo
+severity: high
+# Priority 23 sorts ahead of the 26 POST dispatcher, so demo.addTwoNumbers is handled here rather
+# than falling to rule 26's unknown-method base. A branch case cannot invoke a nested behavior, so
+# the arith-eval primitive gets its own top-level rule; it matches a disjoint method name from the
+# multicall rule (also priority 23), so their mutual order is irrelevant.
+priority: 23
+tags: [attack, wordpress, xmlrpc]
+# WordPress demo.addTwoNumbers — real WP registers this demo method and returns the integer sum of
+# its two int arguments. A scanner probing for a live xmlrpc (the classic "does 7+7 come back as
+# 14" liveness/echo check) must get the real arithmetic, not a canned constant. The two <int>
+# operands are captured into named groups a,b and summed by the arith-eval primitive (a hand-written
+# integer parser — never eval; add only, so it cannot overflow into non-digit output at these bounds).
+#
+# The operand capture is OPTIONAL in the match, so a bare/param-less demo.addTwoNumbers still matches
+# here (not rule 26): with no operands captured, arith-eval declines and the base "invalid method
+# parameters" fault below is served — never the -32601 unknown-method reply.
+match:
+  - in: path
+    regex: '(?:^|/)xmlrpc\.php(?:/|$)'
+    ci: false
+  - in: method
+    regex: '^POST$'
+    ci: false
+  - in: body
+    regex: '<methodCall\b[^>]*>\s*(?:<!--[\s\S]{0,1024}?-->\s*)*<methodName\b[^>]*>\s*(?:<!\[CDATA\[\s*)?demo\.addTwoNumbers\b(?:[\s\S]{0,256}?<value>\s*<(?:int|i4)>\s*(?P<a>-?\d{1,9})\s*</(?:int|i4)>[\s\S]{0,256}?<value>\s*<(?:int|i4)>\s*(?P<b>-?\d{1,9})\s*</(?:int|i4)>)?'
+    capture: true
+    ci: false
+status: 200
+behavior: arith-eval
+arith-eval:
+  left: a
+  right: b
+  op: add
+  max_operand: 2147483647
+  bind: sum
+  response:
+    headers: { Content-Type: "text/xml; charset=UTF-8" }
+    body: |
+      <?xml version="1.0" encoding="UTF-8"?>
+      <methodResponse>
+        <params>
+          <param>
+            <value>
+            <int>{{match.sum}}</int>
+            </value>
+          </param>
+        </params>
+      </methodResponse>
+# Base response: served when the operands don't parse (arith-eval declines). The standard XML-RPC
+# "invalid method parameters" fault — a plausible answer for a known method called with bad args,
+# and never the -32601 that would betray demo.addTwoNumbers as unimplemented.
+response:
+  headers: { Content-Type: "text/xml; charset=UTF-8" }
+  body: |
+    <?xml version="1.0" encoding="UTF-8"?>
+    <methodResponse>
+      <fault>
+        <value>
+          <struct>
+            <member>
+              <name>faultCode</name>
+              <value><int>-32602</int></value>
+            </member>
+            <member>
+              <name>faultString</name>
+              <value><string>server error. invalid method parameters</string></value>
+            </member>
+          </struct>
+        </value>
+      </fault>
+    </methodResponse>
+expect: ['methodResponse', 'faultCode', '-32602']

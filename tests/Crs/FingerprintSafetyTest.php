@@ -201,4 +201,63 @@ final class FingerprintSafetyTest extends TestCase
             @unlink($tmp);
         }
     }
+
+    public function test_the_ci_gate_flags_a_leak_in_an_arith_eval_response(): void
+    {
+        // An `arith-eval` rule serves its own `response` on a computed hit — that body never appears
+        // at the top level, so the gate must descend into arith-eval.response. This rule's top-level
+        // body is clean but the arith-eval response leaks; the gate must flag it.
+        $rule = [
+            'id' => 'arith-leak-probe',
+            'response' => ['headers' => [], 'body' => 'clean top-level body'],
+            'behavior' => 'arith-eval',
+            'arith-eval' => [
+                'left' => 'a',
+                'right' => 'b',
+                'op' => 'add',
+                'response' => ['headers' => [], 'body' => 'blocked by OWASP_CRS ruleset'],
+            ],
+        ];
+        self::assertSame(1, $this->runGateOn([$rule]));
+    }
+
+    public function test_the_ci_gate_flags_a_leak_in_an_iterate_served_shape(): void
+    {
+        // An `iterate` rule serves the wrap body and the per-sub-call item — nested served shapes the
+        // top-level body never carries. A leak planted in wrap.open (and another in item.body) must be
+        // caught by the descent.
+        $rule = [
+            'id' => 'iterate-leak-probe',
+            'response' => ['headers' => [], 'body' => 'clean top-level body'],
+            'behavior' => 'iterate',
+            'iterate' => [
+                'parse' => 'xmlrpc-multicall',
+                'max_items' => 8,
+                'wrap' => ['open' => 'detected via libinjection', 'close' => '</r>'],
+                'item' => ['headers' => [], 'body' => 'blocked by ModSecurity'],
+            ],
+        ];
+        self::assertSame(1, $this->runGateOn([$rule]));
+    }
+
+    /**
+     * Write a rule-set to a scratch artifact and run the CI gate against it via --index; returns the
+     * gate's exit code. Nothing lands in the repo.
+     *
+     * @param array<int,array<string,mixed>> $rules
+     */
+    private function runGateOn(array $rules): int
+    {
+        $script = dirname(__DIR__, 2) . '/scripts/ci/check-fingerprint-safety.php';
+        $tmp = tempnam(sys_get_temp_dir(), 'fp-behavior-') . '.php';
+        file_put_contents($tmp, "<?php\n\nreturn " . var_export($rules, true) . ";\n");
+        try {
+            exec('php ' . escapeshellarg($script) . ' --index=' . escapeshellarg($tmp) . ' 2>&1', $out, $code);
+            self::assertStringContainsString('fingerprint leak', implode("\n", $out), 'gate output: ' . implode("\n", $out));
+
+            return $code;
+        } finally {
+            @unlink($tmp);
+        }
+    }
 }
