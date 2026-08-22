@@ -1,0 +1,28 @@
+id: route-apache-access-log
+priority: 306
+# Brand-new page: an Apache access.log (NCSA combined) at its real /var/log path. Distinct key and
+# body from the nginx/corpus access logs. Client IPs from the shared public pool; Referer/Host from
+# the persona domain. Number safety: octets/status <=3 digits; sizes dec:4/dec:3 (never dec:6).
+new_page:
+  method: GET
+  paths: ['/var/log/apache2/access.log']
+  sig: 0
+  status: 200
+  severity: medium
+  tags: [exposure, log-disclosure, information-disclosure]
+  name: 'Exposed Apache access log (access.log)'
+  body_words: ['"GET /']
+response:
+  headers:
+    Content-Type: "text/plain; charset=utf-8"
+  body: |
+    {{pick:45.148.10.72,185.220.101.34,91.207.175.14,103.224.182.251,51.158.108.203,195.154.200.88,141.98.11.29,209.141.55.198,176.113.115.84,80.94.92.60,156.146.59.25,89.248.165.44,193.32.126.212,45.61.184.9,167.94.138.60,62.210.88.140}} - - [10/Oct/2024:13:55:36 +0000] "GET /index.php HTTP/1.1" 200 {{fake.asza:dec:4}} "https://{{persona.company.domain}}/" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+    {{pick:195.154.200.88,141.98.11.29,209.141.55.198,176.113.115.84,80.94.92.60,156.146.59.25,89.248.165.44,193.32.126.212,45.61.184.9,167.94.138.60,62.210.88.140,45.148.10.72,185.220.101.34,91.207.175.14,103.224.182.251,51.158.108.203}} - - [10/Oct/2024:13:55:38 +0000] "POST /xmlrpc.php HTTP/1.1" 403 {{fake.aszb:dec:3}} "-" "Mozilla/5.0 (X11; Linux x86_64)"
+    {{pick:156.146.59.25,89.248.165.44,193.32.126.212,45.61.184.9,167.94.138.60,62.210.88.140,45.148.10.72,185.220.101.34,91.207.175.14,103.224.182.251,51.158.108.203,195.154.200.88,141.98.11.29,209.141.55.198,176.113.115.84,80.94.92.60}} - - [10/Oct/2024:13:55:40 +0000] "GET /administrator/ HTTP/1.1" 404 {{fake.aszc:dec:3}} "-" "python-requests/2.31.0"
+    {{pick:45.148.10.72,185.220.101.34,91.207.175.14,103.224.182.251,51.158.108.203,195.154.200.88,141.98.11.29,209.141.55.198,176.113.115.84,80.94.92.60,156.146.59.25,89.248.165.44,193.32.126.212,45.61.184.9,167.94.138.60,62.210.88.140}} - - [10/Oct/2024:13:55:44 +0000] "GET /wp-admin/ HTTP/1.1" 302 {{fake.aszd:dec:3}} "-" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+    {{pick:195.154.200.88,141.98.11.29,209.141.55.198,176.113.115.84,80.94.92.60,156.146.59.25,89.248.165.44,193.32.126.212,45.61.184.9,167.94.138.60,62.210.88.140,45.148.10.72,185.220.101.34,91.207.175.14,103.224.182.251,51.158.108.203}} - - [10/Oct/2024:13:55:47 +0000] "GET /favicon.ico HTTP/1.1" 200 {{fake.asze:dec:3}} "https://{{persona.company.domain}}/" "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.1 Safari/605.1.15"
+taunt: { mode: line, open: '#' }
+expect:
+  - '"GET /'
+  - 'HTTP/1.1"'
+  - 'xmlrpc.php'

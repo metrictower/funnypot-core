@@ -2112,4 +2112,245 @@ Completed 401 Unauthorized in 18ms (ActiveRecord: 2.4ms | Allocations: 3187)
       'open' => '#',
     ),
   ),
+  57 => 
+  array (
+    'id' => 'route-wp-debug-log',
+    'match' => 
+    array (
+      'pid' => 
+      array (
+        0 => 'route-wp-debug-log',
+      ),
+    ),
+    'body' => '[10-Oct-2024 13:55:36 UTC] PHP Notice:  Undefined index: HTTP_X_FORWARDED_FOR in /var/www/{{persona.company.slug}}/wp-content/themes/storefront/functions.php on line 214
+[10-Oct-2024 13:55:37 UTC] PHP Warning:  require_once(/var/www/{{persona.company.slug}}/wp-content/plugins/woocommerce/includes/class-wc-install.php): Failed to open stream: No such file or directory in /var/www/{{persona.company.slug}}/wp-settings.php on line 428
+[10-Oct-2024 13:55:41 UTC] PHP Deprecated:  Function get_magic_quotes_gpc() is deprecated in /var/www/{{persona.company.slug}}/wp-includes/load.php on line 926
+[10-Oct-2024 13:55:52 UTC] WordPress database error Table \'{{persona.db.name}}.wp_options\' doesn\'t exist for query SELECT option_value FROM wp_options WHERE option_name = \'siteurl\' made by require(\'wp-blog-header.php\'), require_once(\'wp-load.php\')
+',
+    'headers' => 
+    array (
+      'Content-Type' => 'text/plain; charset=utf-8',
+    ),
+    'taunt' => 
+    array (
+      'mode' => 'line',
+      'open' => '#',
+    ),
+  ),
+  58 => 
+  array (
+    'id' => 'route-php-error-log',
+    'match' => 
+    array (
+      'pid' => 
+      array (
+        0 => 'route-php-error-log',
+      ),
+    ),
+    'body' => '[10-Oct-2024 13:55:36 UTC] PHP Warning:  require(/var/www/{{persona.company.slug}}/vendor/autoload.php): Failed to open stream: No such file or directory in /var/www/{{persona.company.slug}}/public/index.php on line 18
+[10-Oct-2024 13:55:37 UTC] PHP Fatal error:  Uncaught PDOException: SQLSTATE[08006] [7] could not connect to server: Connection refused Is the server running on host "{{persona.db.host}}" and accepting TCP/IP connections on port 5432? (dbname={{persona.db.name}} user={{persona.db.user}}) in /var/www/{{persona.company.slug}}/app/Database/Connection.php:52
+Stack trace:
+#0 /var/www/{{persona.company.slug}}/app/Database/Connection.php(52): PDO->__construct()
+#1 /var/www/{{persona.company.slug}}/public/index.php(31): App\\Database\\Connection->connect()
+#2 {main}
+  thrown in /var/www/{{persona.company.slug}}/app/Database/Connection.php on line 52
+[10-Oct-2024 13:55:41 UTC] PHP Notice:  Undefined array key "HTTP_AUTHORIZATION" in /var/www/{{persona.company.slug}}/app/Middleware/Auth.php on line 40
+',
+    'headers' => 
+    array (
+      'Content-Type' => 'text/plain; charset=utf-8',
+    ),
+    'taunt' => 
+    array (
+      'mode' => 'line',
+      'open' => '#',
+    ),
+  ),
+  59 => 
+  array (
+    'id' => 'route-laravel-log-alt',
+    'match' => 
+    array (
+      'pid' => 
+      array (
+        0 => 'route-laravel-log-alt',
+      ),
+    ),
+    'body' => '[2024-10-10 13:55:36] production.ERROR: SQLSTATE[08006] [7] connection to server at "{{persona.db.host}}", port 5432 failed: FATAL:  password authentication failed for user "{{persona.db.user}}" (Connection: pgsql, SQL: select * from "users" where "email" = {{persona.user.admin.email}} limit 1) {"exception":"[object] (Illuminate\\\\Database\\\\QueryException(code: 7): SQLSTATE[08006] at /var/www/{{persona.company.slug}}/vendor/laravel/framework/src/Illuminate/Database/Connection.php:825)
+[stacktrace]
+#0 /var/www/{{persona.company.slug}}/vendor/laravel/framework/src/Illuminate/Database/Connection.php:759
+#1 /var/www/{{persona.company.slug}}/app/Http/Controllers/Auth/LoginController.php:42
+#2 {main}
+"}
+[2024-10-10 13:55:52] production.ERROR: Uncaught TypeError: Cannot access offset of type string on string {"exception":"[object] (TypeError(code: 0): Cannot access offset of type string on string at /var/www/{{persona.company.slug}}/app/Http/Controllers/CheckoutController.php:88)"}
+',
+    'headers' => 
+    array (
+      'Content-Type' => 'text/plain; charset=utf-8',
+    ),
+    'taunt' => 
+    array (
+      'mode' => 'line',
+      'open' => '#',
+    ),
+  ),
+  60 => 
+  array (
+    'id' => 'route-nginx-error-log',
+    'match' => 
+    array (
+      'pid' => 
+      array (
+        0 => 'route-nginx-error-log',
+      ),
+    ),
+    'body' => '2024/10/10 13:55:36 [error] {{fake.ngxwpid:dec:5}}#0: *{{fake.ngxc1:dec:2}} connect() failed (111: Connection refused) while connecting to upstream, client: {{pick:45.148.10.72,185.220.101.34,91.207.175.14,103.224.182.251,51.158.108.203,195.154.200.88,141.98.11.29,209.141.55.198,176.113.115.84,80.94.92.60,156.146.59.25,89.248.165.44,193.32.126.212,45.61.184.9,167.94.138.60,62.210.88.140}}, server: {{persona.company.domain}}, request: "GET / HTTP/1.1", upstream: "fastcgi://127.0.0.1:9000", host: "{{persona.company.domain}}"
+2024/10/10 13:55:38 [error] {{fake.ngxwpid:dec:5}}#0: *{{fake.ngxc2:dec:2}} open() "/var/www/{{persona.company.slug}}/public/.env" failed (2: No such file or directory), client: {{pick:195.154.200.88,141.98.11.29,209.141.55.198,176.113.115.84,80.94.92.60,156.146.59.25,89.248.165.44,193.32.126.212,45.61.184.9,167.94.138.60,62.210.88.140,45.148.10.72,185.220.101.34,91.207.175.14,103.224.182.251,51.158.108.203}}, server: {{persona.company.domain}}, request: "GET /.env HTTP/1.1", host: "{{persona.company.domain}}"
+2024/10/10 13:55:41 [error] {{fake.ngxwpid:dec:5}}#0: *{{fake.ngxc3:dec:2}} FastCGI sent in stderr: "PHP message: PHP Warning:  Redis::connect(): connect() failed in /var/www/{{persona.company.slug}}/app/Cache.php on line 24" while reading response header from upstream, client: {{pick:156.146.59.25,89.248.165.44,193.32.126.212,45.61.184.9,167.94.138.60,62.210.88.140,45.148.10.72,185.220.101.34,91.207.175.14,103.224.182.251,51.158.108.203,195.154.200.88,141.98.11.29,209.141.55.198,176.113.115.84,80.94.92.60}}, server: {{persona.company.domain}}, request: "POST /cart HTTP/1.1", upstream: "fastcgi://127.0.0.1:9000", host: "{{persona.company.domain}}"
+2024/10/10 13:55:52 [warn] {{fake.ngxwpid:dec:5}}#0: *{{fake.ngxc4:dec:2}} a client request body is buffered to a temporary file /var/lib/nginx/body/0000000001 while sending request to upstream, client: {{pick:45.148.10.72,185.220.101.34,91.207.175.14,103.224.182.251,51.158.108.203,195.154.200.88,141.98.11.29,209.141.55.198,176.113.115.84,80.94.92.60,156.146.59.25,89.248.165.44,193.32.126.212,45.61.184.9,167.94.138.60,62.210.88.140}}, server: {{persona.company.domain}}
+',
+    'headers' => 
+    array (
+      'Content-Type' => 'text/plain; charset=utf-8',
+    ),
+    'taunt' => 
+    array (
+      'mode' => 'line',
+      'open' => '#',
+    ),
+  ),
+  61 => 
+  array (
+    'id' => 'route-nginx-access-log',
+    'match' => 
+    array (
+      'pid' => 
+      array (
+        0 => 'route-nginx-access-log',
+      ),
+    ),
+    'body' => '{{pick:45.148.10.72,185.220.101.34,91.207.175.14,103.224.182.251,51.158.108.203,195.154.200.88,141.98.11.29,209.141.55.198,176.113.115.84,80.94.92.60,156.146.59.25,89.248.165.44,193.32.126.212,45.61.184.9,167.94.138.60,62.210.88.140}} - - [10/Oct/2024:13:55:36 +0000] "GET / HTTP/1.1" 200 {{fake.nsza:dec:4}} "https://{{persona.company.domain}}/" "Mozilla/5.0 (iPhone; CPU iPhone OS 17_1 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.1 Mobile/15E148 Safari/604.1"
+{{pick:195.154.200.88,141.98.11.29,209.141.55.198,176.113.115.84,80.94.92.60,156.146.59.25,89.248.165.44,193.32.126.212,45.61.184.9,167.94.138.60,62.210.88.140,45.148.10.72,185.220.101.34,91.207.175.14,103.224.182.251,51.158.108.203}} - - [10/Oct/2024:13:55:37 +0000] "GET /api/v1/products?page=2 HTTP/1.1" 200 {{fake.nszb:dec:4}} "https://{{persona.company.domain}}/shop" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+{{pick:156.146.59.25,89.248.165.44,193.32.126.212,45.61.184.9,167.94.138.60,62.210.88.140,45.148.10.72,185.220.101.34,91.207.175.14,103.224.182.251,51.158.108.203,195.154.200.88,141.98.11.29,209.141.55.198,176.113.115.84,80.94.92.60}} - - [10/Oct/2024:13:55:39 +0000] "GET /wp-content/uploads/2024/config.bak HTTP/1.1" 404 {{fake.nszc:dec:3}} "-" "Mozilla/5.0 (compatible; CensysInspect/1.1; +https://about.censys.io/)"
+{{pick:45.148.10.72,185.220.101.34,91.207.175.14,103.224.182.251,51.158.108.203,195.154.200.88,141.98.11.29,209.141.55.198,176.113.115.84,80.94.92.60,156.146.59.25,89.248.165.44,193.32.126.212,45.61.184.9,167.94.138.60,62.210.88.140}} - - [10/Oct/2024:13:55:42 +0000] "HEAD /.aws/credentials HTTP/1.1" 404 {{fake.nszd:dec:3}} "-" "curl/8.4.0"
+{{pick:195.154.200.88,141.98.11.29,209.141.55.198,176.113.115.84,80.94.92.60,156.146.59.25,89.248.165.44,193.32.126.212,45.61.184.9,167.94.138.60,62.210.88.140,45.148.10.72,185.220.101.34,91.207.175.14,103.224.182.251,51.158.108.203}} - - [10/Oct/2024:13:55:45 +0000] "GET /assets/app-{{fake.nasset:hex:12}}.js HTTP/1.1" 200 {{fake.nsze:dec:4}} "https://{{persona.company.domain}}/" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+{{pick:156.146.59.25,89.248.165.44,193.32.126.212,45.61.184.9,167.94.138.60,62.210.88.140,45.148.10.72,185.220.101.34,91.207.175.14,103.224.182.251,51.158.108.203,195.154.200.88,141.98.11.29,209.141.55.198,176.113.115.84,80.94.92.60}} - - [10/Oct/2024:13:55:48 +0000] "GET /server-status HTTP/1.1" 403 {{fake.nszf:dec:3}} "-" "Mozilla/5.0 (X11; Linux x86_64) Gecko/20100101 Firefox/121.0"
+',
+    'headers' => 
+    array (
+      'Content-Type' => 'text/plain; charset=utf-8',
+    ),
+    'taunt' => 
+    array (
+      'mode' => 'line',
+      'open' => '#',
+    ),
+  ),
+  62 => 
+  array (
+    'id' => 'route-apache-error-log',
+    'match' => 
+    array (
+      'pid' => 
+      array (
+        0 => 'route-apache-error-log',
+      ),
+    ),
+    'body' => '[Thu Oct 10 13:55:36.482013 2024] [core:error] [pid {{fake.apid1:dec:5}}:tid {{fake.atid1:dec:5}}] [client {{pick:45.148.10.72,185.220.101.34,91.207.175.14,103.224.182.251,51.158.108.203,195.154.200.88,141.98.11.29,209.141.55.198,176.113.115.84,80.94.92.60,156.146.59.25,89.248.165.44,193.32.126.212,45.61.184.9,167.94.138.60,62.210.88.140}}:5{{fake.aport1:dec:4}}] AH00124: Request exceeded the limit of 10 internal redirects due to probable configuration error, referer: https://{{persona.company.domain}}/
+[Thu Oct 10 13:55:37.128233 2024] [php:error] [pid {{fake.apid2:dec:5}}] [client {{pick:195.154.200.88,141.98.11.29,209.141.55.198,176.113.115.84,80.94.92.60,156.146.59.25,89.248.165.44,193.32.126.212,45.61.184.9,167.94.138.60,62.210.88.140,45.148.10.72,185.220.101.34,91.207.175.14,103.224.182.251,51.158.108.203}}:5{{fake.aport2:dec:4}}] PHP Fatal error:  Uncaught Error: Class "Redis" not found in /var/www/{{persona.company.slug}}/app/Cache.php:24
+[Thu Oct 10 13:55:41.701255 2024] [autoindex:error] [pid {{fake.apid3:dec:5}}] [client {{pick:156.146.59.25,89.248.165.44,193.32.126.212,45.61.184.9,167.94.138.60,62.210.88.140,45.148.10.72,185.220.101.34,91.207.175.14,103.224.182.251,51.158.108.203,195.154.200.88,141.98.11.29,209.141.55.198,176.113.115.84,80.94.92.60}}:5{{fake.aport3:dec:4}}] AH01276: Cannot serve directory /var/www/{{persona.company.slug}}/public/uploads/: No matching DirectoryIndex (index.php,index.html) found
+[Thu Oct 10 13:55:52 2024] [mpm_prefork:notice] [pid {{fake.apid4:dec:5}}] AH00163: Apache/2.4.57 (Debian) PHP/8.1.2 configured -- resuming normal operations
+',
+    'headers' => 
+    array (
+      'Content-Type' => 'text/plain; charset=utf-8',
+    ),
+    'taunt' => 
+    array (
+      'mode' => 'line',
+      'open' => '#',
+    ),
+  ),
+  63 => 
+  array (
+    'id' => 'route-apache-access-log',
+    'match' => 
+    array (
+      'pid' => 
+      array (
+        0 => 'route-apache-access-log',
+      ),
+    ),
+    'body' => '{{pick:45.148.10.72,185.220.101.34,91.207.175.14,103.224.182.251,51.158.108.203,195.154.200.88,141.98.11.29,209.141.55.198,176.113.115.84,80.94.92.60,156.146.59.25,89.248.165.44,193.32.126.212,45.61.184.9,167.94.138.60,62.210.88.140}} - - [10/Oct/2024:13:55:36 +0000] "GET /index.php HTTP/1.1" 200 {{fake.asza:dec:4}} "https://{{persona.company.domain}}/" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+{{pick:195.154.200.88,141.98.11.29,209.141.55.198,176.113.115.84,80.94.92.60,156.146.59.25,89.248.165.44,193.32.126.212,45.61.184.9,167.94.138.60,62.210.88.140,45.148.10.72,185.220.101.34,91.207.175.14,103.224.182.251,51.158.108.203}} - - [10/Oct/2024:13:55:38 +0000] "POST /xmlrpc.php HTTP/1.1" 403 {{fake.aszb:dec:3}} "-" "Mozilla/5.0 (X11; Linux x86_64)"
+{{pick:156.146.59.25,89.248.165.44,193.32.126.212,45.61.184.9,167.94.138.60,62.210.88.140,45.148.10.72,185.220.101.34,91.207.175.14,103.224.182.251,51.158.108.203,195.154.200.88,141.98.11.29,209.141.55.198,176.113.115.84,80.94.92.60}} - - [10/Oct/2024:13:55:40 +0000] "GET /administrator/ HTTP/1.1" 404 {{fake.aszc:dec:3}} "-" "python-requests/2.31.0"
+{{pick:45.148.10.72,185.220.101.34,91.207.175.14,103.224.182.251,51.158.108.203,195.154.200.88,141.98.11.29,209.141.55.198,176.113.115.84,80.94.92.60,156.146.59.25,89.248.165.44,193.32.126.212,45.61.184.9,167.94.138.60,62.210.88.140}} - - [10/Oct/2024:13:55:44 +0000] "GET /wp-admin/ HTTP/1.1" 302 {{fake.aszd:dec:3}} "-" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+{{pick:195.154.200.88,141.98.11.29,209.141.55.198,176.113.115.84,80.94.92.60,156.146.59.25,89.248.165.44,193.32.126.212,45.61.184.9,167.94.138.60,62.210.88.140,45.148.10.72,185.220.101.34,91.207.175.14,103.224.182.251,51.158.108.203}} - - [10/Oct/2024:13:55:47 +0000] "GET /favicon.ico HTTP/1.1" 200 {{fake.asze:dec:3}} "https://{{persona.company.domain}}/" "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.1 Safari/605.1.15"
+',
+    'headers' => 
+    array (
+      'Content-Type' => 'text/plain; charset=utf-8',
+    ),
+    'taunt' => 
+    array (
+      'mode' => 'line',
+      'open' => '#',
+    ),
+  ),
+  64 => 
+  array (
+    'id' => 'route-app-log',
+    'match' => 
+    array (
+      'pid' => 
+      array (
+        0 => 'route-app-log',
+      ),
+    ),
+    'body' => '2024-10-10T13:55:36.482Z INFO  [http] request completed method=GET path=/ status=200 duration_ms=42 request_id={{fake.appreq1:hex:16}}
+2024-10-10T13:55:37.128Z WARN  [cache] redis latency high level=warn latency_ms=812 node=cache-01
+2024-10-10T13:55:41.701Z ERROR [db] connection pool exhausted level=error component=database host={{persona.db.host}} db={{persona.db.name}} max=20 in_use=20 request_id={{fake.appreq2:hex:16}}
+2024-10-10T13:55:52.004Z ERROR [worker] job failed level=error job=SendInvoiceEmail attempts=3 error="Connection timed out" trace_id={{fake.apptrace:hex:32}}
+2024-10-10T13:55:52.140Z INFO  [worker] job requeued level=info job=SendInvoiceEmail backoff_ms=500
+',
+    'headers' => 
+    array (
+      'Content-Type' => 'text/plain; charset=utf-8',
+    ),
+    'taunt' => 
+    array (
+      'mode' => 'line',
+      'open' => '#',
+    ),
+  ),
+  65 => 
+  array (
+    'id' => 'route-catalina-out',
+    'match' => 
+    array (
+      'pid' => 
+      array (
+        0 => 'route-catalina-out',
+      ),
+    ),
+    'body' => '10-Oct-2024 13:55:36.482 INFO [main] org.apache.catalina.startup.VersionLoggerListener.log Server version name:   Apache Tomcat/9.0.83
+10-Oct-2024 13:55:36.601 INFO [main] org.apache.coyote.AbstractProtocol.init Initializing ProtocolHandler ["http-nio-8080"]
+10-Oct-2024 13:55:37.128 INFO [main] org.apache.catalina.startup.Catalina.start Server startup in [842] milliseconds
+10-Oct-2024 13:55:41.701 SEVERE [http-nio-8080-exec-3] org.apache.catalina.core.StandardWrapperValve.invoke Servlet.service() for servlet [dispatcher] in context [/] threw exception
+	java.lang.NullPointerException: Cannot invoke "String.length()" because "user" is null
+		at com.{{persona.company.slug}}.web.HomeController.index(HomeController.java:54)
+		at jakarta.servlet.http.HttpServlet.service(HttpServlet.java:658)
+		at org.apache.catalina.core.ApplicationFilterChain.doFilter(ApplicationFilterChain.java:166)
+		at java.base/java.lang.Thread.run(Thread.java:840)
+',
+    'headers' => 
+    array (
+      'Content-Type' => 'text/plain; charset=utf-8',
+    ),
+    'taunt' => 
+    array (
+      'mode' => 'line',
+      'open' => '#',
+    ),
+  ),
 );

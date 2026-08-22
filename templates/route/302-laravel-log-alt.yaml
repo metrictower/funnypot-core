@@ -1,0 +1,32 @@
+id: route-laravel-log-alt
+priority: 302
+# Brand-new page: a Laravel log dropped at a NON-standard path (/laravel.log, /logs/laravel.log) —
+# distinct from the /storage/logs/laravel.log corpus bundle the enrich (291) dresses. Leaks the
+# persona Postgres db host/user and admin email, coherent with the config pack. The id avoids the
+# `laravel-log-file` needle so the enrich never hijacks this page. Monolog `[Y-m-d H:i:s]` prefix
+# carries no microseconds, so no 6-digit token; stack line numbers are <=3 digits.
+new_page:
+  method: GET
+  paths: ['/laravel.log', '/logs/laravel.log']
+  sig: 0
+  status: 200
+  severity: high
+  tags: [exposure, log-disclosure, secrets]
+  name: 'Exposed Laravel log (laravel.log)'
+  body_words: ['production.ERROR']
+response:
+  headers:
+    Content-Type: "text/plain; charset=utf-8"
+  body: |
+    [2024-10-10 13:55:36] production.ERROR: SQLSTATE[08006] [7] connection to server at "{{persona.db.host}}", port 5432 failed: FATAL:  password authentication failed for user "{{persona.db.user}}" (Connection: pgsql, SQL: select * from "users" where "email" = {{persona.user.admin.email}} limit 1) {"exception":"[object] (Illuminate\\Database\\QueryException(code: 7): SQLSTATE[08006] at /var/www/{{persona.company.slug}}/vendor/laravel/framework/src/Illuminate/Database/Connection.php:825)
+    [stacktrace]
+    #0 /var/www/{{persona.company.slug}}/vendor/laravel/framework/src/Illuminate/Database/Connection.php:759
+    #1 /var/www/{{persona.company.slug}}/app/Http/Controllers/Auth/LoginController.php:42
+    #2 {main}
+    "}
+    [2024-10-10 13:55:52] production.ERROR: Uncaught TypeError: Cannot access offset of type string on string {"exception":"[object] (TypeError(code: 0): Cannot access offset of type string on string at /var/www/{{persona.company.slug}}/app/Http/Controllers/CheckoutController.php:88)"}
+taunt: { mode: line, open: '#' }
+expect:
+  - 'production.ERROR'
+  - 'QueryException'
+  - 'password authentication failed'

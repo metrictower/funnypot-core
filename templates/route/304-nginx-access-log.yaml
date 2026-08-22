@@ -1,0 +1,30 @@
+id: route-nginx-access-log
+priority: 304
+# Brand-new page: an nginx access.log at its real /var/log path — distinct key and body from the
+# corpus access-log-file enrich (296). Combined format, client IPs from the shared public pool,
+# Referer/Host from the persona domain. Number safety: octets/status <=3 digits split by non-word
+# chars; sizes use dec:4/dec:3 (never dec:6).
+new_page:
+  method: GET
+  paths: ['/var/log/nginx/access.log']
+  sig: 0
+  status: 200
+  severity: medium
+  tags: [exposure, log-disclosure, information-disclosure]
+  name: 'Exposed nginx access log (access.log)'
+  body_words: ['"GET /']
+response:
+  headers:
+    Content-Type: "text/plain; charset=utf-8"
+  body: |
+    {{pick:45.148.10.72,185.220.101.34,91.207.175.14,103.224.182.251,51.158.108.203,195.154.200.88,141.98.11.29,209.141.55.198,176.113.115.84,80.94.92.60,156.146.59.25,89.248.165.44,193.32.126.212,45.61.184.9,167.94.138.60,62.210.88.140}} - - [10/Oct/2024:13:55:36 +0000] "GET / HTTP/1.1" 200 {{fake.nsza:dec:4}} "https://{{persona.company.domain}}/" "Mozilla/5.0 (iPhone; CPU iPhone OS 17_1 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.1 Mobile/15E148 Safari/604.1"
+    {{pick:195.154.200.88,141.98.11.29,209.141.55.198,176.113.115.84,80.94.92.60,156.146.59.25,89.248.165.44,193.32.126.212,45.61.184.9,167.94.138.60,62.210.88.140,45.148.10.72,185.220.101.34,91.207.175.14,103.224.182.251,51.158.108.203}} - - [10/Oct/2024:13:55:37 +0000] "GET /api/v1/products?page=2 HTTP/1.1" 200 {{fake.nszb:dec:4}} "https://{{persona.company.domain}}/shop" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+    {{pick:156.146.59.25,89.248.165.44,193.32.126.212,45.61.184.9,167.94.138.60,62.210.88.140,45.148.10.72,185.220.101.34,91.207.175.14,103.224.182.251,51.158.108.203,195.154.200.88,141.98.11.29,209.141.55.198,176.113.115.84,80.94.92.60}} - - [10/Oct/2024:13:55:39 +0000] "GET /wp-content/uploads/2024/config.bak HTTP/1.1" 404 {{fake.nszc:dec:3}} "-" "Mozilla/5.0 (compatible; CensysInspect/1.1; +https://about.censys.io/)"
+    {{pick:45.148.10.72,185.220.101.34,91.207.175.14,103.224.182.251,51.158.108.203,195.154.200.88,141.98.11.29,209.141.55.198,176.113.115.84,80.94.92.60,156.146.59.25,89.248.165.44,193.32.126.212,45.61.184.9,167.94.138.60,62.210.88.140}} - - [10/Oct/2024:13:55:42 +0000] "HEAD /.aws/credentials HTTP/1.1" 404 {{fake.nszd:dec:3}} "-" "curl/8.4.0"
+    {{pick:195.154.200.88,141.98.11.29,209.141.55.198,176.113.115.84,80.94.92.60,156.146.59.25,89.248.165.44,193.32.126.212,45.61.184.9,167.94.138.60,62.210.88.140,45.148.10.72,185.220.101.34,91.207.175.14,103.224.182.251,51.158.108.203}} - - [10/Oct/2024:13:55:45 +0000] "GET /assets/app-{{fake.nasset:hex:12}}.js HTTP/1.1" 200 {{fake.nsze:dec:4}} "https://{{persona.company.domain}}/" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+    {{pick:156.146.59.25,89.248.165.44,193.32.126.212,45.61.184.9,167.94.138.60,62.210.88.140,45.148.10.72,185.220.101.34,91.207.175.14,103.224.182.251,51.158.108.203,195.154.200.88,141.98.11.29,209.141.55.198,176.113.115.84,80.94.92.60}} - - [10/Oct/2024:13:55:48 +0000] "GET /server-status HTTP/1.1" 403 {{fake.nszf:dec:3}} "-" "Mozilla/5.0 (X11; Linux x86_64) Gecko/20100101 Firefox/121.0"
+taunt: { mode: line, open: '#' }
+expect:
+  - '"GET /'
+  - 'HTTP/1.1"'
+  - 'CensysInspect'

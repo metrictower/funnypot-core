@@ -126,6 +126,20 @@ final class NewPageRoutingTest extends TestCase
             'secrets.json'           => ['/secrets.json', 200, 'secretKey', 'application/json'],
             'docker-compose.yml'     => ['/docker-compose.yml', 200, 'services:', 'text/yaml; charset=utf-8'],
             'application.properties' => ['/application.properties', 200, 'spring.datasource', 'text/plain; charset=utf-8'],
+
+            // Log-file disclosure pack — brand-new log pages. The marker is a distinctive authored
+            // string that is NOT one of the bundle's body words, so its presence proves the enriched
+            // body served (not a minimal synth of the bare body words). Content-Type is the file's
+            // real type (a mismatch is a honeypot tell).
+            'wp debug.log'      => ['/wp-content/debug.log', 200, 'WordPress database error', 'text/plain; charset=utf-8'],
+            'php error_log'     => ['/error_log', 200, 'Uncaught PDOException', 'text/plain; charset=utf-8'],
+            'laravel.log (alt)' => ['/laravel.log', 200, 'QueryException', 'text/plain; charset=utf-8'],
+            'nginx error.log'   => ['/var/log/nginx/error.log', 200, 'fastcgi://127.0.0.1:9000', 'text/plain; charset=utf-8'],
+            'nginx access.log'  => ['/var/log/nginx/access.log', 200, 'CensysInspect', 'text/plain; charset=utf-8'],
+            'apache error.log'  => ['/var/log/apache2/error.log', 200, 'AH00124', 'text/plain; charset=utf-8'],
+            'apache access.log' => ['/var/log/apache2/access.log', 200, 'xmlrpc.php', 'text/plain; charset=utf-8'],
+            'generic app.log'   => ['/app.log', 200, 'connection pool exhausted', 'text/plain; charset=utf-8'],
+            'catalina.out'      => ['/catalina.out', 200, 'NullPointerException', 'text/plain; charset=utf-8'],
         ];
     }
 
@@ -194,6 +208,30 @@ final class NewPageRoutingTest extends TestCase
             $pwSeen[$m[1]] = true;
         }
         self::assertCount(1, $pwSeen, 'the DB password must be identical across every surface that discloses it');
+    }
+
+    public function test_log_db_identity_is_coherent_with_config_pack(): void
+    {
+        // One host, one identity: the db name/user a leaked LOG discloses must be byte-identical to
+        // what the M8 config pack discloses for the same seed — a log that named a different database
+        // than /.env.production would betray the fabrication. The PHP error_log's PDOException carries
+        // dbname=/user=; /.env.production carries DB_DATABASE=/DB_USERNAME=. Sweep seeds and require
+        // equality on both fields.
+        for ($seed = 0; $seed <= 20; $seed++) {
+            $inv = $this->seededInverter((string) $seed, 'realistic');
+            $log = $inv->respond(new RequestContext('GET', '/error_log'));
+            $env = $inv->respond(new RequestContext('GET', '/.env.production'));
+            self::assertNotNull($log, "seed {$seed}: /error_log must serve a fake");
+            self::assertNotNull($env, "seed {$seed}: /.env.production must serve a fake");
+
+            self::assertSame(1, preg_match('/dbname=([A-Za-z0-9_]+)/', $log->body, $ln), "seed {$seed}: error_log must leak a dbname");
+            self::assertSame(1, preg_match('/DB_DATABASE=([A-Za-z0-9_]+)/', $env->body, $en), "seed {$seed}: .env.production must leak DB_DATABASE");
+            self::assertSame($en[1], $ln[1], "seed {$seed}: the log and .env.production must name the SAME database");
+
+            self::assertSame(1, preg_match('/ user=([A-Za-z0-9_]+)/', $log->body, $lu), "seed {$seed}: error_log must leak a db user");
+            self::assertSame(1, preg_match('/DB_USERNAME=([A-Za-z0-9_]+)/', $env->body, $eu), "seed {$seed}: .env.production must leak DB_USERNAME");
+            self::assertSame($eu[1], $lu[1], "seed {$seed}: the log and .env.production must name the SAME db user");
+        }
     }
 
     public function test_migrated_aws_templates_render_persona_pair(): void
@@ -389,6 +427,11 @@ final class NewPageRoutingTest extends TestCase
             // timestamps/sizes/PIDs/line numbers, so the \b9\d{5}\b run is the acute hazard here.
             '/npm-debug.log', '/storage/logs/laravel.log', '/firebase-debug.log', '/var/log/debug.log',
             '/development.log', '/production.log', '/access.log',
+            // Log pack — brand-new log pages. One path per rule renders the whole body; aliases are
+            // byte-identical. Covers the dec:5 worker/pid/port islands and the client-IP pools.
+            '/wp-content/debug.log', '/error_log', '/laravel.log',
+            '/var/log/nginx/error.log', '/var/log/nginx/access.log',
+            '/var/log/apache2/error.log', '/var/log/apache2/access.log', '/app.log', '/catalina.out',
         ];
         // The vite-fs `/@fs/{path}` param route serves per-target disclosure bodies (its own RDS/cache
         // host islands live in the .env and wp-config.php loot targets), so exercise those too.

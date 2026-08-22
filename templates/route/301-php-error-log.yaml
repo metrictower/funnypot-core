@@ -1,0 +1,33 @@
+id: route-php-error-log
+priority: 301
+# Brand-new page: a PHP error_log dropped at the webroot — a very common scanner target the corpus
+# does not cover. This is the log pack's persona-coherence anchor: the PDOException leaks the same
+# db host/name/user the M8 config pack discloses (dbname={{persona.db.name}} is byte-identical to
+# /.env.production's DB_DATABASE), and stays Postgres-coherent (port 5432, SQLSTATE[08006]). Paths
+# leak the company slug. error_log format `[dd-Mon-YYYY HH:MM:SS UTC] PHP ...`; line numbers <=3.
+new_page:
+  method: GET
+  paths: ['/error_log', '/php_errors.log', '/php_error.log', '/logs/error.log']
+  sig: 0
+  status: 200
+  severity: medium
+  tags: [exposure, log-disclosure, information-disclosure]
+  name: 'Exposed PHP error log (error_log)'
+  body_words: ['PHP Fatal error']
+response:
+  headers:
+    Content-Type: "text/plain; charset=utf-8"
+  body: |
+    [10-Oct-2024 13:55:36 UTC] PHP Warning:  require(/var/www/{{persona.company.slug}}/vendor/autoload.php): Failed to open stream: No such file or directory in /var/www/{{persona.company.slug}}/public/index.php on line 18
+    [10-Oct-2024 13:55:37 UTC] PHP Fatal error:  Uncaught PDOException: SQLSTATE[08006] [7] could not connect to server: Connection refused Is the server running on host "{{persona.db.host}}" and accepting TCP/IP connections on port 5432? (dbname={{persona.db.name}} user={{persona.db.user}}) in /var/www/{{persona.company.slug}}/app/Database/Connection.php:52
+    Stack trace:
+    #0 /var/www/{{persona.company.slug}}/app/Database/Connection.php(52): PDO->__construct()
+    #1 /var/www/{{persona.company.slug}}/public/index.php(31): App\Database\Connection->connect()
+    #2 {main}
+      thrown in /var/www/{{persona.company.slug}}/app/Database/Connection.php on line 52
+    [10-Oct-2024 13:55:41 UTC] PHP Notice:  Undefined array key "HTTP_AUTHORIZATION" in /var/www/{{persona.company.slug}}/app/Middleware/Auth.php on line 40
+taunt: { mode: line, open: '#' }
+expect:
+  - 'PHP Fatal error'
+  - 'Uncaught PDOException'
+  - 'dbname='

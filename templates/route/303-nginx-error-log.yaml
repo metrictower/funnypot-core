@@ -1,0 +1,29 @@
+id: route-nginx-error-log
+priority: 303
+# Brand-new page: an nginx error.log — a top scanner target the corpus does not cover. Leaks the
+# company domain (server_name), the company slug (app path) and the fpm upstream (127.0.0.1:9000).
+# Client IPs come from the shared public-address pool. Postgres-neutral (no db engine named here).
+# Number safety: the worker pid is dec:5 followed by '#', so the digit run is exactly 5 (never a
+# bare 6); connection ids are dec:2; errno/port literals are <=4 digits.
+new_page:
+  method: GET
+  paths: ['/var/log/nginx/error.log', '/nginx_error.log']
+  sig: 0
+  status: 200
+  severity: medium
+  tags: [exposure, log-disclosure, information-disclosure]
+  name: 'Exposed nginx error log (error.log)'
+  body_words: ['[error]', 'upstream']
+response:
+  headers:
+    Content-Type: "text/plain; charset=utf-8"
+  body: |
+    2024/10/10 13:55:36 [error] {{fake.ngxwpid:dec:5}}#0: *{{fake.ngxc1:dec:2}} connect() failed (111: Connection refused) while connecting to upstream, client: {{pick:45.148.10.72,185.220.101.34,91.207.175.14,103.224.182.251,51.158.108.203,195.154.200.88,141.98.11.29,209.141.55.198,176.113.115.84,80.94.92.60,156.146.59.25,89.248.165.44,193.32.126.212,45.61.184.9,167.94.138.60,62.210.88.140}}, server: {{persona.company.domain}}, request: "GET / HTTP/1.1", upstream: "fastcgi://127.0.0.1:9000", host: "{{persona.company.domain}}"
+    2024/10/10 13:55:38 [error] {{fake.ngxwpid:dec:5}}#0: *{{fake.ngxc2:dec:2}} open() "/var/www/{{persona.company.slug}}/public/.env" failed (2: No such file or directory), client: {{pick:195.154.200.88,141.98.11.29,209.141.55.198,176.113.115.84,80.94.92.60,156.146.59.25,89.248.165.44,193.32.126.212,45.61.184.9,167.94.138.60,62.210.88.140,45.148.10.72,185.220.101.34,91.207.175.14,103.224.182.251,51.158.108.203}}, server: {{persona.company.domain}}, request: "GET /.env HTTP/1.1", host: "{{persona.company.domain}}"
+    2024/10/10 13:55:41 [error] {{fake.ngxwpid:dec:5}}#0: *{{fake.ngxc3:dec:2}} FastCGI sent in stderr: "PHP message: PHP Warning:  Redis::connect(): connect() failed in /var/www/{{persona.company.slug}}/app/Cache.php on line 24" while reading response header from upstream, client: {{pick:156.146.59.25,89.248.165.44,193.32.126.212,45.61.184.9,167.94.138.60,62.210.88.140,45.148.10.72,185.220.101.34,91.207.175.14,103.224.182.251,51.158.108.203,195.154.200.88,141.98.11.29,209.141.55.198,176.113.115.84,80.94.92.60}}, server: {{persona.company.domain}}, request: "POST /cart HTTP/1.1", upstream: "fastcgi://127.0.0.1:9000", host: "{{persona.company.domain}}"
+    2024/10/10 13:55:52 [warn] {{fake.ngxwpid:dec:5}}#0: *{{fake.ngxc4:dec:2}} a client request body is buffered to a temporary file /var/lib/nginx/body/0000000001 while sending request to upstream, client: {{pick:45.148.10.72,185.220.101.34,91.207.175.14,103.224.182.251,51.158.108.203,195.154.200.88,141.98.11.29,209.141.55.198,176.113.115.84,80.94.92.60,156.146.59.25,89.248.165.44,193.32.126.212,45.61.184.9,167.94.138.60,62.210.88.140}}, server: {{persona.company.domain}}
+taunt: { mode: line, open: '#' }
+expect:
+  - '[error]'
+  - 'upstream'
+  - 'client:'

@@ -1,0 +1,30 @@
+id: route-app-log
+priority: 307
+# Brand-new page: a generic application log (app.log / server.log / logs/*.log) — the catch-all a
+# scanner probes when the framework is unknown. Mixed logfmt lines with an ERROR at `level=error`.
+# Leaks the persona db host/name (engine-neutral) and company identity via request/trace ids. Number
+# safety: millisecond timestamps are 3 digits; counters <=3 digits; request/trace ids are fake.*:hex
+# (a single long word run can never contain an isolated bare-6-digit token).
+new_page:
+  method: GET
+  paths: ['/app.log', '/logs/app.log', '/server.log', '/logs/debug.log']
+  sig: 0
+  status: 200
+  severity: medium
+  tags: [exposure, log-disclosure, information-disclosure]
+  name: 'Exposed application log (app.log)'
+  body_words: ['ERROR', 'level=error']
+response:
+  headers:
+    Content-Type: "text/plain; charset=utf-8"
+  body: |
+    2024-10-10T13:55:36.482Z INFO  [http] request completed method=GET path=/ status=200 duration_ms=42 request_id={{fake.appreq1:hex:16}}
+    2024-10-10T13:55:37.128Z WARN  [cache] redis latency high level=warn latency_ms=812 node=cache-01
+    2024-10-10T13:55:41.701Z ERROR [db] connection pool exhausted level=error component=database host={{persona.db.host}} db={{persona.db.name}} max=20 in_use=20 request_id={{fake.appreq2:hex:16}}
+    2024-10-10T13:55:52.004Z ERROR [worker] job failed level=error job=SendInvoiceEmail attempts=3 error="Connection timed out" trace_id={{fake.apptrace:hex:32}}
+    2024-10-10T13:55:52.140Z INFO  [worker] job requeued level=info job=SendInvoiceEmail backoff_ms=500
+taunt: { mode: line, open: '#' }
+expect:
+  - 'ERROR'
+  - 'level=error'
+  - 'request_id='

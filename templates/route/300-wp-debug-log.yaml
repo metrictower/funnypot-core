@@ -1,0 +1,29 @@
+id: route-wp-debug-log
+priority: 300
+# Brand-new page: a WordPress WP_DEBUG log (debug.log) left world-readable under wp-content — a
+# classic scanner target the corpus does not cover. Leaks the company slug (install path) and the
+# db NAME (a WordPress database error), both persona-seeded so this file agrees with the host's
+# other disclosures. WordPress is MySQL, so we leak only the engine-neutral db name here (never a
+# :5432/pgsql claim that would contradict the Postgres config pack). All line numbers are <=3 digits.
+new_page:
+  method: GET
+  paths: ['/wp-content/debug.log', '/wp-content/uploads/debug.log', '/debug.log']
+  sig: 0
+  status: 200
+  severity: medium
+  tags: [exposure, log-disclosure, information-disclosure]
+  name: 'Exposed WordPress debug log (debug.log)'
+  body_words: ['PHP Notice', 'PHP Warning']
+response:
+  headers:
+    Content-Type: "text/plain; charset=utf-8"
+  body: |
+    [10-Oct-2024 13:55:36 UTC] PHP Notice:  Undefined index: HTTP_X_FORWARDED_FOR in /var/www/{{persona.company.slug}}/wp-content/themes/storefront/functions.php on line 214
+    [10-Oct-2024 13:55:37 UTC] PHP Warning:  require_once(/var/www/{{persona.company.slug}}/wp-content/plugins/woocommerce/includes/class-wc-install.php): Failed to open stream: No such file or directory in /var/www/{{persona.company.slug}}/wp-settings.php on line 428
+    [10-Oct-2024 13:55:41 UTC] PHP Deprecated:  Function get_magic_quotes_gpc() is deprecated in /var/www/{{persona.company.slug}}/wp-includes/load.php on line 926
+    [10-Oct-2024 13:55:52 UTC] WordPress database error Table '{{persona.db.name}}.wp_options' doesn't exist for query SELECT option_value FROM wp_options WHERE option_name = 'siteurl' made by require('wp-blog-header.php'), require_once('wp-load.php')
+taunt: { mode: line, open: '#' }
+expect:
+  - 'PHP Notice'
+  - 'PHP Warning'
+  - 'wp-content'

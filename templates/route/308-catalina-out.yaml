@@ -1,0 +1,34 @@
+id: route-catalina-out
+priority: 308
+# Brand-new page: a Tomcat catalina.out — the servlet-container catch-all log, a common scanner
+# target the corpus does not cover. Startup banner plus a SEVERE java.lang.NullPointerException with
+# a stack trace whose top frame is in this host's application package (com.<slug>...). Number safety:
+# millisecond timestamps are 3 digits; ports and line numbers are <=4 digits; the Tomcat version
+# `9.0.x` splits on dots so its leading 9 is a single digit, never a bare-6 run.
+new_page:
+  method: GET
+  paths: ['/catalina.out']
+  sig: 0
+  status: 200
+  severity: medium
+  tags: [exposure, log-disclosure, information-disclosure]
+  name: 'Exposed Tomcat log (catalina.out)'
+  body_words: ['SEVERE', 'java.lang.']
+response:
+  headers:
+    Content-Type: "text/plain; charset=utf-8"
+  body: |
+    10-Oct-2024 13:55:36.482 INFO [main] org.apache.catalina.startup.VersionLoggerListener.log Server version name:   Apache Tomcat/9.0.83
+    10-Oct-2024 13:55:36.601 INFO [main] org.apache.coyote.AbstractProtocol.init Initializing ProtocolHandler ["http-nio-8080"]
+    10-Oct-2024 13:55:37.128 INFO [main] org.apache.catalina.startup.Catalina.start Server startup in [842] milliseconds
+    10-Oct-2024 13:55:41.701 SEVERE [http-nio-8080-exec-3] org.apache.catalina.core.StandardWrapperValve.invoke Servlet.service() for servlet [dispatcher] in context [/] threw exception
+    	java.lang.NullPointerException: Cannot invoke "String.length()" because "user" is null
+    		at com.{{persona.company.slug}}.web.HomeController.index(HomeController.java:54)
+    		at jakarta.servlet.http.HttpServlet.service(HttpServlet.java:658)
+    		at org.apache.catalina.core.ApplicationFilterChain.doFilter(ApplicationFilterChain.java:166)
+    		at java.base/java.lang.Thread.run(Thread.java:840)
+taunt: { mode: line, open: '#' }
+expect:
+  - 'SEVERE'
+  - 'java.lang.'
+  - 'Apache Tomcat'

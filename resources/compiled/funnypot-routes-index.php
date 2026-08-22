@@ -247,6 +247,105 @@ return array (
       ),
       'name' => 'Exposed environment file (.env.local)',
     ),
+    'route-wp-debug-log' => 
+    array (
+      'sev' => 'medium',
+      'tags' => 
+      array (
+        0 => 'exposure',
+        1 => 'log-disclosure',
+        2 => 'information-disclosure',
+      ),
+      'name' => 'Exposed WordPress debug log (debug.log)',
+    ),
+    'route-php-error-log' => 
+    array (
+      'sev' => 'medium',
+      'tags' => 
+      array (
+        0 => 'exposure',
+        1 => 'log-disclosure',
+        2 => 'information-disclosure',
+      ),
+      'name' => 'Exposed PHP error log (error_log)',
+    ),
+    'route-laravel-log-alt' => 
+    array (
+      'sev' => 'high',
+      'tags' => 
+      array (
+        0 => 'exposure',
+        1 => 'log-disclosure',
+        2 => 'secrets',
+      ),
+      'name' => 'Exposed Laravel log (laravel.log)',
+    ),
+    'route-nginx-error-log' => 
+    array (
+      'sev' => 'medium',
+      'tags' => 
+      array (
+        0 => 'exposure',
+        1 => 'log-disclosure',
+        2 => 'information-disclosure',
+      ),
+      'name' => 'Exposed nginx error log (error.log)',
+    ),
+    'route-nginx-access-log' => 
+    array (
+      'sev' => 'medium',
+      'tags' => 
+      array (
+        0 => 'exposure',
+        1 => 'log-disclosure',
+        2 => 'information-disclosure',
+      ),
+      'name' => 'Exposed nginx access log (access.log)',
+    ),
+    'route-apache-error-log' => 
+    array (
+      'sev' => 'medium',
+      'tags' => 
+      array (
+        0 => 'exposure',
+        1 => 'log-disclosure',
+        2 => 'information-disclosure',
+      ),
+      'name' => 'Exposed Apache error log (error.log)',
+    ),
+    'route-apache-access-log' => 
+    array (
+      'sev' => 'medium',
+      'tags' => 
+      array (
+        0 => 'exposure',
+        1 => 'log-disclosure',
+        2 => 'information-disclosure',
+      ),
+      'name' => 'Exposed Apache access log (access.log)',
+    ),
+    'route-app-log' => 
+    array (
+      'sev' => 'medium',
+      'tags' => 
+      array (
+        0 => 'exposure',
+        1 => 'log-disclosure',
+        2 => 'information-disclosure',
+      ),
+      'name' => 'Exposed application log (app.log)',
+    ),
+    'route-catalina-out' => 
+    array (
+      'sev' => 'medium',
+      'tags' => 
+      array (
+        0 => 'exposure',
+        1 => 'log-disclosure',
+        2 => 'information-disclosure',
+      ),
+      'name' => 'Exposed Tomcat log (catalina.out)',
+    ),
   ),
   'routes' => 
   array (
@@ -1010,6 +1109,436 @@ return array (
         't' => 
         array (
           0 => 'route-envfile-local',
+        ),
+      ),
+    ),
+    'GET /wp-content/debug.log' => 
+    array (
+      0 => 
+      array (
+        's' => 200,
+        'bw' => 
+        array (
+          0 => 'PHP Notice',
+          1 => 'PHP Warning',
+        ),
+        'nf' => 
+        array (
+        ),
+        'pid' => 'route-wp-debug-log',
+        'sev' => 'medium',
+        'sig' => 0,
+        't' => 
+        array (
+          0 => 'route-wp-debug-log',
+        ),
+      ),
+    ),
+    'GET /wp-content/uploads/debug.log' => 
+    array (
+      0 => 
+      array (
+        's' => 200,
+        'bw' => 
+        array (
+          0 => 'PHP Notice',
+          1 => 'PHP Warning',
+        ),
+        'nf' => 
+        array (
+        ),
+        'pid' => 'route-wp-debug-log',
+        'sev' => 'medium',
+        'sig' => 0,
+        't' => 
+        array (
+          0 => 'route-wp-debug-log',
+        ),
+      ),
+    ),
+    'GET /debug.log' => 
+    array (
+      0 => 
+      array (
+        's' => 200,
+        'bw' => 
+        array (
+          0 => 'PHP Notice',
+          1 => 'PHP Warning',
+        ),
+        'nf' => 
+        array (
+        ),
+        'pid' => 'route-wp-debug-log',
+        'sev' => 'medium',
+        'sig' => 0,
+        't' => 
+        array (
+          0 => 'route-wp-debug-log',
+        ),
+      ),
+    ),
+    'GET /error_log' => 
+    array (
+      0 => 
+      array (
+        's' => 200,
+        'bw' => 
+        array (
+          0 => 'PHP Fatal error',
+        ),
+        'nf' => 
+        array (
+        ),
+        'pid' => 'route-php-error-log',
+        'sev' => 'medium',
+        'sig' => 0,
+        't' => 
+        array (
+          0 => 'route-php-error-log',
+        ),
+      ),
+    ),
+    'GET /php_errors.log' => 
+    array (
+      0 => 
+      array (
+        's' => 200,
+        'bw' => 
+        array (
+          0 => 'PHP Fatal error',
+        ),
+        'nf' => 
+        array (
+        ),
+        'pid' => 'route-php-error-log',
+        'sev' => 'medium',
+        'sig' => 0,
+        't' => 
+        array (
+          0 => 'route-php-error-log',
+        ),
+      ),
+    ),
+    'GET /php_error.log' => 
+    array (
+      0 => 
+      array (
+        's' => 200,
+        'bw' => 
+        array (
+          0 => 'PHP Fatal error',
+        ),
+        'nf' => 
+        array (
+        ),
+        'pid' => 'route-php-error-log',
+        'sev' => 'medium',
+        'sig' => 0,
+        't' => 
+        array (
+          0 => 'route-php-error-log',
+        ),
+      ),
+    ),
+    'GET /logs/error.log' => 
+    array (
+      0 => 
+      array (
+        's' => 200,
+        'bw' => 
+        array (
+          0 => 'PHP Fatal error',
+        ),
+        'nf' => 
+        array (
+        ),
+        'pid' => 'route-php-error-log',
+        'sev' => 'medium',
+        'sig' => 0,
+        't' => 
+        array (
+          0 => 'route-php-error-log',
+        ),
+      ),
+    ),
+    'GET /laravel.log' => 
+    array (
+      0 => 
+      array (
+        's' => 200,
+        'bw' => 
+        array (
+          0 => 'production.ERROR',
+        ),
+        'nf' => 
+        array (
+        ),
+        'pid' => 'route-laravel-log-alt',
+        'sev' => 'high',
+        'sig' => 0,
+        't' => 
+        array (
+          0 => 'route-laravel-log-alt',
+        ),
+      ),
+    ),
+    'GET /logs/laravel.log' => 
+    array (
+      0 => 
+      array (
+        's' => 200,
+        'bw' => 
+        array (
+          0 => 'production.ERROR',
+        ),
+        'nf' => 
+        array (
+        ),
+        'pid' => 'route-laravel-log-alt',
+        'sev' => 'high',
+        'sig' => 0,
+        't' => 
+        array (
+          0 => 'route-laravel-log-alt',
+        ),
+      ),
+    ),
+    'GET /var/log/nginx/error.log' => 
+    array (
+      0 => 
+      array (
+        's' => 200,
+        'bw' => 
+        array (
+          0 => '[error]',
+          1 => 'upstream',
+        ),
+        'nf' => 
+        array (
+        ),
+        'pid' => 'route-nginx-error-log',
+        'sev' => 'medium',
+        'sig' => 0,
+        't' => 
+        array (
+          0 => 'route-nginx-error-log',
+        ),
+      ),
+    ),
+    'GET /nginx_error.log' => 
+    array (
+      0 => 
+      array (
+        's' => 200,
+        'bw' => 
+        array (
+          0 => '[error]',
+          1 => 'upstream',
+        ),
+        'nf' => 
+        array (
+        ),
+        'pid' => 'route-nginx-error-log',
+        'sev' => 'medium',
+        'sig' => 0,
+        't' => 
+        array (
+          0 => 'route-nginx-error-log',
+        ),
+      ),
+    ),
+    'GET /var/log/nginx/access.log' => 
+    array (
+      0 => 
+      array (
+        's' => 200,
+        'bw' => 
+        array (
+          0 => '"GET /',
+        ),
+        'nf' => 
+        array (
+        ),
+        'pid' => 'route-nginx-access-log',
+        'sev' => 'medium',
+        'sig' => 0,
+        't' => 
+        array (
+          0 => 'route-nginx-access-log',
+        ),
+      ),
+    ),
+    'GET /var/log/apache2/error.log' => 
+    array (
+      0 => 
+      array (
+        's' => 200,
+        'bw' => 
+        array (
+          0 => '[core:error]',
+        ),
+        'nf' => 
+        array (
+        ),
+        'pid' => 'route-apache-error-log',
+        'sev' => 'medium',
+        'sig' => 0,
+        't' => 
+        array (
+          0 => 'route-apache-error-log',
+        ),
+      ),
+    ),
+    'GET /var/log/httpd/error_log' => 
+    array (
+      0 => 
+      array (
+        's' => 200,
+        'bw' => 
+        array (
+          0 => '[core:error]',
+        ),
+        'nf' => 
+        array (
+        ),
+        'pid' => 'route-apache-error-log',
+        'sev' => 'medium',
+        'sig' => 0,
+        't' => 
+        array (
+          0 => 'route-apache-error-log',
+        ),
+      ),
+    ),
+    'GET /var/log/apache2/access.log' => 
+    array (
+      0 => 
+      array (
+        's' => 200,
+        'bw' => 
+        array (
+          0 => '"GET /',
+        ),
+        'nf' => 
+        array (
+        ),
+        'pid' => 'route-apache-access-log',
+        'sev' => 'medium',
+        'sig' => 0,
+        't' => 
+        array (
+          0 => 'route-apache-access-log',
+        ),
+      ),
+    ),
+    'GET /app.log' => 
+    array (
+      0 => 
+      array (
+        's' => 200,
+        'bw' => 
+        array (
+          0 => 'ERROR',
+          1 => 'level=error',
+        ),
+        'nf' => 
+        array (
+        ),
+        'pid' => 'route-app-log',
+        'sev' => 'medium',
+        'sig' => 0,
+        't' => 
+        array (
+          0 => 'route-app-log',
+        ),
+      ),
+    ),
+    'GET /logs/app.log' => 
+    array (
+      0 => 
+      array (
+        's' => 200,
+        'bw' => 
+        array (
+          0 => 'ERROR',
+          1 => 'level=error',
+        ),
+        'nf' => 
+        array (
+        ),
+        'pid' => 'route-app-log',
+        'sev' => 'medium',
+        'sig' => 0,
+        't' => 
+        array (
+          0 => 'route-app-log',
+        ),
+      ),
+    ),
+    'GET /server.log' => 
+    array (
+      0 => 
+      array (
+        's' => 200,
+        'bw' => 
+        array (
+          0 => 'ERROR',
+          1 => 'level=error',
+        ),
+        'nf' => 
+        array (
+        ),
+        'pid' => 'route-app-log',
+        'sev' => 'medium',
+        'sig' => 0,
+        't' => 
+        array (
+          0 => 'route-app-log',
+        ),
+      ),
+    ),
+    'GET /logs/debug.log' => 
+    array (
+      0 => 
+      array (
+        's' => 200,
+        'bw' => 
+        array (
+          0 => 'ERROR',
+          1 => 'level=error',
+        ),
+        'nf' => 
+        array (
+        ),
+        'pid' => 'route-app-log',
+        'sev' => 'medium',
+        'sig' => 0,
+        't' => 
+        array (
+          0 => 'route-app-log',
+        ),
+      ),
+    ),
+    'GET /catalina.out' => 
+    array (
+      0 => 
+      array (
+        's' => 200,
+        'bw' => 
+        array (
+          0 => 'SEVERE',
+          1 => 'java.lang.',
+        ),
+        'nf' => 
+        array (
+        ),
+        'pid' => 'route-catalina-out',
+        'sev' => 'medium',
+        'sig' => 0,
+        't' => 
+        array (
+          0 => 'route-catalina-out',
         ),
       ),
     ),
