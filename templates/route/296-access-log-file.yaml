@@ -1,0 +1,35 @@
+id: route-access-log
+priority: 296
+# Enrich: the corpus routes /access.log, /logs/access.log and /application/logs/access.log to the
+# `access-log-file` bundle (body word `"GET /`, header witness text/plain). Minimal synth would emit
+# a bare `"GET /` line; here we dress a believable combined-format web access log — a browser
+# session interleaved with the scanner traffic every public host sees. Client IPs come from a pool
+# of real, routable public addresses (NO RFC-5737 doc ranges, which read as placeholder); three
+# rotations of one 16-address pool give distinct-looking clients per seed. Referer/Host derive from
+# the persona domain so the log agrees with this host's other disclosures.
+#
+# Number safety: IP octets and status codes are <=3 digits and split by non-word chars, so no octet
+# can form a bare-6-digit run; response sizes use dec:3/dec:4 (never dec:6). The needle is the full
+# upstream id — findRule is global. (/log/access.log also carries the iceflow VPN witnesses, which
+# this generic body does not satisfy, so it degrades to minimal synth there by design.)
+match:
+  template_needle: [access-log-file]
+response:
+  headers:
+    Content-Type: "text/plain; charset=utf-8"
+  body: |
+    {{pick:45.148.10.72,185.220.101.34,91.207.175.14,103.224.182.251,51.158.108.203,195.154.200.88,141.98.11.29,209.141.55.198,176.113.115.84,80.94.92.60,156.146.59.25,89.248.165.44,193.32.126.212,45.61.184.9,167.94.138.60,62.210.88.140}} - - [10/Oct/2024:13:55:36 +0000] "GET / HTTP/1.1" 200 {{fake.sza:dec:4}} "https://www.google.com/" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+    {{pick:45.148.10.72,185.220.101.34,91.207.175.14,103.224.182.251,51.158.108.203,195.154.200.88,141.98.11.29,209.141.55.198,176.113.115.84,80.94.92.60,156.146.59.25,89.248.165.44,193.32.126.212,45.61.184.9,167.94.138.60,62.210.88.140}} - - [10/Oct/2024:13:55:36 +0000] "GET /assets/app.css HTTP/1.1" 200 {{fake.szb:dec:4}} "https://{{persona.company.domain}}/" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+    {{pick:195.154.200.88,141.98.11.29,209.141.55.198,176.113.115.84,80.94.92.60,156.146.59.25,89.248.165.44,193.32.126.212,45.61.184.9,167.94.138.60,62.210.88.140,45.148.10.72,185.220.101.34,91.207.175.14,103.224.182.251,51.158.108.203}} - - [10/Oct/2024:13:55:37 +0000] "GET /wp-login.php HTTP/1.1" 404 {{fake.szc:dec:3}} "-" "Mozilla/5.0 (compatible; Nmap Scripting Engine; https://nmap.org/book/nse.html)"
+    {{pick:156.146.59.25,89.248.165.44,193.32.126.212,45.61.184.9,167.94.138.60,62.210.88.140,45.148.10.72,185.220.101.34,91.207.175.14,103.224.182.251,51.158.108.203,195.154.200.88,141.98.11.29,209.141.55.198,176.113.115.84,80.94.92.60}} - - [10/Oct/2024:13:55:38 +0000] "GET /.env HTTP/1.1" 404 {{fake.szd:dec:3}} "-" "curl/8.4.0"
+    {{pick:45.148.10.72,185.220.101.34,91.207.175.14,103.224.182.251,51.158.108.203,195.154.200.88,141.98.11.29,209.141.55.198,176.113.115.84,80.94.92.60,156.146.59.25,89.248.165.44,193.32.126.212,45.61.184.9,167.94.138.60,62.210.88.140}} - - [10/Oct/2024:13:55:40 +0000] "POST /api/v1/login HTTP/1.1" 200 {{fake.sze:dec:3}} "https://{{persona.company.domain}}/login" "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.1 Safari/605.1.15"
+    {{pick:195.154.200.88,141.98.11.29,209.141.55.198,176.113.115.84,80.94.92.60,156.146.59.25,89.248.165.44,193.32.126.212,45.61.184.9,167.94.138.60,62.210.88.140,45.148.10.72,185.220.101.34,91.207.175.14,103.224.182.251,51.158.108.203}} - - [10/Oct/2024:13:55:41 +0000] "GET /.git/config HTTP/1.1" 404 {{fake.szf:dec:3}} "-" "python-requests/2.31.0"
+    {{pick:156.146.59.25,89.248.165.44,193.32.126.212,45.61.184.9,167.94.138.60,62.210.88.140,45.148.10.72,185.220.101.34,91.207.175.14,103.224.182.251,51.158.108.203,195.154.200.88,141.98.11.29,209.141.55.198,176.113.115.84,80.94.92.60}} - - [10/Oct/2024:13:55:43 +0000] "POST /xmlrpc.php HTTP/1.1" 403 {{fake.szg:dec:3}} "-" "Mozilla/5.0 (X11; Linux x86_64)"
+    {{pick:45.148.10.72,185.220.101.34,91.207.175.14,103.224.182.251,51.158.108.203,195.154.200.88,141.98.11.29,209.141.55.198,176.113.115.84,80.94.92.60,156.146.59.25,89.248.165.44,193.32.126.212,45.61.184.9,167.94.138.60,62.210.88.140}} - - [10/Oct/2024:13:55:45 +0000] "GET /pricing HTTP/1.1" 200 {{fake.szh:dec:4}} "https://{{persona.company.domain}}/" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+    {{pick:195.154.200.88,141.98.11.29,209.141.55.198,176.113.115.84,80.94.92.60,156.146.59.25,89.248.165.44,193.32.126.212,45.61.184.9,167.94.138.60,62.210.88.140,45.148.10.72,185.220.101.34,91.207.175.14,103.224.182.251,51.158.108.203}} - - [10/Oct/2024:13:55:47 +0000] "GET /phpmyadmin/ HTTP/1.1" 404 {{fake.szi:dec:3}} "-" "Mozilla/5.0 (compatible; CensysInspect/1.1; +https://about.censys.io/)"
+    {{pick:156.146.59.25,89.248.165.44,193.32.126.212,45.61.184.9,167.94.138.60,62.210.88.140,45.148.10.72,185.220.101.34,91.207.175.14,103.224.182.251,51.158.108.203,195.154.200.88,141.98.11.29,209.141.55.198,176.113.115.84,80.94.92.60}} - - [10/Oct/2024:13:55:50 +0000] "GET /robots.txt HTTP/1.1" 200 {{fake.szj:dec:3}} "-" "Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)"
+taunt: { mode: line, open: '#' }
+expect:
+  - '"GET /'
+  - 'HTTP/1.1"'
+  - 'Mozilla/5.0'

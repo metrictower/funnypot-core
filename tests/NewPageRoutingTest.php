@@ -385,6 +385,10 @@ final class NewPageRoutingTest extends TestCase
             '/application.properties', '/application.yml', '/settings.json', '/web.config', '/config.js',
             '/credentials.txt', '/backup.sql', '/install/froxlor.sql',
             '/wp-config.php-backup', '/terraform.tfstate', '/.terraform/terraform.tfstate', '/infra/terraform.tfstate',
+            // Log-file disclosure pack — enrich surfaces (dressed corpus bundles). Logs are dense with
+            // timestamps/sizes/PIDs/line numbers, so the \b9\d{5}\b run is the acute hazard here.
+            '/npm-debug.log', '/storage/logs/laravel.log', '/firebase-debug.log', '/var/log/debug.log',
+            '/development.log', '/production.log', '/access.log',
         ];
         // The vite-fs `/@fs/{path}` param route serves per-target disclosure bodies (its own RDS/cache
         // host islands live in the .env and wp-config.php loot targets), so exercise those too.

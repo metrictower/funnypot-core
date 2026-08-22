@@ -1,0 +1,44 @@
+id: route-npm-debug-log
+priority: 94
+# Enrich: the corpus routes /npm-debug.log (+ /assets/npm-debug.log) to the `npm-debug-log`
+# bundle (body words `verbose cli` / `verbose stack` / `info it worked if it ends with ok`).
+# Minimal synth would emit those three bare lines; here we dress a believable failed
+# `npm install` debug log for this host's app. No secrets — an npm-debug.log carries none —
+# but the paths leak the company slug so it agrees with the other files this host discloses.
+# The needle is the full upstream id (npm-debug-log), not a broad `npm`: findRule is global and a
+# short needle would substring-hijack unrelated bundles. All counters/line numbers are <=5 digits.
+#
+# Priority sits just BEFORE route-npmrc (95): that .npmrc rule matches on `pid: [npm]`, which the
+# npm-debug.log bundle also carries, so without a lower number it would win and dress this debug log
+# as an .npmrc token file. This rule's needle matches only the npm-debug.log routes, so ordering it
+# first never touches /.npmrc.
+match:
+  template_needle: [npm-debug-log]
+response:
+  headers:
+    Content-Type: "text/plain; charset=utf-8"
+  body: |
+    0 verbose cli /usr/local/bin/node /usr/local/bin/npm
+    1 info using npm@10.2.4
+    2 info using node@v20.11.1
+    3 timing npm:load:whichnodes Completed in 1ms
+    4 verbose title npm run build
+    5 verbose argv "run" "build"
+    6 info it worked if it ends with ok
+    7 verbose stack Error: command failed
+    7 verbose stack     at ChildProcess.<anonymous> (/usr/local/lib/node_modules/npm/node_modules/@npmcli/promise-spawn/lib/index.js:53:27)
+    7 verbose stack     at ChildProcess.emit (node:events:513:28)
+    7 verbose stack     at maybeClose (node:internal/child_process:1091:16)
+    8 verbose pkgid @{{persona.company.slug}}/web@1.4.0
+    9 verbose cwd /var/www/{{persona.company.slug}}
+    10 verbose Linux 5.15.0-91-generic
+    11 error code 1
+    12 error command failed
+    13 error command sh -c vite build
+    14 verbose exit 1
+    15 verbose code 1
+taunt: { mode: line, open: '#' }
+expect:
+  - 'verbose cli'
+  - 'verbose stack'
+  - 'info it worked if it ends with ok'

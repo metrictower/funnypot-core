@@ -1,0 +1,28 @@
+id: route-laravel-log-file
+priority: 291
+# Enrich: the corpus routes /storage/logs/laravel.log to the `laravel-log-file` bundle (body word
+# `InvalidArgumentException`). Minimal synth would emit that bare word; here we dress a real
+# Monolog stack trace for this host's Laravel app. It leaks the persona's Postgres db identity
+# (host/user, port 5432) so the file agrees with every other config/log this host discloses — same
+# Postgres engine claim as the M8 config pack. Needle is the full upstream id (not a broad `log`):
+# findRule is global. Timestamps carry no microseconds, so no 6-digit token; line numbers are <=3.
+match:
+  template_needle: [laravel-log-file]
+response:
+  headers:
+    Content-Type: "text/plain; charset=utf-8"
+  body: |
+    [2024-10-10 13:55:36] production.ERROR: Missing required parameter for [Route: user.show] [URI: user/{id}] [Missing parameter: id]. {"exception":"[object] (InvalidArgumentException(code: 0): Missing required parameter for [Route: user.show] [URI: user/{id}] [Missing parameter: id]. at /var/www/{{persona.company.slug}}/vendor/laravel/framework/src/Illuminate/Routing/RouteUrlGenerator.php:181)
+    [stacktrace]
+    #0 /var/www/{{persona.company.slug}}/vendor/laravel/framework/src/Illuminate/Routing/UrlGenerator.php:410
+    #1 /var/www/{{persona.company.slug}}/app/Http/Controllers/UserController.php:64
+    #2 {main}
+    "}
+    [2024-10-10 13:55:52] production.ERROR: SQLSTATE[08006] [7] connection to server at "{{persona.db.host}}", port 5432 failed: FATAL:  password authentication failed for user "{{persona.db.user}}" (Connection: pgsql, SQL: select * from "users" where "email" = ? limit 1) {"exception":"[object] (Illuminate\\Database\\QueryException(code: 7): SQLSTATE[08006] at /var/www/{{persona.company.slug}}/vendor/laravel/framework/src/Illuminate/Database/Connection.php:825)
+    #0 {main}
+    "}
+taunt: { mode: line, open: '#' }
+expect:
+  - 'production.ERROR'
+  - 'InvalidArgumentException'
+  - 'SQLSTATE[08006]'

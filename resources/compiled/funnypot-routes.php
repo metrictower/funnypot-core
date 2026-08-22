@@ -403,6 +403,46 @@ Srv  Client          VHost                Request
   ),
   9 => 
   array (
+    'id' => 'route-npm-debug-log',
+    'match' => 
+    array (
+      'template_needle' => 
+      array (
+        0 => 'npm-debug-log',
+      ),
+    ),
+    'body' => '0 verbose cli /usr/local/bin/node /usr/local/bin/npm
+1 info using npm@10.2.4
+2 info using node@v20.11.1
+3 timing npm:load:whichnodes Completed in 1ms
+4 verbose title npm run build
+5 verbose argv "run" "build"
+6 info it worked if it ends with ok
+7 verbose stack Error: command failed
+7 verbose stack     at ChildProcess.<anonymous> (/usr/local/lib/node_modules/npm/node_modules/@npmcli/promise-spawn/lib/index.js:53:27)
+7 verbose stack     at ChildProcess.emit (node:events:513:28)
+7 verbose stack     at maybeClose (node:internal/child_process:1091:16)
+8 verbose pkgid @{{persona.company.slug}}/web@1.4.0
+9 verbose cwd /var/www/{{persona.company.slug}}
+10 verbose Linux 5.15.0-91-generic
+11 error code 1
+12 error command failed
+13 error command sh -c vite build
+14 verbose exit 1
+15 verbose code 1
+',
+    'headers' => 
+    array (
+      'Content-Type' => 'text/plain; charset=utf-8',
+    ),
+    'taunt' => 
+    array (
+      'mode' => 'line',
+      'open' => '#',
+    ),
+  ),
+  10 => 
+  array (
     'id' => 'route-npmrc',
     'match' => 
     array (
@@ -438,7 +478,7 @@ always-auth=true
       'open' => '#',
     ),
   ),
-  10 => 
+  11 => 
   array (
     'id' => 'route-ssh-private-key',
     'match' => 
@@ -484,7 +524,7 @@ always-auth=true
       'open' => '#',
     ),
   ),
-  11 => 
+  12 => 
   array (
     'id' => 'route-sql-dump',
     'match' => 
@@ -537,7 +577,7 @@ INSERT INTO `api_credentials` VALUES (4,\'SENDGRID_API_KEY\',\'{{persona.cloud.s
       'open' => '--',
     ),
   ),
-  12 => 
+  13 => 
   array (
     'id' => 'route-weblogic',
     'match' => 
@@ -572,7 +612,7 @@ INSERT INTO `api_credentials` VALUES (4,\'SENDGRID_API_KEY\',\'{{persona.cloud.s
     ),
     'set_cookie' => 'JSESSIONID',
   ),
-  13 => 
+  14 => 
   array (
     'id' => 'route-exchange-owa',
     'match' => 
@@ -608,7 +648,7 @@ INSERT INTO `api_credentials` VALUES (4,\'SENDGRID_API_KEY\',\'{{persona.cloud.s
     ),
     'set_cookie' => 'ASP.NET_SessionId',
   ),
-  14 => 
+  15 => 
   array (
     'id' => 'route-adminer',
     'match' => 
@@ -644,7 +684,7 @@ INSERT INTO `api_credentials` VALUES (4,\'SENDGRID_API_KEY\',\'{{persona.cloud.s
     ),
     'set_cookie' => 'PHPSESSID',
   ),
-  15 => 
+  16 => 
   array (
     'id' => 'route-joomla',
     'match' => 
@@ -679,7 +719,7 @@ INSERT INTO `api_credentials` VALUES (4,\'SENDGRID_API_KEY\',\'{{persona.cloud.s
     ),
     'set_cookie' => 'PHPSESSID',
   ),
-  16 => 
+  17 => 
   array (
     'id' => 'route-wp-readme',
     'match' => 
@@ -709,7 +749,7 @@ INSERT INTO `api_credentials` VALUES (4,\'SENDGRID_API_KEY\',\'{{persona.cloud.s
       'close' => '-->',
     ),
   ),
-  17 => 
+  18 => 
   array (
     'id' => 'route-citrix',
     'match' => 
@@ -743,7 +783,7 @@ INSERT INTO `api_credentials` VALUES (4,\'SENDGRID_API_KEY\',\'{{persona.cloud.s
     ),
     'set_cookie' => 'NSC_AAAC',
   ),
-  18 => 
+  19 => 
   array (
     'id' => 'route-directory-listing',
     'match' => 
@@ -778,7 +818,7 @@ INSERT INTO `api_credentials` VALUES (4,\'SENDGRID_API_KEY\',\'{{persona.cloud.s
       'close' => '-->',
     ),
   ),
-  19 => 
+  20 => 
   array (
     'id' => 'route-django-admin',
     'match' => 
@@ -816,7 +856,7 @@ INSERT INTO `api_credentials` VALUES (4,\'SENDGRID_API_KEY\',\'{{persona.cloud.s
     ),
     'set_cookie' => 'sessionid',
   ),
-  20 => 
+  21 => 
   array (
     'id' => 'route-tomcat-manager',
     'match' => 
@@ -856,7 +896,7 @@ INSERT INTO `api_credentials` VALUES (4,\'SENDGRID_API_KEY\',\'{{persona.cloud.s
     ),
     'set_cookie' => 'JSESSIONID',
   ),
-  21 => 
+  22 => 
   array (
     'id' => 'route-basic-auth',
     'match' => 
@@ -878,7 +918,7 @@ INSERT INTO `api_credentials` VALUES (4,\'SENDGRID_API_KEY\',\'{{persona.cloud.s
       'WWW-Authenticate' => 'Basic realm="Restricted Area"',
     ),
   ),
-  22 => 
+  23 => 
   array (
     'id' => 'route-credentials-txt',
     'match' => 
@@ -927,7 +967,7 @@ SLACK_WEBHOOK_URL=https://hooks.slack.com/services/T{{fake.slt:hex:8}}/B{{fake.s
       'open' => '#',
     ),
   ),
-  23 => 
+  24 => 
   array (
     'id' => 'route-terraform-tfstate',
     'match' => 
@@ -999,7 +1039,7 @@ SLACK_WEBHOOK_URL=https://hooks.slack.com/services/T{{fake.slt:hex:8}}/B{{fake.s
       'key' => '_comment',
     ),
   ),
-  24 => 
+  25 => 
   array (
     'id' => 'route-users-csv',
     'match' => 
@@ -1029,7 +1069,7 @@ SLACK_WEBHOOK_URL=https://hooks.slack.com/services/T{{fake.slt:hex:8}}/B{{fake.s
       'open' => '#',
     ),
   ),
-  25 => 
+  26 => 
   array (
     'id' => 'route-sql-backup',
     'match' => 
@@ -1080,7 +1120,7 @@ INSERT INTO `api_keys` VALUES (4,\'SENDGRID_API_KEY\',\'{{persona.cloud.sendgrid
       'open' => '--',
     ),
   ),
-  26 => 
+  27 => 
   array (
     'id' => 'route-phpmyadmin',
     'match' => 
@@ -1123,7 +1163,7 @@ INSERT INTO `api_keys` VALUES (4,\'SENDGRID_API_KEY\',\'{{persona.cloud.sendgrid
     ),
     'set_cookie' => 'phpMyAdmin',
   ),
-  27 => 
+  28 => 
   array (
     'id' => 'route-ai-claude-json',
     'match' => 
@@ -1161,7 +1201,7 @@ INSERT INTO `api_keys` VALUES (4,\'SENDGRID_API_KEY\',\'{{persona.cloud.sendgrid
       'key' => '_comment',
     ),
   ),
-  28 => 
+  29 => 
   array (
     'id' => 'route-ai-claude-settings',
     'match' => 
@@ -1194,7 +1234,7 @@ INSERT INTO `api_keys` VALUES (4,\'SENDGRID_API_KEY\',\'{{persona.cloud.sendgrid
       'key' => '_comment',
     ),
   ),
-  29 => 
+  30 => 
   array (
     'id' => 'route-ai-claude-desktop',
     'match' => 
@@ -1228,7 +1268,7 @@ INSERT INTO `api_keys` VALUES (4,\'SENDGRID_API_KEY\',\'{{persona.cloud.sendgrid
       'key' => '_comment',
     ),
   ),
-  30 => 
+  31 => 
   array (
     'id' => 'route-ai-mcp-json',
     'match' => 
@@ -1262,7 +1302,7 @@ INSERT INTO `api_keys` VALUES (4,\'SENDGRID_API_KEY\',\'{{persona.cloud.sendgrid
       'key' => '_comment',
     ),
   ),
-  31 => 
+  32 => 
   array (
     'id' => 'route-ai-continue',
     'match' => 
@@ -1299,7 +1339,7 @@ INSERT INTO `api_keys` VALUES (4,\'SENDGRID_API_KEY\',\'{{persona.cloud.sendgrid
       'key' => '_comment',
     ),
   ),
-  32 => 
+  33 => 
   array (
     'id' => 'route-ai-aider',
     'match' => 
@@ -1327,7 +1367,7 @@ gitignore: false
       'open' => '#',
     ),
   ),
-  33 => 
+  34 => 
   array (
     'id' => 'route-ai-copilot-token',
     'match' => 
@@ -1355,7 +1395,7 @@ gitignore: false
       'key' => '_comment',
     ),
   ),
-  34 => 
+  35 => 
   array (
     'id' => 'route-ai-openai-models',
     'match' => 
@@ -1385,7 +1425,7 @@ gitignore: false
       'key' => '_comment',
     ),
   ),
-  35 => 
+  36 => 
   array (
     'id' => 'route-mcp-endpoint',
     'match' => 
@@ -1402,7 +1442,7 @@ gitignore: false
       'Content-Type' => 'application/json',
     ),
   ),
-  36 => 
+  37 => 
   array (
     'id' => 'route-llm-auth',
     'match' => 
@@ -1419,7 +1459,7 @@ gitignore: false
       'Content-Type' => 'application/json',
     ),
   ),
-  37 => 
+  38 => 
   array (
     'id' => 'route-v1-models-enrich',
     'match' => 
@@ -1449,7 +1489,7 @@ gitignore: false
       'key' => '_comment',
     ),
   ),
-  38 => 
+  39 => 
   array (
     'id' => 'route-v1-models-vllm',
     'match' => 
@@ -1477,7 +1517,7 @@ gitignore: false
       'key' => '_comment',
     ),
   ),
-  39 => 
+  40 => 
   array (
     'id' => 'route-config-php',
     'match' => 
@@ -1513,7 +1553,7 @@ define(\'AWS_DEFAULT_REGION\', \'{{persona.cloud.aws.region}}\');
       'open' => '#',
     ),
   ),
-  40 => 
+  41 => 
   array (
     'id' => 'route-envfile-prod',
     'match' => 
@@ -1551,7 +1591,7 @@ JWT_SECRET={{persona.secret.jwt}}
       'open' => '#',
     ),
   ),
-  41 => 
+  42 => 
   array (
     'id' => 'route-secrets-json',
     'match' => 
@@ -1588,7 +1628,7 @@ JWT_SECRET={{persona.secret.jwt}}
       'key' => '_comment',
     ),
   ),
-  42 => 
+  43 => 
   array (
     'id' => 'route-docker-compose',
     'match' => 
@@ -1641,7 +1681,7 @@ services:
       'open' => '#',
     ),
   ),
-  43 => 
+  44 => 
   array (
     'id' => 'route-application-properties',
     'match' => 
@@ -1673,7 +1713,7 @@ cloud.aws.region.static={{persona.cloud.aws.region}}
       'open' => '#',
     ),
   ),
-  44 => 
+  45 => 
   array (
     'id' => 'route-application-yml',
     'match' => 
@@ -1711,7 +1751,7 @@ cloud:
       'open' => '#',
     ),
   ),
-  45 => 
+  46 => 
   array (
     'id' => 'route-settings-json',
     'match' => 
@@ -1749,7 +1789,7 @@ cloud:
       'key' => '_comment',
     ),
   ),
-  46 => 
+  47 => 
   array (
     'id' => 'route-web-config',
     'match' => 
@@ -1793,7 +1833,7 @@ cloud:
       'close' => '-->',
     ),
   ),
-  47 => 
+  48 => 
   array (
     'id' => 'route-config-js-firebase',
     'match' => 
@@ -1825,7 +1865,7 @@ firebase.initializeApp(firebaseConfig);
       'open' => '//',
     ),
   ),
-  48 => 
+  49 => 
   array (
     'id' => 'route-envfile-local',
     'match' => 
@@ -1863,7 +1903,7 @@ JWT_SECRET={{persona.secret.jwt}}
       'open' => '#',
     ),
   ),
-  49 => 
+  50 => 
   array (
     'id' => 'route-react-runtime-env',
     'match' => 
@@ -1885,6 +1925,186 @@ REACT_APP_GA_MEASUREMENT_ID=G-{{fake.reactga:hexupper:10}}
     'headers' => 
     array (
       'Content-Type' => 'application/octet-stream',
+    ),
+    'taunt' => 
+    array (
+      'mode' => 'line',
+      'open' => '#',
+    ),
+  ),
+  51 => 
+  array (
+    'id' => 'route-laravel-log-file',
+    'match' => 
+    array (
+      'template_needle' => 
+      array (
+        0 => 'laravel-log-file',
+      ),
+    ),
+    'body' => '[2024-10-10 13:55:36] production.ERROR: Missing required parameter for [Route: user.show] [URI: user/{id}] [Missing parameter: id]. {"exception":"[object] (InvalidArgumentException(code: 0): Missing required parameter for [Route: user.show] [URI: user/{id}] [Missing parameter: id]. at /var/www/{{persona.company.slug}}/vendor/laravel/framework/src/Illuminate/Routing/RouteUrlGenerator.php:181)
+[stacktrace]
+#0 /var/www/{{persona.company.slug}}/vendor/laravel/framework/src/Illuminate/Routing/UrlGenerator.php:410
+#1 /var/www/{{persona.company.slug}}/app/Http/Controllers/UserController.php:64
+#2 {main}
+"}
+[2024-10-10 13:55:52] production.ERROR: SQLSTATE[08006] [7] connection to server at "{{persona.db.host}}", port 5432 failed: FATAL:  password authentication failed for user "{{persona.db.user}}" (Connection: pgsql, SQL: select * from "users" where "email" = ? limit 1) {"exception":"[object] (Illuminate\\\\Database\\\\QueryException(code: 7): SQLSTATE[08006] at /var/www/{{persona.company.slug}}/vendor/laravel/framework/src/Illuminate/Database/Connection.php:825)
+#0 {main}
+"}
+',
+    'headers' => 
+    array (
+      'Content-Type' => 'text/plain; charset=utf-8',
+    ),
+    'taunt' => 
+    array (
+      'mode' => 'line',
+      'open' => '#',
+    ),
+  ),
+  52 => 
+  array (
+    'id' => 'route-firebase-debug-log',
+    'match' => 
+    array (
+      'template_needle' => 
+      array (
+        0 => 'firebase-debug-log',
+      ),
+    ),
+    'body' => '[debug] [2024-10-10T13:55:36.482Z] ----------------------------------------------------------------------
+[debug] [2024-10-10T13:55:36.482Z] Command:       /usr/local/bin/node /usr/local/bin/firebase deploy --only hosting
+[debug] [2024-10-10T13:55:36.483Z] CLI Version:   13.0.2
+[debug] [2024-10-10T13:55:36.483Z] Platform:      linux
+[debug] [2024-10-10T13:55:36.484Z] Node Version:  v20.11.1
+[debug] [2024-10-10T13:55:36.500Z] > authorizing via signed-in user ({{persona.user.admin.email}})
+[debug] [2024-10-10T13:55:36.601Z] > refreshing access token with scopes: []
+[debug] [2024-10-10T13:55:36.720Z] >>> [apiv2] HTTP REQUEST GET https://firebase.googleapis.com/v1beta1/projects/{{persona.company.slug}}-app
+[debug] [2024-10-10T13:55:37.021Z] <<< [apiv2] HTTP RESPONSE 200
+[debug] [2024-10-10T13:55:37.140Z] >>> [apiv2] HTTP REQUEST GET https://firebasehosting.googleapis.com/v1beta1/sites/{{persona.company.slug}}-app/channels/live/releases
+[debug] [2024-10-10T13:55:37.402Z] <<< [apiv2] HTTP RESPONSE 200
+[debug] [2024-10-10T13:55:37.560Z] + hosting: found 214 files in public
+',
+    'headers' => 
+    array (
+      'Content-Type' => 'text/plain; charset=utf-8',
+    ),
+    'taunt' => 
+    array (
+      'mode' => 'line',
+      'open' => '#',
+    ),
+  ),
+  53 => 
+  array (
+    'id' => 'route-magento-debug-log',
+    'match' => 
+    array (
+      'template_needle' => 
+      array (
+        0 => 'magento-debug-log-exposure',
+      ),
+    ),
+    'body' => '[2024-10-10T13:55:36.482013+00:00] main.DEBUG: Broken reference: the \'catalog.compare.sidebar\' tries to reorder itself towards \'sidebar.additional\', but their parents are different. [] []
+[2024-10-10T13:55:36.612044+00:00] main.INFO: Cache cleared by admin user {{persona.user.admin.username}} [] []
+[2024-10-10T13:55:37.128233+00:00] main.DEBUG: Deprecated Functionality: Magento\\Framework\\App\\Http\\Context::getValue is deprecated in /var/www/{{persona.company.slug}}/vendor/magento/framework/App/Http/Context.php on line 74 [] []
+[2024-10-10T13:55:37.402088+00:00] main.CRITICAL: Magento\\Framework\\Exception\\FileSystemException: The file "/var/www/{{persona.company.slug}}/var/cache/mage-tags/mage---bc9" cannot be saved. [] []
+[2024-10-10T13:55:37.701255+00:00] main.DEBUG: Plugin list generated for type Magento\\Catalog\\Model\\Product [] []
+',
+    'headers' => 
+    array (
+      'Content-Type' => 'text/x-log',
+    ),
+    'taunt' => 
+    array (
+      'mode' => 'line',
+      'open' => '#',
+    ),
+  ),
+  54 => 
+  array (
+    'id' => 'route-rails-development-log',
+    'match' => 
+    array (
+      'template_needle' => 
+      array (
+        0 => 'development-logs',
+      ),
+    ),
+    'body' => 'Connecting to database specified by database.yml
+Started GET "/" for 127.0.0.1 at 2024-10-10 13:55:36 +0000
+Processing by HomeController#index as HTML
+  Rendering layout layouts/application.html.erb
+  User Load (0.8ms)  SELECT "users".* FROM "users" WHERE "users"."id" = $1 LIMIT $2  [["id", 1], ["LIMIT", 1]]
+  Rendered home/index.html.erb within layouts/application (Duration: 12.4ms | Allocations: 8421)
+DEPRECATION WARNING: Rendering actions with \'.\' in the name is deprecated and will be removed. (called from index at /var/www/{{persona.company.slug}}/app/controllers/home_controller.rb:7)
+Completed 200 OK in 45ms (Views: 38.2ms | ActiveRecord: 3.1ms | Allocations: 4210)
+',
+    'headers' => 
+    array (
+      'Content-Type' => 'text/plain; charset=utf-8',
+    ),
+    'taunt' => 
+    array (
+      'mode' => 'line',
+      'open' => '#',
+    ),
+  ),
+  55 => 
+  array (
+    'id' => 'route-rails-production-log',
+    'match' => 
+    array (
+      'template_needle' => 
+      array (
+        0 => 'production-log',
+      ),
+    ),
+    'body' => 'Connecting to database specified by database.yml
+Started GET "/" for 10.0.0.5 at 2024-10-10 13:55:36 +0000
+Processing by HomeController#index as HTML
+  Rendered home/index.html.erb within layouts/application (Duration: 12.4ms | Allocations: 8421)
+Completed 200 OK in 47ms (Views: 30.1ms | ActiveRecord: 6.2ms | Allocations: 41208)
+Started GET "/assets/application-{{fake.railsasset:hex:16}}.css" for 10.0.0.5 at 2024-10-10 13:55:37 +0000
+Completed 200 OK in 3ms (ActiveRecord: 0.0ms | Allocations: 512)
+Started POST "/users/sign_in" for 10.0.0.5 at 2024-10-10 13:55:41 +0000
+Processing by Devise::SessionsController#create as HTML
+Completed 401 Unauthorized in 18ms (ActiveRecord: 2.4ms | Allocations: 3187)
+',
+    'headers' => 
+    array (
+      'Content-Type' => 'text/plain; charset=utf-8',
+    ),
+    'taunt' => 
+    array (
+      'mode' => 'line',
+      'open' => '#',
+    ),
+  ),
+  56 => 
+  array (
+    'id' => 'route-access-log',
+    'match' => 
+    array (
+      'template_needle' => 
+      array (
+        0 => 'access-log-file',
+      ),
+    ),
+    'body' => '{{pick:45.148.10.72,185.220.101.34,91.207.175.14,103.224.182.251,51.158.108.203,195.154.200.88,141.98.11.29,209.141.55.198,176.113.115.84,80.94.92.60,156.146.59.25,89.248.165.44,193.32.126.212,45.61.184.9,167.94.138.60,62.210.88.140}} - - [10/Oct/2024:13:55:36 +0000] "GET / HTTP/1.1" 200 {{fake.sza:dec:4}} "https://www.google.com/" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+{{pick:45.148.10.72,185.220.101.34,91.207.175.14,103.224.182.251,51.158.108.203,195.154.200.88,141.98.11.29,209.141.55.198,176.113.115.84,80.94.92.60,156.146.59.25,89.248.165.44,193.32.126.212,45.61.184.9,167.94.138.60,62.210.88.140}} - - [10/Oct/2024:13:55:36 +0000] "GET /assets/app.css HTTP/1.1" 200 {{fake.szb:dec:4}} "https://{{persona.company.domain}}/" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+{{pick:195.154.200.88,141.98.11.29,209.141.55.198,176.113.115.84,80.94.92.60,156.146.59.25,89.248.165.44,193.32.126.212,45.61.184.9,167.94.138.60,62.210.88.140,45.148.10.72,185.220.101.34,91.207.175.14,103.224.182.251,51.158.108.203}} - - [10/Oct/2024:13:55:37 +0000] "GET /wp-login.php HTTP/1.1" 404 {{fake.szc:dec:3}} "-" "Mozilla/5.0 (compatible; Nmap Scripting Engine; https://nmap.org/book/nse.html)"
+{{pick:156.146.59.25,89.248.165.44,193.32.126.212,45.61.184.9,167.94.138.60,62.210.88.140,45.148.10.72,185.220.101.34,91.207.175.14,103.224.182.251,51.158.108.203,195.154.200.88,141.98.11.29,209.141.55.198,176.113.115.84,80.94.92.60}} - - [10/Oct/2024:13:55:38 +0000] "GET /.env HTTP/1.1" 404 {{fake.szd:dec:3}} "-" "curl/8.4.0"
+{{pick:45.148.10.72,185.220.101.34,91.207.175.14,103.224.182.251,51.158.108.203,195.154.200.88,141.98.11.29,209.141.55.198,176.113.115.84,80.94.92.60,156.146.59.25,89.248.165.44,193.32.126.212,45.61.184.9,167.94.138.60,62.210.88.140}} - - [10/Oct/2024:13:55:40 +0000] "POST /api/v1/login HTTP/1.1" 200 {{fake.sze:dec:3}} "https://{{persona.company.domain}}/login" "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.1 Safari/605.1.15"
+{{pick:195.154.200.88,141.98.11.29,209.141.55.198,176.113.115.84,80.94.92.60,156.146.59.25,89.248.165.44,193.32.126.212,45.61.184.9,167.94.138.60,62.210.88.140,45.148.10.72,185.220.101.34,91.207.175.14,103.224.182.251,51.158.108.203}} - - [10/Oct/2024:13:55:41 +0000] "GET /.git/config HTTP/1.1" 404 {{fake.szf:dec:3}} "-" "python-requests/2.31.0"
+{{pick:156.146.59.25,89.248.165.44,193.32.126.212,45.61.184.9,167.94.138.60,62.210.88.140,45.148.10.72,185.220.101.34,91.207.175.14,103.224.182.251,51.158.108.203,195.154.200.88,141.98.11.29,209.141.55.198,176.113.115.84,80.94.92.60}} - - [10/Oct/2024:13:55:43 +0000] "POST /xmlrpc.php HTTP/1.1" 403 {{fake.szg:dec:3}} "-" "Mozilla/5.0 (X11; Linux x86_64)"
+{{pick:45.148.10.72,185.220.101.34,91.207.175.14,103.224.182.251,51.158.108.203,195.154.200.88,141.98.11.29,209.141.55.198,176.113.115.84,80.94.92.60,156.146.59.25,89.248.165.44,193.32.126.212,45.61.184.9,167.94.138.60,62.210.88.140}} - - [10/Oct/2024:13:55:45 +0000] "GET /pricing HTTP/1.1" 200 {{fake.szh:dec:4}} "https://{{persona.company.domain}}/" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+{{pick:195.154.200.88,141.98.11.29,209.141.55.198,176.113.115.84,80.94.92.60,156.146.59.25,89.248.165.44,193.32.126.212,45.61.184.9,167.94.138.60,62.210.88.140,45.148.10.72,185.220.101.34,91.207.175.14,103.224.182.251,51.158.108.203}} - - [10/Oct/2024:13:55:47 +0000] "GET /phpmyadmin/ HTTP/1.1" 404 {{fake.szi:dec:3}} "-" "Mozilla/5.0 (compatible; CensysInspect/1.1; +https://about.censys.io/)"
+{{pick:156.146.59.25,89.248.165.44,193.32.126.212,45.61.184.9,167.94.138.60,62.210.88.140,45.148.10.72,185.220.101.34,91.207.175.14,103.224.182.251,51.158.108.203,195.154.200.88,141.98.11.29,209.141.55.198,176.113.115.84,80.94.92.60}} - - [10/Oct/2024:13:55:50 +0000] "GET /robots.txt HTTP/1.1" 200 {{fake.szj:dec:3}} "-" "Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)"
+',
+    'headers' => 
+    array (
+      'Content-Type' => 'text/plain; charset=utf-8',
     ),
     'taunt' => 
     array (

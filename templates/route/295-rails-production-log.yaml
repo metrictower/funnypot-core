@@ -1,0 +1,28 @@
+id: route-rails-production-log
+priority: 295
+# Enrich: the corpus routes /production.log (+ /log|/logs variants) to the rails bundle whose body
+# words are `Connecting to database specified by database.yml` and `Started GET` (header-forbidden
+# text/html). Needle is the full upstream id `production-log` (also a substring of the sibling
+# `production-logs` id on the same bundle — both resolve here). Minimal synth emits the bare words;
+# here we dress a real Rails production log. Request lines use the internal load-balancer address
+# (no public client-IP pool yet at this increment). Byte/allocation counts stay <=5 digits.
+match:
+  template_needle: [production-log]
+response:
+  headers:
+    Content-Type: "text/plain; charset=utf-8"
+  body: |
+    Connecting to database specified by database.yml
+    Started GET "/" for 10.0.0.5 at 2024-10-10 13:55:36 +0000
+    Processing by HomeController#index as HTML
+      Rendered home/index.html.erb within layouts/application (Duration: 12.4ms | Allocations: 8421)
+    Completed 200 OK in 47ms (Views: 30.1ms | ActiveRecord: 6.2ms | Allocations: 41208)
+    Started GET "/assets/application-{{fake.railsasset:hex:16}}.css" for 10.0.0.5 at 2024-10-10 13:55:37 +0000
+    Completed 200 OK in 3ms (ActiveRecord: 0.0ms | Allocations: 512)
+    Started POST "/users/sign_in" for 10.0.0.5 at 2024-10-10 13:55:41 +0000
+    Processing by Devise::SessionsController#create as HTML
+    Completed 401 Unauthorized in 18ms (ActiveRecord: 2.4ms | Allocations: 3187)
+taunt: { mode: line, open: '#' }
+expect:
+  - 'Connecting to database specified by database.yml'
+  - 'Started GET'

@@ -1,0 +1,24 @@
+id: route-magento-debug-log
+priority: 293
+# Enrich: the corpus routes /var/log/debug.log to the `magento-debug-log-exposure` bundle (body
+# words `main.DEBUG`, `Magento\`; typed-header witness Content-Type text/x-log). Minimal synth would
+# emit the bare words; here we dress a real Magento 2 Monolog debug log. It leaks the company slug
+# (app path) and admin username, but NOT db credentials: Magento is MySQL and the rest of this
+# host's disclosures claim Postgres, so a leaked db line here would contradict the engine — breadth
+# over stack-coherence, we simply omit it. Content-Type MUST be text/x-log or the bundle's typed
+# header fails and it drops to minimal synth. Microsecond fields are static and never lead with 9.
+match:
+  template_needle: [magento-debug-log-exposure]
+response:
+  headers:
+    Content-Type: "text/x-log"
+  body: |
+    [2024-10-10T13:55:36.482013+00:00] main.DEBUG: Broken reference: the 'catalog.compare.sidebar' tries to reorder itself towards 'sidebar.additional', but their parents are different. [] []
+    [2024-10-10T13:55:36.612044+00:00] main.INFO: Cache cleared by admin user {{persona.user.admin.username}} [] []
+    [2024-10-10T13:55:37.128233+00:00] main.DEBUG: Deprecated Functionality: Magento\Framework\App\Http\Context::getValue is deprecated in /var/www/{{persona.company.slug}}/vendor/magento/framework/App/Http/Context.php on line 74 [] []
+    [2024-10-10T13:55:37.402088+00:00] main.CRITICAL: Magento\Framework\Exception\FileSystemException: The file "/var/www/{{persona.company.slug}}/var/cache/mage-tags/mage---bc9" cannot be saved. [] []
+    [2024-10-10T13:55:37.701255+00:00] main.DEBUG: Plugin list generated for type Magento\Catalog\Model\Product [] []
+taunt: { mode: line, open: '#' }
+expect:
+  - 'main.DEBUG'
+  - "Magento\\"

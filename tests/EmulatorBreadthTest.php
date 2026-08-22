@@ -65,6 +65,20 @@ final class EmulatorBreadthTest extends TestCase
             'settings.json enrich'             => ['GET /settings.json', 0, 'route-settings-json'],
             'web.config enrich'                => ['GET /web.config', 0, 'route-web-config'],
             'config.js firebase enrich'        => ['GET /config.js', 0, 'route-config-js-firebase'],
+
+            // Log-file disclosure pack enrich rules — each dresses a log bundle the corpus already
+            // routes to. A full-upstream-id needle keeps the enrich from hijacking an unrelated
+            // bundle; the satisfaction asserts guard against a dropped bw/hw silently falling back to
+            // minimal synth. (/log/access.log is intentionally excluded: its bundle also carries the
+            // iceflow VPN witnesses this generic access-log body does not satisfy, so it degrades to
+            // minimal synth there by design.)
+            'npm-debug.log enrich'             => ['GET /npm-debug.log', 0, 'route-npm-debug-log'],
+            'laravel.log enrich'               => ['GET /storage/logs/laravel.log', 0, 'route-laravel-log-file'],
+            'firebase-debug.log enrich'        => ['GET /firebase-debug.log', 0, 'route-firebase-debug-log'],
+            'magento debug.log enrich'         => ['GET /var/log/debug.log', 0, 'route-magento-debug-log'],
+            'rails development.log enrich'     => ['GET /development.log', 0, 'route-rails-development-log'],
+            'rails production.log enrich'      => ['GET /production.log', 0, 'route-rails-production-log'],
+            'access.log enrich'                => ['GET /access.log', 0, 'route-access-log'],
         ];
     }
 

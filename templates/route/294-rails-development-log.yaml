@@ -1,0 +1,26 @@
+id: route-rails-development-log
+priority: 294
+# Enrich: the corpus routes /development.log (+ /log|/logs variants) to the `development-logs`
+# bundle (body words `Connecting to database specified by database.yml`, `DEPRECATION WARNING`;
+# header-forbidden text/html). Minimal synth emits the bare words; here we dress a real Rails
+# development log. The request line uses the loopback proxy address (no client-IP pool needed at
+# this increment), leaks the company slug in an app path, and stays Postgres-coherent ($1/$2 bind
+# params, no engine name). Content-Type must not be text/html (the bundle forbids it).
+match:
+  template_needle: [development-logs]
+response:
+  headers:
+    Content-Type: "text/plain; charset=utf-8"
+  body: |
+    Connecting to database specified by database.yml
+    Started GET "/" for 127.0.0.1 at 2024-10-10 13:55:36 +0000
+    Processing by HomeController#index as HTML
+      Rendering layout layouts/application.html.erb
+      User Load (0.8ms)  SELECT "users".* FROM "users" WHERE "users"."id" = $1 LIMIT $2  [["id", 1], ["LIMIT", 1]]
+      Rendered home/index.html.erb within layouts/application (Duration: 12.4ms | Allocations: 8421)
+    DEPRECATION WARNING: Rendering actions with '.' in the name is deprecated and will be removed. (called from index at /var/www/{{persona.company.slug}}/app/controllers/home_controller.rb:7)
+    Completed 200 OK in 45ms (Views: 38.2ms | ActiveRecord: 3.1ms | Allocations: 4210)
+taunt: { mode: line, open: '#' }
+expect:
+  - 'Connecting to database specified by database.yml'
+  - 'DEPRECATION WARNING'

@@ -1,0 +1,31 @@
+id: route-firebase-debug-log
+priority: 292
+# Enrich: the corpus routes /firebase-debug.log to the `firebase-debug-log` bundle (body words
+# `[debug]`, `firebase`, `googleapis.com`). Minimal synth would emit those bare words; here we dress
+# a real firebase-tools CLI debug trace. It leaks the persona admin email (the signed-in operator)
+# and the company slug (the project id), so it agrees with the host's other disclosed files. No
+# server secret — the CLI debug log carries none. Needle is the full upstream id (findRule is
+# global). Timestamps use millisecond precision (3 digits), so no 6-digit token.
+match:
+  template_needle: [firebase-debug-log]
+response:
+  headers:
+    Content-Type: "text/plain; charset=utf-8"
+  body: |
+    [debug] [2024-10-10T13:55:36.482Z] ----------------------------------------------------------------------
+    [debug] [2024-10-10T13:55:36.482Z] Command:       /usr/local/bin/node /usr/local/bin/firebase deploy --only hosting
+    [debug] [2024-10-10T13:55:36.483Z] CLI Version:   13.0.2
+    [debug] [2024-10-10T13:55:36.483Z] Platform:      linux
+    [debug] [2024-10-10T13:55:36.484Z] Node Version:  v20.11.1
+    [debug] [2024-10-10T13:55:36.500Z] > authorizing via signed-in user ({{persona.user.admin.email}})
+    [debug] [2024-10-10T13:55:36.601Z] > refreshing access token with scopes: []
+    [debug] [2024-10-10T13:55:36.720Z] >>> [apiv2] HTTP REQUEST GET https://firebase.googleapis.com/v1beta1/projects/{{persona.company.slug}}-app
+    [debug] [2024-10-10T13:55:37.021Z] <<< [apiv2] HTTP RESPONSE 200
+    [debug] [2024-10-10T13:55:37.140Z] >>> [apiv2] HTTP REQUEST GET https://firebasehosting.googleapis.com/v1beta1/sites/{{persona.company.slug}}-app/channels/live/releases
+    [debug] [2024-10-10T13:55:37.402Z] <<< [apiv2] HTTP RESPONSE 200
+    [debug] [2024-10-10T13:55:37.560Z] + hosting: found 214 files in public
+taunt: { mode: line, open: '#' }
+expect:
+  - '[debug]'
+  - 'firebase'
+  - 'googleapis.com'
