@@ -128,13 +128,55 @@ final class ParamRouteTest extends TestCase
         self::assertNull($verdict->fakeHandle);
     }
 
-    public function test_captures_reach_the_served_body(): void
+    public function test_shipped_fs_route_serves_the_passwd_disclosure(): void
     {
+        // The shipped /@fs route now upgrades etc/passwd from a pure echo to a bounded arbitrary-
+        // file-read disclosure (the traversal-read primitive). The echo tier mechanism itself is
+        // pinned separately below by a non-@fs fixture route.
         $resp = $this->responder()->respond(new RequestContext('GET', '/@fs/etc/passwd'));
 
         self::assertNotNull($resp);
         self::assertSame(200, $resp->status);
-        self::assertStringContainsString('requested path: /@fs/etc/passwd', $resp->body);
+        self::assertStringContainsString('root:x:0:0', $resp->body);
+        self::assertSame('text/plain; charset=utf-8', $resp->headers['Content-Type']);
+    }
+
+    public function test_a_plain_param_route_echoes_its_capture_into_a_plain_body(): void
+    {
+        // Pure-echo tier mechanism ("captures reach a plain body", no behavior). A FIXTURE param
+        // route keeps it pinned now that the shipped /@fs route carries a traversal-read behavior;
+        // the emulator is constructed with an injected bucket index so no artifact is touched.
+        $buckets = [
+            'schema' => 1,
+            'buckets' => [
+                'echo-fixture' => [
+                    [
+                        'id' => 'param-echo-fixture',
+                        'severity' => 'high',
+                        'tags' => [],
+                        'status' => 200,
+                        'method' => 'GET',
+                        'regex' => '^/echo-fixture/(?P<path>.+)$',
+                        'captures' => ['path'],
+                        'response' => [
+                            'headers' => ['Content-Type' => 'text/plain; charset=utf-8'],
+                            'body' => "// requested path: /echo-fixture/{{match.path}}\n",
+                        ],
+                    ],
+                ],
+            ],
+        ];
+        $emulator = new TemplateAttackEmulator([], [], null, null, $buckets);
+
+        $hit = $emulator->matchParamRoute(new RequestContext('GET', '/echo-fixture/a/b/c'));
+        self::assertNotNull($hit);
+        self::assertSame('param-echo-fixture', $hit['rule']['id']);
+        self::assertSame('a/b/c', $hit['captures']['path']);
+
+        $resp = $emulator->renderRule($hit['rule'], $hit['captures'], 0);
+        self::assertNotNull($resp);
+        self::assertSame(200, $resp->status);
+        self::assertSame("// requested path: /echo-fixture/a/b/c\n", $resp->body);
         self::assertSame('text/plain; charset=utf-8', $resp->headers['Content-Type']);
     }
 

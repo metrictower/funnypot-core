@@ -478,9 +478,11 @@ final class RulesUpdater
      * Every scan-worthy served string in one rule-shaped array: the body, each header name/value,
      * the Set-Cookie NAME emitted verbatim, and the taunt comment-syntax strings written into the
      * body (see Response\RouteTemplateEmulator). A `branch` rule ALSO serves each case's response
-     * and the default's response when a case fires, so those are descended into (they never reach
-     * the top-level body). Branch responses are themselves body+headers shaped, so the same
-     * extraction covers them; the recursion terminates because a branch response carries no `branch`.
+     * and the default's response when a case fires, and a `traversal-read` rule serves each allow
+     * entry's `content` when a path hits, so both are descended into (neither reaches the top-level
+     * body). Those nested nodes are themselves body+headers shaped, so the same extraction covers
+     * them; the recursion terminates because a branch response / traversal-read content carries
+     * neither `branch` nor `traversal-read`.
      *
      * @param array<string,mixed> $src
      * @return string[]
@@ -506,6 +508,20 @@ final class RulesUpdater
             }
             if (isset($src['branch']['default']['response']) && is_array($src['branch']['default']['response'])) {
                 $texts = array_merge($texts, $this->servedTexts($src['branch']['default']['response']));
+            }
+        }
+        // A `traversal-read` rule serves each allow entry's `content` (and the default's) when a
+        // path hits — a synthesized file body under a nested key. Descend into every one so a fetched
+        // param artifact with a leak in a traversal-read body is rejected fetch-time, fail-closed like
+        // branch/route. A content carries no `traversal-read`, so the recursion terminates.
+        if (isset($src['traversal-read']) && is_array($src['traversal-read'])) {
+            foreach ((array) ($src['traversal-read']['allow'] ?? []) as $entry) {
+                if (is_array($entry) && isset($entry['content']) && is_array($entry['content'])) {
+                    $texts = array_merge($texts, $this->servedTexts($entry['content']));
+                }
+            }
+            if (isset($src['traversal-read']['default']['content']) && is_array($src['traversal-read']['default']['content'])) {
+                $texts = array_merge($texts, $this->servedTexts($src['traversal-read']['default']['content']));
             }
         }
 

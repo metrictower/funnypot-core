@@ -20,7 +20,7 @@ return array (
           1 => 'vite',
           2 => 'lfi',
         ),
-        'status' => 200,
+        'status' => 404,
         'method' => 'GET',
         'regex' => '^/@fs/(?P<path>.+)$',
         'captures' => 
@@ -33,8 +33,172 @@ return array (
           array (
             'Content-Type' => 'text/plain; charset=utf-8',
           ),
-          'body' => '// requested path: /@fs/{{match.path}}
+          'body' => 'Not Found: /@fs/{{match.path}}
 ',
+        ),
+        'behavior' => 'traversal-read',
+        'traversal-read' => 
+        array (
+          'allow' => 
+          array (
+            0 => 
+            array (
+              'suffix' => '.env',
+              'content' => 
+              array (
+                'headers' => 
+                array (
+                  'Content-Type' => 'text/plain; charset=utf-8',
+                ),
+                'body' => 'APP_NAME={{pick:Acme,Northwind,Contoso,Fabrikam,Initech}}
+APP_ENV=production
+APP_KEY=base64:{{fake.app_key:b64:44}}
+APP_DEBUG=false
+APP_URL=https://app.example.com
+
+LOG_CHANNEL=stack
+
+DB_CONNECTION=pgsql
+DB_HOST=db-{{fake.pghost:hex:6}}.cluster-cg{{fake.pgacct:hex:9}}.eu-west-1.rds.amazonaws.com
+DB_PORT=5432
+DB_DATABASE=app_production
+DB_USERNAME=app_prod
+DB_PASSWORD={{fake.pgpass:hex:24}}
+
+REDIS_HOST=cache-{{fake.redishost:hex:6}}.0001.euw1.cache.amazonaws.com
+REDIS_PORT=6379
+REDIS_PASSWORD={{fake.redispass:hex:32}}
+
+# AWS — S3 uploads + SES. The key pair is the persona identity\'s (not a shared pick), so
+# /.env, /@fs/.env, /@fs/.aws/credentials and wp-config all disclose ONE coherent AWS key
+# per deployment. Region stays eu-west-1 to agree with the RDS/ElastiCache hosts above.
+AWS_ACCESS_KEY_ID={{persona.cloud.aws.accessKeyId}}
+AWS_SECRET_ACCESS_KEY={{persona.cloud.aws.secretKey}}
+AWS_DEFAULT_REGION=eu-west-1
+AWS_BUCKET={{pick:acme,northwind,contoso,fabrikam,initech}}-prod-uploads
+
+# Stripe — billing
+STRIPE_KEY=pk_live_{{fake.stripe_pk:hex:24}}
+STRIPE_SECRET=sk_live_{{fake.stripe_sk:hex:24}}
+STRIPE_WEBHOOK_SECRET=whsec_{{fake.stripe_whsec:hex:32}}
+
+# Mail — SendGrid
+MAIL_MAILER=smtp
+MAIL_HOST=smtp.sendgrid.net
+MAIL_PORT=587
+MAIL_USERNAME=apikey
+SENDGRID_API_KEY=SG.{{fake.sg1:hex:22}}.{{fake.sg2:hex:43}}
+
+JWT_SECRET={{fake.jwtsecret:hex:64}}
+SLACK_WEBHOOK_URL=https://hooks.slack.com/services/T{{fake.slackt:hex:8}}/B{{fake.slackb:hex:8}}/{{fake.slacktok:hex:24}}
+',
+                'status' => 200,
+              ),
+            ),
+            1 => 
+            array (
+              'suffix' => '.aws/credentials',
+              'content' => 
+              array (
+                'headers' => 
+                array (
+                  'Content-Type' => 'text/plain; charset=utf-8',
+                ),
+                'body' => '[default]
+aws_access_key_id = {{persona.cloud.aws.accessKeyId}}
+aws_secret_access_key = {{persona.cloud.aws.secretKey}}
+region = {{persona.cloud.aws.region}}
+',
+                'status' => 200,
+              ),
+            ),
+            2 => 
+            array (
+              'basename' => 'wp-config.php',
+              'content' => 
+              array (
+                'headers' => 
+                array (
+                  'Content-Type' => 'text/plain; charset=utf-8',
+                ),
+                'body' => '<?php
+/**
+ * The base configuration for WordPress (backup copy).
+ */
+
+// ** Database settings ** //
+define(\'DB_NAME\', \'{{pick:wp_prod,wordpress,wp_live,blog}}\');
+define(\'DB_USER\', \'wp_app\');
+define(\'DB_PASSWORD\', \'{{fake.dbpass:hex:24}}\');
+define(\'DB_HOST\', \'wp-prod-db-{{fake.dbhost:hex:6}}.cluster-cg{{fake.dbacct:hex:9}}.us-east-1.rds.amazonaws.com\');
+define(\'DB_CHARSET\', \'utf8mb4\');
+define(\'DB_COLLATE\', \'\');
+
+// ** WP Offload Media (Amazon S3) bucket credentials ** //
+define(\'AS3CF_SETTINGS\', serialize(array(
+    \'provider\'          => \'aws\',
+    \'access-key-id\'     => \'{{persona.cloud.aws.accessKeyId}}\',
+    \'secret-access-key\' => \'{{persona.cloud.aws.secretKey}}\',
+    \'bucket\'            => \'media.example.com\',
+    \'region\'            => \'us-east-1\',
+)));
+
+// ** WooCommerce Stripe Gateway ** //
+define(\'WC_STRIPE_SECRET_KEY\', \'sk_live_{{fake.wcsk:hex:24}}\');
+
+// ** SendGrid (WP Mail SMTP) ** //
+define(\'SENDGRID_API_KEY\', \'SG.{{fake.sg1:hex:22}}.{{fake.sg2:hex:43}}\');
+
+// ** Authentication unique keys and salts ** //
+define(\'AUTH_KEY\', \'{{fake.authkey:hex:64}}\');
+define(\'AUTH_SALT\', \'{{fake.authsalt:hex:64}}\');
+
+$table_prefix = \'wp_\';
+define(\'WP_DEBUG\', false);
+',
+                'status' => 200,
+              ),
+            ),
+            3 => 
+            array (
+              'suffix' => 'proc/self/environ',
+              'content' => 
+              array (
+                'headers' => 
+                array (
+                  'Content-Type' => 'text/plain; charset=utf-8',
+                ),
+                'body' => '{{canned.environ}}',
+                'status' => 200,
+              ),
+            ),
+            4 => 
+            array (
+              'suffix' => 'etc/passwd',
+              'content' => 
+              array (
+                'headers' => 
+                array (
+                  'Content-Type' => 'text/plain; charset=utf-8',
+                ),
+                'body' => '{{canned.passwd}}',
+                'status' => 200,
+              ),
+            ),
+            5 => 
+            array (
+              'suffix' => 'var/run/secrets/kubernetes.io/serviceaccount/token',
+              'content' => 
+              array (
+                'headers' => 
+                array (
+                  'Content-Type' => 'text/plain; charset=utf-8',
+                ),
+                'body' => '{{canned.k8s_sa_unsigned}}.{{fake.k8s_sig:b64url:43}}{{fake.k8s_sig2:b64url:43}}',
+                'status' => 200,
+              ),
+            ),
+          ),
         ),
       ),
     ),

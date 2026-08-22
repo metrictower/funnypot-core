@@ -1,13 +1,135 @@
 id: param-vite-fs
 severity: high
 priority: 10
+status: 404
 tags: [param, vite, lfi]
-# Reference param route for the tier. A parameterized path can't be keyed in the exact
-# O(1) store, so it is modeled as an attack-tier-style rule (compiled path regex + named
-# captures + a normal response body) dispatched via the prefix-bucket index. This one only
-# ECHOES the captured path — the real Vite /@fs file-read semantics are deferred.
+# The Vite dev-server `/@fs/{path}` arbitrary-file-read slice of the AI-stack pack. A parameterized
+# path can't be keyed in the exact O(1) store, so it is modeled as an attack-tier-style rule
+# (compiled path regex + named captures) dispatched via the prefix-bucket index. The base `response`
+# is the believable dev-server not-found (served on any path off the allow list); the traversal-read
+# behavior upgrades a hit for one of the well-known loot targets into a bounded arbitrary-file-read
+# emulation. The path is canonicalized purely in-string — the handler NEVER touches a real file.
 param: { method: GET, path: '/@fs/{path*}' }
 response:
   headers: { Content-Type: 'text/plain; charset=utf-8' }
-  body: "// requested path: /@fs/{{match.path}}\n"
-expect: ['requested path: /@fs/']
+  body: "Not Found: /@fs/{{match.path}}\n"
+expect: ['Not Found: /@fs/']
+behavior: traversal-read
+# APPLIANCE-TIER DISCLOSURE. Every value below is persona-synthetic (safe to serve — it authenticates
+# nowhere), but returning any of these files is config-disclosure semantics. The runtime tier-gate
+# (serve only when the SiteProfile appliance flag is set) is DEFERRED; this template only tags intent.
+traversal-read:
+  allow:
+    # 1. Exposed Laravel/Node .env — the dotenv route persona, served as a read file (text/plain).
+    - suffix: .env
+      content:
+        headers: { Content-Type: 'text/plain; charset=utf-8' }
+        body: |
+          APP_NAME={{pick:Acme,Northwind,Contoso,Fabrikam,Initech}}
+          APP_ENV=production
+          APP_KEY=base64:{{fake.app_key:b64:44}}
+          APP_DEBUG=false
+          APP_URL=https://app.example.com
+
+          LOG_CHANNEL=stack
+
+          DB_CONNECTION=pgsql
+          DB_HOST=db-{{fake.pghost:hex:6}}.cluster-cg{{fake.pgacct:hex:9}}.eu-west-1.rds.amazonaws.com
+          DB_PORT=5432
+          DB_DATABASE=app_production
+          DB_USERNAME=app_prod
+          DB_PASSWORD={{fake.pgpass:hex:24}}
+
+          REDIS_HOST=cache-{{fake.redishost:hex:6}}.0001.euw1.cache.amazonaws.com
+          REDIS_PORT=6379
+          REDIS_PASSWORD={{fake.redispass:hex:32}}
+
+          # AWS — S3 uploads + SES. The key pair is the persona identity's (not a shared pick), so
+          # /.env, /@fs/.env, /@fs/.aws/credentials and wp-config all disclose ONE coherent AWS key
+          # per deployment. Region stays eu-west-1 to agree with the RDS/ElastiCache hosts above.
+          AWS_ACCESS_KEY_ID={{persona.cloud.aws.accessKeyId}}
+          AWS_SECRET_ACCESS_KEY={{persona.cloud.aws.secretKey}}
+          AWS_DEFAULT_REGION=eu-west-1
+          AWS_BUCKET={{pick:acme,northwind,contoso,fabrikam,initech}}-prod-uploads
+
+          # Stripe — billing
+          STRIPE_KEY=pk_live_{{fake.stripe_pk:hex:24}}
+          STRIPE_SECRET=sk_live_{{fake.stripe_sk:hex:24}}
+          STRIPE_WEBHOOK_SECRET=whsec_{{fake.stripe_whsec:hex:32}}
+
+          # Mail — SendGrid
+          MAIL_MAILER=smtp
+          MAIL_HOST=smtp.sendgrid.net
+          MAIL_PORT=587
+          MAIL_USERNAME=apikey
+          SENDGRID_API_KEY=SG.{{fake.sg1:hex:22}}.{{fake.sg2:hex:43}}
+
+          JWT_SECRET={{fake.jwtsecret:hex:64}}
+          SLACK_WEBHOOK_URL=https://hooks.slack.com/services/T{{fake.slackt:hex:8}}/B{{fake.slackb:hex:8}}/{{fake.slacktok:hex:24}}
+    # 2. Cloud CLI credentials — coherent with the persona identity's AWS keypair.
+    - suffix: .aws/credentials
+      content:
+        headers: { Content-Type: 'text/plain; charset=utf-8' }
+        body: |
+          [default]
+          aws_access_key_id = {{persona.cloud.aws.accessKeyId}}
+          aws_secret_access_key = {{persona.cloud.aws.secretKey}}
+          region = {{persona.cloud.aws.region}}
+    # 3. Leaked wp-config.php — served as RAW source (text/plain, NOT text/x-php: a real
+    #    arbitrary-file-read returns inert source bytes, and x-php would execute/tell).
+    - basename: wp-config.php
+      content:
+        headers: { Content-Type: 'text/plain; charset=utf-8' }
+        body: |
+          <?php
+          /**
+           * The base configuration for WordPress (backup copy).
+           */
+
+          // ** Database settings ** //
+          define('DB_NAME', '{{pick:wp_prod,wordpress,wp_live,blog}}');
+          define('DB_USER', 'wp_app');
+          define('DB_PASSWORD', '{{fake.dbpass:hex:24}}');
+          define('DB_HOST', 'wp-prod-db-{{fake.dbhost:hex:6}}.cluster-cg{{fake.dbacct:hex:9}}.us-east-1.rds.amazonaws.com');
+          define('DB_CHARSET', 'utf8mb4');
+          define('DB_COLLATE', '');
+
+          // ** WP Offload Media (Amazon S3) bucket credentials ** //
+          define('AS3CF_SETTINGS', serialize(array(
+              'provider'          => 'aws',
+              'access-key-id'     => '{{persona.cloud.aws.accessKeyId}}',
+              'secret-access-key' => '{{persona.cloud.aws.secretKey}}',
+              'bucket'            => 'media.example.com',
+              'region'            => 'us-east-1',
+          )));
+
+          // ** WooCommerce Stripe Gateway ** //
+          define('WC_STRIPE_SECRET_KEY', 'sk_live_{{fake.wcsk:hex:24}}');
+
+          // ** SendGrid (WP Mail SMTP) ** //
+          define('SENDGRID_API_KEY', 'SG.{{fake.sg1:hex:22}}.{{fake.sg2:hex:43}}');
+
+          // ** Authentication unique keys and salts ** //
+          define('AUTH_KEY', '{{fake.authkey:hex:64}}');
+          define('AUTH_SALT', '{{fake.authsalt:hex:64}}');
+
+          $table_prefix = 'wp_';
+          define('WP_DEBUG', false);
+    # 4. /proc/self/environ — NUL-separated, carries PATH=/USER= markers.
+    - suffix: proc/self/environ
+      content:
+        headers: { Content-Type: 'text/plain; charset=utf-8' }
+        body: "{{canned.environ}}"
+    # 5. /etc/passwd — the standard LFI marker file.
+    - suffix: etc/passwd
+      content:
+        headers: { Content-Type: 'text/plain; charset=utf-8' }
+        body: "{{canned.passwd}}"
+    # 6. In-pod Kubernetes service-account token — the k8s loot target. A valid 3-segment base64url
+    #    JWT: canned header.payload (RS256, default:default serviceaccount claims) + a seed-derived
+    #    signature, so two deployments never serve a byte-identical token (a shared constant would
+    #    cluster). The signature verifies against nothing.
+    - suffix: var/run/secrets/kubernetes.io/serviceaccount/token
+      content:
+        headers: { Content-Type: 'text/plain; charset=utf-8' }
+        body: "{{canned.k8s_sa_unsigned}}.{{fake.k8s_sig:b64url:43}}{{fake.k8s_sig2:b64url:43}}"

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Funnypot\Tests;
 
 use Funnypot\Compiler\ParamRouteCompiler;
+use Funnypot\Rules\PhpLiteralValidator;
 use PHPUnit\Framework\TestCase;
 use RuntimeException;
 use Symfony\Component\Yaml\Yaml;
@@ -179,6 +180,114 @@ final class ParamRouteCompilerTest extends TestCase
         $this->expectException(RuntimeException::class);
         $this->expectExceptionMessage('expected marker');
         $this->compile([$doc]);
+    }
+
+    // --- the traversal-read behavior ---------------------------------------------------------
+
+    public function test_compiles_a_traversal_read_behavior(): void
+    {
+        $out = $this->compile([$this->doc('param-tr', '/@fs/{path*}', [
+            'behavior' => 'traversal-read',
+            'traversal-read' => [
+                'allow' => [
+                    ['suffix' => 'etc/passwd', 'content' => ['headers' => ['Content-Type' => 'text/plain'], 'body' => '{{canned.passwd}}']],
+                    ['basename' => 'wp-config.php', 'content' => ['body' => '<?php // fake']],
+                ],
+            ],
+        ])]);
+
+        $entry = $out['buckets']['@fs'][0];
+        self::assertSame('traversal-read', $entry['behavior']);
+        $allow = $entry['traversal-read']['allow'];
+        self::assertCount(2, $allow);
+        self::assertSame('etc/passwd', $allow[0]['suffix']);
+        self::assertArrayNotHasKey('basename', $allow[0]);
+        self::assertSame(200, $allow[0]['content']['status']); // status defaults to 200
+        self::assertSame('wp-config.php', $allow[1]['basename']);
+        self::assertArrayNotHasKey('suffix', $allow[1]);
+
+        // The emitted entry (nested traversal-read arrays included) must be pure inert DATA — the
+        // same gate a signed rules-update artifact passes before it is ever require()d.
+        $php = "<?php\n\ndeclare(strict_types=1);\n\nreturn " . var_export($out, true) . ";\n";
+        self::assertTrue((new PhpLiteralValidator())->isValid($php), 'compiled traversal-read entry must be a pure array literal');
+    }
+
+    public function test_traversal_read_empty_allow_is_rejected(): void
+    {
+        $this->expectException(RuntimeException::class);
+        $this->expectExceptionMessage('at least one entry');
+        $this->compile([$this->doc('param-tr-empty', '/@fs/{path*}', [
+            'behavior' => 'traversal-read',
+            'traversal-read' => ['allow' => []],
+        ])]);
+    }
+
+    public function test_traversal_read_entry_missing_both_suffix_and_basename_is_rejected(): void
+    {
+        $this->expectException(RuntimeException::class);
+        $this->expectExceptionMessage('exactly one');
+        $this->compile([$this->doc('param-tr-neither', '/@fs/{path*}', [
+            'behavior' => 'traversal-read',
+            'traversal-read' => ['allow' => [['content' => ['body' => 'x']]]],
+        ])]);
+    }
+
+    public function test_traversal_read_entry_with_both_suffix_and_basename_is_rejected(): void
+    {
+        $this->expectException(RuntimeException::class);
+        $this->expectExceptionMessage('exactly one');
+        $this->compile([$this->doc('param-tr-both', '/@fs/{path*}', [
+            'behavior' => 'traversal-read',
+            'traversal-read' => ['allow' => [['suffix' => '.env', 'basename' => 'x', 'content' => ['body' => 'x']]]],
+        ])]);
+    }
+
+    public function test_traversal_read_entry_missing_content_is_rejected(): void
+    {
+        $this->expectException(RuntimeException::class);
+        $this->expectExceptionMessage("needs a 'content'");
+        $this->compile([$this->doc('param-tr-nocontent', '/@fs/{path*}', [
+            'behavior' => 'traversal-read',
+            'traversal-read' => ['allow' => [['suffix' => '.env']]],
+        ])]);
+    }
+
+    public function test_traversal_read_bad_directive_in_content_is_rejected(): void
+    {
+        $this->expectException(RuntimeException::class);
+        $this->expectExceptionMessage('unknown directive');
+        $this->compile([$this->doc('param-tr-typo', '/@fs/{path*}', [
+            'behavior' => 'traversal-read',
+            'traversal-read' => ['allow' => [['suffix' => '.env', 'content' => ['body' => '{{cannd.passwd}}']]]],
+        ])]);
+    }
+
+    public function test_traversal_read_bad_status_is_rejected(): void
+    {
+        $this->expectException(RuntimeException::class);
+        $this->expectExceptionMessage('out of the 100-599');
+        $this->compile([$this->doc('param-tr-status', '/@fs/{path*}', [
+            'behavior' => 'traversal-read',
+            'traversal-read' => ['allow' => [['suffix' => '.env', 'content' => ['body' => 'x', 'status' => 999]]]],
+        ])]);
+    }
+
+    public function test_traversal_read_crlf_in_a_content_header_is_rejected(): void
+    {
+        // C8 at build time: a CR/LF/NUL in a static content header is a header-split vector.
+        $this->expectException(RuntimeException::class);
+        $this->expectExceptionMessage('CR/LF/NUL');
+        $this->compile([$this->doc('param-tr-crlf', '/@fs/{path*}', [
+            'behavior' => 'traversal-read',
+            'traversal-read' => ['allow' => [['suffix' => '.env', 'content' => ['headers' => ['X-Bad' => "a\r\nInjected: 1"], 'body' => 'x']]]],
+        ])]);
+    }
+
+    public function test_unknown_behavior_error_names_traversal_read(): void
+    {
+        $this->expectException(RuntimeException::class);
+        $this->expectExceptionMessage('traversal-read');
+        $this->compile([$this->doc('param-teleport', '/@fs/{path*}', ['behavior' => 'teleport'])]);
     }
 
     private function rmrf(string $dir): void

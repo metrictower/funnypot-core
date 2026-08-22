@@ -43,6 +43,7 @@ final class DirectiveRenderer
         'shadow' => CannedData::SHADOW,
         'group' => CannedData::GROUP,
         'environ' => CannedData::ENVIRON,
+        'k8s_sa_unsigned' => CannedData::K8S_SA_UNSIGNED,
     ];
 
     /** The closed directive prefixes — used by the compile-time lint. */
@@ -106,7 +107,7 @@ final class DirectiveRenderer
             return self::CANNED[substr($part, 7)] ?? null;
         }
         if (strpos($part, 'fake.') === 0) {
-            // fake.NAME:ENC:N — ENC in {hex (default), hexupper, b64}. Seed+name derived, so a
+            // fake.NAME:ENC:N — ENC in {hex (default), hexupper, b64, b64url}. Seed+name derived, so a
             // NAME reused in a template renders the same fabricated value in both places.
             $bits = explode(':', substr($part, 5));
             $name = $bits[0] ?? '';
@@ -118,6 +119,11 @@ final class DirectiveRenderer
             }
             if ($enc === 'b64') {
                 return substr(base64_encode((string) hex2bin($digest)), 0, $len);
+            }
+            if ($enc === 'b64url') {
+                // URL-safe base64, unpadded — the alphabet a JWT/JWK segment must use ([A-Za-z0-9_-],
+                // no '+', '/', '='). 32 digest bytes give 43 chars; concatenate two names for more.
+                return substr(rtrim(strtr(base64_encode((string) hex2bin($digest)), '+/', '-_'), '='), 0, $len);
             }
 
             return substr($digest, 0, $len);

@@ -25,8 +25,8 @@ response:
     // ** WP Offload Media (Amazon S3) bucket credentials ** //
     define('AS3CF_SETTINGS', serialize(array(
         'provider'          => 'aws',
-        'access-key-id'     => 'AKIA{{pick:Q3F7K2LMN5PXR6TZ,H4G6D3WQ7VZ2NPXF,T7B5K4M2XQWL3RNC,F2N6R3Q7ZTXWK5LM,D5W3F7K2M6QZRXTN,L6Q2X7T3N5FWKMRZ}}',
-        'secret-access-key' => '{{fake.awssecret:b64:40}}',
+        'access-key-id'     => '{{persona.cloud.aws.accessKeyId}}',
+        'secret-access-key' => '{{persona.cloud.aws.secretKey}}',
         'bucket'            => 'media.example.com',
         'region'            => 'us-east-1',
     )));

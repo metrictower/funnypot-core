@@ -37,4 +37,13 @@ final class CannedData
     // No trailing newline: uid=... is the one marker meant to sit in a header value
     // (e.g. Confluence X-Cmd-Response), so it must stay CR/LF-free for the header guard.
     public const UID = "uid=0(root) gid=0(root) groups=0(root)";
+
+    // The UNSIGNED portion (base64url header '.' payload) of a fake in-pod Kubernetes service-account
+    // token (/var/run/secrets/kubernetes.io/serviceaccount/token). The template appends a seed-derived
+    // signature ('.'.{{fake.k8s_sig:b64url}}…) so no two deployments serve a byte-identical token — a
+    // shared constant token would let an attacker cluster the honeypot. Header is RS256 with a
+    // realistic (non-self-identifying) kid; payload carries the standard default:default serviceaccount
+    // claims a leaked token would. base64url, no padding. Nothing here verifies against a real key.
+    public const K8S_SA_UNSIGNED = 'eyJhbGciOiJSUzI1NiIsImtpZCI6ImZnUmR4R29RakFoX0p1Wm9fN2V4LUNRZXpUY3dQc2lrYU1ybnhtaWpqQjQifQ'
+        . '.eyJpc3MiOiJrdWJlcm5ldGVzL3NlcnZpY2VhY2NvdW50Iiwic3ViIjoic3lzdGVtOnNlcnZpY2VhY2NvdW50OmRlZmF1bHQ6ZGVmYXVsdCIsImF1ZCI6WyJodHRwczovL2t1YmVybmV0ZXMuZGVmYXVsdC5zdmMiXSwiZXhwIjoyMDAwMDAwMDAwLCJpYXQiOjE2MDAwMDAwMDAsImt1YmVybmV0ZXMuaW8vbmFtZXNwYWNlIjoiZGVmYXVsdCIsImt1YmVybmV0ZXMuaW8vc2VydmljZWFjY291bnQvc2VydmljZS1hY2NvdW50Lm5hbWUiOiJkZWZhdWx0Iiwia3ViZXJuZXRlcy5pby9zZXJ2aWNlYWNjb3VudC9zZXJ2aWNlLWFjY291bnQudWlkIjoiMDAwMDAwMDAtMDAwMC0wMDAwLTAwMDAtMDAwMDAwMDAwMDAwIn0';
 }

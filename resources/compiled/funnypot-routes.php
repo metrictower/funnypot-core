@@ -57,7 +57,7 @@ return array (
     ),
     'body' => 'APP_NAME={{pick:Acme,Northwind,Contoso,Fabrikam,Initech}}
 APP_ENV=production
-APP_KEY=base64:{{pick:8x+/kvyxtznxg1ze6wzztbwh3pku3qm9e7+ce0dbmmg=,sm2+uav1+o9c9tnl777ld5/3b758w9+qqeidkufm28q=,d9j1wc1sjd3wyenwqnmi4z19qkovzm0k4ucb8m1t8uz=,wot2/yyjrpyf3avfr57yic6/ym2hptd5nw8vr/gj6/c=,95sbjj3f53blmkpoc23ztub1wgkfatmkmgfk9z+pd1o=,0v934meeeixr/ybapd89hzr79sja0t5xcuadfdx10z4=}}
+APP_KEY=base64:{{fake.app_key:b64:44}}
 APP_DEBUG=false
 APP_URL=https://app.example.com
 
@@ -74,9 +74,11 @@ REDIS_HOST=cache-{{fake.redishost:hex:6}}.0001.euw1.cache.amazonaws.com
 REDIS_PORT=6379
 REDIS_PASSWORD={{fake.redispass:hex:32}}
 
-# AWS — S3 uploads + SES
-AWS_ACCESS_KEY_ID=AKIA{{pick:Q3F7K2LMN5PXR6TZ,H4G6D3WQ7VZ2NPXF,T7B5K4M2XQWL3RNC,F2N6R3Q7ZTXWK5LM,D5W3F7K2M6QZRXTN,L6Q2X7T3N5FWKMRZ}}
-AWS_SECRET_ACCESS_KEY={{fake.awssecret:b64:40}}
+# AWS — S3 uploads + SES. The key pair is the persona identity\'s (not a shared 6-value pick), so
+# this /.env discloses the SAME AWS key as /@fs/.env, /@fs/.aws/credentials and wp-config for a
+# given deployment. Region stays eu-west-1 to agree with the RDS/ElastiCache hosts above.
+AWS_ACCESS_KEY_ID={{persona.cloud.aws.accessKeyId}}
+AWS_SECRET_ACCESS_KEY={{persona.cloud.aws.secretKey}}
 AWS_DEFAULT_REGION=eu-west-1
 AWS_BUCKET={{pick:acme,northwind,contoso,fabrikam,initech}}-prod-uploads
 
@@ -175,8 +177,8 @@ define(\'DB_COLLATE\', \'\');
 // ** WP Offload Media (Amazon S3) bucket credentials ** //
 define(\'AS3CF_SETTINGS\', serialize(array(
     \'provider\'          => \'aws\',
-    \'access-key-id\'     => \'AKIA{{pick:Q3F7K2LMN5PXR6TZ,H4G6D3WQ7VZ2NPXF,T7B5K4M2XQWL3RNC,F2N6R3Q7ZTXWK5LM,D5W3F7K2M6QZRXTN,L6Q2X7T3N5FWKMRZ}}\',
-    \'secret-access-key\' => \'{{fake.awssecret:b64:40}}\',
+    \'access-key-id\'     => \'{{persona.cloud.aws.accessKeyId}}\',
+    \'secret-access-key\' => \'{{persona.cloud.aws.secretKey}}\',
     \'bucket\'            => \'media.example.com\',
     \'region\'            => \'us-east-1\',
 )));

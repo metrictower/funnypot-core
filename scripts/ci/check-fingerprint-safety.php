@@ -120,6 +120,19 @@ foreach ($indexes as $index) {
                 $texts = array_merge($texts, $collect($rule['branch']['default']['response']));
             }
         }
+        // A `traversal-read` rule serves each allow entry's `content` (and the default's) — a
+        // synthesized file body under a nested key that never reaches the top-level body, so descend
+        // into every one, same class of coverage as branch.
+        if (isset($rule['traversal-read']) && is_array($rule['traversal-read'])) {
+            foreach ((array) ($rule['traversal-read']['allow'] ?? []) as $entry) {
+                if (is_array($entry) && isset($entry['content']) && is_array($entry['content'])) {
+                    $texts = array_merge($texts, $collect($entry['content']));
+                }
+            }
+            if (isset($rule['traversal-read']['default']['content']) && is_array($rule['traversal-read']['default']['content'])) {
+                $texts = array_merge($texts, $collect($rule['traversal-read']['default']['content']));
+            }
+        }
         foreach ($texts as $text) {
             $hits = $guard->scan($text);
             if ($hits !== []) {

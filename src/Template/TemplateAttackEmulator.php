@@ -57,7 +57,7 @@ final class TemplateAttackEmulator
      * Named behavior primitives, keyed by the rule's `behavior` value. Each is a closure over
      * $this that turns a behavior config + captures into an EmulatedContent (or null to fall back
      * to the rule's base response). `default` is not a name here — an absent/unknown behavior is
-     * simply the plain render. Only `branch` exists this milestone; the others are deferred.
+     * simply the plain render. `branch` and `traversal-read` exist; the other primitives are deferred.
      *
      * @var array<string,callable>
      */
@@ -84,6 +84,11 @@ final class TemplateAttackEmulator
         $this->behaviors = [
             'branch' => function (array $config, array $captures, ?RequestContext $r, int $seed, Clock $clock, EphemeralStore $store): ?EmulatedContent {
                 return $this->handleBranch($config, $captures, $r, $seed);
+            },
+            // Position-blind: reads only the reflected `path` capture, so it renders the same on the
+            // facade (respond) and the port (synthesize) — $r/clock/store are unused.
+            'traversal-read' => function (array $config, array $captures, ?RequestContext $r, int $seed, Clock $clock, EphemeralStore $store): ?EmulatedContent {
+                return $this->handleTraversalRead($config, $captures, $seed);
             },
         ];
     }
@@ -357,6 +362,124 @@ final class TemplateAttackEmulator
     }
 
     /**
+     * The `traversal-read` behavior primitive: emulate a bounded arbitrary-file-read. The reflected
+     * `path` capture is canonicalized purely in-string (NO filesystem access whatsoever), then matched
+     * against the rule's authored `allow` list in order; the first hit renders its `content` (a
+     * believable inert file), else the optional `default.content`, else null so renderRule falls back
+     * to the rule's base `response` (the not-found body). A hit's status defaults to 200 so it never
+     * inherits the base 404 — the point is that the "file" was served.
+     *
+     * INVARIANT: this handler and its canonicalizer touch only strings. There is no path that reads,
+     * stats, or resolves a real file; every served byte is pure synthesis.
+     *
+     * @param array<string,mixed>      $config   the rule's `traversal-read` config (`allow` + optional `default`)
+     * @param array<int|string,string> $captures reflected capture groups (uses only `path`)
+     */
+    private function handleTraversalRead(array $config, array $captures, int $seed): ?EmulatedContent
+    {
+        $raw = (string) ($captures['path'] ?? '');
+        $canon = $this->canonicalizeTraversalPath($raw);
+
+        foreach ((array) ($config['allow'] ?? []) as $entry) {
+            if (is_array($entry) && $this->traversalEntryMatches($canon, $entry)) {
+                return $this->renderTraversalContent((array) ($entry['content'] ?? []), $captures, $seed);
+            }
+        }
+
+        if (isset($config['default']['content'])) {
+            return $this->renderTraversalContent((array) $config['default']['content'], $captures, $seed);
+        }
+
+        return null;
+    }
+
+    /**
+     * Canonicalize a captured file path to a relative segment path — a LOCAL normalizer, string-only.
+     * NOT Support\PathNormalizer (which preserves `..`/case for routing): here `..` is resolved so an
+     * allow entry can match on the real target. Decoded once, capped, then `.`/empty segments dropped
+     * and `..` popped (floored at the root) in a loop bounded by MAX_TRAVERSAL_SEGMENTS.
+     */
+    private function canonicalizeTraversalPath(string $raw): string
+    {
+        $path = rawurldecode($raw);
+        if (strlen($path) > self::MAX_SURFACE) {
+            $path = substr($path, 0, self::MAX_SURFACE);
+        }
+        if ($path !== '' && $path[0] === '/') {
+            $path = substr($path, 1);
+        }
+
+        $out = [];
+        $i = 0;
+        foreach (explode('/', $path) as $seg) {
+            if (++$i > self::MAX_TRAVERSAL_SEGMENTS) {
+                break;
+            }
+            if ($seg === '' || $seg === '.') {
+                continue;
+            }
+            if ($seg === '..') {
+                array_pop($out); // floor at the root: pop on empty is a no-op
+                continue;
+            }
+            $out[] = $seg;
+        }
+
+        return implode('/', $out);
+    }
+
+    /**
+     * Does one allow entry match the canonical path? Exactly one of `suffix` or `basename`:
+     *  - `suffix`  matches on a SEGMENT boundary: the whole path equals it, or the path ends with
+     *              '/'.suffix. So `.env` never matches `sentry.env`, nor `etc/passwd` `etc/xpasswd`.
+     *  - `basename` matches the final path segment exactly.
+     *
+     * @param array<string,mixed> $entry
+     */
+    private function traversalEntryMatches(string $canon, array $entry): bool
+    {
+        if (isset($entry['suffix'])) {
+            $suffix = (string) $entry['suffix'];
+            if ($suffix === '') {
+                return false;
+            }
+            if ($canon === $suffix) {
+                return true;
+            }
+            $needle = '/' . $suffix;
+
+            return strlen($canon) > strlen($needle) - 1
+                && substr($canon, -strlen($needle)) === $needle;
+        }
+        if (isset($entry['basename'])) {
+            $basename = (string) $entry['basename'];
+            if ($basename === '') {
+                return false;
+            }
+            $slash = strrpos($canon, '/');
+            $last = $slash === false ? $canon : substr($canon, $slash + 1);
+
+            return $last === $basename;
+        }
+
+        return false;
+    }
+
+    /**
+     * Render a traversal-read `content` (body + headers + optional status) through the bounded
+     * renderer. Status defaults to 200 (a hit served the "file"), never the base rule's not-found.
+     *
+     * @param array<string,mixed>      $content
+     * @param array<int|string,string> $captures
+     */
+    private function renderTraversalContent(array $content, array $captures, int $seed): EmulatedContent
+    {
+        $status = isset($content['status']) ? (int) $content['status'] : 200;
+
+        return $this->renderResponse($content, $captures, $seed, $status);
+    }
+
+    /**
      * Look up an enabled-or-not rule by id, for synthesize() rendering a Verdict's attack handle.
      *
      * @return array<string,mixed>|null
@@ -402,6 +525,9 @@ final class TemplateAttackEmulator
 
     /** Attacker-controlled surfaces are capped before regex to bound catastrophic backtracking. */
     private const MAX_SURFACE = 32768;
+
+    /** Upper bound on segments the traversal-read canonicalizer walks — bounds the resolve loop. */
+    private const MAX_TRAVERSAL_SEGMENTS = 4096;
 
     /**
      * The literal pre-filter test for matchRule(): is the rule's required literal absent from the

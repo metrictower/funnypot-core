@@ -141,14 +141,18 @@ final class ParamRouteCompiler
         ];
 
         // An optional named behavior primitive, same shape the attack tier renders. The base
-        // `response` stays the ultimate fallback; only `branch` exists this build.
+        // `response` stays the ultimate fallback; this build knows `branch` and `traversal-read`.
         if (isset($doc['behavior'])) {
             $behavior = (string) $doc['behavior'];
-            if ($behavior !== 'branch') {
-                throw new RuntimeException("Param template {$file}: unknown behavior '{$behavior}'. This build knows only 'branch'.");
+            if ($behavior === 'branch') {
+                $entry['behavior'] = 'branch';
+                $entry['branch'] = $this->normalizeBranch((array) ($doc['branch'] ?? []), $file);
+            } elseif ($behavior === 'traversal-read') {
+                $entry['behavior'] = 'traversal-read';
+                $entry['traversal-read'] = $this->normalizeTraversalRead((array) ($doc['traversal-read'] ?? []), $file);
+            } else {
+                throw new RuntimeException("Param template {$file}: unknown behavior '{$behavior}'. This build knows only 'branch' and 'traversal-read'.");
             }
-            $entry['behavior'] = 'branch';
-            $entry['branch'] = $this->normalizeBranch((array) ($doc['branch'] ?? []), $file);
         }
 
         return ['bucket' => $bucket, 'entry' => $entry, 'priority' => (int) ($doc['priority'] ?? 100)];
@@ -257,6 +261,94 @@ final class ParamRouteCompiler
         }
 
         return $out;
+    }
+
+    /**
+     * Normalize a `traversal-read` behavior config into the runtime shape: a non-empty `allow` list
+     * of file targets (each exactly one of `suffix`|`basename` plus a `content` = the served fake
+     * file) and an optional `default.content`. Every authored content body/headers is directive- and
+     * static-header-checked, and its status normalized (default 200), same as the branch tier.
+     *
+     * @param array<string,mixed> $config
+     * @return array<string,mixed>
+     */
+    private function normalizeTraversalRead(array $config, string $file): array
+    {
+        $allow = [];
+        foreach ((array) ($config['allow'] ?? []) as $entry) {
+            if (!is_array($entry)) {
+                throw new RuntimeException("Param template {$file}: each traversal-read allow entry must be a mapping.");
+            }
+            $allow[] = $this->normalizeTraversalEntry($entry, $file);
+        }
+        if ($allow === []) {
+            throw new RuntimeException("Param template {$file}: behavior 'traversal-read' needs at least one entry in 'traversal-read.allow'.");
+        }
+
+        $out = ['allow' => $allow];
+        if (isset($config['default'])) {
+            $default = (array) $config['default'];
+            if (!isset($default['content'])) {
+                throw new RuntimeException("Param template {$file}: traversal-read 'default' must author a 'content'.");
+            }
+            $out['default'] = ['content' => $this->normalizeTraversalContent((array) $default['content'], $file)];
+        }
+
+        return $out;
+    }
+
+    /**
+     * Normalize one allow entry: exactly one of a non-empty `suffix` (segment-boundary match) or
+     * `basename` (final-segment match), plus a `content`.
+     *
+     * @param array<string,mixed> $entry
+     * @return array<string,mixed>
+     */
+    private function normalizeTraversalEntry(array $entry, string $file): array
+    {
+        $hasSuffix = isset($entry['suffix']) && (string) $entry['suffix'] !== '';
+        $hasBasename = isset($entry['basename']) && (string) $entry['basename'] !== '';
+        if ($hasSuffix === $hasBasename) {
+            throw new RuntimeException("Param template {$file}: each traversal-read allow entry needs exactly one non-empty 'suffix' or 'basename'.");
+        }
+        if (!isset($entry['content'])) {
+            throw new RuntimeException("Param template {$file}: each traversal-read allow entry needs a 'content'.");
+        }
+
+        $out = [];
+        if ($hasSuffix) {
+            $out['suffix'] = (string) $entry['suffix'];
+        } else {
+            $out['basename'] = (string) $entry['basename'];
+        }
+        $out['content'] = $this->normalizeTraversalContent((array) $entry['content'], $file);
+
+        return $out;
+    }
+
+    /**
+     * Normalize + validate one traversal-read `content` (body + headers + status default 200).
+     *
+     * @param array<string,mixed> $content
+     * @return array<string,mixed>
+     */
+    private function normalizeTraversalContent(array $content, string $file): array
+    {
+        $headers = array_map('strval', (array) ($content['headers'] ?? []));
+        $body = (string) ($content['body'] ?? '');
+
+        $this->assertKnownDirectives($body, $file);
+        foreach ($headers as $name => $value) {
+            $this->assertKnownDirectives((string) $name, $file);
+            $this->assertKnownDirectives($value, $file);
+            $this->assertStaticHeaderClean((string) $name, $value, $file);
+        }
+
+        return [
+            'headers' => $headers,
+            'body' => $body,
+            'status' => $this->normalizeStatus($content['status'] ?? 200, $file),
+        ];
     }
 
     /**

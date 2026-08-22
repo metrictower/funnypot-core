@@ -232,6 +232,72 @@ final class RulesUpdaterTest extends TestCase
         self::assertNull($this->currentTarget());
     }
 
+    public function test_param_traversal_read_fingerprint_leak_is_rejected(): void
+    {
+        // The installed engine serves PARAM responses too, including a traversal-read allow body —
+        // a synthesized file under a nested key. runSafetySubset() flattens the param buckets and
+        // descends into traversal-read content, so a detector signature there must fail the update
+        // before activation. The top-level response stays clean, so a catch proves the descent ran.
+        $engine = $this->factory->engineFiles(100, 100);
+        $engine['funnypot-param.php'] = $this->factory->literal([
+            'schema' => 1,
+            'buckets' => [
+                '@fs' => [
+                    [
+                        'id' => 'param-leak',
+                        'severity' => 'high',
+                        'tags' => [],
+                        'status' => 404,
+                        'method' => 'GET',
+                        'regex' => '^/@fs/(?P<path>.+)$',
+                        'captures' => ['path'],
+                        'response' => ['headers' => [], 'body' => 'clean not found'],
+                        'behavior' => 'traversal-read',
+                        'traversal-read' => [
+                            'allow' => [
+                                ['suffix' => '.env', 'content' => ['headers' => [], 'body' => 'blocked by OWASP_CRS ruleset', 'status' => 200]],
+                            ],
+                        ],
+                    ],
+                ],
+            ],
+        ]);
+        $this->factory->publish($this->fetcher, 'v1', 1, $engine);
+
+        $result = $this->updater('v1')->update();
+        self::assertFalse($result->success);
+        self::assertSame('fingerprint-leak', $result->status);
+        self::assertNull($this->currentTarget(), 'a param traversal-read leak must not activate anything');
+    }
+
+    public function test_non_array_param_artifact_is_rejected(): void
+    {
+        // A param artifact whose literal is not a top-level array can't be flattened + scanned;
+        // runSafetySubset() must reject it as a bad manifest, never skip the re-scan and swap it in.
+        $engine = $this->factory->engineFiles(100, 100);
+        $engine['funnypot-param.php'] = $this->factory->literal('not-an-array');
+        $this->factory->publish($this->fetcher, 'v1', 1, $engine);
+
+        $result = $this->updater('v1')->update();
+        self::assertFalse($result->success);
+        self::assertSame('bad-manifest', $result->status);
+        self::assertNull($this->currentTarget());
+    }
+
+    public function test_missing_param_artifact_is_rejected(): void
+    {
+        // funnypot-param.php is a required engine artifact; a release that omits it is incomplete
+        // and must fail before activation (never swap in a set the engine can't fully load).
+        $engine = $this->factory->engineFiles(100, 100);
+        unset($engine['funnypot-param.php']);
+        $this->factory->publish($this->fetcher, 'v1', 1, $engine);
+
+        $result = $this->updater('v1')->update();
+        self::assertFalse($result->success);
+        self::assertSame('bad-manifest', $result->status);
+        self::assertNull($this->currentTarget());
+    }
+
     public function test_catastrophic_regex_is_rejected(): void
     {
         $rules = [[
