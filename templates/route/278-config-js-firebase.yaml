@@ -18,8 +18,8 @@ response:
       databaseURL: "https://{{persona.company.slug}}.firebaseio.com",
       projectId: "{{persona.company.slug}}",
       storageBucket: "{{persona.company.slug}}.appspot.com",
-      messagingSenderId: "{{fake.fbsender:hex:12}}",
-      appId: "1:{{fake.fbappnum:hex:12}}:web:{{fake.fbappid:hex:16}}"
+      messagingSenderId: "{{fake.fbsender:dec:12}}",
+      appId: "1:{{fake.fbsender:dec:12}}:web:{{fake.fbappid:hex:16}}"
     };
     firebase.initializeApp(firebaseConfig);
 taunt: { mode: line, open: '//' }

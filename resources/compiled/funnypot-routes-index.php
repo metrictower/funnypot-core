@@ -236,6 +236,17 @@ return array (
       ),
       'name' => 'Exposed Spring properties (application.properties)',
     ),
+    'route-envfile-local' => 
+    array (
+      'sev' => 'high',
+      'tags' => 
+      array (
+        0 => 'exposure',
+        1 => 'config-disclosure',
+        2 => 'secrets',
+      ),
+      'name' => 'Exposed environment file (.env.local)',
+    ),
   ),
   'routes' => 
   array (
@@ -918,27 +929,6 @@ return array (
         ),
       ),
     ),
-    'GET /.env.local' => 
-    array (
-      0 => 
-      array (
-        's' => 200,
-        'bw' => 
-        array (
-          0 => 'AWS_SECRET_ACCESS_KEY',
-        ),
-        'nf' => 
-        array (
-        ),
-        'pid' => 'route-envfile-prod',
-        'sev' => 'high',
-        'sig' => 0,
-        't' => 
-        array (
-          0 => 'route-envfile-prod',
-        ),
-      ),
-    ),
     'GET /secrets.json' => 
     array (
       0 => 
@@ -999,6 +989,27 @@ return array (
         't' => 
         array (
           0 => 'route-application-properties',
+        ),
+      ),
+    ),
+    'GET /.env.local' => 
+    array (
+      0 => 
+      array (
+        's' => 200,
+        'bw' => 
+        array (
+          0 => 'AWS_SECRET_ACCESS_KEY',
+        ),
+        'nf' => 
+        array (
+        ),
+        'pid' => 'route-envfile-local',
+        'sev' => 'high',
+        'sig' => 0,
+        't' => 
+        array (
+          0 => 'route-envfile-local',
         ),
       ),
     ),

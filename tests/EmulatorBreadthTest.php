@@ -80,6 +80,23 @@ final class EmulatorBreadthTest extends TestCase
     }
 
     /**
+     * A spread of persona seeds, so satisfaction is proven across the pick space — not at one
+     * lucky literal. A dictionary-entry or alphabet regression that breaks only some seeds (e.g. a
+     * value that displaces a required body word) surfaces here where a single fixed seed would miss it.
+     *
+     * @return int[]
+     */
+    private static function seeds(): array
+    {
+        $seeds = [0, 1, 2, 3, 7, 42, 777, 4242, 99999, 123456, 2020202];
+        for ($s = 10; $s <= 60; $s += 3) {
+            $seeds[] = $s;
+        }
+
+        return $seeds;
+    }
+
+    /**
      * @dataProvider targets
      */
     public function test_realistic_body_satisfies_the_real_bundle(string $route, int $i, string $id): void
@@ -87,12 +104,14 @@ final class EmulatorBreadthTest extends TestCase
         $bundle = $this->bundle($route, $i);
         $emulator = new RouteTemplateEmulator($this->set());
 
-        $content = $emulator->render($bundle, Style::REALISTIC, 4242);
-        self::assertNotNull($content, "{$route} realistic render must not decline its own bundle");
-        self::assertTrue(
-            BundleValidator::satisfies($content->body, $this->headers($bundle, $content), $bundle),
-            "{$route} realistic body must satisfy the compiled matcher"
-        );
+        foreach (self::seeds() as $seed) {
+            $content = $emulator->render($bundle, Style::REALISTIC, $seed);
+            self::assertNotNull($content, "{$route} realistic render must not decline its own bundle (seed {$seed})");
+            self::assertTrue(
+                BundleValidator::satisfies($content->body, $this->headers($bundle, $content), $bundle),
+                "{$route} realistic body must satisfy the compiled matcher (seed {$seed})"
+            );
+        }
     }
 
     /**
@@ -103,13 +122,15 @@ final class EmulatorBreadthTest extends TestCase
         $bundle = $this->bundle($route, $i);
         $emulator = new RouteTemplateEmulator($this->set());
 
-        $content = $emulator->render($bundle, Style::TAUNT, 4242);
-        self::assertNotNull($content);
-        self::assertTrue(
-            BundleValidator::satisfies($content->body, $this->headers($bundle, $content), $bundle),
-            "{$route} taunt body must still satisfy the compiled matcher"
-        );
-        self::assertStringContainsStringIgnoringCase('nice try', $content->body, "{$route} taunt must carry the marker");
+        foreach (self::seeds() as $seed) {
+            $content = $emulator->render($bundle, Style::TAUNT, $seed);
+            self::assertNotNull($content, "{$route} taunt render must not decline its own bundle (seed {$seed})");
+            self::assertTrue(
+                BundleValidator::satisfies($content->body, $this->headers($bundle, $content), $bundle),
+                "{$route} taunt body must still satisfy the compiled matcher (seed {$seed})"
+            );
+            self::assertStringContainsStringIgnoringCase('nice try', $content->body, "{$route} taunt must carry the marker (seed {$seed})");
+        }
     }
 
     /**
@@ -125,6 +146,24 @@ final class EmulatorBreadthTest extends TestCase
         self::assertNotNull($a);
         self::assertNotNull($b);
         self::assertSame($a->body, $b->body, "{$route} must render identically for a fixed seed");
+    }
+
+    public function test_config_js_bundles_resolve_to_coherent_rules(): void
+    {
+        // The /config.js corpus route carries TWO bundles: a Firebase config (b0) and a React
+        // runtime-env (b1). A broad `env-` needle on route-dotenv used to substring-hijack b1
+        // (reactapp-env-js) and dress the JS endpoint as a Laravel .env. Assert each bundle now
+        // resolves to its own coherent rule — b1 must be route-react-runtime-env, never route-dotenv.
+        $set = $this->set();
+        $r0 = $set->findRule($this->bundle('GET /config.js', 0));
+        $r1 = $set->findRule($this->bundle('GET /config.js', 1));
+        self::assertNotNull($r0, 'config.js firebase bundle must select a rule');
+        self::assertNotNull($r1, 'config.js react runtime-env bundle must select a rule');
+        self::assertSame('route-config-js-firebase', $r0['id']);
+        self::assertSame('route-react-runtime-env', $r1['id'], 'react bundle must NOT resolve to route-dotenv');
+        // Neither rule may dress this .js endpoint as a Laravel .env (the hijack tell).
+        self::assertStringNotContainsString('APP_DEBUG=', (string) $r0['body']);
+        self::assertStringNotContainsString('APP_DEBUG=', (string) $r1['body']);
     }
 
     /**

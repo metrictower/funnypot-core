@@ -107,8 +107,8 @@ final class DirectiveRenderer
             return self::CANNED[substr($part, 7)] ?? null;
         }
         if (strpos($part, 'fake.') === 0) {
-            // fake.NAME:ENC:N — ENC in {hex (default), hexupper, b64, b64url}. Seed+name derived, so a
-            // NAME reused in a template renders the same fabricated value in both places.
+            // fake.NAME:ENC:N — ENC in {hex (default), hexupper, b64, b64url, dec}. Seed+name derived,
+            // so a NAME reused in a template renders the same fabricated value in both places.
             $bits = explode(':', substr($part, 5));
             $name = $bits[0] ?? '';
             $enc = $bits[1] ?? 'hex';
@@ -124,6 +124,20 @@ final class DirectiveRenderer
                 // URL-safe base64, unpadded — the alphabet a JWT/JWK segment must use ([A-Za-z0-9_-],
                 // no '+', '/', '='). 32 digest bytes give 43 chars; concatenate two names for more.
                 return substr(rtrim(strtr(base64_encode((string) hex2bin($digest)), '+/', '-_'), '='), 0, $len);
+            }
+            if ($enc === 'dec') {
+                // All-digit field (e.g. a Firebase sender id / project number). Each digest hex char
+                // maps to one decimal digit; re-hash to extend past one digest's 64 chars.
+                $digits = '';
+                $material = $digest;
+                while (strlen($digits) < $len) {
+                    for ($i = 0, $c = strlen($material); $i < $c; $i++) {
+                        $digits .= (string) (hexdec($material[$i]) % 10);
+                    }
+                    $material = hash('sha256', $material);
+                }
+
+                return substr($digits, 0, $len);
             }
 
             return substr($digest, 0, $len);

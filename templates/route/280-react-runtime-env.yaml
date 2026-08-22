@@ -1,0 +1,31 @@
+id: route-react-runtime-env
+priority: 280
+# Enrich (NOT new_page): the corpus routes /config.js (+ /config/env.js, /config/runtime-env.js,
+# /env.js) to the `reactapp-env-js` bundle — a SPA's build-time runtime-env file (body word
+# REACT_APP_, header witness application/octet-stream). Minimal synth would emit a bare REACT_APP_
+# line; here we dress it into a coherent runtime-env carrying only client-exposed public config
+# (a publishable Stripe key, Maps key, Sentry DSN — never a server secret), persona-seeded so the
+# API/auth hosts derive from the same company identity. The id avoids the `env-` substring for the
+# same reason the /.env.production page does: findRule is global.
+#
+# Content-Type is application/octet-stream because that is what the reactapp-env-js bundle's header
+# witness pins (the real target serves the file as a download) — serving it otherwise fails the
+# bundle's header matcher.
+match:
+  template_needle: [reactapp-env-js]
+response:
+  headers:
+    Content-Type: "application/octet-stream"
+  body: |
+    # frontend runtime environment — public build-time config, injected at container start
+    REACT_APP_ENV=production
+    REACT_APP_API_URL=https://api.{{persona.company.domain}}
+    REACT_APP_AUTH0_DOMAIN={{persona.company.slug}}.us.auth0.com
+    REACT_APP_STRIPE_PUBLISHABLE_KEY=pk_live_{{fake.reactstripepk:hex:24}}
+    REACT_APP_GOOGLE_MAPS_KEY=AIza{{fake.reactgmaps:hex:35}}
+    REACT_APP_SENTRY_DSN=https://{{fake.reactsentry:hex:32}}@o{{fake.reactsentryorg:dec:6}}.ingest.sentry.io/{{fake.reactsentryproj:dec:7}}
+    REACT_APP_GA_MEASUREMENT_ID=G-{{fake.reactga:hexupper:10}}
+taunt: { mode: line, open: '#' }
+expect:
+  - 'REACT_APP_API_URL='
+  - 'REACT_APP_STRIPE_PUBLISHABLE_KEY=pk_live_'

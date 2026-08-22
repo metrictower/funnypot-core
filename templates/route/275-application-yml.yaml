@@ -11,7 +11,7 @@ response:
   headers:
     Content-Type: "text/yaml; charset=utf-8"
   body: |
-    runtime: java
+    # migrated off GAE; was: runtime: java17
     spring:
       datasource:
         url: jdbc:postgresql://{{persona.db.host}}:5432/{{persona.db.name}}

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Funnypot\Tests;
 
+use Funnypot\Compiler\Crs\FingerprintGuard;
 use Funnypot\Compiler\EmulatorCompiler;
 use Funnypot\Support\PersonaIdentity;
 use PHPUnit\Framework\TestCase;
@@ -139,6 +140,32 @@ final class PersonaIdentityTest extends TestCase
 
         foreach ($patterns as $field => $re) {
             self::assertGreaterThan(1, count($spread[$field]), "{$field} must spread across seeds, not collapse to one value");
+        }
+    }
+
+    public function test_no_rendered_secret_emits_the_gates_denied_digit_run(): void
+    {
+        // The fingerprint gate rejects a bare 6-digit token starting with 9 (\b9\d{5}\b). A rendered
+        // persona secret that trips it would be classified as canned, so the boundary-prone
+        // generators (base64/base64url keys, mixed-alphabet passwords) re-derive until clean.
+        $guard = FingerprintGuard::fromPackage();
+
+        // Seeds that produced the token at the commit this fix lands on — pinned so a regression is
+        // caught by name: google apiKey, aws secretKey, anthropic apiKey respectively.
+        foreach ([8776752, 18058005, 15473467] as $seed) {
+            $p = PersonaIdentity::fromSeed($seed);
+            foreach (PersonaIdentity::FIELDS as $field) {
+                self::assertSame([], $guard->scan((string) $p->field($field)), "pinned seed {$seed} field {$field} must not carry a denied token");
+            }
+        }
+
+        // And nothing across a wide sweep may emit it.
+        for ($seed = 0; $seed <= 3000; $seed++) {
+            $p = PersonaIdentity::fromSeed($seed);
+            foreach (PersonaIdentity::FIELDS as $field) {
+                $value = (string) $p->field($field);
+                self::assertSame(0, preg_match('/\b9\d{5}\b/', $value), "seed {$seed} field {$field} emits the denied digit run: {$value}");
+            }
         }
     }
 

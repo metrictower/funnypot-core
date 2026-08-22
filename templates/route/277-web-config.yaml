@@ -2,8 +2,10 @@ id: route-web-config
 priority: 277
 # Enrich (NOT new_page): the corpus routes /web.config to the `web-config` bundle (body words
 # `<configuration>` / `<system.webServer>`). Minimal synth would emit those bare tags; here we dress
-# it into a real ASP.NET web.config whose connectionStrings and appSettings leak the SQL Server DB
-# creds and the Stripe/SendGrid/JWT/AWS secrets, persona-seeded for cross-file coherence.
+# it into a real ASP.NET web.config whose connectionStrings and appSettings leak the DB creds and
+# the Stripe/SendGrid/JWT/AWS secrets, persona-seeded for cross-file coherence. The connection uses
+# the Npgsql (Postgres) provider so this host tells the SAME database story as its sibling config
+# files (all pgsql/:5432) instead of contradicting them with a SQL Server claim.
 match:
   template_needle: [web-config]
 response:
@@ -13,7 +15,7 @@ response:
     <?xml version="1.0" encoding="utf-8"?>
     <configuration>
       <connectionStrings>
-        <add name="DefaultConnection" connectionString="Server={{persona.db.host}};Database={{persona.db.name}};User Id={{persona.db.user}};Password={{persona.db.password}};" providerName="System.Data.SqlClient" />
+        <add name="DefaultConnection" connectionString="Host={{persona.db.host}};Port=5432;Database={{persona.db.name}};Username={{persona.db.user}};Password={{persona.db.password}};" providerName="Npgsql" />
       </connectionStrings>
       <appSettings>
         <add key="Stripe:SecretKey" value="{{persona.cloud.stripe.secretKey}}" />

@@ -45,8 +45,11 @@ final class PersonaIdentity
 
     private const TLDS = ['com', 'net', 'io', 'co', 'cloud', 'dev', 'app', 'org', 'tech'];
 
+    // Engine-neutral / Postgres-plausible host names only. Every config-disclosure page that
+    // consumes db.host hardcodes Postgres (pgsql / postgresql / :5432), so a host named for
+    // another engine (mysql/mariadb) would contradict the engine claim on the same host.
     private const DB_HOSTS = [
-        'localhost', '127.0.0.1', 'db', 'db01', 'db-primary', 'mysql', 'mariadb',
+        'localhost', '127.0.0.1', 'db', 'db01', 'db-primary', 'postgres', 'pg01',
         '10.0.0.12', '10.0.1.5', '172.16.0.10',
     ];
 
@@ -64,8 +67,10 @@ final class PersonaIdentity
     // Mixed alphabets (upper + lower + digits + a couple of symbols) so fake passwords read like
     // real ones instead of a hex-string generator tell. The db and admin sets differ in symbols and
     // length so the two credentials don't share a recognisable shape. Ambiguous glyphs (0/O, 1/l/I)
-    // are dropped so a copied value round-trips.
-    private const DB_PW_ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789-_#';
+    // are dropped so a copied value round-trips. The db symbols are limited to '-' and '_' (both
+    // URL-unreserved and YAML-plain-safe): a '#' would parse as a YAML comment when the password is
+    // an unquoted scalar, and truncate a DATABASE_URL as an unencoded fragment marker.
+    private const DB_PW_ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789-_';
 
     private const ADMIN_PW_ALPHABET = 'abcdefghjkmnpqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ23456789!*.';
 
@@ -112,16 +117,14 @@ final class PersonaIdentity
             // Standard base64 of 30 seed-derived bytes: exactly 40 chars, [A-Za-z0-9+/], no padding.
             // A real AWS secret key uses the standard alphabet, so the fake must too or a secret
             // scanner's regex rejects it and it never baits.
-            'cloud.aws.secretKey' => base64_encode((string) hex2bin(substr(self::h($seed, 'aws_sk'), 0, 60))),
+            'cloud.aws.secretKey' => self::awsSecretKey($seed),
             'cloud.aws.region' => self::pick(self::AWS_REGIONS, $seed, 'aws_region'),
 
             // Synthetic AI-vendor keys. Each shape is exact by design: a secret scanner
             // (trufflehog/gitleaks) only bites when the counts/infix/suffix match the real
             // regex byte-for-byte, so these keep the load-bearing parts of each pattern.
             // Anthropic: 'sk-ant-api03-' + 93 url-safe-base64 chars + the constant 'AA' tail.
-            'cloud.anthropic.apiKey' => 'sk-ant-api03-' . substr(self::base64url((string) hex2bin(
-                self::h($seed, 'anthropic_k') . self::h($seed, 'anthropic_k2') . self::h($seed, 'anthropic_k3')
-            )), 0, 93) . 'AA',
+            'cloud.anthropic.apiKey' => self::anthropicApiKey($seed),
             // OpenAI: 'sk-' + 20 + the constant 'T3BlbkFJ' infix + 20.
             'cloud.openai.apiKey' => 'sk-' . self::base62($seed, 'openai_k', 20) . 'T3BlbkFJ' . self::base62($seed, 'openai_k2', 20),
             // GitHub Copilot user-to-server token: 'ghu_' + 36.
@@ -134,7 +137,7 @@ final class PersonaIdentity
             // and coherent across every file the same host discloses them in.
             'cloud.stripe.secretKey' => 'sk_live_' . self::base62($seed, 'stripe_sk', 24),
             'cloud.sendgrid.apiKey' => 'SG.' . self::base62($seed, 'sg1', 22) . '.' . self::base62($seed, 'sg2', 43),
-            'cloud.google.apiKey' => 'AIza' . substr(self::base64url((string) hex2bin(self::h($seed, 'google_k'))), 0, 35),
+            'cloud.google.apiKey' => self::googleApiKey($seed),
             'secret.jwt' => substr(self::h($seed, 'jwt_secret'), 0, 64),
         ];
 
@@ -190,18 +193,79 @@ final class PersonaIdentity
 
     /**
      * A deterministic, human-plausible password: seed-derived digest bytes mapped into a mixed
-     * alphabet (upper + lower + digits + symbols) instead of raw hex.
+     * alphabet (upper + lower + digits + symbols) instead of raw hex. Re-derives with a round tag
+     * if the value trips the fingerprint gate's denied digit run (see hitsDeniedDigits).
      */
     private static function password(int $seed, string $field, int $length, string $alphabet): string
     {
-        $h = self::h($seed, $field);
         $n = strlen($alphabet);
-        $out = '';
-        for ($i = 0; $i < $length; $i++) {
-            $out .= $alphabet[(int) hexdec(substr($h, $i * 2, 2)) % $n];
+        for ($round = 0; ; $round++) {
+            $h = self::h($seed, $round === 0 ? $field : $field . '|r' . $round);
+            $out = '';
+            for ($i = 0; $i < $length; $i++) {
+                $out .= $alphabet[(int) hexdec(substr($h, $i * 2, 2)) % $n];
+            }
+            if (!self::hitsDeniedDigits($out)) {
+                return $out;
+            }
         }
+    }
 
-        return $out;
+    /**
+     * AWS secret key: standard base64 of 30 seed-derived bytes (40 chars, [A-Za-z0-9+/], no
+     * padding). Re-rolls on the denied digit run — its '+'/'/' delimiters can bound a bare
+     * 6-digit token the fingerprint gate rejects.
+     */
+    private static function awsSecretKey(int $seed): string
+    {
+        for ($round = 0; ; $round++) {
+            $value = base64_encode((string) hex2bin(substr(
+                self::h($seed, $round === 0 ? 'aws_sk' : 'aws_sk|r' . $round), 0, 60
+            )));
+            if (!self::hitsDeniedDigits($value)) {
+                return $value;
+            }
+        }
+    }
+
+    /** Anthropic key: 'sk-ant-api03-' + 93 url-safe-base64 chars + the constant 'AA' tail. Re-rolls
+     *  on the denied digit run — its '-'/'_' delimiters can bound a bare 6-digit token. */
+    private static function anthropicApiKey(int $seed): string
+    {
+        for ($round = 0; ; $round++) {
+            $s = $round === 0 ? '' : '|r' . $round;
+            $body = substr(self::base64url((string) hex2bin(
+                self::h($seed, 'anthropic_k' . $s) . self::h($seed, 'anthropic_k2' . $s) . self::h($seed, 'anthropic_k3' . $s)
+            )), 0, 93);
+            $value = 'sk-ant-api03-' . $body . 'AA';
+            if (!self::hitsDeniedDigits($value)) {
+                return $value;
+            }
+        }
+    }
+
+    /** Google API key: 'AIza' + 35 url-safe-base64 chars. Re-rolls on the denied digit run — its
+     *  '-'/'_' delimiters can bound a bare 6-digit token. */
+    private static function googleApiKey(int $seed): string
+    {
+        for ($round = 0; ; $round++) {
+            $value = 'AIza' . substr(self::base64url((string) hex2bin(
+                self::h($seed, $round === 0 ? 'google_k' : 'google_k|r' . $round)
+            )), 0, 35);
+            if (!self::hitsDeniedDigits($value)) {
+                return $value;
+            }
+        }
+    }
+
+    /**
+     * True if a rendered secret carries the fingerprint gate's denied bare-6-digit token
+     * (\b9\d{5}\b). A served body that trips it is classified as canned, so the boundary-prone
+     * generators re-derive until clean — terminating in one or two rounds almost surely.
+     */
+    private static function hitsDeniedDigits(string $value): bool
+    {
+        return preg_match('/\b9\d{5}\b/', $value) === 1;
     }
 
     /** 'AKIA' + 16 chars from the base32 alphabet [A-Z2-7], matching a real access-key-id shape. */

@@ -1,14 +1,15 @@
 id: route-envfile-prod
 priority: 271
-# Brand-new page: a dropped production .env (.env.production / .env.local) — the same believable
-# Laravel-style shape as /.env, but every secret is persona-seeded so this file agrees with the
-# host's other leaked configs (same AWS pair, DB password, Stripe/SendGrid/JWT secrets).
+# Brand-new page: a dropped production .env (.env.production) — the same believable Laravel-style
+# shape as /.env, but every secret is persona-seeded so this file agrees with the host's other
+# leaked configs (same AWS pair, DB password, Stripe/SendGrid/JWT secrets). The sibling /.env.local
+# is its own page (279-env-local) so it can declare a coherent local (not production) environment.
 # The id deliberately avoids the substring `env-`: the /.env enrich (route-dotenv) selects on a
 # broad `env-` template_needle, and findRule is global — an id carrying `env-` would let that
 # enrich hijack this page and serve it as application/octet-stream instead of text/plain.
 new_page:
   method: GET
-  paths: ['/.env.production', '/.env.local']
+  paths: ['/.env.production']
   sig: 0
   status: 200
   severity: high

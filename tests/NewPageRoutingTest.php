@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Funnypot\Tests;
 
+use Funnypot\Compiler\Crs\FingerprintGuard;
 use Funnypot\Config;
 use Funnypot\Honeypot;
 use Funnypot\RequestContext;
@@ -125,28 +126,29 @@ final class NewPageRoutingTest extends TestCase
 
     public function test_config_secrets_are_coherent_across_surfaces(): void
     {
-        // One host presents one identity: the AWS key pair and the Stripe/SendGrid/JWT secrets must
-        // be byte-identical in every config file that discloses them, so two leaked files never
-        // contradict each other. Extract each secret from each surface and require a single value.
+        // One host presents one identity: each disclosed secret must be byte-identical on every
+        // surface that carries it, so two leaked files never contradict each other. AWS/Stripe/
+        // SendGrid appear on the config pack AND the legacy sql/credentials surfaces (their
+        // Stripe/SendGrid keys were migrated off standalone fake.* to the persona identity); the JWT
+        // signing secret lives only on the config pack, so it is checked over the pages that carry it.
         $inv = $this->inverter();
-        $surfaces = ['/.env.production', '/application.yml', '/application.properties', '/secrets.json', '/web.config', '/config.php'];
-        $patterns = [
-            'aws' => '/AKIA[A-Z2-7]{16}/',
-            'stripe' => '/sk_live_[0-9a-zA-Z]{24}/',
-            'sendgrid' => '/SG\.[0-9A-Za-z]{22}\.[0-9A-Za-z]{43}/',
-            'jwt' => '/\b[0-9a-f]{64}\b/',
+        $cfg = ['/.env.production', '/.env.local', '/application.yml', '/application.properties', '/secrets.json', '/web.config', '/config.php'];
+        $legacy = ['/install/froxlor.sql', '/credentials.txt', '/backup.sql'];
+        $checks = [
+            'aws' => ['re' => '/AKIA[A-Z2-7]{16}/', 'surfaces' => array_merge($cfg, $legacy)],
+            'stripe' => ['re' => '/sk_live_[0-9a-zA-Z]{24}/', 'surfaces' => array_merge($cfg, $legacy)],
+            'sendgrid' => ['re' => '/SG\.[0-9A-Za-z]{22}\.[0-9A-Za-z]{43}/', 'surfaces' => array_merge($cfg, $legacy)],
+            'jwt' => ['re' => '/\b[0-9a-f]{64}\b/', 'surfaces' => $cfg],
         ];
-        $seen = [];
-        foreach ($surfaces as $path) {
-            $resp = $inv->respond(new RequestContext('GET', $path));
-            self::assertNotNull($resp, "{$path} must serve a fake");
-            foreach ($patterns as $label => $re) {
-                self::assertSame(1, preg_match($re, $resp->body, $m), "{$path} must disclose a {$label} secret");
-                $seen[$label][$m[0]] = true;
+        foreach ($checks as $label => $check) {
+            $seen = [];
+            foreach ($check['surfaces'] as $path) {
+                $resp = $inv->respond(new RequestContext('GET', $path));
+                self::assertNotNull($resp, "{$path} must serve a fake");
+                self::assertSame(1, preg_match($check['re'], $resp->body, $m), "{$path} must disclose a {$label} secret");
+                $seen[$m[0]] = true;
             }
-        }
-        foreach (array_keys($patterns) as $label) {
-            self::assertCount(1, $seen[$label], "the {$label} secret must be identical across every surface");
+            self::assertCount(1, $seen, "the {$label} secret must be identical across every surface that discloses it");
         }
     }
 
@@ -167,6 +169,173 @@ final class NewPageRoutingTest extends TestCase
             $ids[$path] = $m[0];
         }
         self::assertSame($ids['/install/froxlor.sql'], $ids['/backup.sql'], 'migrated files share the persona AWS key for one seed');
+    }
+
+    public function test_config_js_never_serves_a_laravel_env(): void
+    {
+        // The /config.js route carries two bundles: a firebase config (application/javascript) and a
+        // React runtime-env (application/octet-stream, REACT_APP_). A broad `env-` needle used to
+        // hijack the react bundle to route-dotenv and serve a Laravel .env. Sweep seeds × styles and
+        // require every response to be one of the two coherent bodies — NEVER a Laravel .env.
+        $sawFirebase = false;
+        $sawReact = false;
+        foreach (['realistic', 'taunt'] as $style) {
+            for ($seed = 0; $seed <= 40; $seed++) {
+                $resp = $this->seededInverter((string) $seed, $style)->respond(new RequestContext('GET', '/config.js'));
+                self::assertNotNull($resp, "config.js [{$style}] seed {$seed} must serve a fake");
+                self::assertStringNotContainsString('APP_DEBUG=', $resp->body, "config.js [{$style}] seed {$seed} must not serve a Laravel .env");
+                $ct = $resp->headers['Content-Type'] ?? null;
+                if ($ct === 'application/javascript') {
+                    self::assertStringContainsString('firebaseConfig', $resp->body, "config.js [{$style}] seed {$seed} js body");
+                    $sawFirebase = true;
+                } elseif ($ct === 'application/octet-stream') {
+                    self::assertStringContainsString('REACT_APP_', $resp->body, "config.js [{$style}] seed {$seed} react body");
+                    $sawReact = true;
+                } else {
+                    self::fail("config.js [{$style}] seed {$seed} unexpected Content-Type: " . var_export($ct, true));
+                }
+            }
+        }
+        // The sweep must actually exercise both bundles, or it guards nothing.
+        self::assertTrue($sawFirebase, 'sweep must land on the firebase config bundle');
+        self::assertTrue($sawReact, 'sweep must land on the react runtime-env bundle');
+    }
+
+    public function test_firebase_ids_are_numeric_and_coherent(): void
+    {
+        // messagingSenderId must be an all-digit project number and the appId middle segment the SAME
+        // digits (1:<senderId>:web:...) — hex letters in a digits-only field are a tell.
+        $saw = false;
+        for ($seed = 0; $seed <= 60; $seed++) {
+            $resp = $this->seededInverter((string) $seed, 'realistic')->respond(new RequestContext('GET', '/config.js'));
+            self::assertNotNull($resp);
+            if (($resp->headers['Content-Type'] ?? null) !== 'application/javascript') {
+                continue; // this seed landed on the react bundle, not firebase
+            }
+            $saw = true;
+            self::assertSame(1, preg_match('/messagingSenderId: "(\d+)"/', $resp->body, $m), "seed {$seed} senderId must be all digits: " . $resp->body);
+            self::assertTrue(ctype_digit($m[1]), "seed {$seed} senderId digits");
+            self::assertStringContainsString('appId: "1:' . $m[1] . ':web:', $resp->body, "seed {$seed} appId must reuse the senderId");
+        }
+        self::assertTrue($saw, 'sweep must land on the firebase bundle at least once');
+    }
+
+    public function test_env_local_is_a_distinct_local_config(): void
+    {
+        // /.env.local must be its own file — a LOCAL environment, not a byte clone of
+        // /.env.production — while sharing the host's identity (same AWS pair, one host).
+        $inv = $this->inverter();
+        $prod = $inv->respond(new RequestContext('GET', '/.env.production'));
+        $local = $inv->respond(new RequestContext('GET', '/.env.local'));
+        self::assertNotNull($prod);
+        self::assertNotNull($local);
+        self::assertNotSame($prod->body, $local->body, '.env.local must not be byte-identical to .env.production');
+        self::assertStringContainsString('APP_ENV=local', $local->body);
+        self::assertStringContainsString('APP_DEBUG=true', $local->body);
+        self::assertStringContainsString('DB_HOST=127.0.0.1', $local->body);
+        self::assertStringContainsString('APP_ENV=production', $prod->body);
+        self::assertSame(1, preg_match('/AKIA[A-Z2-7]{16}/', $prod->body, $a));
+        self::assertSame(1, preg_match('/AKIA[A-Z2-7]{16}/', $local->body, $b));
+        self::assertSame($a[0], $b[0], '.env.local and .env.production must share one AWS identity');
+    }
+
+    public function test_settings_json_is_a_shaped_indented_document(): void
+    {
+        // The VS Code settings.json must read as an authored file (nested lines indented), be a real
+        // settings.json shape (top-level `launch` object), and stay valid JSON.
+        $resp = $this->inverter()->respond(new RequestContext('GET', '/settings.json'));
+        self::assertNotNull($resp);
+        self::assertSame(1, preg_match('/\n[ ]{2,}"/', $resp->body), 'settings.json nested lines must be indented');
+        self::assertStringContainsString('"launch"', $resp->body, 'settings.json must wrap the debug config in a launch object');
+        self::assertIsArray(json_decode($resp->body, true), 'settings.json must be valid JSON');
+    }
+
+    public function test_database_url_round_trips_with_a_non_null_password(): void
+    {
+        // A '#' in the db password used to truncate the DATABASE_URL as an unencoded fragment marker.
+        // Sweep seeds and require every rendered DATABASE_URL to parse with host + db path + a
+        // non-null password whose userinfo is strictly URL-unreserved.
+        foreach (['/docker-compose.yml', '/settings.json', '/credentials.txt'] as $path) {
+            for ($seed = 0; $seed <= 60; $seed++) {
+                $resp = $this->seededInverter((string) $seed, 'realistic')->respond(new RequestContext('GET', $path));
+                self::assertNotNull($resp, "{$path} seed {$seed} must serve a fake");
+                self::assertSame(1, preg_match('#postgres(?:ql)?://[^\s"\'<]+#', $resp->body, $m), "{$path} seed {$seed} must carry a DATABASE_URL");
+                $url = $m[0];
+                $parts = parse_url($url);
+                self::assertIsArray($parts, "{$path} seed {$seed} DATABASE_URL must parse: {$url}");
+                self::assertNotSame('', (string) ($parts['pass'] ?? ''), "{$path} seed {$seed} DATABASE_URL password must be non-null: {$url}");
+                self::assertNotSame('', (string) ($parts['host'] ?? ''), "{$path} seed {$seed} DATABASE_URL must carry a host: {$url}");
+                self::assertNotSame('', (string) ($parts['path'] ?? ''), "{$path} seed {$seed} DATABASE_URL must carry a db path: {$url}");
+                $userinfo = (string) ($parts['user'] ?? '') . ':' . (string) ($parts['pass'] ?? '');
+                self::assertSame(1, preg_match('#^[A-Za-z0-9._~-]+:[A-Za-z0-9._~-]+$#', $userinfo), "{$path} seed {$seed} userinfo must be URL-unreserved: {$url}");
+            }
+        }
+    }
+
+    public function test_yaml_configs_have_no_commented_out_scalars(): void
+    {
+        // A db password starting with '#' used to parse as a YAML comment (null value). With '#' out
+        // of the alphabet, no rendered `key: value` line may begin its value with '#'. (The line-mode
+        // taunt appends `# ...` comment lines, which have no `key:` and so never match.)
+        foreach (['/docker-compose.yml', '/application.yml'] as $path) {
+            foreach (['realistic', 'taunt'] as $style) {
+                for ($seed = 0; $seed <= 60; $seed++) {
+                    $resp = $this->seededInverter((string) $seed, $style)->respond(new RequestContext('GET', $path));
+                    self::assertNotNull($resp, "{$path} [{$style}] seed {$seed} must serve a fake");
+                    self::assertSame(0, preg_match('/^\s*[\w.-]+: #/m', $resp->body), "{$path} [{$style}] seed {$seed} has a commented-out (leading '#') scalar: " . $resp->body);
+                }
+            }
+        }
+    }
+
+    public function test_db_host_agrees_with_the_postgres_engine_claim(): void
+    {
+        // Every M8 config file hardcodes Postgres (pgsql/postgresql/:5432); the persona db.host must
+        // never be named for another engine (mysql/mariadb), or the host contradicts the engine claim.
+        $paths = ['/.env.production', '/.env.local', '/application.yml', '/application.properties', '/settings.json', '/web.config', '/config.php'];
+        foreach ($paths as $path) {
+            for ($seed = 0; $seed <= 60; $seed++) {
+                $resp = $this->seededInverter((string) $seed, 'realistic')->respond(new RequestContext('GET', $path));
+                self::assertNotNull($resp, "{$path} seed {$seed} must serve a fake");
+                self::assertSame(0, preg_match('/\b(mysql|mariadb)\b/i', $resp->body), "{$path} seed {$seed} names a non-Postgres engine host while claiming Postgres: " . $resp->body);
+            }
+        }
+    }
+
+    public function test_disclosure_pages_carry_no_placeholder_host(): void
+    {
+        // registry.example.com and its kin read as a template stub; a dropped config on a real host
+        // never uses an RFC-2606 example.com host. Guard the whole class on the disclosure pages.
+        $inv = $this->inverter();
+        $paths = ['/config.php', '/.env.production', '/.env.local', '/docker-compose.yml', '/credentials.txt', '/settings.json', '/web.config', '/application.yml', '/application.properties'];
+        foreach ($paths as $path) {
+            $resp = $inv->respond(new RequestContext('GET', $path));
+            self::assertNotNull($resp, "{$path} must serve a fake");
+            self::assertStringNotContainsString('example.com', $resp->body, "{$path} must not carry the placeholder example.com host");
+        }
+    }
+
+    public function test_disclosure_pages_carry_no_denied_fingerprint_token(): void
+    {
+        // The gate's denylist (including the bare \b9\d{5}\b digit run) must hold for SERVED bodies,
+        // not only compiled artifacts: a rendered secret that trips it would be classified as canned.
+        // Render every disclosure surface across a wide seed sweep and require scan(body) empty — the
+        // persona re-roll is what keeps the boundary-prone keys clean.
+        $guard = FingerprintGuard::fromPackage();
+        $paths = [
+            '/config.php', '/.env.production', '/.env.local', '/secrets.json', '/docker-compose.yml',
+            '/application.properties', '/application.yml', '/settings.json', '/web.config', '/config.js',
+            '/credentials.txt', '/backup.sql', '/install/froxlor.sql',
+        ];
+        for ($seed = 0; $seed <= 200; $seed++) {
+            $inv = $this->seededInverter((string) $seed, 'realistic');
+            foreach ($paths as $path) {
+                $resp = $inv->respond(new RequestContext('GET', $path));
+                self::assertNotNull($resp, "{$path} seed {$seed} must serve a fake");
+                $hits = $guard->scan($resp->body);
+                self::assertSame([], $hits, "{$path} seed {$seed} leaks a denied fingerprint token (" . implode(',', $hits) . "): " . $resp->body);
+            }
+        }
     }
 
     public function test_v1_models_enrich_serves_openai_list(): void

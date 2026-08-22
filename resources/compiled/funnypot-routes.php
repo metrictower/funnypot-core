@@ -46,9 +46,8 @@ return array (
       'template_needle' => 
       array (
         0 => 'dotenv',
-        1 => 'env-',
-        2 => 'exposed-config',
-        3 => 'environment',
+        1 => 'exposed-config',
+        2 => 'environment',
       ),
       'body_word_contains' => 
       array (
@@ -64,13 +63,13 @@ APP_URL=https://app.example.com
 LOG_CHANNEL=stack
 
 DB_CONNECTION=pgsql
-DB_HOST=db-{{fake.pghost:hex:6}}.cluster-cg{{fake.pgacct:hex:9}}.eu-west-1.rds.amazonaws.com
+DB_HOST=db-{{fake.pghost:hex:12}}.cluster-cg{{fake.pgacct:hex:9}}.eu-west-1.rds.amazonaws.com
 DB_PORT=5432
 DB_DATABASE=app_production
 DB_USERNAME=app_prod
 DB_PASSWORD={{fake.pgpass:hex:24}}
 
-REDIS_HOST=cache-{{fake.redishost:hex:6}}.0001.euw1.cache.amazonaws.com
+REDIS_HOST=cache-{{fake.redishost:hex:12}}.0001.euw1.cache.amazonaws.com
 REDIS_PORT=6379
 REDIS_PASSWORD={{fake.redispass:hex:32}}
 
@@ -525,8 +524,8 @@ CREATE TABLE `api_credentials` (
 
 INSERT INTO `api_credentials` VALUES (1,\'AWS_ACCESS_KEY_ID\',\'{{persona.cloud.aws.accessKeyId}}\');
 INSERT INTO `api_credentials` VALUES (2,\'AWS_SECRET_ACCESS_KEY\',\'{{persona.cloud.aws.secretKey}}\');
-INSERT INTO `api_credentials` VALUES (3,\'STRIPE_SECRET_KEY\',\'sk_live_{{fake.stripe:hex:24}}\');
-INSERT INTO `api_credentials` VALUES (4,\'SENDGRID_API_KEY\',\'SG.{{fake.sg1:hex:22}}.{{fake.sg2:hex:43}}\');
+INSERT INTO `api_credentials` VALUES (3,\'STRIPE_SECRET_KEY\',\'{{persona.cloud.stripe.secretKey}}\');
+INSERT INTO `api_credentials` VALUES (4,\'SENDGRID_API_KEY\',\'{{persona.cloud.sendgrid.apiKey}}\');
 ',
     'headers' => 
     array (
@@ -891,11 +890,10 @@ INSERT INTO `api_credentials` VALUES (4,\'SENDGRID_API_KEY\',\'SG.{{fake.sg1:hex
     ),
     'body' => '# production credentials — rotate quarterly
 
-# AWS — STS
+# AWS
 AWS_ACCESS_KEY_ID={{persona.cloud.aws.accessKeyId}}
 AWS_SECRET_ACCESS_KEY={{persona.cloud.aws.secretKey}}
-AWS_SESSION_TOKEN=FQoGZXIvYXdz{{fake.awssess1:b64:43}}{{fake.awssess2:b64:43}}{{fake.awssess3:b64:43}}
-AWS_DEFAULT_REGION=eu-west-1
+AWS_DEFAULT_REGION={{persona.cloud.aws.region}}
 
 # DigitalOcean
 DIGITALOCEAN_TOKEN=dop_v1_{{fake.do:hex:64}}
@@ -904,16 +902,16 @@ DIGITALOCEAN_TOKEN=dop_v1_{{fake.do:hex:64}}
 CLOUDFLARE_API_TOKEN={{fake.cf:hex:40}}
 
 # Stripe — billing
-STRIPE_SECRET_KEY=sk_live_{{fake.ssk:hex:24}}
+STRIPE_SECRET_KEY={{persona.cloud.stripe.secretKey}}
 
 # SendGrid — mail
-SENDGRID_API_KEY=SG.{{fake.sg1:hex:22}}.{{fake.sg2:hex:43}}
+SENDGRID_API_KEY={{persona.cloud.sendgrid.apiKey}}
 
 # GitHub
 GITHUB_TOKEN=ghp_{{fake.gh:hex:36}}
 
 # Postgres
-DATABASE_URL=postgres://app_prod:{{fake.pg:hex:20}}@db-{{fake.pgh:hex:6}}.eu-west-1.rds.amazonaws.com:5432/app_production
+DATABASE_URL=postgres://{{persona.db.user}}:{{fake.pg:hex:20}}@db-{{fake.pgh:hex:12}}.{{persona.cloud.aws.region}}.rds.amazonaws.com:5432/{{persona.db.name}}
 
 # Slack
 SLACK_WEBHOOK_URL=https://hooks.slack.com/services/T{{fake.slt:hex:8}}/B{{fake.slb:hex:8}}/{{fake.sltok:hex:24}}
@@ -1068,8 +1066,8 @@ CREATE TABLE `api_keys` (
 
 INSERT INTO `api_keys` VALUES (1,\'AWS_ACCESS_KEY_ID\',\'{{persona.cloud.aws.accessKeyId}}\');
 INSERT INTO `api_keys` VALUES (2,\'AWS_SECRET_ACCESS_KEY\',\'{{persona.cloud.aws.secretKey}}\');
-INSERT INTO `api_keys` VALUES (3,\'STRIPE_SECRET\',\'sk_live_{{fake.stripesk:hex:24}}\');
-INSERT INTO `api_keys` VALUES (4,\'SENDGRID_API_KEY\',\'SG.{{fake.sg1:hex:22}}.{{fake.sg2:hex:43}}\');
+INSERT INTO `api_keys` VALUES (3,\'STRIPE_SECRET\',\'{{persona.cloud.stripe.secretKey}}\');
+INSERT INTO `api_keys` VALUES (4,\'SENDGRID_API_KEY\',\'{{persona.cloud.sendgrid.apiKey}}\');
 ',
     'headers' => 
     array (
@@ -1602,7 +1600,7 @@ JWT_SECRET={{persona.secret.jwt}}
     'body' => 'version: "3.8"
 services:
   app:
-    image: registry.example.com/app:latest
+    image: registry.{{persona.company.domain}}/app:latest
     ports:
       - "8080:8080"
     environment:
@@ -1612,6 +1610,8 @@ services:
       STRIPE_SECRET_KEY: {{persona.cloud.stripe.secretKey}}
       SENDGRID_API_KEY: {{persona.cloud.sendgrid.apiKey}}
       JWT_SECRET: {{persona.secret.jwt}}
+      SMTP_HOST: mailhog
+      SMTP_PORT: "1025"
   db:
     image: postgres:15
     ports:
@@ -1627,7 +1627,8 @@ services:
   mailhog:
     image: mailhog/mailhog
     ports:
-      - "587:587"
+      - "1025:1025"
+      - "8025:8025"
 ',
     'headers' => 
     array (
@@ -1681,7 +1682,7 @@ cloud.aws.region.static={{persona.cloud.aws.region}}
         0 => 'application-yaml',
       ),
     ),
-    'body' => 'runtime: java
+    'body' => '# migrated off GAE; was: runtime: java17
 spring:
   datasource:
     url: jdbc:postgresql://{{persona.db.host}}:5432/{{persona.db.name}}
@@ -1720,19 +1721,21 @@ cloud:
       ),
     ),
     'body' => '{
-"version": "0.2.0",
-"configurations": [
-{
-"name": "Launch app",
-"type": "node",
-"request": "launch",
-"program": "/srv/app/server.js",
-"env": {
-"ANTHROPIC_API_KEY": "{{persona.cloud.anthropic.apiKey}}",
-"DATABASE_URL": "postgres://{{persona.db.user}}:{{persona.db.password}}@{{persona.db.host}}:5432/{{persona.db.name}}"
-}
-}
-]
+  "launch": {
+    "version": "0.2.0",
+    "configurations": [
+      {
+        "name": "Launch app",
+        "type": "node",
+        "request": "launch",
+        "program": "/srv/app/server.js",
+        "env": {
+          "ANTHROPIC_API_KEY": "{{persona.cloud.anthropic.apiKey}}",
+          "DATABASE_URL": "postgres://{{persona.db.user}}:{{persona.db.password}}@{{persona.db.host}}:5432/{{persona.db.name}}"
+        }
+      }
+    ]
+  }
 }
 ',
     'headers' => 
@@ -1758,7 +1761,7 @@ cloud:
     'body' => '<?xml version="1.0" encoding="utf-8"?>
 <configuration>
   <connectionStrings>
-    <add name="DefaultConnection" connectionString="Server={{persona.db.host}};Database={{persona.db.name}};User Id={{persona.db.user}};Password={{persona.db.password}};" providerName="System.Data.SqlClient" />
+    <add name="DefaultConnection" connectionString="Host={{persona.db.host}};Port=5432;Database={{persona.db.name}};Username={{persona.db.user}};Password={{persona.db.password}};" providerName="Npgsql" />
   </connectionStrings>
   <appSettings>
     <add key="Stripe:SecretKey" value="{{persona.cloud.stripe.secretKey}}" />
@@ -1806,8 +1809,8 @@ const firebaseConfig = {
   databaseURL: "https://{{persona.company.slug}}.firebaseio.com",
   projectId: "{{persona.company.slug}}",
   storageBucket: "{{persona.company.slug}}.appspot.com",
-  messagingSenderId: "{{fake.fbsender:hex:12}}",
-  appId: "1:{{fake.fbappnum:hex:12}}:web:{{fake.fbappid:hex:16}}"
+  messagingSenderId: "{{fake.fbsender:dec:12}}",
+  appId: "1:{{fake.fbsender:dec:12}}:web:{{fake.fbappid:hex:16}}"
 };
 firebase.initializeApp(firebaseConfig);
 ',
@@ -1819,6 +1822,73 @@ firebase.initializeApp(firebaseConfig);
     array (
       'mode' => 'line',
       'open' => '//',
+    ),
+  ),
+  48 => 
+  array (
+    'id' => 'route-envfile-local',
+    'match' => 
+    array (
+      'pid' => 
+      array (
+        0 => 'route-envfile-local',
+      ),
+    ),
+    'body' => 'APP_ENV=local
+APP_DEBUG=true
+
+DB_CONNECTION=pgsql
+DB_HOST=127.0.0.1
+DB_PORT=5432
+DB_DATABASE={{persona.db.name}}
+DB_USERNAME={{persona.db.user}}
+DB_PASSWORD={{persona.db.password}}
+
+AWS_ACCESS_KEY_ID={{persona.cloud.aws.accessKeyId}}
+AWS_SECRET_ACCESS_KEY={{persona.cloud.aws.secretKey}}
+AWS_DEFAULT_REGION={{persona.cloud.aws.region}}
+
+STRIPE_SECRET_KEY={{persona.cloud.stripe.secretKey}}
+SENDGRID_API_KEY={{persona.cloud.sendgrid.apiKey}}
+JWT_SECRET={{persona.secret.jwt}}
+',
+    'headers' => 
+    array (
+      'Content-Type' => 'text/plain; charset=utf-8',
+    ),
+    'taunt' => 
+    array (
+      'mode' => 'line',
+      'open' => '#',
+    ),
+  ),
+  49 => 
+  array (
+    'id' => 'route-react-runtime-env',
+    'match' => 
+    array (
+      'template_needle' => 
+      array (
+        0 => 'reactapp-env-js',
+      ),
+    ),
+    'body' => '# frontend runtime environment — public build-time config, injected at container start
+REACT_APP_ENV=production
+REACT_APP_API_URL=https://api.{{persona.company.domain}}
+REACT_APP_AUTH0_DOMAIN={{persona.company.slug}}.us.auth0.com
+REACT_APP_STRIPE_PUBLISHABLE_KEY=pk_live_{{fake.reactstripepk:hex:24}}
+REACT_APP_GOOGLE_MAPS_KEY=AIza{{fake.reactgmaps:hex:35}}
+REACT_APP_SENTRY_DSN=https://{{fake.reactsentry:hex:32}}@o{{fake.reactsentryorg:dec:6}}.ingest.sentry.io/{{fake.reactsentryproj:dec:7}}
+REACT_APP_GA_MEASUREMENT_ID=G-{{fake.reactga:hexupper:10}}
+',
+    'headers' => 
+    array (
+      'Content-Type' => 'application/octet-stream',
+    ),
+    'taunt' => 
+    array (
+      'mode' => 'line',
+      'open' => '#',
     ),
   ),
 );

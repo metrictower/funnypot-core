@@ -19,7 +19,7 @@ response:
     version: "3.8"
     services:
       app:
-        image: registry.example.com/app:latest
+        image: registry.{{persona.company.domain}}/app:latest
         ports:
           - "8080:8080"
         environment:
@@ -29,6 +29,8 @@ response:
           STRIPE_SECRET_KEY: {{persona.cloud.stripe.secretKey}}
           SENDGRID_API_KEY: {{persona.cloud.sendgrid.apiKey}}
           JWT_SECRET: {{persona.secret.jwt}}
+          SMTP_HOST: mailhog
+          SMTP_PORT: "1025"
       db:
         image: postgres:15
         ports:
@@ -44,7 +46,8 @@ response:
       mailhog:
         image: mailhog/mailhog
         ports:
-          - "587:587"
+          - "1025:1025"
+          - "8025:8025"
 taunt: { mode: line, open: '#' }
 expect:
   - 'services:'
