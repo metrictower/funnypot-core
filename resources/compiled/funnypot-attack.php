@@ -326,6 +326,424 @@ return array (
   ),
   9 => 
   array (
+    'id' => 'attack-wp-xmlrpc',
+    'severity' => 'high',
+    'tags' => 
+    array (
+      0 => 'attack',
+      1 => 'wordpress',
+      2 => 'xmlrpc',
+    ),
+    'status' => 200,
+    'match' => 
+    array (
+      0 => 
+      array (
+        'in' => 'path',
+        'regex' => '(?:^|/)xmlrpc\\.php$',
+      ),
+      1 => 
+      array (
+        'in' => 'body',
+        'regex' => '<methodName>\\s*([\\w.]{1,64})',
+        'capture' => true,
+      ),
+    ),
+    'response' => 
+    array (
+      'headers' => 
+      array (
+        'Content-Type' => 'text/xml; charset=UTF-8',
+      ),
+      'body' => '<?xml version="1.0" encoding="UTF-8"?>
+<methodResponse>
+  <fault>
+    <value>
+    <struct>
+      <member><name>faultCode</name><value><int>-32601</int></value></member>
+      <member><name>faultString</name><value><string>server error. requested method {{match.1}} does not exist.</string></value></member>
+    </struct>
+    </value>
+  </fault>
+</methodResponse>
+',
+    ),
+    'lit' => '<methodName>',
+    'lit_in' => 'body',
+    'lit_ci' => true,
+    'behavior' => 'branch',
+    'branch' => 
+    array (
+      'cases' => 
+      array (
+        0 => 
+        array (
+          'when' => 
+          array (
+            'in' => 'body',
+            'regex' => '<methodName>\\s*system\\.listMethods',
+          ),
+          'response' => 
+          array (
+            'headers' => 
+            array (
+              'Content-Type' => 'text/xml; charset=UTF-8',
+            ),
+            'body' => '<?xml version="1.0" encoding="UTF-8"?>
+<methodResponse>
+  <params>
+    <param>
+      <value>
+      <array><data>
+  <value><string>system.multicall</string></value>
+  <value><string>system.listMethods</string></value>
+  <value><string>system.getCapabilities</string></value>
+  <value><string>demo.addTwoNumbers</string></value>
+  <value><string>demo.sayHello</string></value>
+  <value><string>pingback.extensions.getPingbacks</string></value>
+  <value><string>pingback.ping</string></value>
+  <value><string>mt.publishPost</string></value>
+  <value><string>mt.getTrackbackPings</string></value>
+  <value><string>mt.supportedTextFilters</string></value>
+  <value><string>mt.supportedMethods</string></value>
+  <value><string>mt.setPostCategories</string></value>
+  <value><string>mt.getPostCategories</string></value>
+  <value><string>mt.getRecentPostTitles</string></value>
+  <value><string>mt.getCategoryList</string></value>
+  <value><string>metaWeblog.getUsersBlogs</string></value>
+  <value><string>metaWeblog.deletePost</string></value>
+  <value><string>metaWeblog.newMediaObject</string></value>
+  <value><string>metaWeblog.getCategories</string></value>
+  <value><string>metaWeblog.getRecentPosts</string></value>
+  <value><string>metaWeblog.getPost</string></value>
+  <value><string>metaWeblog.editPost</string></value>
+  <value><string>metaWeblog.newPost</string></value>
+  <value><string>blogger.deletePost</string></value>
+  <value><string>blogger.editPost</string></value>
+  <value><string>blogger.newPost</string></value>
+  <value><string>blogger.getRecentPosts</string></value>
+  <value><string>blogger.getPost</string></value>
+  <value><string>blogger.getUserInfo</string></value>
+  <value><string>blogger.getUsersBlogs</string></value>
+  <value><string>wp.restoreRevision</string></value>
+  <value><string>wp.getRevisions</string></value>
+  <value><string>wp.getPostTypes</string></value>
+  <value><string>wp.getPostType</string></value>
+  <value><string>wp.getPostFormats</string></value>
+  <value><string>wp.getMediaLibrary</string></value>
+  <value><string>wp.getMediaItem</string></value>
+  <value><string>wp.getCommentStatusList</string></value>
+  <value><string>wp.getCommentCount</string></value>
+  <value><string>wp.getComment</string></value>
+  <value><string>wp.getComments</string></value>
+  <value><string>wp.deleteComment</string></value>
+  <value><string>wp.editComment</string></value>
+  <value><string>wp.newComment</string></value>
+  <value><string>wp.getOptions</string></value>
+  <value><string>wp.setOptions</string></value>
+  <value><string>wp.getPageTemplates</string></value>
+  <value><string>wp.getPageStatusList</string></value>
+  <value><string>wp.getPostStatusList</string></value>
+  <value><string>wp.getCommentStatusList</string></value>
+  <value><string>wp.getMediaItem</string></value>
+  <value><string>wp.getProfile</string></value>
+  <value><string>wp.editProfile</string></value>
+  <value><string>wp.getUsers</string></value>
+  <value><string>wp.getUser</string></value>
+  <value><string>wp.getTaxonomies</string></value>
+  <value><string>wp.getTaxonomy</string></value>
+  <value><string>wp.getTerms</string></value>
+  <value><string>wp.getTerm</string></value>
+  <value><string>wp.deleteTerm</string></value>
+  <value><string>wp.editTerm</string></value>
+  <value><string>wp.newTerm</string></value>
+  <value><string>wp.getPosts</string></value>
+  <value><string>wp.getPost</string></value>
+  <value><string>wp.deletePost</string></value>
+  <value><string>wp.editPost</string></value>
+  <value><string>wp.newPost</string></value>
+  <value><string>wp.getPageList</string></value>
+  <value><string>wp.editPage</string></value>
+  <value><string>wp.deletePage</string></value>
+  <value><string>wp.newPage</string></value>
+  <value><string>wp.getPages</string></value>
+  <value><string>wp.getPage</string></value>
+  <value><string>wp.getAuthors</string></value>
+  <value><string>wp.getTags</string></value>
+  <value><string>wp.getCategories</string></value>
+  <value><string>wp.newCategory</string></value>
+  <value><string>wp.deleteCategory</string></value>
+  <value><string>wp.suggestCategories</string></value>
+  <value><string>wp.uploadFile</string></value>
+  <value><string>wp.deleteFile</string></value>
+  <value><string>wp.getUsersBlogs</string></value>
+      </data></array>
+      </value>
+    </param>
+  </params>
+</methodResponse>
+',
+          ),
+        ),
+        1 => 
+        array (
+          'when' => 
+          array (
+            'in' => 'body',
+            'regex' => '<methodName>\\s*system\\.getCapabilities',
+          ),
+          'response' => 
+          array (
+            'headers' => 
+            array (
+              'Content-Type' => 'text/xml; charset=UTF-8',
+            ),
+            'body' => '<?xml version="1.0" encoding="UTF-8"?>
+<methodResponse>
+  <params>
+    <param>
+      <value>
+      <struct>
+        <member><name>xmlrpc</name><value><struct>
+          <member><name>specUrl</name><value><string>http://www.xmlrpc.com/spec</string></value></member>
+          <member><name>specVersion</name><value><int>1</int></value></member>
+        </struct></value></member>
+        <member><name>faults_interop</name><value><struct>
+          <member><name>specUrl</name><value><string>http://xmlrpc-epi.sourceforge.net/specs/rfc.fault_codes.php</string></value></member>
+          <member><name>specVersion</name><value><int>20010516</int></value></member>
+        </struct></value></member>
+        <member><name>system.multicall</name><value><struct>
+          <member><name>specUrl</name><value><string>http://www.xmlrpc.com/discuss/msgReader$1208</string></value></member>
+          <member><name>specVersion</name><value><int>1</int></value></member>
+        </struct></value></member>
+      </struct>
+      </value>
+    </param>
+  </params>
+</methodResponse>
+',
+          ),
+        ),
+        2 => 
+        array (
+          'when' => 
+          array (
+            'in' => 'body',
+            'regex' => '<methodName>\\s*system\\.multicall',
+          ),
+          'response' => 
+          array (
+            'headers' => 
+            array (
+              'Content-Type' => 'text/xml; charset=UTF-8',
+            ),
+            'body' => '<?xml version="1.0" encoding="UTF-8"?>
+<methodResponse>
+  <params>
+    <param>
+      <value>
+      <array><data>
+      <value><struct>
+        <member><name>faultCode</name><value><int>403</int></value></member>
+        <member><name>faultString</name><value><string>Incorrect username or password.</string></value></member>
+      </struct></value>
+      </data></array>
+      </value>
+    </param>
+  </params>
+</methodResponse>
+',
+          ),
+        ),
+        3 => 
+        array (
+          'when' => 
+          array (
+            'in' => 'body',
+            'regex' => '<methodName>\\s*demo\\.sayHello',
+          ),
+          'response' => 
+          array (
+            'headers' => 
+            array (
+              'Content-Type' => 'text/xml; charset=UTF-8',
+            ),
+            'body' => '<?xml version="1.0" encoding="UTF-8"?>
+<methodResponse>
+  <params>
+    <param>
+      <value>
+      <string>Hello!</string>
+      </value>
+    </param>
+  </params>
+</methodResponse>
+',
+          ),
+        ),
+        4 => 
+        array (
+          'when' => 
+          array (
+            'in' => 'body',
+            'regex' => '<methodName>\\s*pingback\\.ping',
+          ),
+          'response' => 
+          array (
+            'headers' => 
+            array (
+              'Content-Type' => 'text/xml; charset=UTF-8',
+            ),
+            'body' => '<?xml version="1.0" encoding="UTF-8"?>
+<methodResponse>
+  <fault>
+    <value>
+    <struct>
+      <member><name>faultCode</name><value><int>33</int></value></member>
+      <member><name>faultString</name><value><string>The specified target URL cannot be used as a target. It either does not exist, or it is not a pingback-enabled resource.</string></value></member>
+    </struct>
+    </value>
+  </fault>
+</methodResponse>
+',
+          ),
+        ),
+        5 => 
+        array (
+          'when' => 
+          array (
+            'in' => 'body',
+            'regex' => '<methodName>\\s*(?:wp|mt|metaWeblog|blogger)\\.',
+          ),
+          'response' => 
+          array (
+            'headers' => 
+            array (
+              'Content-Type' => 'text/xml; charset=UTF-8',
+            ),
+            'body' => '<?xml version="1.0" encoding="UTF-8"?>
+<methodResponse>
+  <fault>
+    <value>
+    <struct>
+      <member><name>faultCode</name><value><int>403</int></value></member>
+      <member><name>faultString</name><value><string>Incorrect username or password.</string></value></member>
+    </struct>
+    </value>
+  </fault>
+</methodResponse>
+',
+          ),
+        ),
+      ),
+    ),
+  ),
+  10 => 
+  array (
+    'id' => 'attack-wp-xmlrpc-get',
+    'severity' => 'info',
+    'tags' => 
+    array (
+      0 => 'attack',
+      1 => 'wordpress',
+      2 => 'xmlrpc',
+    ),
+    'status' => 405,
+    'match' => 
+    array (
+      0 => 
+      array (
+        'in' => 'path',
+        'contains' => 'xmlrpc.php',
+      ),
+      1 => 
+      array (
+        'in' => 'path',
+        'regex' => '(?:^|/)xmlrpc\\.php$',
+      ),
+    ),
+    'response' => 
+    array (
+      'headers' => 
+      array (
+        'Content-Type' => 'text/plain; charset=UTF-8',
+        'Allow' => 'POST',
+      ),
+      'body' => 'XML-RPC server accepts POST requests only.',
+    ),
+    'lit' => 'xmlrpc.php',
+    'lit_in' => 'path',
+    'lit_ci' => true,
+    'behavior' => 'branch',
+    'branch' => 
+    array (
+      'cases' => 
+      array (
+        0 => 
+        array (
+          'when' => 
+          array (
+            'in' => 'query',
+            'regex' => '(?:^|&)rsd(?:[=&]|$)',
+          ),
+          'response' => 
+          array (
+            'headers' => 
+            array (
+              'Content-Type' => 'text/xml; charset=UTF-8',
+            ),
+            'body' => '<?xml version="1.0" encoding="UTF-8"?>
+<rsd version="1.0" xmlns="http://archipelago.phrasewise.com/rsd">
+  <service>
+    <engineName>WordPress</engineName>
+    <engineLink>https://wordpress.org/</engineLink>
+    <homePageLink>https://{{persona.company.domain}}/</homePageLink>
+    <apis>
+      <api name="WordPress" blogID="1" preferred="true" apiLink="https://{{persona.company.domain}}/xmlrpc.php" />
+      <api name="Movable Type" blogID="1" preferred="false" apiLink="https://{{persona.company.domain}}/xmlrpc.php" />
+      <api name="MetaWeblog" blogID="1" preferred="false" apiLink="https://{{persona.company.domain}}/xmlrpc.php" />
+      <api name="Blogger" blogID="1" preferred="false" apiLink="https://{{persona.company.domain}}/xmlrpc.php" />
+      <api name="WP-API" blogID="1" preferred="false" apiLink="https://{{persona.company.domain}}/wp-json/" />
+    </apis>
+  </service>
+</rsd>
+',
+            'status' => 200,
+          ),
+        ),
+        1 => 
+        array (
+          'when' => 
+          array (
+            'in' => 'method',
+            'regex' => '^POST$',
+          ),
+          'response' => 
+          array (
+            'headers' => 
+            array (
+              'Content-Type' => 'text/xml; charset=UTF-8',
+            ),
+            'body' => '<?xml version="1.0" encoding="UTF-8"?>
+<methodResponse>
+  <fault>
+    <value>
+    <struct>
+      <member><name>faultCode</name><value><int>-32700</int></value></member>
+      <member><name>faultString</name><value><string>parse error. not well formed</string></value></member>
+    </struct>
+    </value>
+  </fault>
+</methodResponse>
+',
+            'status' => 200,
+          ),
+        ),
+      ),
+    ),
+  ),
+  11 => 
+  array (
     'id' => 'attack-lfi-shadow',
     'severity' => 'high',
     'tags' => 
@@ -355,7 +773,7 @@ return array (
     'lit_in' => 'request',
     'lit_ci' => true,
   ),
-  10 => 
+  12 => 
   array (
     'id' => 'attack-lfi-group',
     'severity' => 'high',
@@ -386,7 +804,7 @@ return array (
     'lit_in' => 'request',
     'lit_ci' => true,
   ),
-  11 => 
+  13 => 
   array (
     'id' => 'attack-lfi-windows',
     'severity' => 'high',
@@ -415,7 +833,7 @@ return array (
       'body' => '{{canned.winini}}',
     ),
   ),
-  12 => 
+  14 => 
   array (
     'id' => 'attack-lfi-unix',
     'severity' => 'high',
@@ -443,7 +861,7 @@ return array (
       'body' => '{{canned.passwd}}',
     ),
   ),
-  13 => 
+  15 => 
   array (
     'id' => 'attack-cmdi-windows',
     'severity' => 'critical',
@@ -479,7 +897,7 @@ Ethernet adapter Ethernet0:
 ',
     ),
   ),
-  14 => 
+  16 => 
   array (
     'id' => 'attack-cmdi-unix',
     'severity' => 'critical',
@@ -507,7 +925,7 @@ Ethernet adapter Ethernet0:
       'body' => '{{canned.uid}}',
     ),
   ),
-  15 => 
+  17 => 
   array (
     'id' => 'attack-ssti-twig',
     'severity' => 'high',
@@ -536,7 +954,7 @@ Ethernet adapter Ethernet0:
 ',
     ),
   ),
-  16 => 
+  18 => 
   array (
     'id' => 'attack-ssti-numeric',
     'severity' => 'high',
@@ -564,7 +982,7 @@ Ethernet adapter Ethernet0:
 ',
     ),
   ),
-  17 => 
+  19 => 
   array (
     'id' => 'attack-php-glastopf',
     'severity' => 'critical',
@@ -596,7 +1014,7 @@ Ethernet adapter Ethernet0:
     'lit_in' => 'request',
     'lit_ci' => true,
   ),
-  18 => 
+  20 => 
   array (
     'id' => 'attack-sqli',
     'severity' => 'high',
@@ -624,7 +1042,7 @@ Ethernet adapter Ethernet0:
 ',
     ),
   ),
-  19 => 
+  21 => 
   array (
     'id' => 'attack-open-redirect',
     'severity' => 'medium',
@@ -653,7 +1071,7 @@ Ethernet adapter Ethernet0:
       'body' => '<html><head><title>302 Found</title></head><body>Redirecting...</body></html>',
     ),
   ),
-  20 => 
+  22 => 
   array (
     'id' => 'attack-xss',
     'severity' => 'medium',
@@ -684,7 +1102,7 @@ Ethernet adapter Ethernet0:
 ',
     ),
   ),
-  21 => 
+  23 => 
   array (
     'id' => 'attack-thinkphp-rce',
     'severity' => 'critical',
@@ -720,7 +1138,7 @@ Ethernet adapter Ethernet0:
 ',
     ),
   ),
-  22 => 
+  24 => 
   array (
     'id' => 'attack-owncloud-49103',
     'severity' => 'high',
@@ -763,7 +1181,7 @@ Ethernet adapter Ethernet0:
     'lit_in' => 'path',
     'lit_ci' => true,
   ),
-  23 => 
+  25 => 
   array (
     'id' => 'attack-f5-1388',
     'severity' => 'critical',
@@ -797,7 +1215,7 @@ Ethernet adapter Ethernet0:
     'lit_in' => 'path',
     'lit_ci' => true,
   ),
-  24 => 
+  26 => 
   array (
     'id' => 'attack-geoserver-36401',
     'severity' => 'critical',
@@ -840,7 +1258,7 @@ Ethernet adapter Ethernet0:
     'lit_in' => 'path',
     'lit_ci' => true,
   ),
-  25 => 
+  27 => 
   array (
     'id' => 'attack-fortios-40684',
     'severity' => 'critical',
@@ -879,7 +1297,7 @@ Ethernet adapter Ethernet0:
     'lit_in' => 'path',
     'lit_ci' => true,
   ),
-  26 => 
+  28 => 
   array (
     'id' => 'attack-ivanti-21887',
     'severity' => 'critical',
@@ -914,7 +1332,7 @@ Ethernet adapter Ethernet0:
     'lit_in' => 'request',
     'lit_ci' => true,
   ),
-  27 => 
+  29 => 
   array (
     'id' => 'attack-citrix-bleed-4966',
     'severity' => 'critical',
@@ -949,7 +1367,7 @@ Ethernet adapter Ethernet0:
     'lit_in' => 'path',
     'lit_ci' => true,
   ),
-  28 => 
+  30 => 
   array (
     'id' => 'attack-webshell-panel',
     'severity' => 'critical',
@@ -984,7 +1402,7 @@ $ </pre>
 ',
     ),
   ),
-  29 => 
+  31 => 
   array (
     'id' => 'attack-spring-actuator',
     'severity' => 'high',
@@ -1017,7 +1435,7 @@ $ </pre>
     'lit_in' => 'path',
     'lit_ci' => true,
   ),
-  30 => 
+  32 => 
   array (
     'id' => 'attack-cloud-imds',
     'severity' => 'high',
@@ -1054,7 +1472,7 @@ $ </pre>
 ',
     ),
   ),
-  31 => 
+  33 => 
   array (
     'id' => 'attack-crs-sqli',
     'severity' => 'high',
@@ -1084,7 +1502,7 @@ $ </pre>
 ',
     ),
   ),
-  32 => 
+  34 => 
   array (
     'id' => 'attack-crs-xss',
     'severity' => 'high',
@@ -1116,7 +1534,7 @@ $ </pre>
 ',
     ),
   ),
-  33 => 
+  35 => 
   array (
     'id' => 'attack-crs-lfi',
     'severity' => 'high',
@@ -1145,7 +1563,7 @@ $ </pre>
       'body' => '{{canned.passwd}}',
     ),
   ),
-  34 => 
+  36 => 
   array (
     'id' => 'attack-crs-rce',
     'severity' => 'critical',

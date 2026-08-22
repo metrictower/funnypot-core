@@ -1,0 +1,70 @@
+id: attack-wp-xmlrpc-get
+severity: info
+# Sorts directly after the 26 POST dispatcher (attack-wp-xmlrpc): that rule only matches when the
+# body carries a <methodName>, so every request reaching here is a GET, a bodyless/empty POST, an
+# RSD probe, or a POST whose body is not a parseable methodCall.
+priority: 27
+tags: [attack, wordpress, xmlrpc]
+# Request-aware xmlrpc.php fallback for the non-dispatch requests. Same PREFIXED-path scope as
+# rule 26 (the bare /xmlrpc.php is served from the exact store before the attack tier). The
+# `contains` needle gives the runtime a cheap path pre-filter; the anchored regex enforces the
+# real /xmlrpc.php segment boundary (so /notxmlrpc.php never matches).
+match:
+  - in: path
+    contains: 'xmlrpc.php'
+  - in: path
+    regex: '(?:^|/)xmlrpc\.php$'
+status: 405
+behavior: branch
+branch:
+  cases:
+    # GET /xmlrpc.php?rsd — the Really Simple Discovery document a real WordPress serves.
+    - when: { in: query, regex: '(?:^|&)rsd(?:[=&]|$)' }
+      response:
+        status: 200
+        headers: { Content-Type: "text/xml; charset=UTF-8" }
+        body: |
+          <?xml version="1.0" encoding="UTF-8"?>
+          <rsd version="1.0" xmlns="http://archipelago.phrasewise.com/rsd">
+            <service>
+              <engineName>WordPress</engineName>
+              <engineLink>https://wordpress.org/</engineLink>
+              <homePageLink>https://{{persona.company.domain}}/</homePageLink>
+              <apis>
+                <api name="WordPress" blogID="1" preferred="true" apiLink="https://{{persona.company.domain}}/xmlrpc.php" />
+                <api name="Movable Type" blogID="1" preferred="false" apiLink="https://{{persona.company.domain}}/xmlrpc.php" />
+                <api name="MetaWeblog" blogID="1" preferred="false" apiLink="https://{{persona.company.domain}}/xmlrpc.php" />
+                <api name="Blogger" blogID="1" preferred="false" apiLink="https://{{persona.company.domain}}/xmlrpc.php" />
+                <api name="WP-API" blogID="1" preferred="false" apiLink="https://{{persona.company.domain}}/wp-json/" />
+              </apis>
+            </service>
+          </rsd>
+    # A POST reaching this rule carried no parseable methodName, so it is a malformed request body:
+    # the authentic IXR parse fault, HTTP 200 with the code inside the XML. The `method` surface
+    # tells this apart from a true GET (which has an empty body too) so an empty/garbage POST gets
+    # -32700 here rather than the 405 below.
+    - when: { in: method, regex: '^POST$' }
+      response:
+        status: 200
+        headers: { Content-Type: "text/xml; charset=UTF-8" }
+        body: |
+          <?xml version="1.0" encoding="UTF-8"?>
+          <methodResponse>
+            <fault>
+              <value>
+              <struct>
+                <member><name>faultCode</name><value><int>-32700</int></value></member>
+                <member><name>faultString</name><value><string>parse error. not well formed</string></value></member>
+              </struct>
+              </value>
+            </fault>
+          </methodResponse>
+# No branch default: a GET (or any non-POST) without ?rsd falls through to this base — the exact
+# plain-text 405 a real WordPress returns. Double-quoted scalar so there is NO trailing newline
+# (a block scalar would add one, a byte-diff tell against the real die() output).
+response:
+  headers:
+    Content-Type: "text/plain; charset=UTF-8"
+    Allow: "POST"
+  body: "XML-RPC server accepts POST requests only."
+expect: ['XML-RPC server accepts POST requests only.', 'Allow']

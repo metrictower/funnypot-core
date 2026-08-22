@@ -628,6 +628,10 @@ final class TemplateAttackEmulator
                 return $r->path;
             case 'query':
                 return $r->query;
+            case 'method':
+                // The HTTP verb, so a rule can branch on it — e.g. tell a true GET from an empty
+                // POST when the body surface is '' for both.
+                return $r->method;
             case 'body':
                 return (string) ($r->rawBody ?? '');
             case 'request':
