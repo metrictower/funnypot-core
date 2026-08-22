@@ -1,0 +1,26 @@
+id: route-ai-copilot-token
+priority: 256
+# Brand-new page: the GitHub Copilot token endpoint (/copilot_internal/v2/token), which normally
+# hands back a short-lived user-to-server token. Serving it unauth leaks a scanner-shaped ghu_ token.
+new_page:
+  method: GET
+  paths: ['/copilot_internal/v2/token']
+  sig: 0
+  status: 200
+  severity: high
+  tags: [exposure, ai-config, config-disclosure, appliance]
+  name: 'Exposed Copilot token endpoint'
+  body_words: ['annotations_enabled']
+response:
+  headers:
+    Content-Type: "application/json"
+  body: |
+    {
+    "token": "{{persona.cloud.github.copilotToken}}",
+    "expires_at": 1756605600,
+    "refresh_in": 1500,
+    "annotations_enabled": true,
+    "chat_enabled": true
+    }
+taunt: { mode: inline_field, key: '_comment' }
+expect: ['ghu_', 'annotations_enabled', 'refresh_in']

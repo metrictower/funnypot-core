@@ -83892,6 +83892,114 @@ return array (
       ),
       'name' => 'Exposed .npmrc',
     ),
+    'route-ai-claude-json' => 
+    array (
+      'sev' => 'high',
+      'tags' => 
+      array (
+        0 => 'exposure',
+        1 => 'ai-config',
+        2 => 'config-disclosure',
+        3 => 'appliance',
+      ),
+      'name' => 'Exposed Claude Code config (.claude.json)',
+    ),
+    'route-ai-claude-desktop' => 
+    array (
+      'sev' => 'high',
+      'tags' => 
+      array (
+        0 => 'exposure',
+        1 => 'ai-config',
+        2 => 'config-disclosure',
+        3 => 'appliance',
+      ),
+      'name' => 'Exposed Claude Desktop config',
+    ),
+    'route-ai-mcp-json' => 
+    array (
+      'sev' => 'high',
+      'tags' => 
+      array (
+        0 => 'exposure',
+        1 => 'ai-config',
+        2 => 'config-disclosure',
+        3 => 'appliance',
+      ),
+      'name' => 'Exposed editor MCP config',
+    ),
+    'route-ai-continue' => 
+    array (
+      'sev' => 'high',
+      'tags' => 
+      array (
+        0 => 'exposure',
+        1 => 'ai-config',
+        2 => 'config-disclosure',
+        3 => 'appliance',
+      ),
+      'name' => 'Exposed Continue config',
+    ),
+    'route-ai-aider' => 
+    array (
+      'sev' => 'high',
+      'tags' => 
+      array (
+        0 => 'exposure',
+        1 => 'ai-config',
+        2 => 'config-disclosure',
+        3 => 'appliance',
+      ),
+      'name' => 'Exposed aider config',
+    ),
+    'route-ai-copilot-token' => 
+    array (
+      'sev' => 'high',
+      'tags' => 
+      array (
+        0 => 'exposure',
+        1 => 'ai-config',
+        2 => 'config-disclosure',
+        3 => 'appliance',
+      ),
+      'name' => 'Exposed Copilot token endpoint',
+    ),
+    'route-ai-openai-models' => 
+    array (
+      'sev' => 'medium',
+      'tags' => 
+      array (
+        0 => 'exposure',
+        1 => 'ai-config',
+        2 => 'config-disclosure',
+        3 => 'appliance',
+      ),
+      'name' => 'Exposed OpenAI-compatible models list',
+    ),
+    'route-mcp-endpoint' => 
+    array (
+      'sev' => 'medium',
+      'tags' => 
+      array (
+        0 => 'exposure',
+        1 => 'ai-config',
+        2 => 'mcp',
+        3 => 'appliance',
+      ),
+      'name' => 'MCP Streamable-HTTP endpoint',
+    ),
+    'route-llm-auth' => 
+    array (
+      'sev' => 'medium',
+      'tags' => 
+      array (
+        0 => 'exposure',
+        1 => 'ai-config',
+        2 => 'llm-gateway',
+        3 => 'appliance',
+      ),
+      'name' => 'LLM gateway auth required',
+    ),
   ),
   'routes' => 
   array (
@@ -297921,6 +298029,294 @@ a</title>',
           't' => 
           array (
             0 => 'route-npmrc',
+          ),
+        ),
+      ),
+    ),
+    'GET /.claude.json' => 
+    array (
+      'b' => 
+      array (
+        0 => 
+        array (
+          's' => 200,
+          'bw' => 
+          array (
+            0 => 'mcpServers',
+          ),
+          'nf' => 
+          array (
+          ),
+          'pid' => 'route-ai-claude-json',
+          'sev' => 'high',
+          'sig' => 0,
+          't' => 
+          array (
+            0 => 'route-ai-claude-json',
+          ),
+        ),
+      ),
+    ),
+    'GET /claude_desktop_config.json' => 
+    array (
+      'b' => 
+      array (
+        0 => 
+        array (
+          's' => 200,
+          'bw' => 
+          array (
+            0 => 'mcpServers',
+          ),
+          'nf' => 
+          array (
+          ),
+          'pid' => 'route-ai-claude-desktop',
+          'sev' => 'high',
+          'sig' => 0,
+          't' => 
+          array (
+            0 => 'route-ai-claude-desktop',
+          ),
+        ),
+      ),
+    ),
+    'GET /.cursor/mcp.json' => 
+    array (
+      'b' => 
+      array (
+        0 => 
+        array (
+          's' => 200,
+          'bw' => 
+          array (
+            0 => 'mcpServers',
+          ),
+          'nf' => 
+          array (
+          ),
+          'pid' => 'route-ai-mcp-json',
+          'sev' => 'high',
+          'sig' => 0,
+          't' => 
+          array (
+            0 => 'route-ai-mcp-json',
+          ),
+        ),
+      ),
+    ),
+    'GET /.vscode/mcp.json' => 
+    array (
+      'b' => 
+      array (
+        0 => 
+        array (
+          's' => 200,
+          'bw' => 
+          array (
+            0 => 'mcpServers',
+          ),
+          'nf' => 
+          array (
+          ),
+          'pid' => 'route-ai-mcp-json',
+          'sev' => 'high',
+          'sig' => 0,
+          't' => 
+          array (
+            0 => 'route-ai-mcp-json',
+          ),
+        ),
+      ),
+    ),
+    'GET /.continue/config.json' => 
+    array (
+      'b' => 
+      array (
+        0 => 
+        array (
+          's' => 200,
+          'bw' => 
+          array (
+            0 => '"models"',
+          ),
+          'nf' => 
+          array (
+          ),
+          'pid' => 'route-ai-continue',
+          'sev' => 'high',
+          'sig' => 0,
+          't' => 
+          array (
+            0 => 'route-ai-continue',
+          ),
+        ),
+      ),
+    ),
+    'GET /.aider.conf.yml' => 
+    array (
+      'b' => 
+      array (
+        0 => 
+        array (
+          's' => 200,
+          'bw' => 
+          array (
+            0 => 'anthropic-api-key',
+          ),
+          'nf' => 
+          array (
+          ),
+          'pid' => 'route-ai-aider',
+          'sev' => 'high',
+          'sig' => 0,
+          't' => 
+          array (
+            0 => 'route-ai-aider',
+          ),
+        ),
+      ),
+    ),
+    'GET /copilot_internal/v2/token' => 
+    array (
+      'b' => 
+      array (
+        0 => 
+        array (
+          's' => 200,
+          'bw' => 
+          array (
+            0 => 'annotations_enabled',
+          ),
+          'nf' => 
+          array (
+          ),
+          'pid' => 'route-ai-copilot-token',
+          'sev' => 'high',
+          'sig' => 0,
+          't' => 
+          array (
+            0 => 'route-ai-copilot-token',
+          ),
+        ),
+      ),
+    ),
+    'GET /openai/models' => 
+    array (
+      'b' => 
+      array (
+        0 => 
+        array (
+          's' => 200,
+          'bw' => 
+          array (
+            0 => '"object":"list"',
+          ),
+          'nf' => 
+          array (
+          ),
+          'pid' => 'route-ai-openai-models',
+          'sev' => 'medium',
+          'sig' => 0,
+          't' => 
+          array (
+            0 => 'route-ai-openai-models',
+          ),
+        ),
+      ),
+    ),
+    'GET /mcp' => 
+    array (
+      'b' => 
+      array (
+        0 => 
+        array (
+          's' => 400,
+          'bw' => 
+          array (
+            0 => 'jsonrpc',
+          ),
+          'nf' => 
+          array (
+          ),
+          'pid' => 'route-mcp-endpoint',
+          'sev' => 'medium',
+          'sig' => 0,
+          't' => 
+          array (
+            0 => 'route-mcp-endpoint',
+          ),
+        ),
+      ),
+    ),
+    'GET /api/mcp' => 
+    array (
+      'b' => 
+      array (
+        0 => 
+        array (
+          's' => 400,
+          'bw' => 
+          array (
+            0 => 'jsonrpc',
+          ),
+          'nf' => 
+          array (
+          ),
+          'pid' => 'route-mcp-endpoint',
+          'sev' => 'medium',
+          'sig' => 0,
+          't' => 
+          array (
+            0 => 'route-mcp-endpoint',
+          ),
+        ),
+      ),
+    ),
+    'GET /v1/chat' => 
+    array (
+      'b' => 
+      array (
+        0 => 
+        array (
+          's' => 401,
+          'bw' => 
+          array (
+            0 => 'invalid_request_error',
+          ),
+          'nf' => 
+          array (
+          ),
+          'pid' => 'route-llm-auth',
+          'sev' => 'medium',
+          'sig' => 0,
+          't' => 
+          array (
+            0 => 'route-llm-auth',
+          ),
+        ),
+      ),
+    ),
+    'GET /v1/completions' => 
+    array (
+      'b' => 
+      array (
+        0 => 
+        array (
+          's' => 401,
+          'bw' => 
+          array (
+            0 => 'invalid_request_error',
+          ),
+          'nf' => 
+          array (
+          ),
+          'pid' => 'route-llm-auth',
+          'sev' => 'medium',
+          'sig' => 0,
+          't' => 
+          array (
+            0 => 'route-llm-auth',
           ),
         ),
       ),

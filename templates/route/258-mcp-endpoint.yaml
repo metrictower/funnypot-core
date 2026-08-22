@@ -1,0 +1,20 @@
+id: route-mcp-endpoint
+priority: 258
+# Brand-new page: a Streamable-HTTP MCP endpoint (/mcp, /api/mcp). A bare GET with no session
+# returns the server's JSON-RPC "missing session" error — the fingerprint that says an MCP server
+# is really listening here. Error responses carry no taunt (they must stay parseable JSON-RPC).
+new_page:
+  method: GET
+  paths: ['/mcp', '/api/mcp']
+  sig: 0
+  status: 400
+  severity: medium
+  tags: [exposure, ai-config, mcp, appliance]
+  name: 'MCP Streamable-HTTP endpoint'
+  body_words: ['jsonrpc']
+response:
+  headers:
+    Content-Type: "application/json"
+  body: |
+    {"jsonrpc":"2.0","error":{"code":-32000,"message":"Missing session ID"},"id":null}
+expect: ['jsonrpc', 'Missing session ID']

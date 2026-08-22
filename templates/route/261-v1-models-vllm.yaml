@@ -1,0 +1,24 @@
+id: route-v1-models-vllm
+priority: 261
+# Enrich (NOT new_page): the third GET /v1/models bundle. The corpus routes /v1/models to
+# xinference, jan, and vllm; 260 dresses the first two with a compact OpenAI-shaped list, but the
+# vllm bundle (t: vllm-openai-api-exposed) witnesses on SPACED-JSON regexes ("object" : "list" /
+# "owned_by" : "vllm") the compact body can't carry, so it kept the generic minimal synth — which
+# joins the two witnesses with a newline into an unterminated, invalid-JSON fragment served as
+# application/json. This body is spaced to satisfy those exact witnesses AND parse as JSON (before
+# and after taunt injection), so vllm-seed hosts serve a plausible vLLM model list, not a tell.
+match:
+  template_needle: [vllm-openai-api-exposed]
+response:
+  headers:
+    Content-Type: "application/json"
+  body: |
+    {
+    "object" : "list",
+    "data" : [
+    {"id" : "meta-llama/Meta-Llama-3.1-8B-Instruct", "object" : "model", "created" : 1715367049, "owned_by" : "vllm", "root" : "meta-llama/Meta-Llama-3.1-8B-Instruct", "parent" : null, "max_model_len" : 131072, "permission" : []},
+    {"id" : "mistralai/Mistral-7B-Instruct-v0.3", "object" : "model", "created" : 1716163200, "owned_by" : "vllm", "root" : "mistralai/Mistral-7B-Instruct-v0.3", "parent" : null, "max_model_len" : 32768, "permission" : []}
+    ]
+    }
+taunt: { mode: inline_field, key: '_comment' }
+expect: ['"object" : "list"', '"owned_by" : "vllm"', '"data" :']

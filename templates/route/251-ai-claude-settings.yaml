@@ -1,0 +1,27 @@
+id: route-ai-claude-settings
+priority: 251
+# Enrich (NOT new_page): the corpus already routes /.claude/settings.json (+ settings.local.json,
+# .mcp.json) to the `claude-settings-exposure` bundle. A new_page at that existing key would append
+# a second bundle and risk wrong-bundle selection, so we dress the bundle the index already has and
+# upgrade the plain "permissions" stub to a full settings.json carrying env.ANTHROPIC_API_KEY.
+# (Tier tags live on the corpus template entry, not on an enrich rule.)
+match:
+  template_needle: [claude-settings-exposure]
+response:
+  headers:
+    Content-Type: "application/json"
+  body: |
+    {
+    "env": {
+      "ANTHROPIC_API_KEY": "{{persona.cloud.anthropic.apiKey}}",
+      "ANTHROPIC_MODEL": "claude-sonnet-4-20250514"
+    },
+    "permissions": {
+      "allow": ["Bash(git*)", "Read", "Edit", "WebFetch"],
+      "deny": ["Bash(rm*)"]
+    },
+    "model": "claude-sonnet-4-20250514",
+    "cleanupPeriodDays": 30
+    }
+taunt: { mode: inline_field, key: '_comment' }
+expect: ['sk-ant-api03-', 'ANTHROPIC_API_KEY', '"permissions"']

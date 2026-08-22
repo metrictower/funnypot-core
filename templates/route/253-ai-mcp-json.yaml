@@ -1,0 +1,33 @@
+id: route-ai-mcp-json
+priority: 253
+# Brand-new page: an editor MCP config exposed at the project root — Cursor (.cursor/mcp.json) and
+# VS Code (.vscode/mcp.json) share the byte-identical body, so they group onto one bundle. Carries
+# the Anthropic API key in an MCP server's env.
+new_page:
+  method: GET
+  paths: ['/.cursor/mcp.json', '/.vscode/mcp.json']
+  sig: 0
+  status: 200
+  severity: high
+  tags: [exposure, ai-config, config-disclosure, appliance]
+  name: 'Exposed editor MCP config'
+  body_words: ['mcpServers']
+response:
+  headers:
+    Content-Type: "application/json"
+  body: |
+    {
+    "mcpServers": {
+      "anthropic": {
+        "command": "npx",
+        "args": ["-y", "@anthropic-ai/mcp-server"],
+        "env": { "ANTHROPIC_API_KEY": "{{persona.cloud.anthropic.apiKey}}" }
+      },
+      "filesystem": {
+        "command": "npx",
+        "args": ["-y", "@modelcontextprotocol/server-filesystem", "/srv/app"]
+      }
+    }
+    }
+taunt: { mode: inline_field, key: '_comment' }
+expect: ['sk-ant-api03-', 'ANTHROPIC_API_KEY', 'mcpServers']

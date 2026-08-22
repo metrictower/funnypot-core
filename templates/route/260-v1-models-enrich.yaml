@@ -1,0 +1,24 @@
+id: route-v1-models-enrich
+priority: 260
+# Enrich (NOT new_page): the corpus routes GET /v1/models to three OpenAI-compatible model-list
+# bundles (xinference, jan, vllm). A new_page at the existing key would append a bundle and risk
+# wrong-bundle selection, so enrich is the safe fit. The persona pick over the seed lands on any of
+# the three, so we dress BOTH bundles our OpenAI-shaped body satisfies — xinference ("object":"list"
+# / "data":) and jan ("object":"list" / "object":"model", which each model item carries). The vllm
+# bundle uses spaced-JSON regex witnesses our compact body can't carry, so it keeps its own synth.
+match:
+  template_needle: [xinference, jan-detect]
+response:
+  headers:
+    Content-Type: "application/json"
+  body: |
+    {
+    "object":"list",
+    "data":[
+    {"id":"gpt-4o","object":"model","created":1715367049,"owned_by":"openai"},
+    {"id":"gpt-4o-mini","object":"model","created":1721260800,"owned_by":"openai"},
+    {"id":"text-embedding-3-large","object":"model","created":1705363200,"owned_by":"openai"}
+    ]
+    }
+taunt: { mode: inline_field, key: '_comment' }
+expect: ['"object":"list"', '"data":', '"owned_by":"openai"']

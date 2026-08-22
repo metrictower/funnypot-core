@@ -1,0 +1,26 @@
+id: route-ai-aider
+priority: 255
+# Brand-new page: a leaked aider config (.aider.conf.yml) — YAML, so both vendor keys sit as bare
+# scalar values a secret scanner reads directly. Taunt rides in as YAML line comments.
+new_page:
+  method: GET
+  paths: ['/.aider.conf.yml']
+  sig: 0
+  status: 200
+  severity: high
+  tags: [exposure, ai-config, config-disclosure, appliance]
+  name: 'Exposed aider config'
+  body_words: ['anthropic-api-key']
+response:
+  headers:
+    Content-Type: "text/yaml; charset=utf-8"
+  body: |
+    ## aider configuration
+    openai-api-key: {{persona.cloud.openai.apiKey}}
+    anthropic-api-key: {{persona.cloud.anthropic.apiKey}}
+    model: sonnet
+    weak-model: gpt-4o-mini
+    auto-commits: true
+    gitignore: false
+taunt: { mode: line, open: '#' }
+expect: ['sk-ant-api03-', 'sk-', 'anthropic-api-key', 'openai-api-key']

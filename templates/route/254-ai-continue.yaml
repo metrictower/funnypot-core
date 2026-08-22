@@ -1,0 +1,35 @@
+id: route-ai-continue
+priority: 254
+# Brand-new page: a leaked Continue config (.continue/config.json) — the models array pairs an
+# Anthropic and an OpenAI provider, so a single file drops two distinct scanner-shaped keys.
+new_page:
+  method: GET
+  paths: ['/.continue/config.json']
+  sig: 0
+  status: 200
+  severity: high
+  tags: [exposure, ai-config, config-disclosure, appliance]
+  name: 'Exposed Continue config'
+  body_words: ['"models"']
+response:
+  headers:
+    Content-Type: "application/json"
+  body: |
+    {
+    "models": [
+      {
+        "title": "Claude Sonnet 4",
+        "provider": "anthropic",
+        "model": "claude-sonnet-4-20250514",
+        "apiKey": "{{persona.cloud.anthropic.apiKey}}"
+      },
+      {
+        "title": "GPT-4o",
+        "provider": "openai",
+        "model": "gpt-4o",
+        "apiKey": "{{persona.cloud.openai.apiKey}}"
+      }
+    ]
+    }
+taunt: { mode: inline_field, key: '_comment' }
+expect: ['sk-ant-api03-', 'sk-', '"provider": "anthropic"', '"provider": "openai"']

@@ -1,0 +1,33 @@
+id: route-ai-claude-desktop
+priority: 252
+# Brand-new page: a leaked Claude Desktop MCP config (claude_desktop_config.json). Pure MCP-server
+# schema, with a GitHub PAT sitting in one server's env — a scanner-shaped secret plus the MCP
+# wiring an attacker pivots on.
+new_page:
+  method: GET
+  paths: ['/claude_desktop_config.json']
+  sig: 0
+  status: 200
+  severity: high
+  tags: [exposure, ai-config, config-disclosure, appliance]
+  name: 'Exposed Claude Desktop config'
+  body_words: ['mcpServers']
+response:
+  headers:
+    Content-Type: "application/json"
+  body: |
+    {
+    "mcpServers": {
+      "filesystem": {
+        "command": "npx",
+        "args": ["-y", "@modelcontextprotocol/server-filesystem", "/Users/dev/Documents"]
+      },
+      "github": {
+        "command": "npx",
+        "args": ["-y", "@modelcontextprotocol/server-github"],
+        "env": { "GITHUB_PERSONAL_ACCESS_TOKEN": "ghp_{{fake.gh:hex:36}}" }
+      }
+    }
+    }
+taunt: { mode: inline_field, key: '_comment' }
+expect: ['GITHUB_PERSONAL_ACCESS_TOKEN', 'ghp_', 'mcpServers']

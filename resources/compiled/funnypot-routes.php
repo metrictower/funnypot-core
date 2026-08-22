@@ -1124,4 +1124,358 @@ INSERT INTO `api_keys` VALUES (4,\'SENDGRID_API_KEY\',\'SG.{{fake.sg1:hex:22}}.{
     ),
     'set_cookie' => 'phpMyAdmin',
   ),
+  27 => 
+  array (
+    'id' => 'route-ai-claude-json',
+    'match' => 
+    array (
+      'pid' => 
+      array (
+        0 => 'route-ai-claude-json',
+      ),
+    ),
+    'body' => '{
+"numStartups": 42,
+"autoUpdaterStatus": "enabled",
+"model": "claude-sonnet-4-20250514",
+"apiKey": "{{persona.cloud.anthropic.apiKey}}",
+"mcpServers": {
+  "filesystem": {
+    "command": "npx",
+    "args": ["-y", "@modelcontextprotocol/server-filesystem", "/srv/app"]
+  },
+  "github": {
+    "command": "npx",
+    "args": ["-y", "@modelcontextprotocol/server-github"],
+    "env": { "GITHUB_PERSONAL_ACCESS_TOKEN": "ghp_{{fake.gh:hex:36}}" }
+  }
+}
+}
+',
+    'headers' => 
+    array (
+      'Content-Type' => 'application/json',
+    ),
+    'taunt' => 
+    array (
+      'mode' => 'inline_field',
+      'key' => '_comment',
+    ),
+  ),
+  28 => 
+  array (
+    'id' => 'route-ai-claude-settings',
+    'match' => 
+    array (
+      'template_needle' => 
+      array (
+        0 => 'claude-settings-exposure',
+      ),
+    ),
+    'body' => '{
+"env": {
+  "ANTHROPIC_API_KEY": "{{persona.cloud.anthropic.apiKey}}",
+  "ANTHROPIC_MODEL": "claude-sonnet-4-20250514"
+},
+"permissions": {
+  "allow": ["Bash(git*)", "Read", "Edit", "WebFetch"],
+  "deny": ["Bash(rm*)"]
+},
+"model": "claude-sonnet-4-20250514",
+"cleanupPeriodDays": 30
+}
+',
+    'headers' => 
+    array (
+      'Content-Type' => 'application/json',
+    ),
+    'taunt' => 
+    array (
+      'mode' => 'inline_field',
+      'key' => '_comment',
+    ),
+  ),
+  29 => 
+  array (
+    'id' => 'route-ai-claude-desktop',
+    'match' => 
+    array (
+      'pid' => 
+      array (
+        0 => 'route-ai-claude-desktop',
+      ),
+    ),
+    'body' => '{
+"mcpServers": {
+  "filesystem": {
+    "command": "npx",
+    "args": ["-y", "@modelcontextprotocol/server-filesystem", "/Users/dev/Documents"]
+  },
+  "github": {
+    "command": "npx",
+    "args": ["-y", "@modelcontextprotocol/server-github"],
+    "env": { "GITHUB_PERSONAL_ACCESS_TOKEN": "ghp_{{fake.gh:hex:36}}" }
+  }
+}
+}
+',
+    'headers' => 
+    array (
+      'Content-Type' => 'application/json',
+    ),
+    'taunt' => 
+    array (
+      'mode' => 'inline_field',
+      'key' => '_comment',
+    ),
+  ),
+  30 => 
+  array (
+    'id' => 'route-ai-mcp-json',
+    'match' => 
+    array (
+      'pid' => 
+      array (
+        0 => 'route-ai-mcp-json',
+      ),
+    ),
+    'body' => '{
+"mcpServers": {
+  "anthropic": {
+    "command": "npx",
+    "args": ["-y", "@anthropic-ai/mcp-server"],
+    "env": { "ANTHROPIC_API_KEY": "{{persona.cloud.anthropic.apiKey}}" }
+  },
+  "filesystem": {
+    "command": "npx",
+    "args": ["-y", "@modelcontextprotocol/server-filesystem", "/srv/app"]
+  }
+}
+}
+',
+    'headers' => 
+    array (
+      'Content-Type' => 'application/json',
+    ),
+    'taunt' => 
+    array (
+      'mode' => 'inline_field',
+      'key' => '_comment',
+    ),
+  ),
+  31 => 
+  array (
+    'id' => 'route-ai-continue',
+    'match' => 
+    array (
+      'pid' => 
+      array (
+        0 => 'route-ai-continue',
+      ),
+    ),
+    'body' => '{
+"models": [
+  {
+    "title": "Claude Sonnet 4",
+    "provider": "anthropic",
+    "model": "claude-sonnet-4-20250514",
+    "apiKey": "{{persona.cloud.anthropic.apiKey}}"
+  },
+  {
+    "title": "GPT-4o",
+    "provider": "openai",
+    "model": "gpt-4o",
+    "apiKey": "{{persona.cloud.openai.apiKey}}"
+  }
+]
+}
+',
+    'headers' => 
+    array (
+      'Content-Type' => 'application/json',
+    ),
+    'taunt' => 
+    array (
+      'mode' => 'inline_field',
+      'key' => '_comment',
+    ),
+  ),
+  32 => 
+  array (
+    'id' => 'route-ai-aider',
+    'match' => 
+    array (
+      'pid' => 
+      array (
+        0 => 'route-ai-aider',
+      ),
+    ),
+    'body' => '## aider configuration
+openai-api-key: {{persona.cloud.openai.apiKey}}
+anthropic-api-key: {{persona.cloud.anthropic.apiKey}}
+model: sonnet
+weak-model: gpt-4o-mini
+auto-commits: true
+gitignore: false
+',
+    'headers' => 
+    array (
+      'Content-Type' => 'text/yaml; charset=utf-8',
+    ),
+    'taunt' => 
+    array (
+      'mode' => 'line',
+      'open' => '#',
+    ),
+  ),
+  33 => 
+  array (
+    'id' => 'route-ai-copilot-token',
+    'match' => 
+    array (
+      'pid' => 
+      array (
+        0 => 'route-ai-copilot-token',
+      ),
+    ),
+    'body' => '{
+"token": "{{persona.cloud.github.copilotToken}}",
+"expires_at": 1756605600,
+"refresh_in": 1500,
+"annotations_enabled": true,
+"chat_enabled": true
+}
+',
+    'headers' => 
+    array (
+      'Content-Type' => 'application/json',
+    ),
+    'taunt' => 
+    array (
+      'mode' => 'inline_field',
+      'key' => '_comment',
+    ),
+  ),
+  34 => 
+  array (
+    'id' => 'route-ai-openai-models',
+    'match' => 
+    array (
+      'pid' => 
+      array (
+        0 => 'route-ai-openai-models',
+      ),
+    ),
+    'body' => '{
+"object":"list",
+"data":[
+{"id":"gpt-4o","object":"model","created":1715367049,"owned_by":"openai"},
+{"id":"gpt-4o-mini","object":"model","created":1721260800,"owned_by":"openai"},
+{"id":"gpt-4-turbo","object":"model","created":1712620800,"owned_by":"openai"},
+{"id":"text-embedding-3-large","object":"model","created":1705363200,"owned_by":"openai"}
+]
+}
+',
+    'headers' => 
+    array (
+      'Content-Type' => 'application/json',
+    ),
+    'taunt' => 
+    array (
+      'mode' => 'inline_field',
+      'key' => '_comment',
+    ),
+  ),
+  35 => 
+  array (
+    'id' => 'route-mcp-endpoint',
+    'match' => 
+    array (
+      'pid' => 
+      array (
+        0 => 'route-mcp-endpoint',
+      ),
+    ),
+    'body' => '{"jsonrpc":"2.0","error":{"code":-32000,"message":"Missing session ID"},"id":null}
+',
+    'headers' => 
+    array (
+      'Content-Type' => 'application/json',
+    ),
+  ),
+  36 => 
+  array (
+    'id' => 'route-llm-auth',
+    'match' => 
+    array (
+      'pid' => 
+      array (
+        0 => 'route-llm-auth',
+      ),
+    ),
+    'body' => '{"error":{"message":"You didn\'t provide an API key. You need to provide your API key in an Authorization header using Bearer auth (i.e. Authorization: Bearer YOUR_KEY).","type":"invalid_request_error","param":null,"code":null}}
+',
+    'headers' => 
+    array (
+      'Content-Type' => 'application/json',
+    ),
+  ),
+  37 => 
+  array (
+    'id' => 'route-v1-models-enrich',
+    'match' => 
+    array (
+      'template_needle' => 
+      array (
+        0 => 'xinference',
+        1 => 'jan-detect',
+      ),
+    ),
+    'body' => '{
+"object":"list",
+"data":[
+{"id":"gpt-4o","object":"model","created":1715367049,"owned_by":"openai"},
+{"id":"gpt-4o-mini","object":"model","created":1721260800,"owned_by":"openai"},
+{"id":"text-embedding-3-large","object":"model","created":1705363200,"owned_by":"openai"}
+]
+}
+',
+    'headers' => 
+    array (
+      'Content-Type' => 'application/json',
+    ),
+    'taunt' => 
+    array (
+      'mode' => 'inline_field',
+      'key' => '_comment',
+    ),
+  ),
+  38 => 
+  array (
+    'id' => 'route-v1-models-vllm',
+    'match' => 
+    array (
+      'template_needle' => 
+      array (
+        0 => 'vllm-openai-api-exposed',
+      ),
+    ),
+    'body' => '{
+"object" : "list",
+"data" : [
+{"id" : "meta-llama/Meta-Llama-3.1-8B-Instruct", "object" : "model", "created" : 1715367049, "owned_by" : "vllm", "root" : "meta-llama/Meta-Llama-3.1-8B-Instruct", "parent" : null, "max_model_len" : 131072, "permission" : []},
+{"id" : "mistralai/Mistral-7B-Instruct-v0.3", "object" : "model", "created" : 1716163200, "owned_by" : "vllm", "root" : "mistralai/Mistral-7B-Instruct-v0.3", "parent" : null, "max_model_len" : 32768, "permission" : []}
+]
+}
+',
+    'headers' => 
+    array (
+      'Content-Type' => 'application/json',
+    ),
+    'taunt' => 
+    array (
+      'mode' => 'inline_field',
+      'key' => '_comment',
+    ),
+  ),
 );

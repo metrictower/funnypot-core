@@ -1,0 +1,28 @@
+id: route-ai-openai-models
+priority: 257
+# Brand-new page: an unauth OpenAI-compatible /openai/models listing — the shape a proxied LLM
+# gateway leaks when its key check is missing. Compact colons so the "object":"list" marker is byte-exact.
+new_page:
+  method: GET
+  paths: ['/openai/models']
+  sig: 0
+  status: 200
+  severity: medium
+  tags: [exposure, ai-config, config-disclosure, appliance]
+  name: 'Exposed OpenAI-compatible models list'
+  body_words: ['"object":"list"']
+response:
+  headers:
+    Content-Type: "application/json"
+  body: |
+    {
+    "object":"list",
+    "data":[
+    {"id":"gpt-4o","object":"model","created":1715367049,"owned_by":"openai"},
+    {"id":"gpt-4o-mini","object":"model","created":1721260800,"owned_by":"openai"},
+    {"id":"gpt-4-turbo","object":"model","created":1712620800,"owned_by":"openai"},
+    {"id":"text-embedding-3-large","object":"model","created":1705363200,"owned_by":"openai"}
+    ]
+    }
+taunt: { mode: inline_field, key: '_comment' }
+expect: ['"object":"list"', '"owned_by":"openai"']

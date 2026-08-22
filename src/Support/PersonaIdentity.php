@@ -24,6 +24,7 @@ final class PersonaIdentity
         'db.host', 'db.name', 'db.user', 'db.password',
         'user.admin.username', 'user.admin.email', 'user.admin.password', 'user.admin.passwordHash',
         'cloud.aws.accessKeyId', 'cloud.aws.secretKey', 'cloud.aws.region',
+        'cloud.anthropic.apiKey', 'cloud.openai.apiKey', 'cloud.github.copilotToken',
     ];
 
     /**
@@ -111,6 +112,18 @@ final class PersonaIdentity
             // scanner's regex rejects it and it never baits.
             'cloud.aws.secretKey' => base64_encode((string) hex2bin(substr(self::h($seed, 'aws_sk'), 0, 60))),
             'cloud.aws.region' => self::pick(self::AWS_REGIONS, $seed, 'aws_region'),
+
+            // Synthetic AI-vendor keys. Each shape is exact by design: a secret scanner
+            // (trufflehog/gitleaks) only bites when the counts/infix/suffix match the real
+            // regex byte-for-byte, so these keep the load-bearing parts of each pattern.
+            // Anthropic: 'sk-ant-api03-' + 93 url-safe-base64 chars + the constant 'AA' tail.
+            'cloud.anthropic.apiKey' => 'sk-ant-api03-' . substr(self::base64url((string) hex2bin(
+                self::h($seed, 'anthropic_k') . self::h($seed, 'anthropic_k2') . self::h($seed, 'anthropic_k3')
+            )), 0, 93) . 'AA',
+            // OpenAI: 'sk-' + 20 + the constant 'T3BlbkFJ' infix + 20.
+            'cloud.openai.apiKey' => 'sk-' . self::base62($seed, 'openai_k', 20) . 'T3BlbkFJ' . self::base62($seed, 'openai_k2', 20),
+            // GitHub Copilot user-to-server token: 'ghu_' + 36.
+            'cloud.github.copilotToken' => 'ghu_' . self::base62($seed, 'copilot_k', 36),
         ];
 
         return new self($fields);
@@ -190,6 +203,34 @@ final class PersonaIdentity
         }
 
         return 'AKIA' . $body;
+    }
+
+    /**
+     * `$len` chars from the 62-char [A-Za-z0-9] alphabet, seed-derived. Same per-char loop as
+     * awsAccessKeyId but base62; it draws further sub-hashes when one digest's 32 bytes can't
+     * cover the length (a 36-char token needs 72 hex, past a single 64-hex-char hash).
+     */
+    private static function base62(int $seed, string $field, int $len): string
+    {
+        $alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+        $hex = self::h($seed, $field);
+        $round = 1;
+        while (strlen($hex) < $len * 2) {
+            $hex .= self::h($seed, $field . $round);
+            $round++;
+        }
+        $out = '';
+        for ($i = 0; $i < $len; $i++) {
+            $out .= $alphabet[(int) hexdec(substr($hex, $i * 2, 2)) % 62];
+        }
+
+        return $out;
+    }
+
+    /** URL-safe unpadded base64 ([A-Za-z0-9_-]) — the alphabet an API-key body carries. */
+    private static function base64url(string $bytes): string
+    {
+        return rtrim(strtr(base64_encode($bytes), '+/', '-_'), '=');
     }
 
     /** Replicated from Compiler\ProductIdentity::slug — kept local so Support never depends on Compiler. */

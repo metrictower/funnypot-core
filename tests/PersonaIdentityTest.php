@@ -78,6 +78,38 @@ final class PersonaIdentityTest extends TestCase
         }
     }
 
+    public function test_ai_vendor_keys_match_scanner_regexes(): void
+    {
+        // The counts / infix / suffix are load-bearing: a secret scanner (trufflehog/gitleaks)
+        // only bites when the fake matches its regex byte-for-byte, so the shapes are asserted
+        // exactly, over a range of seeds, and each must vary (not collapse to one value).
+        $patterns = [
+            'cloud.anthropic.apiKey' => '/^sk-ant-api03-[A-Za-z0-9_-]{93}AA$/',
+            'cloud.openai.apiKey' => '/^sk-[A-Za-z0-9]{20}T3BlbkFJ[A-Za-z0-9]{20}$/',
+            'cloud.github.copilotToken' => '/^ghu_[0-9a-zA-Z]{36}$/',
+        ];
+        $spread = ['cloud.anthropic.apiKey' => [], 'cloud.openai.apiKey' => [], 'cloud.github.copilotToken' => []];
+
+        for ($seed = 0; $seed <= 50; $seed++) {
+            $p = PersonaIdentity::fromSeed($seed);
+            foreach ($patterns as $field => $re) {
+                $value = (string) $p->field($field);
+                self::assertSame(1, preg_match($re, $value), "seed {$seed}: {$field} must match {$re} exactly");
+                // Byte-identical across calls (a re-scan by the same attacker sees one stable value).
+                self::assertSame(
+                    $value,
+                    (string) PersonaIdentity::fromSeed($seed)->field($field),
+                    "seed {$seed}: {$field} must be deterministic"
+                );
+                $spread[$field][$value] = true;
+            }
+        }
+
+        foreach ($patterns as $field => $re) {
+            self::assertGreaterThan(1, count($spread[$field]), "{$field} must spread across seeds, not collapse to one value");
+        }
+    }
+
     public function test_region_is_from_the_known_set(): void
     {
         $regions = [];
