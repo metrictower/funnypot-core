@@ -1500,845 +1500,6 @@ Ethernet adapter Ethernet0:
   ),
   20 => 
   array (
-    'id' => 'attack-ssti-twig',
-    'severity' => 'high',
-    'tags' => 
-    array (
-      0 => 'attack',
-      1 => 'ssti',
-      2 => 'twig',
-    ),
-    'status' => 200,
-    'match' => 
-    array (
-      0 => 
-      array (
-        'in' => 'request',
-        'regex' => '(?:\\{\\{|\\$\\{|\\#\\{|<%=?)\\s*7\\s*\\*\\s*[\'"]7',
-      ),
-    ),
-    'response' => 
-    array (
-      'headers' => 
-      array (
-        'Content-Type' => 'text/html; charset=utf-8',
-      ),
-      'body' => '7777777
-',
-    ),
-  ),
-  21 => 
-  array (
-    'id' => 'attack-ssti-numeric',
-    'severity' => 'high',
-    'tags' => 
-    array (
-      0 => 'attack',
-      1 => 'ssti',
-    ),
-    'status' => 200,
-    'match' => 
-    array (
-      0 => 
-      array (
-        'in' => 'request',
-        'regex' => '(?:\\{\\{|\\$\\{|\\#\\{|<%=?)\\s*7\\s*\\*\\s*7',
-      ),
-    ),
-    'response' => 
-    array (
-      'headers' => 
-      array (
-        'Content-Type' => 'text/html; charset=utf-8',
-      ),
-      'body' => '49
-',
-    ),
-  ),
-  22 => 
-  array (
-    'id' => 'attack-php-glastopf',
-    'severity' => 'critical',
-    'tags' => 
-    array (
-      0 => 'attack',
-      1 => 'rce',
-      2 => 'php-injection',
-      3 => 'glastopf',
-    ),
-    'status' => 200,
-    'match' => 
-    array (
-      0 => 
-      array (
-        'in' => 'request',
-        'regex' => '\\[php\\][\\s\\S]*?(?:system|passthru|exec|shell_exec|popen)\\s*\\(\\s*[\'"]?(?:id|whoami|uname)',
-      ),
-    ),
-    'response' => 
-    array (
-      'headers' => 
-      array (
-        'Content-Type' => 'text/html; charset=utf-8',
-      ),
-      'body' => '{{canned.uid}}',
-    ),
-    'lit' => '[php]',
-    'lit_in' => 'request',
-    'lit_ci' => true,
-  ),
-  23 => 
-  array (
-    'id' => 'attack-sqli',
-    'severity' => 'high',
-    'tags' => 
-    array (
-      0 => 'attack',
-      1 => 'sqli',
-    ),
-    'status' => 200,
-    'match' => 
-    array (
-      0 => 
-      array (
-        'in' => 'request',
-        'regex' => '(?:\'\\s*or\\s*\'?1\'?\\s*=\\s*\'?1|"\\s*or\\s*"?1"?\\s*=|\\bunion\\s+(?:all\\s+)?select\\b|\\bor\\s+1\\s*=\\s*1\\b|information_schema|sleep\\(\\d|\'\\s*--|\\bwaitfor\\s+delay\\b)',
-      ),
-    ),
-    'response' => 
-    array (
-      'headers' => 
-      array (
-        'Content-Type' => 'text/html; charset=utf-8',
-      ),
-      'body' => 'You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near \'\' at line 1
-',
-    ),
-  ),
-  24 => 
-  array (
-    'id' => 'attack-open-redirect',
-    'severity' => 'medium',
-    'tags' => 
-    array (
-      0 => 'attack',
-      1 => 'redirect',
-      2 => 'open-redirect',
-    ),
-    'status' => 302,
-    'match' => 
-    array (
-      0 => 
-      array (
-        'in' => 'query',
-        'regex' => '(?:url|redirect|redirect_uri|redirect_url|next|dest|destination|return|returnurl|returnto|goto|target|continue|forward)=((?:https?:)?//[^&]+)',
-      ),
-    ),
-    'response' => 
-    array (
-      'headers' => 
-      array (
-        'Content-Type' => 'text/html; charset=utf-8',
-        'Location' => '{{urldecode:match.1}}',
-      ),
-      'body' => '<html><head><title>302 Found</title></head><body>Redirecting...</body></html>',
-    ),
-  ),
-  25 => 
-  array (
-    'id' => 'attack-xss',
-    'severity' => 'medium',
-    'tags' => 
-    array (
-      0 => 'attack',
-      1 => 'xss',
-    ),
-    'status' => 200,
-    'match' => 
-    array (
-      0 => 
-      array (
-        'in' => 'request',
-        'regex' => '<script[^>]*>.*?</script>|<svg[^>]*>.*?</svg>|<img[^>]*\\son\\w+\\s*=[^>]*>|<[a-z][a-z0-9]*[^>]*\\son(?:error|load|mouseover|focus)\\s*=[^>]*>',
-        'dotall' => true,
-      ),
-    ),
-    'response' => 
-    array (
-      'headers' => 
-      array (
-        'Content-Type' => 'text/html; charset=utf-8',
-      ),
-      'body' => '<!doctype html><html><head><title>Search</title></head><body>
-<h1>Search results</h1><p>No results found for: {{match.0}}</p>
-</body></html>
-',
-    ),
-  ),
-  26 => 
-  array (
-    'id' => 'attack-thinkphp-rce',
-    'severity' => 'critical',
-    'tags' => 
-    array (
-      0 => 'attack',
-      1 => 'rce',
-      2 => 'thinkphp',
-    ),
-    'status' => 200,
-    'match' => 
-    array (
-      0 => 
-      array (
-        'in' => 'request',
-        'regex' => '(?:think.{0,6}app.{0,30}invokefunction|invokefunction.{0,40}call_user_func_array|s=[/\\\\]index[/\\\\].{0,20}phpinfo)',
-      ),
-    ),
-    'response' => 
-    array (
-      'headers' => 
-      array (
-        'Content-Type' => 'text/html; charset=utf-8',
-      ),
-      'body' => '<!DOCTYPE html><html><head><title>phpinfo()</title></head><body>
-<h1 class="p">PHP Version 7.4.33</h1>
-<table>
-<tr><td class="e">System</td><td class="v">Linux web01 5.15.0 x86_64</td></tr>
-<tr><td class="e">Server API</td><td class="v">FPM/FastCGI</td></tr>
-</table>
-<p>This output was generated by phpinfo().</p>
-</body></html>
-',
-    ),
-  ),
-  27 => 
-  array (
-    'id' => 'attack-owncloud-49103',
-    'severity' => 'high',
-    'tags' => 
-    array (
-      0 => 'attack',
-      1 => 'owncloud',
-      2 => 'phpinfo',
-      3 => 'cve-2023-49103',
-    ),
-    'status' => 200,
-    'match' => 
-    array (
-      0 => 
-      array (
-        'in' => 'path',
-        'contains' => 'graphapi/vendor/microsoft/microsoft-graph',
-      ),
-    ),
-    'response' => 
-    array (
-      'headers' => 
-      array (
-        'Content-Type' => 'text/html; charset=utf-8',
-      ),
-      'body' => '<!DOCTYPE html><html><head><title>phpinfo()</title></head><body>
-<h1 class="p">PHP Version 7.4.3</h1>
-<h2>Environment</h2>
-<table>
-<tr><td class="e">OWNCLOUD_ADMIN_USERNAME</td><td class="v">admin</td></tr>
-<tr><td class="e">OWNCLOUD_ADMIN_PASSWORD</td><td class="v">{{fake.ocpw:hex:20}}</td></tr>
-<tr><td class="e">OWNCLOUD_DB_PASSWORD</td><td class="v">{{fake.ocdb:hex:24}}</td></tr>
-<tr><td class="e">OWNCLOUD_MAIL_SMTP_PASSWORD</td><td class="v">{{fake.ocsmtp:hex:16}}</td></tr>
-</table>
-<p>This output was generated by phpinfo().</p>
-</body></html>
-',
-    ),
-    'lit' => 'graphapi/vendor/microsoft/microsoft-graph',
-    'lit_in' => 'path',
-    'lit_ci' => true,
-  ),
-  28 => 
-  array (
-    'id' => 'attack-f5-1388',
-    'severity' => 'critical',
-    'tags' => 
-    array (
-      0 => 'attack',
-      1 => 'rce',
-      2 => 'f5',
-      3 => 'big-ip',
-      4 => 'cve-2022-1388',
-    ),
-    'status' => 200,
-    'match' => 
-    array (
-      0 => 
-      array (
-        'in' => 'path',
-        'contains' => '/mgmt/tm/util/bash',
-      ),
-    ),
-    'response' => 
-    array (
-      'headers' => 
-      array (
-        'Content-Type' => 'application/json; charset=UTF-8',
-      ),
-      'body' => '{"kind":"tm:util:bash:runstate","command":"run","utilCmdArgs":"-c id","commandResult":"uid=0(root) gid=0(root) groups=0(root)\\n"}
-',
-    ),
-    'lit' => '/mgmt/tm/util/bash',
-    'lit_in' => 'path',
-    'lit_ci' => true,
-  ),
-  29 => 
-  array (
-    'id' => 'attack-geoserver-36401',
-    'severity' => 'critical',
-    'tags' => 
-    array (
-      0 => 'attack',
-      1 => 'rce',
-      2 => 'geoserver',
-      3 => 'cve-2024-36401',
-    ),
-    'status' => 200,
-    'match' => 
-    array (
-      0 => 
-      array (
-        'in' => 'path',
-        'contains' => '/geoserver/',
-      ),
-      1 => 
-      array (
-        'in' => 'request',
-        'regex' => '(?:exec\\(|Runtime|ProcessBuilder|Strings\\.|geoserver.{0,40}(?:ows|wfs|wms).{0,60}(?:exec|`))',
-      ),
-    ),
-    'response' => 
-    array (
-      'headers' => 
-      array (
-        'Content-Type' => 'application/xml; charset=UTF-8',
-      ),
-      'body' => '<?xml version="1.0" encoding="UTF-8"?>
-<ows:ExceptionReport version="2.0.0" xmlns:ows="http://www.opengis.net/ows/1.1">
-  <ows:Exception exceptionCode="NoApplicableCode">
-    <ows:ExceptionText>uid=0(root) gid=0(root) groups=0(root)</ows:ExceptionText>
-  </ows:Exception>
-</ows:ExceptionReport>
-',
-    ),
-    'lit' => '/geoserver/',
-    'lit_in' => 'path',
-    'lit_ci' => true,
-  ),
-  30 => 
-  array (
-    'id' => 'attack-fortios-40684',
-    'severity' => 'critical',
-    'tags' => 
-    array (
-      0 => 'attack',
-      1 => 'fortinet',
-      2 => 'fortios',
-      3 => 'auth-bypass',
-      4 => 'cve-2022-40684',
-    ),
-    'status' => 200,
-    'match' => 
-    array (
-      0 => 
-      array (
-        'in' => 'path',
-        'contains' => '/api/v2/cmdb/system/admin',
-      ),
-      1 => 
-      array (
-        'in' => 'header:Forwarded',
-        'contains' => 'for=',
-      ),
-    ),
-    'response' => 
-    array (
-      'headers' => 
-      array (
-        'Content-Type' => 'application/json',
-      ),
-      'body' => '{"http_method":"GET","results":[{"name":"admin","accprofile":"super_admin","trusthost1":"0.0.0.0 0.0.0.0","q_origin_key":"admin"}],"vdom":"root","path":"system","name":"admin","status":"success","http_status":200}
-',
-    ),
-    'lit' => '/api/v2/cmdb/system/admin',
-    'lit_in' => 'path',
-    'lit_ci' => true,
-  ),
-  31 => 
-  array (
-    'id' => 'attack-ivanti-21887',
-    'severity' => 'critical',
-    'tags' => 
-    array (
-      0 => 'attack',
-      1 => 'ivanti',
-      2 => 'connect-secure',
-      3 => 'rce',
-      4 => 'cve-2023-46805',
-      5 => 'cve-2024-21887',
-    ),
-    'status' => 200,
-    'match' => 
-    array (
-      0 => 
-      array (
-        'in' => 'request',
-        'regex' => '/api/v1/(?:totp/user-backup-code|license/keys-status|system/system-information)',
-      ),
-    ),
-    'response' => 
-    array (
-      'headers' => 
-      array (
-        'Content-Type' => 'application/json',
-      ),
-      'body' => '{"web_server_version":"22.6R2","system":"Linux","result":"uid=0(root) gid=0(root) groups=0(root)\\n"}
-',
-    ),
-    'lit' => '/api/v1/',
-    'lit_in' => 'request',
-    'lit_ci' => true,
-  ),
-  32 => 
-  array (
-    'id' => 'attack-citrix-bleed-4966',
-    'severity' => 'critical',
-    'tags' => 
-    array (
-      0 => 'attack',
-      1 => 'citrix',
-      2 => 'netscaler',
-      3 => 'memory-leak',
-      4 => 'cve-2023-4966',
-    ),
-    'status' => 200,
-    'match' => 
-    array (
-      0 => 
-      array (
-        'in' => 'path',
-        'contains' => '/oauth/idp/.well-known/openid-configuration',
-      ),
-    ),
-    'response' => 
-    array (
-      'headers' => 
-      array (
-        'Content-Type' => 'application/json; charset=utf-8',
-      ),
-      'body' => '{"issuer":"https://gateway.example.com/oauth/idp","authorization_endpoint":"https://gateway.example.com/oauth/idp/login"}
-{{fake.bleed:hex:60}}{{fake.bleed2:hex:60}}
-',
-    ),
-    'lit' => '/oauth/idp/.well-known/openid-configuration',
-    'lit_in' => 'path',
-    'lit_ci' => true,
-  ),
-  33 => 
-  array (
-    'id' => 'attack-webshell-panel',
-    'severity' => 'critical',
-    'tags' => 
-    array (
-      0 => 'attack',
-      1 => 'webshell',
-      2 => 'backdoor',
-    ),
-    'status' => 200,
-    'match' => 
-    array (
-      0 => 
-      array (
-        'in' => 'request',
-        'regex' => '(?:/(?:c99|wso|r57|b374k|shell|cmd|alfa|indoxploit)\\.php|(?:^|[?&\\s])(?:cmd|command|exec|shell_exec|passthru)=)',
-      ),
-    ),
-    'response' => 
-    array (
-      'headers' => 
-      array (
-        'Content-Type' => 'text/html; charset=utf-8',
-      ),
-      'body' => '<html><head><title>Shell</title></head><body bgcolor="black" text="green">
-<b>uname:</b> Linux web01 5.15.0 x86_64 GNU/Linux<br>
-<b>user:</b> uid=33(www-data) gid=33(www-data) groups=33(www-data)<br>
-<pre>$ id
-uid=33(www-data) gid=33(www-data) groups=33(www-data)
-$ </pre>
-</body></html>
-',
-    ),
-  ),
-  34 => 
-  array (
-    'id' => 'attack-spring-actuator',
-    'severity' => 'high',
-    'tags' => 
-    array (
-      0 => 'attack',
-      1 => 'spring-boot',
-      2 => 'actuator',
-      3 => 'exposure',
-    ),
-    'status' => 200,
-    'match' => 
-    array (
-      0 => 
-      array (
-        'in' => 'path',
-        'regex' => '/actuator(?:/(?:env|health|configprops|mappings|beans|info))?/?$',
-      ),
-    ),
-    'response' => 
-    array (
-      'headers' => 
-      array (
-        'Content-Type' => 'application/vnd.spring-boot.actuator.v3+json',
-      ),
-      'body' => '{"_links":{"self":{"href":"http://localhost:8080/actuator","templated":false},"health":{"href":"http://localhost:8080/actuator/health"},"env":{"href":"http://localhost:8080/actuator/env"},"configprops":{"href":"http://localhost:8080/actuator/configprops"},"mappings":{"href":"http://localhost:8080/actuator/mappings"}},"propertySources":[{"name":"applicationConfig","properties":{"spring.datasource.password":{"value":"{{fake.springdb:hex:20}}"},"spring.mail.password":{"value":"{{fake.springmail:hex:16}}"}}}]}
-',
-    ),
-    'lit' => '/actuator',
-    'lit_in' => 'path',
-    'lit_ci' => true,
-  ),
-  35 => 
-  array (
-    'id' => 'attack-cloud-imds',
-    'severity' => 'high',
-    'tags' => 
-    array (
-      0 => 'attack',
-      1 => 'ssrf',
-      2 => 'cloud-metadata',
-      3 => 'imds',
-    ),
-    'status' => 200,
-    'match' => 
-    array (
-      0 => 
-      array (
-        'in' => 'path',
-        'regex' => '(?:/latest/meta-data/iam/security-credentials|/latest/dynamic/instance-identity|/computeMetadata/v1/|/metadata/instance)',
-      ),
-    ),
-    'response' => 
-    array (
-      'headers' => 
-      array (
-        'Content-Type' => 'application/json',
-      ),
-      'body' => '{
-  "Code" : "Success",
-  "Type" : "AWS-HMAC",
-  "AccessKeyId" : "ASIA{{fake.imdsak:hexupper:16}}",
-  "SecretAccessKey" : "{{fake.imdssecret:b64:40}}",
-  "Token" : "{{fake.imdstoken:b64:100}}",
-  "Expiration" : "2030-01-01T00:00:00Z"
-}
-',
-    ),
-  ),
-  36 => 
-  array (
-    'id' => 'attack-ignition-execute-solution',
-    'severity' => 'high',
-    'tags' => 
-    array (
-      0 => 'attack',
-      1 => 'laravel',
-      2 => 'ignition',
-      3 => 'rce',
-    ),
-    'status' => 200,
-    'match' => 
-    array (
-      0 => 
-      array (
-        'in' => 'path',
-        'regex' => '(?:^|/)_ignition/execute-solution/?$',
-        'ci' => false,
-      ),
-      1 => 
-      array (
-        'in' => 'method',
-        'regex' => '^POST$',
-        'ci' => false,
-      ),
-      2 => 
-      array (
-        'in' => 'body',
-        'regex' => '"solution"\\s*:\\s*"[^"]*?(?P<solution>[A-Za-z_][A-Za-z0-9_]{0,95})"',
-        'ci' => false,
-        'capture' => true,
-      ),
-    ),
-    'response' => 
-    array (
-      'headers' => 
-      array (
-        'Content-Type' => 'application/json',
-      ),
-      'body' => '{"message":"Solution \\"{{match.solution}}\\" not found."}
-',
-    ),
-    'lit' => '"solution"',
-    'lit_in' => 'body',
-    'lit_ci' => false,
-    'behavior' => 'branch',
-    'branch' => 
-    array (
-      'cases' => 
-      array (
-        0 => 
-        array (
-          'when' => 
-          array (
-            'in' => 'match.solution',
-            'regex' => '^MakeViewVariableOptionalSolution$',
-            'ci' => false,
-          ),
-          'response' => 
-          array (
-            'headers' => 
-            array (
-              'Content-Type' => 'application/json',
-            ),
-            'body' => '{"message":"The parameters passed to the solution are invalid."}
-',
-          ),
-        ),
-        1 => 
-        array (
-          'when' => 
-          array (
-            'in' => 'match.solution',
-            'regex' => '^(?:GenerateAppKeySolution|RunMigrationsSolution)$',
-            'ci' => false,
-          ),
-          'response' => 
-          array (
-            'headers' => 
-            array (
-            ),
-            'body' => '',
-            'status' => 204,
-          ),
-        ),
-      ),
-    ),
-  ),
-  37 => 
-  array (
-    'id' => 'attack-webmin-session-login',
-    'severity' => 'high',
-    'tags' => 
-    array (
-      0 => 'attack',
-      1 => 'webmin',
-      2 => 'panel',
-      3 => 'login',
-      4 => 'credential-oracle',
-    ),
-    'status' => 200,
-    'match' => 
-    array (
-      0 => 
-      array (
-        'in' => 'path',
-        'regex' => '(?:^|/)session_login\\.cgi$',
-        'ci' => false,
-      ),
-      1 => 
-      array (
-        'in' => 'method',
-        'regex' => '^POST$',
-        'ci' => false,
-      ),
-      2 => 
-      array (
-        'in' => 'body',
-        'regex' => '(?:^|&)user=([^&]{0,64})',
-        'ci' => false,
-        'capture' => true,
-      ),
-    ),
-    'response' => 
-    array (
-      'headers' => 
-      array (
-        'Content-Type' => 'text/html; charset=utf-8',
-        'Server' => 'MiniServ/2.111',
-        'Set-Cookie' => 'testing=1; path=/; secure; httponly',
-      ),
-      'body' => '<!DOCTYPE html>
-<html><head>
-<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
-<title>Login to Webmin</title>
-<link rel="stylesheet" type="text/css" href="/unauthenticated/style.css">
-</head>
-<body class="login" leftmargin="0" topmargin="0">
-<div class="login-page">
-<form action="/session_login.cgi" method="post" name="loginform" autocomplete="off">
-<input type="hidden" name="page" value="/">
-<h1>Login to Webmin</h1>
-<p>Login failed. Please make sure you enter a valid username and password, and that your account has not been locked out.</p>
-<table cellpadding="3">
-<tr><td><b>Username</b></td><td><input name="user" type="text" size="20" value=""></td></tr>
-<tr><td><b>Password</b></td><td><input name="pass" type="password" size="20" value=""></td></tr>
-</table>
-<input type="submit" value="Login">
-<label><input type="checkbox" name="save" value="1"> Remember login permanently?</label>
-</form>
-</div>
-</body></html>
-',
-    ),
-    'lit' => 'POST',
-    'lit_in' => 'method',
-    'lit_ci' => false,
-  ),
-  38 => 
-  array (
-    'id' => 'attack-jenkins-acegi-login',
-    'severity' => 'high',
-    'tags' => 
-    array (
-      0 => 'attack',
-      1 => 'jenkins',
-      2 => 'panel',
-      3 => 'login',
-      4 => 'credential-oracle',
-    ),
-    'status' => 302,
-    'match' => 
-    array (
-      0 => 
-      array (
-        'in' => 'path',
-        'regex' => '(?:^|/)j_acegi_security_check$',
-        'ci' => false,
-      ),
-      1 => 
-      array (
-        'in' => 'method',
-        'regex' => '^POST$',
-        'ci' => false,
-      ),
-      2 => 
-      array (
-        'in' => 'body',
-        'regex' => '(?:^|&)j_username=([^&]{0,64})',
-        'ci' => false,
-        'capture' => true,
-      ),
-    ),
-    'response' => 
-    array (
-      'headers' => 
-      array (
-        'Location' => '/loginError',
-        'X-Content-Type-Options' => 'nosniff',
-      ),
-      'body' => '',
-    ),
-    'lit' => 'POST',
-    'lit_in' => 'method',
-    'lit_ci' => false,
-  ),
-  39 => 
-  array (
-    'id' => 'attack-hnap-login',
-    'severity' => 'high',
-    'tags' => 
-    array (
-      0 => 'attack',
-      1 => 'dlink',
-      2 => 'hnap',
-      3 => 'iot',
-      4 => 'login',
-      5 => 'credential-oracle',
-    ),
-    'status' => 200,
-    'match' => 
-    array (
-      0 => 
-      array (
-        'in' => 'path',
-        'regex' => '(?:^|/)HNAP1/?$',
-        'ci' => false,
-      ),
-      1 => 
-      array (
-        'in' => 'method',
-        'regex' => '^POST$',
-        'ci' => false,
-      ),
-      2 => 
-      array (
-        'in' => 'body',
-        'regex' => '<Action>\\s*([A-Za-z]{0,16})',
-        'ci' => false,
-        'capture' => true,
-      ),
-    ),
-    'response' => 
-    array (
-      'headers' => 
-      array (
-        'Content-Type' => 'text/xml; charset=utf-8',
-      ),
-      'body' => '<?xml version="1.0" encoding="utf-8"?>
-<soap:Envelope xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/">
-<soap:Body><LoginResponse xmlns="http://purenetworks.com/HNAP1/">
-<LoginResult>FAILED</LoginResult>
-</LoginResponse></soap:Body></soap:Envelope>
-',
-    ),
-    'lit' => '<Action>',
-    'lit_in' => 'body',
-    'lit_ci' => false,
-    'behavior' => 'branch',
-    'branch' => 
-    array (
-      'cases' => 
-      array (
-        0 => 
-        array (
-          'when' => 
-          array (
-            'in' => 'match.1',
-            'regex' => '^request$',
-            'ci' => false,
-          ),
-          'response' => 
-          array (
-            'headers' => 
-            array (
-              'Content-Type' => 'text/xml; charset=utf-8',
-            ),
-            'body' => '<?xml version="1.0" encoding="utf-8"?>
-<soap:Envelope xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/">
-<soap:Body><LoginResponse xmlns="http://purenetworks.com/HNAP1/">
-<Challenge>{{fake.hnap_ch:hex:16}}</Challenge>
-<Cookie>{{fake.hnap_ck:hex:16}}</Cookie>
-<PublicKey>{{fake.hnap_pk:hex:16}}</PublicKey>
-<LoginResult>OK</LoginResult>
-</LoginResponse></soap:Body></soap:Envelope>
-',
-          ),
-        ),
-      ),
-    ),
-  ),
-  40 => 
-  array (
     'id' => 'attack-cpsrvd-login',
     'severity' => 'high',
     'tags' => 
@@ -2442,6 +1603,845 @@ $ </pre>
             ),
             'body' => '{"status":0,"message":"see_login_log"}',
             'status' => 401,
+          ),
+        ),
+      ),
+    ),
+  ),
+  21 => 
+  array (
+    'id' => 'attack-ssti-twig',
+    'severity' => 'high',
+    'tags' => 
+    array (
+      0 => 'attack',
+      1 => 'ssti',
+      2 => 'twig',
+    ),
+    'status' => 200,
+    'match' => 
+    array (
+      0 => 
+      array (
+        'in' => 'request',
+        'regex' => '(?:\\{\\{|\\$\\{|\\#\\{|<%=?)\\s*7\\s*\\*\\s*[\'"]7',
+      ),
+    ),
+    'response' => 
+    array (
+      'headers' => 
+      array (
+        'Content-Type' => 'text/html; charset=utf-8',
+      ),
+      'body' => '7777777
+',
+    ),
+  ),
+  22 => 
+  array (
+    'id' => 'attack-ssti-numeric',
+    'severity' => 'high',
+    'tags' => 
+    array (
+      0 => 'attack',
+      1 => 'ssti',
+    ),
+    'status' => 200,
+    'match' => 
+    array (
+      0 => 
+      array (
+        'in' => 'request',
+        'regex' => '(?:\\{\\{|\\$\\{|\\#\\{|<%=?)\\s*7\\s*\\*\\s*7',
+      ),
+    ),
+    'response' => 
+    array (
+      'headers' => 
+      array (
+        'Content-Type' => 'text/html; charset=utf-8',
+      ),
+      'body' => '49
+',
+    ),
+  ),
+  23 => 
+  array (
+    'id' => 'attack-php-glastopf',
+    'severity' => 'critical',
+    'tags' => 
+    array (
+      0 => 'attack',
+      1 => 'rce',
+      2 => 'php-injection',
+      3 => 'glastopf',
+    ),
+    'status' => 200,
+    'match' => 
+    array (
+      0 => 
+      array (
+        'in' => 'request',
+        'regex' => '\\[php\\][\\s\\S]*?(?:system|passthru|exec|shell_exec|popen)\\s*\\(\\s*[\'"]?(?:id|whoami|uname)',
+      ),
+    ),
+    'response' => 
+    array (
+      'headers' => 
+      array (
+        'Content-Type' => 'text/html; charset=utf-8',
+      ),
+      'body' => '{{canned.uid}}',
+    ),
+    'lit' => '[php]',
+    'lit_in' => 'request',
+    'lit_ci' => true,
+  ),
+  24 => 
+  array (
+    'id' => 'attack-sqli',
+    'severity' => 'high',
+    'tags' => 
+    array (
+      0 => 'attack',
+      1 => 'sqli',
+    ),
+    'status' => 200,
+    'match' => 
+    array (
+      0 => 
+      array (
+        'in' => 'request',
+        'regex' => '(?:\'\\s*or\\s*\'?1\'?\\s*=\\s*\'?1|"\\s*or\\s*"?1"?\\s*=|\\bunion\\s+(?:all\\s+)?select\\b|\\bor\\s+1\\s*=\\s*1\\b|information_schema|sleep\\(\\d|\'\\s*--|\\bwaitfor\\s+delay\\b)',
+      ),
+    ),
+    'response' => 
+    array (
+      'headers' => 
+      array (
+        'Content-Type' => 'text/html; charset=utf-8',
+      ),
+      'body' => 'You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near \'\' at line 1
+',
+    ),
+  ),
+  25 => 
+  array (
+    'id' => 'attack-open-redirect',
+    'severity' => 'medium',
+    'tags' => 
+    array (
+      0 => 'attack',
+      1 => 'redirect',
+      2 => 'open-redirect',
+    ),
+    'status' => 302,
+    'match' => 
+    array (
+      0 => 
+      array (
+        'in' => 'query',
+        'regex' => '(?:url|redirect|redirect_uri|redirect_url|next|dest|destination|return|returnurl|returnto|goto|target|continue|forward)=((?:https?:)?//[^&]+)',
+      ),
+    ),
+    'response' => 
+    array (
+      'headers' => 
+      array (
+        'Content-Type' => 'text/html; charset=utf-8',
+        'Location' => '{{urldecode:match.1}}',
+      ),
+      'body' => '<html><head><title>302 Found</title></head><body>Redirecting...</body></html>',
+    ),
+  ),
+  26 => 
+  array (
+    'id' => 'attack-xss',
+    'severity' => 'medium',
+    'tags' => 
+    array (
+      0 => 'attack',
+      1 => 'xss',
+    ),
+    'status' => 200,
+    'match' => 
+    array (
+      0 => 
+      array (
+        'in' => 'request',
+        'regex' => '<script[^>]*>.*?</script>|<svg[^>]*>.*?</svg>|<img[^>]*\\son\\w+\\s*=[^>]*>|<[a-z][a-z0-9]*[^>]*\\son(?:error|load|mouseover|focus)\\s*=[^>]*>',
+        'dotall' => true,
+      ),
+    ),
+    'response' => 
+    array (
+      'headers' => 
+      array (
+        'Content-Type' => 'text/html; charset=utf-8',
+      ),
+      'body' => '<!doctype html><html><head><title>Search</title></head><body>
+<h1>Search results</h1><p>No results found for: {{match.0}}</p>
+</body></html>
+',
+    ),
+  ),
+  27 => 
+  array (
+    'id' => 'attack-thinkphp-rce',
+    'severity' => 'critical',
+    'tags' => 
+    array (
+      0 => 'attack',
+      1 => 'rce',
+      2 => 'thinkphp',
+    ),
+    'status' => 200,
+    'match' => 
+    array (
+      0 => 
+      array (
+        'in' => 'request',
+        'regex' => '(?:think.{0,6}app.{0,30}invokefunction|invokefunction.{0,40}call_user_func_array|s=[/\\\\]index[/\\\\].{0,20}phpinfo)',
+      ),
+    ),
+    'response' => 
+    array (
+      'headers' => 
+      array (
+        'Content-Type' => 'text/html; charset=utf-8',
+      ),
+      'body' => '<!DOCTYPE html><html><head><title>phpinfo()</title></head><body>
+<h1 class="p">PHP Version 7.4.33</h1>
+<table>
+<tr><td class="e">System</td><td class="v">Linux web01 5.15.0 x86_64</td></tr>
+<tr><td class="e">Server API</td><td class="v">FPM/FastCGI</td></tr>
+</table>
+<p>This output was generated by phpinfo().</p>
+</body></html>
+',
+    ),
+  ),
+  28 => 
+  array (
+    'id' => 'attack-owncloud-49103',
+    'severity' => 'high',
+    'tags' => 
+    array (
+      0 => 'attack',
+      1 => 'owncloud',
+      2 => 'phpinfo',
+      3 => 'cve-2023-49103',
+    ),
+    'status' => 200,
+    'match' => 
+    array (
+      0 => 
+      array (
+        'in' => 'path',
+        'contains' => 'graphapi/vendor/microsoft/microsoft-graph',
+      ),
+    ),
+    'response' => 
+    array (
+      'headers' => 
+      array (
+        'Content-Type' => 'text/html; charset=utf-8',
+      ),
+      'body' => '<!DOCTYPE html><html><head><title>phpinfo()</title></head><body>
+<h1 class="p">PHP Version 7.4.3</h1>
+<h2>Environment</h2>
+<table>
+<tr><td class="e">OWNCLOUD_ADMIN_USERNAME</td><td class="v">admin</td></tr>
+<tr><td class="e">OWNCLOUD_ADMIN_PASSWORD</td><td class="v">{{fake.ocpw:hex:20}}</td></tr>
+<tr><td class="e">OWNCLOUD_DB_PASSWORD</td><td class="v">{{fake.ocdb:hex:24}}</td></tr>
+<tr><td class="e">OWNCLOUD_MAIL_SMTP_PASSWORD</td><td class="v">{{fake.ocsmtp:hex:16}}</td></tr>
+</table>
+<p>This output was generated by phpinfo().</p>
+</body></html>
+',
+    ),
+    'lit' => 'graphapi/vendor/microsoft/microsoft-graph',
+    'lit_in' => 'path',
+    'lit_ci' => true,
+  ),
+  29 => 
+  array (
+    'id' => 'attack-f5-1388',
+    'severity' => 'critical',
+    'tags' => 
+    array (
+      0 => 'attack',
+      1 => 'rce',
+      2 => 'f5',
+      3 => 'big-ip',
+      4 => 'cve-2022-1388',
+    ),
+    'status' => 200,
+    'match' => 
+    array (
+      0 => 
+      array (
+        'in' => 'path',
+        'contains' => '/mgmt/tm/util/bash',
+      ),
+    ),
+    'response' => 
+    array (
+      'headers' => 
+      array (
+        'Content-Type' => 'application/json; charset=UTF-8',
+      ),
+      'body' => '{"kind":"tm:util:bash:runstate","command":"run","utilCmdArgs":"-c id","commandResult":"uid=0(root) gid=0(root) groups=0(root)\\n"}
+',
+    ),
+    'lit' => '/mgmt/tm/util/bash',
+    'lit_in' => 'path',
+    'lit_ci' => true,
+  ),
+  30 => 
+  array (
+    'id' => 'attack-geoserver-36401',
+    'severity' => 'critical',
+    'tags' => 
+    array (
+      0 => 'attack',
+      1 => 'rce',
+      2 => 'geoserver',
+      3 => 'cve-2024-36401',
+    ),
+    'status' => 200,
+    'match' => 
+    array (
+      0 => 
+      array (
+        'in' => 'path',
+        'contains' => '/geoserver/',
+      ),
+      1 => 
+      array (
+        'in' => 'request',
+        'regex' => '(?:exec\\(|Runtime|ProcessBuilder|Strings\\.|geoserver.{0,40}(?:ows|wfs|wms).{0,60}(?:exec|`))',
+      ),
+    ),
+    'response' => 
+    array (
+      'headers' => 
+      array (
+        'Content-Type' => 'application/xml; charset=UTF-8',
+      ),
+      'body' => '<?xml version="1.0" encoding="UTF-8"?>
+<ows:ExceptionReport version="2.0.0" xmlns:ows="http://www.opengis.net/ows/1.1">
+  <ows:Exception exceptionCode="NoApplicableCode">
+    <ows:ExceptionText>uid=0(root) gid=0(root) groups=0(root)</ows:ExceptionText>
+  </ows:Exception>
+</ows:ExceptionReport>
+',
+    ),
+    'lit' => '/geoserver/',
+    'lit_in' => 'path',
+    'lit_ci' => true,
+  ),
+  31 => 
+  array (
+    'id' => 'attack-fortios-40684',
+    'severity' => 'critical',
+    'tags' => 
+    array (
+      0 => 'attack',
+      1 => 'fortinet',
+      2 => 'fortios',
+      3 => 'auth-bypass',
+      4 => 'cve-2022-40684',
+    ),
+    'status' => 200,
+    'match' => 
+    array (
+      0 => 
+      array (
+        'in' => 'path',
+        'contains' => '/api/v2/cmdb/system/admin',
+      ),
+      1 => 
+      array (
+        'in' => 'header:Forwarded',
+        'contains' => 'for=',
+      ),
+    ),
+    'response' => 
+    array (
+      'headers' => 
+      array (
+        'Content-Type' => 'application/json',
+      ),
+      'body' => '{"http_method":"GET","results":[{"name":"admin","accprofile":"super_admin","trusthost1":"0.0.0.0 0.0.0.0","q_origin_key":"admin"}],"vdom":"root","path":"system","name":"admin","status":"success","http_status":200}
+',
+    ),
+    'lit' => '/api/v2/cmdb/system/admin',
+    'lit_in' => 'path',
+    'lit_ci' => true,
+  ),
+  32 => 
+  array (
+    'id' => 'attack-ivanti-21887',
+    'severity' => 'critical',
+    'tags' => 
+    array (
+      0 => 'attack',
+      1 => 'ivanti',
+      2 => 'connect-secure',
+      3 => 'rce',
+      4 => 'cve-2023-46805',
+      5 => 'cve-2024-21887',
+    ),
+    'status' => 200,
+    'match' => 
+    array (
+      0 => 
+      array (
+        'in' => 'request',
+        'regex' => '/api/v1/(?:totp/user-backup-code|license/keys-status|system/system-information)',
+      ),
+    ),
+    'response' => 
+    array (
+      'headers' => 
+      array (
+        'Content-Type' => 'application/json',
+      ),
+      'body' => '{"web_server_version":"22.6R2","system":"Linux","result":"uid=0(root) gid=0(root) groups=0(root)\\n"}
+',
+    ),
+    'lit' => '/api/v1/',
+    'lit_in' => 'request',
+    'lit_ci' => true,
+  ),
+  33 => 
+  array (
+    'id' => 'attack-citrix-bleed-4966',
+    'severity' => 'critical',
+    'tags' => 
+    array (
+      0 => 'attack',
+      1 => 'citrix',
+      2 => 'netscaler',
+      3 => 'memory-leak',
+      4 => 'cve-2023-4966',
+    ),
+    'status' => 200,
+    'match' => 
+    array (
+      0 => 
+      array (
+        'in' => 'path',
+        'contains' => '/oauth/idp/.well-known/openid-configuration',
+      ),
+    ),
+    'response' => 
+    array (
+      'headers' => 
+      array (
+        'Content-Type' => 'application/json; charset=utf-8',
+      ),
+      'body' => '{"issuer":"https://gateway.example.com/oauth/idp","authorization_endpoint":"https://gateway.example.com/oauth/idp/login"}
+{{fake.bleed:hex:60}}{{fake.bleed2:hex:60}}
+',
+    ),
+    'lit' => '/oauth/idp/.well-known/openid-configuration',
+    'lit_in' => 'path',
+    'lit_ci' => true,
+  ),
+  34 => 
+  array (
+    'id' => 'attack-webshell-panel',
+    'severity' => 'critical',
+    'tags' => 
+    array (
+      0 => 'attack',
+      1 => 'webshell',
+      2 => 'backdoor',
+    ),
+    'status' => 200,
+    'match' => 
+    array (
+      0 => 
+      array (
+        'in' => 'request',
+        'regex' => '(?:/(?:c99|wso|r57|b374k|shell|cmd|alfa|indoxploit)\\.php|(?:^|[?&\\s])(?:cmd|command|exec|shell_exec|passthru)=)',
+      ),
+    ),
+    'response' => 
+    array (
+      'headers' => 
+      array (
+        'Content-Type' => 'text/html; charset=utf-8',
+      ),
+      'body' => '<html><head><title>Shell</title></head><body bgcolor="black" text="green">
+<b>uname:</b> Linux web01 5.15.0 x86_64 GNU/Linux<br>
+<b>user:</b> uid=33(www-data) gid=33(www-data) groups=33(www-data)<br>
+<pre>$ id
+uid=33(www-data) gid=33(www-data) groups=33(www-data)
+$ </pre>
+</body></html>
+',
+    ),
+  ),
+  35 => 
+  array (
+    'id' => 'attack-spring-actuator',
+    'severity' => 'high',
+    'tags' => 
+    array (
+      0 => 'attack',
+      1 => 'spring-boot',
+      2 => 'actuator',
+      3 => 'exposure',
+    ),
+    'status' => 200,
+    'match' => 
+    array (
+      0 => 
+      array (
+        'in' => 'path',
+        'regex' => '/actuator(?:/(?:env|health|configprops|mappings|beans|info))?/?$',
+      ),
+    ),
+    'response' => 
+    array (
+      'headers' => 
+      array (
+        'Content-Type' => 'application/vnd.spring-boot.actuator.v3+json',
+      ),
+      'body' => '{"_links":{"self":{"href":"http://localhost:8080/actuator","templated":false},"health":{"href":"http://localhost:8080/actuator/health"},"env":{"href":"http://localhost:8080/actuator/env"},"configprops":{"href":"http://localhost:8080/actuator/configprops"},"mappings":{"href":"http://localhost:8080/actuator/mappings"}},"propertySources":[{"name":"applicationConfig","properties":{"spring.datasource.password":{"value":"{{fake.springdb:hex:20}}"},"spring.mail.password":{"value":"{{fake.springmail:hex:16}}"}}}]}
+',
+    ),
+    'lit' => '/actuator',
+    'lit_in' => 'path',
+    'lit_ci' => true,
+  ),
+  36 => 
+  array (
+    'id' => 'attack-cloud-imds',
+    'severity' => 'high',
+    'tags' => 
+    array (
+      0 => 'attack',
+      1 => 'ssrf',
+      2 => 'cloud-metadata',
+      3 => 'imds',
+    ),
+    'status' => 200,
+    'match' => 
+    array (
+      0 => 
+      array (
+        'in' => 'path',
+        'regex' => '(?:/latest/meta-data/iam/security-credentials|/latest/dynamic/instance-identity|/computeMetadata/v1/|/metadata/instance)',
+      ),
+    ),
+    'response' => 
+    array (
+      'headers' => 
+      array (
+        'Content-Type' => 'application/json',
+      ),
+      'body' => '{
+  "Code" : "Success",
+  "Type" : "AWS-HMAC",
+  "AccessKeyId" : "ASIA{{fake.imdsak:hexupper:16}}",
+  "SecretAccessKey" : "{{fake.imdssecret:b64:40}}",
+  "Token" : "{{fake.imdstoken:b64:100}}",
+  "Expiration" : "2030-01-01T00:00:00Z"
+}
+',
+    ),
+  ),
+  37 => 
+  array (
+    'id' => 'attack-ignition-execute-solution',
+    'severity' => 'high',
+    'tags' => 
+    array (
+      0 => 'attack',
+      1 => 'laravel',
+      2 => 'ignition',
+      3 => 'rce',
+    ),
+    'status' => 200,
+    'match' => 
+    array (
+      0 => 
+      array (
+        'in' => 'path',
+        'regex' => '(?:^|/)_ignition/execute-solution/?$',
+        'ci' => false,
+      ),
+      1 => 
+      array (
+        'in' => 'method',
+        'regex' => '^POST$',
+        'ci' => false,
+      ),
+      2 => 
+      array (
+        'in' => 'body',
+        'regex' => '"solution"\\s*:\\s*"[^"]*?(?P<solution>[A-Za-z_][A-Za-z0-9_]{0,95})"',
+        'ci' => false,
+        'capture' => true,
+      ),
+    ),
+    'response' => 
+    array (
+      'headers' => 
+      array (
+        'Content-Type' => 'application/json',
+      ),
+      'body' => '{"message":"Solution \\"{{match.solution}}\\" not found."}
+',
+    ),
+    'lit' => '"solution"',
+    'lit_in' => 'body',
+    'lit_ci' => false,
+    'behavior' => 'branch',
+    'branch' => 
+    array (
+      'cases' => 
+      array (
+        0 => 
+        array (
+          'when' => 
+          array (
+            'in' => 'match.solution',
+            'regex' => '^MakeViewVariableOptionalSolution$',
+            'ci' => false,
+          ),
+          'response' => 
+          array (
+            'headers' => 
+            array (
+              'Content-Type' => 'application/json',
+            ),
+            'body' => '{"message":"The parameters passed to the solution are invalid."}
+',
+          ),
+        ),
+        1 => 
+        array (
+          'when' => 
+          array (
+            'in' => 'match.solution',
+            'regex' => '^(?:GenerateAppKeySolution|RunMigrationsSolution)$',
+            'ci' => false,
+          ),
+          'response' => 
+          array (
+            'headers' => 
+            array (
+            ),
+            'body' => '',
+            'status' => 204,
+          ),
+        ),
+      ),
+    ),
+  ),
+  38 => 
+  array (
+    'id' => 'attack-webmin-session-login',
+    'severity' => 'high',
+    'tags' => 
+    array (
+      0 => 'attack',
+      1 => 'webmin',
+      2 => 'panel',
+      3 => 'login',
+      4 => 'credential-oracle',
+    ),
+    'status' => 200,
+    'match' => 
+    array (
+      0 => 
+      array (
+        'in' => 'path',
+        'regex' => '(?:^|/)session_login\\.cgi$',
+        'ci' => false,
+      ),
+      1 => 
+      array (
+        'in' => 'method',
+        'regex' => '^POST$',
+        'ci' => false,
+      ),
+      2 => 
+      array (
+        'in' => 'body',
+        'regex' => '(?:^|&)user=([^&]{0,64})',
+        'ci' => false,
+        'capture' => true,
+      ),
+    ),
+    'response' => 
+    array (
+      'headers' => 
+      array (
+        'Content-Type' => 'text/html; charset=utf-8',
+        'Server' => 'MiniServ/2.111',
+        'Set-Cookie' => 'testing=1; path=/; secure; httponly',
+      ),
+      'body' => '<!DOCTYPE html>
+<html><head>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<title>Login to Webmin</title>
+<link rel="stylesheet" type="text/css" href="/unauthenticated/style.css">
+</head>
+<body class="login" leftmargin="0" topmargin="0">
+<div class="login-page">
+<form action="/session_login.cgi" method="post" name="loginform" autocomplete="off">
+<input type="hidden" name="page" value="/">
+<h1>Login to Webmin</h1>
+<p>Login failed. Please make sure you enter a valid username and password, and that your account has not been locked out.</p>
+<table cellpadding="3">
+<tr><td><b>Username</b></td><td><input name="user" type="text" size="20" value=""></td></tr>
+<tr><td><b>Password</b></td><td><input name="pass" type="password" size="20" value=""></td></tr>
+</table>
+<input type="submit" value="Login">
+<label><input type="checkbox" name="save" value="1"> Remember login permanently?</label>
+</form>
+</div>
+</body></html>
+',
+    ),
+    'lit' => 'POST',
+    'lit_in' => 'method',
+    'lit_ci' => false,
+  ),
+  39 => 
+  array (
+    'id' => 'attack-jenkins-acegi-login',
+    'severity' => 'high',
+    'tags' => 
+    array (
+      0 => 'attack',
+      1 => 'jenkins',
+      2 => 'panel',
+      3 => 'login',
+      4 => 'credential-oracle',
+    ),
+    'status' => 302,
+    'match' => 
+    array (
+      0 => 
+      array (
+        'in' => 'path',
+        'regex' => '(?:^|/)j_acegi_security_check$',
+        'ci' => false,
+      ),
+      1 => 
+      array (
+        'in' => 'method',
+        'regex' => '^POST$',
+        'ci' => false,
+      ),
+      2 => 
+      array (
+        'in' => 'body',
+        'regex' => '(?:^|&)j_username=([^&]{0,64})',
+        'ci' => false,
+        'capture' => true,
+      ),
+    ),
+    'response' => 
+    array (
+      'headers' => 
+      array (
+        'Location' => '/loginError',
+        'X-Content-Type-Options' => 'nosniff',
+      ),
+      'body' => '',
+    ),
+    'lit' => 'POST',
+    'lit_in' => 'method',
+    'lit_ci' => false,
+  ),
+  40 => 
+  array (
+    'id' => 'attack-hnap-login',
+    'severity' => 'high',
+    'tags' => 
+    array (
+      0 => 'attack',
+      1 => 'dlink',
+      2 => 'hnap',
+      3 => 'iot',
+      4 => 'login',
+      5 => 'credential-oracle',
+    ),
+    'status' => 200,
+    'match' => 
+    array (
+      0 => 
+      array (
+        'in' => 'path',
+        'regex' => '(?:^|/)HNAP1/?$',
+        'ci' => false,
+      ),
+      1 => 
+      array (
+        'in' => 'method',
+        'regex' => '^POST$',
+        'ci' => false,
+      ),
+      2 => 
+      array (
+        'in' => 'body',
+        'regex' => '<Action>\\s*([A-Za-z]{0,16})',
+        'ci' => false,
+        'capture' => true,
+      ),
+    ),
+    'response' => 
+    array (
+      'headers' => 
+      array (
+        'Content-Type' => 'text/xml; charset=utf-8',
+      ),
+      'body' => '<?xml version="1.0" encoding="utf-8"?>
+<soap:Envelope xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/">
+<soap:Body><LoginResponse xmlns="http://purenetworks.com/HNAP1/">
+<LoginResult>FAILED</LoginResult>
+</LoginResponse></soap:Body></soap:Envelope>
+',
+    ),
+    'lit' => '<Action>',
+    'lit_in' => 'body',
+    'lit_ci' => false,
+    'behavior' => 'branch',
+    'branch' => 
+    array (
+      'cases' => 
+      array (
+        0 => 
+        array (
+          'when' => 
+          array (
+            'in' => 'match.1',
+            'regex' => '^request$',
+            'ci' => false,
+          ),
+          'response' => 
+          array (
+            'headers' => 
+            array (
+              'Content-Type' => 'text/xml; charset=utf-8',
+            ),
+            'body' => '<?xml version="1.0" encoding="utf-8"?>
+<soap:Envelope xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/">
+<soap:Body><LoginResponse xmlns="http://purenetworks.com/HNAP1/">
+<Challenge>{{fake.hnap_ch:hex:16}}</Challenge>
+<Cookie>{{fake.hnap_ck:hex:16}}</Cookie>
+<PublicKey>{{fake.hnap_pk:hex:16}}</PublicKey>
+<LoginResult>OK</LoginResult>
+</LoginResponse></soap:Body></soap:Envelope>
+',
           ),
         ),
       ),

@@ -1,6 +1,13 @@
 id: attack-cpsrvd-login
 severity: high
-priority: 98
+# Priority 42, NOT the 98 the filename suggests: the broad `in: request` archetypes 44-ssti-twig,
+# 45-ssti-numeric, 46-php-glastopf, 50-sqli (and, further out, 60-open-redirect/65-xss-reflect) carry
+# no path constraint at all, so an injection-laced `user=`/`pass=` value (e.g. `user=admin' OR
+# '1'='1' --`) would otherwise reach one of THOSE first and answer with a generic attack body instead
+# of this oracle's login-failed response — a real cpsrvd form answers ANY bad login, payload or not,
+# the same way. 42 is a free slot below all of them (between 41-cmdi-unix and 44-ssti-twig), the same
+# fix 97-wp-login.yaml already applies at priority 39 for the same class of collision.
+priority: 42
 tags: [attack, cpanel, whm, cpsrvd, panel, login, credential-oracle]
 owns_path: [/login/]
 # Request-aware cpsrvd /login/ credential ORACLE, shared by BOTH cPanel (route 382) and WHM (route
@@ -9,6 +16,9 @@ owns_path: [/login/]
 # (it answers both from the one `/login/` handler). /login/ has no exact-store route of its own (only
 # the GET-served /cpanel and /whm pages do), so this rule's owns_path claim is belt-and-suspenders:
 # it lets a future static /login page be overridden the same way 97-wp-login.yaml overrides route 50.
+# Being path-anchored to /login/ (the `path` match condition below), pulling this rule's priority
+# below the broad archetypes only intercepts /login/ POSTs — it does NOT shadow those rules on any
+# other path, so their coverage elsewhere is unaffected.
 #
 # ZERO EXECUTION: the ONLY body read is the bounded `user` field, captured purely to gate the match —
 # it is NEVER reflected in either branch. There is NO success path: real cpsrvd answers bad
