@@ -82,8 +82,11 @@ final class PhpMyAdminMockAuthTest extends TestCase
         );
 
         // The build-time guard this task requires: the merged corpus grew by exactly these 2 rules,
-        // and Agent A's ai-ollama pack + the CRS pack both survived the recompile untouched.
-        self::assertCount(59, $rules, 'compiled corpus must be 57 (baseline) + 2 (this pair)');
+        // and Agent A's ai-ollama pack + the CRS pack both survived the recompile untouched. Total
+        // count has since grown further with unrelated rules (see ZapCoverageTest for that delta);
+        // this assertion just needs to track the current total so it keeps proving THIS pair is
+        // still exactly 2 of them, not a stale absolute pin.
+        self::assertCount(61, $rules, 'compiled corpus must be 57 (original baseline) + 2 (this pair) + 2 (unrelated, since)');
         $ollama = array_filter($ids, static function (string $id): bool {
             return strpos($id, 'ai-ollama') !== false;
         });

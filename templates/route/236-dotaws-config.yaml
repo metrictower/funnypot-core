@@ -1,0 +1,29 @@
+id: route-aws-cli-config
+priority: 236
+# Brand-new page: the AWS CLI config file the .aws listing (route 234) links — wiring it keeps
+# that listing's second link live too. Region agrees with the same persona identity route 235's
+# credentials disclose, so the two files describe one coherent AWS setup.
+#
+# A generic corpus template ('aws-config') already keys this same exact path with a detect-only
+# bundle that has no authored body — its minimal synth renders the WRONG field entirely
+# (`aws_access_key_id =`, not `region =`), a worse tell than the 404 this closes. The heavy
+# weight makes THIS bundle the one the persona pick lands on (same fix compile-ai uses for the
+# same class of corpus collision); detection of the corpus template is unaffected.
+new_page:
+  method: GET
+  paths: ['/.aws/config']
+  sig: 0
+  status: 200
+  severity: high
+  tags: [exposure, cloud, aws, config]
+  name: 'Exposed AWS CLI config'
+  body_words: ['[default]', 'output = json']
+  weight: 1000
+response:
+  headers:
+    Content-Type: "text/plain; charset=utf-8"
+  body: |
+    [default]
+    region = {{persona.cloud.aws.region}}
+    output = json
+expect: ['region = ', 'output = json']

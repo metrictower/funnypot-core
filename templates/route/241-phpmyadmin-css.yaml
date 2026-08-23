@@ -1,0 +1,31 @@
+id: route-phpmyadmin-css
+priority: 241
+# Brand-new page: phpMyAdmin's own theme stylesheet. A real install always serves this asset;
+# closes a 404 a scanner hits when probing the panel's well-known asset paths directly. Hand-
+# written to loosely echo the actually-served login page's class names (attack/102-phpmyadmin-
+# gate.yaml owns the panel roots and is what a request there gets — route/240's older static stub
+# is shadowed), not copied from any phpMyAdmin release.
+new_page:
+  method: GET
+  paths: ['/phpmyadmin/phpmyadmin.css.php', '/phpMyAdmin/phpmyadmin.css.php', '/pma/phpmyadmin.css.php', '/phpmyadmin.css.php']
+  sig: 0
+  status: 200
+  severity: low
+  tags: [phpmyadmin, panel, asset]
+  name: 'phpMyAdmin theme stylesheet'
+  body_words: ['loginform', 'pma-card']
+response:
+  headers:
+    Content-Type: "text/css; charset=UTF-8"
+  body: |
+    html{-webkit-text-size-adjust:100%}
+    body.loginform{background:#eef1f5;color:#212529;font:.9rem/1.5 -apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;margin:0}
+    .pma-wrap{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:2rem 1rem}
+    .pma-card{width:100%;max-width:25rem;background:#fff;border:1px solid rgba(0,0,0,.125);border-radius:.375rem}
+    .pma-card__header{padding:.75rem 1.25rem;background:#f8f9fa;font-weight:600}
+    .pma-field label{display:block;margin-bottom:.25rem;font-weight:500}
+    .form-control,.form-select{display:block;width:100%;padding:.375rem .75rem;border:1px solid #ced4da;border-radius:.25rem}
+    .btn-primary{background:#0d6efd;border:1px solid #0d6efd;color:#fff;border-radius:.25rem;padding:.375rem .9rem}
+    #pma_errors{color:#842029;background:#f8d7da;border:1px solid #f5c2c7;border-radius:.25rem}
+    .pma-footer-version{text-align:center;color:#6c757d;font-size:.75rem}
+expect: ['loginform', 'pma-card']

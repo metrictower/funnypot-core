@@ -1,0 +1,35 @@
+id: attack-wp-admin-redirect
+severity: low
+priority: 104
+tags: [attack, wordpress, redirect, panel]
+owns_path: [/wp-admin, /wp-admin/]
+# Unauthenticated /wp-admin(/) redirect. A real WordPress admin.php calls auth_redirect(), which
+# 302s to wp-login.php?redirect_to=<self>&reauth=1 — it never 404s its own admin entry point and
+# never renders a dashboard without a session. 97-wp-login.yaml's login form links exactly this
+# redirect_to target (its `redirect_to` hidden field points at /wp-admin/), so leaving /wp-admin
+# unhandled turned our own login page's link into a dead-link tell. No authenticated surface
+# anywhere here — consistent with the project's never-authenticate convention for login oracles.
+#
+# The Location is a RELATIVE static literal built from nothing attacker-controlled (never a
+# reflected capture): wp-login.php lives at the bare root here (see 97-wp-login.yaml), not under
+# a `blog.` subdomain, and a same-host relative target carries no open-redirect risk (C8/invariant
+# #5) regardless of Host header games.
+#
+# PATH/METHOD MATCH MUST STAY AS PERMISSIVE AS owns_path: ownsPath() claims any case/trailing-
+# slash variant of /wp-admin (PathNormalizer::ownershipKey lower-cases + strips ALL trailing
+# slashes), so the path regex tolerates any COUNT of trailing slashes (`/*$`, not `/?$`) and any
+# case (`ci: true`) — a stricter match here would DECLINE on a variant the override already
+# claimed. HEAD gets the same redirect a real server gives it (no body either way).
+match:
+  - in: path
+    regex: '^/wp-admin/*$'
+    ci: true
+  - in: method
+    regex: '^(?:GET|HEAD)$'
+    ci: true
+status: 302
+response:
+  headers:
+    Location: "/wp-login.php?redirect_to=%2Fwp-admin%2F&reauth=1"
+  body: ""
+expect: ['/wp-login.php?redirect_to=%2Fwp-admin%2F&reauth=1']

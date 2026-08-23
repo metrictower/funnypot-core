@@ -1,0 +1,35 @@
+id: route-dotaws-listing
+priority: 234
+# Brand-new page: an Apache-autoindex listing of a dropped .aws config directory (no nuclei
+# template routes here). Its two linked files, credentials + config, are wired as their own
+# route templates (235/236) — a listing whose links then 404 would just move the dead-link tell
+# one level down. Compare route/230-credentials-txt.yaml (same dropped-cloud-secrets family) and
+# route/180-directory-listing.yaml (the autoindex look). Footer names the deploy persona's own
+# domain rather than a fixed host, and stays version-less.
+new_page:
+  method: GET
+  paths: ['/.aws', '/.aws/']
+  sig: 0
+  status: 200
+  severity: high
+  tags: [exposure, cloud, aws, directory-listing]
+  name: 'Exposed .aws directory listing'
+  body_words: ['Index of']
+response:
+  headers:
+    Content-Type: "text/html; charset=utf-8"
+  body: |
+    <!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 3.2 Final//EN">
+    <html><head><title>Index of /.aws</title></head>
+    <body>
+    <h1>Index of /.aws</h1>
+    <pre><a href="?C=N;O=D">Name</a>  <a href="?C=M;O=A">Last modified</a>  <a href="?C=S;O=A">Size</a>
+    <hr>
+    <a href="../">Parent Directory</a>                       -
+    <a href="credentials">credentials</a>      2024-01-01 12:00  178
+    <a href="config">config</a>                2024-01-01 12:00   92
+    <hr></pre>
+    <address>Apache Server at {{persona.company.domain}} Port 80</address>
+    </body></html>
+taunt: { mode: block, open: '<!--', close: '-->' }
+expect: ['Index of /.aws', 'credentials']

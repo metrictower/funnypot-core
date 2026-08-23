@@ -3272,6 +3272,55 @@ $ </pre>
   ),
   51 => 
   array (
+    'id' => 'attack-imds-base',
+    'severity' => 'high',
+    'tags' => 
+    array (
+      0 => 'attack',
+      1 => 'ssrf',
+      2 => 'cloud-metadata',
+      3 => 'imds',
+      4 => 'aws',
+    ),
+    'status' => 200,
+    'match' => 
+    array (
+      0 => 
+      array (
+        'in' => 'path',
+        'regex' => '^/latest/meta-data/?$',
+      ),
+    ),
+    'response' => 
+    array (
+      'headers' => 
+      array (
+        'Content-Type' => 'text/plain',
+      ),
+      'body' => 'ami-id
+ami-launch-index
+block-device-mapping/
+hostname
+iam/
+instance-id
+instance-type
+local-hostname
+local-ipv4
+mac
+metrics/
+network/
+placement/
+public-hostname
+public-ipv4
+security-groups
+',
+    ),
+    'lit' => '/latest/meta-data',
+    'lit_in' => 'path',
+    'lit_ci' => true,
+  ),
+  52 => 
+  array (
     'id' => 'attack-ignition-execute-solution',
     'severity' => 'high',
     'tags' => 
@@ -3359,7 +3408,7 @@ $ </pre>
       ),
     ),
   ),
-  52 => 
+  53 => 
   array (
     'id' => 'attack-webmin-session-login',
     'severity' => 'high',
@@ -3429,7 +3478,7 @@ $ </pre>
     'lit_in' => 'method',
     'lit_ci' => false,
   ),
-  53 => 
+  54 => 
   array (
     'id' => 'attack-jenkins-acegi-login',
     'severity' => 'high',
@@ -3477,7 +3526,7 @@ $ </pre>
     'lit_in' => 'method',
     'lit_ci' => false,
   ),
-  54 => 
+  55 => 
   array (
     'id' => 'attack-hnap-login',
     'severity' => 'high',
@@ -3562,7 +3611,50 @@ $ </pre>
       ),
     ),
   ),
-  55 => 
+  56 => 
+  array (
+    'id' => 'attack-wp-admin-redirect',
+    'severity' => 'low',
+    'tags' => 
+    array (
+      0 => 'attack',
+      1 => 'wordpress',
+      2 => 'redirect',
+      3 => 'panel',
+    ),
+    'status' => 302,
+    'match' => 
+    array (
+      0 => 
+      array (
+        'in' => 'path',
+        'regex' => '^/wp-admin/*$',
+        'ci' => true,
+      ),
+      1 => 
+      array (
+        'in' => 'method',
+        'regex' => '^(?:GET|HEAD)$',
+        'ci' => true,
+      ),
+    ),
+    'response' => 
+    array (
+      'headers' => 
+      array (
+        'Location' => '/wp-login.php?redirect_to=%2Fwp-admin%2F&reauth=1',
+      ),
+      'body' => '',
+    ),
+    'lit' => '/wp-admin',
+    'lit_in' => 'path',
+    'lit_ci' => true,
+    'owns_path' => 
+    array (
+      0 => '/wp-admin',
+    ),
+  ),
+  57 => 
   array (
     'id' => 'attack-crs-sqli',
     'severity' => 'high',
@@ -3592,7 +3684,7 @@ $ </pre>
 ',
     ),
   ),
-  56 => 
+  58 => 
   array (
     'id' => 'attack-crs-xss',
     'severity' => 'high',
@@ -3624,7 +3716,7 @@ $ </pre>
 ',
     ),
   ),
-  57 => 
+  59 => 
   array (
     'id' => 'attack-crs-lfi',
     'severity' => 'high',
@@ -3653,7 +3745,7 @@ $ </pre>
       'body' => '{{canned.passwd}}',
     ),
   ),
-  58 => 
+  60 => 
   array (
     'id' => 'attack-crs-rce',
     'severity' => 'critical',

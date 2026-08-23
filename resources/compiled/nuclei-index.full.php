@@ -84388,6 +84388,53 @@ return array (
       ),
       'name' => 'Exposed Ollama running models',
     ),
+    'route-dotaws-listing' => 
+    array (
+      'sev' => 'high',
+      'tags' => 
+      array (
+        0 => 'exposure',
+        1 => 'cloud',
+        2 => 'aws',
+        3 => 'directory-listing',
+      ),
+      'name' => 'Exposed .aws directory listing',
+    ),
+    'route-aws-cli-credentials' => 
+    array (
+      'sev' => 'high',
+      'tags' => 
+      array (
+        0 => 'exposure',
+        1 => 'cloud',
+        2 => 'aws',
+        3 => 'credentials',
+      ),
+      'name' => 'Exposed AWS CLI credentials',
+    ),
+    'route-aws-cli-config' => 
+    array (
+      'sev' => 'high',
+      'tags' => 
+      array (
+        0 => 'exposure',
+        1 => 'cloud',
+        2 => 'aws',
+        3 => 'config',
+      ),
+      'name' => 'Exposed AWS CLI config',
+    ),
+    'route-phpmyadmin-css' => 
+    array (
+      'sev' => 'low',
+      'tags' => 
+      array (
+        0 => 'phpmyadmin',
+        1 => 'panel',
+        2 => 'asset',
+      ),
+      'name' => 'phpMyAdmin theme stylesheet',
+    ),
   ),
   'routes' => 
   array (
@@ -90654,6 +90701,26 @@ return array (
             0 => 'aws-config',
           ),
         ),
+        1 => 
+        array (
+          's' => 200,
+          'bw' => 
+          array (
+            0 => '[default]',
+            1 => 'output = json',
+          ),
+          'nf' => 
+          array (
+          ),
+          'pid' => 'route-aws-cli-config',
+          'sev' => 'high',
+          'sig' => 0,
+          't' => 
+          array (
+            0 => 'route-aws-cli-config',
+          ),
+          'w' => 1000,
+        ),
       ),
     ),
     'GET /.aws/credentials' => 
@@ -90689,6 +90756,26 @@ return array (
           array (
             0 => 'aws-credentials',
           ),
+        ),
+        1 => 
+        array (
+          's' => 200,
+          'bw' => 
+          array (
+            0 => 'aws_access_key_id',
+            1 => 'aws_secret_access_key',
+          ),
+          'nf' => 
+          array (
+          ),
+          'pid' => 'route-aws-cli-credentials',
+          'sev' => 'high',
+          'sig' => 0,
+          't' => 
+          array (
+            0 => 'route-aws-cli-credentials',
+          ),
+          'w' => 1000,
         ),
       ),
     ),
@@ -300013,6 +300100,154 @@ a</title>',
             0 => 'route-ai-ollama-ps',
           ),
           'w' => 1000,
+        ),
+      ),
+    ),
+    'GET /.aws' => 
+    array (
+      'b' => 
+      array (
+        0 => 
+        array (
+          's' => 200,
+          'bw' => 
+          array (
+            0 => 'Index of',
+          ),
+          'nf' => 
+          array (
+          ),
+          'pid' => 'route-dotaws-listing',
+          'sev' => 'high',
+          'sig' => 0,
+          't' => 
+          array (
+            0 => 'route-dotaws-listing',
+          ),
+        ),
+      ),
+    ),
+    'GET /.aws/' => 
+    array (
+      'b' => 
+      array (
+        0 => 
+        array (
+          's' => 200,
+          'bw' => 
+          array (
+            0 => 'Index of',
+          ),
+          'nf' => 
+          array (
+          ),
+          'pid' => 'route-dotaws-listing',
+          'sev' => 'high',
+          'sig' => 0,
+          't' => 
+          array (
+            0 => 'route-dotaws-listing',
+          ),
+        ),
+      ),
+    ),
+    'GET /phpmyadmin/phpmyadmin.css.php' => 
+    array (
+      'b' => 
+      array (
+        0 => 
+        array (
+          's' => 200,
+          'bw' => 
+          array (
+            0 => 'loginform',
+            1 => 'pma-card',
+          ),
+          'nf' => 
+          array (
+          ),
+          'pid' => 'route-phpmyadmin-css',
+          'sev' => 'low',
+          'sig' => 0,
+          't' => 
+          array (
+            0 => 'route-phpmyadmin-css',
+          ),
+        ),
+      ),
+    ),
+    'GET /phpMyAdmin/phpmyadmin.css.php' => 
+    array (
+      'b' => 
+      array (
+        0 => 
+        array (
+          's' => 200,
+          'bw' => 
+          array (
+            0 => 'loginform',
+            1 => 'pma-card',
+          ),
+          'nf' => 
+          array (
+          ),
+          'pid' => 'route-phpmyadmin-css',
+          'sev' => 'low',
+          'sig' => 0,
+          't' => 
+          array (
+            0 => 'route-phpmyadmin-css',
+          ),
+        ),
+      ),
+    ),
+    'GET /pma/phpmyadmin.css.php' => 
+    array (
+      'b' => 
+      array (
+        0 => 
+        array (
+          's' => 200,
+          'bw' => 
+          array (
+            0 => 'loginform',
+            1 => 'pma-card',
+          ),
+          'nf' => 
+          array (
+          ),
+          'pid' => 'route-phpmyadmin-css',
+          'sev' => 'low',
+          'sig' => 0,
+          't' => 
+          array (
+            0 => 'route-phpmyadmin-css',
+          ),
+        ),
+      ),
+    ),
+    'GET /phpmyadmin.css.php' => 
+    array (
+      'b' => 
+      array (
+        0 => 
+        array (
+          's' => 200,
+          'bw' => 
+          array (
+            0 => 'loginform',
+            1 => 'pma-card',
+          ),
+          'nf' => 
+          array (
+          ),
+          'pid' => 'route-phpmyadmin-css',
+          'sev' => 'low',
+          'sig' => 0,
+          't' => 
+          array (
+            0 => 'route-phpmyadmin-css',
+          ),
         ),
       ),
     ),

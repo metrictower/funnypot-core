@@ -1,0 +1,34 @@
+id: attack-imds-base
+severity: high
+priority: 91
+tags: [attack, ssrf, cloud-metadata, imds, aws]
+# The bare IMDSv1 category listing (no deeper suffix) — closes a gap next to 90-imds.yaml,
+# which only matches the deeper credential/identity sub-paths. A real EC2 instance answers
+# THIS path first, before a caller even knows which IAM role name to walk further, so it is
+# the highest-signal miss in the IMDS family (found via a ZAP scan of this honeypot). Learn-
+# don't-vendor: the category list is the real, unversioned IMDSv1 shape, not copied from a
+# scanner or tool. Inert — no secrets here; the deeper credential leaf stays 90-imds's job.
+match:
+  - in: path
+    regex: '^/latest/meta-data/?$'
+response:
+  headers:
+    Content-Type: "text/plain"
+  body: |
+    ami-id
+    ami-launch-index
+    block-device-mapping/
+    hostname
+    iam/
+    instance-id
+    instance-type
+    local-hostname
+    local-ipv4
+    mac
+    metrics/
+    network/
+    placement/
+    public-hostname
+    public-ipv4
+    security-groups
+expect: ['ami-id', 'instance-id']
