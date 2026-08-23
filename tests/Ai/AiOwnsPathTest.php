@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Funnypot\Tests\Ai;
 
 use Funnypot\Ai\ModelCatalog;
+use Funnypot\Compiler\Crs\FingerprintGuard;
 use Funnypot\Config;
 use Funnypot\Honeypot;
 use Funnypot\RequestContext;
@@ -16,6 +17,8 @@ use PHPUnit\Framework\TestCase;
  * The AI owns_path attack tier (compiled by `funnypot compile-ai` into templates/attack-ai/).
  *  - A4b: the three Ollama GET recon pages (/api/version, /api/tags, /api/ps) are CLAIMED via
  *    owns_path, so the AI fake wins deterministically instead of losing a persona-weight lottery.
+ *  - A6:  /api/show reflects a known catalog model's full show payload; an unknown model is a 404
+ *    that reflects the (quote-safe) captured name.
  * Bodies stay catalog-derived — ModelCatalog is the single source of truth.
  */
 final class AiOwnsPathTest extends TestCase
@@ -112,5 +115,76 @@ final class AiOwnsPathTest extends TestCase
                 "{$path} POST must not match the GET recon rule"
             );
         }
+    }
+
+    // --- A6: /api/show -----------------------------------------------------------------------
+
+    public function test_api_show_is_owned(): void
+    {
+        self::assertTrue($this->emulator()->ownsPath('/api/show'));
+    }
+
+    public function test_api_show_reflects_every_known_model(): void
+    {
+        $em = $this->emulator();
+        $cat = $this->catalog();
+        $guard = FingerprintGuard::fromPackage();
+
+        foreach ($cat->all() as $entry) {
+            $name = (string) $entry['name'];
+            $r = $em->emulate(new RequestContext('POST', '/api/show', '', [], '{"model":"' . $name . '"}'));
+            self::assertNotNull($r, "{$name} must serve");
+            self::assertSame(200, $r->status, "{$name} status");
+            self::assertSame(self::JSON_CT, $r->headers['Content-Type'] ?? null, "{$name} Content-Type");
+            // Byte-identity to the catalog projection proves the escaped `{{ .Prompt }}` round-trips.
+            self::assertSame(
+                (string) json_encode($cat->ollamaShow($name), JSON_UNESCAPED_SLASHES),
+                $r->body,
+                "{$name} body must equal ollamaShow()"
+            );
+            self::assertSame(['attack-ai-ollama-show'], $r->satisfies->templateIds(), "{$name} rule id");
+            // No served show body may leak a detector fingerprint token.
+            self::assertSame([], $guard->scan($r->body), "{$name} show body must be fingerprint-clean");
+        }
+    }
+
+    public function test_api_show_first_model_carries_show_markers(): void
+    {
+        $cat = $this->catalog();
+        $first = (string) $cat->all()[0]['name'];
+        $r = $this->emulator()->emulate(new RequestContext('POST', '/api/show', '', [], '{"model":"' . $first . '"}'));
+        self::assertNotNull($r);
+        self::assertSame(200, $r->status);
+        self::assertStringContainsString('"model_info"', $r->body);
+        self::assertStringContainsString('"parameter_size":"' . (string) $cat->all()[0]['parameter_size'] . '"', $r->body);
+        // The Ollama Modelfile template literal survived the render-layer escape verbatim.
+        self::assertStringContainsString('{{ .Prompt }}', $r->body);
+    }
+
+    public function test_api_show_unknown_model_is_a_404(): void
+    {
+        $r = $this->emulator()->emulate(new RequestContext('POST', '/api/show', '', [], '{"model":"zzz:9b"}'));
+        self::assertNotNull($r);
+        self::assertSame(404, $r->status);
+        self::assertSame(self::JSON_CT, $r->headers['Content-Type'] ?? null);
+        self::assertSame('{"error":"model \'zzz:9b\' not found"}', $r->body);
+        self::assertSame(['attack-ai-ollama-show'], $r->satisfies->templateIds());
+    }
+
+    public function test_api_show_reflected_model_cannot_break_the_json(): void
+    {
+        // The capture class [^"] stops at the first quote, so a model value carrying a quote can never
+        // escape the JSON string it is reflected into — the 404 stays valid, parseable JSON.
+        $r = $this->emulator()->emulate(new RequestContext('POST', '/api/show', '', [], '{"model":"a"b"}'));
+        self::assertNotNull($r);
+        self::assertSame(404, $r->status);
+        self::assertNotNull(json_decode($r->body), 'the reflected 404 must stay valid JSON');
+        self::assertSame('{"error":"model \'a\' not found"}', $r->body);
+    }
+
+    public function test_api_show_requires_a_post(): void
+    {
+        // A GET to /api/show misses the POST-gated match; no other rule claims it, so nothing serves.
+        self::assertNull($this->emulator()->emulate(new RequestContext('GET', '/api/show')));
     }
 }
