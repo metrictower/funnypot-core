@@ -2040,6 +2040,73 @@ Ethernet adapter Ethernet0:
   ),
   28 => 
   array (
+    'id' => 'attack-ai-v1-models',
+    'severity' => 'medium',
+    'tags' => 
+    array (
+      0 => 'ai-recon',
+      1 => 'exposure',
+      2 => 'appliance',
+    ),
+    'status' => 200,
+    'match' => 
+    array (
+      0 => 
+      array (
+        'in' => 'path',
+        'regex' => '^/v1/models/?$',
+        'ci' => false,
+      ),
+      1 => 
+      array (
+        'in' => 'method',
+        'regex' => '^GET$',
+        'ci' => false,
+      ),
+    ),
+    'response' => 
+    array (
+      'headers' => 
+      array (
+        'Content-Type' => 'application/json',
+      ),
+      'body' => '{"object":"list","data":[{"id":"kimi-k3","object":"model","created":1769904000,"owned_by":"moonshotai"},{"id":"qwen3-235b","object":"model","created":1769904000,"owned_by":"qwen"},{"id":"glm-4.6","object":"model","created":1769904000,"owned_by":"zai-org"},{"id":"deepseek-v3.2","object":"model","created":1769904000,"owned_by":"deepseek-ai"},{"id":"mistral-large","object":"model","created":1769904000,"owned_by":"mistralai"},{"id":"nemotron-3-super","object":"model","created":1769904000,"owned_by":"nvidia"},{"id":"gpt-oss-120b","object":"model","created":1769904000,"owned_by":"openai"},{"id":"gemma-3-27b","object":"model","created":1769904000,"owned_by":"google"},{"id":"big-pickle","object":"model","created":1769904000,"owned_by":"opencode-zen"}]}',
+    ),
+    'lit' => '/v1/models',
+    'lit_in' => 'path',
+    'lit_ci' => false,
+    'owns_path' => 
+    array (
+      0 => '/v1/models',
+    ),
+    'behavior' => 'branch',
+    'branch' => 
+    array (
+      'cases' => 
+      array (
+        0 => 
+        array (
+          'when' => 
+          array (
+            'in' => 'header:anthropic-version',
+            'regex' => '.+',
+            'ci' => false,
+          ),
+          'response' => 
+          array (
+            'headers' => 
+            array (
+              'Content-Type' => 'application/json',
+            ),
+            'body' => '{"data":[{"id":"kimi-k3","type":"model","display_name":"Kimi K3","created_at":"2026-08-01T00:00:00Z"},{"id":"qwen3-235b","type":"model","display_name":"Qwen3 235B","created_at":"2026-08-01T00:00:00Z"},{"id":"glm-4.6","type":"model","display_name":"GLM-4.6","created_at":"2026-08-01T00:00:00Z"},{"id":"deepseek-v3.2","type":"model","display_name":"DeepSeek V3.2","created_at":"2026-08-01T00:00:00Z"},{"id":"mistral-large","type":"model","display_name":"Mistral Large","created_at":"2026-08-01T00:00:00Z"},{"id":"nemotron-3-super","type":"model","display_name":"Nemotron 3 Super","created_at":"2026-08-01T00:00:00Z"},{"id":"gpt-oss-120b","type":"model","display_name":"GPT-OSS 120B","created_at":"2026-08-01T00:00:00Z"},{"id":"gemma-3-27b","type":"model","display_name":"Gemma 3 27B","created_at":"2026-08-01T00:00:00Z"},{"id":"big-pickle","type":"model","display_name":"Big Pickle","created_at":"2026-08-01T00:00:00Z"}],"first_id":"kimi-k3","has_more":false,"last_id":"big-pickle"}',
+            'status' => 200,
+          ),
+        ),
+      ),
+    ),
+  ),
+  29 => 
+  array (
     'id' => 'attack-ssti-twig',
     'severity' => 'high',
     'tags' => 
@@ -2067,7 +2134,7 @@ Ethernet adapter Ethernet0:
 ',
     ),
   ),
-  29 => 
+  30 => 
   array (
     'id' => 'attack-ssti-numeric',
     'severity' => 'high',
@@ -2095,7 +2162,7 @@ Ethernet adapter Ethernet0:
 ',
     ),
   ),
-  30 => 
+  31 => 
   array (
     'id' => 'attack-php-glastopf',
     'severity' => 'critical',
@@ -2127,7 +2194,7 @@ Ethernet adapter Ethernet0:
     'lit_in' => 'request',
     'lit_ci' => true,
   ),
-  31 => 
+  32 => 
   array (
     'id' => 'attack-sqli',
     'severity' => 'high',
@@ -2155,7 +2222,7 @@ Ethernet adapter Ethernet0:
 ',
     ),
   ),
-  32 => 
+  33 => 
   array (
     'id' => 'attack-open-redirect',
     'severity' => 'medium',
@@ -2184,7 +2251,7 @@ Ethernet adapter Ethernet0:
       'body' => '<html><head><title>302 Found</title></head><body>Redirecting...</body></html>',
     ),
   ),
-  33 => 
+  34 => 
   array (
     'id' => 'attack-xss',
     'severity' => 'medium',
@@ -2215,7 +2282,7 @@ Ethernet adapter Ethernet0:
 ',
     ),
   ),
-  34 => 
+  35 => 
   array (
     'id' => 'attack-thinkphp-rce',
     'severity' => 'critical',
@@ -2251,7 +2318,7 @@ Ethernet adapter Ethernet0:
 ',
     ),
   ),
-  35 => 
+  36 => 
   array (
     'id' => 'attack-owncloud-49103',
     'severity' => 'high',
@@ -2294,7 +2361,7 @@ Ethernet adapter Ethernet0:
     'lit_in' => 'path',
     'lit_ci' => true,
   ),
-  36 => 
+  37 => 
   array (
     'id' => 'attack-f5-1388',
     'severity' => 'critical',
@@ -2328,7 +2395,7 @@ Ethernet adapter Ethernet0:
     'lit_in' => 'path',
     'lit_ci' => true,
   ),
-  37 => 
+  38 => 
   array (
     'id' => 'attack-geoserver-36401',
     'severity' => 'critical',
@@ -2371,7 +2438,7 @@ Ethernet adapter Ethernet0:
     'lit_in' => 'path',
     'lit_ci' => true,
   ),
-  38 => 
+  39 => 
   array (
     'id' => 'attack-fortios-40684',
     'severity' => 'critical',
@@ -2410,7 +2477,7 @@ Ethernet adapter Ethernet0:
     'lit_in' => 'path',
     'lit_ci' => true,
   ),
-  39 => 
+  40 => 
   array (
     'id' => 'attack-ivanti-21887',
     'severity' => 'critical',
@@ -2445,7 +2512,7 @@ Ethernet adapter Ethernet0:
     'lit_in' => 'request',
     'lit_ci' => true,
   ),
-  40 => 
+  41 => 
   array (
     'id' => 'attack-citrix-bleed-4966',
     'severity' => 'critical',
@@ -2480,7 +2547,7 @@ Ethernet adapter Ethernet0:
     'lit_in' => 'path',
     'lit_ci' => true,
   ),
-  41 => 
+  42 => 
   array (
     'id' => 'attack-webshell-panel',
     'severity' => 'critical',
@@ -2515,7 +2582,7 @@ $ </pre>
 ',
     ),
   ),
-  42 => 
+  43 => 
   array (
     'id' => 'attack-spring-actuator',
     'severity' => 'high',
@@ -2548,7 +2615,7 @@ $ </pre>
     'lit_in' => 'path',
     'lit_ci' => true,
   ),
-  43 => 
+  44 => 
   array (
     'id' => 'attack-cloud-imds',
     'severity' => 'high',
@@ -2585,7 +2652,7 @@ $ </pre>
 ',
     ),
   ),
-  44 => 
+  45 => 
   array (
     'id' => 'attack-ignition-execute-solution',
     'severity' => 'high',
@@ -2674,7 +2741,7 @@ $ </pre>
       ),
     ),
   ),
-  45 => 
+  46 => 
   array (
     'id' => 'attack-webmin-session-login',
     'severity' => 'high',
@@ -2744,7 +2811,7 @@ $ </pre>
     'lit_in' => 'method',
     'lit_ci' => false,
   ),
-  46 => 
+  47 => 
   array (
     'id' => 'attack-jenkins-acegi-login',
     'severity' => 'high',
@@ -2792,7 +2859,7 @@ $ </pre>
     'lit_in' => 'method',
     'lit_ci' => false,
   ),
-  47 => 
+  48 => 
   array (
     'id' => 'attack-hnap-login',
     'severity' => 'high',
@@ -2877,7 +2944,7 @@ $ </pre>
       ),
     ),
   ),
-  48 => 
+  49 => 
   array (
     'id' => 'attack-crs-sqli',
     'severity' => 'high',
@@ -2907,7 +2974,7 @@ $ </pre>
 ',
     ),
   ),
-  49 => 
+  50 => 
   array (
     'id' => 'attack-crs-xss',
     'severity' => 'high',
@@ -2939,7 +3006,7 @@ $ </pre>
 ',
     ),
   ),
-  50 => 
+  51 => 
   array (
     'id' => 'attack-crs-lfi',
     'severity' => 'high',
@@ -2968,7 +3035,7 @@ $ </pre>
       'body' => '{{canned.passwd}}',
     ),
   ),
-  51 => 
+  52 => 
   array (
     'id' => 'attack-crs-rce',
     'severity' => 'critical',
