@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Funnypot\Compiler;
 
+use Funnypot\Support\PathNormalizer;
 use Funnypot\Support\PersonaIdentity;
 use Funnypot\Template\DirectiveRenderer;
 use RuntimeException;
@@ -133,6 +134,21 @@ final class EmulatorCompiler
             $rule['lit'] = $literal['lit'];
             $rule['lit_in'] = $literal['in'];
             $rule['lit_ci'] = $literal['ci'];
+        }
+
+        // Optional path ownership: paths this request-aware rule claims from the static exact-store.
+        // Canonicalized to the ownership key so the engine's ownsPath() lookup collapses case /
+        // trailing-slash probe variants. A plain path, never a signature (fingerprint-safe).
+        if (isset($doc['owns_path'])) {
+            $owns = [];
+            foreach ((array) $doc['owns_path'] as $p) {
+                $p = (string) $p;
+                if ($p === '' || $p[0] !== '/') {
+                    throw new RuntimeException("Template {$file}: owns_path entry '{$p}' must be an absolute path.");
+                }
+                $owns[] = PathNormalizer::ownershipKey($p);
+            }
+            $rule['owns_path'] = array_values(array_unique($owns));
         }
 
         // An optional named behavior primitive. The base `response` above stays the ultimate
