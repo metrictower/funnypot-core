@@ -141,6 +141,15 @@ if ($command === 'compile-ai') {
             'expect' => ['"models"', $firstModel],
             'payload' => $catalog->ollamaTags(),
         ],
+        'ai-ollama-ps' => [
+            'id' => 'route-ai-ollama-ps',
+            'priority' => 272,
+            'name' => 'Exposed Ollama running models',
+            'paths' => ['/api/ps'],
+            'body_words' => ['"models"'],
+            'expect' => ['"size_vram"', '"expires_at"'],
+            'payload' => $catalog->ollamaPs(),
+        ],
     ];
 
     if (!is_dir($genDir)) {

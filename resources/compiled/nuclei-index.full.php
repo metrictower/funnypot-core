@@ -84377,6 +84377,17 @@ return array (
       ),
       'name' => 'Exposed Ollama model list',
     ),
+    'route-ai-ollama-ps' => 
+    array (
+      'sev' => 'medium',
+      'tags' => 
+      array (
+        0 => 'ai-recon',
+        1 => 'exposure',
+        2 => 'appliance',
+      ),
+      'name' => 'Exposed Ollama running models',
+    ),
   ),
   'routes' => 
   array (
@@ -299977,6 +299988,31 @@ a</title>',
           array (
             0 => 'route-whm-login',
           ),
+        ),
+      ),
+    ),
+    'GET /api/ps' => 
+    array (
+      'b' => 
+      array (
+        0 => 
+        array (
+          's' => 200,
+          'bw' => 
+          array (
+            0 => '"models"',
+          ),
+          'nf' => 
+          array (
+          ),
+          'pid' => 'route-ai-ollama-ps',
+          'sev' => 'medium',
+          'sig' => 0,
+          't' => 
+          array (
+            0 => 'route-ai-ollama-ps',
+          ),
+          'w' => 1000,
         ),
       ),
     ),

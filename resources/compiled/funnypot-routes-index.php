@@ -7,6 +7,17 @@ declare(strict_types=1);
 return array (
   'templates' => 
   array (
+    'route-ai-ollama-ps' => 
+    array (
+      'sev' => 'medium',
+      'tags' => 
+      array (
+        0 => 'ai-recon',
+        1 => 'exposure',
+        2 => 'appliance',
+      ),
+      'name' => 'Exposed Ollama running models',
+    ),
     'route-ai-ollama-tags' => 
     array (
       'sev' => 'medium',
@@ -561,6 +572,28 @@ return array (
   ),
   'routes' => 
   array (
+    'GET /api/ps' => 
+    array (
+      0 => 
+      array (
+        's' => 200,
+        'bw' => 
+        array (
+          0 => '"models"',
+        ),
+        'nf' => 
+        array (
+        ),
+        'pid' => 'route-ai-ollama-ps',
+        'sev' => 'medium',
+        'sig' => 0,
+        't' => 
+        array (
+          0 => 'route-ai-ollama-ps',
+        ),
+        'w' => 1000,
+      ),
+    ),
     'GET /api/tags' => 
     array (
       0 => 

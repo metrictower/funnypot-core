@@ -141,6 +141,7 @@ final class NewPageRoutingTest extends TestCase
             // by `funnypot compile-ai` into templates/generated/, one source of truth in ModelCatalog).
             'ollama version'          => ['/api/version', 200, '"version"', 'application/json; charset=utf-8'],
             'ollama tags'             => ['/api/tags', 200, 'kimi-k3:2.8t', 'application/json; charset=utf-8'],
+            'ollama ps'               => ['/api/ps', 200, '"size_vram"', 'application/json; charset=utf-8'],
 
             // Config-file disclosure pack (M8). Each leaks persona-seeded secrets and MUST serve the
             // Content-Type its file/endpoint type implies (a mismatch is a honeypot tell).
@@ -769,6 +770,25 @@ final class NewPageRoutingTest extends TestCase
             self::assertSame($expected, $resp->body, "seed {$seed}: /api/tags must serve the exact ModelCatalog->ollamaTags() body");
             self::assertStringContainsString('kimi-k3:2.8t', $resp->body, "seed {$seed}: /api/tags must list the first catalog model");
             self::assertStringContainsString('"quantization_level"', $resp->body, "seed {$seed}: /api/tags must carry the quantization_level detail");
+        }
+    }
+
+    public function test_ollama_ps_is_catalog_derived(): void
+    {
+        // /api/ps (the Ollama "running models" view) is compiled by `funnypot compile-ai` from the same
+        // ModelCatalog, so the served body must be byte-identical to json_encode($catalog->ollamaPs()) —
+        // one source of truth. That guarantees the loaded-model view carries the size_vram and expires_at
+        // fields a real running daemon reports. /api/ps is a brand-new path (single bundle), so one check
+        // is deterministic, but sweep a few seeds to match the tags coverage.
+        $expected = (string) json_encode(ModelCatalog::fromPackage()->ollamaPs(), JSON_UNESCAPED_SLASHES);
+        for ($seed = 0; $seed <= 20; $seed++) {
+            $resp = $this->seededInverter((string) $seed, 'realistic')->respond(new RequestContext('GET', '/api/ps'));
+            self::assertNotNull($resp, "seed {$seed}: /api/ps must serve a fake");
+            self::assertSame(200, $resp->status, "seed {$seed}: /api/ps status");
+            self::assertSame('application/json; charset=utf-8', $resp->headers['Content-Type'] ?? null, "seed {$seed}: /api/ps Content-Type");
+            self::assertSame($expected, $resp->body, "seed {$seed}: /api/ps must serve the exact ModelCatalog->ollamaPs() body");
+            self::assertStringContainsString('"size_vram"', $resp->body, "seed {$seed}: /api/ps must carry size_vram");
+            self::assertStringContainsString('"expires_at"', $resp->body, "seed {$seed}: /api/ps must carry expires_at");
         }
     }
 
