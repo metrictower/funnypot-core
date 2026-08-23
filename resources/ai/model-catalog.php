@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 /**
  * Shared model catalog for the fake AI-inference API surfaces (Ollama /api/tags,
  * /api/ps, /api/show; OpenAI-compatible /v1/models; Anthropic-compatible
@@ -20,9 +22,11 @@
  *  - gpt-oss:120b      https://ollama.com/library/gpt-oss            (OpenAI, 120B MoE, MXFP4, 128K ctx)
  *  - gemma3:27b        https://ollama.com/library/gemma3             (Google, 27B dense, 128K ctx)
  *
- * "big pickle" (candidate from the task brief) was dropped: it resolves only to
- * an OpenCode Zen routing alias with no disclosed weights/vendor/param count, so
- * it can't be verified as a real model — never vendored here.
+ * "big-pickle" is the one intentional exception to the "real, verified model" rule
+ * above: it's an OpenCode Zen router alias with no public weights, advertised as an
+ * exotic/premium rig headline. Its vendor/size/param count are fabricated like every
+ * other non-name field. Appended last so callers that key off the first entry still
+ * land on a verified model.
  */
 
 return [
@@ -129,5 +133,18 @@ return [
         'parameter_size' => '27B',
         'quantization_level' => 'Q4_K_M',
         'context_length' => 131072,
+    ],
+    [
+        'name' => 'big-pickle:1.5t',
+        'openai_id' => 'big-pickle',
+        'display_name' => 'Big Pickle',
+        'owned_by' => 'opencode-zen',
+        'size' => 1520000000000,
+        'digest' => 'b1c47f0a2e8d3c6b5a04f19e72d8c3b6a0f5e2d7c4b1a8f36e0d5c2b7a4f18e63',
+        'family' => 'pickle',
+        'families' => ['pickle'],
+        'parameter_size' => '1.5T',
+        'quantization_level' => 'Q4_K_M',
+        'context_length' => 262144,
     ],
 ];
