@@ -1,0 +1,33 @@
+id: route-openapi-redoc
+priority: 332
+# Enrich: the corpus routes /openapi to the `redoc-api-docs` bundle (body word `__REDOC_EXPORT`,
+# typed Content-Type text/html). This is the ReDoc docs viewer a scanner recognises as an exposed
+# API-docs UI. Minimal synth would emit the bare word; here we dress the real ReDoc HTML shell that
+# loads this host's spec. Content-Type is text/html (the bundle's typed header). The `__REDOC_EXPORT`
+# global is authored naturally, as ReDoc's standalone bundle sets it.
+match:
+  template_needle: [redoc-api-docs]
+response:
+  headers:
+    Content-Type: "text/html; charset=utf-8"
+  body: |
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <meta charset="utf-8"/>
+      <title>{{persona.company.name}} API — ReDoc</title>
+    </head>
+    <body>
+      <redoc spec-url="/openapi.json"></redoc>
+      <script src="/redoc/redoc.standalone.js"></script>
+      <script>
+        Redoc.init("/openapi.json", {}, document.querySelector("redoc"));
+        window.__REDOC_EXPORT = Redoc;
+      </script>
+    </body>
+    </html>
+taunt: { mode: block, open: '<!--', close: '-->' }
+expect:
+  - '__REDOC_EXPORT'
+  - 'Redoc.init'
+  - 'spec-url="/openapi.json"'

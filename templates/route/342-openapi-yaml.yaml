@@ -1,0 +1,62 @@
+id: route-swagger-yaml-doc
+priority: 342
+# Brand-new page: /openapi.yaml — the same OpenAPI 3.0 API surface as /openapi.json, YAML-serialized
+# (the form many toolchains publish). Served text/yaml. The id carries NO `openapi` substring, so the
+# /openapi.json `openapi` enrich can never hijack it. YAML scalar rules: version/status codes are
+# quoted so none is a bare unquoted digit run, and no value begins with `#` (which would parse as a
+# comment); the line-mode taunt appends `#` lines that carry no `key:` and so never trip that guard.
+new_page:
+  method: GET
+  paths: ['/openapi.yaml']
+  sig: 0
+  status: 200
+  severity: info
+  tags: [exposure, api, openapi, discovery]
+  name: 'Exposed OpenAPI document (YAML)'
+  body_words: ['openapi:', 'paths:']
+response:
+  headers:
+    Content-Type: "text/yaml; charset=utf-8"
+  body: |
+    openapi: "3.0.3"
+    info:
+      title: {{persona.company.name}} API
+      description: Internal REST API for {{persona.company.name}} — served from /var/www/{{persona.company.slug}}/public.
+      version: "1.8.2"
+      contact:
+        email: {{persona.user.admin.email}}
+    servers:
+      - url: https://api.{{persona.company.domain}}/v2
+        description: Production
+    paths:
+      /users:
+        get:
+          summary: List users
+          responses:
+            "200": { description: OK }
+            "401": { description: Unauthorized }
+      /orders/{id}:
+        get:
+          summary: Fetch an order
+          responses:
+            "200": { description: OK }
+            "404": { description: Not Found }
+    components:
+      securitySchemes:
+        bearerAuth:
+          type: http
+          scheme: bearer
+          bearerFormat: JWT
+        apiKey:
+          type: apiKey
+          in: header
+          name: X-API-Key
+      examples:
+        authToken:
+          summary: Example Authorization header
+          value: Bearer {{persona.secret.jwt}}
+taunt: { mode: line, open: '#' }
+expect:
+  - 'openapi: "3.0.3"'
+  - 'securitySchemes:'
+  - 'bearerFormat: JWT'

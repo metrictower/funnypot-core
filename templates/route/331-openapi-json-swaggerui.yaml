@@ -1,0 +1,37 @@
+id: route-openapi-json-swaggerui
+priority: 331
+# Enrich: /openapi.json's SECOND bundle is FastAPI's interactive docs shell (body word
+# `<title>FastAPI - Swagger UI</title>`) — a FastAPI host whose seed picks this bundle serves the
+# Swagger-UI HTML here, not the JSON doc. Minimal synth would emit the bare title; here we dress the
+# real FastAPI Swagger-UI page that loads the spec. Content-Type is text/html (the page's real type);
+# the persona seed decides per host whether /openapi.json presents the JSON doc (bundle 0) or this UI.
+match:
+  template_needle: [fastapi-docs]
+response:
+  headers:
+    Content-Type: "text/html; charset=utf-8"
+  body: |
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+      <meta charset="utf-8">
+      <title>FastAPI - Swagger UI</title>
+      <link rel="stylesheet" href="/static/swagger-ui.css">
+    </head>
+    <body>
+      <div id="swagger-ui"></div>
+      <script src="/static/swagger-ui-bundle.js"></script>
+      <script>
+        const ui = SwaggerUIBundle({
+          url: "/openapi.json",
+          dom_id: "#swagger-ui",
+          presets: [SwaggerUIBundle.presets.apis]
+        });
+      </script>
+    </body>
+    </html>
+taunt: { mode: block, open: '<!--', close: '-->' }
+expect:
+  - '<title>FastAPI - Swagger UI</title>'
+  - 'SwaggerUIBundle'
+  - 'swagger-ui'

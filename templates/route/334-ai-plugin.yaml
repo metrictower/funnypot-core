@@ -1,0 +1,30 @@
+id: route-ai-plugin
+priority: 334
+# Enrich: the corpus routes /.well-known/ai-plugin.json to the `openai-plugin` bundle (body words
+# `"schema_version":`, `"name_for_model":`). Minimal synth would emit the bare words; here we serve
+# a real ChatGPT-plugin manifest that points at this host's OpenAPI doc and leaks the admin contact,
+# persona-seeded to stay coherent. The body opens with a lone `{` so the JSON taunt (a `_comment`
+# field after the first newline) keeps the document parseable. Content-Type is application/json.
+match:
+  template_needle: [openai-plugin]
+response:
+  headers:
+    Content-Type: "application/json"
+  body: |
+    {
+    "schema_version": "v1",
+    "name_for_model": "{{persona.company.slug}}_api",
+    "name_for_human": "{{persona.company.name}} API",
+    "description_for_model": "Query the {{persona.company.name}} internal API for users, orders and auth.",
+    "description_for_human": "Access {{persona.company.name}} data.",
+    "auth": { "type": "service_http", "authorization_type": "bearer" },
+    "api": { "type": "openapi", "url": "https://api.{{persona.company.domain}}/openapi.json" },
+    "logo_url": "https://{{persona.company.domain}}/logo.png",
+    "contact_email": "{{persona.user.admin.email}}",
+    "legal_info_url": "https://{{persona.company.domain}}/legal"
+    }
+taunt: { mode: inline_field, key: '_comment' }
+expect:
+  - '"schema_version": "v1"'
+  - '"name_for_model":'
+  - '"contact_email":'

@@ -1,0 +1,36 @@
+id: route-api-v2
+priority: 345
+# Brand-new page: a generic REST v2 API index at /api/v2 — the self-describing root a scanner reads
+# to discover the versioned endpoint list and the auth scheme. Persona-seeded host, pointing at this
+# host's OpenAPI doc. Served application/json. Opens with a lone `{` for the JSON taunt. Version
+# strings are dotted (no bare digit run).
+new_page:
+  method: GET
+  paths: ['/api/v2']
+  sig: 0
+  status: 200
+  severity: info
+  tags: [exposure, api, discovery]
+  name: 'Exposed REST API index (/api/v2)'
+  body_words: ['endpoints', 'version']
+response:
+  headers:
+    Content-Type: "application/json"
+  body: |
+    {
+    "name": "{{persona.company.name}} API",
+    "version": "2.4.0",
+    "status": "ok",
+    "documentation": "https://api.{{persona.company.domain}}/openapi.json",
+    "endpoints": {
+      "users": "https://api.{{persona.company.domain}}/api/v2/users",
+      "orders": "https://api.{{persona.company.domain}}/api/v2/orders",
+      "auth": "https://api.{{persona.company.domain}}/api/v2/auth/login"
+    },
+    "authentication": { "type": "bearer", "header": "Authorization" }
+    }
+taunt: { mode: inline_field, key: '_comment' }
+expect:
+  - '"endpoints":'
+  - '"version": "2.4.0"'
+  - '"type": "bearer"'

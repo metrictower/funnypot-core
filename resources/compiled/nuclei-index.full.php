@@ -84165,6 +84165,77 @@ return array (
       ),
       'name' => 'Exposed Tomcat log (catalina.out)',
     ),
+    'route-swagger-json-doc' => 
+    array (
+      'sev' => 'info',
+      'tags' => 
+      array (
+        0 => 'exposure',
+        1 => 'api',
+        2 => 'openapi',
+        3 => 'discovery',
+      ),
+      'name' => 'Exposed OpenAPI/Swagger document',
+    ),
+    'route-swagger2-apidocs' => 
+    array (
+      'sev' => 'info',
+      'tags' => 
+      array (
+        0 => 'exposure',
+        1 => 'api',
+        2 => 'swagger',
+        3 => 'discovery',
+      ),
+      'name' => 'Exposed Swagger 2.0 document (springfox)',
+    ),
+    'route-swagger-yaml-doc' => 
+    array (
+      'sev' => 'info',
+      'tags' => 
+      array (
+        0 => 'exposure',
+        1 => 'api',
+        2 => 'openapi',
+        3 => 'discovery',
+      ),
+      'name' => 'Exposed OpenAPI document (YAML)',
+    ),
+    'route-swagger-ui-html' => 
+    array (
+      'sev' => 'info',
+      'tags' => 
+      array (
+        0 => 'exposure',
+        1 => 'api',
+        2 => 'swagger-ui',
+        3 => 'discovery',
+      ),
+      'name' => 'Exposed Swagger UI',
+    ),
+    'route-wp-json' => 
+    array (
+      'sev' => 'info',
+      'tags' => 
+      array (
+        0 => 'exposure',
+        1 => 'api',
+        2 => 'wordpress',
+        3 => 'discovery',
+      ),
+      'name' => 'Exposed WordPress REST API index',
+    ),
+    'route-api-v2' => 
+    array (
+      'sev' => 'info',
+      'tags' => 
+      array (
+        0 => 'exposure',
+        1 => 'api',
+        2 => 'discovery',
+      ),
+      'name' => 'Exposed REST API index (/api/v2)',
+    ),
   ),
   'routes' => 
   array (
@@ -299116,6 +299187,331 @@ a</title>',
           't' => 
           array (
             0 => 'route-catalina-out',
+          ),
+        ),
+      ),
+    ),
+    'GET /swagger.json' => 
+    array (
+      'b' => 
+      array (
+        0 => 
+        array (
+          's' => 200,
+          'bw' => 
+          array (
+            0 => '"openapi":',
+            1 => '"paths"',
+          ),
+          'nf' => 
+          array (
+          ),
+          'pid' => 'route-swagger-json-doc',
+          'sev' => 'info',
+          'sig' => 0,
+          't' => 
+          array (
+            0 => 'route-swagger-json-doc',
+          ),
+        ),
+      ),
+    ),
+    'GET /api/swagger.json' => 
+    array (
+      'b' => 
+      array (
+        0 => 
+        array (
+          's' => 200,
+          'bw' => 
+          array (
+            0 => '"openapi":',
+            1 => '"paths"',
+          ),
+          'nf' => 
+          array (
+          ),
+          'pid' => 'route-swagger-json-doc',
+          'sev' => 'info',
+          'sig' => 0,
+          't' => 
+          array (
+            0 => 'route-swagger-json-doc',
+          ),
+        ),
+      ),
+    ),
+    'GET /v3/api-docs' => 
+    array (
+      'b' => 
+      array (
+        0 => 
+        array (
+          's' => 200,
+          'bw' => 
+          array (
+            0 => '"openapi":',
+            1 => '"paths"',
+          ),
+          'nf' => 
+          array (
+          ),
+          'pid' => 'route-swagger-json-doc',
+          'sev' => 'info',
+          'sig' => 0,
+          't' => 
+          array (
+            0 => 'route-swagger-json-doc',
+          ),
+        ),
+      ),
+    ),
+    'GET /api-docs' => 
+    array (
+      'b' => 
+      array (
+        0 => 
+        array (
+          's' => 200,
+          'bw' => 
+          array (
+            0 => '"openapi":',
+            1 => '"paths"',
+          ),
+          'nf' => 
+          array (
+          ),
+          'pid' => 'route-swagger-json-doc',
+          'sev' => 'info',
+          'sig' => 0,
+          't' => 
+          array (
+            0 => 'route-swagger-json-doc',
+          ),
+        ),
+      ),
+    ),
+    'GET /.well-known/openapi.json' => 
+    array (
+      'b' => 
+      array (
+        0 => 
+        array (
+          's' => 200,
+          'bw' => 
+          array (
+            0 => '"openapi":',
+            1 => '"paths"',
+          ),
+          'nf' => 
+          array (
+          ),
+          'pid' => 'route-swagger-json-doc',
+          'sev' => 'info',
+          'sig' => 0,
+          't' => 
+          array (
+            0 => 'route-swagger-json-doc',
+          ),
+        ),
+      ),
+    ),
+    'GET /v2/api-docs' => 
+    array (
+      'b' => 
+      array (
+        0 => 
+        array (
+          's' => 200,
+          'bw' => 
+          array (
+            0 => '"swagger":',
+            1 => '"paths"',
+          ),
+          'nf' => 
+          array (
+          ),
+          'pid' => 'route-swagger2-apidocs',
+          'sev' => 'info',
+          'sig' => 0,
+          't' => 
+          array (
+            0 => 'route-swagger2-apidocs',
+          ),
+        ),
+      ),
+    ),
+    'GET /openapi.yaml' => 
+    array (
+      'b' => 
+      array (
+        0 => 
+        array (
+          's' => 200,
+          'bw' => 
+          array (
+            0 => 'openapi:',
+            1 => 'paths:',
+          ),
+          'nf' => 
+          array (
+          ),
+          'pid' => 'route-swagger-yaml-doc',
+          'sev' => 'info',
+          'sig' => 0,
+          't' => 
+          array (
+            0 => 'route-swagger-yaml-doc',
+          ),
+        ),
+      ),
+    ),
+    'GET /swagger-ui.html' => 
+    array (
+      'b' => 
+      array (
+        0 => 
+        array (
+          's' => 200,
+          'bw' => 
+          array (
+            0 => 'swagger-ui',
+            1 => 'SwaggerUIBundle',
+          ),
+          'nf' => 
+          array (
+          ),
+          'pid' => 'route-swagger-ui-html',
+          'sev' => 'info',
+          'sig' => 0,
+          't' => 
+          array (
+            0 => 'route-swagger-ui-html',
+          ),
+        ),
+      ),
+    ),
+    'GET /swagger-ui/index.html' => 
+    array (
+      'b' => 
+      array (
+        0 => 
+        array (
+          's' => 200,
+          'bw' => 
+          array (
+            0 => 'swagger-ui',
+            1 => 'SwaggerUIBundle',
+          ),
+          'nf' => 
+          array (
+          ),
+          'pid' => 'route-swagger-ui-html',
+          'sev' => 'info',
+          'sig' => 0,
+          't' => 
+          array (
+            0 => 'route-swagger-ui-html',
+          ),
+        ),
+      ),
+    ),
+    'GET /swagger' => 
+    array (
+      'b' => 
+      array (
+        0 => 
+        array (
+          's' => 200,
+          'bw' => 
+          array (
+            0 => 'swagger-ui',
+            1 => 'SwaggerUIBundle',
+          ),
+          'nf' => 
+          array (
+          ),
+          'pid' => 'route-swagger-ui-html',
+          'sev' => 'info',
+          'sig' => 0,
+          't' => 
+          array (
+            0 => 'route-swagger-ui-html',
+          ),
+        ),
+      ),
+    ),
+    'GET /api/__swagger__/' => 
+    array (
+      'b' => 
+      array (
+        0 => 
+        array (
+          's' => 200,
+          'bw' => 
+          array (
+            0 => 'swagger-ui',
+            1 => 'SwaggerUIBundle',
+          ),
+          'nf' => 
+          array (
+          ),
+          'pid' => 'route-swagger-ui-html',
+          'sev' => 'info',
+          'sig' => 0,
+          't' => 
+          array (
+            0 => 'route-swagger-ui-html',
+          ),
+        ),
+      ),
+    ),
+    'GET /wp-json' => 
+    array (
+      'b' => 
+      array (
+        0 => 
+        array (
+          's' => 200,
+          'bw' => 
+          array (
+            0 => 'namespaces',
+            1 => 'routes',
+          ),
+          'nf' => 
+          array (
+          ),
+          'pid' => 'route-wp-json',
+          'sev' => 'info',
+          'sig' => 0,
+          't' => 
+          array (
+            0 => 'route-wp-json',
+          ),
+        ),
+      ),
+    ),
+    'GET /api/v2' => 
+    array (
+      'b' => 
+      array (
+        0 => 
+        array (
+          's' => 200,
+          'bw' => 
+          array (
+            0 => 'endpoints',
+            1 => 'version',
+          ),
+          'nf' => 
+          array (
+          ),
+          'pid' => 'route-api-v2',
+          'sev' => 'info',
+          'sig' => 0,
+          't' => 
+          array (
+            0 => 'route-api-v2',
           ),
         ),
       ),

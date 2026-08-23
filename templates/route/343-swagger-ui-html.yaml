@@ -1,0 +1,45 @@
+id: route-swagger-ui-html
+priority: 343
+# Brand-new page: the Swagger-UI HTML shell served at the usual UI paths (/swagger-ui.html, /swagger,
+# …) — the interactive docs a recon scanner fingerprints. Loads this host's /openapi.json. Served
+# text/html (the page's real type). Leaks the deploy path in an HTML comment. No numbers on this page.
+new_page:
+  method: GET
+  paths: ['/swagger-ui.html', '/swagger-ui/index.html', '/swagger', '/api/__swagger__/']
+  sig: 0
+  status: 200
+  severity: info
+  tags: [exposure, api, swagger-ui, discovery]
+  name: 'Exposed Swagger UI'
+  body_words: ['swagger-ui', 'SwaggerUIBundle']
+response:
+  headers:
+    Content-Type: "text/html; charset=utf-8"
+  body: |
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+      <meta charset="utf-8">
+      <title>Swagger UI</title>
+      <link rel="stylesheet" href="/swagger-ui/swagger-ui.css">
+    </head>
+    <body>
+      <!-- served from /var/www/{{persona.company.slug}}/public -->
+      <div id="swagger-ui"></div>
+      <script src="/swagger-ui/swagger-ui-bundle.js"></script>
+      <script>
+        window.onload = function () {
+          window.ui = SwaggerUIBundle({
+            url: "/openapi.json",
+            dom_id: "#swagger-ui",
+            deepLinking: true
+          });
+        };
+      </script>
+    </body>
+    </html>
+taunt: { mode: block, open: '<!--', close: '-->' }
+expect:
+  - 'SwaggerUIBundle'
+  - 'swagger-ui'
+  - '/openapi.json'

@@ -10,6 +10,7 @@ use Funnypot\Honeypot;
 use Funnypot\RequestContext;
 use Funnypot\Store\PhpArrayStore;
 use PHPUnit\Framework\TestCase;
+use Symfony\Component\Yaml\Yaml;
 
 /**
  * Brand-new product pages (route templates with a new_page block, folded into the compiled
@@ -45,6 +46,22 @@ final class NewPageRoutingTest extends TestCase
             static function (RequestContext $r) use ($seed): string { return $seed; },
             'coherent',
             $style
+        ));
+    }
+
+    /** Like seededInverter, but with an explicit severity ceiling (default is 'high'). */
+    private function seededInverterCeiling(string $seed, string $style, string $ceiling): Honeypot
+    {
+        $store = new PhpArrayStore(require __DIR__ . '/../resources/compiled/nuclei-index.full.php');
+
+        return new Honeypot($store, new Config(
+            'respond',
+            static function (RequestContext $r): bool { return true; },
+            'matched-only',
+            static function (RequestContext $r) use ($seed): string { return $seed; },
+            'coherent',
+            $style,
+            $ceiling
         ));
     }
 
@@ -163,6 +180,21 @@ final class NewPageRoutingTest extends TestCase
             'actuator /loggers'     => ['/actuator/loggers', 200, 'effectiveLevel', 'application/json'],
             'actuator /threaddump'  => ['/actuator/threaddump', 200, 'RUNNABLE', 'application/json'],
             'actuator /configprops' => ['/actuator/configprops', 200, 'org.postgresql.Driver', 'application/json'],
+
+            // API-recon / API-docs disclosure pack. Each marker is a distinctive authored string that
+            // is NOT one of the bundle's body words, so its presence proves the authored (enrich or
+            // new_page) body served rather than a minimal synth of the bare body words. Content-Type is
+            // exactly the endpoint's real type (a mismatch is a honeypot tell). /openapi.json and POST
+            // /graphql are seed- or ceiling-dependent and are exercised in their own per-seed tests.
+            'openapi/swagger doc'   => ['/swagger.json', 200, '"securitySchemes"', 'application/json'],
+            'swagger 2.0 apidocs'   => ['/v2/api-docs', 200, '"securityDefinitions"', 'application/json'],
+            'openapi yaml'          => ['/openapi.yaml', 200, 'bearerFormat: JWT', 'text/yaml; charset=utf-8'],
+            'swagger-ui html'       => ['/swagger-ui.html', 200, 'deepLinking', 'text/html; charset=utf-8'],
+            'wp-json rest index'    => ['/wp-json', 200, 'wp-site-health', 'application/json'],
+            'api/v2 rest index'     => ['/api/v2', 200, '"documentation"', 'application/json'],
+            'security.txt'          => ['/.well-known/security.txt', 200, 'Preferred-Languages', 'text/plain; charset=utf-8'],
+            'ai-plugin manifest'    => ['/.well-known/ai-plugin.json', 200, 'legal_info_url', 'application/json'],
+            'openapi redoc'         => ['/openapi', 200, 'Redoc.init', 'text/html; charset=utf-8'],
         ];
     }
 
@@ -533,6 +565,14 @@ final class NewPageRoutingTest extends TestCase
             '/telescope/requests', '/actuator/env', '/actuator/health', '/actuator/mappings',
             '/actuator/info', '/actuator/beans', '/actuator/loggers', '/actuator/threaddump',
             '/actuator/configprops',
+            // API-recon / API-docs disclosure pack. OpenAPI docs carry ports, response codes, versions
+            // and example ids (dec:5), so the \b9\d{5}\b run is the hazard here; /openapi.json is swept
+            // across seeds so both its openapi and fastapi bundles are exercised. (POST /graphql is a
+            // critical bundle above the default ceiling and is swept in its own ceiling=critical test.)
+            '/swagger.json', '/api/swagger.json', '/v3/api-docs', '/api-docs', '/.well-known/openapi.json',
+            '/v2/api-docs', '/openapi.yaml', '/swagger-ui.html', '/swagger-ui/index.html', '/swagger',
+            '/api/__swagger__/', '/wp-json', '/api/v2', '/.well-known/security.txt',
+            '/.well-known/ai-plugin.json', '/openapi', '/openapi.json',
         ];
         // The vite-fs `/@fs/{path}` param route serves per-target disclosure bodies (its own RDS/cache
         // host islands live in the .env and wp-config.php loot targets), so exercise those too.
@@ -722,6 +762,172 @@ final class NewPageRoutingTest extends TestCase
             // The Ignition auth-failure line names the same db user.
             self::assertSame(1, preg_match('/password authentication failed for user \\\\"([A-Za-z0-9_]+)\\\\"/', $logs->body, $lu), "seed {$seed}: /_ignition/logs must name the failing db user: " . $logs->body);
             self::assertSame($du[1], $lu[1], "seed {$seed}: the Ignition log and .env.production must name the SAME db user");
+        }
+    }
+
+    public function test_apirecon_json_pages_stay_parseable(): void
+    {
+        // Every JSON page in the API-recon pack must be valid JSON across seeds × styles — a broken
+        // taunt (`_comment` field after the lone opening `{`) or an unescaped persona value would fail
+        // json_decode. Each is served application/json.
+        $paths = [
+            '/swagger.json', '/api/swagger.json', '/v3/api-docs', '/api-docs', '/.well-known/openapi.json',
+            '/v2/api-docs', '/wp-json', '/api/v2', '/.well-known/ai-plugin.json',
+        ];
+        foreach ($paths as $path) {
+            foreach (['realistic', 'taunt'] as $style) {
+                for ($seed = 0; $seed <= 30; $seed++) {
+                    $resp = $this->seededInverter((string) $seed, $style)->respond(new RequestContext('GET', $path));
+                    self::assertNotNull($resp, "{$path} [{$style}] seed {$seed} must serve a fake");
+                    self::assertSame('application/json', $resp->headers['Content-Type'] ?? null, "{$path} [{$style}] seed {$seed} Content-Type");
+                    self::assertIsArray(json_decode($resp->body, true), "{$path} [{$style}] seed {$seed} must be a JSON object, got: " . $resp->body);
+                }
+            }
+        }
+        // /openapi.json's `openapi` bundle serves the EXACT media type application/openapi+json — which
+        // must still be valid JSON wherever the seed lands on it, in both styles.
+        foreach (['realistic', 'taunt'] as $style) {
+            for ($seed = 0; $seed <= 30; $seed++) {
+                $resp = $this->seededInverter((string) $seed, $style)->respond(new RequestContext('GET', '/openapi.json'));
+                self::assertNotNull($resp, "/openapi.json [{$style}] seed {$seed} must serve a fake");
+                if (strpos((string) ($resp->headers['Content-Type'] ?? ''), 'application/openapi+json') !== false) {
+                    self::assertIsArray(json_decode($resp->body, true), "/openapi.json [{$style}] seed {$seed} openapi bundle must be valid JSON: " . $resp->body);
+                }
+            }
+        }
+    }
+
+    public function test_openapi_yaml_parses_and_has_shape(): void
+    {
+        // /openapi.yaml must parse as YAML and read as a real OpenAPI 3.0 document (top-level openapi
+        // version, a paths map, security schemes) in both styles — the line-mode taunt appends only
+        // `#` comment lines, which YAML ignores.
+        foreach (['realistic', 'taunt'] as $style) {
+            for ($seed = 0; $seed <= 30; $seed++) {
+                $resp = $this->seededInverter((string) $seed, $style)->respond(new RequestContext('GET', '/openapi.yaml'));
+                self::assertNotNull($resp, "/openapi.yaml [{$style}] seed {$seed} must serve a fake");
+                self::assertSame('text/yaml; charset=utf-8', $resp->headers['Content-Type'] ?? null, "/openapi.yaml [{$style}] seed {$seed} Content-Type");
+                $doc = Yaml::parse($resp->body);
+                self::assertIsArray($doc, "/openapi.yaml [{$style}] seed {$seed} must parse as YAML: " . $resp->body);
+                self::assertSame('3.0.3', $doc['openapi'] ?? null, "/openapi.yaml [{$style}] seed {$seed} must be OpenAPI 3.0.3");
+                self::assertArrayHasKey('paths', $doc, "/openapi.yaml [{$style}] seed {$seed} must carry a paths map");
+                self::assertArrayHasKey('securitySchemes', (array) ($doc['components'] ?? []), "/openapi.yaml [{$style}] seed {$seed} must carry securitySchemes");
+            }
+        }
+    }
+
+    public function test_apirecon_identity_is_coherent_across_surfaces(): void
+    {
+        // One host presents one identity: the OpenAPI doc's example bearer token must be the SAME
+        // persona JWT the config pack (Actuator /env) discloses; the server URL's domain must match the
+        // security.txt and ai-plugin contact domains; and the OpenAPI document must be byte-identical on
+        // every surface that serves it.
+        for ($seed = 0; $seed <= 30; $seed++) {
+            $inv = $this->seededInverter((string) $seed, 'realistic');
+            $swagger = $inv->respond(new RequestContext('GET', '/swagger.json'));
+            $env = $inv->respond(new RequestContext('GET', '/actuator/env'));
+            $sec = $inv->respond(new RequestContext('GET', '/.well-known/security.txt'));
+            $ai = $inv->respond(new RequestContext('GET', '/.well-known/ai-plugin.json'));
+            self::assertNotNull($swagger, "seed {$seed}: /swagger.json must serve a fake");
+            self::assertNotNull($env, "seed {$seed}: /actuator/env must serve a fake");
+            self::assertNotNull($sec, "seed {$seed}: /.well-known/security.txt must serve a fake");
+            self::assertNotNull($ai, "seed {$seed}: /.well-known/ai-plugin.json must serve a fake");
+
+            // Example bearer token == the config-pack JWT signing secret.
+            self::assertSame(1, preg_match('/Bearer ([0-9a-f]{64})/', $swagger->body, $sj), "seed {$seed}: /swagger.json must leak an example bearer JWT");
+            self::assertSame(1, preg_match('/"jwt.secret": \{"value": "([0-9a-f]{64})"\}/', $env->body, $ej), "seed {$seed}: /actuator/env must disclose the JWT secret");
+            self::assertSame($ej[1], $sj[1], "seed {$seed}: the OpenAPI example token must equal the config-pack JWT");
+
+            // Server URL domain == security.txt contact domain == ai-plugin contact domain.
+            self::assertSame(1, preg_match('#https://api\.([a-z0-9.-]+)/v2#', $swagger->body, $sh), "seed {$seed}: /swagger.json must carry an api.<domain> server URL");
+            self::assertSame(1, preg_match('/Contact: mailto:[^@\s]+@([^\s]+)/', $sec->body, $ch), "seed {$seed}: security.txt must carry a mailto contact");
+            self::assertSame($sh[1], $ch[1], "seed {$seed}: the OpenAPI server domain must match the security.txt contact domain");
+            self::assertSame(1, preg_match('/"contact_email": "[^@"]+@([^"]+)"/', $ai->body, $ah), "seed {$seed}: ai-plugin must carry a contact_email");
+            self::assertSame($sh[1], $ah[1], "seed {$seed}: the OpenAPI server domain must match the ai-plugin contact domain");
+
+            // One OpenAPI document, byte-identical across every surface that serves it.
+            foreach (['/api/swagger.json', '/v3/api-docs', '/api-docs', '/.well-known/openapi.json'] as $alias) {
+                $a = $inv->respond(new RequestContext('GET', $alias));
+                self::assertNotNull($a, "seed {$seed}: {$alias} must serve a fake");
+                self::assertSame($swagger->body, $a->body, "seed {$seed}: {$alias} must be byte-identical to /swagger.json");
+            }
+            // /openapi.json, when its seed picks the openapi (JSON) bundle, serves the SAME document.
+            $oj = $inv->respond(new RequestContext('GET', '/openapi.json'));
+            self::assertNotNull($oj, "seed {$seed}: /openapi.json must serve a fake");
+            if (strpos((string) ($oj->headers['Content-Type'] ?? ''), 'application/openapi+json') !== false) {
+                self::assertSame($swagger->body, $oj->body, "seed {$seed}: /openapi.json (openapi bundle) must match /swagger.json");
+            }
+        }
+    }
+
+    public function test_openapi_json_serves_both_openapi_and_fastapi_bundles(): void
+    {
+        // /openapi.json carries TWO bundles: the `openapi` JSON doc (media type application/openapi+json,
+        // NOT plain application/json) and the `fastapi-docs` Swagger-UI HTML shell (text/html). The
+        // persona seed picks one per host. Sweep enough seeds to land on both and prove each fires its
+        // own enrich with the EXACT Content-Type — a mismatch would drop the response to minimal synth.
+        $sawOpenapi = false;
+        $sawFastapi = false;
+        foreach (['realistic', 'taunt'] as $style) {
+            for ($seed = 0; $seed <= 60; $seed++) {
+                $resp = $this->seededInverter((string) $seed, $style)->respond(new RequestContext('GET', '/openapi.json'));
+                self::assertNotNull($resp, "/openapi.json [{$style}] seed {$seed} must serve a fake");
+                $ct = (string) ($resp->headers['Content-Type'] ?? '');
+                if (strpos($ct, 'application/openapi+json') !== false) {
+                    self::assertStringNotContainsString('text/html', $ct, "/openapi.json [{$style}] seed {$seed} openapi bundle must not be HTML");
+                    self::assertStringContainsString('"securitySchemes"', $resp->body, "/openapi.json [{$style}] seed {$seed} must serve the OpenAPI doc, not a minimal synth");
+                    self::assertIsArray(json_decode($resp->body, true), "/openapi.json [{$style}] seed {$seed} openapi bundle must be valid JSON");
+                    $sawOpenapi = true;
+                } elseif (strpos($ct, 'text/html') !== false) {
+                    self::assertStringContainsString('FastAPI - Swagger UI', $resp->body, "/openapi.json [{$style}] seed {$seed} must serve the FastAPI docs shell");
+                    self::assertStringContainsString('SwaggerUIBundle', $resp->body, "/openapi.json [{$style}] seed {$seed} must serve the Swagger-UI shell, not a minimal synth");
+                    $sawFastapi = true;
+                } else {
+                    self::fail("/openapi.json [{$style}] seed {$seed} unexpected Content-Type: {$ct}");
+                }
+            }
+        }
+        self::assertTrue($sawOpenapi, 'sweep must land on the openapi (application/openapi+json) bundle');
+        self::assertTrue($sawFastapi, 'sweep must land on the fastapi-docs (Swagger-UI HTML) bundle');
+    }
+
+    public function test_graphql_introspection_enrich_serves_only_above_the_default_ceiling(): void
+    {
+        // POST /graphql's wpgraphql bundle (CVE-2019-9880) is `critical` — ABOVE the default `high`
+        // severity ceiling, so candidates() filters it before the persona pick and this enrich is
+        // SUPPRESSED by default (POST /graphql falls to minimal synth of a co-bundle). It dresses the
+        // bundle only when the operator raises the ceiling to `critical`. Under that ceiling, prove the
+        // enrich fires (per-seed), is request-BLIND (the same canned body for any POST body), valid
+        // JSON, exactly application/json, and carries no denied fingerprint token. Then prove the
+        // default `high` ceiling never serves it.
+        $guard = FingerprintGuard::fromPackage();
+        $sawEnrich = false;
+        foreach (['realistic', 'taunt'] as $style) {
+            for ($seed = 0; $seed <= 60; $seed++) {
+                $inv = $this->seededInverterCeiling((string) $seed, $style, 'critical');
+                $resp = $inv->respond(new RequestContext('POST', '/graphql', '', [], '{"query":"{__schema{types{name}}}"}'));
+                self::assertNotNull($resp, "POST /graphql [{$style}] seed {$seed} must serve a fake");
+                if (strpos($resp->body, '"roles": ["administrator"]') === false) {
+                    continue; // this seed picked a co-bundle (partial coverage by design)
+                }
+                $sawEnrich = true;
+                self::assertSame('application/json', $resp->headers['Content-Type'] ?? null, "seed {$seed} graphql Content-Type must be exactly application/json");
+                self::assertStringContainsString('__schema', $resp->body, "seed {$seed} must carry the introspection schema");
+                self::assertIsArray(json_decode($resp->body, true), "seed {$seed} graphql body must be valid JSON: " . $resp->body);
+                self::assertSame([], $guard->scan($resp->body), "seed {$seed} graphql body must carry no denied fingerprint token");
+                // Request-blind: a different POST body returns the identical canned response.
+                $other = $inv->respond(new RequestContext('POST', '/graphql', '', [], '{"query":"{ me { id } }"}'));
+                self::assertNotNull($other);
+                self::assertSame($resp->body, $other->body, "seed {$seed}: POST /graphql must be request-blind (same body for any query)");
+            }
+        }
+        self::assertTrue($sawEnrich, 'a ceiling=critical sweep must land on the wpgraphql introspection bundle at least once');
+
+        // Default `high` ceiling: the critical bundle is never a candidate, so the enrich never serves.
+        for ($seed = 0; $seed <= 60; $seed++) {
+            $resp = $this->seededInverter((string) $seed, 'realistic')->respond(new RequestContext('POST', '/graphql', '', [], '{"query":"{__schema{types{name}}}"}'));
+            self::assertNotNull($resp, "seed {$seed}: POST /graphql must serve a fake");
+            self::assertStringNotContainsString('"roles": ["administrator"]', $resp->body, "seed {$seed}: the critical graphql enrich must stay suppressed under the default high ceiling");
         }
     }
 }

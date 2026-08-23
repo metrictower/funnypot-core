@@ -1,0 +1,24 @@
+id: route-security-txt
+priority: 333
+# Enrich: the corpus routes /.well-known/security.txt to the `security-txt` bundle (body word
+# `Contact:`, size >= 1). Minimal synth would emit a bare `Contact:` line; here we serve a real
+# RFC 9116 security.txt whose contact is this host's admin — persona-seeded so the disclosed email
+# and domain agree with every other leaked surface. Content-Type is text/plain (the file's real
+# type). The year/time literals are 4-digit and colon-separated, so no denied digit run.
+match:
+  template_needle: [security-txt]
+response:
+  headers:
+    Content-Type: "text/plain; charset=utf-8"
+  body: |
+    Contact: mailto:{{persona.user.admin.email}}
+    Contact: https://{{persona.company.domain}}/security
+    Expires: 2026-12-31T23:59:59Z
+    Preferred-Languages: en
+    Canonical: https://{{persona.company.domain}}/.well-known/security.txt
+    Policy: https://{{persona.company.domain}}/security-policy
+taunt: { mode: line, open: '#' }
+expect:
+  - 'Contact: mailto:'
+  - 'Expires:'
+  - 'Preferred-Languages: en'

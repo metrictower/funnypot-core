@@ -1,0 +1,64 @@
+id: route-openapi-json
+priority: 330
+# Enrich: the corpus routes /openapi.json to two bundles — this rule dresses the `openapi` bundle
+# (body words `openapi`, `paths`; header word `application/openapi+json`). Minimal synth would emit
+# the bare words; here we serve a real OpenAPI 3.0 document leaking this host's API surface, server
+# URL and an example bearer token (== the config pack's JWT for the same seed). The Content-Type is
+# EXACTLY `application/openapi+json` — the media type the header word demands (plain application/json
+# would miss it and drop the response to minimal synth). Body is byte-identical to the /swagger.json
+# new_page for one host. Opens with a lone `{` so the JSON taunt keeps it parseable; the example id
+# is dec:5 (never a bare 6-digit run). The `paths` body word is present.
+match:
+  template_needle: [openapi]
+response:
+  headers:
+    Content-Type: "application/openapi+json"
+  body: |
+    {
+    "openapi": "3.0.3",
+    "info": {
+      "title": "{{persona.company.name}} API",
+      "description": "Internal REST API for {{persona.company.name}} — served from /var/www/{{persona.company.slug}}/public.",
+      "version": "1.8.2",
+      "contact": { "email": "{{persona.user.admin.email}}" }
+    },
+    "servers": [
+      { "url": "https://api.{{persona.company.domain}}/v2", "description": "Production" }
+    ],
+    "paths": {
+      "/users": {
+        "get": {
+          "summary": "List users",
+          "responses": { "200": { "description": "OK" }, "401": { "description": "Unauthorized" } }
+        }
+      },
+      "/auth/login": {
+        "post": {
+          "summary": "Authenticate and receive a bearer token",
+          "responses": { "200": { "description": "OK" }, "400": { "description": "Bad Request" } }
+        }
+      },
+      "/orders/{id}": {
+        "get": {
+          "summary": "Fetch an order",
+          "parameters": [ { "name": "id", "in": "path", "required": true, "schema": { "type": "integer", "example": {{fake.orderid:dec:5}} } } ],
+          "responses": { "200": { "description": "OK" }, "404": { "description": "Not Found" } }
+        }
+      }
+    },
+    "components": {
+      "securitySchemes": {
+        "bearerAuth": { "type": "http", "scheme": "bearer", "bearerFormat": "JWT" },
+        "apiKey": { "type": "apiKey", "in": "header", "name": "X-API-Key" }
+      },
+      "examples": {
+        "authToken": { "summary": "Example Authorization header", "value": "Bearer {{persona.secret.jwt}}" }
+      }
+    }
+    }
+taunt: { mode: inline_field, key: '_comment' }
+expect:
+  - '"openapi": "3.0.3"'
+  - '"paths"'
+  - '"securitySchemes"'
+  - 'Bearer '

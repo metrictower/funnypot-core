@@ -1,0 +1,70 @@
+id: route-swagger-json-doc
+priority: 340
+# Brand-new page: the classic OpenAPI/Swagger doc endpoints (/swagger.json, /v3/api-docs, …) that a
+# recon scanner hits to map an app's whole API surface. One shared OpenAPI 3.0 document, byte-
+# identical to the /openapi.json enrich for one host, leaking the server URL, the endpoint list and
+# an example bearer token (== the config pack's JWT for the same seed). Served application/json (the
+# `.json`/api-docs endpoint's real type). The id carries NO `openapi` substring, so the /openapi.json
+# `openapi` enrich can never hijack this bundle. Opens with a lone `{` for the JSON taunt; the
+# example id is dec:5 (never a bare 6-digit run).
+new_page:
+  method: GET
+  paths: ['/swagger.json', '/api/swagger.json', '/v3/api-docs', '/api-docs', '/.well-known/openapi.json']
+  sig: 0
+  status: 200
+  severity: info
+  tags: [exposure, api, openapi, discovery]
+  name: 'Exposed OpenAPI/Swagger document'
+  body_words: ['"openapi":', '"paths"']
+response:
+  headers:
+    Content-Type: "application/json"
+  body: |
+    {
+    "openapi": "3.0.3",
+    "info": {
+      "title": "{{persona.company.name}} API",
+      "description": "Internal REST API for {{persona.company.name}} — served from /var/www/{{persona.company.slug}}/public.",
+      "version": "1.8.2",
+      "contact": { "email": "{{persona.user.admin.email}}" }
+    },
+    "servers": [
+      { "url": "https://api.{{persona.company.domain}}/v2", "description": "Production" }
+    ],
+    "paths": {
+      "/users": {
+        "get": {
+          "summary": "List users",
+          "responses": { "200": { "description": "OK" }, "401": { "description": "Unauthorized" } }
+        }
+      },
+      "/auth/login": {
+        "post": {
+          "summary": "Authenticate and receive a bearer token",
+          "responses": { "200": { "description": "OK" }, "400": { "description": "Bad Request" } }
+        }
+      },
+      "/orders/{id}": {
+        "get": {
+          "summary": "Fetch an order",
+          "parameters": [ { "name": "id", "in": "path", "required": true, "schema": { "type": "integer", "example": {{fake.orderid:dec:5}} } } ],
+          "responses": { "200": { "description": "OK" }, "404": { "description": "Not Found" } }
+        }
+      }
+    },
+    "components": {
+      "securitySchemes": {
+        "bearerAuth": { "type": "http", "scheme": "bearer", "bearerFormat": "JWT" },
+        "apiKey": { "type": "apiKey", "in": "header", "name": "X-API-Key" }
+      },
+      "examples": {
+        "authToken": { "summary": "Example Authorization header", "value": "Bearer {{persona.secret.jwt}}" }
+      }
+    }
+    }
+taunt: { mode: inline_field, key: '_comment' }
+expect:
+  - '"openapi": "3.0.3"'
+  - '"paths"'
+  - '"securitySchemes"'
+  - 'Bearer '

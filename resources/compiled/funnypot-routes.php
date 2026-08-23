@@ -2866,4 +2866,524 @@ Stack trace:
       'key' => '_comment',
     ),
   ),
+  80 => 
+  array (
+    'id' => 'route-openapi-json',
+    'match' => 
+    array (
+      'template_needle' => 
+      array (
+        0 => 'openapi',
+      ),
+    ),
+    'body' => '{
+"openapi": "3.0.3",
+"info": {
+  "title": "{{persona.company.name}} API",
+  "description": "Internal REST API for {{persona.company.name}} — served from /var/www/{{persona.company.slug}}/public.",
+  "version": "1.8.2",
+  "contact": { "email": "{{persona.user.admin.email}}" }
+},
+"servers": [
+  { "url": "https://api.{{persona.company.domain}}/v2", "description": "Production" }
+],
+"paths": {
+  "/users": {
+    "get": {
+      "summary": "List users",
+      "responses": { "200": { "description": "OK" }, "401": { "description": "Unauthorized" } }
+    }
+  },
+  "/auth/login": {
+    "post": {
+      "summary": "Authenticate and receive a bearer token",
+      "responses": { "200": { "description": "OK" }, "400": { "description": "Bad Request" } }
+    }
+  },
+  "/orders/{id}": {
+    "get": {
+      "summary": "Fetch an order",
+      "parameters": [ { "name": "id", "in": "path", "required": true, "schema": { "type": "integer", "example": {{fake.orderid:dec:5}} } } ],
+      "responses": { "200": { "description": "OK" }, "404": { "description": "Not Found" } }
+    }
+  }
+},
+"components": {
+  "securitySchemes": {
+    "bearerAuth": { "type": "http", "scheme": "bearer", "bearerFormat": "JWT" },
+    "apiKey": { "type": "apiKey", "in": "header", "name": "X-API-Key" }
+  },
+  "examples": {
+    "authToken": { "summary": "Example Authorization header", "value": "Bearer {{persona.secret.jwt}}" }
+  }
+}
+}
+',
+    'headers' => 
+    array (
+      'Content-Type' => 'application/openapi+json',
+    ),
+    'taunt' => 
+    array (
+      'mode' => 'inline_field',
+      'key' => '_comment',
+    ),
+  ),
+  81 => 
+  array (
+    'id' => 'route-openapi-json-swaggerui',
+    'match' => 
+    array (
+      'template_needle' => 
+      array (
+        0 => 'fastapi-docs',
+      ),
+    ),
+    'body' => '<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>FastAPI - Swagger UI</title>
+  <link rel="stylesheet" href="/static/swagger-ui.css">
+</head>
+<body>
+  <div id="swagger-ui"></div>
+  <script src="/static/swagger-ui-bundle.js"></script>
+  <script>
+    const ui = SwaggerUIBundle({
+      url: "/openapi.json",
+      dom_id: "#swagger-ui",
+      presets: [SwaggerUIBundle.presets.apis]
+    });
+  </script>
+</body>
+</html>
+',
+    'headers' => 
+    array (
+      'Content-Type' => 'text/html; charset=utf-8',
+    ),
+    'taunt' => 
+    array (
+      'mode' => 'block',
+      'open' => '<!--',
+      'close' => '-->',
+    ),
+  ),
+  82 => 
+  array (
+    'id' => 'route-openapi-redoc',
+    'match' => 
+    array (
+      'template_needle' => 
+      array (
+        0 => 'redoc-api-docs',
+      ),
+    ),
+    'body' => '<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8"/>
+  <title>{{persona.company.name}} API — ReDoc</title>
+</head>
+<body>
+  <redoc spec-url="/openapi.json"></redoc>
+  <script src="/redoc/redoc.standalone.js"></script>
+  <script>
+    Redoc.init("/openapi.json", {}, document.querySelector("redoc"));
+    window.__REDOC_EXPORT = Redoc;
+  </script>
+</body>
+</html>
+',
+    'headers' => 
+    array (
+      'Content-Type' => 'text/html; charset=utf-8',
+    ),
+    'taunt' => 
+    array (
+      'mode' => 'block',
+      'open' => '<!--',
+      'close' => '-->',
+    ),
+  ),
+  83 => 
+  array (
+    'id' => 'route-security-txt',
+    'match' => 
+    array (
+      'template_needle' => 
+      array (
+        0 => 'security-txt',
+      ),
+    ),
+    'body' => 'Contact: mailto:{{persona.user.admin.email}}
+Contact: https://{{persona.company.domain}}/security
+Expires: 2026-12-31T23:59:59Z
+Preferred-Languages: en
+Canonical: https://{{persona.company.domain}}/.well-known/security.txt
+Policy: https://{{persona.company.domain}}/security-policy
+',
+    'headers' => 
+    array (
+      'Content-Type' => 'text/plain; charset=utf-8',
+    ),
+    'taunt' => 
+    array (
+      'mode' => 'line',
+      'open' => '#',
+    ),
+  ),
+  84 => 
+  array (
+    'id' => 'route-ai-plugin',
+    'match' => 
+    array (
+      'template_needle' => 
+      array (
+        0 => 'openai-plugin',
+      ),
+    ),
+    'body' => '{
+"schema_version": "v1",
+"name_for_model": "{{persona.company.slug}}_api",
+"name_for_human": "{{persona.company.name}} API",
+"description_for_model": "Query the {{persona.company.name}} internal API for users, orders and auth.",
+"description_for_human": "Access {{persona.company.name}} data.",
+"auth": { "type": "service_http", "authorization_type": "bearer" },
+"api": { "type": "openapi", "url": "https://api.{{persona.company.domain}}/openapi.json" },
+"logo_url": "https://{{persona.company.domain}}/logo.png",
+"contact_email": "{{persona.user.admin.email}}",
+"legal_info_url": "https://{{persona.company.domain}}/legal"
+}
+',
+    'headers' => 
+    array (
+      'Content-Type' => 'application/json',
+    ),
+    'taunt' => 
+    array (
+      'mode' => 'inline_field',
+      'key' => '_comment',
+    ),
+  ),
+  85 => 
+  array (
+    'id' => 'route-graphql-introspection',
+    'match' => 
+    array (
+      'template_needle' => 
+      array (
+        0 => 'CVE-2019-9880',
+      ),
+    ),
+    'body' => '{"data":{
+"viewer": { "name": "{{persona.user.admin.username}}", "email": "{{persona.user.admin.email}}", "roles": ["administrator"] },
+"__schema": {
+  "queryType": { "name": "Query" },
+  "mutationType": { "name": "Mutation" },
+  "subscriptionType": null,
+  "types": [
+    { "kind": "OBJECT", "name": "User", "description": "A registered user.", "fields": [
+      { "name": "id", "type": { "kind": "SCALAR", "name": "ID" } },
+      { "name": "email", "type": { "kind": "SCALAR", "name": "String" } },
+      { "name": "roles", "type": { "kind": "LIST", "name": null } }
+    ] },
+    { "kind": "OBJECT", "name": "Query", "fields": [
+      { "name": "users", "type": { "kind": "LIST", "name": null } },
+      { "name": "viewer", "type": { "kind": "OBJECT", "name": "User" } }
+    ] }
+  ]
+}
+}}
+',
+    'headers' => 
+    array (
+      'Content-Type' => 'application/json',
+    ),
+    'taunt' => 
+    array (
+      'mode' => 'inline_field',
+      'key' => '_comment',
+    ),
+  ),
+  86 => 
+  array (
+    'id' => 'route-swagger-json-doc',
+    'match' => 
+    array (
+      'pid' => 
+      array (
+        0 => 'route-swagger-json-doc',
+      ),
+    ),
+    'body' => '{
+"openapi": "3.0.3",
+"info": {
+  "title": "{{persona.company.name}} API",
+  "description": "Internal REST API for {{persona.company.name}} — served from /var/www/{{persona.company.slug}}/public.",
+  "version": "1.8.2",
+  "contact": { "email": "{{persona.user.admin.email}}" }
+},
+"servers": [
+  { "url": "https://api.{{persona.company.domain}}/v2", "description": "Production" }
+],
+"paths": {
+  "/users": {
+    "get": {
+      "summary": "List users",
+      "responses": { "200": { "description": "OK" }, "401": { "description": "Unauthorized" } }
+    }
+  },
+  "/auth/login": {
+    "post": {
+      "summary": "Authenticate and receive a bearer token",
+      "responses": { "200": { "description": "OK" }, "400": { "description": "Bad Request" } }
+    }
+  },
+  "/orders/{id}": {
+    "get": {
+      "summary": "Fetch an order",
+      "parameters": [ { "name": "id", "in": "path", "required": true, "schema": { "type": "integer", "example": {{fake.orderid:dec:5}} } } ],
+      "responses": { "200": { "description": "OK" }, "404": { "description": "Not Found" } }
+    }
+  }
+},
+"components": {
+  "securitySchemes": {
+    "bearerAuth": { "type": "http", "scheme": "bearer", "bearerFormat": "JWT" },
+    "apiKey": { "type": "apiKey", "in": "header", "name": "X-API-Key" }
+  },
+  "examples": {
+    "authToken": { "summary": "Example Authorization header", "value": "Bearer {{persona.secret.jwt}}" }
+  }
+}
+}
+',
+    'headers' => 
+    array (
+      'Content-Type' => 'application/json',
+    ),
+    'taunt' => 
+    array (
+      'mode' => 'inline_field',
+      'key' => '_comment',
+    ),
+  ),
+  87 => 
+  array (
+    'id' => 'route-swagger2-apidocs',
+    'match' => 
+    array (
+      'pid' => 
+      array (
+        0 => 'route-swagger2-apidocs',
+      ),
+    ),
+    'body' => '{
+"swagger": "2.0",
+"info": {
+  "title": "{{persona.company.name}} API",
+  "version": "1.8.2",
+  "contact": { "email": "{{persona.user.admin.email}}" }
+},
+"host": "api.{{persona.company.domain}}",
+"basePath": "/v2",
+"schemes": [ "https" ],
+"securityDefinitions": {
+  "Bearer": { "type": "apiKey", "name": "Authorization", "in": "header" }
+},
+"paths": {
+  "/users": { "get": { "summary": "List users", "responses": { "200": { "description": "OK" } } } },
+  "/auth/login": { "post": { "summary": "Authenticate", "responses": { "200": { "description": "OK" }, "401": { "description": "Unauthorized" } } } }
+},
+"definitions": {
+  "User": { "type": "object", "properties": { "id": { "type": "integer", "example": {{fake.userid:dec:5}} }, "email": { "type": "string" } } }
+}
+}
+',
+    'headers' => 
+    array (
+      'Content-Type' => 'application/json',
+    ),
+    'taunt' => 
+    array (
+      'mode' => 'inline_field',
+      'key' => '_comment',
+    ),
+  ),
+  88 => 
+  array (
+    'id' => 'route-swagger-yaml-doc',
+    'match' => 
+    array (
+      'pid' => 
+      array (
+        0 => 'route-swagger-yaml-doc',
+      ),
+    ),
+    'body' => 'openapi: "3.0.3"
+info:
+  title: {{persona.company.name}} API
+  description: Internal REST API for {{persona.company.name}} — served from /var/www/{{persona.company.slug}}/public.
+  version: "1.8.2"
+  contact:
+    email: {{persona.user.admin.email}}
+servers:
+  - url: https://api.{{persona.company.domain}}/v2
+    description: Production
+paths:
+  /users:
+    get:
+      summary: List users
+      responses:
+        "200": { description: OK }
+        "401": { description: Unauthorized }
+  /orders/{id}:
+    get:
+      summary: Fetch an order
+      responses:
+        "200": { description: OK }
+        "404": { description: Not Found }
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+    apiKey:
+      type: apiKey
+      in: header
+      name: X-API-Key
+  examples:
+    authToken:
+      summary: Example Authorization header
+      value: Bearer {{persona.secret.jwt}}
+',
+    'headers' => 
+    array (
+      'Content-Type' => 'text/yaml; charset=utf-8',
+    ),
+    'taunt' => 
+    array (
+      'mode' => 'line',
+      'open' => '#',
+    ),
+  ),
+  89 => 
+  array (
+    'id' => 'route-swagger-ui-html',
+    'match' => 
+    array (
+      'pid' => 
+      array (
+        0 => 'route-swagger-ui-html',
+      ),
+    ),
+    'body' => '<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Swagger UI</title>
+  <link rel="stylesheet" href="/swagger-ui/swagger-ui.css">
+</head>
+<body>
+  <!-- served from /var/www/{{persona.company.slug}}/public -->
+  <div id="swagger-ui"></div>
+  <script src="/swagger-ui/swagger-ui-bundle.js"></script>
+  <script>
+    window.onload = function () {
+      window.ui = SwaggerUIBundle({
+        url: "/openapi.json",
+        dom_id: "#swagger-ui",
+        deepLinking: true
+      });
+    };
+  </script>
+</body>
+</html>
+',
+    'headers' => 
+    array (
+      'Content-Type' => 'text/html; charset=utf-8',
+    ),
+    'taunt' => 
+    array (
+      'mode' => 'block',
+      'open' => '<!--',
+      'close' => '-->',
+    ),
+  ),
+  90 => 
+  array (
+    'id' => 'route-wp-json',
+    'match' => 
+    array (
+      'pid' => 
+      array (
+        0 => 'route-wp-json',
+      ),
+    ),
+    'body' => '{
+"name": "{{persona.company.name}}",
+"description": "{{persona.company.name}} — Just another WordPress site",
+"url": "https://{{persona.company.domain}}",
+"home": "https://{{persona.company.domain}}",
+"gmt_offset": "0",
+"timezone_string": "",
+"namespaces": [ "oembed/1.0", "wp/v2", "wp-site-health/v1" ],
+"authentication": [],
+"routes": {
+  "/": { "namespace": "", "methods": [ "GET" ] },
+  "/wp/v2/posts": { "namespace": "wp/v2", "methods": [ "GET", "POST" ] },
+  "/wp/v2/users": { "namespace": "wp/v2", "methods": [ "GET", "POST" ] }
+},
+"_links": {
+  "help": [ { "href": "https://developer.wordpress.org/rest-api/" } ]
+}
+}
+',
+    'headers' => 
+    array (
+      'Content-Type' => 'application/json',
+    ),
+    'taunt' => 
+    array (
+      'mode' => 'inline_field',
+      'key' => '_comment',
+    ),
+  ),
+  91 => 
+  array (
+    'id' => 'route-api-v2',
+    'match' => 
+    array (
+      'pid' => 
+      array (
+        0 => 'route-api-v2',
+      ),
+    ),
+    'body' => '{
+"name": "{{persona.company.name}} API",
+"version": "2.4.0",
+"status": "ok",
+"documentation": "https://api.{{persona.company.domain}}/openapi.json",
+"endpoints": {
+  "users": "https://api.{{persona.company.domain}}/api/v2/users",
+  "orders": "https://api.{{persona.company.domain}}/api/v2/orders",
+  "auth": "https://api.{{persona.company.domain}}/api/v2/auth/login"
+},
+"authentication": { "type": "bearer", "header": "Authorization" }
+}
+',
+    'headers' => 
+    array (
+      'Content-Type' => 'application/json',
+    ),
+    'taunt' => 
+    array (
+      'mode' => 'inline_field',
+      'key' => '_comment',
+    ),
+  ),
 );

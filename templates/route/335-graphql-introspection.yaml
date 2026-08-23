@@ -1,0 +1,46 @@
+id: route-graphql-introspection
+priority: 335
+# Enrich: POST /graphql carries seven co-bundles — this rule dresses the wpgraphql one
+# (`CVE-2019-9880`; body words `{"data":{`, `"name":`, `"roles":`; typed Content-Type
+# application/json), the one a scanner reads as introspection-enabled with a full schema leak.
+# IMPORTANT — this bundle is `critical`, ABOVE the default `high` severity ceiling: candidates()
+# drops it before the persona pick, so under a default deployment POST /graphql falls to minimal
+# synth and this enrich never serves. It only dresses the bundle when the operator raises the
+# severity ceiling to `critical` (respond mode refuses to fabricate anything stronger than the cap
+# by design). When it does serve it is REQUEST-BLIND — the same canned __schema response for an
+# introspection query, a normal query, or a bare probe — and only PARTIAL per host (a seed that
+# picks a co-bundle gets minimal synth). Zero-exec/zero-egress by construction: a static route
+# template, no branch, no resolver, no capture reflection. Line 1 is exactly `{"data":{` so the body
+# word is literal AND the JSON taunt (a `_comment` field after the first newline) rides in as the
+# first member of the data object, keeping the document parseable. Leaks the admin identity.
+match:
+  template_needle: [CVE-2019-9880]
+response:
+  headers:
+    Content-Type: "application/json"
+  body: |
+    {"data":{
+    "viewer": { "name": "{{persona.user.admin.username}}", "email": "{{persona.user.admin.email}}", "roles": ["administrator"] },
+    "__schema": {
+      "queryType": { "name": "Query" },
+      "mutationType": { "name": "Mutation" },
+      "subscriptionType": null,
+      "types": [
+        { "kind": "OBJECT", "name": "User", "description": "A registered user.", "fields": [
+          { "name": "id", "type": { "kind": "SCALAR", "name": "ID" } },
+          { "name": "email", "type": { "kind": "SCALAR", "name": "String" } },
+          { "name": "roles", "type": { "kind": "LIST", "name": null } }
+        ] },
+        { "kind": "OBJECT", "name": "Query", "fields": [
+          { "name": "users", "type": { "kind": "LIST", "name": null } },
+          { "name": "viewer", "type": { "kind": "OBJECT", "name": "User" } }
+        ] }
+      ]
+    }
+    }}
+taunt: { mode: inline_field, key: '_comment' }
+expect:
+  - '{"data":{'
+  - '"roles":'
+  - '__schema'
+  - '"name": "Query"'
