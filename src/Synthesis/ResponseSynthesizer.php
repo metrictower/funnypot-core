@@ -267,8 +267,11 @@ final class ResponseSynthesizer
             return null;
         }
 
-        // Base headers (satisfy hw / default content-type), then overlay the emulator's.
-        $base = $this->buildHeaders($bundle);
+        // Base headers WITHOUT the witness guarantee, then overlay the emulator's headers,
+        // THEN run the guarantee over the merged block — so a real template header carrying
+        // the witness suppresses the synthetic X-Detected-N; only a still-missing witness
+        // gets one.
+        $base = $this->buildHeaders($bundle, false);
         if ($base === null) {
             return null;
         }
@@ -276,6 +279,7 @@ final class ResponseSynthesizer
         foreach ($content->headers as $name => $value) {
             $headers[$this->canonicalKey((string) $name)] = (string) $value;
         }
+        $headers = $this->ensureHeaderWitnesses($headers, $bundle);
 
         // Rich content must satisfy every constraint the validator knows (bw/nf/hw/hf), the
         // typed-header values, and the regex-witness / size shapes it does not — otherwise
@@ -338,7 +342,7 @@ final class ResponseSynthesizer
      * @param array<string,mixed> $bundle
      * @return array<string,string>|null null on an unsatisfiable/unsafe header set
      */
-    private function buildHeaders(array $bundle): ?array
+    private function buildHeaders(array $bundle, bool $guaranteeWitnesses = true): ?array
     {
         /** @var array<string,string> $headers canonical-key => value */
         $headers = [];
@@ -374,17 +378,12 @@ final class ResponseSynthesizer
             $headers['Content-Type'] = 'text/plain';
         }
 
-        // Guarantee every header word appears somewhere in the header block. Any
-        // still-missing one is injected as its own header value (substring match
-        // is all nuclei needs on the all_headers region).
-        $synthetic = 0;
-        foreach ($headerWords as $word) {
-            if ($word === '') {
-                continue;
-            }
-            if (strpos($this->headerBlock($headers), $word) === false) {
-                $headers[$this->canonicalKey('X-Detected-' . (++$synthetic))] = $word;
-            }
+        // Guarantee every header word appears somewhere in the header block. The rich path
+        // defers this until AFTER its template-header overlay (see tryEmulator), so a real
+        // header already carrying the witness is not shadowed by a synthetic X-Detected-N —
+        // which no real server sends and would be a fingerprint tell.
+        if ($guaranteeWitnesses) {
+            $headers = $this->ensureHeaderWitnesses($headers, $bundle);
         }
 
         // hf: a forbidden header-block substring must not be present.
@@ -417,6 +416,32 @@ final class ResponseSynthesizer
         foreach ($headers as $name => $value) {
             if (preg_match('/[\r\n\x00]/', $name) === 1 || preg_match('/[\r\n\x00]/', $value) === 1) {
                 return $this->skip('header name/value violates CR/LF/NUL safety (C8)');
+            }
+        }
+
+        return $headers;
+    }
+
+    /**
+     * Guarantee every non-empty header word appears in the header block: inject each
+     * still-missing witness as its own X-Detected-N header value (a substring match is all
+     * nuclei needs on the all_headers region). A witness already present in a real header
+     * suppresses its synthetic — an enriched response with a believable banner is not also
+     * stamped with a tell no real server sends.
+     *
+     * @param array<string,string> $headers
+     * @param array<string,mixed>  $bundle
+     * @return array<string,string>
+     */
+    private function ensureHeaderWitnesses(array $headers, array $bundle): array
+    {
+        $synthetic = 0;
+        foreach (array_map('strval', (array) ($bundle['hw'] ?? [])) as $word) {
+            if ($word === '') {
+                continue;
+            }
+            if (strpos($this->headerBlock($headers), $word) === false) {
+                $headers[$this->canonicalKey('X-Detected-' . (++$synthetic))] = $word;
             }
         }
 
