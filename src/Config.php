@@ -6,6 +6,7 @@ namespace Funnypot;
 
 use Closure;
 use Funnypot\Response\Style;
+use Funnypot\Support\PersonaIdentity;
 
 /**
  * Host-app policy for the inverter. Defaults make an install INERT: detect mode
@@ -217,16 +218,17 @@ final class Config
      * It takes NO RequestContext on purpose: one deploy presents one coherent identity to every
      * caller. Material is an explicit `deploySeed` when set, else the `seedSalt`.
      *
-     * The `deploy\0` prefix uses a NUL separator that a `seedFor()` input can never contain: its
-     * inputs are a Host header or personaSeed value (neither of which may hold a NUL) joined to the
-     * salt with `|`. So the deploy-seed input space always carries a NUL and the persona-seed input
-     * space never does — they are disjoint, and their crc32s cannot collide by construction. (Host
-     * is attacker-controlled, so a `|` separator here would let `Host: deploy` reproduce this seed.)
+     * Derived through PersonaIdentity::seedFromMaterial — the SAME canonical function the app tier
+     * feeds its persona material — so when both tiers are given the same material they resolve the
+     * identical PersonaIdentity, and a scanner sees ONE company across templated and LLM paths. It is
+     * a 60-bit sha256 digest of a PRIVATE, operator-set material (never the public cert CN), so a
+     * crafted request cannot target it; and the persona identity is taken from this injected seed
+     * regardless of the per-request render seed, so an incidental collision with it is harmless.
      */
     public function deploySeed(): int
     {
         $m = ($this->deploySeed !== null && $this->deploySeed !== '') ? $this->deploySeed : $this->seedSalt;
 
-        return crc32("deploy\0" . $m);
+        return PersonaIdentity::seedFromMaterial($m);
     }
 }

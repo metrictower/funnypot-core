@@ -367,6 +367,31 @@ final class TemplateEngineTest extends TestCase
         self::assertStringNotContainsString('fake.person', $rr->render('x{{fake.person.bogus:r0}}y', [], 5));
     }
 
+    // --- injected per-deploy persona seed (cross-tier identity coherence, Option C) ---
+
+    public function test_injected_persona_seed_fixes_identity_across_render_seeds(): void
+    {
+        // A per-deploy persona seed makes {{persona.*}} resolve from THAT seed regardless of the
+        // per-request render seed, so two different render seeds show ONE identity (== what the app
+        // LLM tier resolves for the same material). Fabricated secrets ({{fake.*}}) still track the
+        // render seed and differ per request.
+        $deploySeed = PersonaIdentity::seedFromMaterial('acme-deploy');
+        $rr = new DirectiveRenderer($deploySeed);
+
+        $body = 'co={{persona.company.domain}} admin={{persona.user.admin.email}} secret={{fake.k:hex:20}}';
+        self::assertSame(1, preg_match('/co=(\S+) admin=(\S+) secret=(\S+)$/', $rr->render($body, [], 11), $m1));
+        self::assertSame(1, preg_match('/co=(\S+) admin=(\S+) secret=(\S+)$/', $rr->render($body, [], 22), $m2));
+
+        // Identity is byte-identical under two different render seeds...
+        self::assertSame($m1[1], $m2[1], 'company domain must be stable across render seeds');
+        self::assertSame($m1[2], $m2[2], 'admin email must be stable across render seeds');
+        // ...and equals the identity the injected deploy seed selects (what the app tier also resolves).
+        self::assertSame(PersonaIdentity::fromSeed($deploySeed)->field('company.domain'), $m1[1]);
+        self::assertSame(PersonaIdentity::fromSeed($deploySeed)->field('user.admin.email'), $m1[2]);
+        // Secrets still vary per render seed (per-attacker).
+        self::assertNotSame($m1[3], $m2[3], 'fabricated secret must still track the render seed');
+    }
+
     public function test_fake_person_addition_does_not_disturb_plain_fake_name(): void
     {
         // fake.person. is a new sub-namespace of fake. — a plain fake.NAME (no 'person.' prefix)

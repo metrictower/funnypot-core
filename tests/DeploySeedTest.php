@@ -6,13 +6,15 @@ namespace Funnypot\Tests;
 
 use Funnypot\Config;
 use Funnypot\RequestContext;
+use Funnypot\Support\PersonaIdentity;
 use PHPUnit\Framework\TestCase;
 
 /**
  * deploySeed() is the per-deploy, cross-request-stable seed for one host-wide persona identity.
- * It intentionally takes no RequestContext (one deploy = one identity to everyone), and its
- * NUL-separated prefix keeps it in a space seedFor() never emits — so it can never coincide with
- * a per-attacker persona seed.
+ * It intentionally takes no RequestContext (one deploy = one identity to everyone) and derives through
+ * PersonaIdentity::seedFromMaterial — the same canonical function the app tier uses — so the template
+ * and LLM tiers resolve the identical identity from the same material. Being a 60-bit sha256 digest, it
+ * can never coincide with the 32-bit crc32 render seed a per-attacker request produces.
  */
 final class DeploySeedTest extends TestCase
 {
@@ -42,7 +44,7 @@ final class DeploySeedTest extends TestCase
         $c->seedSalt = 'A';
         $c->deploySeed = 'explicit-material';
 
-        self::assertSame(crc32("deploy\0explicit-material"), $c->deploySeed());
+        self::assertSame(PersonaIdentity::seedFromMaterial('explicit-material'), $c->deploySeed());
 
         // An explicit value overrides the salt: same salt, different explicit seed => different result.
         $d = new Config();
@@ -54,7 +56,7 @@ final class DeploySeedTest extends TestCase
         $e = new Config();
         $e->seedSalt = 'A';
         $e->deploySeed = '';
-        self::assertSame(crc32("deploy\0A"), $e->deploySeed());
+        self::assertSame(PersonaIdentity::seedFromMaterial('A'), $e->deploySeed());
     }
 
     public function test_distinct_from_the_per_attacker_persona_seed(): void
@@ -63,15 +65,15 @@ final class DeploySeedTest extends TestCase
         $c->seedSalt = 'shared';
         $r = new RequestContext('GET', '/', '', [], null, 'victim.example');
 
-        // The NUL separator keeps the deploy seed in a space seedFor() never emits, so the two seed
-        // spaces stay disjoint.
+        // The deploy seed (sha256 via seedFromMaterial) and the render seed (crc32 of seedFor) use
+        // different derivations, so the two seed spaces stay disjoint.
         self::assertNotSame(crc32($c->seedFor($r)), $c->deploySeed());
     }
 
     /**
-     * seedFor() joins with '|', and Host is attacker-controlled — so a '|' separator here would let
-     * a request forging `Host: deploy` reproduce the deploy seed (crc32('deploy|'.$salt) both ways).
-     * The NUL separator, which no Host or personaSeed value can carry, closes that collision.
+     * Host is attacker-controlled, so a crafted `Host: deploy` (or a personaSeed returning 'deploy')
+     * must not reproduce the deploy identity. The deploy seed derives through seedFromMaterial (sha256)
+     * while the render seed is a crc32 of seedFor(): different functions, so the two cannot coincide.
      */
     public function test_host_deploy_cannot_collide_with_deploy_seed(): void
     {

@@ -71,6 +71,22 @@ final class DirectiveRenderer
     private $personaMemo = [];
 
     /**
+     * Per-deploy identity seed. When set, ALL {{persona.*}} fields and the fake.person.email domain
+     * resolve from THIS seed instead of the per-request render seed, so the template tier and the app
+     * LLM tier present ONE coherent site identity. null (default) keeps identity on the render seed
+     * (per-request, today's behaviour) — a fail-safe, so an un-wired construction site degrades rather
+     * than crashes. Fabricated secrets ({{fake.*}}) always use the render seed and stay per-request.
+     *
+     * @var int|null
+     */
+    private $personaSeed;
+
+    public function __construct(?int $personaSeed = null)
+    {
+        $this->personaSeed = $personaSeed;
+    }
+
+    /**
      * @param string             $template body or header value carrying directives
      * @param array<int|string,string> $captures regex capture groups (0 = whole match; names allowed)
      * @param int                $seed     persona seed for deterministic fake values
@@ -245,11 +261,13 @@ final class DirectiveRenderer
      */
     private function personaField(int $seed, string $path): string
     {
-        if (!isset($this->personaMemo[$seed])) {
-            $this->personaMemo[$seed] = PersonaIdentity::fromSeed($seed);
+        // Identity is per-deploy when a persona seed was injected, else per-request (the render seed).
+        $identSeed = $this->personaSeed ?? $seed;
+        if (!isset($this->personaMemo[$identSeed])) {
+            $this->personaMemo[$identSeed] = PersonaIdentity::fromSeed($identSeed);
         }
 
-        return $this->personaMemo[$seed]->field($path) ?? '';
+        return $this->personaMemo[$identSeed]->field($path) ?? '';
     }
 
     /** @param array<int|string,string> $captures */
