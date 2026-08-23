@@ -43,6 +43,22 @@ final class PathNormalizer
     }
 
     /**
+     * Canonical ownership key: the form the attack-tier path-override set is keyed on. Lower-cases
+     * and strips a trailing slash (except root) so the case/trailing-slash variants resolveEntry can
+     * hit the store with all collapse to one key. Never lower-cases inside normalize() itself —
+     * resolveEntry relies on the case-preserving normalize.
+     */
+    public static function ownershipKey(string $path): string
+    {
+        $n = strtolower(self::normalize($path));
+        if ($n !== '/' && substr($n, -1) === '/') {
+            $n = rtrim($n, '/');
+        }
+
+        return $n;
+    }
+
+    /**
      * Compiled routing key: "METHOD normalized-path". Method upper-cased; path
      * kept byte-identical.
      */
