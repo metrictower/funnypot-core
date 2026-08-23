@@ -63,6 +63,11 @@ jobs:
         run: |
           # A fresh index has no funnypot routes; recompile the attack + route templates
           # and fold brand-new product pages back in (merge-routes is idempotent).
+          # compile-ai runs first: it writes templates/generated/ (folded by compile-routes)
+          # and templates/attack-ai/ (folded by compile-emulators), so both need it upstream.
+          # Deterministic from resources/ai/model-catalog.php, so this is a no-op unless the
+          # catalog changed — the committed artifacts already reflect its output.
+          php bin/funnypot compile-ai
           php bin/funnypot compile-emulators
           php bin/funnypot compile-routes
           # Param routes reserve ids against the freshly compiled attack set (build-fails on a

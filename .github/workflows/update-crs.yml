@@ -69,6 +69,10 @@ jobs:
 
       - name: Fold CRS templates into the runtime emulator index
         run: |
+          # compile-ai regenerates templates/attack-ai/, which compile-emulators folds in below.
+          # Deterministic from resources/ai/model-catalog.php (this workflow never touches that
+          # file), so it's a no-op — the committed attack-ai templates already reflect it.
+          php bin/funnypot compile-ai
           php bin/funnypot compile-emulators
           # Re-run so a new CRS attack id colliding with a param id build-fails here (param ids
           # reserve against the compiled attack set).
