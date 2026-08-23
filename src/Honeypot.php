@@ -73,7 +73,7 @@ final class Honeypot implements Engine
         $this->nucleiEnabled = $this->config->nucleiReflection;
 
         $this->attackEmulator = $this->config->attackEmulation
-            ? TemplateAttackEmulator::fromPackage([], $personaSeed)->disable($this->config->exclude)
+            ? TemplateAttackEmulator::fromPackage([], $personaSeed, $this->config->decoySessionKey)->disable($this->config->exclude)
             : null;
     }
 

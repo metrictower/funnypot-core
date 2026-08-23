@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Funnypot\Template;
 
+use Funnypot\Behavior\DecoySession;
 use Funnypot\Behavior\NullEphemeralStore;
 use Funnypot\Behavior\SystemClock;
 use Funnypot\Contracts\Clock;
@@ -12,6 +13,7 @@ use Funnypot\Detection;
 use Funnypot\RequestContext;
 use Funnypot\Response\EmulatedContent;
 use Funnypot\Rules\RulesLocator;
+use Funnypot\Support\Fake\FakeRecords;
 use Funnypot\Support\PathNormalizer;
 use Funnypot\SynthesizedResponse;
 use Funnypot\TemplateMatch;
@@ -57,11 +59,18 @@ final class TemplateAttackEmulator
     /** @var EphemeralStore per-actor scratch space for behavior primitives */
     private $store;
 
+    /** @var int|null per-deploy identity seed, for behaviors that need cross-tier coherence (e.g. decoy-session's FakeRecords) */
+    private $personaSeed;
+
+    /** @var string|null signing key for the decoy-session behavior; null/'' ⇒ that behavior is disabled */
+    private $decoySessionKey;
+
     /**
      * Named behavior primitives, keyed by the rule's `behavior` value. Each is a closure over
      * $this that turns a behavior config + captures into an EmulatedContent (or null to fall back
      * to the rule's base response). `default` is not a name here — an absent/unknown behavior is
-     * simply the plain render. `branch` and `traversal-read` exist; the other primitives are deferred.
+     * simply the plain render. `branch`, `traversal-read`, `arith-eval`, `iterate`, and
+     * `decoy-session` exist; other primitives are deferred.
      *
      * @var array<string,callable>
      */
@@ -78,7 +87,8 @@ final class TemplateAttackEmulator
         ?Clock $clock = null,
         ?EphemeralStore $store = null,
         array $paramBuckets = [],
-        ?int $personaSeed = null
+        ?int $personaSeed = null,
+        ?string $decoySessionKey = null
     ) {
         $this->rules = $rules;
         foreach ($rules as $rule) {
@@ -94,6 +104,8 @@ final class TemplateAttackEmulator
         $this->renderer = new DirectiveRenderer($personaSeed);
         $this->clock = $clock ?? new SystemClock();
         $this->store = $store ?? new NullEphemeralStore();
+        $this->personaSeed = $personaSeed;
+        $this->decoySessionKey = $decoySessionKey;
         $this->behaviors = [
             'branch' => function (array $config, array $captures, ?RequestContext $r, int $seed, Clock $clock, EphemeralStore $store): ?EmulatedContent {
                 return $this->handleBranch($config, $captures, $r, $seed);
@@ -113,15 +125,21 @@ final class TemplateAttackEmulator
             'iterate' => function (array $config, array $captures, ?RequestContext $r, int $seed, Clock $clock, EphemeralStore $store): ?EmulatedContent {
                 return $this->handleIterate($config, $captures, $r, $seed);
             },
+            // Mock-auth mint/gate over a signed decoy session cookie. Needs $r for the gate's Cookie
+            // header (absent ⇒ fail closed); clock/store are unused. See handleDecoySession's docblock
+            // for the full invariant list (fail-closed key check, no open redirect, etc).
+            'decoy-session' => function (array $config, array $captures, ?RequestContext $r, int $seed, Clock $clock, EphemeralStore $store): ?EmulatedContent {
+                return $this->handleDecoySession($config, $captures, $r, $seed);
+            },
         ];
     }
 
     /** @param array<string,string> $canary */
-    public static function fromFile(string $path, array $canary = [], ?int $personaSeed = null): self
+    public static function fromFile(string $path, array $canary = [], ?int $personaSeed = null, ?string $decoySessionKey = null): self
     {
         $rules = is_file($path) ? require $path : [];
 
-        return new self(is_array($rules) ? $rules : [], $canary, null, null, self::loadParamBuckets(), $personaSeed);
+        return new self(is_array($rules) ? $rules : [], $canary, null, null, self::loadParamBuckets(), $personaSeed, $decoySessionKey);
     }
 
     /**
@@ -146,9 +164,9 @@ final class TemplateAttackEmulator
      * Build against the attack rules — a RulesUpdater-managed copy under the configured data
      * dir when present, else the copy compiled into the package (RulesLocator decides).
      */
-    public static function fromPackage(array $canary = [], ?int $personaSeed = null): self
+    public static function fromPackage(array $canary = [], ?int $personaSeed = null, ?string $decoySessionKey = null): self
     {
-        return self::fromFile(RulesLocator::resolve('funnypot-attack.php'), $canary, $personaSeed);
+        return self::fromFile(RulesLocator::resolve('funnypot-attack.php'), $canary, $personaSeed, $decoySessionKey);
     }
 
     /**
@@ -711,6 +729,137 @@ final class TemplateAttackEmulator
     }
 
     /**
+     * The `decoy-session` behavior primitive: a stateless mock-auth mint/gate over a signed
+     * DecoySession cookie. Two config-driven modes on the same primitive:
+     *  - `mint` (the login POST): a plausible, non-empty username/password mints the session
+     *    cookie and redirects to the authed panel — but the redirect target is a FIXED literal,
+     *    never the submitted value (no open redirect), and an empty/whitespace credential is
+     *    declined so a blank submit is not treated as a login.
+     *  - `gate` (the authed panel GET): only a verified `s=1` cookie renders the authed body;
+     *    anything else (absent, garbage, a validly-signed but wrong-class `s=0`, or no request at
+     *    all) declines to null so renderRule falls back to the rule's base `response` — the
+     *    login page. This is fail-closed by construction: the ONLY path to the authed body is
+     *    DecoySession::isAuthenticated() returning true.
+     *
+     * The signing key is checked FIRST and is a hard kill switch: null/'' declines before a
+     * DecoySession/Honeytoken is ever constructed (DecoySession's ctor takes a non-nullable
+     * string under strict_types, so passing null would TypeError -> 500, not decline). The key
+     * itself is never rendered, reflected, or logged — it exists only to construct DecoySession.
+     *
+     * @param array<string,mixed>      $config   the rule's `decoy-session` config (`mode` + cookie/table naming)
+     * @param array<int|string,string> $captures reflected capture groups (mint reads `user`/`pass`)
+     */
+    private function handleDecoySession(array $config, array $captures, ?RequestContext $r, int $seed): ?EmulatedContent
+    {
+        if ($this->decoySessionKey === null || $this->decoySessionKey === '') {
+            return null;
+        }
+
+        $mode = (string) ($config['mode'] ?? '');
+        $name = (string) ($config['cookie_name'] ?? 'phpMyAdmin');
+        $path = (string) ($config['cookie_path'] ?? '/');
+        $session = new DecoySession($this->decoySessionKey);
+
+        if ($mode === 'mint') {
+            return $this->decoySessionMint($session, $config, $captures, $name, $path);
+        }
+        if ($mode === 'gate') {
+            return $this->decoySessionGate($session, $config, $r, $name, $seed);
+        }
+
+        return null;
+    }
+
+    /**
+     * The mint half: an empty/whitespace-only username or password is not a login attempt, so it
+     * declines (-> the base login-page response), as does an implausible username. Otherwise mint
+     * the `s=1` cookie and redirect. The Location is a FIXED literal — captures are read ONLY for
+     * the credential check, never woven into a header, so a crafted redirect/servername field in
+     * the POST body can never steer the client anywhere (no open redirect).
+     *
+     * @param array<string,mixed>      $config
+     * @param array<int|string,string> $captures
+     */
+    private function decoySessionMint(DecoySession $session, array $config, array $captures, string $name, string $path): ?EmulatedContent
+    {
+        $user = (string) ($captures['user'] ?? '');
+        $pass = (string) ($captures['pass'] ?? '');
+        if (trim($user) === '' || trim($pass) === '') {
+            return null;
+        }
+        if (preg_match('/^[A-Za-z0-9_.@-]{1,64}$/', $user) !== 1) {
+            return null;
+        }
+
+        $cookie = $session->mintCookie($name, $path);
+
+        return new EmulatedContent('', ['Set-Cookie' => $cookie, 'Location' => '/phpmyadmin/index.php'], 302);
+    }
+
+    /**
+     * The gate half: fails closed on anything but a verified `s=1` cookie (isAuthenticated() is
+     * the ONLY authentication path). The Cookie header is read case-insensitively, mirroring
+     * surface()'s strcasecmp loop — a null $r (the position-blind port) has no cookie to read, so
+     * it degrades to the same fail-closed decline.
+     *
+     * @param array<string,mixed> $config
+     */
+    private function decoySessionGate(DecoySession $session, array $config, ?RequestContext $r, string $name, int $seed): ?EmulatedContent
+    {
+        $cookieHeader = null;
+        if ($r !== null) {
+            foreach ($r->headers as $key => $value) {
+                if (strcasecmp((string) $key, 'Cookie') === 0) {
+                    $cookieHeader = (string) $value;
+                    break;
+                }
+            }
+        }
+        if (!$session->isAuthenticated($cookieHeader, $name)) {
+            return null;
+        }
+
+        return $this->decoySessionAuthedBody($config, $seed);
+    }
+
+    /**
+     * PHASE-A PLACEHOLDER authed body: a minimal HTML page carrying a FakeRecords table, just
+     * enough to prove the gate logic (a later task swaps this for the shared persona chrome). The
+     * deploy seed prefers $this->personaSeed (per-deploy coherence across the persona/template
+     * tiers) and falls back to the per-render $seed when no persona seed was wired. Row count is
+     * re-clamped to MAX_DECOY_ROWS in code regardless of the authored value (mirrors handleIterate's
+     * fan-out cap) — no amplification via a hand-crafted rules artifact.
+     *
+     * @param array<string,mixed> $config
+     */
+    private function decoySessionAuthedBody(array $config, int $seed): EmulatedContent
+    {
+        $deploySeed = $this->personaSeed ?? $seed;
+        $domain = (string) ($config['domain'] ?? 'example.com');
+        $tableKey = (string) ($config['table_key'] ?? 'users');
+
+        $rows = isset($config['rows']) ? (int) $config['rows'] : 10;
+        if ($rows < 0) {
+            $rows = 0;
+        }
+        $rows = min($rows, self::MAX_DECOY_ROWS);
+
+        $records = FakeRecords::users($deploySeed, $domain, $tableKey, $rows);
+
+        $html = '<h1>' . htmlspecialchars($tableKey, ENT_QUOTES, 'UTF-8') . '</h1><table>';
+        foreach ($records as $record) {
+            $html .= '<tr>';
+            foreach ($record as $cell) {
+                $html .= '<td>' . htmlspecialchars($cell, ENT_QUOTES, 'UTF-8') . '</td>';
+            }
+            $html .= '</tr>';
+        }
+        $html .= '</table>';
+
+        return new EmulatedContent($html, ['Content-Type' => 'text/html; charset=utf-8'], 200);
+    }
+
+    /**
      * The `traversal-read` behavior primitive: emulate a bounded arbitrary-file-read. The reflected
      * `path` capture is canonicalized purely in-string (NO filesystem access whatsoever), then matched
      * against the rule's authored `allow` list in order; the first hit renders its `content` (a
@@ -889,6 +1038,9 @@ final class TemplateAttackEmulator
 
     /** Hard ceiling on iterate fan-out items, enforced regardless of the authored count — no amplification. */
     private const MAX_ITERATE_ITEMS = 64;
+
+    /** Hard ceiling on decoy-session gate table rows, enforced regardless of the authored count. */
+    private const MAX_DECOY_ROWS = 100;
 
     /**
      * The literal pre-filter test for matchRule(): is the rule's required literal absent from the
