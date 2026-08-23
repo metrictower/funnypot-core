@@ -144,6 +144,25 @@ final class ParamRouteCompilerTest extends TestCase
         $this->compile([$doc]);
     }
 
+    public function test_fake_person_directive_passes_the_lint(): void
+    {
+        $doc = $this->doc('param-person', '/@fs/{path*}');
+        $doc['response']['body'] = '{{fake.person.full:r0}} {{fake.person.username:r0}} {{fake.person.email:r0}}';
+        $out = $this->compile([$doc]);
+        self::assertArrayHasKey('@fs', $out['buckets']);
+    }
+
+    public function test_fake_person_unknown_subfield_is_rejected(): void
+    {
+        // fake.person.* is a CLOSED sub-field set (unlike a plain fake.NAME) — a mistyped
+        // sub-field must fail the build, not silently render '' at runtime.
+        $doc = $this->doc('param-person-typo', '/@fs/{path*}');
+        $doc['response']['body'] = '{{fake.person.fulll:r0}}';
+        $this->expectException(RuntimeException::class);
+        $this->expectExceptionMessage('unknown fake.person field');
+        $this->compile([$doc]);
+    }
+
     public function test_duplicate_id_within_the_param_set_is_rejected(): void
     {
         $this->expectException(RuntimeException::class);

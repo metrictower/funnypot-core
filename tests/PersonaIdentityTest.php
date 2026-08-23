@@ -240,6 +240,19 @@ final class PersonaIdentityTest extends TestCase
         $this->assertKnownDirectives('{{persona.compny.domain}}');
     }
 
+    public function test_compiler_accepts_a_valid_fake_person_directive(): void
+    {
+        $this->assertKnownDirectives('{{fake.person.full:r0}} {{fake.person.username:r0}} {{fake.person.email:r0}}');
+        $this->addToAssertionCount(1); // no exception thrown == pass
+    }
+
+    public function test_compiler_rejects_a_mistyped_fake_person_field(): void
+    {
+        $this->expectException(RuntimeException::class);
+        $this->expectExceptionMessage('unknown fake.person field');
+        $this->assertKnownDirectives('{{fake.person.fulll:r0}}');
+    }
+
     /** Invoke the compiler's private closed-vocabulary lint on a snippet. */
     private function assertKnownDirectives(string $text): void
     {

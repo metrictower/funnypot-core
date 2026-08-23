@@ -619,6 +619,11 @@ final class EmulatorCompiler
                 if (strpos($part, 'persona.') === 0 && !in_array(substr($part, 8), PersonaIdentity::FIELDS, true)) {
                     throw new RuntimeException("Template {$file}: unknown persona field '{{{$part}}}'. Field set is closed — check for a typo.");
                 }
+                // fake.person.* has a CLOSED sub-field set too (full/username/email), unlike a
+                // plain fake.NAME — same reasoning as persona.* above.
+                if (strpos($part, 'fake.person.') === 0 && !in_array(explode(':', substr($part, 12), 2)[0], DirectiveRenderer::PERSON_FIELDS, true)) {
+                    throw new RuntimeException("Template {$file}: unknown fake.person field '{{{$part}}}'. Field set is closed — check for a typo.");
+                }
             }
         }
     }

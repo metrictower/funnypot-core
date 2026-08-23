@@ -328,6 +328,55 @@ final class TemplateEngineTest extends TestCase
         self::assertStringNotContainsString('persona', $rr->render('x{{persona.company.bogus}}y', [], 5));
     }
 
+    // --- fake.person.* tokens ---
+
+    public function test_fake_person_directives_are_deterministic_and_coherent(): void
+    {
+        $rr = new DirectiveRenderer();
+        $seed = 88;
+        $body = '{{fake.person.full:r0}}|{{fake.person.username:r0}}|{{fake.person.email:r0}}';
+        $out1 = $rr->render($body, [], $seed);
+        $out2 = $rr->render($body, [], $seed);
+        self::assertSame($out1, $out2, 'same seed+KEY must render byte-identical every time');
+
+        [$full, $userName, $email] = explode('|', $out1);
+        self::assertNotSame('', $full);
+        self::assertNotSame('', $userName);
+        // The email local-part is the SAME userName the sibling directive rendered — one row,
+        // one coherent person, sharing a KEY (r0) across all three directives.
+        self::assertStringStartsWith($userName . '@', $email);
+        // The domain half must equal the seed's persona company domain, not a hardcoded placeholder.
+        self::assertStringEndsWith('@' . PersonaIdentity::fromSeed($seed)->field('company.domain'), $email);
+    }
+
+    public function test_fake_person_different_key_yields_a_different_person(): void
+    {
+        $rr = new DirectiveRenderer();
+        $seed = 88;
+        $a = $rr->render('{{fake.person.full:r0}}', [], $seed);
+        $b = $rr->render('{{fake.person.full:r1}}', [], $seed);
+        self::assertNotSame($a, $b, 'a different KEY must draw a different person');
+    }
+
+    public function test_fake_person_unknown_subfield_renders_empty(): void
+    {
+        // Fail-safe: an unknown fake.person sub-field renders '' — never the literal directive
+        // (the compile-time lint is what actually catches this typo at build time).
+        $rr = new DirectiveRenderer();
+        self::assertSame('', $rr->render('{{fake.person.bogus:r0}}', [], 5));
+        self::assertStringNotContainsString('fake.person', $rr->render('x{{fake.person.bogus:r0}}y', [], 5));
+    }
+
+    public function test_fake_person_addition_does_not_disturb_plain_fake_name(): void
+    {
+        // fake.person. is a new sub-namespace of fake. — a plain fake.NAME (no 'person.' prefix)
+        // must resolve exactly as before.
+        $rr = new DirectiveRenderer();
+        $seed = 5;
+        $expected = substr(hash('sha256', $seed . '|fake|k'), 0, 20);
+        self::assertSame($expected, $rr->render('{{fake.k:hex:20}}', [], $seed));
+    }
+
     public function test_persona_addition_is_backward_compatible(): void
     {
         // A body of pre-existing directives must render BYTE-IDENTICAL to before persona.* existed.

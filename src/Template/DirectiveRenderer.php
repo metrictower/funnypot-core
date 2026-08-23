@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Funnypot\Template;
 
 use Funnypot\Attack\CannedData;
+use Funnypot\Support\Fake\FakePeople;
 use Funnypot\Support\PersonaIdentity;
 
 /**
@@ -17,6 +18,12 @@ use Funnypot\Support\PersonaIdentity;
  *   {{canned.passwd|uid|winini}}     shared fake markers (fake /etc/passwd, uid=0(root), win.ini)
  *   {{fake.NAME:hex:N}}              N hex chars, seeded by (persona, NAME) — same NAME ⇒ same value,
  *                                    so one fake secret can appear twice; different NAME ⇒ independent
+ *   {{fake.person.full:KEY}}         one coherent fake person via Support\Fake\FakePeople, keyed by
+ *   {{fake.person.username:KEY}}     (seed, KEY) — the SAME KEY across these directives in one row
+ *   {{fake.person.email:KEY}}        yields a full/username/email that all agree; email domain is the
+ *                                    seed's persona company.domain (falls back to 'internal'). KEY is
+ *                                    an arbitrary token; the sub-field {full,username,email} is a
+ *                                    CLOSED set (unlike fake.NAME) — an unknown one fails the lint.
  *   {{fakeHex:N}}                    positional seeded hex (legacy; prefer named fake.*)
  *   {{match.N}} / {{match.NAME}}     regex capture group (numeric or named) — BOUNDED reflection of the
  *                                    matched attacker bytes (header values are CR/LF-checked by callers)
@@ -48,6 +55,11 @@ final class DirectiveRenderer
 
     /** The closed directive prefixes — used by the compile-time lint. */
     public const KNOWN_PREFIXES = ['canned.', 'fake.', 'fakeHex:', 'hex:', 'match.', 'urldecode:match.', 'xml:match.', 'compute.md5:', 'compute.crc32:', 'pick:', 'canary.', 'persona.'];
+
+    /** The closed set of valid fake.person.* sub-fields — used by the compile-time lint (mirrors
+     *  PersonaIdentity::FIELDS' role for persona.*; unlike a plain fake.NAME, this sub-field is
+     *  fixed, so a typo here would otherwise render '' at runtime and silently drop the marker). */
+    public const PERSON_FIELDS = ['full', 'username', 'email'];
 
     /**
      * One PersonaIdentity per seed. A renderer instance is long-lived and reused across many
@@ -105,6 +117,30 @@ final class DirectiveRenderer
     {
         if (strpos($part, 'canned.') === 0) {
             return self::CANNED[substr($part, 7)] ?? null;
+        }
+        if (strpos($part, 'fake.person.') === 0) {
+            // fake.person.{full,username,email}:KEY — a coherent fake person from the shared
+            // FakePeople generator. The SAME KEY reused across these three directives in one row
+            // draws the SAME person (FakePeople::person is a pure function of (seed, KEY)), so
+            // full/username/email always agree — mirroring the app tier's row-coherence pattern.
+            $bits = explode(':', substr($part, 12), 2);
+            $field = $bits[0];
+            $key = $bits[1] ?? '';
+            if (!in_array($field, self::PERSON_FIELDS, true)) {
+                return null; // unknown sub-field -> fail safe; compile-time lint catches the typo
+            }
+            $person = FakePeople::person($seed, $key);
+            if ($field === 'full') {
+                return $person['full'];
+            }
+            if ($field === 'username') {
+                return $person['userName'];
+            }
+            // email: local-part from the person, domain from the seed's coherent persona identity
+            // so the address matches the same company any persona.* directives show on the page.
+            $domain = $this->personaField($seed, 'company.domain');
+
+            return FakePeople::email($person, $domain !== '' ? $domain : 'internal');
         }
         if (strpos($part, 'fake.') === 0) {
             // fake.NAME:ENC:N — ENC in {hex (default), hexupper, b64, b64url, dec}. Seed+name derived,
