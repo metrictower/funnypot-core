@@ -23,23 +23,24 @@ owns_path: [/grafana/login]
 # back to route 379's GET login shell.
 #
 # PATH/METHOD/BODY MATCH STAY AS PERMISSIVE AS owns_path: ownsPath() claims any case/trailing-slash
-# variant of /grafana/login, so a stricter match here would DECLINE on a variant the override already
+# variant of /grafana/login (PathNormalizer::ownershipKey lower-cases + strips ALL trailing slashes,
+# not just one — rtrim() keeps going), so the path regex tolerates any COUNT of trailing slashes
+# (`/*$`, not `/?$`) to match. A stricter match here would DECLINE on a variant the override already
 # claimed and fall back to route 379's GET login shell for what is really a POST credential attempt.
 # That fallback is benign here (a login shell, not a fake login success), but the match is kept
 # consistent with the other three login oracles for the same reason: the response never reads `user`,
 # so making the capture optional (matches with no `user` field, or no body at all) cannot change what
 # gets served.
 #
-# The trailing-slash tolerance is scoped to the `grafana/login` branch only — the bare `login` alias
-# (any single last segment named `login`, `grafana/` prefix or not) keeps its EXACT pre-existing shape,
-# no trailing slash. That alias already overlaps 98-cpsrvd-login.yaml's owned `/login/` on the
-# no-trailing-slash form (this rule sorts first, priority 38 < 42) — a pre-existing, harmless
-# oracle-vs-oracle mismatch (both are safe fake-failure responses), not a safety bug. Adding trailing-
-# slash tolerance to that bare alias too would newly swallow cpsrvd's owned `/login/` form and break
-# its tests; keeping it exact avoids widening that overlap while still fixing the real target here.
+# No bare `login` alias: this rule used to also match any single last segment named `login`
+# (`grafana/` prefix or not), but that alias overlapped 98-cpsrvd-login.yaml's owned `/login/` on
+# the no-trailing-slash form (this rule sorted first, priority 38 < 42) and shadowed it — cpsrvd's
+# oracle never saw a bare `/login` POST. Dropping the alias lets cpsrvd cleanly own `/login` (its
+# owns_path is `/login/`, canonicalized the same way); this rule now matches only its own real path,
+# `grafana/login`, with the trailing-slash tolerance above.
 match:
   - in: path
-    regex: '(?:^|/)(?:grafana/login/?|login)$'
+    regex: '(?:^|/)grafana/login/*$'
     ci: true
   - in: method
     regex: '^POST$'

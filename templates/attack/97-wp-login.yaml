@@ -22,8 +22,10 @@ owns_path: [/wp-login.php]
 # (blog.{{persona.company.domain}}, no WP version disclosed) so the two responses stay one coherent host.
 #
 # PATH/METHOD MATCH MUST STAY AS PERMISSIVE AS owns_path: ownsPath() claims any case/trailing-slash
-# variant of /wp-login.php (PathNormalizer::ownershipKey lower-cases + strips the trailing slash), so
-# a stricter match here would DECLINE on a variant the override already claimed. On a decline,
+# variant of /wp-login.php (PathNormalizer::ownershipKey lower-cases + strips ALL trailing slashes,
+# not just one — rtrim() keeps going), so the path regex tolerates any COUNT of trailing slashes
+# (`/*$`, not `/?$`) to match. A stricter match here would DECLINE on a variant the override already
+# claimed. On a decline,
 # classify() keeps scanning the REST of the attack rules in priority order (matchRule() is a full
 # linear scan, not scoped to this rule) before falling back to the exact-store `POST /wp-login.php`
 # entry — the real compiled corpus keys that exact path with a `wordpress`-tagged
@@ -33,7 +35,7 @@ owns_path: [/wp-login.php]
 # reaches this oracle first.
 match:
   - in: path
-    regex: '(?:^|/)wp-login\.php/?$'
+    regex: '(?:^|/)wp-login\.php/*$'
     ci: true
   - in: method
     regex: '^POST$'

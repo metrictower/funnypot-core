@@ -85,14 +85,14 @@ final class KibanaLoginOracleTest extends TestCase
      * owns_path overrides; mirrors WpXmlrpcEmulatorTest::fullEngine(), with mode='respond' (+ a
      * permissive gate) when the test also needs the actual served bytes, not just the verdict.
      */
-    private function fullEngine(bool $respondMode = false): Honeypot
+    private function fullEngine(bool $respondMode = false, string $ceiling = 'high'): Honeypot
     {
         $store = new PhpArrayStore(require __DIR__ . '/../resources/compiled/nuclei-index.full.php');
         $config = new Config(
             $respondMode ? 'respond' : 'detect',
             $respondMode ? static function (RequestContext $r): bool { return true; } : null,
             'matched-only', null, 'coherent', Style::MINIMAL,
-            'high', 65536, 0, 0, true /* attackEmulation */
+            $ceiling, 65536, 0, 0, true /* attackEmulation */
         );
 
         return new Honeypot($store, $config);
@@ -252,9 +252,63 @@ final class KibanaLoginOracleTest extends TestCase
     {
         return [
             'trailing slash' => ['POST', self::PATH . '/'],
+            // MULTI-trailing-slash (second adversarial-review finding): ownershipKey() rtrim()s ALL
+            // trailing slashes, not just one, so ownsPath() is equally true for '//' and '///'; the
+            // path regex (`/*$`, not `/?$`) must tolerate any count.
+            'double trailing slash' => ['POST', self::PATH . '//'],
+            'triple trailing slash' => ['POST', self::PATH . '///'],
             'mixed-case path' => ['POST', '/Internal/security/login'],
             'lowercase method' => ['post', self::PATH],
         ];
+    }
+
+    /**
+     * A query string appended to a multi-slash path must not change the match: `in: path`/`in:
+     * method` read $r->path/$r->method only, never $r->query (PathNormalizer::ownershipKey() is
+     * likewise query-blind — ownsPath() is called with $r->path alone). Reproduces the second-review
+     * repro shape (`POST /login//?a=b`) against this oracle's own path.
+     */
+    public function test_query_appended_to_a_multi_slash_path_still_wins(): void
+    {
+        $verdict = $this->fullEngine()->classify(
+            new RequestContext('POST', self::PATH . '//', 'a=b', ['kbn-xsrf' => 'true'], $this->loginBody('root')),
+            SiteProfile::empty()
+        );
+        self::assertSame(Verdict::ATTACK_CLASS, $verdict->classification);
+        self::assertNotNull($verdict->fakeHandle);
+        self::assertSame(FakeHandle::KIND_ATTACK, $verdict->fakeHandle->kind);
+        self::assertSame(self::ID, $verdict->fakeHandle->ruleId);
+
+        $engine = $this->fullEngine(true);
+        $r = $engine->respond(new RequestContext('POST', self::PATH . '//', 'a=b', ['kbn-xsrf' => 'true'], $this->loginBody('root')));
+        self::assertNotNull($r);
+        self::assertSame(401, $r->status);
+        self::assertSame(self::BODY_401, $r->body);
+        self::assertArrayNotHasKey('Set-Cookie', $r->headers);
+    }
+
+    /**
+     * The MULTI-trailing-slash regression, pinned at BOTH the default (high) and critical severity
+     * ceiling — Part 1 of the WP-Phase-2b second-review fix (the `/*$` path regex) makes matchRule()
+     * itself win outright for this path family (no owns_path-decline fallthrough involved), so the
+     * ceiling should never matter; this test proves that rather than assuming it.
+     */
+    public function test_multi_trailing_slash_wins_at_every_severity_ceiling(): void
+    {
+        foreach (['high', 'critical'] as $ceiling) {
+            foreach (['//', '///'] as $slashes) {
+                $engine = $this->fullEngine(true, $ceiling);
+                $path = self::PATH . $slashes;
+                $r = $engine->respond(new RequestContext('POST', $path, '', ['kbn-xsrf' => 'true'], $this->loginBody('root')));
+                $label = "POST {$path} @ceiling={$ceiling}";
+
+                self::assertNotNull($r, $label);
+                self::assertSame(401, $r->status, $label);
+                self::assertSame(self::BODY_401, $r->body, $label);
+                self::assertArrayNotHasKey('Set-Cookie', $r->headers, $label);
+                self::assertStringNotContainsString('sid=', implode(' ', $r->headers), $label);
+            }
+        }
     }
 
     // --- byte-accurate response shape: valid JSON in both branches ---------------------------------

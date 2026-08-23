@@ -48,14 +48,14 @@ final class WpLoginOracleTest extends TestCase
      * mirrors KibanaLoginOracleTest::fullEngine(), with mode='respond' (+ a permissive gate) when the
      * test also needs the actual served bytes, not just the verdict.
      */
-    private function fullEngine(bool $respondMode = false): Honeypot
+    private function fullEngine(bool $respondMode = false, string $ceiling = 'high'): Honeypot
     {
         $store = new PhpArrayStore(require __DIR__ . '/../resources/compiled/nuclei-index.full.php');
         $config = new Config(
             $respondMode ? 'respond' : 'detect',
             $respondMode ? static function (RequestContext $r): bool { return true; } : null,
             'matched-only', null, 'coherent', Style::MINIMAL,
-            'high', 65536, 0, 0, true /* attackEmulation */
+            $ceiling, 65536, 0, 0, true /* attackEmulation */
         );
 
         return new Honeypot($store, $config);
@@ -176,11 +176,65 @@ final class WpLoginOracleTest extends TestCase
     {
         return [
             'trailing slash' => ['POST', '/wp-login.php/', 'log=root&pwd=x'],
+            // MULTI-trailing-slash (second adversarial-review finding): ownershipKey() rtrim()s ALL
+            // trailing slashes, not just one, so ownsPath() is equally true for '//' and '///'; the
+            // path regex (`/*$`, not `/?$`) must tolerate any count.
+            'double trailing slash' => ['POST', '/wp-login.php//', 'log=root&pwd=x'],
+            'triple trailing slash' => ['POST', '/wp-login.php///', 'log=root&pwd=x'],
             'mixed-case path' => ['POST', '/WP-Login.php', 'log=root&pwd=x'],
             'lowercase method' => ['post', '/wp-login.php', 'log=root&pwd=x'],
             'body missing log field, no pwd' => ['POST', '/wp-login.php/', 'other=x'],
             'body missing log field, pwd-shaped' => ['POST', '/wp-login.php/', 'pwd=x'],
             'empty body' => ['POST', '/wp-login.php/', ''],
+        ];
+    }
+
+    // --- REGRESSION: a HEAD variant the oracle can never match (POST-gated) must still never --------
+    // --- expose the CVE-2022-1595 auth-success bundle keyed exactly `HEAD /wp-login.php` -------------
+
+    /**
+     * Second adversarial-review finding: a HEAD request can never satisfy this oracle's method
+     * condition (`^POST$`), so ownsPath('/wp-login.php//') is true while matchRule() legitimately
+     * declines — that decline used to fall through to resolveEntry()'s re-resolution of the SAME
+     * variant, which for HEAD lands on a REAL compiled-corpus bundle keyed EXACTLY
+     * `HEAD /wp-login.php` (nuclei template CVE-2022-1595): a fake LOGIN-SUCCESS, 302 with
+     * `Set-Cookie:awordpress_logged_in_` + `Location:a/wp-admin/`. The Honeypot::classify() guard
+     * (hasAuthSuccessWitness) now intercepts this: any owned-path decline whose fallthrough entry
+     * carries an auth-success witness degrades to CLEAN instead of re-exposing that bundle. Pinned at
+     * BOTH the default (high) and critical severity ceiling — the guard fires before any severity
+     * filtering, so the ceiling must not matter.
+     *
+     * @dataProvider headAndMultiSlashVariantProvider
+     */
+    public function test_head_and_multi_slash_variants_never_expose_the_cve2022_1595_bundle(
+        string $method,
+        string $path,
+        string $query
+    ): void {
+        foreach (['high', 'critical'] as $ceiling) {
+            $engine = $this->fullEngine(true, $ceiling);
+            $r = $engine->respond(new RequestContext($method, $path, $query));
+            $label = "{$method} {$path}?{$query} @ceiling={$ceiling}";
+
+            if ($r === null) {
+                self::assertNull($r, $label); // CLEAN (guard fired) or gate-declined — the safe outcome.
+                continue;
+            }
+
+            self::assertArrayNotHasKey('Set-Cookie', $r->headers, $label);
+            self::assertArrayNotHasKey('Location', $r->headers, $label);
+            self::assertStringNotContainsString('wordpress_logged_in', implode(' ', $r->headers), $label);
+            self::assertStringNotContainsString('/wp-admin', implode(' ', $r->headers), $label);
+            self::assertStringNotContainsString('wordpress_logged_in', $r->body, $label);
+        }
+    }
+
+    /** @return array<string,array{0:string,1:string,2:string}> */
+    public function headAndMultiSlashVariantProvider(): array
+    {
+        return [
+            'HEAD double trailing slash' => ['HEAD', '/wp-login.php//', ''],
+            'HEAD triple trailing slash' => ['HEAD', '/wp-login.php///', ''],
         ];
     }
 

@@ -77,14 +77,14 @@ final class GrafanaLoginOracleTest extends TestCase
      * KibanaLoginOracleTest::fullEngine(), with mode='respond' (+ a permissive gate) when the test
      * also needs the actual served bytes, not just the verdict.
      */
-    private function fullEngine(bool $respondMode = false): Honeypot
+    private function fullEngine(bool $respondMode = false, string $ceiling = 'high'): Honeypot
     {
         $store = new PhpArrayStore(require __DIR__ . '/../resources/compiled/nuclei-index.full.php');
         $config = new Config(
             $respondMode ? 'respond' : 'detect',
             $respondMode ? static function (RequestContext $r): bool { return true; } : null,
             'matched-only', null, 'coherent', Style::MINIMAL,
-            'high', 65536, 0, 0, true /* attackEmulation */
+            $ceiling, 65536, 0, 0, true /* attackEmulation */
         );
 
         return new Honeypot($store, $config);
@@ -187,9 +187,34 @@ final class GrafanaLoginOracleTest extends TestCase
     {
         return [
             'trailing slash' => ['POST', self::PATH . '/'],
+            // MULTI-trailing-slash (second adversarial-review finding): ownershipKey() rtrim()s ALL
+            // trailing slashes, not just one, so ownsPath() is equally true for '//' and '///'; the
+            // path regex (`/*$`, not `/?$`) must tolerate any count.
+            'double trailing slash' => ['POST', self::PATH . '//'],
+            'triple trailing slash' => ['POST', self::PATH . '///'],
             'mixed-case path' => ['POST', '/Grafana/Login'],
             'lowercase method' => ['post', self::PATH],
         ];
+    }
+
+    // --- REGRESSION: the bare `login` alias is REMOVED — it used to shadow cpsrvd's owned /login/ ----
+
+    /**
+     * WP-Phase-2b (second adversarial review): this rule's match regex used to also accept a bare
+     * `login` alias (`(?:^|/)(?:grafana/login/?|login)$`) — any single last path segment named
+     * `login`, `grafana/` prefix or not. That alias shadowed 98-cpsrvd-login.yaml's owned `/login/`
+     * on the no-trailing-slash form (this rule sorted first in the priority scan, 38 < 42): a bare
+     * `POST /login` was answered by THIS oracle instead of cpsrvd's — a pre-existing, harmless
+     * oracle-vs-oracle overlap, but one that no longer needs to exist once this rule is narrowed to
+     * its own real path with slash tolerance. The alias is now gone: this rule must no longer match a
+     * bare `/login` at all (isolated, so cpsrvd's own rule can't supply the response instead).
+     */
+    public function test_bare_login_alias_is_removed(): void
+    {
+        $emu = $this->isolated();
+        self::assertNull($emu->emulate(new RequestContext('POST', '/login', '', [], $this->body('admin'))));
+        self::assertNull($emu->emulate(new RequestContext('POST', '/login/', '', [], $this->body('admin'))));
+        self::assertNull($emu->emulate(new RequestContext('POST', '/some/path/login', '', [], $this->body('admin'))));
     }
 
     // --- basic dispatch: byte-accurate static 401 JSON --------------------------------------------

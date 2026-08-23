@@ -35,13 +35,15 @@ owns_path: [/internal/security/login]
 # authenticate here. Gated to POST: any other verb misses (no route here for any verb) -> plain 404.
 #
 # PATH/METHOD MATCH MUST STAY AS PERMISSIVE AS owns_path: ownsPath() claims any case/trailing-slash
-# variant of this path (PathNormalizer::ownershipKey lower-cases + strips the trailing slash), so a
-# stricter match here would DECLINE on a variant the override already claimed — classify() then falls
-# through to resolveEntry(), which re-resolves that same variant onto the live elasticsearch-default-
-# login bundle above (case-insensitive path, case-insensitive method: any case, trailing slash or not).
+# variant of this path (PathNormalizer::ownershipKey lower-cases + strips ALL trailing slashes, not
+# just one — rtrim() keeps going), so the path regex tolerates any COUNT of trailing slashes (`/*$`,
+# not `/?$`) to match. A stricter match here would DECLINE on a variant the override already
+# claimed — classify() then falls through to resolveEntry(), which re-resolves that same variant onto
+# the live elasticsearch-default-login bundle above (case-insensitive path, case-insensitive method:
+# any case, any number of trailing slashes).
 match:
   - in: path
-    regex: '(?:^|/)internal/security/login/?$'
+    regex: '(?:^|/)internal/security/login/*$'
     ci: true
   - in: method
     regex: '^POST$'

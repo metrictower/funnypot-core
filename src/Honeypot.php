@@ -131,6 +131,17 @@ final class Honeypot implements Engine
                         $handle
                     );
                 }
+
+                // Owned path, but the request-aware rule declined (a rare path/method variant the
+                // rule's stricter match missed while ownsPath/resolveEntry canonicalized more
+                // broadly). The static store bundle at an owned login path may be the exact
+                // login-SUCCESS decoy owns_path exists to shadow — never re-expose an authenticated
+                // success on a decline. Degrade to CLEAN (the app serves its own 404) when the
+                // fallthrough entry carries an auth-success witness; a benign entry (a login page,
+                // no such witness) still falls through to the static route verdict below.
+                if ($this->hasAuthSuccessWitness($bundles)) {
+                    return new Verdict(Verdict::CLEAN, Detection::none(), '', $anomaly, $signals, null);
+                }
             }
 
             $detection = $this->detectionFor($key, $this->detectIds($entry));
@@ -199,6 +210,29 @@ final class Honeypot implements Engine
         }
 
         return $bundles !== [];
+    }
+
+    /**
+     * True when any candidate bundle's header-watch declares an authenticated-session witness
+     * (a Set-Cookie / logged-in / session-id marker) — i.e. the bundle is a login-SUCCESS decoy.
+     * Used to refuse re-exposing such a bundle on an owns_path override decline.
+     *
+     * @param array<int,array<string,mixed>> $bundles
+     */
+    private function hasAuthSuccessWitness(array $bundles): bool
+    {
+        foreach ($bundles as $bundle) {
+            foreach ((array) ($bundle['hw'] ?? []) as $w) {
+                $lw = strtolower((string) $w);
+                if (strpos($lw, 'set-cookie') !== false
+                    || strpos($lw, 'logged_in') !== false
+                    || strpos($lw, 'sid=') !== false) {
+                    return true;
+                }
+            }
+        }
+
+        return false;
     }
 
     /**

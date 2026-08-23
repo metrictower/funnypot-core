@@ -79,14 +79,14 @@ final class CpsrvdLoginOracleTest extends TestCase
      * KibanaLoginOracleTest::fullEngine(), with mode='respond' (+ a permissive gate) when the test
      * also needs the actual served bytes, not just the verdict.
      */
-    private function fullEngine(bool $respondMode = false): Honeypot
+    private function fullEngine(bool $respondMode = false, string $ceiling = 'high'): Honeypot
     {
         $store = new PhpArrayStore(require __DIR__ . '/../resources/compiled/nuclei-index.full.php');
         $config = new Config(
             $respondMode ? 'respond' : 'detect',
             $respondMode ? static function (RequestContext $r): bool { return true; } : null,
             'matched-only', null, 'coherent', Style::MINIMAL,
-            'high', 65536, 0, 0, true /* attackEmulation */
+            $ceiling, 65536, 0, 0, true /* attackEmulation */
         );
 
         return new Honeypot($store, $config);
@@ -207,15 +207,118 @@ final class CpsrvdLoginOracleTest extends TestCase
     {
         return [
             'trailing slash' => ['POST', '/login/', 'user=root&pass=x'],
-            // Mixed case WITH a trailing slash: bare "/Login" (no slash) would also match
-            // 100-grafana-login.yaml's own case-insensitive bare-login alias (it sorts first,
-            // priority 38 < 42) — an unrelated pre-existing oracle-vs-oracle overlap this test must
-            // not trip. "/Login/" only matches this rule (grafana's bare alias has no slash tolerance).
+            // MULTI-trailing-slash (second adversarial-review finding): ownershipKey() rtrim()s ALL
+            // trailing slashes, not just one, so ownsPath() is equally true for '//' and '///'; the
+            // path regex (`/*$`, not `/?$`) must tolerate any count.
+            'double trailing slash' => ['POST', '/login//', 'user=root&pass=x'],
+            'triple trailing slash' => ['POST', '/login///', 'user=root&pass=x'],
+            // 100-grafana-login.yaml no longer carries a bare `login` alias (WP-Phase-2b removed it:
+            // it shadowed this rule's owned `/login/` on the no-trailing-slash form), so a mixed-case
+            // path is now unambiguous — it can only match THIS rule.
             'mixed-case path' => ['POST', '/Login/', 'user=root&pass=x'],
             'lowercase method' => ['post', '/login/', 'user=root&pass=x'],
             'body missing user field' => ['POST', '/login/', 'pass=x'],
             'empty body' => ['POST', '/login/', ''],
         ];
+    }
+
+    /**
+     * A query string appended to a multi-slash path must not change the match: `in: path`/`in:
+     * method` read $r->path/$r->method only, never $r->query (PathNormalizer::ownershipKey() is
+     * likewise query-blind — ownsPath() is called with $r->path alone). Reproduces the exact
+     * second-review repro `POST /login//?a=b`.
+     */
+    public function test_query_appended_to_a_multi_slash_path_still_wins(): void
+    {
+        $verdict = $this->fullEngine()->classify(
+            new RequestContext('POST', '/login//', 'a=b', [], 'user=root&pass=x'),
+            SiteProfile::empty()
+        );
+        self::assertSame(Verdict::ATTACK_CLASS, $verdict->classification);
+        self::assertNotNull($verdict->fakeHandle);
+        self::assertSame(FakeHandle::KIND_ATTACK, $verdict->fakeHandle->kind);
+        self::assertSame(self::ID, $verdict->fakeHandle->ruleId);
+
+        $engine = $this->fullEngine(true);
+        $r = $engine->respond(new RequestContext('POST', '/login//', 'a=b', [], 'user=root&pass=x'));
+        self::assertNotNull($r);
+        self::assertSame(401, $r->status, "must not be the szhe bundle's 302 redirect");
+        self::assertArrayNotHasKey('Location', $r->headers);
+        self::assertStringStartsWith('cpsession=', $r->headers['Set-Cookie']);
+    }
+
+    // --- REGRESSION: a HEAD variant the oracle can never match (POST-gated) must still never --------
+    // --- expose whatever entry resolveEntry's HEAD->GET degradation falls back onto ------------------
+
+    /**
+     * Second adversarial-review finding: a HEAD request can never satisfy this oracle's method
+     * condition (`^POST$`), so ownsPath('/login//') is true while matchRule() legitimately declines.
+     * Unlike wp-login.php (which has a real `HEAD /wp-login.php` auth-success bundle), the real
+     * compiled corpus has no `HEAD /login` entry — resolveEntry()'s HEAD-falls-back-to-GET
+     * degradation lands on the persona-capped `GET /login` entry instead (~40 assorted login-panel
+     * pages, none an auth-success bundle). Either outcome is safe here: Honeypot::classify()'s
+     * hasAuthSuccessWitness guard would degrade to CLEAN if that fallthrough entry DID carry a
+     * witness; since it doesn't, the request instead falls through to that benign route bundle. This
+     * pins that whichever it is, the served bytes are never the szhe-default-login success shape, at
+     * BOTH the default (high) and critical severity ceiling.
+     *
+     * @dataProvider headAndMultiSlashVariantProvider
+     */
+    public function test_head_and_multi_slash_variants_never_expose_the_szhe_login_success_bundle(
+        string $method,
+        string $path,
+        string $query
+    ): void {
+        foreach (['high', 'critical'] as $ceiling) {
+            $engine = $this->fullEngine(true, $ceiling);
+            $r = $engine->respond(new RequestContext($method, $path, $query, [], 'user=root&pass=x'));
+            $label = "{$method} {$path}?{$query} @ceiling={$ceiling}";
+
+            if ($r === null) {
+                self::assertNull($r, $label); // CLEAN (guard fired) or gate-declined — the safe outcome.
+                continue;
+            }
+
+            self::assertNotSame(302, $r->status, $label);
+            self::assertArrayNotHasKey('Location', $r->headers, $label);
+            self::assertStringNotContainsString(
+                'You should be redirected automatically to target URL',
+                $r->body,
+                $label
+            );
+            $headerBlock = implode(' ', $r->headers);
+            self::assertStringNotContainsString('sid=', $headerBlock, $label);
+            self::assertStringNotContainsString('logged_in', strtolower($headerBlock), $label);
+        }
+    }
+
+    /** @return array<string,array{0:string,1:string,2:string}> */
+    public function headAndMultiSlashVariantProvider(): array
+    {
+        return [
+            'HEAD double trailing slash' => ['HEAD', '/login//', ''],
+            'HEAD triple trailing slash' => ['HEAD', '/login///', ''],
+        ];
+    }
+
+    // --- REGRESSION: alias removal — cpsrvd now cleanly owns bare /login, grafana no longer swallows -
+
+    /**
+     * WP-Phase-2b (second adversarial review): 100-grafana-login.yaml used to carry a bare `login`
+     * alias in its match regex that shadowed THIS rule's owned `/login/` on the no-trailing-slash
+     * form (grafana sorted first, priority 38 < 42) — a pre-existing oracle-vs-oracle overlap. That
+     * alias is now removed, so a bare `POST /login` (no trailing slash at all) must be answered by
+     * THIS oracle (cpsrvd's 401 "The login is invalid."), never grafana's `password-auth.failed`
+     * JSON — proving cpsrvd now cleanly owns the whole `/login`(/) surface.
+     */
+    public function test_bare_login_no_trailing_slash_is_owned_by_cpsrvd_not_grafana(): void
+    {
+        $engine = $this->fullEngine(true);
+        $r = $engine->respond(new RequestContext('POST', '/login', '', [], 'user=root&pass=x'));
+        self::assertNotNull($r);
+        self::assertSame(401, $r->status);
+        self::assertStringContainsString('The login is invalid.', $r->body);
+        self::assertStringNotContainsString('password-auth.failed', $r->body, 'must not be grafana\'s oracle');
     }
 
     // --- login_only=1 branch: the JSON AJAX answer --------------------------------------------------

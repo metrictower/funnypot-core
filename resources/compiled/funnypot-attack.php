@@ -1364,7 +1364,7 @@ return array (
       0 => 
       array (
         'in' => 'path',
-        'regex' => '(?:^|/)internal/security/login/?$',
+        'regex' => '(?:^|/)internal/security/login/*$',
         'ci' => true,
       ),
       1 => 
@@ -1438,7 +1438,7 @@ return array (
       0 => 
       array (
         'in' => 'path',
-        'regex' => '(?:^|/)(?:grafana/login/?|login)$',
+        'regex' => '(?:^|/)grafana/login/*$',
         'ci' => true,
       ),
       1 => 
@@ -1492,7 +1492,7 @@ return array (
       0 => 
       array (
         'in' => 'path',
-        'regex' => '(?:^|/)wp-login\\.php/?$',
+        'regex' => '(?:^|/)wp-login\\.php/*$',
         'ci' => true,
       ),
       1 => 
@@ -1648,7 +1648,7 @@ Ethernet adapter Ethernet0:
       0 => 
       array (
         'in' => 'path',
-        'regex' => '(?:^|/)login/?$',
+        'regex' => '(?:^|/)login/*$',
         'ci' => true,
       ),
       1 => 

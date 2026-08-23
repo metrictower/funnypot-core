@@ -34,14 +34,16 @@ owns_path: [/login/]
 # cpsrvd's non-AJAX POST answer). Server + Version stay lockstep with routes 382/383 (one host).
 #
 # PATH/METHOD MATCH MUST STAY AS PERMISSIVE AS owns_path: ownsPath() claims any case/trailing-slash
-# variant of /login/ (PathNormalizer::ownershipKey lower-cases + strips the trailing slash), so a
-# stricter match here would DECLINE on a variant the override already claimed — classify() then falls
-# through to resolveEntry(), which re-resolves that same variant onto the live szhe-default-login
-# bundle above. The `user` capture is likewise optional (matches even with no `user=` field, or a
-# body missing entirely) so a POST with any body still reaches this oracle instead of that bundle.
+# variant of /login/ (PathNormalizer::ownershipKey lower-cases + strips ALL trailing slashes, not
+# just one — rtrim() keeps going), so the path regex tolerates any COUNT of trailing slashes (`/*$`,
+# not `/?$`) to match. A stricter match here would DECLINE on a variant the override already
+# claimed — classify() then falls through to resolveEntry(), which re-resolves that same variant
+# onto the live szhe-default-login bundle above. The `user` capture is likewise optional (matches
+# even with no `user=` field, or a body missing entirely) so a POST with any body still reaches this
+# oracle instead of that bundle.
 match:
   - in: path
-    regex: '(?:^|/)login/?$'
+    regex: '(?:^|/)login/*$'
     ci: true
   - in: method
     regex: '^POST$'
