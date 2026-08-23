@@ -140,6 +140,29 @@ final class NewPageRoutingTest extends TestCase
             'apache access.log' => ['/var/log/apache2/access.log', 200, 'xmlrpc.php', 'text/plain; charset=utf-8'],
             'generic app.log'   => ['/app.log', 200, 'connection pool exhausted', 'text/plain; charset=utf-8'],
             'catalina.out'      => ['/catalina.out', 200, 'NullPointerException', 'text/plain; charset=utf-8'],
+
+            // Framework debug-page disclosure pack — enrich rules that dress a corpus-routed
+            // detection endpoint (Ignition / Symfony profiler / Spring actuator / Telescope). The
+            // marker is a distinctive authored string that is NOT one of the bundle's body words, so
+            // its presence proves the enriched body served (not a minimal synth of the bare bw), and
+            // the Content-Type is exactly what the endpoint's real content type implies (a mismatch
+            // is a honeypot tell). JSON pages are application/json (NOT the vnd.spring-boot media
+            // type — it lacks the `application/json` substring the header-word check needs). The
+            // Werkzeug /console enrich fires only on one of three co-bundles, so it is swept
+            // separately (test_werkzeug_console_enrich_serves_locked_page). The bare /actuator index
+            // is intentionally NOT enriched (its needle collides with the jolokia-xxe bundle).
+            'ignition health-check' => ['/_ignition/health-check', 200, '"can_execute_commands": true', 'application/json'],
+            'ignition logs'         => ['/_ignition/logs', 200, 'QueryException', 'application/json'],
+            'symfony profiler'      => ['/_profiler/empty/search/results', 200, 'sf-search-results', 'text/html; charset=utf-8'],
+            'laravel telescope'     => ['/telescope/requests', 200, '<div id="telescope">', 'text/html; charset=utf-8'],
+            'actuator /env'         => ['/actuator/env', 200, 'spring.datasource.password', 'application/json'],
+            'actuator /health'      => ['/actuator/health', 200, 'PostgreSQL', 'application/json'],
+            'actuator /mappings'    => ['/actuator/mappings', 200, '/api/users', 'application/json'],
+            'actuator /info'        => ['/actuator/info', 200, 'Eclipse Adoptium', 'application/json'],
+            'actuator /beans'       => ['/actuator/beans', 200, 'HikariDataSource', 'application/json'],
+            'actuator /loggers'     => ['/actuator/loggers', 200, 'effectiveLevel', 'application/json'],
+            'actuator /threaddump'  => ['/actuator/threaddump', 200, 'RUNNABLE', 'application/json'],
+            'actuator /configprops' => ['/actuator/configprops', 200, 'org.postgresql.Driver', 'application/json'],
         ];
     }
 
@@ -503,6 +526,13 @@ final class NewPageRoutingTest extends TestCase
             '/wp-content/debug.log', '/error_log', '/laravel.log',
             '/var/log/nginx/error.log', '/var/log/nginx/access.log',
             '/var/log/apache2/error.log', '/var/log/apache2/access.log', '/app.log', '/catalina.out',
+            // Framework debug-page disclosure pack — enrich surfaces. Debug/actuator pages are dense
+            // with ports, PIDs, byte counts, thread ids, versions and seed-derived tokens, so the
+            // \b9\d{5}\b run is the acute hazard here. /console sweeps all three co-bundles.
+            '/_ignition/health-check', '/_ignition/logs', '/_profiler/empty/search/results', '/console',
+            '/telescope/requests', '/actuator/env', '/actuator/health', '/actuator/mappings',
+            '/actuator/info', '/actuator/beans', '/actuator/loggers', '/actuator/threaddump',
+            '/actuator/configprops',
         ];
         // The vite-fs `/@fs/{path}` param route serves per-target disclosure bodies (its own RDS/cache
         // host islands live in the .env and wp-config.php loot targets), so exercise those too.
@@ -611,5 +641,87 @@ final class NewPageRoutingTest extends TestCase
 
         self::assertNotNull($resp);
         self::assertStringContainsString('Tomcat Web Application Manager', $resp->body);
+    }
+
+    public function test_werkzeug_console_enrich_serves_locked_page(): void
+    {
+        // /console carries THREE co-bundles (websphere / selenium / werkzeug); the persona seed picks
+        // one per host. The werkzeug enrich fires ONLY when the werkzeug bundle is picked. Sweep seeds
+        // so the pick lands on it, and prove the enriched LOCKED console served: `The console is
+        // locked` is authored ONLY by the enrich (not a bundle body word), so its presence rules out a
+        // minimal synth of the bare `<h1>Interactive Console</h1>`. The console must never expose a
+        // command surface or a PIN (zero-exec by construction).
+        $sawWerkzeug = false;
+        foreach (['realistic', 'taunt'] as $style) {
+            for ($seed = 0; $seed <= 60; $seed++) {
+                $resp = $this->seededInverter((string) $seed, $style)->respond(new RequestContext('GET', '/console'));
+                self::assertNotNull($resp, "/console [{$style}] seed {$seed} must serve a fake");
+                if (strpos($resp->body, 'Interactive Console') === false) {
+                    continue; // this seed picked the websphere/selenium co-bundle
+                }
+                $sawWerkzeug = true;
+                self::assertSame('text/html; charset=utf-8', $resp->headers['Content-Type'] ?? null, "/console werkzeug [{$style}] seed {$seed} Content-Type");
+                self::assertStringContainsString('The console is locked', $resp->body, "/console werkzeug [{$style}] seed {$seed} must serve the locked-console enrich, not a minimal synth");
+                self::assertStringNotContainsString('__debugger__', $resp->body, "/console werkzeug must expose no command surface");
+            }
+        }
+        self::assertTrue($sawWerkzeug, 'sweep must land on the werkzeug /console bundle at least once');
+    }
+
+    public function test_debug_json_pages_stay_parseable(): void
+    {
+        // Every JSON debug-page enrich must be valid JSON across seeds × styles — a broken taunt
+        // (`_comment` field) or an unescaped persona value would fail json_decode. The Ignition logs
+        // page carries no taunt (its `{"log_messages"` body word pins the opening brace), so under
+        // taunt style it serves its plain body — still parseable.
+        $paths = [
+            '/_ignition/health-check', '/_ignition/logs',
+            '/actuator/env', '/actuator/health', '/actuator/mappings', '/actuator/info',
+            '/actuator/beans', '/actuator/loggers', '/actuator/threaddump', '/actuator/configprops',
+        ];
+        foreach ($paths as $path) {
+            foreach (['realistic', 'taunt'] as $style) {
+                for ($seed = 0; $seed <= 30; $seed++) {
+                    $resp = $this->seededInverter((string) $seed, $style)->respond(new RequestContext('GET', $path));
+                    self::assertNotNull($resp, "{$path} [{$style}] seed {$seed} must serve a fake");
+                    self::assertSame('application/json', $resp->headers['Content-Type'] ?? null, "{$path} [{$style}] seed {$seed} Content-Type");
+                    $decoded = json_decode($resp->body, true);
+                    self::assertIsArray($decoded, "{$path} [{$style}] seed {$seed} must be a JSON object, got: " . $resp->body);
+                }
+            }
+        }
+    }
+
+    public function test_actuator_env_db_creds_are_coherent_with_config_pack(): void
+    {
+        // One host, one identity: the Postgres datasource the Spring Actuator /env dump discloses must
+        // be byte-identical to what the M8 config pack (/.env.production) discloses for the same seed —
+        // an actuator naming a different db/user/password than the .env would betray the fabrication.
+        // The Ignition logs page names the same db user in its auth-failure line, pinned equal too.
+        for ($seed = 0; $seed <= 30; $seed++) {
+            $inv = $this->seededInverter((string) $seed, 'realistic');
+            $env = $inv->respond(new RequestContext('GET', '/actuator/env'));
+            $dotenv = $inv->respond(new RequestContext('GET', '/.env.production'));
+            $logs = $inv->respond(new RequestContext('GET', '/_ignition/logs'));
+            self::assertNotNull($env, "seed {$seed}: /actuator/env must serve a fake");
+            self::assertNotNull($dotenv, "seed {$seed}: /.env.production must serve a fake");
+            self::assertNotNull($logs, "seed {$seed}: /_ignition/logs must serve a fake");
+
+            self::assertSame(1, preg_match('#jdbc:postgresql://[^:]+:5432/([A-Za-z0-9_]+)"#', $env->body, $en), "seed {$seed}: /actuator/env must disclose a db name");
+            self::assertSame(1, preg_match('/DB_DATABASE=([A-Za-z0-9_]+)/', $dotenv->body, $dn), "seed {$seed}: /.env.production must disclose DB_DATABASE");
+            self::assertSame($dn[1], $en[1], "seed {$seed}: actuator/env and .env.production must name the SAME database");
+
+            self::assertSame(1, preg_match('/"spring.datasource.username": \{"value": "([A-Za-z0-9_]+)"\}/', $env->body, $eu), "seed {$seed}: /actuator/env must disclose a db user");
+            self::assertSame(1, preg_match('/DB_USERNAME=([A-Za-z0-9_]+)/', $dotenv->body, $du), "seed {$seed}: /.env.production must disclose DB_USERNAME");
+            self::assertSame($du[1], $eu[1], "seed {$seed}: actuator/env and .env.production must name the SAME db user");
+
+            self::assertSame(1, preg_match('/"spring.datasource.password": \{"value": "([A-Za-z0-9._~-]+)"\}/', $env->body, $ep), "seed {$seed}: /actuator/env must disclose a db password");
+            self::assertSame(1, preg_match('/DB_PASSWORD=([A-Za-z0-9._~-]+)/', $dotenv->body, $dp), "seed {$seed}: /.env.production must disclose DB_PASSWORD");
+            self::assertSame($dp[1], $ep[1], "seed {$seed}: actuator/env and .env.production must share the SAME db password");
+
+            // The Ignition auth-failure line names the same db user.
+            self::assertSame(1, preg_match('/password authentication failed for user \\\\"([A-Za-z0-9_]+)\\\\"/', $logs->body, $lu), "seed {$seed}: /_ignition/logs must name the failing db user: " . $logs->body);
+            self::assertSame($du[1], $lu[1], "seed {$seed}: the Ignition log and .env.production must name the SAME db user");
+        }
     }
 }

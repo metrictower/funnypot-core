@@ -1,0 +1,22 @@
+id: route-ignition-logs
+priority: 311
+# Enrich: the corpus routes /_ignition/logs to the `laravel-ignition-log-viewer` bundle (body words
+# `{"log_messages"` and `exception`; typed Content-Type application/json). Minimal synth would emit
+# the bare words; here we dress the real Ignition log-viewer JSON with this host's recent errors —
+# a Postgres auth failure naming the SAME db user/host as the M8 config pack, so the two disclosed
+# surfaces agree. No taunt: the body word `{"log_messages"` pins the object to open with a
+# brace-then-key, which the JSON `_comment` taunt (inserted after the brace) would split.
+# Line numbers stay <=3 digits; timestamps carry no microseconds — no 6-digit token.
+match:
+  template_needle: [laravel-ignition-log-viewer]
+response:
+  headers:
+    Content-Type: "application/json"
+  body: |
+    {"log_messages":[
+    {"level":"error","message":"SQLSTATE[08006] [7] connection to server at \"{{persona.db.host}}\", port 5432 failed: FATAL:  password authentication failed for user \"{{persona.db.user}}\"","context":{"exception":"Illuminate\\Database\\QueryException","file":"/var/www/{{persona.company.slug}}/app/Http/Controllers/DashboardController.php","line":212}},
+    {"level":"warning","message":"Ignition rendered a debug page for an unhandled exception","context":{"exception":"Facade\\Ignition\\Exceptions\\ViewException","file":"/var/www/{{persona.company.slug}}/resources/views/home.blade.php","line":42}}
+    ]}
+expect:
+  - '{"log_messages"'
+  - 'QueryException'

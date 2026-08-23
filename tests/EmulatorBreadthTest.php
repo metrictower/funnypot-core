@@ -81,7 +81,76 @@ final class EmulatorBreadthTest extends TestCase
             'access.log enrich'                => ['GET /access.log', 0, 'route-access-log'],
             'iceflow /log/access.log enrich'   => ['GET /log/access.log', 0, 'route-iceflow-vpn-log'],
             'iceflow /log/vpn.log enrich'      => ['GET /log/vpn.log', 0, 'route-iceflow-vpn-log'],
+
+            // Framework debug-page disclosure pack enrich rules — each dresses a corpus-routed
+            // detection endpoint (Ignition / Symfony profiler / Werkzeug console / Spring actuator /
+            // Telescope) with a specific full-upstream-id needle. The satisfaction asserts guard
+            // against a dropped bw/hw silently falling back to minimal synth. /console carries THREE
+            // co-bundles; the werkzeug enrich targets bundle index 2 (websphere=0, selenium=1). The
+            // Ignition logs page is omitted here: its `{"log_messages"` body word pins the opening
+            // brace, so it carries no JSON `_comment` taunt and is covered by NewPageRoutingTest.
+            'ignition health-check enrich'     => ['GET /_ignition/health-check', 0, 'route-ignition-health-check'],
+            'symfony profiler enrich'          => ['GET /_profiler/empty/search/results', 0, 'route-symfony-profiler'],
+            'werkzeug console enrich'          => ['GET /console', 2, 'route-werkzeug-console'],
+            'laravel telescope enrich'         => ['GET /telescope/requests', 0, 'route-telescope'],
+            'actuator /env enrich'             => ['GET /actuator/env', 0, 'route-actuator-env'],
+            'actuator /health enrich'          => ['GET /actuator/health', 0, 'route-actuator-health'],
+            'actuator /mappings enrich'        => ['GET /actuator/mappings', 0, 'route-actuator-mappings'],
+            'actuator /info enrich'            => ['GET /actuator/info', 0, 'route-actuator-info'],
+            'actuator /beans enrich'           => ['GET /actuator/beans', 0, 'route-actuator-beans'],
+            'actuator /loggers enrich'         => ['GET /actuator/loggers', 0, 'route-actuator-loggers'],
+            'actuator /threaddump enrich'      => ['GET /actuator/threaddump', 0, 'route-actuator-threaddump'],
+            'actuator /configprops enrich'     => ['GET /actuator/configprops', 0, 'route-actuator-configprops'],
         ];
+    }
+
+    /**
+     * The disclosure pack's needles must each resolve to EXACTLY ONE bundle id, or the global
+     * findRule would shadow an unrelated route. This is the guard behind the deliberate `/actuator`
+     * index skip: `springboot-actuator` substrings `springboot-actuators-jolokia-xxe`, so it hits
+     * two ids and is intentionally NOT used as a needle (the bare /actuator index is left to minimal
+     * synth). Every leaf needle we DO use is asserted unique across the whole compiled index.
+     */
+    public function test_debug_pack_needles_are_unique_and_actuator_index_is_skipped(): void
+    {
+        $routes = self::index()['routes'] ?? [];
+        $distinctIds = static function (string $needle) use ($routes): array {
+            $ids = [];
+            foreach ($routes as $entry) {
+                foreach ((array) ($entry['b'] ?? []) as $b) {
+                    if ((string) ($b['pid'] ?? '') === $needle) {
+                        $ids[$needle . ' (pid)'] = true;
+                    }
+                    foreach (array_map('strval', (array) ($b['t'] ?? [])) as $id) {
+                        if (strpos($id, $needle) !== false) {
+                            $ids[$id] = true;
+                        }
+                    }
+                }
+            }
+
+            return array_keys($ids);
+        };
+
+        $needles = [
+            'laravel-debug-enabled', 'laravel-ignition-log-viewer', 'symfony-profiler',
+            'werkzeug-debugger-detect', 'laravel-telescope', 'springboot-env', 'springboot-health',
+            'springboot-mappings', 'springboot-info', 'springboot-beans', 'springboot-loggers',
+            'springboot-threaddump', 'springboot-configprops',
+        ];
+        foreach ($needles as $needle) {
+            self::assertCount(1, $distinctIds($needle), "needle '{$needle}' must resolve to exactly one bundle id (else findRule shadows another route)");
+        }
+
+        // The collision the pack avoids: `springboot-actuator` is a substring of the jolokia-xxe id,
+        // so it hits >1 id and must NOT be used as an enrich needle. No shipped route template does.
+        self::assertGreaterThan(1, count($distinctIds('springboot-actuator')), 'springboot-actuator must hit >1 id (this is why /actuator index is not enriched)');
+        $set = $this->set();
+        foreach ((require __DIR__ . '/../resources/compiled/funnypot-routes.php') as $rule) {
+            foreach ((array) ($rule['match']['template_needle'] ?? []) as $n) {
+                self::assertNotSame('springboot-actuator', (string) $n, "route template {$rule['id']} must not use the colliding springboot-actuator needle");
+            }
+        }
     }
 
     /**

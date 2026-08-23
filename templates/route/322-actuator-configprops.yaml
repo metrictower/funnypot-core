@@ -1,0 +1,38 @@
+id: route-actuator-configprops
+priority: 322
+# Enrich: the corpus routes /actuator/configprops (+ /configprops) to the `springboot-configprops`
+# bundle (body words `org.springframework.boot.actuate`, `beans`, `context`; header word
+# application/json). Minimal synth would emit the bare words; here we serve a real
+# @ConfigurationProperties dump, Postgres-coherent with the host's datasource. Needle is the full
+# upstream id (findRule is global).
+match:
+  template_needle: [springboot-configprops]
+response:
+  headers:
+    Content-Type: "application/json"
+  body: |
+    {
+      "contexts": {
+        "application": {
+          "beans": {
+            "spring.datasource-org.springframework.boot.autoconfigure.jdbc.DataSourceProperties": {
+              "prefix": "spring.datasource",
+              "properties": {
+                "url": "jdbc:postgresql://{{persona.db.host}}:5432/{{persona.db.name}}",
+                "username": "{{persona.db.user}}",
+                "driverClassName": "org.postgresql.Driver"
+              }
+            },
+            "management.endpoints.web-org.springframework.boot.actuate.autoconfigure.endpoint.web.WebEndpointProperties": {
+              "prefix": "management.endpoints.web",
+              "properties": {"basePath": "/actuator"}
+            }
+          }
+        }
+      }
+    }
+taunt: { mode: inline_field, key: '_comment' }
+expect:
+  - 'org.springframework.boot.actuate'
+  - '"beans"'
+  - 'jdbc:postgresql://'

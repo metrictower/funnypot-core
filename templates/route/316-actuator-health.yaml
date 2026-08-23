@@ -1,0 +1,32 @@
+id: route-actuator-health
+priority: 316
+# Enrich: the corpus routes /actuator/health (+ /health) to the `springboot-health` bundle (body
+# words `"status"`, `"UP"`, `"components"`; typed Content-Type application/json). Minimal synth would
+# emit the bare words; here we serve the real Actuator health report — components DOWN to Postgres,
+# coherent with the host's datasource claim. Needle is the full upstream id (findRule is global).
+match:
+  template_needle: [springboot-health]
+response:
+  headers:
+    Content-Type: "application/json"
+  body: |
+    {
+      "status": "UP",
+      "components": {
+        "db": {
+          "status": "UP",
+          "details": {"database": "PostgreSQL", "validationQuery": "isValid()"}
+        },
+        "diskSpace": {
+          "status": "UP",
+          "details": {"total": 51203837952, "free": 24858148864, "threshold": 10485760}
+        },
+        "ping": {"status": "UP"}
+      }
+    }
+taunt: { mode: inline_field, key: '_comment' }
+expect:
+  - '"status"'
+  - '"UP"'
+  - '"components"'
+  - 'PostgreSQL'

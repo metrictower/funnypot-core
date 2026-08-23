@@ -1,0 +1,43 @@
+id: route-actuator-env
+priority: 315
+# Enrich: the corpus routes /actuator/env (+ /env, /message-api/actuator/env, …) to the
+# `springboot-env` bundle (body words `applicationConfig`, `server.port`; header word
+# application/json). Minimal synth would emit the bare words; here we serve the real Actuator /env
+# property dump leaking this host's datasource + JWT secret, Postgres-coherent
+# (jdbc:postgresql://…:5432) and byte-identical to the M8 config pack for the same seed. Content-Type
+# is application/json (NOT the vnd.spring-boot.actuator media type, which lacks the `application/json`
+# substring the header word requires). Port 8080/5432 are literals (4 digits); the secret is hex.
+match:
+  template_needle: [springboot-env]
+response:
+  headers:
+    Content-Type: "application/json"
+  body: |
+    {
+      "activeProfiles": ["production"],
+      "propertySources": [
+        {
+          "name": "systemEnvironment",
+          "properties": {
+            "SERVER_PORT": {"value": "8080"}
+          }
+        },
+        {
+          "name": "applicationConfig: [classpath:/application.yml]",
+          "properties": {
+            "server.port": {"value": "8080"},
+            "spring.datasource.url": {"value": "jdbc:postgresql://{{persona.db.host}}:5432/{{persona.db.name}}"},
+            "spring.datasource.username": {"value": "{{persona.db.user}}"},
+            "spring.datasource.password": {"value": "{{persona.db.password}}"},
+            "spring.jpa.database-platform": {"value": "org.hibernate.dialect.PostgreSQLDialect"},
+            "jwt.secret": {"value": "{{persona.secret.jwt}}"}
+          }
+        }
+      ]
+    }
+taunt: { mode: inline_field, key: '_comment' }
+expect:
+  - 'applicationConfig'
+  - 'server.port'
+  - 'jdbc:postgresql://'
+  - 'spring.datasource.password'

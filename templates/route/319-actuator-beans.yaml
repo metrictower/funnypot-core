@@ -1,0 +1,40 @@
+id: route-actuator-beans
+priority: 319
+# Enrich: the corpus routes /actuator/beans (+ /beans) to the `springboot-beans` bundle (body words
+# `"type"`, `"beans"`, `"dependencies"`, `"scope"`; header word application/json). Minimal synth
+# would emit the bare words; here we serve a real application-context bean graph. Needle is the full
+# upstream id (findRule is global).
+match:
+  template_needle: [springboot-beans]
+response:
+  headers:
+    Content-Type: "application/json"
+  body: |
+    {
+      "contexts": {
+        "application": {
+          "beans": {
+            "dataSource": {
+              "aliases": [],
+              "scope": "singleton",
+              "type": "com.zaxxer.hikari.HikariDataSource",
+              "resource": "class path resource [org/springframework/boot/autoconfigure/jdbc/DataSourceConfiguration.class]",
+              "dependencies": ["dataSourceProperties"]
+            },
+            "userController": {
+              "aliases": [],
+              "scope": "singleton",
+              "type": "com.{{persona.company.slug}}.api.UserController",
+              "resource": "file [/var/www/{{persona.company.slug}}/target/classes/com/{{persona.company.slug}}/api/UserController.class]",
+              "dependencies": ["userService"]
+            }
+          }
+        }
+      }
+    }
+taunt: { mode: inline_field, key: '_comment' }
+expect:
+  - '"beans"'
+  - '"scope"'
+  - '"dependencies"'
+  - 'HikariDataSource'

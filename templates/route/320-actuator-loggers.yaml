@@ -1,0 +1,24 @@
+id: route-actuator-loggers
+priority: 320
+# Enrich: the corpus routes /actuator/loggers (+ /loggers) to the `springboot-loggers` bundle (body
+# words `"loggers"`, `"levels"`; typed Content-Type application/json). Minimal synth would emit the
+# bare words; here we serve a real loggers report. Needle is the full upstream id (findRule is global).
+match:
+  template_needle: [springboot-loggers]
+response:
+  headers:
+    Content-Type: "application/json"
+  body: |
+    {
+      "levels": ["OFF", "ERROR", "WARN", "INFO", "DEBUG", "TRACE"],
+      "loggers": {
+        "ROOT": {"configuredLevel": "INFO", "effectiveLevel": "INFO"},
+        "com.{{persona.company.slug}}": {"configuredLevel": "DEBUG", "effectiveLevel": "DEBUG"},
+        "org.springframework.web": {"configuredLevel": null, "effectiveLevel": "INFO"}
+      }
+    }
+taunt: { mode: inline_field, key: '_comment' }
+expect:
+  - '"loggers"'
+  - '"levels"'
+  - 'effectiveLevel'

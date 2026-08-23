@@ -1,0 +1,40 @@
+id: route-actuator-mappings
+priority: 317
+# Enrich: the corpus routes /actuator/mappings (+ /mappings) to the `springboot-mappings` bundle
+# (body words `mappings`, `method`, `produces`; header word application/json). Minimal synth would
+# emit the bare words; here we serve a real dispatcher-servlet mapping dump. Needle is the full
+# upstream id (findRule is global).
+match:
+  template_needle: [springboot-mappings]
+response:
+  headers:
+    Content-Type: "application/json"
+  body: |
+    {
+      "contexts": {
+        "application": {
+          "mappings": {
+            "dispatcherServlets": {
+              "dispatcherServlet": [
+                {
+                  "handler": "com.{{persona.company.slug}}.api.UserController#list()",
+                  "predicate": "{GET /api/users, produces [application/json]}",
+                  "details": {
+                    "requestMappingConditions": {
+                      "methods": ["GET"],
+                      "patterns": ["/api/users"],
+                      "produces": [{"mediaType": "application/json"}]
+                    }
+                  }
+                }
+              ]
+            }
+          }
+        }
+      }
+    }
+taunt: { mode: inline_field, key: '_comment' }
+expect:
+  - 'mappings'
+  - 'produces'
+  - '/api/users'

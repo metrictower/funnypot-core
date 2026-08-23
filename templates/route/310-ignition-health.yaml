@@ -1,0 +1,20 @@
+id: route-ignition-health-check
+priority: 310
+# Enrich: the corpus routes /_ignition/health-check to the `laravel-debug-enabled` bundle (body
+# word `can_execute_commands`). This is the endpoint a scanner hits to confirm Laravel Ignition is
+# installed AND debug mode is on. Minimal synth would emit the bare word; here we serve the real
+# controller's JSON — `{"can_execute_commands": true}` — as valid application/json, the `: true`
+# boolean proving the enrich fired (a minimal synth of the bare body word cannot produce it).
+# Needle is the full upstream id (findRule is global). No numbers on this page.
+match:
+  template_needle: [laravel-debug-enabled]
+response:
+  headers:
+    Content-Type: "application/json"
+  body: |
+    {
+      "can_execute_commands": true
+    }
+taunt: { mode: inline_field, key: '_comment' }
+expect:
+  - '"can_execute_commands": true'

@@ -1,0 +1,31 @@
+id: route-werkzeug-console
+priority: 313
+# Enrich: /console carries THREE bundles (websphere, selenium, werkzeug); this needle selects ONLY
+# the `werkzeug-debugger-detect` bundle (body word `<h1>Interactive Console</h1>`), so it fires just
+# when the persona picks the werkzeug bundle — the other two are untouched. We serve the real
+# Werkzeug debugger console, but LOCKED: unauthenticated it shows the shell and the PIN wall, never
+# a command surface. The PIN itself is never rendered (zero-exec by construction, and no `xxx-xxx-xxx`
+# digit token). Needle is the full upstream id (findRule is global).
+match:
+  template_needle: [werkzeug-debugger-detect]
+response:
+  headers:
+    Content-Type: "text/html; charset=utf-8"
+  body: |
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <title>Console // Werkzeug Debugger</title>
+    </head>
+    <body>
+      <div class="debugger">
+        <h1>Interactive Console</h1>
+        <div class="console"><div class="output">The console is locked and needs to be unlocked by entering the PIN. You can find the PIN printed out on the standard output of your shell that runs the server.</div></div>
+        <div class="footer">Brought to you by <span class="fw">Werkzeug 2.3.7</span></div>
+      </div>
+    </body>
+    </html>
+taunt: { mode: block, open: '<!--', close: '-->' }
+expect:
+  - '<h1>Interactive Console</h1>'
+  - 'The console is locked'

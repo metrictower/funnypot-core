@@ -1,0 +1,40 @@
+id: route-actuator-threaddump
+priority: 321
+# Enrich: the corpus routes /actuator/threaddump (+ /threaddump) to the `springboot-threaddump`
+# bundle (body words `"threads":`, `"threadName":`; header word application/json). Minimal synth
+# would emit the bare words; here we serve a real JVM thread dump. Thread ids stay small (no 6-digit
+# token). Needle is the full upstream id (findRule is global).
+match:
+  template_needle: [springboot-threaddump]
+response:
+  headers:
+    Content-Type: "application/json"
+  body: |
+    {
+      "threads": [
+        {
+          "threadName": "http-nio-8080-exec-1",
+          "threadId": 42,
+          "threadState": "RUNNABLE",
+          "priority": 5,
+          "daemon": true,
+          "stackTrace": [
+            {"className": "sun.nio.ch.SocketDispatcher", "methodName": "read0", "nativeMethod": true},
+            {"className": "com.{{persona.company.slug}}.api.UserController", "methodName": "list", "lineNumber": 58}
+          ]
+        },
+        {
+          "threadName": "HikariPool-1 connection adder",
+          "threadId": 51,
+          "threadState": "TIMED_WAITING",
+          "priority": 5,
+          "daemon": true,
+          "stackTrace": []
+        }
+      ]
+    }
+taunt: { mode: inline_field, key: '_comment' }
+expect:
+  - '"threads":'
+  - '"threadName":'
+  - 'RUNNABLE'

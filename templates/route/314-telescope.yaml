@@ -1,0 +1,41 @@
+id: route-telescope
+priority: 314
+# Enrich: the corpus routes /telescope/requests to the `laravel-telescope` bundle (body words
+# `<title>Telescope</title>`, `Requests`, `Commands`, `Schedule`). Minimal synth would emit the bare
+# words; here we dress the real Telescope dashboard SPA shell — the nav a scanner recognises as an
+# exposed, unauthenticated Laravel Telescope. Needle is the full upstream id (findRule is global).
+# The CSRF token is fake.*:hex (letters break any digit run).
+match:
+  template_needle: [laravel-telescope]
+response:
+  headers:
+    Content-Type: "text/html; charset=utf-8"
+  body: |
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+      <meta charset="utf-8">
+      <meta name="csrf-token" content="{{fake.telescopecsrf:hex:40}}">
+      <title>Telescope</title>
+    </head>
+    <body>
+      <div id="telescope">
+        <nav class="telescope-nav">
+          <ul>
+            <li><a href="/telescope/requests">Requests</a></li>
+            <li><a href="/telescope/commands">Commands</a></li>
+            <li><a href="/telescope/schedule">Schedule</a></li>
+            <li><a href="/telescope/queries">Queries</a></li>
+            <li><a href="/telescope/mail">Mail</a></li>
+          </ul>
+        </nav>
+      </div>
+    </body>
+    </html>
+taunt: { mode: block, open: '<!--', close: '-->' }
+expect:
+  - '<title>Telescope</title>'
+  - '<div id="telescope">'
+  - 'Requests'
+  - 'Commands'
+  - 'Schedule'

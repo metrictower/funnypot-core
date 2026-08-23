@@ -1,0 +1,47 @@
+id: route-symfony-profiler
+priority: 312
+# Enrich: the corpus routes /_profiler/empty/search/results (+ the app_dev.php/index.php/… prefixes)
+# to the `symfony-profiler` bundle (body word `Symfony Profiler`). Minimal synth would emit that
+# bare phrase; here we dress the real profiler search-results shell — a `sf-`-classed page a scanner
+# recognises as a live, DEBUG-mode Symfony app. Needle is the full upstream id (findRule is global).
+# The profiler token is fake.*:hex (letters break any digit run); versions are literals.
+match:
+  template_needle: [symfony-profiler]
+response:
+  headers:
+    Content-Type: "text/html; charset=utf-8"
+  body: |
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+      <meta charset="utf-8">
+      <title>Search results - Symfony Profiler</title>
+    </head>
+    <body>
+      <header class="sf-profiler-header">
+        <h1>Symfony Profiler</h1>
+        <span class="sf-profiler-version">Symfony 6.4.3 &middot; PHP 8.1.27</span>
+      </header>
+      <div class="sf-search-results">
+        <table class="sf-profiler-table">
+          <thead>
+            <tr><th>Token</th><th>IP</th><th>Method</th><th>URL</th><th>Time</th><th>Status</th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><a href="/_profiler/{{fake.sftoken:hex:13}}">{{fake.sftoken:hex:13}}</a></td>
+              <td>127.0.0.1</td>
+              <td>GET</td>
+              <td>/</td>
+              <td>2024-11-04 09:42:11</td>
+              <td>200</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </body>
+    </html>
+taunt: { mode: block, open: '<!--', close: '-->' }
+expect:
+  - 'Symfony Profiler'
+  - 'sf-search-results'

@@ -1954,6 +1954,96 @@ $ </pre>
   ),
   35 => 
   array (
+    'id' => 'attack-ignition-execute-solution',
+    'severity' => 'high',
+    'tags' => 
+    array (
+      0 => 'attack',
+      1 => 'laravel',
+      2 => 'ignition',
+      3 => 'rce',
+    ),
+    'status' => 200,
+    'match' => 
+    array (
+      0 => 
+      array (
+        'in' => 'path',
+        'regex' => '(?:^|/)_ignition/execute-solution/?$',
+        'ci' => false,
+      ),
+      1 => 
+      array (
+        'in' => 'method',
+        'regex' => '^POST$',
+        'ci' => false,
+      ),
+      2 => 
+      array (
+        'in' => 'body',
+        'regex' => '"solution"\\s*:\\s*"[^"]*?(?P<solution>[A-Za-z_][A-Za-z0-9_]{0,95})"',
+        'ci' => false,
+        'capture' => true,
+      ),
+    ),
+    'response' => 
+    array (
+      'headers' => 
+      array (
+        'Content-Type' => 'application/json',
+      ),
+      'body' => '{"message":"Solution \\"{{match.solution}}\\" not found."}
+',
+    ),
+    'lit' => '"solution"',
+    'lit_in' => 'body',
+    'lit_ci' => false,
+    'behavior' => 'branch',
+    'branch' => 
+    array (
+      'cases' => 
+      array (
+        0 => 
+        array (
+          'when' => 
+          array (
+            'in' => 'match.solution',
+            'regex' => '^MakeViewVariableOptionalSolution$',
+            'ci' => false,
+          ),
+          'response' => 
+          array (
+            'headers' => 
+            array (
+              'Content-Type' => 'application/json',
+            ),
+            'body' => '{"message":"The parameters passed to the solution are invalid."}
+',
+          ),
+        ),
+        1 => 
+        array (
+          'when' => 
+          array (
+            'in' => 'match.solution',
+            'regex' => '^(?:GenerateAppKeySolution|RunMigrationsSolution)$',
+            'ci' => false,
+          ),
+          'response' => 
+          array (
+            'headers' => 
+            array (
+              'Content-Type' => 'application/json',
+            ),
+            'body' => '{"success":true}
+',
+          ),
+        ),
+      ),
+    ),
+  ),
+  36 => 
+  array (
     'id' => 'attack-crs-sqli',
     'severity' => 'high',
     'tags' => 
@@ -1982,7 +2072,7 @@ $ </pre>
 ',
     ),
   ),
-  36 => 
+  37 => 
   array (
     'id' => 'attack-crs-xss',
     'severity' => 'high',
@@ -2014,7 +2104,7 @@ $ </pre>
 ',
     ),
   ),
-  37 => 
+  38 => 
   array (
     'id' => 'attack-crs-lfi',
     'severity' => 'high',
@@ -2043,7 +2133,7 @@ $ </pre>
       'body' => '{{canned.passwd}}',
     ),
   ),
-  38 => 
+  39 => 
   array (
     'id' => 'attack-crs-rce',
     'severity' => 'critical',

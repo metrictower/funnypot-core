@@ -2381,4 +2381,489 @@ Stack trace:
       'open' => '#',
     ),
   ),
+  67 => 
+  array (
+    'id' => 'route-ignition-health-check',
+    'match' => 
+    array (
+      'template_needle' => 
+      array (
+        0 => 'laravel-debug-enabled',
+      ),
+    ),
+    'body' => '{
+  "can_execute_commands": true
+}
+',
+    'headers' => 
+    array (
+      'Content-Type' => 'application/json',
+    ),
+    'taunt' => 
+    array (
+      'mode' => 'inline_field',
+      'key' => '_comment',
+    ),
+  ),
+  68 => 
+  array (
+    'id' => 'route-ignition-logs',
+    'match' => 
+    array (
+      'template_needle' => 
+      array (
+        0 => 'laravel-ignition-log-viewer',
+      ),
+    ),
+    'body' => '{"log_messages":[
+{"level":"error","message":"SQLSTATE[08006] [7] connection to server at \\"{{persona.db.host}}\\", port 5432 failed: FATAL:  password authentication failed for user \\"{{persona.db.user}}\\"","context":{"exception":"Illuminate\\\\Database\\\\QueryException","file":"/var/www/{{persona.company.slug}}/app/Http/Controllers/DashboardController.php","line":212}},
+{"level":"warning","message":"Ignition rendered a debug page for an unhandled exception","context":{"exception":"Facade\\\\Ignition\\\\Exceptions\\\\ViewException","file":"/var/www/{{persona.company.slug}}/resources/views/home.blade.php","line":42}}
+]}
+',
+    'headers' => 
+    array (
+      'Content-Type' => 'application/json',
+    ),
+  ),
+  69 => 
+  array (
+    'id' => 'route-symfony-profiler',
+    'match' => 
+    array (
+      'template_needle' => 
+      array (
+        0 => 'symfony-profiler',
+      ),
+    ),
+    'body' => '<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Search results - Symfony Profiler</title>
+</head>
+<body>
+  <header class="sf-profiler-header">
+    <h1>Symfony Profiler</h1>
+    <span class="sf-profiler-version">Symfony 6.4.3 &middot; PHP 8.1.27</span>
+  </header>
+  <div class="sf-search-results">
+    <table class="sf-profiler-table">
+      <thead>
+        <tr><th>Token</th><th>IP</th><th>Method</th><th>URL</th><th>Time</th><th>Status</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><a href="/_profiler/{{fake.sftoken:hex:13}}">{{fake.sftoken:hex:13}}</a></td>
+          <td>127.0.0.1</td>
+          <td>GET</td>
+          <td>/</td>
+          <td>2024-11-04 09:42:11</td>
+          <td>200</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</body>
+</html>
+',
+    'headers' => 
+    array (
+      'Content-Type' => 'text/html; charset=utf-8',
+    ),
+    'taunt' => 
+    array (
+      'mode' => 'block',
+      'open' => '<!--',
+      'close' => '-->',
+    ),
+  ),
+  70 => 
+  array (
+    'id' => 'route-werkzeug-console',
+    'match' => 
+    array (
+      'template_needle' => 
+      array (
+        0 => 'werkzeug-debugger-detect',
+      ),
+    ),
+    'body' => '<!DOCTYPE html>
+<html>
+<head>
+  <title>Console // Werkzeug Debugger</title>
+</head>
+<body>
+  <div class="debugger">
+    <h1>Interactive Console</h1>
+    <div class="console"><div class="output">The console is locked and needs to be unlocked by entering the PIN. You can find the PIN printed out on the standard output of your shell that runs the server.</div></div>
+    <div class="footer">Brought to you by <span class="fw">Werkzeug 2.3.7</span></div>
+  </div>
+</body>
+</html>
+',
+    'headers' => 
+    array (
+      'Content-Type' => 'text/html; charset=utf-8',
+    ),
+    'taunt' => 
+    array (
+      'mode' => 'block',
+      'open' => '<!--',
+      'close' => '-->',
+    ),
+  ),
+  71 => 
+  array (
+    'id' => 'route-telescope',
+    'match' => 
+    array (
+      'template_needle' => 
+      array (
+        0 => 'laravel-telescope',
+      ),
+    ),
+    'body' => '<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="csrf-token" content="{{fake.telescopecsrf:hex:40}}">
+  <title>Telescope</title>
+</head>
+<body>
+  <div id="telescope">
+    <nav class="telescope-nav">
+      <ul>
+        <li><a href="/telescope/requests">Requests</a></li>
+        <li><a href="/telescope/commands">Commands</a></li>
+        <li><a href="/telescope/schedule">Schedule</a></li>
+        <li><a href="/telescope/queries">Queries</a></li>
+        <li><a href="/telescope/mail">Mail</a></li>
+      </ul>
+    </nav>
+  </div>
+</body>
+</html>
+',
+    'headers' => 
+    array (
+      'Content-Type' => 'text/html; charset=utf-8',
+    ),
+    'taunt' => 
+    array (
+      'mode' => 'block',
+      'open' => '<!--',
+      'close' => '-->',
+    ),
+  ),
+  72 => 
+  array (
+    'id' => 'route-actuator-env',
+    'match' => 
+    array (
+      'template_needle' => 
+      array (
+        0 => 'springboot-env',
+      ),
+    ),
+    'body' => '{
+  "activeProfiles": ["production"],
+  "propertySources": [
+    {
+      "name": "systemEnvironment",
+      "properties": {
+        "SERVER_PORT": {"value": "8080"}
+      }
+    },
+    {
+      "name": "applicationConfig: [classpath:/application.yml]",
+      "properties": {
+        "server.port": {"value": "8080"},
+        "spring.datasource.url": {"value": "jdbc:postgresql://{{persona.db.host}}:5432/{{persona.db.name}}"},
+        "spring.datasource.username": {"value": "{{persona.db.user}}"},
+        "spring.datasource.password": {"value": "{{persona.db.password}}"},
+        "spring.jpa.database-platform": {"value": "org.hibernate.dialect.PostgreSQLDialect"},
+        "jwt.secret": {"value": "{{persona.secret.jwt}}"}
+      }
+    }
+  ]
+}
+',
+    'headers' => 
+    array (
+      'Content-Type' => 'application/json',
+    ),
+    'taunt' => 
+    array (
+      'mode' => 'inline_field',
+      'key' => '_comment',
+    ),
+  ),
+  73 => 
+  array (
+    'id' => 'route-actuator-health',
+    'match' => 
+    array (
+      'template_needle' => 
+      array (
+        0 => 'springboot-health',
+      ),
+    ),
+    'body' => '{
+  "status": "UP",
+  "components": {
+    "db": {
+      "status": "UP",
+      "details": {"database": "PostgreSQL", "validationQuery": "isValid()"}
+    },
+    "diskSpace": {
+      "status": "UP",
+      "details": {"total": 51203837952, "free": 24858148864, "threshold": 10485760}
+    },
+    "ping": {"status": "UP"}
+  }
+}
+',
+    'headers' => 
+    array (
+      'Content-Type' => 'application/json',
+    ),
+    'taunt' => 
+    array (
+      'mode' => 'inline_field',
+      'key' => '_comment',
+    ),
+  ),
+  74 => 
+  array (
+    'id' => 'route-actuator-mappings',
+    'match' => 
+    array (
+      'template_needle' => 
+      array (
+        0 => 'springboot-mappings',
+      ),
+    ),
+    'body' => '{
+  "contexts": {
+    "application": {
+      "mappings": {
+        "dispatcherServlets": {
+          "dispatcherServlet": [
+            {
+              "handler": "com.{{persona.company.slug}}.api.UserController#list()",
+              "predicate": "{GET /api/users, produces [application/json]}",
+              "details": {
+                "requestMappingConditions": {
+                  "methods": ["GET"],
+                  "patterns": ["/api/users"],
+                  "produces": [{"mediaType": "application/json"}]
+                }
+              }
+            }
+          ]
+        }
+      }
+    }
+  }
+}
+',
+    'headers' => 
+    array (
+      'Content-Type' => 'application/json',
+    ),
+    'taunt' => 
+    array (
+      'mode' => 'inline_field',
+      'key' => '_comment',
+    ),
+  ),
+  75 => 
+  array (
+    'id' => 'route-actuator-info',
+    'match' => 
+    array (
+      'template_needle' => 
+      array (
+        0 => 'springboot-info',
+      ),
+    ),
+    'body' => '{
+  "app": {"name": "{{persona.company.slug}}-api", "encoding": "UTF-8"},
+  "build": {
+    "artifact": "{{persona.company.slug}}-api",
+    "group": "com.{{persona.company.slug}}",
+    "version": "1.8.2"
+  },
+  "git": {"branch": "main", "commit": {"id": "{{fake.gitsha:hex:7}}"}},
+  "java": {"version": "17.0.10", "vendor": "Eclipse Adoptium"},
+  "os": {"name": "Linux", "version": "5.15.0-105-generic", "arch": "amd64"}
+}
+',
+    'headers' => 
+    array (
+      'Content-Type' => 'application/json',
+    ),
+    'taunt' => 
+    array (
+      'mode' => 'inline_field',
+      'key' => '_comment',
+    ),
+  ),
+  76 => 
+  array (
+    'id' => 'route-actuator-beans',
+    'match' => 
+    array (
+      'template_needle' => 
+      array (
+        0 => 'springboot-beans',
+      ),
+    ),
+    'body' => '{
+  "contexts": {
+    "application": {
+      "beans": {
+        "dataSource": {
+          "aliases": [],
+          "scope": "singleton",
+          "type": "com.zaxxer.hikari.HikariDataSource",
+          "resource": "class path resource [org/springframework/boot/autoconfigure/jdbc/DataSourceConfiguration.class]",
+          "dependencies": ["dataSourceProperties"]
+        },
+        "userController": {
+          "aliases": [],
+          "scope": "singleton",
+          "type": "com.{{persona.company.slug}}.api.UserController",
+          "resource": "file [/var/www/{{persona.company.slug}}/target/classes/com/{{persona.company.slug}}/api/UserController.class]",
+          "dependencies": ["userService"]
+        }
+      }
+    }
+  }
+}
+',
+    'headers' => 
+    array (
+      'Content-Type' => 'application/json',
+    ),
+    'taunt' => 
+    array (
+      'mode' => 'inline_field',
+      'key' => '_comment',
+    ),
+  ),
+  77 => 
+  array (
+    'id' => 'route-actuator-loggers',
+    'match' => 
+    array (
+      'template_needle' => 
+      array (
+        0 => 'springboot-loggers',
+      ),
+    ),
+    'body' => '{
+  "levels": ["OFF", "ERROR", "WARN", "INFO", "DEBUG", "TRACE"],
+  "loggers": {
+    "ROOT": {"configuredLevel": "INFO", "effectiveLevel": "INFO"},
+    "com.{{persona.company.slug}}": {"configuredLevel": "DEBUG", "effectiveLevel": "DEBUG"},
+    "org.springframework.web": {"configuredLevel": null, "effectiveLevel": "INFO"}
+  }
+}
+',
+    'headers' => 
+    array (
+      'Content-Type' => 'application/json',
+    ),
+    'taunt' => 
+    array (
+      'mode' => 'inline_field',
+      'key' => '_comment',
+    ),
+  ),
+  78 => 
+  array (
+    'id' => 'route-actuator-threaddump',
+    'match' => 
+    array (
+      'template_needle' => 
+      array (
+        0 => 'springboot-threaddump',
+      ),
+    ),
+    'body' => '{
+  "threads": [
+    {
+      "threadName": "http-nio-8080-exec-1",
+      "threadId": 42,
+      "threadState": "RUNNABLE",
+      "priority": 5,
+      "daemon": true,
+      "stackTrace": [
+        {"className": "sun.nio.ch.SocketDispatcher", "methodName": "read0", "nativeMethod": true},
+        {"className": "com.{{persona.company.slug}}.api.UserController", "methodName": "list", "lineNumber": 58}
+      ]
+    },
+    {
+      "threadName": "HikariPool-1 connection adder",
+      "threadId": 51,
+      "threadState": "TIMED_WAITING",
+      "priority": 5,
+      "daemon": true,
+      "stackTrace": []
+    }
+  ]
+}
+',
+    'headers' => 
+    array (
+      'Content-Type' => 'application/json',
+    ),
+    'taunt' => 
+    array (
+      'mode' => 'inline_field',
+      'key' => '_comment',
+    ),
+  ),
+  79 => 
+  array (
+    'id' => 'route-actuator-configprops',
+    'match' => 
+    array (
+      'template_needle' => 
+      array (
+        0 => 'springboot-configprops',
+      ),
+    ),
+    'body' => '{
+  "contexts": {
+    "application": {
+      "beans": {
+        "spring.datasource-org.springframework.boot.autoconfigure.jdbc.DataSourceProperties": {
+          "prefix": "spring.datasource",
+          "properties": {
+            "url": "jdbc:postgresql://{{persona.db.host}}:5432/{{persona.db.name}}",
+            "username": "{{persona.db.user}}",
+            "driverClassName": "org.postgresql.Driver"
+          }
+        },
+        "management.endpoints.web-org.springframework.boot.actuate.autoconfigure.endpoint.web.WebEndpointProperties": {
+          "prefix": "management.endpoints.web",
+          "properties": {"basePath": "/actuator"}
+        }
+      }
+    }
+  }
+}
+',
+    'headers' => 
+    array (
+      'Content-Type' => 'application/json',
+    ),
+    'taunt' => 
+    array (
+      'mode' => 'inline_field',
+      'key' => '_comment',
+    ),
+  ),
 );
