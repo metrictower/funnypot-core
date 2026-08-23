@@ -21,10 +21,10 @@ final class Honeytoken
         $this->key = $key;
     }
 
-    /** A `Set-Cookie` value planting the signed bait. */
-    public function cookie(string $name = 'sess', string $payload = 'r=user'): string
+    /** A `Set-Cookie` value planting the signed bait, scoped to the given path. */
+    public function cookie(string $name = 'sess', string $payload = 'r=user', string $path = '/'): string
     {
-        return $name . '=' . rawurlencode($payload . '.' . $this->sign($payload)) . '; path=/; HttpOnly';
+        return $name . '=' . rawurlencode($payload . '.' . $this->sign($payload)) . '; Path=' . $path . '; HttpOnly';
     }
 
     /**
@@ -47,6 +47,28 @@ final class Honeytoken
         $sig = substr($value, $dot + 1);
 
         return hash_equals($this->sign($payload), $sig) ? 'ok' : 'tampered';
+    }
+
+    /**
+     * The verified payload from a raw cookie value, or null if it's missing, malformed, or
+     * tampered. Unlike inspect() (which only classifies absent|ok|tampered), this returns the
+     * actual signed payload text so a caller can distinguish e.g. a signed `s=0` from `s=1`.
+     * Throw-free on any input.
+     */
+    public function verifiedPayload(string $raw): ?string
+    {
+        if ($raw === '') {
+            return null;
+        }
+        $value = rawurldecode($raw);
+        $dot = strrpos($value, '.');
+        if ($dot === false) {
+            return null;
+        }
+        $payload = substr($value, 0, $dot);
+        $sig = substr($value, $dot + 1);
+
+        return hash_equals($this->sign($payload), $sig) ? $payload : null;
     }
 
     private function sign(string $payload): string
