@@ -151,4 +151,52 @@ final class ClassifyTest extends TestCase
             );
         }
     }
+
+    /** A store that keys only GET /xmlrpc.php (a non-root bundle) — the shadow the override must beat. */
+    private function xmlrpcShadowStore(): PhpArrayStore
+    {
+        return new PhpArrayStore([
+            'schema' => 1,
+            'manifest' => [],
+            'templates' => [],
+            'routes' => ['GET /xmlrpc.php' => ['b' => [['sig' => 2]]]],
+        ]);
+    }
+
+    private function xmlrpcEngine(): Honeypot
+    {
+        return new Honeypot($this->xmlrpcShadowStore(), new Config(
+            'detect', null, 'matched-only', null, 'coherent',
+            \Funnypot\Response\Style::MINIMAL, 'critical', 65536, 0, 0,
+            true   // attackEmulation ON
+        ));
+    }
+
+    public function test_owned_bare_xmlrpc_post_overrides_static_stub(): void
+    {
+        $body = '<?xml version="1.0"?><methodCall><methodName>system.listMethods</methodName></methodCall>';
+        $verdict = $this->xmlrpcEngine()->classify(
+            new RequestContext('POST', '/xmlrpc.php', '', [], $body),
+            SiteProfile::empty()
+        );
+
+        self::assertSame(Verdict::ATTACK_CLASS, $verdict->classification);
+        self::assertNotNull($verdict->fakeHandle);
+        self::assertSame(FakeHandle::KIND_ATTACK, $verdict->fakeHandle->kind);
+    }
+
+    public function test_owned_get_xmlrpc_also_request_aware(): void
+    {
+        // A GET to /xmlrpc.php: rule 27 (attack-wp-xmlrpc-get) matches GET-ending-/xmlrpc.php and
+        // answers request-aware (405/RSD), so the override beats the static store stub here too —
+        // observed behavior, not a fallback case (see WpXmlrpcEmulatorTest for the decline path).
+        $verdict = $this->xmlrpcEngine()->classify(
+            new RequestContext('GET', '/xmlrpc.php'),
+            SiteProfile::empty()
+        );
+
+        self::assertSame(Verdict::ATTACK_CLASS, $verdict->classification);
+        self::assertNotNull($verdict->fakeHandle);
+        self::assertSame(FakeHandle::KIND_ATTACK, $verdict->fakeHandle->kind);
+    }
 }

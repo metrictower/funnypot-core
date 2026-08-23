@@ -20,9 +20,9 @@ use PHPUnit\Framework\TestCase;
  * load-bearing safety invariants (a credential oracle that never authenticates, a zero-egress
  * pingback, only-upgrade-a-404).
  *
- * NOTE ON PATHS: every request-aware case here uses a PREFIXED path (/wp/xmlrpc.php, …). The bare
- * /xmlrpc.php is an exact-store corpus key that classify() answers before the attack tier is ever
- * reached, so a test on bare /xmlrpc.php would exercise the store (route tier), not these rules.
+ * NOTE ON PATHS: request-aware cases here use PREFIXED paths (/wp/xmlrpc.php, …). The bare
+ * /xmlrpc.php is an exact-store key, but as of WP-Phase-2 the wp-xmlrpc rule claims it via owns_path,
+ * so classify() runs these rules ahead of the static stub (see ClassifyTest override tests).
  */
 final class WpXmlrpcEmulatorTest extends TestCase
 {
@@ -425,15 +425,16 @@ final class WpXmlrpcEmulatorTest extends TestCase
         self::assertContains('attack-wp-xmlrpc', $verdict->detection->templateIds());
     }
 
-    public function test_classify_bare_path_is_still_store_shadowed(): void
+    public function test_classify_bare_path_is_now_request_aware_via_override(): void
     {
-        // Documents the deferred Phase-2 gap: bare /xmlrpc.php is an exact-store key answered by the
-        // route tier, so it never reaches the attack tier — NOT an ATTACK_CLASS verdict.
+        // Bare /xmlrpc.php is still an exact-store key, but as of WP-Phase-2 the wp-xmlrpc rule
+        // claims it via owns_path, so classify() runs the attack tier ahead of the store stub —
+        // closing the gap this test used to document (see ClassifyTest override tests).
         $verdict = $this->fullEngine()->classify(
             new RequestContext('GET', '/xmlrpc.php', '', [], null),
             SiteProfile::empty()
         );
-        self::assertNotSame(Verdict::ATTACK_CLASS, $verdict->classification);
+        self::assertSame(Verdict::ATTACK_CLASS, $verdict->classification);
     }
 
     // --- the new `method` surface -----------------------------------------------------------

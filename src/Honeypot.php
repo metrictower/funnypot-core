@@ -111,6 +111,28 @@ final class Honeypot implements Engine
                 return new Verdict(Verdict::CLEAN, Detection::none(), '', $anomaly, $signals, null);
             }
 
+            // Path-override (WP-Phase-2): a request-aware rule may claim this path via owns_path and
+            // override the static exact-store stub. Sits AFTER the M2 guard (so a live host route is
+            // never shadowed) and BEFORE the route verdict; on a decline it falls through to the
+            // static bundle below — zero coverage loss, no new throw path.
+            if ($this->attackEmulator !== null && $this->attackEmulator->ownsPath($r->path)) {
+                $ov = $this->attackEmulator->matchRule($r);
+                if ($ov !== null) {
+                    $rule = $ov['rule'];
+                    $detection = TemplateAttackEmulator::detectionForRule($rule);
+                    $handle = FakeHandle::attack((string) ($rule['id'] ?? 'attack'), $ov['captures']);
+
+                    return new Verdict(
+                        Verdict::ATTACK_CLASS,
+                        $detection,
+                        $detection->highestSeverity,
+                        $anomaly,
+                        $signals,
+                        $handle
+                    );
+                }
+            }
+
             $detection = $this->detectionFor($key, $this->detectIds($entry));
             $handle = FakeHandle::route($key);
 
