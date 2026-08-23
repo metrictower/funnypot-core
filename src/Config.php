@@ -109,6 +109,9 @@ final class Config
     /** @var string|null per-deploy persona-material override; null/'' ⇒ fall back to $seedSalt */
     public $deploySeed;
 
+    /** @var string|null per-deploy secret signing the decoy mock-auth session cookie; null ⇒ feature off */
+    public $decoySessionKey;
+
     public function __construct(
         string $mode = 'detect',
         ?Closure $gate = null,
@@ -130,7 +133,8 @@ final class Config
         ?string $serverHeader = null,
         ?string $poweredBy = null,
         ?string $honeytokenKey = null,
-        ?string $deploySeed = null
+        ?string $deploySeed = null,
+        ?string $decoySessionKey = null
     ) {
         $this->mode = $mode;
         $this->gate = $gate;
@@ -153,6 +157,7 @@ final class Config
         $this->poweredBy = $poweredBy;
         $this->honeytokenKey = $honeytokenKey;
         $this->deploySeed = $deploySeed;
+        $this->decoySessionKey = $decoySessionKey;
     }
 
     public function respondEnabled(): bool
