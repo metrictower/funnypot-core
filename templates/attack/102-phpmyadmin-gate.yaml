@@ -1,0 +1,123 @@
+id: attack-phpmyadmin-gate
+severity: high
+# Priority 21: a free slot in the same low band the Phase-2b login oracles use to sit below the
+# broad `in: request` archetypes (44-ssti-twig/45-ssti-numeric/46-php-glastopf/50-sqli/
+# 60-open-redirect/65-xss-reflect carry no path constraint at all — see 97-wp-login.yaml's comment
+# for the full reasoning). 21/22 are free across templates/attack, templates/attack-crs, AND
+# templates/attack-ai (checked against all three merged dirs — attack-ai's own login-adjacent rules
+# sit at 32-38/42/43, priority collides with 100-grafana-login/98-cpsrvd-login/99-phppgadmin-login
+# there are harmless ties broken by id, but a FREE number keeps this pair's sort position legible).
+# Sorts directly before 103-phpmyadmin-login (priority 22), the POST mint half of the same pair —
+# the two are disjoint by method so the relative order can't change which one fires, but they're
+# kept adjacent the same way 26/attack-wp-xmlrpc sorts directly before 27/attack-wp-xmlrpc-get.
+priority: 21
+tags: [attack, phpmyadmin, mysql, panel, login, mock-auth]
+owns_path: [/phpmyadmin/, /phpmyadmin/index.php, /pma/, /phpMyAdmin/]
+# Request-aware phpMyAdmin panel GATE (GET/HEAD): claims the panel roots via owns_path so
+# classify() runs the attack tier ahead of route 240's static login stub. Route 240 stays (it's what
+# feeds resolveEntry() a hit at all, so the M2 real-route guard — never shadow a live host route —
+# still applies to these paths); this rule's owns_path override means route 240's OWN body is never
+# actually served for these paths once the decoy-session key is enabled, only its store presence
+# matters. See that template's own note.
+#
+# `behavior: decoy-session` mode `gate` renders the authed FakeRecords placeholder ONLY on a
+# verified `s=1` phpMyAdmin cookie (DecoySession::isAuthenticated) — anything else (no cookie, a
+# garbage value, a validly-signed but wrong-class s=0, the signing key disabled, or a path/method
+# variant this rule itself declines) falls back to the base `response` below: this SAME faithful
+# login page. Fail-closed by construction — the ONLY path to the authed body is a verified s=1 (see
+# TemplateAttackEmulator::handleDecoySession's docblock for the full invariant list).
+#
+# `domain: {{persona.company.domain}}` — rendered at request time (TemplateAttackEmulator's existing
+# DirectiveRenderer, threaded through decoySessionAuthedBody) so the fake users table's email column
+# agrees with the SAME company identity the persona/template tiers show elsewhere on this deploy,
+# rather than a hardcoded 'example.com'.
+#
+# PATH/METHOD MATCH MUST STAY AS PERMISSIVE AS owns_path: ownsPath() claims any case/trailing-slash
+# variant of these paths (PathNormalizer::ownershipKey lower-cases + strips ALL trailing slashes),
+# so the path regex tolerates any COUNT of trailing slashes (`/*$`, not `/?$`) and any case
+# (`ci: true`) — a stricter match here would DECLINE on a variant the override already claimed. HEAD
+# is matched the same as GET (a real phpMyAdmin answers both the same way for this page) so a HEAD
+# probe gets this same login page on a decline — never route 240's older stub, and never the authed
+# body (the gate only ever renders that from a verified cookie, regardless of method).
+match:
+  - in: path
+    regex: '^/(?:phpmyadmin|pma)(?:/index\.php)?/*$'
+    ci: true
+  - in: method
+    regex: '^(?:GET|HEAD)$'
+    ci: false
+status: 200
+response:
+  headers:
+    Content-Type: "text/html; charset=utf-8"
+  body: |
+    <!doctype html>
+    <html lang="en">
+    <head>
+    <meta charset="utf-8">
+    <title>phpMyAdmin</title>
+    <style>
+    :root{color-scheme:light}
+    *{box-sizing:border-box}
+    body{margin:0;font-family:-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;background:#eef1f5;color:#212529}
+    .pma-wrap{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:2rem 1rem}
+    .pma-card{width:100%;max-width:25rem;background:#fff;border:1px solid rgba(0,0,0,.125);border-radius:.375rem;box-shadow:0 .125rem .5rem rgba(0,0,0,.08);overflow:hidden}
+    .pma-card__header{padding:.75rem 1.25rem;background:#f8f9fa;border-bottom:1px solid rgba(0,0,0,.125);font-size:1.15rem;font-weight:600}
+    .pma-card__body{padding:1.25rem}
+    .pma-card__footer{padding:.75rem 1.25rem;background:#f8f9fa;border-top:1px solid rgba(0,0,0,.125);text-align:right}
+    .pma-field{margin-bottom:1rem}
+    .pma-field label{display:block;margin-bottom:.25rem;font-weight:500}
+    .form-control,.form-select{display:block;width:100%;padding:.375rem .75rem;border:1px solid #ced4da;border-radius:.25rem;font-size:1rem;line-height:1.5}
+    .btn-primary{display:inline-block;padding:.375rem .9rem;background:#0d6efd;border:1px solid #0d6efd;color:#fff;border-radius:.25rem;font-size:1rem;cursor:pointer}
+    #pma_errors:empty{display:none}
+    #pma_errors{color:#842029;background:#f8d7da;border:1px solid #f5c2c7;border-radius:.25rem;padding:.5rem .75rem;margin-bottom:1rem}
+    .pma-lang{margin-top:1rem}
+    .pma-footer-version{text-align:center;color:#6c757d;font-size:.75rem;margin-top:.75rem}
+    </style>
+    </head>
+    <body class="loginform">
+    <div class="pma-wrap">
+    <div class="pma-card">
+    <div class="pma-card__header">Log in</div>
+    <div class="pma-card__body">
+    <div id="pma_errors"></div>
+    <form method="post" id="login_form" name="login_form" class="disableAjax hide js-show" action="index.php?route=/">
+    <div class="pma-field">
+    <label for="input_username">Username:</label>
+    <input type="text" name="pma_username" id="input_username" class="form-control" autocomplete="username" autocapitalize="off" autofocus>
+    </div>
+    <div class="pma-field">
+    <label for="input_password">Password:</label>
+    <input type="password" name="pma_password" id="input_password" class="form-control" autocomplete="current-password">
+    </div>
+    <input type="hidden" name="pma_servername" id="serverNameInput" value="">
+    <input type="hidden" name="server" value="1">
+    <input type="hidden" name="set_session" value="{{fake.set_session:hex:32}}">
+    <div class="pma-field pma-lang">
+    <label for="languageSelect">Language</label>
+    <select name="lang" id="languageSelect" class="form-select autosubmit">
+    <option value="en" selected>English</option>
+    <option value="fr">Fran&ccedil;ais</option>
+    <option value="de">Deutsch</option>
+    <option value="es">Espa&ntilde;ol</option>
+    </select>
+    </div>
+    </div>
+    <div class="pma-card__footer">
+    <input type="submit" name="Go" value="Go" id="input_go" class="btn btn-primary">
+    </div>
+    </form>
+    </div>
+    </div>
+    <div class="pma-footer-version">phpMyAdmin 5.2.1</div>
+    </body>
+    </html>
+behavior: decoy-session
+decoy-session:
+  mode: gate
+  cookie_name: phpMyAdmin
+  cookie_path: /phpmyadmin
+  domain: '{{persona.company.domain}}'
+  table_key: users
+  rows: 8
+expect: ['<title>phpMyAdmin', 'id="login_form"', 'pma_username', 'pma_password', 'id="input_go"']

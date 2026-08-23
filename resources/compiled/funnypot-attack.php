@@ -250,6 +250,245 @@ return array (
   ),
   7 => 
   array (
+    'id' => 'attack-phpmyadmin-gate',
+    'severity' => 'high',
+    'tags' => 
+    array (
+      0 => 'attack',
+      1 => 'phpmyadmin',
+      2 => 'mysql',
+      3 => 'panel',
+      4 => 'login',
+      5 => 'mock-auth',
+    ),
+    'status' => 200,
+    'match' => 
+    array (
+      0 => 
+      array (
+        'in' => 'path',
+        'regex' => '^/(?:phpmyadmin|pma)(?:/index\\.php)?/*$',
+        'ci' => true,
+      ),
+      1 => 
+      array (
+        'in' => 'method',
+        'regex' => '^(?:GET|HEAD)$',
+        'ci' => false,
+      ),
+    ),
+    'response' => 
+    array (
+      'headers' => 
+      array (
+        'Content-Type' => 'text/html; charset=utf-8',
+      ),
+      'body' => '<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>phpMyAdmin</title>
+<style>
+:root{color-scheme:light}
+*{box-sizing:border-box}
+body{margin:0;font-family:-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;background:#eef1f5;color:#212529}
+.pma-wrap{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:2rem 1rem}
+.pma-card{width:100%;max-width:25rem;background:#fff;border:1px solid rgba(0,0,0,.125);border-radius:.375rem;box-shadow:0 .125rem .5rem rgba(0,0,0,.08);overflow:hidden}
+.pma-card__header{padding:.75rem 1.25rem;background:#f8f9fa;border-bottom:1px solid rgba(0,0,0,.125);font-size:1.15rem;font-weight:600}
+.pma-card__body{padding:1.25rem}
+.pma-card__footer{padding:.75rem 1.25rem;background:#f8f9fa;border-top:1px solid rgba(0,0,0,.125);text-align:right}
+.pma-field{margin-bottom:1rem}
+.pma-field label{display:block;margin-bottom:.25rem;font-weight:500}
+.form-control,.form-select{display:block;width:100%;padding:.375rem .75rem;border:1px solid #ced4da;border-radius:.25rem;font-size:1rem;line-height:1.5}
+.btn-primary{display:inline-block;padding:.375rem .9rem;background:#0d6efd;border:1px solid #0d6efd;color:#fff;border-radius:.25rem;font-size:1rem;cursor:pointer}
+#pma_errors:empty{display:none}
+#pma_errors{color:#842029;background:#f8d7da;border:1px solid #f5c2c7;border-radius:.25rem;padding:.5rem .75rem;margin-bottom:1rem}
+.pma-lang{margin-top:1rem}
+.pma-footer-version{text-align:center;color:#6c757d;font-size:.75rem;margin-top:.75rem}
+</style>
+</head>
+<body class="loginform">
+<div class="pma-wrap">
+<div class="pma-card">
+<div class="pma-card__header">Log in</div>
+<div class="pma-card__body">
+<div id="pma_errors"></div>
+<form method="post" id="login_form" name="login_form" class="disableAjax hide js-show" action="index.php?route=/">
+<div class="pma-field">
+<label for="input_username">Username:</label>
+<input type="text" name="pma_username" id="input_username" class="form-control" autocomplete="username" autocapitalize="off" autofocus>
+</div>
+<div class="pma-field">
+<label for="input_password">Password:</label>
+<input type="password" name="pma_password" id="input_password" class="form-control" autocomplete="current-password">
+</div>
+<input type="hidden" name="pma_servername" id="serverNameInput" value="">
+<input type="hidden" name="server" value="1">
+<input type="hidden" name="set_session" value="{{fake.set_session:hex:32}}">
+<div class="pma-field pma-lang">
+<label for="languageSelect">Language</label>
+<select name="lang" id="languageSelect" class="form-select autosubmit">
+<option value="en" selected>English</option>
+<option value="fr">Fran&ccedil;ais</option>
+<option value="de">Deutsch</option>
+<option value="es">Espa&ntilde;ol</option>
+</select>
+</div>
+</div>
+<div class="pma-card__footer">
+<input type="submit" name="Go" value="Go" id="input_go" class="btn btn-primary">
+</div>
+</form>
+</div>
+</div>
+<div class="pma-footer-version">phpMyAdmin 5.2.1</div>
+</body>
+</html>
+',
+    ),
+    'owns_path' => 
+    array (
+      0 => '/phpmyadmin',
+      1 => '/phpmyadmin/index.php',
+      2 => '/pma',
+    ),
+    'behavior' => 'decoy-session',
+    'decoy-session' => 
+    array (
+      'mode' => 'gate',
+      'cookie_name' => 'phpMyAdmin',
+      'cookie_path' => '/phpmyadmin',
+      'domain' => '{{persona.company.domain}}',
+      'table_key' => 'users',
+      'rows' => 8,
+    ),
+  ),
+  8 => 
+  array (
+    'id' => 'attack-phpmyadmin-login',
+    'severity' => 'high',
+    'tags' => 
+    array (
+      0 => 'attack',
+      1 => 'phpmyadmin',
+      2 => 'mysql',
+      3 => 'panel',
+      4 => 'login',
+      5 => 'mock-auth',
+      6 => 'credential-oracle',
+    ),
+    'status' => 200,
+    'match' => 
+    array (
+      0 => 
+      array (
+        'in' => 'path',
+        'regex' => '^/(?:phpmyadmin|pma)(?:/index\\.php)?/*$',
+        'ci' => true,
+      ),
+      1 => 
+      array (
+        'in' => 'method',
+        'regex' => '^POST$',
+        'ci' => false,
+      ),
+      2 => 
+      array (
+        'in' => 'body',
+        'regex' => '^(?=(?:.*&)?pma_username=(?P<user>[^&]{0,64}))(?=(?:.*&)?pma_password=(?P<pass>[^&]{0,64}))',
+        'ci' => false,
+        'capture' => true,
+      ),
+    ),
+    'response' => 
+    array (
+      'headers' => 
+      array (
+        'Content-Type' => 'text/html; charset=utf-8',
+      ),
+      'body' => '<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>phpMyAdmin</title>
+<style>
+:root{color-scheme:light}
+*{box-sizing:border-box}
+body{margin:0;font-family:-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;background:#eef1f5;color:#212529}
+.pma-wrap{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:2rem 1rem}
+.pma-card{width:100%;max-width:25rem;background:#fff;border:1px solid rgba(0,0,0,.125);border-radius:.375rem;box-shadow:0 .125rem .5rem rgba(0,0,0,.08);overflow:hidden}
+.pma-card__header{padding:.75rem 1.25rem;background:#f8f9fa;border-bottom:1px solid rgba(0,0,0,.125);font-size:1.15rem;font-weight:600}
+.pma-card__body{padding:1.25rem}
+.pma-card__footer{padding:.75rem 1.25rem;background:#f8f9fa;border-top:1px solid rgba(0,0,0,.125);text-align:right}
+.pma-field{margin-bottom:1rem}
+.pma-field label{display:block;margin-bottom:.25rem;font-weight:500}
+.form-control,.form-select{display:block;width:100%;padding:.375rem .75rem;border:1px solid #ced4da;border-radius:.25rem;font-size:1rem;line-height:1.5}
+.btn-primary{display:inline-block;padding:.375rem .9rem;background:#0d6efd;border:1px solid #0d6efd;color:#fff;border-radius:.25rem;font-size:1rem;cursor:pointer}
+#pma_errors:empty{display:none}
+#pma_errors{color:#842029;background:#f8d7da;border:1px solid #f5c2c7;border-radius:.25rem;padding:.5rem .75rem;margin-bottom:1rem}
+.pma-lang{margin-top:1rem}
+.pma-footer-version{text-align:center;color:#6c757d;font-size:.75rem;margin-top:.75rem}
+</style>
+</head>
+<body class="loginform">
+<div class="pma-wrap">
+<div class="pma-card">
+<div class="pma-card__header">Log in</div>
+<div class="pma-card__body">
+<div id="pma_errors"></div>
+<form method="post" id="login_form" name="login_form" class="disableAjax hide js-show" action="index.php?route=/">
+<div class="pma-field">
+<label for="input_username">Username:</label>
+<input type="text" name="pma_username" id="input_username" class="form-control" autocomplete="username" autocapitalize="off" autofocus>
+</div>
+<div class="pma-field">
+<label for="input_password">Password:</label>
+<input type="password" name="pma_password" id="input_password" class="form-control" autocomplete="current-password">
+</div>
+<input type="hidden" name="pma_servername" id="serverNameInput" value="">
+<input type="hidden" name="server" value="1">
+<input type="hidden" name="set_session" value="{{fake.set_session:hex:32}}">
+<div class="pma-field pma-lang">
+<label for="languageSelect">Language</label>
+<select name="lang" id="languageSelect" class="form-select autosubmit">
+<option value="en" selected>English</option>
+<option value="fr">Fran&ccedil;ais</option>
+<option value="de">Deutsch</option>
+<option value="es">Espa&ntilde;ol</option>
+</select>
+</div>
+</div>
+<div class="pma-card__footer">
+<input type="submit" name="Go" value="Go" id="input_go" class="btn btn-primary">
+</div>
+</form>
+</div>
+</div>
+<div class="pma-footer-version">phpMyAdmin 5.2.1</div>
+</body>
+</html>
+',
+    ),
+    'lit' => 'POST',
+    'lit_in' => 'method',
+    'lit_ci' => false,
+    'owns_path' => 
+    array (
+      0 => '/phpmyadmin/index.php',
+      1 => '/phpmyadmin',
+      2 => '/pma/index.php',
+      3 => '/pma',
+    ),
+    'behavior' => 'decoy-session',
+    'decoy-session' => 
+    array (
+      'mode' => 'mint',
+      'cookie_name' => 'phpMyAdmin',
+      'cookie_path' => '/phpmyadmin',
+    ),
+  ),
+  9 => 
+  array (
     'id' => 'attack-wp-xmlrpc-addtwo',
     'severity' => 'high',
     'tags' => 
@@ -337,7 +576,7 @@ return array (
       'bind' => 'sum',
     ),
   ),
-  8 => 
+  10 => 
   array (
     'id' => 'attack-wp-xmlrpc-multicall',
     'severity' => 'high',
@@ -486,7 +725,7 @@ return array (
       ),
     ),
   ),
-  9 => 
+  11 => 
   array (
     'id' => 'attack-lfi-smbconf',
     'severity' => 'high',
@@ -530,7 +769,7 @@ return array (
     'lit_in' => 'request',
     'lit_ci' => true,
   ),
-  10 => 
+  12 => 
   array (
     'id' => 'attack-lfi-environ',
     'severity' => 'high',
@@ -562,7 +801,7 @@ return array (
     'lit_in' => 'request',
     'lit_ci' => true,
   ),
-  11 => 
+  13 => 
   array (
     'id' => 'attack-wp-xmlrpc',
     'severity' => 'high',
@@ -1114,7 +1353,7 @@ return array (
       ),
     ),
   ),
-  12 => 
+  14 => 
   array (
     'id' => 'attack-wp-xmlrpc-get',
     'severity' => 'info',
@@ -1226,7 +1465,7 @@ return array (
       ),
     ),
   ),
-  13 => 
+  15 => 
   array (
     'id' => 'attack-lfi-shadow',
     'severity' => 'high',
@@ -1257,7 +1496,7 @@ return array (
     'lit_in' => 'request',
     'lit_ci' => true,
   ),
-  14 => 
+  16 => 
   array (
     'id' => 'attack-lfi-group',
     'severity' => 'high',
@@ -1288,7 +1527,7 @@ return array (
     'lit_in' => 'request',
     'lit_ci' => true,
   ),
-  15 => 
+  17 => 
   array (
     'id' => 'attack-lfi-windows',
     'severity' => 'high',
@@ -1317,7 +1556,7 @@ return array (
       'body' => '{{canned.winini}}',
     ),
   ),
-  16 => 
+  18 => 
   array (
     'id' => 'attack-lfi-unix',
     'severity' => 'high',
@@ -1345,7 +1584,7 @@ return array (
       'body' => '{{canned.passwd}}',
     ),
   ),
-  17 => 
+  19 => 
   array (
     'id' => 'attack-ai-ollama-version',
     'severity' => 'medium',
@@ -1387,7 +1626,7 @@ return array (
       0 => '/api/version',
     ),
   ),
-  18 => 
+  20 => 
   array (
     'id' => 'attack-ai-ollama-tags',
     'severity' => 'medium',
@@ -1429,7 +1668,7 @@ return array (
       0 => '/api/tags',
     ),
   ),
-  19 => 
+  21 => 
   array (
     'id' => 'attack-ai-ollama-ps',
     'severity' => 'medium',
@@ -1471,7 +1710,7 @@ return array (
       0 => '/api/ps',
     ),
   ),
-  20 => 
+  22 => 
   array (
     'id' => 'attack-ai-ollama-show',
     'severity' => 'medium',
@@ -1689,7 +1928,7 @@ return array (
       ),
     ),
   ),
-  21 => 
+  23 => 
   array (
     'id' => 'attack-ai-ollama-chat',
     'severity' => 'medium',
@@ -1738,7 +1977,7 @@ return array (
       0 => '/api/chat',
     ),
   ),
-  22 => 
+  24 => 
   array (
     'id' => 'attack-ai-ollama-generate',
     'severity' => 'medium',
@@ -1787,7 +2026,7 @@ return array (
       0 => '/api/generate',
     ),
   ),
-  23 => 
+  25 => 
   array (
     'id' => 'attack-kibana-login',
     'severity' => 'high',
@@ -1862,7 +2101,7 @@ return array (
       ),
     ),
   ),
-  24 => 
+  26 => 
   array (
     'id' => 'attack-ai-openai-chat',
     'severity' => 'medium',
@@ -1911,7 +2150,7 @@ return array (
       0 => '/v1/chat/completions',
     ),
   ),
-  25 => 
+  27 => 
   array (
     'id' => 'attack-grafana-login',
     'severity' => 'high',
@@ -1966,7 +2205,7 @@ return array (
       0 => '/grafana/login',
     ),
   ),
-  26 => 
+  28 => 
   array (
     'id' => 'attack-wp-login',
     'severity' => 'high',
@@ -2055,7 +2294,7 @@ return array (
       0 => '/wp-login.php',
     ),
   ),
-  27 => 
+  29 => 
   array (
     'id' => 'attack-cmdi-windows',
     'severity' => 'critical',
@@ -2091,7 +2330,7 @@ Ethernet adapter Ethernet0:
 ',
     ),
   ),
-  28 => 
+  30 => 
   array (
     'id' => 'attack-cmdi-unix',
     'severity' => 'critical',
@@ -2119,7 +2358,7 @@ Ethernet adapter Ethernet0:
       'body' => '{{canned.uid}}',
     ),
   ),
-  29 => 
+  31 => 
   array (
     'id' => 'attack-ai-anthropic-messages',
     'severity' => 'medium',
@@ -2168,7 +2407,7 @@ Ethernet adapter Ethernet0:
       0 => '/v1/messages',
     ),
   ),
-  30 => 
+  32 => 
   array (
     'id' => 'attack-cpsrvd-login',
     'severity' => 'high',
@@ -2278,7 +2517,7 @@ Ethernet adapter Ethernet0:
       ),
     ),
   ),
-  31 => 
+  33 => 
   array (
     'id' => 'attack-ai-v1-models',
     'severity' => 'medium',
@@ -2345,7 +2584,7 @@ Ethernet adapter Ethernet0:
       ),
     ),
   ),
-  32 => 
+  34 => 
   array (
     'id' => 'attack-phppgadmin-login',
     'severity' => 'high',
@@ -2484,7 +2723,7 @@ Ethernet adapter Ethernet0:
       ),
     ),
   ),
-  33 => 
+  35 => 
   array (
     'id' => 'attack-ssti-twig',
     'severity' => 'high',
@@ -2513,7 +2752,7 @@ Ethernet adapter Ethernet0:
 ',
     ),
   ),
-  34 => 
+  36 => 
   array (
     'id' => 'attack-ssti-numeric',
     'severity' => 'high',
@@ -2541,7 +2780,7 @@ Ethernet adapter Ethernet0:
 ',
     ),
   ),
-  35 => 
+  37 => 
   array (
     'id' => 'attack-php-glastopf',
     'severity' => 'critical',
@@ -2573,7 +2812,7 @@ Ethernet adapter Ethernet0:
     'lit_in' => 'request',
     'lit_ci' => true,
   ),
-  36 => 
+  38 => 
   array (
     'id' => 'attack-sqli',
     'severity' => 'high',
@@ -2601,7 +2840,7 @@ Ethernet adapter Ethernet0:
 ',
     ),
   ),
-  37 => 
+  39 => 
   array (
     'id' => 'attack-open-redirect',
     'severity' => 'medium',
@@ -2630,7 +2869,7 @@ Ethernet adapter Ethernet0:
       'body' => '<html><head><title>302 Found</title></head><body>Redirecting...</body></html>',
     ),
   ),
-  38 => 
+  40 => 
   array (
     'id' => 'attack-xss',
     'severity' => 'medium',
@@ -2661,7 +2900,7 @@ Ethernet adapter Ethernet0:
 ',
     ),
   ),
-  39 => 
+  41 => 
   array (
     'id' => 'attack-thinkphp-rce',
     'severity' => 'critical',
@@ -2697,7 +2936,7 @@ Ethernet adapter Ethernet0:
 ',
     ),
   ),
-  40 => 
+  42 => 
   array (
     'id' => 'attack-owncloud-49103',
     'severity' => 'high',
@@ -2740,7 +2979,7 @@ Ethernet adapter Ethernet0:
     'lit_in' => 'path',
     'lit_ci' => true,
   ),
-  41 => 
+  43 => 
   array (
     'id' => 'attack-f5-1388',
     'severity' => 'critical',
@@ -2774,7 +3013,7 @@ Ethernet adapter Ethernet0:
     'lit_in' => 'path',
     'lit_ci' => true,
   ),
-  42 => 
+  44 => 
   array (
     'id' => 'attack-geoserver-36401',
     'severity' => 'critical',
@@ -2817,7 +3056,7 @@ Ethernet adapter Ethernet0:
     'lit_in' => 'path',
     'lit_ci' => true,
   ),
-  43 => 
+  45 => 
   array (
     'id' => 'attack-fortios-40684',
     'severity' => 'critical',
@@ -2856,7 +3095,7 @@ Ethernet adapter Ethernet0:
     'lit_in' => 'path',
     'lit_ci' => true,
   ),
-  44 => 
+  46 => 
   array (
     'id' => 'attack-ivanti-21887',
     'severity' => 'critical',
@@ -2891,7 +3130,7 @@ Ethernet adapter Ethernet0:
     'lit_in' => 'request',
     'lit_ci' => true,
   ),
-  45 => 
+  47 => 
   array (
     'id' => 'attack-citrix-bleed-4966',
     'severity' => 'critical',
@@ -2926,7 +3165,7 @@ Ethernet adapter Ethernet0:
     'lit_in' => 'path',
     'lit_ci' => true,
   ),
-  46 => 
+  48 => 
   array (
     'id' => 'attack-webshell-panel',
     'severity' => 'critical',
@@ -2961,7 +3200,7 @@ $ </pre>
 ',
     ),
   ),
-  47 => 
+  49 => 
   array (
     'id' => 'attack-spring-actuator',
     'severity' => 'high',
@@ -2994,7 +3233,7 @@ $ </pre>
     'lit_in' => 'path',
     'lit_ci' => true,
   ),
-  48 => 
+  50 => 
   array (
     'id' => 'attack-cloud-imds',
     'severity' => 'high',
@@ -3031,7 +3270,7 @@ $ </pre>
 ',
     ),
   ),
-  49 => 
+  51 => 
   array (
     'id' => 'attack-ignition-execute-solution',
     'severity' => 'high',
@@ -3120,7 +3359,7 @@ $ </pre>
       ),
     ),
   ),
-  50 => 
+  52 => 
   array (
     'id' => 'attack-webmin-session-login',
     'severity' => 'high',
@@ -3190,7 +3429,7 @@ $ </pre>
     'lit_in' => 'method',
     'lit_ci' => false,
   ),
-  51 => 
+  53 => 
   array (
     'id' => 'attack-jenkins-acegi-login',
     'severity' => 'high',
@@ -3238,7 +3477,7 @@ $ </pre>
     'lit_in' => 'method',
     'lit_ci' => false,
   ),
-  52 => 
+  54 => 
   array (
     'id' => 'attack-hnap-login',
     'severity' => 'high',
@@ -3323,7 +3562,7 @@ $ </pre>
       ),
     ),
   ),
-  53 => 
+  55 => 
   array (
     'id' => 'attack-crs-sqli',
     'severity' => 'high',
@@ -3353,7 +3592,7 @@ $ </pre>
 ',
     ),
   ),
-  54 => 
+  56 => 
   array (
     'id' => 'attack-crs-xss',
     'severity' => 'high',
@@ -3385,7 +3624,7 @@ $ </pre>
 ',
     ),
   ),
-  55 => 
+  57 => 
   array (
     'id' => 'attack-crs-lfi',
     'severity' => 'high',
@@ -3414,7 +3653,7 @@ $ </pre>
       'body' => '{{canned.passwd}}',
     ),
   ),
-  56 => 
+  58 => 
   array (
     'id' => 'attack-crs-rce',
     'severity' => 'critical',

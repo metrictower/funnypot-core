@@ -835,7 +835,11 @@ final class TemplateAttackEmulator
     private function decoySessionAuthedBody(array $config, int $seed): EmulatedContent
     {
         $deploySeed = $this->personaSeed ?? $seed;
-        $domain = (string) ($config['domain'] ?? 'example.com');
+        // domain may carry a directive (e.g. {{persona.company.domain}}) so the fake table's email
+        // column agrees with the site identity the template tier shows elsewhere; a plain literal
+        // (no `{{`) round-trips through render() unchanged (DirectiveRenderer's fast path), so this
+        // is a no-op for any rule authored before directive support existed here.
+        $domain = $this->renderer->render((string) ($config['domain'] ?? 'example.com'), [], $seed, $this->canary);
         $tableKey = (string) ($config['table_key'] ?? 'users');
 
         $rows = isset($config['rows']) ? (int) $config['rows'] : 10;

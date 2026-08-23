@@ -172,7 +172,8 @@ final class EmulatorCompiler
 
         // An optional named behavior primitive. The base `response` above stays the ultimate
         // fallback; the behavior only picks the content when it fires. Unknown names are a build
-        // failure — this build knows branch, arith-eval, and iterate (other primitives are deferred).
+        // failure — this build knows branch, arith-eval, iterate, and decoy-session (other
+        // primitives are deferred).
         if (isset($doc['behavior'])) {
             $behavior = (string) $doc['behavior'];
             switch ($behavior) {
@@ -188,8 +189,12 @@ final class EmulatorCompiler
                     $rule['behavior'] = 'iterate';
                     $rule['iterate'] = $this->normalizeIterate((array) ($doc['iterate'] ?? []), $file);
                     break;
+                case 'decoy-session':
+                    $rule['behavior'] = 'decoy-session';
+                    $rule['decoy-session'] = $this->normalizeDecoySession((array) ($doc['decoy-session'] ?? []), $file);
+                    break;
                 default:
-                    throw new RuntimeException("Template {$file}: unknown behavior '{$behavior}'. This build knows 'branch', 'arith-eval', 'iterate'.");
+                    throw new RuntimeException("Template {$file}: unknown behavior '{$behavior}'. This build knows 'branch', 'arith-eval', 'iterate', 'decoy-session'.");
             }
         }
 
@@ -354,6 +359,54 @@ final class EmulatorCompiler
 
     /** Hard ceiling on iterate fan-out items; a larger authored max_items is clamped down. */
     private const MAX_ITERATE_ITEMS = 64;
+
+    /** The closed decoy-session mode set: mint (the login POST) or gate (the authed GET/HEAD). */
+    private const DECOY_SESSION_MODES = ['mint', 'gate'];
+
+    /**
+     * Normalize a `decoy-session` behavior config: a closed `mode` (mint|gate) plus the
+     * `cookie_name`/`cookie_path` the mint/gate pair must agree on. Gate mode additionally carries
+     * the FakeRecords inputs the Phase-A authed placeholder needs (`domain`, `table_key`, `rows`) —
+     * mint never reads them, so they're only normalized for a gate rule. `domain` may carry a
+     * directive (e.g. `{{persona.company.domain}}`, rendered at request time by
+     * TemplateAttackEmulator::decoySessionAuthedBody), so it gets the same directive-vocabulary
+     * lint as a response body/header — a typo'd persona field would otherwise render '' silently.
+     * No `response` here: the rule's own base `response` (the login page) is the fallback this
+     * primitive declines to, so there is nothing behavior-specific to directive/static-header-check.
+     *
+     * @param array<string,mixed> $config
+     * @return array<string,mixed>
+     */
+    private function normalizeDecoySession(array $config, string $file): array
+    {
+        $mode = (string) ($config['mode'] ?? '');
+        if (!in_array($mode, self::DECOY_SESSION_MODES, true)) {
+            throw new RuntimeException("Template {$file}: behavior 'decoy-session' needs a 'mode' of " . implode('|', self::DECOY_SESSION_MODES) . '.');
+        }
+        $cookieName = (string) ($config['cookie_name'] ?? '');
+        $cookiePath = (string) ($config['cookie_path'] ?? '');
+        if ($cookieName === '' || $cookiePath === '') {
+            throw new RuntimeException("Template {$file}: behavior 'decoy-session' needs a non-empty 'cookie_name' and 'cookie_path'.");
+        }
+
+        $out = [
+            'mode' => $mode,
+            'cookie_name' => $cookieName,
+            'cookie_path' => $cookiePath,
+        ];
+
+        if ($mode === 'gate') {
+            $domain = (string) ($config['domain'] ?? '');
+            $this->assertKnownDirectives($domain, $file);
+            $out['domain'] = $domain;
+            $out['table_key'] = (string) ($config['table_key'] ?? 'users');
+            if (isset($config['rows'])) {
+                $out['rows'] = (int) $config['rows'];
+            }
+        }
+
+        return $out;
+    }
 
     /**
      * Normalize an `arith-eval` behavior config. Exactly one authored form is required:

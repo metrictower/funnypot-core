@@ -1,0 +1,294 @@
+<?php
+
+declare(strict_types=1);
+
+namespace Funnypot\Tests;
+
+use Funnypot\Compiler\Crs\FingerprintGuard;
+use Funnypot\Honeytoken;
+use Funnypot\RequestContext;
+use Funnypot\Template\TemplateAttackEmulator;
+use PHPUnit\Framework\TestCase;
+
+/**
+ * The phpMyAdmin flagship mock-auth pair (attack rules 102/103): a faithful re-authored login page
+ * wired to the `decoy-session` primitive (mint on POST, gate on GET/HEAD) over the real phpMyAdmin
+ * panel paths. Drives the COMPILED rules directly (mirrors WpXmlrpcEmulatorTest/
+ * DecoySessionBehaviorTest), with a decoySessionKey so mint/gate are enabled — pins the login/mint/
+ * gate flow end to end, variant tolerance, and that the served bytes never leak an unrendered
+ * directive or a denylisted fingerprint token.
+ *
+ * LICENSING: the login page HTML/CSS is original — re-authored from the FACTS of the real
+ * phpMyAdmin 5.2 login form (field names/ids/structure), never phpMyAdmin's own GPL-2.0 CSS/JS
+ * bytes. Same posture as the byte-exact Phase-2b login oracles (97-101): reproducing an observable
+ * structure in original code, not vendoring upstream files.
+ */
+final class PhpMyAdminMockAuthTest extends TestCase
+{
+    private const COMPILED = __DIR__ . '/../resources/compiled/funnypot-attack.php';
+
+    private const KEY = 'test-key';
+
+    private const GATE_ID = 'attack-phpmyadmin-gate';
+
+    private const MINT_ID = 'attack-phpmyadmin-login';
+
+    private function emulator(): TemplateAttackEmulator
+    {
+        return TemplateAttackEmulator::fromFile(self::COMPILED, [], null, self::KEY);
+    }
+
+    private function serve(string $method, string $path, string $query = '', array $headers = [], ?string $body = null): ?object
+    {
+        return $this->emulator()->emulate(new RequestContext($method, $path, $query, $headers, $body));
+    }
+
+    /** The name=value pair a browser would send back, parsed out of a full Set-Cookie string. */
+    private function cookieHeaderFrom(string $setCookie): string
+    {
+        $semi = strpos($setCookie, ';');
+
+        return $semi === false ? $setCookie : substr($setCookie, 0, $semi);
+    }
+
+    private function mintValidLogin(): object
+    {
+        $r = $this->serve('POST', '/phpmyadmin/index.php', '', [], 'pma_username=admin&pma_password=secret');
+        self::assertNotNull($r);
+        self::assertSame(302, $r->status, 'a plausible non-empty login must mint');
+
+        return $r;
+    }
+
+    // --- compile / ordering -----------------------------------------------------------------
+
+    public function test_both_rules_compiled_unique_and_ordered(): void
+    {
+        $rules = require self::COMPILED;
+        $ids = array_map(static function (array $r): string {
+            return (string) $r['id'];
+        }, $rules);
+
+        self::assertContains(self::GATE_ID, $ids);
+        self::assertContains(self::MINT_ID, $ids);
+        self::assertSame(array_unique($ids), $ids, 'template ids must be globally unique');
+
+        // Gate (GET/HEAD) sorts before mint (POST) — cosmetic here (disjoint by method, so order
+        // can't change which one fires), but kept adjacent the same way WpXmlrpcEmulatorTest pins
+        // 26 (attack-wp-xmlrpc) sorting before 27 (attack-wp-xmlrpc-get).
+        self::assertLessThan(
+            array_search(self::MINT_ID, $ids, true),
+            array_search(self::GATE_ID, $ids, true)
+        );
+
+        // The build-time guard this task requires: the merged corpus grew by exactly these 2 rules,
+        // and Agent A's ai-ollama pack + the CRS pack both survived the recompile untouched.
+        self::assertCount(59, $rules, 'compiled corpus must be 57 (baseline) + 2 (this pair)');
+        $ollama = array_filter($ids, static function (string $id): bool {
+            return strpos($id, 'ai-ollama') !== false;
+        });
+        self::assertCount(6, $ollama, 'the 6 ai-ollama-* rules must survive the recompile');
+        $crs = array_filter($ids, static function (string $id): bool {
+            return strpos($id, 'crs') !== false;
+        });
+        self::assertCount(4, $crs, 'the 4 CRS rules must survive the recompile');
+    }
+
+    public function test_gate_rule_owns_the_panel_root_paths(): void
+    {
+        $em = $this->emulator();
+        // ownsPath() canonicalizes case + trailing slashes, so every authored/aliased form of the
+        // panel root resolves to the same claim. The compiler's owns_path variant-coverage check
+        // (run at `php bin/funnypot compile-emulators`) emitted NO warning for either new rule when
+        // this pair was authored/compiled — verified by inspecting the compiler's STDERR directly
+        // (there is no public warnings-returning API to assert against here; see EmulatorCompiler::
+        // ownsPathVariantWarnings, a private build-time lint).
+        foreach (['/phpmyadmin/', '/phpmyadmin', '/PhpMyAdmin/', '/phpmyadmin//', '/pma/', '/pma', '/phpmyadmin/index.php'] as $path) {
+            self::assertTrue($em->ownsPath($path), $path);
+        }
+    }
+
+    // --- GET (no cookie): the login page ----------------------------------------------------
+
+    public function test_get_no_cookie_serves_the_login_page(): void
+    {
+        $r = $this->serve('GET', '/phpmyadmin/');
+
+        self::assertNotNull($r);
+        self::assertSame(200, $r->status);
+        self::assertStringContainsString('id="login_form"', $r->body);
+        self::assertStringContainsString('pma_username', $r->body);
+        self::assertStringContainsString('pma_password', $r->body);
+        self::assertStringContainsString('<title>phpMyAdmin', $r->body);
+        self::assertStringNotContainsString('{{', $r->body, 'no directive may survive unrendered');
+        self::assertSame([], FingerprintGuard::fromPackage()->scan($r->body), 'login page must be fingerprint-clean');
+    }
+
+    // --- POST: mint on a plausible login -----------------------------------------------------
+
+    public function test_post_valid_credentials_mints_a_signed_s1_cookie_and_redirects(): void
+    {
+        $r = $this->mintValidLogin();
+
+        self::assertArrayHasKey('Set-Cookie', $r->headers);
+        self::assertStringContainsString('path=/phpmyadmin; HttpOnly', $r->headers['Set-Cookie']);
+        self::assertSame('/phpmyadmin/index.php', $r->headers['Location']);
+
+        $nameValue = $this->cookieHeaderFrom($r->headers['Set-Cookie']);
+        $eq = strpos($nameValue, '=');
+        self::assertNotFalse($eq);
+        self::assertSame('phpMyAdmin', substr($nameValue, 0, $eq));
+        $payload = (new Honeytoken(self::KEY))->verifiedPayload(substr($nameValue, $eq + 1));
+        self::assertSame('s=1', $payload, 'the minted cookie must decode to the authenticated payload class');
+    }
+
+    public function test_post_empty_password_declines_to_the_login_page_no_redirect(): void
+    {
+        $r = $this->serve('POST', '/phpmyadmin/index.php', '', [], 'pma_username=admin&pma_password=');
+
+        self::assertNotNull($r);
+        self::assertNotSame(302, $r->status);
+        self::assertArrayNotHasKey('Set-Cookie', $r->headers);
+        self::assertStringContainsString('id="login_form"', $r->body);
+    }
+
+    public function test_post_empty_username_declines_to_the_login_page(): void
+    {
+        $r = $this->serve('POST', '/phpmyadmin/index.php', '', [], 'pma_username=&pma_password=secret');
+
+        self::assertNotNull($r);
+        self::assertNotSame(302, $r->status);
+        self::assertArrayNotHasKey('Set-Cookie', $r->headers);
+    }
+
+    public function test_post_credentials_in_either_field_order_still_mints(): void
+    {
+        // The body match uses two independent lookaheads, not a fixed field sequence, so the
+        // real form's DOM order (username, then password) is not the only order accepted.
+        $r = $this->serve('POST', '/phpmyadmin/index.php', '', [], 'pma_password=secret&pma_username=admin');
+
+        self::assertNotNull($r);
+        self::assertSame(302, $r->status);
+    }
+
+    // --- GET with the minted cookie: the authed placeholder ---------------------------------
+
+    public function test_get_with_minted_cookie_serves_the_authed_placeholder_not_the_login_form(): void
+    {
+        $mint = $this->mintValidLogin();
+        $cookieHeader = $this->cookieHeaderFrom($mint->headers['Set-Cookie']);
+
+        $r = $this->serve('GET', '/phpmyadmin/', '', ['Cookie' => $cookieHeader]);
+
+        self::assertNotNull($r);
+        self::assertSame(200, $r->status);
+        self::assertStringContainsString('<table>', $r->body);
+        self::assertStringNotContainsString('id="login_form"', $r->body, 'an authed session must never re-show the login form');
+    }
+
+    // --- GET with a garbage cookie: fail closed ----------------------------------------------
+
+    public function test_get_with_garbage_cookie_falls_back_to_the_login_page(): void
+    {
+        $r = $this->serve('GET', '/phpmyadmin/', '', ['Cookie' => 'phpMyAdmin=nonsense-not-signed']);
+
+        self::assertNotNull($r);
+        self::assertStringContainsString('id="login_form"', $r->body);
+        self::assertStringNotContainsString('<table>', $r->body);
+    }
+
+    public function test_get_with_a_validly_signed_s0_cookie_is_not_authenticated(): void
+    {
+        // A validly-signed s=0 (pre-auth marker class) must NOT authenticate — a different payload
+        // class, not a weaker s=1 (mirrors DecoySessionTest's own invariant).
+        $s0 = (new Honeytoken(self::KEY))->cookie('phpMyAdmin', 's=0', '/phpmyadmin');
+        $cookieHeader = $this->cookieHeaderFrom($s0);
+
+        $r = $this->serve('GET', '/phpmyadmin/', '', ['Cookie' => $cookieHeader]);
+
+        self::assertNotNull($r);
+        self::assertStringContainsString('id="login_form"', $r->body);
+        self::assertStringNotContainsString('<table>', $r->body);
+    }
+
+    // --- variant paths / methods: never an authed body on a decline -------------------------
+
+    public function test_variant_paths_and_head_never_serve_the_authed_body_without_a_valid_cookie(): void
+    {
+        foreach ([
+            ['GET', '/phpmyadmin//'],
+            ['GET', '/PhpMyAdmin/'],
+            ['HEAD', '/phpmyadmin/'],
+            ['HEAD', '/PhpMyAdmin//'],
+            ['GET', '/pma/'],
+            ['GET', '/pma'],
+        ] as [$method, $path]) {
+            $r = $this->serve($method, $path);
+            self::assertNotNull($r, "$method $path");
+            self::assertStringNotContainsString('<table>', $r->body, "$method $path must never authenticate on a decline");
+            self::assertStringContainsString('id="login_form"', $r->body, "$method $path must fall back to the login page");
+        }
+    }
+
+    public function test_variant_paths_never_serve_the_authed_body_even_with_a_valid_cookie_if_match_declines(): void
+    {
+        // A valid s=1 cookie only ever authenticates through the gate rule's OWN match — never a
+        // side effect of some other rule/path. Every owned variant here still resolves to gate/mint
+        // (owns_path canonicalizes them), so the authed body IS expected once a valid cookie rides
+        // along; this pins that the variant tolerance doesn't accidentally widen into something else.
+        $mint = $this->mintValidLogin();
+        $cookieHeader = $this->cookieHeaderFrom($mint->headers['Set-Cookie']);
+
+        foreach (['/phpmyadmin//', '/PhpMyAdmin/', '/pma/', '/pma'] as $path) {
+            $r = $this->serve('GET', $path, '', ['Cookie' => $cookieHeader]);
+            self::assertNotNull($r, $path);
+            self::assertStringContainsString('<table>', $r->body, $path);
+        }
+    }
+
+    // --- disabled key: hard kill switch (mirrors DecoySessionBehaviorTest) ------------------
+
+    public function test_disabled_decoy_session_key_never_authenticates(): void
+    {
+        $em = TemplateAttackEmulator::fromFile(self::COMPILED, [], null, null);
+        $r = $em->emulate(new RequestContext('POST', '/phpmyadmin/index.php', '', [], 'pma_username=admin&pma_password=secret'));
+
+        self::assertNotNull($r);
+        self::assertNotSame(302, $r->status);
+        self::assertArrayNotHasKey('Set-Cookie', $r->headers);
+        self::assertStringContainsString('id="login_form"', $r->body);
+    }
+
+    // --- fingerprint safety: scan the RENDERED responses, not just the authored directive text ----
+
+    public function test_rendered_responses_carry_no_denied_fingerprint_token(): void
+    {
+        $guard = FingerprintGuard::fromPackage();
+
+        $mint = $this->mintValidLogin();
+        $bodies = [
+            $this->serve('GET', '/phpmyadmin/')->body,
+            $mint->body,
+            $this->serve('GET', '/phpmyadmin/', '', ['Cookie' => $this->cookieHeaderFrom($mint->headers['Set-Cookie'])])->body,
+        ];
+
+        foreach ($bodies as $body) {
+            self::assertSame([], $guard->scan($body));
+        }
+        foreach ($mint->headers as $name => $value) {
+            self::assertSame([], $guard->scan((string) $name));
+            self::assertSame([], $guard->scan((string) $value));
+        }
+    }
+
+    public function test_login_page_never_reflects_the_signing_key(): void
+    {
+        $r = $this->serve('GET', '/phpmyadmin/');
+        self::assertNotNull($r);
+        self::assertStringNotContainsString(self::KEY, $r->body);
+
+        $mint = $this->mintValidLogin();
+        self::assertStringNotContainsString(self::KEY, $mint->headers['Set-Cookie']);
+        self::assertStringNotContainsString(self::KEY, $mint->headers['Location']);
+    }
+}
