@@ -156,6 +156,16 @@ final class PersonaIdentity
     }
 
     /**
+     * Canonical per-deploy persona-seed derivation, shared by the app (VisualPersona/AppConfig) and the
+     * core template tier, so both resolve to the SAME PersonaIdentity for one deployment. $src is the
+     * per-deploy material (e.g. FUNNYPOT_PERSONA_SEED/SECRET); callers read their own env and pass it.
+     */
+    public static function seedFromMaterial(string $src): int
+    {
+        return (int) hexdec(substr(hash('sha256', 'funnypot-persona|' . $src), 0, 15));
+    }
+
+    /**
      * Per-field sub-hash. The `|persona|` tag is REQUIRED: it separates this space from
      * DirectiveRenderer's `fake.NAME` space (`|fake|`), so the two never collide on one seed.
      */

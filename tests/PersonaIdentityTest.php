@@ -225,6 +225,39 @@ final class PersonaIdentityTest extends TestCase
         }
     }
 
+    // --- seedFromMaterial: canonical per-deploy seed, shared by the app and the template tier ---
+
+    public function test_seed_from_material_is_deterministic(): void
+    {
+        self::assertSame(PersonaIdentity::seedFromMaterial('x'), PersonaIdentity::seedFromMaterial('x'));
+        self::assertNotSame(PersonaIdentity::seedFromMaterial('x'), PersonaIdentity::seedFromMaterial('y'));
+    }
+
+    public function test_seed_from_material_matches_the_exact_formula(): void
+    {
+        foreach (['x', 'acme', 'a-per-deploy-secret', ''] as $src) {
+            $expected = (int) hexdec(substr(hash('sha256', 'funnypot-persona|' . $src), 0, 15));
+            self::assertSame($expected, PersonaIdentity::seedFromMaterial($src), "material '{$src}'");
+        }
+    }
+
+    public function test_seed_from_material_is_a_non_negative_60_bit_int(): void
+    {
+        foreach (['x', 'y', 'acme', 'another-secret', ''] as $src) {
+            $seed = PersonaIdentity::seedFromMaterial($src);
+            self::assertGreaterThanOrEqual(0, $seed, "material '{$src}'");
+            self::assertLessThan(2 ** 60, $seed, "material '{$src}'");
+        }
+    }
+
+    public function test_seed_from_material_feeds_from_seed_deterministically(): void
+    {
+        $seed = PersonaIdentity::seedFromMaterial('acme');
+        $a = PersonaIdentity::fromSeed($seed);
+        $b = PersonaIdentity::fromSeed($seed);
+        self::assertSame($a->field('company.name'), $b->field('company.name'));
+    }
+
     // --- §4: the compile-time closed-field lint ---
 
     public function test_compiler_accepts_a_valid_persona_field(): void
