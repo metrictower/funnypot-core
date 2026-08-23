@@ -69,9 +69,9 @@ final class EmulatorBreadthTest extends TestCase
             // Log-file disclosure pack enrich rules — each dresses a log bundle the corpus already
             // routes to. A full-upstream-id needle keeps the enrich from hijacking an unrelated
             // bundle; the satisfaction asserts guard against a dropped bw/hw silently falling back to
-            // minimal synth. (/log/access.log is intentionally excluded: its bundle also carries the
-            // iceflow VPN witnesses this generic access-log body does not satisfy, so it degrades to
-            // minimal synth there by design.)
+            // minimal synth. /log/access.log carries BOTH the iceflow and the generic access-log-file
+            // needles; the dedicated iceflow enrich (priority 290) is checked before route-access-log
+            // (296), so it wins there and serves the coherent ICEFLOW VPN body (asserted below).
             'npm-debug.log enrich'             => ['GET /npm-debug.log', 0, 'route-npm-debug-log'],
             'laravel.log enrich'               => ['GET /storage/logs/laravel.log', 0, 'route-laravel-log-file'],
             'firebase-debug.log enrich'        => ['GET /firebase-debug.log', 0, 'route-firebase-debug-log'],
@@ -79,6 +79,8 @@ final class EmulatorBreadthTest extends TestCase
             'rails development.log enrich'     => ['GET /development.log', 0, 'route-rails-development-log'],
             'rails production.log enrich'      => ['GET /production.log', 0, 'route-rails-production-log'],
             'access.log enrich'                => ['GET /access.log', 0, 'route-access-log'],
+            'iceflow /log/access.log enrich'   => ['GET /log/access.log', 0, 'route-iceflow-vpn-log'],
+            'iceflow /log/vpn.log enrich'      => ['GET /log/vpn.log', 0, 'route-iceflow-vpn-log'],
         ];
     }
 

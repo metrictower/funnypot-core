@@ -21,7 +21,7 @@ final class PersonaIdentity
     /** The closed set of valid dotted field paths — used by the compile-time directive lint. */
     public const FIELDS = [
         'company.name', 'company.slug', 'company.tld', 'company.domain',
-        'db.host', 'db.name', 'db.user', 'db.password',
+        'db.host', 'db.name', 'db.wpName', 'db.user', 'db.password',
         'user.admin.username', 'user.admin.email', 'user.admin.password', 'user.admin.passwordHash',
         'cloud.aws.accessKeyId', 'cloud.aws.secretKey', 'cloud.aws.region',
         'cloud.anthropic.apiKey', 'cloud.openai.apiKey', 'cloud.github.copilotToken',
@@ -53,7 +53,10 @@ final class PersonaIdentity
         '10.0.0.12', '10.0.1.5', '172.16.0.10',
     ];
 
-    private const DB_NAME_SUFFIX = ['prod', 'app', 'main', 'cms', 'db', 'wp'];
+    // No 'wp' suffix here: the pgsql app db is never named *_wp. A WordPress install carries its own
+    // separate MySQL database (db.wpName = slug_wp), so keeping 'wp' out of this pool guarantees the
+    // WP db name and the app db name (db.name) can never collide for any seed.
+    private const DB_NAME_SUFFIX = ['prod', 'app', 'main', 'cms', 'db'];
 
     private const DB_USER_SUFFIX = ['app', 'admin', 'svc', 'user'];
 
@@ -105,6 +108,9 @@ final class PersonaIdentity
 
             'db.host' => self::pick(self::DB_HOSTS, $seed, 'db_host'),
             'db.name' => $slug . '_' . self::pick(self::DB_NAME_SUFFIX, $seed, 'db_name'),
+            // A WordPress install has its own MySQL database, distinct from the pgsql app db (db.name).
+            // The suffix pool above excludes 'wp', so this never equals db.name for any seed.
+            'db.wpName' => $slug . '_wp',
             'db.user' => $slug . '_' . self::pick(self::DB_USER_SUFFIX, $seed, 'db_user'),
             'db.password' => self::password($seed, 'db_pw', 20, self::DB_PW_ALPHABET),
 

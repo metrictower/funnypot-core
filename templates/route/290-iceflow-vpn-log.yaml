@@ -1,0 +1,32 @@
+id: route-iceflow-vpn-log
+priority: 290
+# Enrich: the corpus routes eight `/log/{access,debug,error,firewall,mobile,system,vpn,warn}.log`
+# paths to the iceflow bundle (needle `iceflow-vpn-disclosure`, body word `ICEFLOW VPN:`, header
+# witnesses text/plain + ICEFLOW). Minimal synth would emit a bare `ICEFLOW VPN:` line; here we dress
+# a believable IceFlow VPN gateway session log for this host. `/log/access.log` also carries the
+# generic `access-log-file` needle, so this rule sits at a LOWER priority than route-access-log (296)
+# to win there first — otherwise that generic combined-access-log body (Nmap/Censys/Googlebot lines)
+# would fire on an ICEFLOW-witnessed path, an incoherent mix. The header witness `ICEFLOW` is carried
+# by a real Server header (case-sensitive, so the product name is upper-cased) rather than left to a
+# synthetic X-Detected header. Client IPs come from the same public pool the access-log enrich uses,
+# so the two agree on this host's traffic. Number safety: timestamps/octets/tunnel IPs are <=3-digit
+# fields split by non-word chars, and the byte counters use dec:4/dec:5 (never dec:6), so no field
+# forms a bare-6-digit run.
+match:
+  template_needle: [iceflow-vpn-disclosure]
+response:
+  headers:
+    Content-Type: "text/plain; charset=utf-8"
+    Server: "ICEFLOW-VPN/2.4.1"
+  body: |
+    ICEFLOW VPN: [10/Oct/2024:13:55:36 +0000] gw=vpn-gw01 event=session-start realm=corp user={{persona.user.admin.username}}@{{persona.company.domain}} src={{pick:45.148.10.72,185.220.101.34,91.207.175.14,103.224.182.251,51.158.108.203,195.154.200.88,141.98.11.29,209.141.55.198,176.113.115.84,80.94.92.60,156.146.59.25,89.248.165.44,193.32.126.212,45.61.184.9,167.94.138.60,62.210.88.140}} tun=10.8.0.14 proto=udp mfa=totp
+    ICEFLOW VPN: [10/Oct/2024:13:55:37 +0000] gw=vpn-gw01 tun=10.8.0.14 user={{persona.user.admin.username}} "GET /portal/ HTTP/1.1" 200 {{fake.iva:dec:4}}
+    ICEFLOW VPN: [10/Oct/2024:13:55:39 +0000] gw=vpn-gw01 tun=10.8.0.14 user={{persona.user.admin.username}} "GET /portal/assets/app.css HTTP/1.1" 200 {{fake.ivb:dec:4}}
+    ICEFLOW VPN: [10/Oct/2024:13:55:42 +0000] gw=vpn-gw01 event=route-push tun=10.8.0.14 net=10.0.0.0/8 dns=10.0.0.2
+    ICEFLOW VPN: [10/Oct/2024:13:55:45 +0000] gw=vpn-gw01 tun=10.8.0.22 src={{pick:195.154.200.88,141.98.11.29,209.141.55.198,176.113.115.84,80.94.92.60,156.146.59.25,89.248.165.44,193.32.126.212,45.61.184.9,167.94.138.60,62.210.88.140,45.148.10.72,185.220.101.34,91.207.175.14,103.224.182.251,51.158.108.203}} "GET /portal/api/tunnels HTTP/1.1" 200 {{fake.ivc:dec:3}}
+    ICEFLOW VPN: [10/Oct/2024:13:55:52 +0000] gw=vpn-gw01 event=session-end user={{persona.user.admin.username}}@{{persona.company.domain}} src={{pick:156.146.59.25,89.248.165.44,193.32.126.212,45.61.184.9,167.94.138.60,62.210.88.140,45.148.10.72,185.220.101.34,91.207.175.14,103.224.182.251,51.158.108.203,195.154.200.88,141.98.11.29,209.141.55.198,176.113.115.84,80.94.92.60}} rx={{fake.ivd:dec:5}} tx={{fake.ive:dec:5}} dur=842s
+taunt: { mode: line, open: '#' }
+expect:
+  - 'ICEFLOW VPN:'
+  - '"GET /'
+  - 'gw=vpn-gw01'

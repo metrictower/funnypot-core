@@ -2,9 +2,11 @@ id: route-laravel-log-alt
 priority: 302
 # Brand-new page: a Laravel log dropped at a NON-standard path (/laravel.log, /logs/laravel.log) —
 # distinct from the /storage/logs/laravel.log corpus bundle the enrich (291) dresses. Leaks the
-# persona Postgres db host/user and admin email, coherent with the config pack. The id avoids the
-# `laravel-log-file` needle so the enrich never hijacks this page. Monolog `[Y-m-d H:i:s]` prefix
-# carries no microseconds, so no 6-digit token; stack line numbers are <=3 digits.
+# persona Postgres db host/user, coherent with the config pack. The logged QueryException SQL keeps
+# the bound-parameter placeholder (`= ?`) — real Laravel never inlines the binding value — so it
+# reads identically to the sibling 291. The id avoids the `laravel-log-file` needle so the enrich
+# never hijacks this page. Monolog `[Y-m-d H:i:s]` prefix carries no microseconds, so no 6-digit
+# token; stack line numbers are <=3 digits.
 new_page:
   method: GET
   paths: ['/laravel.log', '/logs/laravel.log']
@@ -18,7 +20,7 @@ response:
   headers:
     Content-Type: "text/plain; charset=utf-8"
   body: |
-    [2024-10-10 13:55:36] production.ERROR: SQLSTATE[08006] [7] connection to server at "{{persona.db.host}}", port 5432 failed: FATAL:  password authentication failed for user "{{persona.db.user}}" (Connection: pgsql, SQL: select * from "users" where "email" = {{persona.user.admin.email}} limit 1) {"exception":"[object] (Illuminate\\Database\\QueryException(code: 7): SQLSTATE[08006] at /var/www/{{persona.company.slug}}/vendor/laravel/framework/src/Illuminate/Database/Connection.php:825)
+    [2024-10-10 13:55:36] production.ERROR: SQLSTATE[08006] [7] connection to server at "{{persona.db.host}}", port 5432 failed: FATAL:  password authentication failed for user "{{persona.db.user}}" (Connection: pgsql, SQL: select * from "users" where "email" = ? limit 1) {"exception":"[object] (Illuminate\\Database\\QueryException(code: 7): SQLSTATE[08006] at /var/www/{{persona.company.slug}}/vendor/laravel/framework/src/Illuminate/Database/Connection.php:825)
     [stacktrace]
     #0 /var/www/{{persona.company.slug}}/vendor/laravel/framework/src/Illuminate/Database/Connection.php:759
     #1 /var/www/{{persona.company.slug}}/app/Http/Controllers/Auth/LoginController.php:42

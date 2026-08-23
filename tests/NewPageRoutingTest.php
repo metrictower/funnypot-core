@@ -234,6 +234,74 @@ final class NewPageRoutingTest extends TestCase
         }
     }
 
+    public function test_log_access_log_serves_the_iceflow_coherent_body(): void
+    {
+        // /log/access.log's bundle carries BOTH the iceflow VPN witnesses and the generic
+        // access-log-file needle. The dedicated iceflow enrich (priority 290) must win over
+        // route-access-log (296) and serve the coherent IceFlow VPN body — never the generic
+        // combined-access-log (Nmap/Censys/Googlebot) that would be an incoherent mix on an
+        // ICEFLOW-witnessed path. `gw=vpn-gw01` is authored ONLY by the iceflow enrich (not a bundle
+        // body word), so its presence proves the enrich served, not a minimal synth of `ICEFLOW VPN:`.
+        foreach (['/log/access.log', '/log/vpn.log'] as $path) {
+            $resp = $this->inverter()->respond(new RequestContext('GET', $path));
+            self::assertNotNull($resp, "{$path} must serve a fake");
+            self::assertSame(200, $resp->status, "{$path} status");
+            self::assertSame('text/plain; charset=utf-8', $resp->headers['Content-Type'] ?? null, "{$path} Content-Type");
+            self::assertStringContainsString('ICEFLOW VPN:', $resp->body, "{$path} must carry the iceflow body word");
+            self::assertStringContainsString('gw=vpn-gw01', $resp->body, "{$path} must serve the enriched iceflow body, not a minimal synth");
+            // The generic access-log body's scanner-UA lines must never appear on an iceflow path.
+            self::assertStringNotContainsString('Nmap Scripting Engine', $resp->body, "{$path} must not serve the generic access-log body");
+            self::assertStringNotContainsString('CensysInspect', $resp->body, "{$path} must not serve the generic access-log body");
+        }
+        // The header block carries the ICEFLOW witness via a real Server header (not only a synthetic).
+        $resp = $this->inverter()->respond(new RequestContext('GET', '/log/access.log'));
+        self::assertNotNull($resp);
+        self::assertStringContainsString('ICEFLOW', (string) ($resp->headers['Server'] ?? ''), '/log/access.log Server header carries the ICEFLOW witness');
+    }
+
+    public function test_laravel_log_alt_uses_bound_parameter_sql(): void
+    {
+        // Real Laravel logs the QueryException SQL with the bound-parameter placeholder (`= ?`), never
+        // the inlined binding value. The alt page (/laravel.log) must match the sibling enrich
+        // (/storage/logs/laravel.log) exactly — a raw email in the SQL is invalid SQL and a format
+        // the two disclosed logs would disagree on.
+        for ($seed = 0; $seed <= 20; $seed++) {
+            $inv = $this->seededInverter((string) $seed, 'realistic');
+            $alt = $inv->respond(new RequestContext('GET', '/laravel.log'));
+            $enrich = $inv->respond(new RequestContext('GET', '/storage/logs/laravel.log'));
+            self::assertNotNull($alt, "seed {$seed}: /laravel.log must serve a fake");
+            self::assertNotNull($enrich, "seed {$seed}: /storage/logs/laravel.log must serve a fake");
+
+            self::assertSame(1, preg_match('/\(Connection: pgsql, SQL: ([^)]*)\)/', $alt->body, $am), "seed {$seed}: /laravel.log must log a QueryException SQL");
+            self::assertSame(1, preg_match('/\(Connection: pgsql, SQL: ([^)]*)\)/', $enrich->body, $em), "seed {$seed}: /storage/logs/laravel.log must log a QueryException SQL");
+            // Bound placeholder present, and no raw '@' (an inlined email) anywhere in the SQL clause.
+            self::assertStringContainsString('= ?', $am[1], "seed {$seed}: /laravel.log SQL must use the bound placeholder");
+            self::assertStringNotContainsString('@', $am[1], "seed {$seed}: /laravel.log SQL must not inline a raw email");
+            // Both surfaces render the users-lookup SQL identically.
+            self::assertSame($em[1], $am[1], "seed {$seed}: the two laravel logs must render the users-lookup SQL identically");
+        }
+    }
+
+    public function test_wp_debug_log_db_name_differs_from_config_pack(): void
+    {
+        // A real host runs WordPress on its own MySQL database, separate from the pgsql app db the
+        // config pack discloses. The WP debug.log's db name must therefore NEVER equal the
+        // /.env.production DB_DATABASE for the same seed — the same name presented as MySQL on one
+        // surface and Postgres on another would betray the fabrication. (Inverse of
+        // test_log_db_identity_is_coherent_with_config_pack, which pins the pgsql-engine logs equal.)
+        for ($seed = 0; $seed <= 60; $seed++) {
+            $inv = $this->seededInverter((string) $seed, 'realistic');
+            $wp = $inv->respond(new RequestContext('GET', '/wp-content/debug.log'));
+            $env = $inv->respond(new RequestContext('GET', '/.env.production'));
+            self::assertNotNull($wp, "seed {$seed}: /wp-content/debug.log must serve a fake");
+            self::assertNotNull($env, "seed {$seed}: /.env.production must serve a fake");
+
+            self::assertSame(1, preg_match("/Table '([A-Za-z0-9_]+)\\.wp_options'/", $wp->body, $wn), "seed {$seed}: wp debug.log must leak a db name");
+            self::assertSame(1, preg_match('/DB_DATABASE=([A-Za-z0-9_]+)/', $env->body, $en), "seed {$seed}: .env.production must leak DB_DATABASE");
+            self::assertNotSame($en[1], $wn[1], "seed {$seed}: the WordPress db name must differ from the pgsql app db name");
+        }
+    }
+
     public function test_migrated_aws_templates_render_persona_pair(): void
     {
         // The four legacy templates that shared a fingerprintable 6-value AWS `pick` now render the
@@ -427,6 +495,9 @@ final class NewPageRoutingTest extends TestCase
             // timestamps/sizes/PIDs/line numbers, so the \b9\d{5}\b run is the acute hazard here.
             '/npm-debug.log', '/storage/logs/laravel.log', '/firebase-debug.log', '/var/log/debug.log',
             '/development.log', '/production.log', '/access.log',
+            // IceFlow VPN log enrich — /log/access.log (iceflow wins over the generic access-log there)
+            // plus a pure-iceflow path; both render the dec:4/dec:5 byte-counter islands and the IP pool.
+            '/log/access.log', '/log/vpn.log',
             // Log pack — brand-new log pages. One path per rule renders the whole body; aliases are
             // byte-identical. Covers the dec:5 worker/pid/port islands and the client-IP pools.
             '/wp-content/debug.log', '/error_log', '/laravel.log',

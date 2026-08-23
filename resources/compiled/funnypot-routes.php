@@ -1934,6 +1934,34 @@ REACT_APP_GA_MEASUREMENT_ID=G-{{fake.reactga:hexupper:10}}
   ),
   51 => 
   array (
+    'id' => 'route-iceflow-vpn-log',
+    'match' => 
+    array (
+      'template_needle' => 
+      array (
+        0 => 'iceflow-vpn-disclosure',
+      ),
+    ),
+    'body' => 'ICEFLOW VPN: [10/Oct/2024:13:55:36 +0000] gw=vpn-gw01 event=session-start realm=corp user={{persona.user.admin.username}}@{{persona.company.domain}} src={{pick:45.148.10.72,185.220.101.34,91.207.175.14,103.224.182.251,51.158.108.203,195.154.200.88,141.98.11.29,209.141.55.198,176.113.115.84,80.94.92.60,156.146.59.25,89.248.165.44,193.32.126.212,45.61.184.9,167.94.138.60,62.210.88.140}} tun=10.8.0.14 proto=udp mfa=totp
+ICEFLOW VPN: [10/Oct/2024:13:55:37 +0000] gw=vpn-gw01 tun=10.8.0.14 user={{persona.user.admin.username}} "GET /portal/ HTTP/1.1" 200 {{fake.iva:dec:4}}
+ICEFLOW VPN: [10/Oct/2024:13:55:39 +0000] gw=vpn-gw01 tun=10.8.0.14 user={{persona.user.admin.username}} "GET /portal/assets/app.css HTTP/1.1" 200 {{fake.ivb:dec:4}}
+ICEFLOW VPN: [10/Oct/2024:13:55:42 +0000] gw=vpn-gw01 event=route-push tun=10.8.0.14 net=10.0.0.0/8 dns=10.0.0.2
+ICEFLOW VPN: [10/Oct/2024:13:55:45 +0000] gw=vpn-gw01 tun=10.8.0.22 src={{pick:195.154.200.88,141.98.11.29,209.141.55.198,176.113.115.84,80.94.92.60,156.146.59.25,89.248.165.44,193.32.126.212,45.61.184.9,167.94.138.60,62.210.88.140,45.148.10.72,185.220.101.34,91.207.175.14,103.224.182.251,51.158.108.203}} "GET /portal/api/tunnels HTTP/1.1" 200 {{fake.ivc:dec:3}}
+ICEFLOW VPN: [10/Oct/2024:13:55:52 +0000] gw=vpn-gw01 event=session-end user={{persona.user.admin.username}}@{{persona.company.domain}} src={{pick:156.146.59.25,89.248.165.44,193.32.126.212,45.61.184.9,167.94.138.60,62.210.88.140,45.148.10.72,185.220.101.34,91.207.175.14,103.224.182.251,51.158.108.203,195.154.200.88,141.98.11.29,209.141.55.198,176.113.115.84,80.94.92.60}} rx={{fake.ivd:dec:5}} tx={{fake.ive:dec:5}} dur=842s
+',
+    'headers' => 
+    array (
+      'Content-Type' => 'text/plain; charset=utf-8',
+      'Server' => 'ICEFLOW-VPN/2.4.1',
+    ),
+    'taunt' => 
+    array (
+      'mode' => 'line',
+      'open' => '#',
+    ),
+  ),
+  52 => 
+  array (
     'id' => 'route-laravel-log-file',
     'match' => 
     array (
@@ -1962,7 +1990,7 @@ REACT_APP_GA_MEASUREMENT_ID=G-{{fake.reactga:hexupper:10}}
       'open' => '#',
     ),
   ),
-  52 => 
+  53 => 
   array (
     'id' => 'route-firebase-debug-log',
     'match' => 
@@ -1995,7 +2023,7 @@ REACT_APP_GA_MEASUREMENT_ID=G-{{fake.reactga:hexupper:10}}
       'open' => '#',
     ),
   ),
-  53 => 
+  54 => 
   array (
     'id' => 'route-magento-debug-log',
     'match' => 
@@ -2021,7 +2049,7 @@ REACT_APP_GA_MEASUREMENT_ID=G-{{fake.reactga:hexupper:10}}
       'open' => '#',
     ),
   ),
-  54 => 
+  55 => 
   array (
     'id' => 'route-rails-development-log',
     'match' => 
@@ -2050,7 +2078,7 @@ Completed 200 OK in 45ms (Views: 38.2ms | ActiveRecord: 3.1ms | Allocations: 421
       'open' => '#',
     ),
   ),
-  55 => 
+  56 => 
   array (
     'id' => 'route-rails-production-log',
     'match' => 
@@ -2081,7 +2109,7 @@ Completed 401 Unauthorized in 18ms (ActiveRecord: 2.4ms | Allocations: 3187)
       'open' => '#',
     ),
   ),
-  56 => 
+  57 => 
   array (
     'id' => 'route-access-log',
     'match' => 
@@ -2112,7 +2140,7 @@ Completed 401 Unauthorized in 18ms (ActiveRecord: 2.4ms | Allocations: 3187)
       'open' => '#',
     ),
   ),
-  57 => 
+  58 => 
   array (
     'id' => 'route-wp-debug-log',
     'match' => 
@@ -2125,7 +2153,7 @@ Completed 401 Unauthorized in 18ms (ActiveRecord: 2.4ms | Allocations: 3187)
     'body' => '[10-Oct-2024 13:55:36 UTC] PHP Notice:  Undefined index: HTTP_X_FORWARDED_FOR in /var/www/{{persona.company.slug}}/wp-content/themes/storefront/functions.php on line 214
 [10-Oct-2024 13:55:37 UTC] PHP Warning:  require_once(/var/www/{{persona.company.slug}}/wp-content/plugins/woocommerce/includes/class-wc-install.php): Failed to open stream: No such file or directory in /var/www/{{persona.company.slug}}/wp-settings.php on line 428
 [10-Oct-2024 13:55:41 UTC] PHP Deprecated:  Function get_magic_quotes_gpc() is deprecated in /var/www/{{persona.company.slug}}/wp-includes/load.php on line 926
-[10-Oct-2024 13:55:52 UTC] WordPress database error Table \'{{persona.db.name}}.wp_options\' doesn\'t exist for query SELECT option_value FROM wp_options WHERE option_name = \'siteurl\' made by require(\'wp-blog-header.php\'), require_once(\'wp-load.php\')
+[10-Oct-2024 13:55:52 UTC] WordPress database error Table \'{{persona.db.wpName}}.wp_options\' doesn\'t exist for query SELECT option_value FROM wp_options WHERE option_name = \'siteurl\' made by require(\'wp-blog-header.php\'), require_once(\'wp-load.php\')
 ',
     'headers' => 
     array (
@@ -2137,7 +2165,7 @@ Completed 401 Unauthorized in 18ms (ActiveRecord: 2.4ms | Allocations: 3187)
       'open' => '#',
     ),
   ),
-  58 => 
+  59 => 
   array (
     'id' => 'route-php-error-log',
     'match' => 
@@ -2166,7 +2194,7 @@ Stack trace:
       'open' => '#',
     ),
   ),
-  59 => 
+  60 => 
   array (
     'id' => 'route-laravel-log-alt',
     'match' => 
@@ -2176,7 +2204,7 @@ Stack trace:
         0 => 'route-laravel-log-alt',
       ),
     ),
-    'body' => '[2024-10-10 13:55:36] production.ERROR: SQLSTATE[08006] [7] connection to server at "{{persona.db.host}}", port 5432 failed: FATAL:  password authentication failed for user "{{persona.db.user}}" (Connection: pgsql, SQL: select * from "users" where "email" = {{persona.user.admin.email}} limit 1) {"exception":"[object] (Illuminate\\\\Database\\\\QueryException(code: 7): SQLSTATE[08006] at /var/www/{{persona.company.slug}}/vendor/laravel/framework/src/Illuminate/Database/Connection.php:825)
+    'body' => '[2024-10-10 13:55:36] production.ERROR: SQLSTATE[08006] [7] connection to server at "{{persona.db.host}}", port 5432 failed: FATAL:  password authentication failed for user "{{persona.db.user}}" (Connection: pgsql, SQL: select * from "users" where "email" = ? limit 1) {"exception":"[object] (Illuminate\\\\Database\\\\QueryException(code: 7): SQLSTATE[08006] at /var/www/{{persona.company.slug}}/vendor/laravel/framework/src/Illuminate/Database/Connection.php:825)
 [stacktrace]
 #0 /var/www/{{persona.company.slug}}/vendor/laravel/framework/src/Illuminate/Database/Connection.php:759
 #1 /var/www/{{persona.company.slug}}/app/Http/Controllers/Auth/LoginController.php:42
@@ -2194,7 +2222,7 @@ Stack trace:
       'open' => '#',
     ),
   ),
-  60 => 
+  61 => 
   array (
     'id' => 'route-nginx-error-log',
     'match' => 
@@ -2219,7 +2247,7 @@ Stack trace:
       'open' => '#',
     ),
   ),
-  61 => 
+  62 => 
   array (
     'id' => 'route-nginx-access-log',
     'match' => 
@@ -2246,7 +2274,7 @@ Stack trace:
       'open' => '#',
     ),
   ),
-  62 => 
+  63 => 
   array (
     'id' => 'route-apache-error-log',
     'match' => 
@@ -2259,7 +2287,7 @@ Stack trace:
     'body' => '[Thu Oct 10 13:55:36.482013 2024] [core:error] [pid {{fake.apid1:dec:5}}:tid {{fake.atid1:dec:5}}] [client {{pick:45.148.10.72,185.220.101.34,91.207.175.14,103.224.182.251,51.158.108.203,195.154.200.88,141.98.11.29,209.141.55.198,176.113.115.84,80.94.92.60,156.146.59.25,89.248.165.44,193.32.126.212,45.61.184.9,167.94.138.60,62.210.88.140}}:5{{fake.aport1:dec:4}}] AH00124: Request exceeded the limit of 10 internal redirects due to probable configuration error, referer: https://{{persona.company.domain}}/
 [Thu Oct 10 13:55:37.128233 2024] [php:error] [pid {{fake.apid2:dec:5}}] [client {{pick:195.154.200.88,141.98.11.29,209.141.55.198,176.113.115.84,80.94.92.60,156.146.59.25,89.248.165.44,193.32.126.212,45.61.184.9,167.94.138.60,62.210.88.140,45.148.10.72,185.220.101.34,91.207.175.14,103.224.182.251,51.158.108.203}}:5{{fake.aport2:dec:4}}] PHP Fatal error:  Uncaught Error: Class "Redis" not found in /var/www/{{persona.company.slug}}/app/Cache.php:24
 [Thu Oct 10 13:55:41.701255 2024] [autoindex:error] [pid {{fake.apid3:dec:5}}] [client {{pick:156.146.59.25,89.248.165.44,193.32.126.212,45.61.184.9,167.94.138.60,62.210.88.140,45.148.10.72,185.220.101.34,91.207.175.14,103.224.182.251,51.158.108.203,195.154.200.88,141.98.11.29,209.141.55.198,176.113.115.84,80.94.92.60}}:5{{fake.aport3:dec:4}}] AH01276: Cannot serve directory /var/www/{{persona.company.slug}}/public/uploads/: No matching DirectoryIndex (index.php,index.html) found
-[Thu Oct 10 13:55:52 2024] [mpm_prefork:notice] [pid {{fake.apid4:dec:5}}] AH00163: Apache/2.4.57 (Debian) PHP/8.1.2 configured -- resuming normal operations
+[Thu Oct 10 13:55:52.204118 2024] [mpm_prefork:notice] [pid {{fake.apid4:dec:5}}] AH00163: Apache/2.4.57 (Debian) PHP/8.1.2 configured -- resuming normal operations
 ',
     'headers' => 
     array (
@@ -2271,7 +2299,7 @@ Stack trace:
       'open' => '#',
     ),
   ),
-  63 => 
+  64 => 
   array (
     'id' => 'route-apache-access-log',
     'match' => 
@@ -2297,7 +2325,7 @@ Stack trace:
       'open' => '#',
     ),
   ),
-  64 => 
+  65 => 
   array (
     'id' => 'route-app-log',
     'match' => 
@@ -2323,7 +2351,7 @@ Stack trace:
       'open' => '#',
     ),
   ),
-  65 => 
+  66 => 
   array (
     'id' => 'route-catalina-out',
     'match' => 
@@ -2339,7 +2367,7 @@ Stack trace:
 10-Oct-2024 13:55:41.701 SEVERE [http-nio-8080-exec-3] org.apache.catalina.core.StandardWrapperValve.invoke Servlet.service() for servlet [dispatcher] in context [/] threw exception
 	java.lang.NullPointerException: Cannot invoke "String.length()" because "user" is null
 		at com.{{persona.company.slug}}.web.HomeController.index(HomeController.java:54)
-		at jakarta.servlet.http.HttpServlet.service(HttpServlet.java:658)
+		at javax.servlet.http.HttpServlet.service(HttpServlet.java:741)
 		at org.apache.catalina.core.ApplicationFilterChain.doFilter(ApplicationFilterChain.java:166)
 		at java.base/java.lang.Thread.run(Thread.java:840)
 ',

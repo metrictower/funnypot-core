@@ -10,8 +10,10 @@ priority: 296
 #
 # Number safety: IP octets and status codes are <=3 digits and split by non-word chars, so no octet
 # can form a bare-6-digit run; response sizes use dec:3/dec:4 (never dec:6). The needle is the full
-# upstream id — findRule is global. (/log/access.log also carries the iceflow VPN witnesses, which
-# this generic body does not satisfy, so it degrades to minimal synth there by design.)
+# upstream id — findRule is global. (/log/access.log ALSO carries this `access-log-file` needle, but
+# its bundle is iceflow-witnessed, so the dedicated iceflow enrich (route-iceflow-vpn-log, priority
+# 290) is checked first and serves the coherent ICEFLOW body there — this generic body never fires
+# on that path.)
 match:
   template_needle: [access-log-file]
 response:
