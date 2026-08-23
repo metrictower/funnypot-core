@@ -141,6 +141,16 @@ response — **nuclei-exact beats CRS-generic**. CRS is a coverage multiplier fo
 tier-1 source. Full detail, and how to regenerate (`bin/funnypot compile-crs`), in
 [`docs/CRS.md`](docs/CRS.md).
 
+**Path ownership override.** A request-blind tier-1 decoy is the *right* answer for most paths, but a
+few paths deserve a request-*aware* emulator that dispatches on the request body — a WordPress
+`xmlrpc.php` that parses the `methodCall`, a panel login that answers a brute-force attempt. Such a
+rule declares `owns_path:` in its template; for those paths the request-aware attack tier is consulted
+**before** the static tier-1 entry, and a match wins. Critically, a rule *decline* falls straight
+through to the static decoy — so ownership only ever *upgrades* a served path, never removes coverage,
+and it sits after the "never shadow a live host route" guard so a real endpoint is untouched. This is
+how bare `/xmlrpc.php` and the credential oracles serve request-aware responses even though a static
+decoy also keys those paths.
+
 ## Runtime rule updates (no composer update)
 
 Rules move roughly weekly (nuclei-templates tags, CRS releases). Instead of a `composer update`
@@ -175,6 +185,10 @@ funnypot can only mislead an attacker, never help one.
   guards respond mode: kill switch, mode, trusted bypass, suspicion gate, severity ceiling, coherent
   persona, body-size cap.
 - **Inert fakes only.** `example.com` hosts, RFC-5737 IPs, obviously-fake keys. Never a real secret.
+- **Credential oracles never authenticate.** Login endpoints (Webmin, Jenkins, HNAP, and the panel
+  logins) answer a brute-force attempt with the real "login failed" — captured only to gate the
+  response, never reflected — and have **no success path**: no authenticated session, no auth cookie,
+  no code path that could accept a password. Adversarially proven zero-exec.
 
 ## Testing
 
