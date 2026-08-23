@@ -12,6 +12,7 @@ use Funnypot\Detection;
 use Funnypot\RequestContext;
 use Funnypot\Response\EmulatedContent;
 use Funnypot\Rules\RulesLocator;
+use Funnypot\Support\PathNormalizer;
 use Funnypot\SynthesizedResponse;
 use Funnypot\TemplateMatch;
 
@@ -30,6 +31,9 @@ final class TemplateAttackEmulator
 
     /** @var array<string,true> rule ids the operator has switched off */
     private $disabled = [];
+
+    /** @var array<string,true> ownership keys claimed by a rule's owns_path (path-override set) */
+    private $overridePaths = [];
 
     /** @var array<int,array<string,mixed>> compiled attack rules */
     private $rules;
@@ -76,6 +80,14 @@ final class TemplateAttackEmulator
         array $paramBuckets = []
     ) {
         $this->rules = $rules;
+        foreach ($rules as $rule) {
+            if (!isset($rule['owns_path'])) {
+                continue;
+            }
+            foreach ((array) $rule['owns_path'] as $ownershipKey) {
+                $this->overridePaths[(string) $ownershipKey] = true;
+            }
+        }
         $this->canary = $canary;
         $this->paramBuckets = $paramBuckets;
         $this->renderer = new DirectiveRenderer();
@@ -192,6 +204,16 @@ final class TemplateAttackEmulator
         }
 
         return null;
+    }
+
+    /**
+     * True when a rule claims this path via owns_path — the signal Honeypot::classify() uses to let
+     * the request-aware attack tier override a static exact-store entry. Keyed on the shared
+     * ownership form, so a case / trailing-slash probe variant of an owned path still matches.
+     */
+    public function ownsPath(string $requestPath): bool
+    {
+        return isset($this->overridePaths[PathNormalizer::ownershipKey($requestPath)]);
     }
 
     /**
