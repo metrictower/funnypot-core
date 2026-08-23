@@ -2880,7 +2880,7 @@ Stack trace:
 "openapi": "3.0.3",
 "info": {
   "title": "{{persona.company.name}} API",
-  "description": "Internal REST API for {{persona.company.name}} — served from /var/www/{{persona.company.slug}}/public.",
+  "description": "Internal REST API for {{persona.company.name}}. Not for public distribution.",
   "version": "1.8.2",
   "contact": { "email": "{{persona.user.admin.email}}" }
 },
@@ -2914,7 +2914,7 @@ Stack trace:
     "apiKey": { "type": "apiKey", "in": "header", "name": "X-API-Key" }
   },
   "examples": {
-    "authToken": { "summary": "Example Authorization header", "value": "Bearer {{persona.secret.jwt}}" }
+    "authToken": { "summary": "Example Authorization header", "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ{{fake.jwtpayload:b64url:43}}.{{fake.jwtsig:b64url:43}}" }
   }
 }
 }
@@ -3019,7 +3019,8 @@ Stack trace:
     ),
     'body' => 'Contact: mailto:{{persona.user.admin.email}}
 Contact: https://{{persona.company.domain}}/security
-Expires: 2026-12-31T23:59:59Z
+Expires: 2035-12-31T23:59:59Z
+Encryption: https://{{persona.company.domain}}/.well-known/pgp-key.txt
 Preferred-Languages: en
 Canonical: https://{{persona.company.domain}}/.well-known/security.txt
 Policy: https://{{persona.company.domain}}/security-policy
@@ -3084,15 +3085,27 @@ Policy: https://{{persona.company.domain}}/security-policy
   "mutationType": { "name": "Mutation" },
   "subscriptionType": null,
   "types": [
+    { "kind": "OBJECT", "name": "Query", "description": "The root query type.", "fields": [
+      { "name": "viewer", "description": "The authenticated user.", "args": [], "type": { "kind": "OBJECT", "name": "User", "ofType": null }, "isDeprecated": false, "deprecationReason": null },
+      { "name": "users", "description": "All users.", "args": [], "type": { "kind": "LIST", "name": null, "ofType": { "kind": "OBJECT", "name": "User", "ofType": null } }, "isDeprecated": false, "deprecationReason": null }
+    ], "inputFields": null, "interfaces": [], "enumValues": null, "possibleTypes": null },
+    { "kind": "OBJECT", "name": "Mutation", "description": "The root mutation type.", "fields": [
+      { "name": "updateUser", "description": "Update a user.", "args": [ { "name": "id", "description": null, "type": { "kind": "NON_NULL", "name": null, "ofType": { "kind": "SCALAR", "name": "ID", "ofType": null } }, "defaultValue": null } ], "type": { "kind": "OBJECT", "name": "User", "ofType": null }, "isDeprecated": false, "deprecationReason": null }
+    ], "inputFields": null, "interfaces": [], "enumValues": null, "possibleTypes": null },
     { "kind": "OBJECT", "name": "User", "description": "A registered user.", "fields": [
-      { "name": "id", "type": { "kind": "SCALAR", "name": "ID" } },
-      { "name": "email", "type": { "kind": "SCALAR", "name": "String" } },
-      { "name": "roles", "type": { "kind": "LIST", "name": null } }
-    ] },
-    { "kind": "OBJECT", "name": "Query", "fields": [
-      { "name": "users", "type": { "kind": "LIST", "name": null } },
-      { "name": "viewer", "type": { "kind": "OBJECT", "name": "User" } }
-    ] }
+      { "name": "id", "description": null, "args": [], "type": { "kind": "NON_NULL", "name": null, "ofType": { "kind": "SCALAR", "name": "ID", "ofType": null } }, "isDeprecated": false, "deprecationReason": null },
+      { "name": "email", "description": null, "args": [], "type": { "kind": "SCALAR", "name": "String", "ofType": null }, "isDeprecated": false, "deprecationReason": null },
+      { "name": "roles", "description": "The user\'s assigned roles.", "args": [], "type": { "kind": "LIST", "name": null, "ofType": { "kind": "SCALAR", "name": "String", "ofType": null } }, "isDeprecated": false, "deprecationReason": null },
+      { "name": "isActive", "description": null, "args": [], "type": { "kind": "SCALAR", "name": "Boolean", "ofType": null }, "isDeprecated": false, "deprecationReason": null }
+    ], "inputFields": null, "interfaces": [], "enumValues": null, "possibleTypes": null },
+    { "kind": "SCALAR", "name": "ID", "description": null, "fields": null, "inputFields": null, "interfaces": null, "enumValues": null, "possibleTypes": null },
+    { "kind": "SCALAR", "name": "String", "description": null, "fields": null, "inputFields": null, "interfaces": null, "enumValues": null, "possibleTypes": null },
+    { "kind": "SCALAR", "name": "Boolean", "description": null, "fields": null, "inputFields": null, "interfaces": null, "enumValues": null, "possibleTypes": null }
+  ],
+  "directives": [
+    { "name": "include", "description": "Include this field or fragment only when the `if` argument is true.", "locations": [ "FIELD", "FRAGMENT_SPREAD", "INLINE_FRAGMENT" ], "args": [ { "name": "if", "description": "Included when true.", "type": { "kind": "NON_NULL", "name": null, "ofType": { "kind": "SCALAR", "name": "Boolean", "ofType": null } }, "defaultValue": null } ], "isRepeatable": false },
+    { "name": "skip", "description": "Skip this field or fragment when the `if` argument is true.", "locations": [ "FIELD", "FRAGMENT_SPREAD", "INLINE_FRAGMENT" ], "args": [ { "name": "if", "description": "Skipped when true.", "type": { "kind": "NON_NULL", "name": null, "ofType": { "kind": "SCALAR", "name": "Boolean", "ofType": null } }, "defaultValue": null } ], "isRepeatable": false },
+    { "name": "deprecated", "description": "Marks an element as deprecated.", "locations": [ "FIELD_DEFINITION", "ENUM_VALUE" ], "args": [ { "name": "reason", "description": "Why the element was deprecated.", "type": { "kind": "SCALAR", "name": "String", "ofType": null }, "defaultValue": null } ], "isRepeatable": false }
   ]
 }
 }}
@@ -3121,7 +3134,7 @@ Policy: https://{{persona.company.domain}}/security-policy
 "openapi": "3.0.3",
 "info": {
   "title": "{{persona.company.name}} API",
-  "description": "Internal REST API for {{persona.company.name}} — served from /var/www/{{persona.company.slug}}/public.",
+  "description": "Internal REST API for {{persona.company.name}}. Not for public distribution.",
   "version": "1.8.2",
   "contact": { "email": "{{persona.user.admin.email}}" }
 },
@@ -3155,7 +3168,7 @@ Policy: https://{{persona.company.domain}}/security-policy
     "apiKey": { "type": "apiKey", "in": "header", "name": "X-API-Key" }
   },
   "examples": {
-    "authToken": { "summary": "Example Authorization header", "value": "Bearer {{persona.secret.jwt}}" }
+    "authToken": { "summary": "Example Authorization header", "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ{{fake.jwtpayload:b64url:43}}.{{fake.jwtsig:b64url:43}}" }
   }
 }
 }
@@ -3225,7 +3238,7 @@ Policy: https://{{persona.company.domain}}/security-policy
     'body' => 'openapi: "3.0.3"
 info:
   title: {{persona.company.name}} API
-  description: Internal REST API for {{persona.company.name}} — served from /var/www/{{persona.company.slug}}/public.
+  description: Internal REST API for {{persona.company.name}}. Not for public distribution.
   version: "1.8.2"
   contact:
     email: {{persona.user.admin.email}}
@@ -3258,7 +3271,7 @@ components:
   examples:
     authToken:
       summary: Example Authorization header
-      value: Bearer {{persona.secret.jwt}}
+      value: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ{{fake.jwtpayload:b64url:43}}.{{fake.jwtsig:b64url:43}}
 ',
     'headers' => 
     array (
@@ -3326,17 +3339,23 @@ components:
     ),
     'body' => '{
 "name": "{{persona.company.name}}",
-"description": "{{persona.company.name}} — Just another WordPress site",
+"description": "Just another WordPress site",
 "url": "https://{{persona.company.domain}}",
 "home": "https://{{persona.company.domain}}",
-"gmt_offset": "0",
+"gmt_offset": 0,
 "timezone_string": "",
 "namespaces": [ "oembed/1.0", "wp/v2", "wp-site-health/v1" ],
 "authentication": [],
 "routes": {
-  "/": { "namespace": "", "methods": [ "GET" ] },
-  "/wp/v2/posts": { "namespace": "wp/v2", "methods": [ "GET", "POST" ] },
-  "/wp/v2/users": { "namespace": "wp/v2", "methods": [ "GET", "POST" ] }
+  "/": { "namespace": "", "methods": [ "GET" ], "endpoints": [ { "methods": [ "GET" ], "args": {} } ], "_links": { "self": [ { "href": "https://{{persona.company.domain}}/wp-json/" } ] } },
+  "/oembed/1.0": { "namespace": "oembed/1.0", "methods": [ "GET" ], "endpoints": [ { "methods": [ "GET" ], "args": {} } ], "_links": { "self": [ { "href": "https://{{persona.company.domain}}/wp-json/oembed/1.0" } ] } },
+  "/wp/v2": { "namespace": "wp/v2", "methods": [ "GET" ], "endpoints": [ { "methods": [ "GET" ], "args": {} } ], "_links": { "self": [ { "href": "https://{{persona.company.domain}}/wp-json/wp/v2" } ] } },
+  "/wp/v2/posts": { "namespace": "wp/v2", "methods": [ "GET", "POST" ], "endpoints": [ { "methods": [ "GET" ], "args": {} }, { "methods": [ "POST" ], "args": {} } ], "_links": { "self": [ { "href": "https://{{persona.company.domain}}/wp-json/wp/v2/posts" } ] } },
+  "/wp/v2/pages": { "namespace": "wp/v2", "methods": [ "GET", "POST" ], "endpoints": [ { "methods": [ "GET" ], "args": {} }, { "methods": [ "POST" ], "args": {} } ], "_links": { "self": [ { "href": "https://{{persona.company.domain}}/wp-json/wp/v2/pages" } ] } },
+  "/wp/v2/comments": { "namespace": "wp/v2", "methods": [ "GET", "POST" ], "endpoints": [ { "methods": [ "GET" ], "args": {} }, { "methods": [ "POST" ], "args": {} } ], "_links": { "self": [ { "href": "https://{{persona.company.domain}}/wp-json/wp/v2/comments" } ] } },
+  "/wp/v2/media": { "namespace": "wp/v2", "methods": [ "GET", "POST" ], "endpoints": [ { "methods": [ "GET" ], "args": {} }, { "methods": [ "POST" ], "args": {} } ], "_links": { "self": [ { "href": "https://{{persona.company.domain}}/wp-json/wp/v2/media" } ] } },
+  "/wp/v2/users": { "namespace": "wp/v2", "methods": [ "GET", "POST" ], "endpoints": [ { "methods": [ "GET" ], "args": {} }, { "methods": [ "POST" ], "args": {} } ], "_links": { "self": [ { "href": "https://{{persona.company.domain}}/wp-json/wp/v2/users" } ] } },
+  "/wp-site-health/v1": { "namespace": "wp-site-health/v1", "methods": [ "GET" ], "endpoints": [ { "methods": [ "GET" ], "args": {} } ], "_links": { "self": [ { "href": "https://{{persona.company.domain}}/wp-json/wp-site-health/v1" } ] } }
 },
 "_links": {
   "help": [ { "href": "https://developer.wordpress.org/rest-api/" } ]

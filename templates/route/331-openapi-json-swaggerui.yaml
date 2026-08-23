@@ -5,6 +5,11 @@ priority: 331
 # Swagger-UI HTML here, not the JSON doc. Minimal synth would emit the bare title; here we dress the
 # real FastAPI Swagger-UI page that loads the spec. Content-Type is text/html (the page's real type);
 # the persona seed decides per host whether /openapi.json presents the JSON doc (bundle 0) or this UI.
+# findRule is PATH-BLIND — it matches on the `fastapi-docs` needle, not the path — so this shell also
+# serves at GET /docs and GET /redoc, which the corpus routes to the same fastapi-docs co-bundle. For
+# ~half of seeds that means Swagger-UI at a /redoc path (and ReDoc at /docs); a mild human-level tell
+# only, since recon scanners probe both conventional paths and match either shell. Trimming the wrong-
+# path bundle at compile (a path axis on the match schema) is a follow-up out of this pack's scope.
 match:
   template_needle: [fastapi-docs]
 response:

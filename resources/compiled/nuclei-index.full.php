@@ -84187,7 +84187,7 @@ return array (
         2 => 'swagger',
         3 => 'discovery',
       ),
-      'name' => 'Exposed Swagger 2.0 document (springfox)',
+      'name' => 'Exposed Swagger 2.0 document',
     ),
     'route-swagger-yaml-doc' => 
     array (

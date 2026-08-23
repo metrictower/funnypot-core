@@ -1,8 +1,11 @@
 id: route-wp-json
 priority: 344
 # Brand-new page: the WordPress REST API index at /wp-json — the discovery root a scanner reads to
-# enumerate namespaces, routes and whether user enumeration is open. Persona-seeded name/url. Served
-# application/json. Opens with a lone `{` for the JSON taunt. No numbers that form a denied digit run.
+# enumerate namespaces, routes and whether user enumeration is open. Shaped like the genuine WP REST
+# root: `name` is the site title and `description` the bare tagline (not the title again), gmt_offset
+# is a JSON number, and every routes entry carries `endpoints` and `_links.self` with a namespace
+# that appears in `namespaces`. Persona-seeded name/url. Served application/json. Opens with a lone
+# `{` for the JSON taunt. No numbers that form a denied digit run.
 new_page:
   method: GET
   paths: ['/wp-json']
@@ -18,17 +21,23 @@ response:
   body: |
     {
     "name": "{{persona.company.name}}",
-    "description": "{{persona.company.name}} — Just another WordPress site",
+    "description": "Just another WordPress site",
     "url": "https://{{persona.company.domain}}",
     "home": "https://{{persona.company.domain}}",
-    "gmt_offset": "0",
+    "gmt_offset": 0,
     "timezone_string": "",
     "namespaces": [ "oembed/1.0", "wp/v2", "wp-site-health/v1" ],
     "authentication": [],
     "routes": {
-      "/": { "namespace": "", "methods": [ "GET" ] },
-      "/wp/v2/posts": { "namespace": "wp/v2", "methods": [ "GET", "POST" ] },
-      "/wp/v2/users": { "namespace": "wp/v2", "methods": [ "GET", "POST" ] }
+      "/": { "namespace": "", "methods": [ "GET" ], "endpoints": [ { "methods": [ "GET" ], "args": {} } ], "_links": { "self": [ { "href": "https://{{persona.company.domain}}/wp-json/" } ] } },
+      "/oembed/1.0": { "namespace": "oembed/1.0", "methods": [ "GET" ], "endpoints": [ { "methods": [ "GET" ], "args": {} } ], "_links": { "self": [ { "href": "https://{{persona.company.domain}}/wp-json/oembed/1.0" } ] } },
+      "/wp/v2": { "namespace": "wp/v2", "methods": [ "GET" ], "endpoints": [ { "methods": [ "GET" ], "args": {} } ], "_links": { "self": [ { "href": "https://{{persona.company.domain}}/wp-json/wp/v2" } ] } },
+      "/wp/v2/posts": { "namespace": "wp/v2", "methods": [ "GET", "POST" ], "endpoints": [ { "methods": [ "GET" ], "args": {} }, { "methods": [ "POST" ], "args": {} } ], "_links": { "self": [ { "href": "https://{{persona.company.domain}}/wp-json/wp/v2/posts" } ] } },
+      "/wp/v2/pages": { "namespace": "wp/v2", "methods": [ "GET", "POST" ], "endpoints": [ { "methods": [ "GET" ], "args": {} }, { "methods": [ "POST" ], "args": {} } ], "_links": { "self": [ { "href": "https://{{persona.company.domain}}/wp-json/wp/v2/pages" } ] } },
+      "/wp/v2/comments": { "namespace": "wp/v2", "methods": [ "GET", "POST" ], "endpoints": [ { "methods": [ "GET" ], "args": {} }, { "methods": [ "POST" ], "args": {} } ], "_links": { "self": [ { "href": "https://{{persona.company.domain}}/wp-json/wp/v2/comments" } ] } },
+      "/wp/v2/media": { "namespace": "wp/v2", "methods": [ "GET", "POST" ], "endpoints": [ { "methods": [ "GET" ], "args": {} }, { "methods": [ "POST" ], "args": {} } ], "_links": { "self": [ { "href": "https://{{persona.company.domain}}/wp-json/wp/v2/media" } ] } },
+      "/wp/v2/users": { "namespace": "wp/v2", "methods": [ "GET", "POST" ], "endpoints": [ { "methods": [ "GET" ], "args": {} }, { "methods": [ "POST" ], "args": {} } ], "_links": { "self": [ { "href": "https://{{persona.company.domain}}/wp-json/wp/v2/users" } ] } },
+      "/wp-site-health/v1": { "namespace": "wp-site-health/v1", "methods": [ "GET" ], "endpoints": [ { "methods": [ "GET" ], "args": {} } ], "_links": { "self": [ { "href": "https://{{persona.company.domain}}/wp-json/wp-site-health/v1" } ] } }
     },
     "_links": {
       "help": [ { "href": "https://developer.wordpress.org/rest-api/" } ]

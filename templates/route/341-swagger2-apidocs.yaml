@@ -1,9 +1,12 @@
 id: route-swagger2-apidocs
 priority: 341
-# Brand-new page: springfox's /v2/api-docs, a Swagger 2.0 document (NOT OpenAPI 3.0). Kept as a real
-# 2.0 doc rather than cloning the 3.0 body, so a host that exposes both stays internally coherent
-# (a Java/springfox stack speaks 2.0 here). Persona-seeded host + contact. Served application/json
-# (the endpoint's real type). Opens with a lone `{` for the JSON taunt; the example id is dec:5.
+# Brand-new page: /v2/api-docs, a Swagger 2.0 document (NOT OpenAPI 3.0). Kept as a real 2.0 doc
+# rather than cloning the 3.0 body, so a host that publishes both a 2.0 and a 3.0 spec (a common
+# migration/gateway setup) stays internally coherent. The doc is framework-neutral — generic Swagger
+# 2.0 with an apiKey bearer scheme — matching the stack-neutral OpenAPI 3.0 doc at /v3/api-docs; now
+# that neither doc leaks a PHP docroot there is no framework contradiction across the two surfaces.
+# Persona-seeded host + contact. Served application/json (the endpoint's real type). Opens with a lone
+# `{` for the JSON taunt; the example id is dec:5.
 new_page:
   method: GET
   paths: ['/v2/api-docs']
@@ -11,7 +14,7 @@ new_page:
   status: 200
   severity: info
   tags: [exposure, api, swagger, discovery]
-  name: 'Exposed Swagger 2.0 document (springfox)'
+  name: 'Exposed Swagger 2.0 document'
   body_words: ['"swagger":', '"paths"']
 response:
   headers:

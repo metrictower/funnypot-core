@@ -2,9 +2,12 @@ id: route-swagger-yaml-doc
 priority: 342
 # Brand-new page: /openapi.yaml — the same OpenAPI 3.0 API surface as /openapi.json, YAML-serialized
 # (the form many toolchains publish). Served text/yaml. The id carries NO `openapi` substring, so the
-# /openapi.json `openapi` enrich can never hijack it. YAML scalar rules: version/status codes are
-# quoted so none is a bare unquoted digit run, and no value begins with `#` (which would parse as a
-# comment); the line-mode taunt appends `#` lines that carry no `key:` and so never trip that guard.
+# /openapi.json `openapi` enrich can never hijack it. The description is framework-neutral (no
+# docroot) and the example Authorization value is a JWT-shaped token (real HS256 header + seed-derived
+# payload/signature) matching `bearerFormat: JWT`, mirroring the JSON docs. YAML scalar rules:
+# version/status codes are quoted so none is a bare unquoted digit run, and no value begins with `#`
+# (which would parse as a comment); the line-mode taunt appends `#` lines that carry no `key:` and so
+# never trip that guard.
 new_page:
   method: GET
   paths: ['/openapi.yaml']
@@ -21,7 +24,7 @@ response:
     openapi: "3.0.3"
     info:
       title: {{persona.company.name}} API
-      description: Internal REST API for {{persona.company.name}} — served from /var/www/{{persona.company.slug}}/public.
+      description: Internal REST API for {{persona.company.name}}. Not for public distribution.
       version: "1.8.2"
       contact:
         email: {{persona.user.admin.email}}
@@ -54,7 +57,7 @@ response:
       examples:
         authToken:
           summary: Example Authorization header
-          value: Bearer {{persona.secret.jwt}}
+          value: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ{{fake.jwtpayload:b64url:43}}.{{fake.jwtsig:b64url:43}}
 taunt: { mode: line, open: '#' }
 expect:
   - 'openapi: "3.0.3"'

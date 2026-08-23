@@ -2,9 +2,11 @@ id: route-security-txt
 priority: 333
 # Enrich: the corpus routes /.well-known/security.txt to the `security-txt` bundle (body word
 # `Contact:`, size >= 1). Minimal synth would emit a bare `Contact:` line; here we serve a real
-# RFC 9116 security.txt whose contact is this host's admin — persona-seeded so the disclosed email
-# and domain agree with every other leaked surface. Content-Type is text/plain (the file's real
-# type). The year/time literals are 4-digit and colon-separated, so no denied digit run.
+# RFC 9116 security.txt whose contact is this host's admin — persona-seeded so the disclosed email,
+# domain, canonical URL and encryption-key URL agree with every other leaked surface, cutting the
+# cross-host identity a fixed scaffold would give. Content-Type is text/plain (the file's real type).
+# Expires is a far-future static date (RFC 9116 requires an unexpired file, and no render-time date
+# directive exists); the year/time literals are 4-digit and colon-separated, so no denied digit run.
 match:
   template_needle: [security-txt]
 response:
@@ -13,7 +15,8 @@ response:
   body: |
     Contact: mailto:{{persona.user.admin.email}}
     Contact: https://{{persona.company.domain}}/security
-    Expires: 2026-12-31T23:59:59Z
+    Expires: 2035-12-31T23:59:59Z
+    Encryption: https://{{persona.company.domain}}/.well-known/pgp-key.txt
     Preferred-Languages: en
     Canonical: https://{{persona.company.domain}}/.well-known/security.txt
     Policy: https://{{persona.company.domain}}/security-policy

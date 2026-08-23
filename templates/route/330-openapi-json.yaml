@@ -1,13 +1,19 @@
 id: route-openapi-json
 priority: 330
 # Enrich: the corpus routes /openapi.json to two bundles — this rule dresses the `openapi` bundle
-# (body words `openapi`, `paths`; header word `application/openapi+json`). Minimal synth would emit
-# the bare words; here we serve a real OpenAPI 3.0 document leaking this host's API surface, server
-# URL and an example bearer token (== the config pack's JWT for the same seed). The Content-Type is
-# EXACTLY `application/openapi+json` — the media type the header word demands (plain application/json
-# would miss it and drop the response to minimal synth). Body is byte-identical to the /swagger.json
-# new_page for one host. Opens with a lone `{` so the JSON taunt keeps it parseable; the example id
-# is dec:5 (never a bare 6-digit run). The `paths` body word is present.
+# (body words `openapi`, `paths`; header word `application/openapi+json`). The `openapi` needle is a
+# bare generic substring — unique against the current corpus, but the needle-uniqueness guard
+# (EmulatorBreadthTest) locks it so a future corpus refresh that introduced a colliding t-id fails CI
+# before a release is signed. Minimal synth would emit the bare words; here we serve a real OpenAPI
+# 3.0 document leaking this host's API surface and server URL. The description is framework-neutral
+# (no docroot), so it never contradicts the Swagger 2.0 doc served at /v2/api-docs. The example
+# Authorization value is a JWT-shaped token — a real HS256 header segment plus seed-derived payload
+# and signature segments — matching the doc's own `bearerFormat: JWT`, NOT the raw HMAC signing
+# secret the config pack discloses. The Content-Type is EXACTLY `application/openapi+json` — the media
+# type the header word demands (plain application/json would miss it and drop the response to minimal
+# synth). Body is byte-identical to the /swagger.json new_page for one host. Opens with a lone `{` so
+# the JSON taunt keeps it parseable; the order id is dec:5 (never a bare 6-digit run). The `paths`
+# body word is present.
 match:
   template_needle: [openapi]
 response:
@@ -18,7 +24,7 @@ response:
     "openapi": "3.0.3",
     "info": {
       "title": "{{persona.company.name}} API",
-      "description": "Internal REST API for {{persona.company.name}} — served from /var/www/{{persona.company.slug}}/public.",
+      "description": "Internal REST API for {{persona.company.name}}. Not for public distribution.",
       "version": "1.8.2",
       "contact": { "email": "{{persona.user.admin.email}}" }
     },
@@ -52,7 +58,7 @@ response:
         "apiKey": { "type": "apiKey", "in": "header", "name": "X-API-Key" }
       },
       "examples": {
-        "authToken": { "summary": "Example Authorization header", "value": "Bearer {{persona.secret.jwt}}" }
+        "authToken": { "summary": "Example Authorization header", "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ{{fake.jwtpayload:b64url:43}}.{{fake.jwtsig:b64url:43}}" }
       }
     }
     }

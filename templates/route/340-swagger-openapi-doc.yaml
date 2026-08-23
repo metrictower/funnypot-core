@@ -2,11 +2,13 @@ id: route-swagger-json-doc
 priority: 340
 # Brand-new page: the classic OpenAPI/Swagger doc endpoints (/swagger.json, /v3/api-docs, …) that a
 # recon scanner hits to map an app's whole API surface. One shared OpenAPI 3.0 document, byte-
-# identical to the /openapi.json enrich for one host, leaking the server URL, the endpoint list and
-# an example bearer token (== the config pack's JWT for the same seed). Served application/json (the
-# `.json`/api-docs endpoint's real type). The id carries NO `openapi` substring, so the /openapi.json
-# `openapi` enrich can never hijack this bundle. Opens with a lone `{` for the JSON taunt; the
-# example id is dec:5 (never a bare 6-digit run).
+# identical to the /openapi.json enrich for one host, leaking the server URL, the endpoint list and a
+# JWT-shaped example bearer token (real HS256 header + seed-derived payload/signature, matching the
+# doc's `bearerFormat: JWT` — not the raw HMAC signing secret). The description is framework-neutral
+# (no docroot), so it never contradicts the Swagger 2.0 doc at /v2/api-docs. Served application/json
+# (the `.json`/api-docs endpoint's real type). The id carries NO `openapi` substring, so the
+# /openapi.json `openapi` enrich can never hijack this bundle. Opens with a lone `{` for the JSON
+# taunt; the order id is dec:5 (never a bare 6-digit run).
 new_page:
   method: GET
   paths: ['/swagger.json', '/api/swagger.json', '/v3/api-docs', '/api-docs', '/.well-known/openapi.json']
@@ -24,7 +26,7 @@ response:
     "openapi": "3.0.3",
     "info": {
       "title": "{{persona.company.name}} API",
-      "description": "Internal REST API for {{persona.company.name}} — served from /var/www/{{persona.company.slug}}/public.",
+      "description": "Internal REST API for {{persona.company.name}}. Not for public distribution.",
       "version": "1.8.2",
       "contact": { "email": "{{persona.user.admin.email}}" }
     },
@@ -58,7 +60,7 @@ response:
         "apiKey": { "type": "apiKey", "in": "header", "name": "X-API-Key" }
       },
       "examples": {
-        "authToken": { "summary": "Example Authorization header", "value": "Bearer {{persona.secret.jwt}}" }
+        "authToken": { "summary": "Example Authorization header", "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ{{fake.jwtpayload:b64url:43}}.{{fake.jwtsig:b64url:43}}" }
       }
     }
     }

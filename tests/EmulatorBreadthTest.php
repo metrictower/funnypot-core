@@ -154,6 +154,39 @@ final class EmulatorBreadthTest extends TestCase
     }
 
     /**
+     * The API-recon pack's enrich needles are bare, generic substrings (e.g. `openapi`), so a corpus
+     * refresh that introduced a colliding t-id would silently make findRule serve the wrong enrich on
+     * an unrelated route. Lock each to EXACTLY ONE bundle id across the whole compiled index, so such a
+     * collision fails CI before a rules release is signed.
+     */
+    public function test_apirecon_pack_needles_are_unique(): void
+    {
+        $routes = self::index()['routes'] ?? [];
+        $distinctIds = static function (string $needle) use ($routes): array {
+            $ids = [];
+            foreach ($routes as $entry) {
+                foreach ((array) ($entry['b'] ?? []) as $b) {
+                    if ((string) ($b['pid'] ?? '') === $needle) {
+                        $ids[$needle . ' (pid)'] = true;
+                    }
+                    foreach (array_map('strval', (array) ($b['t'] ?? [])) as $id) {
+                        if (strpos($id, $needle) !== false) {
+                            $ids[$id] = true;
+                        }
+                    }
+                }
+            }
+
+            return array_keys($ids);
+        };
+
+        $needles = ['openapi', 'fastapi-docs', 'redoc-api-docs', 'security-txt', 'openai-plugin', 'CVE-2019-9880'];
+        foreach ($needles as $needle) {
+            self::assertCount(1, $distinctIds($needle), "API-recon needle '{$needle}' must resolve to exactly one bundle id (else findRule shadows another route)");
+        }
+    }
+
+    /**
      * @dataProvider targets
      */
     public function test_route_set_selects_the_expected_template(string $route, int $i, string $id): void

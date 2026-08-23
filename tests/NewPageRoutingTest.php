@@ -195,6 +195,10 @@ final class NewPageRoutingTest extends TestCase
             'security.txt'          => ['/.well-known/security.txt', 200, 'Preferred-Languages', 'text/plain; charset=utf-8'],
             'ai-plugin manifest'    => ['/.well-known/ai-plugin.json', 200, 'legal_info_url', 'application/json'],
             'openapi redoc'         => ['/openapi', 200, 'Redoc.init', 'text/html; charset=utf-8'],
+            // Sibling paths the path-blind findRule enriches to a single bundle: /api/docs always
+            // serves the ReDoc shell; /security.txt mirrors the .well-known security.txt file.
+            'api/docs redoc'        => ['/api/docs', 200, 'Redoc.init', 'text/html; charset=utf-8'],
+            'security.txt (root)'   => ['/security.txt', 200, 'Preferred-Languages', 'text/plain; charset=utf-8'],
         ];
     }
 
@@ -573,6 +577,9 @@ final class NewPageRoutingTest extends TestCase
             '/v2/api-docs', '/openapi.yaml', '/swagger-ui.html', '/swagger-ui/index.html', '/swagger',
             '/api/__swagger__/', '/wp-json', '/api/v2', '/.well-known/security.txt',
             '/.well-known/ai-plugin.json', '/openapi', '/openapi.json',
+            // Sibling paths the path-blind findRule also enriches (docs/redoc split between the redoc +
+            // fastapi bundles; /api/docs is redoc-only; /security.txt mirrors the .well-known file).
+            '/docs', '/redoc', '/api/docs', '/security.txt',
         ];
         // The vite-fs `/@fs/{path}` param route serves per-target disclosure bodies (its own RDS/cache
         // host islands live in the .env and wp-config.php loot targets), so exercise those too.
@@ -818,8 +825,9 @@ final class NewPageRoutingTest extends TestCase
 
     public function test_apirecon_identity_is_coherent_across_surfaces(): void
     {
-        // One host presents one identity: the OpenAPI doc's example bearer token must be the SAME
-        // persona JWT the config pack (Actuator /env) discloses; the server URL's domain must match the
+        // One host presents one identity: the OpenAPI doc's example bearer is a JWT-shaped token (real
+        // HS256 header + seed-derived payload/signature), distinct from the raw HMAC signing secret the
+        // config pack (Actuator /env) still discloses; the server URL's domain must match the
         // security.txt and ai-plugin contact domains; and the OpenAPI document must be byte-identical on
         // every surface that serves it.
         for ($seed = 0; $seed <= 30; $seed++) {
@@ -833,10 +841,17 @@ final class NewPageRoutingTest extends TestCase
             self::assertNotNull($sec, "seed {$seed}: /.well-known/security.txt must serve a fake");
             self::assertNotNull($ai, "seed {$seed}: /.well-known/ai-plugin.json must serve a fake");
 
-            // Example bearer token == the config-pack JWT signing secret.
-            self::assertSame(1, preg_match('/Bearer ([0-9a-f]{64})/', $swagger->body, $sj), "seed {$seed}: /swagger.json must leak an example bearer JWT");
-            self::assertSame(1, preg_match('/"jwt.secret": \{"value": "([0-9a-f]{64})"\}/', $env->body, $ej), "seed {$seed}: /actuator/env must disclose the JWT secret");
-            self::assertSame($ej[1], $sj[1], "seed {$seed}: the OpenAPI example token must equal the config-pack JWT");
+            // The example Authorization value is a JWT-shaped token (three base64url segments, a real
+            // HS256 header) matching the doc's `bearerFormat: JWT` — NOT the raw 64-hex HMAC signing
+            // secret. The signing secret is still disclosed by the config pack (Actuator /env) as the
+            // HS256 key, but the two are distinct kinds and must not be byte-equal.
+            self::assertSame(1, preg_match('/Bearer (eyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+)/', $swagger->body, $sj), "seed {$seed}: /swagger.json must leak a JWT-shaped example bearer token: " . $swagger->body);
+            $seg = explode('.', $sj[1]);
+            self::assertCount(3, $seg, "seed {$seed}: the example bearer must have three JWT segments");
+            self::assertSame('{"alg":"HS256","typ":"JWT"}', base64_decode(strtr($seg[0], '-_', '+/')), "seed {$seed}: the JWT header segment must decode to an HS256 JWT header");
+            self::assertSame(0, preg_match('/Bearer [0-9a-f]{64}\b/', $swagger->body), "seed {$seed}: the example bearer must not be the raw 64-hex signing secret");
+            self::assertSame(1, preg_match('/"jwt.secret": \{"value": "([0-9a-f]{64})"\}/', $env->body, $ej), "seed {$seed}: /actuator/env must still disclose the 64-hex HS256 signing secret");
+            self::assertNotSame($ej[1], $sj[1], "seed {$seed}: the JWT example token must not be the raw signing secret");
 
             // Server URL domain == security.txt contact domain == ai-plugin contact domain.
             self::assertSame(1, preg_match('#https://api\.([a-z0-9.-]+)/v2#', $swagger->body, $sh), "seed {$seed}: /swagger.json must carry an api.<domain> server URL");
@@ -929,5 +944,93 @@ final class NewPageRoutingTest extends TestCase
             self::assertNotNull($resp, "seed {$seed}: POST /graphql must serve a fake");
             self::assertStringNotContainsString('"roles": ["administrator"]', $resp->body, "seed {$seed}: the critical graphql enrich must stay suppressed under the default high ceiling");
         }
+    }
+
+    public function test_docs_and_redoc_serve_one_of_the_two_enriched_shells(): void
+    {
+        // findRule is path-blind, so GET /docs and GET /redoc each carry the SAME two API-docs bundles
+        // as /openapi.json's HTML side: the FastAPI Swagger-UI shell (SwaggerUIBundle) and the ReDoc
+        // shell (__REDOC_EXPORT). The persona seed picks one per host. Sweep seeds and lock that every
+        // response is one of the two enriched shells, served text/html — never a minimal synth or a
+        // wrong Content-Type. (The swapped-path realism tell is documented in 331/332; scanners probe
+        // both conventional paths and match either shell, so believability-to-scanners is unharmed.)
+        foreach (['/docs', '/redoc'] as $path) {
+            $sawSwagger = false;
+            $sawRedoc = false;
+            foreach (['realistic', 'taunt'] as $style) {
+                for ($seed = 0; $seed <= 60; $seed++) {
+                    $resp = $this->seededInverter((string) $seed, $style)->respond(new RequestContext('GET', $path));
+                    self::assertNotNull($resp, "{$path} [{$style}] seed {$seed} must serve a fake");
+                    self::assertSame('text/html; charset=utf-8', $resp->headers['Content-Type'] ?? null, "{$path} [{$style}] seed {$seed} Content-Type");
+                    if (strpos($resp->body, 'SwaggerUIBundle') !== false) {
+                        self::assertStringContainsString('FastAPI - Swagger UI', $resp->body, "{$path} [{$style}] seed {$seed} must serve the full Swagger-UI shell");
+                        $sawSwagger = true;
+                    } elseif (strpos($resp->body, '__REDOC_EXPORT') !== false) {
+                        self::assertStringContainsString('Redoc.init', $resp->body, "{$path} [{$style}] seed {$seed} must serve the full ReDoc shell");
+                        $sawRedoc = true;
+                    } else {
+                        self::fail("{$path} [{$style}] seed {$seed} served neither enriched shell: " . $resp->body);
+                    }
+                }
+            }
+            self::assertTrue($sawSwagger, "{$path} sweep must land on the Swagger-UI shell at least once");
+            self::assertTrue($sawRedoc, "{$path} sweep must land on the ReDoc shell at least once");
+        }
+    }
+
+    public function test_wp_json_has_real_rest_root_shape(): void
+    {
+        // The /wp-json index must read as the genuine WP REST root: a JSON-number gmt_offset, a bare
+        // tagline description (not the site title repeated), and every routes entry carrying endpoints
+        // plus an _links.self href — with every declared namespace owning at least one route.
+        foreach (['realistic', 'taunt'] as $style) {
+            for ($seed = 0; $seed <= 30; $seed++) {
+                $resp = $this->seededInverter((string) $seed, $style)->respond(new RequestContext('GET', '/wp-json'));
+                self::assertNotNull($resp, "/wp-json [{$style}] seed {$seed} must serve a fake");
+                $doc = json_decode($resp->body, true);
+                self::assertIsArray($doc, "/wp-json [{$style}] seed {$seed} must be valid JSON: " . $resp->body);
+                self::assertIsInt($doc['gmt_offset'] ?? null, "/wp-json [{$style}] seed {$seed} gmt_offset must be a JSON number: " . $resp->body);
+                self::assertSame('Just another WordPress site', $doc['description'] ?? null, "/wp-json [{$style}] seed {$seed} description must be the bare tagline");
+                $routes = $doc['routes'] ?? [];
+                self::assertNotEmpty($routes, "/wp-json [{$style}] seed {$seed} must list routes");
+                foreach ($routes as $route => $meta) {
+                    self::assertArrayHasKey('endpoints', $meta, "/wp-json [{$style}] seed {$seed} route {$route} must carry endpoints");
+                    self::assertNotEmpty($meta['endpoints'], "/wp-json [{$style}] seed {$seed} route {$route} endpoints must be non-empty");
+                    self::assertArrayHasKey('self', (array) ($meta['_links'] ?? []), "/wp-json [{$style}] seed {$seed} route {$route} must carry _links.self");
+                    self::assertArrayHasKey('href', (array) ($meta['_links']['self'][0] ?? []), "/wp-json [{$style}] seed {$seed} route {$route} _links.self must carry an href");
+                }
+                foreach ((array) ($doc['namespaces'] ?? []) as $ns) {
+                    $owned = false;
+                    foreach ($routes as $meta) {
+                        if (($meta['namespace'] ?? null) === $ns) {
+                            $owned = true;
+                            break;
+                        }
+                    }
+                    self::assertTrue($owned, "/wp-json [{$style}] seed {$seed} namespace {$ns} must own at least one route");
+                }
+            }
+        }
+    }
+
+    public function test_api_docs_are_stack_neutral(): void
+    {
+        // The OpenAPI 3.0 docs and the Swagger 2.0 doc describe one API and must not contradict each
+        // other on the stack: a Java-flavoured 2.0 doc at /v2/api-docs alongside a 3.0 doc that leaks a
+        // PHP docroot (/var/www/<slug>/public) would betray the fabrication. No always-on API-doc
+        // surface may leak a docroot, and the two docs coexist framework-neutrally on one host.
+        $inv = $this->inverter();
+        foreach (['/swagger.json', '/v3/api-docs', '/openapi.yaml', '/v2/api-docs'] as $path) {
+            $resp = $inv->respond(new RequestContext('GET', $path));
+            self::assertNotNull($resp, "{$path} must serve a fake");
+            self::assertSame(0, preg_match('#/var/www/[^\s"]*?/public#', $resp->body), "{$path} must not leak a PHP docroot: " . $resp->body);
+            self::assertStringNotContainsString('springfox', $resp->body, "{$path} must not name a framework in its served body");
+        }
+        $v2 = $inv->respond(new RequestContext('GET', '/v2/api-docs'));
+        $v3 = $inv->respond(new RequestContext('GET', '/v3/api-docs'));
+        self::assertNotNull($v2);
+        self::assertNotNull($v3);
+        self::assertStringContainsString('"swagger": "2.0"', $v2->body, '/v2/api-docs must be a Swagger 2.0 doc');
+        self::assertStringContainsString('"openapi": "3.0.3"', $v3->body, '/v3/api-docs must be an OpenAPI 3.0 doc');
     }
 }

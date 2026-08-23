@@ -5,6 +5,11 @@ priority: 332
 # API-docs UI. Minimal synth would emit the bare word; here we dress the real ReDoc HTML shell that
 # loads this host's spec. Content-Type is text/html (the bundle's typed header). The `__REDOC_EXPORT`
 # global is authored naturally, as ReDoc's standalone bundle sets it.
+# findRule is PATH-BLIND — it matches on the `redoc-api-docs` needle, not the path — so this shell
+# also serves at GET /api/docs (always) and at GET /docs and GET /redoc (for the seeds that pick this
+# co-bundle rather than the fastapi-docs one). ReDoc at a /docs path (and Swagger-UI at /redoc) is a
+# mild human-level tell only; scanners probe both conventional paths and match either shell. Trimming
+# the wrong-path bundle at compile (a path axis on the match schema) is a follow-up out of pack scope.
 match:
   template_needle: [redoc-api-docs]
 response:

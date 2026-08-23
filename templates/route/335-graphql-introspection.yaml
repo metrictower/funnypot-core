@@ -13,6 +13,13 @@ priority: 335
 # template, no branch, no resolver, no capture reflection. Line 1 is exactly `{"data":{` so the body
 # word is literal AND the JSON taunt (a `_comment` field after the first newline) rides in as the
 # first member of the data object, keeping the document parseable. Leaks the admin identity.
+# The `__schema` is a COMPLETE, spec-valid introspection result: every LIST/NON_NULL type ref carries
+# a non-null `ofType`, mutationType resolves to a real Mutation type, every field-referenced type
+# (User + the ID/String/Boolean scalars) appears in `types`, each OBJECT carries interfaces/inputFields/
+# enumValues/possibleTypes, and the standard include/skip/deprecated `directives` are present — so a
+# schema-walking client (graphql-core build_client_schema) builds it without throwing. The `viewer`
+# member is retained deliberately: the wpgraphql bundle demands the `"roles":` body word, so a valid
+# introspection-only `{"data":{"__schema":…}}` would fail bundle validation and drop to minimal synth.
 match:
   template_needle: [CVE-2019-9880]
 response:
@@ -26,15 +33,27 @@ response:
       "mutationType": { "name": "Mutation" },
       "subscriptionType": null,
       "types": [
+        { "kind": "OBJECT", "name": "Query", "description": "The root query type.", "fields": [
+          { "name": "viewer", "description": "The authenticated user.", "args": [], "type": { "kind": "OBJECT", "name": "User", "ofType": null }, "isDeprecated": false, "deprecationReason": null },
+          { "name": "users", "description": "All users.", "args": [], "type": { "kind": "LIST", "name": null, "ofType": { "kind": "OBJECT", "name": "User", "ofType": null } }, "isDeprecated": false, "deprecationReason": null }
+        ], "inputFields": null, "interfaces": [], "enumValues": null, "possibleTypes": null },
+        { "kind": "OBJECT", "name": "Mutation", "description": "The root mutation type.", "fields": [
+          { "name": "updateUser", "description": "Update a user.", "args": [ { "name": "id", "description": null, "type": { "kind": "NON_NULL", "name": null, "ofType": { "kind": "SCALAR", "name": "ID", "ofType": null } }, "defaultValue": null } ], "type": { "kind": "OBJECT", "name": "User", "ofType": null }, "isDeprecated": false, "deprecationReason": null }
+        ], "inputFields": null, "interfaces": [], "enumValues": null, "possibleTypes": null },
         { "kind": "OBJECT", "name": "User", "description": "A registered user.", "fields": [
-          { "name": "id", "type": { "kind": "SCALAR", "name": "ID" } },
-          { "name": "email", "type": { "kind": "SCALAR", "name": "String" } },
-          { "name": "roles", "type": { "kind": "LIST", "name": null } }
-        ] },
-        { "kind": "OBJECT", "name": "Query", "fields": [
-          { "name": "users", "type": { "kind": "LIST", "name": null } },
-          { "name": "viewer", "type": { "kind": "OBJECT", "name": "User" } }
-        ] }
+          { "name": "id", "description": null, "args": [], "type": { "kind": "NON_NULL", "name": null, "ofType": { "kind": "SCALAR", "name": "ID", "ofType": null } }, "isDeprecated": false, "deprecationReason": null },
+          { "name": "email", "description": null, "args": [], "type": { "kind": "SCALAR", "name": "String", "ofType": null }, "isDeprecated": false, "deprecationReason": null },
+          { "name": "roles", "description": "The user's assigned roles.", "args": [], "type": { "kind": "LIST", "name": null, "ofType": { "kind": "SCALAR", "name": "String", "ofType": null } }, "isDeprecated": false, "deprecationReason": null },
+          { "name": "isActive", "description": null, "args": [], "type": { "kind": "SCALAR", "name": "Boolean", "ofType": null }, "isDeprecated": false, "deprecationReason": null }
+        ], "inputFields": null, "interfaces": [], "enumValues": null, "possibleTypes": null },
+        { "kind": "SCALAR", "name": "ID", "description": null, "fields": null, "inputFields": null, "interfaces": null, "enumValues": null, "possibleTypes": null },
+        { "kind": "SCALAR", "name": "String", "description": null, "fields": null, "inputFields": null, "interfaces": null, "enumValues": null, "possibleTypes": null },
+        { "kind": "SCALAR", "name": "Boolean", "description": null, "fields": null, "inputFields": null, "interfaces": null, "enumValues": null, "possibleTypes": null }
+      ],
+      "directives": [
+        { "name": "include", "description": "Include this field or fragment only when the `if` argument is true.", "locations": [ "FIELD", "FRAGMENT_SPREAD", "INLINE_FRAGMENT" ], "args": [ { "name": "if", "description": "Included when true.", "type": { "kind": "NON_NULL", "name": null, "ofType": { "kind": "SCALAR", "name": "Boolean", "ofType": null } }, "defaultValue": null } ], "isRepeatable": false },
+        { "name": "skip", "description": "Skip this field or fragment when the `if` argument is true.", "locations": [ "FIELD", "FRAGMENT_SPREAD", "INLINE_FRAGMENT" ], "args": [ { "name": "if", "description": "Skipped when true.", "type": { "kind": "NON_NULL", "name": null, "ofType": { "kind": "SCALAR", "name": "Boolean", "ofType": null } }, "defaultValue": null } ], "isRepeatable": false },
+        { "name": "deprecated", "description": "Marks an element as deprecated.", "locations": [ "FIELD_DEFINITION", "ENUM_VALUE" ], "args": [ { "name": "reason", "description": "Why the element was deprecated.", "type": { "kind": "SCALAR", "name": "String", "ofType": null }, "defaultValue": null } ], "isRepeatable": false }
       ]
     }
     }}
