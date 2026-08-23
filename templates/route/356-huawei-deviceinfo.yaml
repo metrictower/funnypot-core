@@ -1,13 +1,15 @@
 id: route-huawei-deviceinfo
 priority: 356
 # Enrich: the corpus routes /api/system/deviceinfo to the huawei-router-auth-bypass bundle (body words
-# `DeviceName`,`SerialNumber`,`HardwareVersion`). This is the ONT/router info the auth-bypass leaks.
-# Minimal synth would emit the bare words; here we serve the real Huawei HG-series XML envelope. The
-# needle is the full upstream id (findRule is global; a generic `router` pid would shadow a dozen
-# routes). This bundle carries no header/type witness; a Huawei ONT serves this XML as text/xml.
-# Device identity is consistent: model HG8245H ↔ hardware 168A ↔ software V3R017 all agree. Number
-# safety: the serial is one continuous alnum token, uptime is dec:5, and every other field is a short
-# alnum version string — no bare 6-digit run.
+# `DeviceName`,`SerialNumber`,`HardwareVersion`). This IS the Huawei HiLink `/api/*` XML API a mobile-
+# broadband gateway exposes; the auth-bypass reads it to lift the device info. Minimal synth would emit
+# the bare words; here we serve the real HiLink device-information envelope. The needle is the full
+# upstream id (findRule is global; a generic `router` pid would shadow a dozen routes). This bundle
+# carries no header/type witness; a HiLink device serves this as text/xml. Device identity is consistent:
+# the HiLink `/api` schema, model E5573s-320, and its E5573-family hardware version all name one LTE
+# MiFi (an ONT like the HG8245H never exposes this HiLink API). Number safety: the serial is one
+# continuous token, the IMEI/uptime are all-digit `dec` fields (no internal boundary can bound a 6-digit
+# run), and every version is a dotted/letter-led string — no bare 6-digit run.
 match:
   template_needle: [huawei-router-auth-bypass]
 response:
@@ -16,15 +18,16 @@ response:
   body: |
     <?xml version="1.0" encoding="UTF-8"?>
     <response>
-    <DeviceName>HG8245H</DeviceName>
-    <SerialNumber>{{fake.hw_serial:hexupper:16}}</SerialNumber>
-    <HardwareVersion>168A</HardwareVersion>
-    <SoftwareVersion>V3R017C10S115</SoftwareVersion>
-    <ProductClass>HG8245H</ProductClass>
-    <Manufacturer>Huawei Technologies Co., Ltd.</Manufacturer>
+    <DeviceName>E5573s-320</DeviceName>
+    <SerialNumber>{{fake.hw_serial:b64url:16}}</SerialNumber>
+    <Imei>{{fake.hw_imei:dec:15}}</Imei>
+    <HardwareVersion>CL1E5573SM03</HardwareVersion>
+    <SoftwareVersion>21.180.17.00.00</SoftwareVersion>
+    <ProductFamily>LTE</ProductFamily>
+    <Classify>mobile-wifi</Classify>
     <UpTime>{{fake.hw_uptime:dec:5}}</UpTime>
     </response>
 taunt: { mode: block, open: '<!--', close: '-->' }
 expect:
-  - '<DeviceName>HG8245H</DeviceName>'
-  - '<HardwareVersion>168A</HardwareVersion>'
+  - '<DeviceName>E5573s-320</DeviceName>'
+  - '<HardwareVersion>CL1E5573SM03</HardwareVersion>'

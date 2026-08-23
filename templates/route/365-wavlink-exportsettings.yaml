@@ -1,0 +1,31 @@
+id: route-wavlink-exportsettings
+priority: 365
+# Enrich: the corpus routes /cgi-bin/ExportAllSettings.sh bundle 0 to the CVE-2020-12127 bundle (body
+# words `Login=`,`Password=`,`Model=`,`AuthMode=`). CVE-2020-12127 is the WAVLINK WN530H4 unauthenticated
+# settings-backup leak, so this is that plaintext key=value backup. Minimal synth would emit the bare
+# keys; here we serve the real backup. The needle is the full CVE id (findRule is global, and this route
+# has three co-bundles). This bundle carries no header/type witness, so Content-Type is text/plain. All
+# three identity signals point to one maker: model WN530H4, a WAVLINK-branded default SSID, and a WAN MAC
+# in Wavlink's real IEEE OUI f4:0f:9b. Number safety: MAC octets are colon-separated hex, the password
+# tail is a continuous hex token, and the SSID hex tail follows the `-N` band letter (a word char, so no
+# word boundary can bound a 6-digit run) — no field forms a bare 6-digit run.
+match:
+  template_needle: [CVE-2020-12127]
+response:
+  headers:
+    Content-Type: "text/plain; charset=utf-8"
+  body: |
+    Login=admin
+    Password={{fake.wl_pw:hex:12}}
+    Model=WN530H4
+    AuthMode=WPA2PSK
+    Encrypt=AES
+    SSID=WAVLINK-N{{fake.wl_ssid:hexupper:5}}
+    WANMAC=f4:0f:9b:{{fake.wl_m1:hex:2}}:{{fake.wl_m2:hex:2}}:{{fake.wl_m3:hex:2}}
+    WANMode=DHCP
+    RemoteManage=0
+taunt: { mode: line, open: '#' }
+expect:
+  - 'Login=admin'
+  - 'Model=WN530H4'
+  - 'AuthMode=WPA2PSK'

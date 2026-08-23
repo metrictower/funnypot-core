@@ -3423,7 +3423,7 @@ components:
 <deviceLocation>hangzhou</deviceLocation>
 <systemContact>admin</systemContact>
 <model>DS-2CD2032-I</model>
-<serialNumber>DS-2CD2032-I20160101AAWR{{fake.hik_serial:hexupper:10}}</serialNumber>
+<serialNumber>DS-2CD2032-I20160101AAWR{{fake.hik_serial:b64url:10}}</serialNumber>
 <macAddress>44:19:b6:{{fake.hik_mac1:hex:2}}:{{fake.hik_mac2:hex:2}}:{{fake.hik_mac3:hex:2}}</macAddress>
 <firmwareVersion>V5.4.5</firmwareVersion>
 <firmwareReleasedDate>build 160925</firmwareReleasedDate>
@@ -3441,6 +3441,7 @@ components:
     'headers' => 
     array (
       'Content-Type' => 'application/xml',
+      'Server' => 'App-webs/',
     ),
     'taunt' => 
     array (
@@ -3484,6 +3485,7 @@ components:
     'headers' => 
     array (
       'Content-Type' => 'application/xml',
+      'Server' => 'App-webs/',
     ),
     'taunt' => 
     array (
@@ -3516,7 +3518,7 @@ DeviceMode=0
 ',
     'headers' => 
     array (
-      'Content-Type' => 'text/plain; charset=utf-8',
+      'Content-Type' => 'text/html; charset=UTF-8',
     ),
     'taunt' => 
     array (
@@ -3536,15 +3538,26 @@ DeviceMode=0
     ),
     'body' => '{
 "data": {
-  "api": "SYNO.Core.System",
-  "model": "DS220+",
-  "firmware_ver": "DSM 7.1.1-42962",
-  "serial": "{{fake.syno_serial:hexupper:10}}",
-  "ram_size": 2048,
-  "sys_temp": 42,
-  "up_time": {{fake.syno_uptime:dec:5}},
-  "cpu_family": "Realtek RTD1296",
-  "enabled_ntp": true
+  "has_fail": false,
+  "result": [
+    {
+      "api": "SYNO.Core.System",
+      "method": "info",
+      "success": true,
+      "data": {
+        "model": "DS220+",
+        "firmware_ver": "DSM 7.1.1-42962",
+        "serial": "{{fake.syno_serial:b64url:10}}",
+        "ram_size": 2048,
+        "sys_temp": 42,
+        "up_time": {{fake.syno_uptime:dec:5}},
+        "cpu_vendor": "INTEL",
+        "cpu_family": "Celeron",
+        "cpu_series": "J4025",
+        "enabled_ntp": true
+      }
+    }
+  ]
 },
 "success":true
 }
@@ -3552,6 +3565,7 @@ DeviceMode=0
     'headers' => 
     array (
       'Content-Type' => 'application/json',
+      'Server' => 'nginx',
     ),
     'taunt' => 
     array (
@@ -3575,12 +3589,13 @@ System.Hostname=AVN80X
 Product.Type=AVN80X
 Video.OutputMode=NTSC
 MACAddress=00:0e:53:{{fake.avt_mac1:hex:2}}:{{fake.avt_mac2:hex:2}}:{{fake.avt_mac3:hex:2}}
-Serial.Number=AVT{{fake.avt_serial:hexupper:8}}
+Serial.Number=AVT{{fake.avt_serial:b64url:8}}
 HTTP.Port=80
 ',
     'headers' => 
     array (
       'Content-Type' => 'text/plain; charset=utf-8',
+      'Server' => 'GoAhead-Webs',
     ),
     'taunt' => 
     array (
@@ -3624,6 +3639,7 @@ HTTP.Port=80
     'headers' => 
     array (
       'Content-Type' => 'application/json',
+      'Server' => 'Boa/0.94.14rc21',
     ),
     'taunt' => 
     array (
@@ -3643,12 +3659,13 @@ HTTP.Port=80
     ),
     'body' => '<?xml version="1.0" encoding="UTF-8"?>
 <response>
-<DeviceName>HG8245H</DeviceName>
-<SerialNumber>{{fake.hw_serial:hexupper:16}}</SerialNumber>
-<HardwareVersion>168A</HardwareVersion>
-<SoftwareVersion>V3R017C10S115</SoftwareVersion>
-<ProductClass>HG8245H</ProductClass>
-<Manufacturer>Huawei Technologies Co., Ltd.</Manufacturer>
+<DeviceName>E5573s-320</DeviceName>
+<SerialNumber>{{fake.hw_serial:b64url:16}}</SerialNumber>
+<Imei>{{fake.hw_imei:dec:15}}</Imei>
+<HardwareVersion>CL1E5573SM03</HardwareVersion>
+<SoftwareVersion>21.180.17.00.00</SoftwareVersion>
+<ProductFamily>LTE</ProductFamily>
+<Classify>mobile-wifi</Classify>
 <UpTime>{{fake.hw_uptime:dec:5}}</UpTime>
 </response>
 ',
@@ -3676,7 +3693,7 @@ HTTP.Port=80
     'body' => 'Model=DNS-320L
 Build=160801
 Version=1.11
-Serial=DNL{{fake.dns_serial:hexupper:10}}
+Serial=DNL{{fake.dns_serial:b64url:10}}
 Macaddr=b0:c5:54:{{fake.dns_mac1:hex:2}}:{{fake.dns_mac2:hex:2}}:{{fake.dns_mac3:hex:2}}
 Hostname=NAS-{{fake.dns_host:hexupper:4}}
 Temperature=41
@@ -3703,7 +3720,7 @@ Temperature=41
     ),
     'body' => 'table.DevInformation.DeviceType=IPC-HDBW23A0RN-ZS
 table.DevInformation.HardwareVersion=1.00
-table.DevInformation.SerialID=3C{{fake.dahua_serial:hexupper:12}}
+table.DevInformation.SerialID=3C{{fake.dahua_serial:b64url:12}}
 table.DevInformation.SoftwareVersion=2.800.0000000.16.R
 table.DevInformation.WebVersion=3.2.1.253200
 table.DevInformation.Vendor=Dahua
@@ -3717,6 +3734,7 @@ table.Account1.Sharable=true
     'headers' => 
     array (
       'Content-Type' => 'application/octet-stream',
+      'Server' => 'Webs',
     ),
     'taunt' => 
     array (
@@ -3737,11 +3755,11 @@ table.Account1.Sharable=true
     'body' => '{
 "deviceName": "Apollo-{{fake.apollo_id:hexupper:8}}",
 "model": "Apollo VX20",
-"firmware": "1.5.0",
+"firmware": "1.2.14",
 "ssid": "Apollo-AP",
 "softAp": true,
 "password": "{{fake.apollo_pw:hex:12}}",
-"serial": "{{fake.apollo_serial:hexupper:10}}",
+"serial": "{{fake.apollo_serial:b64url:10}}",
 "adminUser": "admin"
 }
 ',
@@ -3774,6 +3792,7 @@ table.Account1.Sharable=true
     'headers' => 
     array (
       'Content-Type' => 'text/plain; charset=utf-8',
+      'Server' => 'Webs',
     ),
     'taunt' => 
     array (
@@ -3813,6 +3832,7 @@ table.Account1.Sharable=true
     'headers' => 
     array (
       'Content-Type' => 'text/html; charset=utf-8',
+      'Server' => 'nginx',
     ),
     'taunt' => 
     array (
@@ -3839,7 +3859,7 @@ table.Account1.Sharable=true
 <p>Embedded Web Server &mdash; <a href="/hp/device/DeviceInformation/View">/hp/device/DeviceInformation/View</a></p>
 <table>
 <tr><td>Product Name</td><td>HP LaserJet MFP M428fdw</td></tr>
-<tr><td>Serial Number</td><td>{{fake.hp_serial:hexupper:10}}</td></tr>
+<tr><td>Serial Number</td><td>{{fake.hp_serial:b64url:10}}</td></tr>
 <tr><td>Firmware Datecode</td><td>20210915</td></tr>
 <tr><td>Total Page Count</td><td>{{fake.hp_pages:dec:5}}</td></tr>
 </table>
@@ -3849,6 +3869,7 @@ table.Account1.Sharable=true
     'headers' => 
     array (
       'Content-Type' => 'text/html; charset=utf-8',
+      'Server' => 'HP HTTP Server',
     ),
     'taunt' => 
     array (
@@ -3947,7 +3968,7 @@ table.Account1.Sharable=true
   ),
   107 => 
   array (
-    'id' => 'route-tenda-exportsettings',
+    'id' => 'route-wavlink-exportsettings',
     'match' => 
     array (
       'template_needle' => 
@@ -3956,12 +3977,12 @@ table.Account1.Sharable=true
       ),
     ),
     'body' => 'Login=admin
-Password={{fake.tenda_pw:hex:12}}
+Password={{fake.wl_pw:hex:12}}
 Model=WN530H4
 AuthMode=WPA2PSK
 Encrypt=AES
-SSID=MOTO_{{fake.tenda_ssid:hexupper:6}}
-WANMAC=c8:3a:35:{{fake.tenda_m1:hex:2}}:{{fake.tenda_m2:hex:2}}:{{fake.tenda_m3:hex:2}}
+SSID=WAVLINK-N{{fake.wl_ssid:hexupper:5}}
+WANMAC=f4:0f:9b:{{fake.wl_m1:hex:2}}:{{fake.wl_m2:hex:2}}:{{fake.wl_m3:hex:2}}
 WANMode=DHCP
 RemoteManage=0
 ',
@@ -3993,7 +4014,7 @@ RemoteManage=0
 <table>
 <tr><td>Model Name</td><td>EPSON WF-3620 Series</td></tr>
 <tr><td>MAC Address</td><td>44:d2:44:{{fake.epson_m1:hex:2}}:{{fake.epson_m2:hex:2}}:{{fake.epson_m3:hex:2}}</td></tr>
-<tr><td>Serial Number</td><td>{{fake.epson_serial:hexupper:10}}</td></tr>
+<tr><td>Serial Number</td><td>{{fake.epson_serial:b64url:10}}</td></tr>
 <tr><td>Firmware</td><td>WF3620_{{fake.epson_fw:hexupper:6}}</td></tr>
 </table>
 </body>
@@ -4002,6 +4023,7 @@ RemoteManage=0
     'headers' => 
     array (
       'Content-Type' => 'text/html; charset=utf-8',
+      'Server' => 'EPSON-HTTP/1.0',
     ),
     'taunt' => 
     array (
@@ -4027,7 +4049,7 @@ RemoteManage=0
 <h1>HP Color LaserJet Pro MFP M183fw</h1>
 <table>
 <tr><td>Product Number</td><td>7KW56A</td></tr>
-<tr><td>Serial Number</td><td>{{fake.hpclj_serial:hexupper:10}}</td></tr>
+<tr><td>Serial Number</td><td>{{fake.hpclj_serial:b64url:10}}</td></tr>
 <tr><td>Firmware Revision</td><td>002.2110A</td></tr>
 <tr><td>Total Impressions</td><td>{{fake.hpclj_pages:dec:5}}</td></tr>
 </table>
@@ -4037,6 +4059,7 @@ RemoteManage=0
     'headers' => 
     array (
       'Content-Type' => 'text/html; charset=utf-8',
+      'Server' => 'HP HTTP Server',
     ),
     'taunt' => 
     array (

@@ -12,6 +12,7 @@ match:
 response:
   headers:
     Content-Type: "text/plain; charset=utf-8"
+    Server: "GoAhead-Webs"
   body: |
     Firmware.Version=1035
     Firmware.Language=English
@@ -19,7 +20,7 @@ response:
     Product.Type=AVN80X
     Video.OutputMode=NTSC
     MACAddress=00:0e:53:{{fake.avt_mac1:hex:2}}:{{fake.avt_mac2:hex:2}}:{{fake.avt_mac3:hex:2}}
-    Serial.Number=AVT{{fake.avt_serial:hexupper:8}}
+    Serial.Number=AVT{{fake.avt_serial:b64url:8}}
     HTTP.Port=80
 taunt: { mode: line, open: '#' }
 expect:

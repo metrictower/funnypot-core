@@ -626,7 +626,7 @@ final class NewPageRoutingTest extends TestCase
             ['/webapi/entry.cgi', '"api": "SYNO.Core.System"', 'application/json'],
             ['/cgi-bin/nobody/Machine.cgi', 'Product.Type=AVN80X', 'text/plain; charset=utf-8'],
             ['/device.rsp', '"uid": "admin"', 'application/json'],
-            ['/api/system/deviceinfo', '<DeviceName>HG8245H</DeviceName>', 'text/xml; charset=utf-8'],
+            ['/api/system/deviceinfo', '<DeviceName>E5573s-320</DeviceName>', 'text/xml; charset=utf-8'],
             ['/current_config/Sha1Account1', 'IPC-HDBW23A0RN-ZS', 'application/octet-stream'],
             ['/device/config', 'Apollo VX20', 'application/json'],
             ['/current_config/passwd', 'id:name:passwd', 'text/plain; charset=utf-8'],

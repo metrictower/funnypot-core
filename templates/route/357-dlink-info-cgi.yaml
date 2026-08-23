@@ -17,7 +17,7 @@ response:
     Model=DNS-320L
     Build=160801
     Version=1.11
-    Serial=DNL{{fake.dns_serial:hexupper:10}}
+    Serial=DNL{{fake.dns_serial:b64url:10}}
     Macaddr=b0:c5:54:{{fake.dns_mac1:hex:2}}:{{fake.dns_mac2:hex:2}}:{{fake.dns_mac3:hex:2}}
     Hostname=NAS-{{fake.dns_host:hexupper:4}}
     Temperature=41

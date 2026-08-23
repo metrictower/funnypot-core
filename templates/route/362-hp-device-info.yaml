@@ -5,14 +5,16 @@ priority: 362
 # serves. Minimal synth would emit the bare words; here we serve a believable static info page. The
 # needle is the full upstream id (findRule is global; a generic `hp`/`printer` pid substrings 67+ ids
 # and would shadow them). The lowercase body word `hp` is carried by the real /hp/device/ EWS path.
-# Content-Type is text/html. Device identity is consistent: model M428fdw ↔ serial one continuous
-# token. Number safety: the serial is a continuous alnum token and page counts are dec:5 — no bare
-# 6-digit run.
+# Content-Type is text/html. Device identity is consistent: model M428fdw ↔ a serial whose letters span
+# the alphabet like real HP serials. Number safety: the serial is a b64url token, the datecode is a
+# static leading-2 literal, and page counts are dec:5 — the compile lint + seed sweep confirm no field
+# forms a bare 6-digit run.
 match:
   template_needle: [hp-device-info-detect]
 response:
   headers:
     Content-Type: "text/html; charset=utf-8"
+    Server: "HP HTTP Server"
   body: |
     <!DOCTYPE html>
     <html>
@@ -22,7 +24,7 @@ response:
     <p>Embedded Web Server &mdash; <a href="/hp/device/DeviceInformation/View">/hp/device/DeviceInformation/View</a></p>
     <table>
     <tr><td>Product Name</td><td>HP LaserJet MFP M428fdw</td></tr>
-    <tr><td>Serial Number</td><td>{{fake.hp_serial:hexupper:10}}</td></tr>
+    <tr><td>Serial Number</td><td>{{fake.hp_serial:b64url:10}}</td></tr>
     <tr><td>Firmware Datecode</td><td>20210915</td></tr>
     <tr><td>Total Page Count</td><td>{{fake.hp_pages:dec:5}}</td></tr>
     </table>

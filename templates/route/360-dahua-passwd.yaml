@@ -12,6 +12,7 @@ match:
 response:
   headers:
     Content-Type: "text/plain; charset=utf-8"
+    Server: "Webs"
   body: |
     ugm
     # id:name:passwd:group:memo

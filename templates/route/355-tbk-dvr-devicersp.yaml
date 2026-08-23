@@ -11,6 +11,7 @@ match:
 response:
   headers:
     Content-Type: "application/json"
+    Server: "Boa/0.94.14rc21"
   body: |
     {
     "list": [

@@ -14,10 +14,11 @@ match:
 response:
   headers:
     Content-Type: "application/octet-stream"
+    Server: "Webs"
   body: |
     table.DevInformation.DeviceType=IPC-HDBW23A0RN-ZS
     table.DevInformation.HardwareVersion=1.00
-    table.DevInformation.SerialID=3C{{fake.dahua_serial:hexupper:12}}
+    table.DevInformation.SerialID=3C{{fake.dahua_serial:b64url:12}}
     table.DevInformation.SoftwareVersion=2.800.0000000.16.R
     table.DevInformation.WebVersion=3.2.1.253200
     table.DevInformation.Vendor=Dahua

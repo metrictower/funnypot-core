@@ -12,6 +12,7 @@ match:
 response:
   headers:
     Content-Type: "application/xml"
+    Server: "App-webs/"
   body: |
     <?xml version="1.0" encoding="UTF-8"?>
     <UserList version="2.0" xmlns="http://www.hikvision.com/ver20/XMLSchema">

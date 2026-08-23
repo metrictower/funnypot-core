@@ -11,6 +11,7 @@ match:
 response:
   headers:
     Content-Type: "text/html; charset=utf-8"
+    Server: "nginx"
   body: |
     <!DOCTYPE html>
     <html lang="en">

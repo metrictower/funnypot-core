@@ -126,7 +126,7 @@ final class EmulatorBreadthTest extends TestCase
             'hp device info enrich'            => ['GET /hp/device/DeviceInformation/View', 0, 'route-hp-device-info'],
             'openwrt luci enrich'              => ['GET /cgi-bin/luci', 0, 'route-openwrt-luci'],
             'dlink getcfg enrich'              => ['GET /getcfg.php', 0, 'route-dlink-getcfg'],
-            'tenda ExportAllSettings enrich'   => ['GET /cgi-bin/ExportAllSettings.sh', 0, 'route-tenda-exportsettings'],
+            'wavlink ExportAllSettings enrich' => ['GET /cgi-bin/ExportAllSettings.sh', 0, 'route-wavlink-exportsettings'],
             'epson PRTINFO enrich'             => ['GET /PRESENTATION/HTML/TOP/PRTINFO.HTML', 0, 'route-epson-prtinfo'],
             'hp color laserjet enrich'         => ['GET /hp/device/this.LCDispatcher', 0, 'route-hp-color-laserjet'],
         ];
@@ -193,7 +193,7 @@ final class EmulatorBreadthTest extends TestCase
         $expected = [
             'GET /system/deviceInfo'                  => 'application/xml',
             'GET /Security/users'                     => 'application/xml',
-            'GET /currentsetting.htm'                 => 'text/plain; charset=utf-8',
+            'GET /currentsetting.htm'                 => 'text/html; charset=UTF-8',
             'GET /webapi/entry.cgi'                   => 'application/json',
             'GET /cgi-bin/nobody/Machine.cgi'         => 'text/plain; charset=utf-8',
             'GET /device.rsp'                         => 'application/json',
@@ -276,7 +276,7 @@ final class EmulatorBreadthTest extends TestCase
                 || strpos($t[2], 'route-dlink') === 0 || strpos($t[2], 'route-dahua') === 0
                 || strpos($t[2], 'route-apollo') === 0 || strpos($t[2], 'route-qnap') === 0
                 || strpos($t[2], 'route-hp-') === 0 || strpos($t[2], 'route-openwrt') === 0
-                || strpos($t[2], 'route-tenda') === 0 || strpos($t[2], 'route-epson') === 0) {
+                || strpos($t[2], 'route-wavlink') === 0 || strpos($t[2], 'route-epson') === 0) {
                 $routes[$t[0]] = $t[1];
             }
         }
@@ -322,6 +322,35 @@ final class EmulatorBreadthTest extends TestCase
             $dev = $emulator->render($this->bundle('GET /system/deviceInfo', 0), Style::REALISTIC, $seed);
             self::assertNotNull($dev);
             self::assertSame(1, preg_match('/<macAddress>44:19:b6:[0-9a-f]{2}:[0-9a-f]{2}:[0-9a-f]{2}<\/macAddress>/', $dev->body), "Hikvision MAC must carry the 44:19:b6 vendor OUI (seed {$seed})");
+        }
+
+        // Synology DS220+ is an x86 "plus" model, so it must report the real Intel Celeron J4025 — never
+        // the Realtek RTD1296 ARM SoC, which ships only on the value/ARM DiskStations. This model↔CPU
+        // pairing is exactly what a spec-sheet cross-check verifies, so lock it across the seed spread.
+        for ($seed = 0; $seed <= 30; $seed++) {
+            $syno = $emulator->render($this->bundle('GET /webapi/entry.cgi', 0), Style::REALISTIC, $seed);
+            self::assertNotNull($syno);
+            $info = json_decode($syno->body, true);
+            self::assertIsArray($info, "Synology body must be valid JSON (seed {$seed})");
+            $sys = $info['data']['result'][0]['data'] ?? [];
+            self::assertSame('DS220+', $sys['model'] ?? null, "Synology model must be DS220+ (seed {$seed})");
+            self::assertSame('J4025', $sys['cpu_series'] ?? null, "DS220+ must report the Intel Celeron J4025 CPU (seed {$seed})");
+            self::assertSame('INTEL', $sys['cpu_vendor'] ?? null, "DS220+ CPU vendor must be Intel (seed {$seed})");
+            self::assertStringNotContainsString('Realtek', $syno->body, "DS220+ must never report a Realtek ARM CPU (seed {$seed})");
+        }
+
+        // Wavlink WN530H4 (CVE-2020-12127): all three identity signals must name one maker — model
+        // WN530H4, a WAVLINK-prefixed SSID, and a WAN MAC in Wavlink's real IEEE OUI f4:0f:9b — with no
+        // trace of the earlier Tenda OUI (c8:3a:35) or Motorola SSID. A spec-sheet + OUI lookup catches
+        // a three-vendor mismatch, so lock the coherence across the seed spread.
+        for ($seed = 0; $seed <= 30; $seed++) {
+            $wl = $emulator->render($this->bundle('GET /cgi-bin/ExportAllSettings.sh', 0), Style::REALISTIC, $seed);
+            self::assertNotNull($wl);
+            self::assertStringContainsString('Model=WN530H4', $wl->body, "Wavlink model must be WN530H4 (seed {$seed})");
+            self::assertSame(1, preg_match('/^SSID=WAVLINK-/m', $wl->body), "Wavlink SSID must carry the WAVLINK- prefix (seed {$seed})");
+            self::assertSame(1, preg_match('/^WANMAC=f4:0f:9b:[0-9a-f]{2}:[0-9a-f]{2}:[0-9a-f]{2}$/m', $wl->body), "Wavlink WAN MAC must carry the f4:0f:9b vendor OUI (seed {$seed})");
+            self::assertStringNotContainsString('c8:3a:35', $wl->body, "Wavlink dump must not carry the Tenda OUI (seed {$seed})");
+            self::assertStringNotContainsString('MOTO_', $wl->body, "Wavlink dump must not carry a Motorola SSID (seed {$seed})");
         }
     }
 

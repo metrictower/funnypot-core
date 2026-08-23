@@ -5,13 +5,15 @@ priority: 367
 # LaserJet serves. Minimal synth would emit the bare string; here we serve a believable static status
 # page. The needle is the full upstream id (findRule is global, and this route has two co-bundles — a
 # generic `hp`/`laserjet` pid would hijack the wrong one). Content-Type is text/html. Device identity
-# is consistent: model M183fw ↔ serial one continuous token. Number safety: the serial is a continuous
-# alnum token and the page count is dec:5 — no bare 6-digit run.
+# is consistent: model M183fw ↔ a serial whose letters span the alphabet like real HP serials. Number
+# safety: the serial is a b64url token and the page count is dec:5 — the compile lint + seed sweep
+# confirm no field forms a bare 6-digit run.
 match:
   template_needle: [hp-color-laserjet-detect]
 response:
   headers:
     Content-Type: "text/html; charset=utf-8"
+    Server: "HP HTTP Server"
   body: |
     <!DOCTYPE html>
     <html>
@@ -20,7 +22,7 @@ response:
     <h1>HP Color LaserJet Pro MFP M183fw</h1>
     <table>
     <tr><td>Product Number</td><td>7KW56A</td></tr>
-    <tr><td>Serial Number</td><td>{{fake.hpclj_serial:hexupper:10}}</td></tr>
+    <tr><td>Serial Number</td><td>{{fake.hpclj_serial:b64url:10}}</td></tr>
     <tr><td>Firmware Revision</td><td>002.2110A</td></tr>
     <tr><td>Total Impressions</td><td>{{fake.hpclj_pages:dec:5}}</td></tr>
     </table>

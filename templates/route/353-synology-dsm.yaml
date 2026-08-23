@@ -3,28 +3,43 @@ priority: 353
 # Enrich: the corpus routes /webapi/entry.cgi to the synology-dsm-system-info bundle (body words
 # `SYNO.Core.`,`success":true`, header witness application/json). This is the DSM WebAPI endpoint a
 # scanner queries to lift a Synology NAS's model/DSM version/serial. Minimal synth would emit the bare
-# words; here we serve a real SYNO.Core.System JSON envelope. The needle is the full upstream id
-# (findRule is global; a generic `nas` pid would shadow other routes). Content-Type is application/json
-# (the header witness). Device identity is consistent: model DS220+ ↔ DSM 7.1.1 build. Number safety:
-# the DSM build is a static 5-digit tag, ram/temperature are small, uptime is dec:5, and the serial is
-# one continuous alnum token — no field forms a bare 6-digit run.
+# words; here we serve the real entry.cgi COMPOUND envelope — a `result` array whose element echoes its
+# own `api`/`method`, which is where a genuine DSM response carries the `SYNO.Core.System` string (a
+# single non-compound info call would not echo it). The needle is the full upstream id (findRule is
+# global; a generic `nas` pid would shadow other routes). Content-Type is application/json (the header
+# witness). Device identity is consistent: the DS220+ is x86, so it reports its real Intel Celeron
+# J4025 (the Realtek ARM SoC ships only on the value/ARM DiskStations, never the "+" line). Number
+# safety: the DSM build is a static 5-digit tag, ram/temperature are small, uptime is dec:5, the CPU
+# series is letter-led, and the serial is one continuous token — no field forms a bare 6-digit run.
 match:
   template_needle: [synology-dsm-system-info]
 response:
   headers:
     Content-Type: "application/json"
+    Server: "nginx"
   body: |
     {
     "data": {
-      "api": "SYNO.Core.System",
-      "model": "DS220+",
-      "firmware_ver": "DSM 7.1.1-42962",
-      "serial": "{{fake.syno_serial:hexupper:10}}",
-      "ram_size": 2048,
-      "sys_temp": 42,
-      "up_time": {{fake.syno_uptime:dec:5}},
-      "cpu_family": "Realtek RTD1296",
-      "enabled_ntp": true
+      "has_fail": false,
+      "result": [
+        {
+          "api": "SYNO.Core.System",
+          "method": "info",
+          "success": true,
+          "data": {
+            "model": "DS220+",
+            "firmware_ver": "DSM 7.1.1-42962",
+            "serial": "{{fake.syno_serial:b64url:10}}",
+            "ram_size": 2048,
+            "sys_temp": 42,
+            "up_time": {{fake.syno_uptime:dec:5}},
+            "cpu_vendor": "INTEL",
+            "cpu_family": "Celeron",
+            "cpu_series": "J4025",
+            "enabled_ntp": true
+          }
+        }
+      ]
     },
     "success":true
     }

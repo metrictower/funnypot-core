@@ -3,15 +3,17 @@ priority: 352
 # Enrich: the corpus routes /currentsetting.htm bundle 0 to the CVE-2024-30569 bundle (body words
 # `Firmware=`,`LoginMethod=`,`Model=`). This is the unauthenticated status page a NETGEAR router
 # leaks. Minimal synth would emit the bare keys; here we serve the real key=value dump. The needle is
-# the full CVE id (findRule is global; a generic `router` pid would shadow a dozen routes). This
-# bundle carries no header/type witness, so Content-Type is a plain text/plain. Device identity is
-# consistent: model R6850 ↔ firmware family V1.0.0.42 ↔ region tag agree. Number safety: every value
-# is a short dotted version or 1-2 digit field, so no field forms a bare 6-digit run.
+# the full CVE id (findRule is global; a generic `router` pid would shadow a dozen routes). This bundle
+# carries no header/type witness; the body is plaintext key=value, but the device's embedded httpd maps
+# the .htm extension to text/html, so that is the served Content-Type (a .htm labelled text/plain is a
+# tell). Device identity is consistent: model R6850 ↔ firmware family V1.0.0.42 ↔ region tag agree.
+# Number safety: every value is a short dotted version or 1-2 digit field, so no field forms a bare
+# 6-digit run.
 match:
   template_needle: [CVE-2024-30569]
 response:
   headers:
-    Content-Type: "text/plain; charset=utf-8"
+    Content-Type: "text/html; charset=UTF-8"
   body: |
     Firmware=V1.0.0.42
     RegionTag=R6850_WW
