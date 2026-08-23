@@ -91,9 +91,11 @@ if ($command === 'compile-routes') {
     // Catalog-derived AI route templates written by `compile-ai` live in a sibling generated dir
     // and merge into the same first-match-wins set (priority is the real key). Same pattern as
     // compile-emulators folding templates/attack-crs. Absent when compile-ai hasn't been run.
+    // realpath() (not a raw string compare) so a relative or trailing-slash invocation of the
+    // canonical route dir still resolves to the same path and folds the generated dir.
     $dirs = [$dir];
     $genDir = dirname($dir) . '/generated';
-    if ($dir === $root . '/templates/route' && is_dir($genDir)) {
+    if (realpath($dir) === realpath($root . '/templates/route') && is_dir($genDir)) {
         $dirs[] = $genDir;
     }
     $rules = (new Funnypot\Compiler\RouteEmulatorCompiler())->compileDirs($dirs);
