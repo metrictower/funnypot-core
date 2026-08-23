@@ -47,6 +47,9 @@ by default (detect only); respond mode is opt-in and gated by your own suspicion
 - **Anti-fingerprint.** One coherent product persona per attacker (deterministic, spoof-proof seed)
   instead of an impossible "vulnerable to everything" host. Consistent `X-Powered-By`, tamper-evident
   honeytoken cookie.
+- **AI-API recon surface.** A fake Ollama + OpenAI/Anthropic-shaped model API — `/api/tags`,
+  `/api/version`, `/api/ps`, `/api/show`, header-branched `/v1/models` — plus a buffered floor on
+  the four chat endpoints. One shared model catalog is the single source of truth for every body.
 
 ## Install
 
@@ -152,6 +155,29 @@ through to the static decoy — so ownership only ever *upgrades* a served path,
 and it sits after the "never shadow a live host route" guard so a real endpoint is untouched. This is
 how bare `/xmlrpc.php` and the credential oracles serve request-aware responses even though a static
 decoy also keys those paths.
+
+### AI-API recon surface
+
+The same owns_path override backs a fake AI-inference API: Ollama `/api/tags`, `/api/version`,
+`/api/ps`, and a per-model `/api/show` (POST), plus a header-branched `GET /v1/models` — no
+`anthropic-version` header gets the OpenAI list shape, its presence switches to the Anthropic shape.
+A buffered ("non-streaming") floor answers the four chat paths (`/api/chat`, `/api/generate`,
+`/v1/chat/completions`, `/v1/messages`) with a static, deliberately-wrong answer and the request's
+own model echoed back; the echo is capture-bounded so a malformed model value can never break the
+served JSON. `/api/tags` and `/api/ps` also carry a heavy-weighted tier-1 route decoy, so the AI
+persona still wins the rare corpus-template collision even where owns_path isn't in play.
+
+Every body is `json_encode()` of a projection from `resources/ai/model-catalog.php`, read through
+`Funnypot\Ai\ModelCatalog` — one source of truth for both the route- and attack-tier copies, so
+there's nothing to hand-sync. `bin/funnypot compile-ai` regenerates the templates from the catalog
+(route templates into `templates/generated/`, owns_path rules into `templates/attack-ai/`); re-run
+it after a catalog change, then rebuild in order: `compile-ai` → `compile-routes` → `merge-routes` →
+`compile-emulators` (`merge-routes` is idempotent by pid, so re-folding never duplicates a route; a
+full deterministic rebuild starts from a base `compile`).
+
+The interactive streaming chat and the actual LLM live in the funnypot **app**, not here — this
+package only floors the buffered, non-streaming chat shapes, so those four paths still answer
+believably when the app's LLM is off.
 
 ## Runtime rule updates (no composer update)
 
