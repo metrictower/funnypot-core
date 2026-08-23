@@ -1,7 +1,8 @@
 id: route-sql-dump
 priority: 110
 # Exposed SQL dump / database backup — DDL markers in a plausible schema + one seed row.
-# Admin password is an inert fakeHex stub; all emails @example.com.
+# Admin identity/email come from the shared persona.user.admin.* account (the ONE site admin
+# identity other templates on this host also show); the password is an inert fakeHex stub.
 match:
   template_needle: [database-backup, sql-dump, sql-backup, mysql-dump, db-dump]
 response:
@@ -22,7 +23,7 @@ response:
       PRIMARY KEY (`adminid`)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
-    INSERT INTO `panel_admins` VALUES (1,'admin','$2y$10${{fake.adminpw:hex:53}}','admin@example.com');
+    INSERT INTO `panel_admins` VALUES (1,'{{persona.user.admin.username}}','$2y$10${{fake.adminpw:hex:53}}','{{persona.user.admin.email}}');
 
     DROP TABLE IF EXISTS `api_credentials`;
     CREATE TABLE `api_credentials` (

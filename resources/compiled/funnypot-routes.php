@@ -552,7 +552,7 @@ CREATE TABLE `panel_admins` (
   PRIMARY KEY (`adminid`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
-INSERT INTO `panel_admins` VALUES (1,\'admin\',\'$2y$10${{fake.adminpw:hex:53}}\',\'admin@example.com\');
+INSERT INTO `panel_admins` VALUES (1,\'{{persona.user.admin.username}}\',\'$2y$10${{fake.adminpw:hex:53}}\',\'{{persona.user.admin.email}}\');
 
 DROP TABLE IF EXISTS `api_credentials`;
 CREATE TABLE `api_credentials` (
@@ -1050,14 +1050,14 @@ SLACK_WEBHOOK_URL=https://hooks.slack.com/services/T{{fake.slt:hex:8}}/B{{fake.s
       ),
     ),
     'body' => 'id,username,email,password_hash,role
-1,admin,admin@example.com,$2y$10${{fake.u1:hex:53}},superadmin
-2,jdoe,jane.doe@example.com,$2y$10${{fake.u2:hex:53}},admin
-3,bsmith,bob.smith@example.com,$2y$10${{fake.u3:hex:53}},editor
-4,mwilson,mike.wilson@example.com,$2y$10${{fake.u4:hex:53}},user
-5,svcapi,api@example.com,$2y$10${{fake.u5:hex:53}},api
-6,helpdesk,support@example.com,$2y$10${{fake.u6:hex:53}},support
-7,financeops,finance@example.com,$2y$10${{fake.u7:hex:53}},finance
-8,rpatel,raj.patel@example.com,$2y$10${{fake.u8:hex:53}},user
+1,{{persona.user.admin.username}},{{persona.user.admin.email}},$2y$10${{fake.u1:hex:53}},superadmin
+2,{{fake.person.username:csv-r2}},{{fake.person.email:csv-r2}},$2y$10${{fake.u2:hex:53}},admin
+3,{{fake.person.username:csv-r3}},{{fake.person.email:csv-r3}},$2y$10${{fake.u3:hex:53}},editor
+4,{{fake.person.username:csv-r4}},{{fake.person.email:csv-r4}},$2y$10${{fake.u4:hex:53}},user
+5,svcapi,api@{{persona.company.domain}},$2y$10${{fake.u5:hex:53}},api
+6,helpdesk,support@{{persona.company.domain}},$2y$10${{fake.u6:hex:53}},support
+7,financeops,finance@{{persona.company.domain}},$2y$10${{fake.u7:hex:53}},finance
+8,{{fake.person.username:csv-r8}},{{fake.person.email:csv-r8}},$2y$10${{fake.u8:hex:53}},user
 ',
     'headers' => 
     array (
@@ -1091,11 +1091,11 @@ CREATE TABLE `users` (
   PRIMARY KEY (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
-INSERT INTO `users` VALUES (1,\'admin@example.com\',\'$2y$10${{fake.bc1:hex:53}}\');
-INSERT INTO `users` VALUES (2,\'j.harper@example.com\',\'$2y$10${{fake.bc2:hex:53}}\');
-INSERT INTO `users` VALUES (3,\'s.ncube@example.com\',\'$2y$10${{fake.bc3:hex:53}}\');
-INSERT INTO `users` VALUES (4,\'m.delacroix@example.com\',\'$2y$10${{fake.bc4:hex:53}}\');
-INSERT INTO `users` VALUES (5,\'support@example.com\',\'$2y$10${{fake.bc5:hex:53}}\');
+INSERT INTO `users` VALUES (1,\'{{persona.user.admin.email}}\',\'$2y$10${{fake.bc1:hex:53}}\');
+INSERT INTO `users` VALUES (2,\'{{fake.person.email:bak-r2}}\',\'$2y$10${{fake.bc2:hex:53}}\');
+INSERT INTO `users` VALUES (3,\'{{fake.person.email:bak-r3}}\',\'$2y$10${{fake.bc3:hex:53}}\');
+INSERT INTO `users` VALUES (4,\'{{fake.person.email:bak-r4}}\',\'$2y$10${{fake.bc4:hex:53}}\');
+INSERT INTO `users` VALUES (5,\'support@{{persona.company.domain}}\',\'$2y$10${{fake.bc5:hex:53}}\');
 
 DROP TABLE IF EXISTS `api_keys`;
 CREATE TABLE `api_keys` (

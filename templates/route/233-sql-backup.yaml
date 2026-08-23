@@ -27,11 +27,11 @@ response:
       PRIMARY KEY (`id`)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
-    INSERT INTO `users` VALUES (1,'admin@example.com','$2y$10${{fake.bc1:hex:53}}');
-    INSERT INTO `users` VALUES (2,'j.harper@example.com','$2y$10${{fake.bc2:hex:53}}');
-    INSERT INTO `users` VALUES (3,'s.ncube@example.com','$2y$10${{fake.bc3:hex:53}}');
-    INSERT INTO `users` VALUES (4,'m.delacroix@example.com','$2y$10${{fake.bc4:hex:53}}');
-    INSERT INTO `users` VALUES (5,'support@example.com','$2y$10${{fake.bc5:hex:53}}');
+    INSERT INTO `users` VALUES (1,'{{persona.user.admin.email}}','$2y$10${{fake.bc1:hex:53}}');
+    INSERT INTO `users` VALUES (2,'{{fake.person.email:bak-r2}}','$2y$10${{fake.bc2:hex:53}}');
+    INSERT INTO `users` VALUES (3,'{{fake.person.email:bak-r3}}','$2y$10${{fake.bc3:hex:53}}');
+    INSERT INTO `users` VALUES (4,'{{fake.person.email:bak-r4}}','$2y$10${{fake.bc4:hex:53}}');
+    INSERT INTO `users` VALUES (5,'support@{{persona.company.domain}}','$2y$10${{fake.bc5:hex:53}}');
 
     DROP TABLE IF EXISTS `api_keys`;
     CREATE TABLE `api_keys` (
