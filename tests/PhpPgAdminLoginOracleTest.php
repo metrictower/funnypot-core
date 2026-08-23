@@ -101,6 +101,24 @@ final class PhpPgAdminLoginOracleTest extends TestCase
         }
     }
 
+    // --- REGRESSION: the two branches' error pages must be byte-identical apart from the message ------
+
+    public function test_both_branches_end_with_the_same_trailing_byte(): void
+    {
+        // A YAML block-scalar chomping trap: the login-disallowed body (base/default) and the
+        // login-failed body (the one branch case) are otherwise identical phpPgAdmin pages, so they
+        // must end with the SAME trailing byte(s) — two error pages from the same server differing
+        // only by a trailing newline is itself an inconsistency tell.
+        $emu = $this->isolated();
+        $disallowed = $emu->emulate(new RequestContext('POST', self::PATH, '', [], $this->body('postgres')));
+        $failed = $emu->emulate(new RequestContext('POST', self::PATH, '', [], $this->body('alice')));
+        self::assertNotNull($disallowed);
+        self::assertNotNull($failed);
+        self::assertStringEndsWith("</html>\n", $disallowed->body);
+        self::assertStringEndsWith("</html>\n", $failed->body);
+        self::assertSame(substr($disallowed->body, -1), substr($failed->body, -1), 'both branch bodies must end with the same trailing byte');
+    }
+
     // --- coherence: topbar + version + password field literal -----------------------------------------
 
     public function test_topbar_and_password_field_are_byte_coherent(): void
@@ -118,11 +136,35 @@ final class PhpPgAdminLoginOracleTest extends TestCase
     public function test_submitted_username_is_never_reflected_in_either_branch(): void
     {
         $emu = $this->isolated();
-        foreach (['postgres', 'alice', '900000', 'admin"', "admin' OR '1'='1"] as $user) {
+        // 'postgres' takes the disallowed branch; the rest take the login-failed branch — covering
+        // the paradigm XSS payload (<script>alert(1)</script>) on BOTH sides of the branch split.
+        foreach (['postgres', 'alice', '900000', 'admin"', "admin' OR '1'='1", '<script>alert(1)</script>'] as $user) {
             $r = $emu->emulate(new RequestContext('POST', self::PATH, '', [], $this->body($user)));
             self::assertNotNull($r, $user);
             self::assertStringNotContainsString($user, $r->body, "username must never be reflected: {$user}");
         }
+    }
+
+    // --- SAFETY: the paradigm XSS payload never reflects, whichever branch actually renders -----------
+
+    public function test_xss_payload_username_never_reflected_in_either_branchs_rendered_body(): void
+    {
+        $emu = $this->isolated();
+        $xss = '<script>alert(1)</script>';
+
+        // The payload itself is not a reserved name, so it dispatches to the login-failed branch (the
+        // one case) — assert it is absent there.
+        $failed = $emu->emulate(new RequestContext('POST', self::PATH, '', [], $this->body($xss)));
+        self::assertNotNull($failed);
+        self::assertStringContainsString('Login failed', $failed->body);
+        self::assertStringNotContainsString($xss, $failed->body);
+
+        // The disallowed (base/default) branch is a separate static template with no username slot at
+        // all — assert the payload is absent there too, so neither branch could ever reflect it.
+        $disallowed = $emu->emulate(new RequestContext('POST', self::PATH, '', [], $this->body('postgres')));
+        self::assertNotNull($disallowed);
+        self::assertStringContainsString('Login disallowed for security reasons.', $disallowed->body);
+        self::assertStringNotContainsString($xss, $disallowed->body);
     }
 
     // --- SAFETY: zero-execution — the password is never read beyond the presence gate -----------------

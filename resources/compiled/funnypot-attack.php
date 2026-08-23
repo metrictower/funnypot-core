@@ -1739,7 +1739,8 @@ Ethernet adapter Ethernet0:
 </div>
 <script type="text/javascript">parent.frames.browser.location.reload();</script>
 </body>
-</html>',
+</html>
+',
             'status' => 200,
           ),
         ),

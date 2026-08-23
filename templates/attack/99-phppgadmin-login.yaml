@@ -118,4 +118,6 @@ branch:
           <script type="text/javascript">parent.frames.browser.location.reload();</script>
           </body>
           </html>
+# expect applies to both branches: the topbar markup ('phpPgAdmin'/'7.13.0') is shared verbatim by
+# the base response above and the one case above.
 expect: ['phpPgAdmin', '7.13.0']
