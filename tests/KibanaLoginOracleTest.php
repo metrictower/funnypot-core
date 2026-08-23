@@ -209,6 +209,54 @@ final class KibanaLoginOracleTest extends TestCase
         self::assertSame(['attack-kibana-login'], $r->satisfies->templateIds());
     }
 
+    // --- REGRESSION: adversarial canonical-variant requests must still win, never fall through -------
+
+    /**
+     * WP-Phase-2b safety fix: PathNormalizer::ownershipKey() lower-cases the path and strips a
+     * trailing slash, so ownsPath() returns true for a case/trailing-slash/method variant of the
+     * owned path — but the oracle's OWN match used to be stricter (anchored path with no trailing
+     * slash, `ci: false`, method `ci: false`). A variant request then made ownsPath() true (entering
+     * the override) while matchRule() declined, so classify() fell through to resolveEntry(), which
+     * re-resolved the SAME variant onto the live `elasticsearch-default-login` bundle (200,
+     * `Set-Cookie: sid=`) — a fake LOGIN-SUCCESS. The oracle's match is now as permissive as
+     * ownsPath's canonical form, so every variant below must win instead: ATTACK_CLASS + KIND_ATTACK,
+     * and the served bytes must be this oracle's own response, never the bundle's 200/sid= cookie.
+     *
+     * @dataProvider adversarialVariantProvider
+     */
+    public function test_adversarial_variants_win_never_the_elasticsearch_login_success_bundle(
+        string $method,
+        string $path
+    ): void {
+        $verdict = $this->fullEngine()->classify(
+            new RequestContext($method, $path, '', ['kbn-xsrf' => 'true'], $this->loginBody('root')),
+            SiteProfile::empty()
+        );
+        self::assertSame(Verdict::ATTACK_CLASS, $verdict->classification, "{$method} {$path}");
+        self::assertNotNull($verdict->fakeHandle, "{$method} {$path}");
+        self::assertSame(FakeHandle::KIND_ATTACK, $verdict->fakeHandle->kind, "{$method} {$path}: must be the attack-tier handle, not a route handle onto elasticsearch-default-login");
+        self::assertSame(self::ID, $verdict->fakeHandle->ruleId, "{$method} {$path}");
+
+        $engine = $this->fullEngine(true);
+        $r = $engine->respond(new RequestContext($method, $path, '', ['kbn-xsrf' => 'true'], $this->loginBody('root')));
+        self::assertNotNull($r, "{$method} {$path}");
+        self::assertSame(401, $r->status, "{$method} {$path}: must not be the bundle's 200 login-success");
+        self::assertSame(self::BODY_401, $r->body, "{$method} {$path}");
+        self::assertArrayNotHasKey('Set-Cookie', $r->headers, "{$method} {$path}");
+        self::assertArrayNotHasKey('set-cookie', $r->headers, "{$method} {$path}");
+        self::assertStringNotContainsString('sid=', implode(' ', $r->headers), "{$method} {$path}");
+    }
+
+    /** @return array<string,array{0:string,1:string}> */
+    public function adversarialVariantProvider(): array
+    {
+        return [
+            'trailing slash' => ['POST', self::PATH . '/'],
+            'mixed-case path' => ['POST', '/Internal/security/login'],
+            'lowercase method' => ['post', self::PATH],
+        ];
+    }
+
     // --- byte-accurate response shape: valid JSON in both branches ---------------------------------
 
     public function test_both_branches_are_valid_json(): void

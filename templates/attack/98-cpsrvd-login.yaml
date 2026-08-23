@@ -32,15 +32,22 @@ owns_path: [/login/]
 # AJAX path real cPanel/WHM's login form JS uses); every other POST here — with or without a
 # different query — falls through to the base `response` below, the HTML login-failed page (real
 # cpsrvd's non-AJAX POST answer). Server + Version stay lockstep with routes 382/383 (one host).
+#
+# PATH/METHOD MATCH MUST STAY AS PERMISSIVE AS owns_path: ownsPath() claims any case/trailing-slash
+# variant of /login/ (PathNormalizer::ownershipKey lower-cases + strips the trailing slash), so a
+# stricter match here would DECLINE on a variant the override already claimed — classify() then falls
+# through to resolveEntry(), which re-resolves that same variant onto the live szhe-default-login
+# bundle above. The `user` capture is likewise optional (matches even with no `user=` field, or a
+# body missing entirely) so a POST with any body still reaches this oracle instead of that bundle.
 match:
   - in: path
     regex: '(?:^|/)login/?$'
-    ci: false
+    ci: true
   - in: method
     regex: '^POST$'
-    ci: false
+    ci: true
   - in: body
-    regex: '(?:^|&)user=([^&]{0,64})'   # capture-gate only, never reflected
+    regex: '(?:(?:^|&)user=([^&]{0,64}))?'   # optional: capture-gate only when present, never reflected
     capture: true
     ci: false
 status: 401

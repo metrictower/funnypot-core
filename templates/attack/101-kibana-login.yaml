@@ -33,13 +33,19 @@ owns_path: [/internal/security/login]
 # does (zero-reflection: the submitted username can never surface). There is NO success path anywhere:
 # no Set-Cookie is ever set (Kibana's session cookie is success-only), so no credential can ever
 # authenticate here. Gated to POST: any other verb misses (no route here for any verb) -> plain 404.
+#
+# PATH/METHOD MATCH MUST STAY AS PERMISSIVE AS owns_path: ownsPath() claims any case/trailing-slash
+# variant of this path (PathNormalizer::ownershipKey lower-cases + strips the trailing slash), so a
+# stricter match here would DECLINE on a variant the override already claimed — classify() then falls
+# through to resolveEntry(), which re-resolves that same variant onto the live elasticsearch-default-
+# login bundle above (case-insensitive path, case-insensitive method: any case, trailing slash or not).
 match:
   - in: path
-    regex: '(?:^|/)internal/security/login$'
-    ci: false
+    regex: '(?:^|/)internal/security/login/?$'
+    ci: true
   - in: method
     regex: '^POST$'
-    ci: false
+    ci: true
 status: 401
 response:
   headers:

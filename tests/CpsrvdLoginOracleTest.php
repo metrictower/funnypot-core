@@ -159,6 +159,65 @@ final class CpsrvdLoginOracleTest extends TestCase
         );
     }
 
+    // --- REGRESSION: adversarial canonical-variant requests must still win, never fall through -------
+
+    /**
+     * WP-Phase-2b safety fix: PathNormalizer::ownershipKey() lower-cases the path and strips a
+     * trailing slash, so ownsPath() returns true for a case/trailing-slash/method/body variant of the
+     * owned path — but the oracle's OWN match used to be stricter (method `ci: false`, path
+     * `ci: false`, and a body condition that REQUIRED a `user=` field to be present). Such a variant
+     * request made ownsPath() true (entering the override) while matchRule() declined, so classify()
+     * fell through to resolveEntry(), which re-resolved the SAME variant onto the live
+     * `szhe-default-login` bundle (302 redirect to `/`, `Set-Cookie: session`) — a fake LOGIN-SUCCESS.
+     * The oracle's match is now as permissive as ownsPath's canonical form (and its `user=` capture is
+     * optional), so every variant below must win instead: ATTACK_CLASS + KIND_ATTACK, and the served
+     * bytes must be this oracle's own response, never the bundle's 302/`Set-Cookie: session`.
+     *
+     * @dataProvider adversarialVariantProvider
+     */
+    public function test_adversarial_variants_win_never_the_szhe_login_success_bundle(
+        string $method,
+        string $path,
+        string $body
+    ): void {
+        $verdict = $this->fullEngine()->classify(
+            new RequestContext($method, $path, '', [], $body),
+            SiteProfile::empty()
+        );
+        self::assertSame(Verdict::ATTACK_CLASS, $verdict->classification, "{$method} {$path} [{$body}]");
+        self::assertNotNull($verdict->fakeHandle, "{$method} {$path} [{$body}]");
+        self::assertSame(FakeHandle::KIND_ATTACK, $verdict->fakeHandle->kind, "{$method} {$path} [{$body}]: must be the attack-tier handle, not a route handle onto szhe-default-login");
+        self::assertSame(self::ID, $verdict->fakeHandle->ruleId, "{$method} {$path} [{$body}]");
+
+        $engine = $this->fullEngine(true);
+        $r = $engine->respond(new RequestContext($method, $path, '', [], $body));
+        self::assertNotNull($r, "{$method} {$path} [{$body}]");
+        self::assertSame(401, $r->status, "{$method} {$path} [{$body}]: must not be the bundle's 302 redirect");
+        self::assertArrayNotHasKey('Location', $r->headers, "{$method} {$path} [{$body}]");
+        self::assertStringNotContainsString(
+            'You should be redirected automatically to target URL',
+            $r->body,
+            "{$method} {$path} [{$body}]: must not be the szhe bundle's redirect body"
+        );
+        self::assertStringStartsWith('cpsession=', $r->headers['Set-Cookie'], "{$method} {$path} [{$body}]");
+    }
+
+    /** @return array<string,array{0:string,1:string,2:string}> */
+    public function adversarialVariantProvider(): array
+    {
+        return [
+            'trailing slash' => ['POST', '/login/', 'user=root&pass=x'],
+            // Mixed case WITH a trailing slash: bare "/Login" (no slash) would also match
+            // 100-grafana-login.yaml's own case-insensitive bare-login alias (it sorts first,
+            // priority 38 < 42) — an unrelated pre-existing oracle-vs-oracle overlap this test must
+            // not trip. "/Login/" only matches this rule (grafana's bare alias has no slash tolerance).
+            'mixed-case path' => ['POST', '/Login/', 'user=root&pass=x'],
+            'lowercase method' => ['post', '/login/', 'user=root&pass=x'],
+            'body missing user field' => ['POST', '/login/', 'pass=x'],
+            'empty body' => ['POST', '/login/', ''],
+        ];
+    }
+
     // --- login_only=1 branch: the JSON AJAX answer --------------------------------------------------
 
     public function test_login_only_branch_returns_the_exact_json_oracle(): void

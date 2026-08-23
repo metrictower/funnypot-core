@@ -148,6 +148,50 @@ final class GrafanaLoginOracleTest extends TestCase
         self::assertSame('application/json', $r->headers['Content-Type'], "must not be route 379's HTML content type");
     }
 
+    // --- REGRESSION: adversarial canonical-variant requests must still win --------------------------
+
+    /**
+     * WP-Phase-2b safety fix, applied to Grafana for robustness/consistency with the other three
+     * login oracles: PathNormalizer::ownershipKey() lower-cases the path and strips a trailing slash,
+     * so ownsPath() returns true for a case/trailing-slash/method variant of the owned path. The
+     * oracle's match is now as permissive as ownsPath's canonical form, so every variant below must
+     * still win: ATTACK_CLASS + KIND_ATTACK, and the served bytes must be this oracle's own static
+     * 401 JSON — never route 379's GET login shell (this fallthrough was always benign, unlike the
+     * other three oracles, but the invariant is kept identical across all four for consistency).
+     *
+     * @dataProvider adversarialVariantProvider
+     */
+    public function test_adversarial_variants_win_never_route_379s_html_login_page(
+        string $method,
+        string $path
+    ): void {
+        $verdict = $this->fullEngine()->classify(
+            new RequestContext($method, $path, '', [], $this->body('admin')),
+            SiteProfile::empty()
+        );
+        self::assertSame(Verdict::ATTACK_CLASS, $verdict->classification, "{$method} {$path}");
+        self::assertNotNull($verdict->fakeHandle, "{$method} {$path}");
+        self::assertSame(FakeHandle::KIND_ATTACK, $verdict->fakeHandle->kind, "{$method} {$path}: must be the attack-tier handle, not route 379's GET login page");
+        self::assertSame(self::ID, $verdict->fakeHandle->ruleId, "{$method} {$path}");
+
+        $engine = $this->fullEngine(true);
+        $r = $engine->respond(new RequestContext($method, $path, '', [], $this->body('admin')));
+        self::assertNotNull($r, "{$method} {$path}");
+        self::assertSame(401, $r->status, "{$method} {$path}: must not be route 379's 200 HTML page");
+        self::assertSame(self::EXPECTED_BODY, $r->body, "{$method} {$path}");
+        self::assertSame('application/json', $r->headers['Content-Type'], "{$method} {$path}: must not be route 379's HTML content type");
+    }
+
+    /** @return array<string,array{0:string,1:string}> */
+    public function adversarialVariantProvider(): array
+    {
+        return [
+            'trailing slash' => ['POST', self::PATH . '/'],
+            'mixed-case path' => ['POST', '/Grafana/Login'],
+            'lowercase method' => ['post', self::PATH],
+        ];
+    }
+
     // --- basic dispatch: byte-accurate static 401 JSON --------------------------------------------
 
     public function test_bad_credentials_return_static_401_json(): void
@@ -282,14 +326,29 @@ final class GrafanaLoginOracleTest extends TestCase
         self::assertSame([], $hits, 'rendered response must carry no denied fingerprint token');
     }
 
-    // --- gates: no user field --------------------------------------------------------------------
+    // --- WP-Phase-2b fix: a POST with no `user` field still dispatches (owns_path is permissive) -----
 
-    public function test_post_missing_user_field_does_not_dispatch(): void
+    /**
+     * The `user` capture is OPTIONAL (WP-Phase-2b fix): a body missing the `user` field, an empty
+     * body, or an empty JSON object must still dispatch this oracle's static 401, exactly like a body
+     * that does carry `user`. Before the fix this declined and fell back to route 379's GET login
+     * shell — benign here, but inconsistent with the other three oracles, where the same shape of gap
+     * (owns_path claims the path; a stricter match declines) falls through to a genuinely dangerous
+     * corpus bundle. Keeping all four oracles' match as permissive as owns_path is what closes that.
+     */
+    public function test_post_with_missing_or_empty_body_still_dispatches_the_oracle(): void
     {
         $emu = $this->isolated();
-        self::assertNull($emu->emulate(new RequestContext('POST', self::PATH, '', [], json_encode(['password' => 'x']))), 'missing user field');
-        self::assertNull($emu->emulate(new RequestContext('POST', self::PATH, '', [], '')), 'empty body');
-        self::assertNull($emu->emulate(new RequestContext('POST', self::PATH, '', [], '{}')), 'empty JSON object');
+        foreach ([
+            'missing user field' => json_encode(['password' => 'x']),
+            'empty body' => '',
+            'empty JSON object' => '{}',
+        ] as $label => $body) {
+            $r = $emu->emulate(new RequestContext('POST', self::PATH, '', [], $body));
+            self::assertNotNull($r, $label);
+            self::assertSame(401, $r->status, $label);
+            self::assertSame(self::EXPECTED_BODY, $r->body, $label);
+        }
     }
 
     // --- method gate: GET declines (no route here for POST) -----------------------------------------

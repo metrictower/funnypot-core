@@ -1364,14 +1364,14 @@ return array (
       0 => 
       array (
         'in' => 'path',
-        'regex' => '(?:^|/)internal/security/login$',
-        'ci' => false,
+        'regex' => '(?:^|/)internal/security/login/?$',
+        'ci' => true,
       ),
       1 => 
       array (
         'in' => 'method',
         'regex' => '^POST$',
-        'ci' => false,
+        'ci' => true,
       ),
     ),
     'response' => 
@@ -1389,7 +1389,7 @@ return array (
     ),
     'lit' => 'POST',
     'lit_in' => 'method',
-    'lit_ci' => false,
+    'lit_ci' => true,
     'owns_path' => 
     array (
       0 => '/internal/security/login',
@@ -1438,19 +1438,19 @@ return array (
       0 => 
       array (
         'in' => 'path',
-        'regex' => '(?:^|/)(?:grafana/)?login$',
-        'ci' => false,
+        'regex' => '(?:^|/)(?:grafana/login/?|login)$',
+        'ci' => true,
       ),
       1 => 
       array (
         'in' => 'method',
         'regex' => '^POST$',
-        'ci' => false,
+        'ci' => true,
       ),
       2 => 
       array (
         'in' => 'body',
-        'regex' => '"user"\\s*:\\s*"([^"]{0,64})"',
+        'regex' => '(?:"user"\\s*:\\s*"([^"]{0,64})")?',
         'ci' => false,
         'capture' => true,
       ),
@@ -1467,9 +1467,9 @@ return array (
       ),
       'body' => '{"statusCode":401,"messageId":"password-auth.failed","message":"Invalid username or password"}',
     ),
-    'lit' => '"user"',
-    'lit_in' => 'body',
-    'lit_ci' => false,
+    'lit' => 'POST',
+    'lit_in' => 'method',
+    'lit_ci' => true,
     'owns_path' => 
     array (
       0 => '/grafana/login',
@@ -1492,19 +1492,19 @@ return array (
       0 => 
       array (
         'in' => 'path',
-        'regex' => '(?:^|/)wp-login\\.php$',
-        'ci' => false,
+        'regex' => '(?:^|/)wp-login\\.php/?$',
+        'ci' => true,
       ),
       1 => 
       array (
         'in' => 'method',
         'regex' => '^POST$',
-        'ci' => false,
+        'ci' => true,
       ),
       2 => 
       array (
         'in' => 'body',
-        'regex' => '(?:^|&)log=([^&]{0,64})',
+        'regex' => '(?:(?:^|&)log=([^&]{0,64}))?',
         'ci' => false,
         'capture' => true,
       ),
@@ -1558,7 +1558,7 @@ return array (
     ),
     'lit' => 'POST',
     'lit_in' => 'method',
-    'lit_ci' => false,
+    'lit_ci' => true,
     'owns_path' => 
     array (
       0 => '/wp-login.php',
@@ -1649,18 +1649,18 @@ Ethernet adapter Ethernet0:
       array (
         'in' => 'path',
         'regex' => '(?:^|/)login/?$',
-        'ci' => false,
+        'ci' => true,
       ),
       1 => 
       array (
         'in' => 'method',
         'regex' => '^POST$',
-        'ci' => false,
+        'ci' => true,
       ),
       2 => 
       array (
         'in' => 'body',
-        'regex' => '(?:^|&)user=([^&]{0,64})',
+        'regex' => '(?:(?:^|&)user=([^&]{0,64}))?',
         'ci' => false,
         'capture' => true,
       ),
@@ -1706,7 +1706,7 @@ Ethernet adapter Ethernet0:
     ),
     'lit' => 'POST',
     'lit_in' => 'method',
-    'lit_ci' => false,
+    'lit_ci' => true,
     'owns_path' => 
     array (
       0 => '/login',

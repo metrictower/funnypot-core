@@ -20,15 +20,26 @@ owns_path: [/wp-login.php]
 # inert wordpress_test_cookie a real server also sets pre-auth. Gated to POST: any other verb misses
 # this rule (no owns_path match) → the static route above. Chrome/site-name/domain mirror route 50
 # (blog.{{persona.company.domain}}, no WP version disclosed) so the two responses stay one coherent host.
+#
+# PATH/METHOD MATCH MUST STAY AS PERMISSIVE AS owns_path: ownsPath() claims any case/trailing-slash
+# variant of /wp-login.php (PathNormalizer::ownershipKey lower-cases + strips the trailing slash), so
+# a stricter match here would DECLINE on a variant the override already claimed. On a decline,
+# classify() keeps scanning the REST of the attack rules in priority order (matchRule() is a full
+# linear scan, not scoped to this rule) before falling back to the exact-store `POST /wp-login.php`
+# entry — the real compiled corpus keys that exact path with a `wordpress`-tagged
+# wordpress-weak-credentials bundle (302, `wordpress_logged_in` — a fake login SUCCESS) alongside
+# white-label-cms, and a `pwd`-shaped body can also trip rule 41 (attack-cmdi-unix) before either. The
+# `log` capture is likewise optional (matches even with no `log=` field) so a POST with any body still
+# reaches this oracle first.
 match:
   - in: path
-    regex: '(?:^|/)wp-login\.php$'
-    ci: false
+    regex: '(?:^|/)wp-login\.php/?$'
+    ci: true
   - in: method
     regex: '^POST$'
-    ci: false
+    ci: true
   - in: body
-    regex: '(?:^|&)log=([^&]{0,64})'   # capture-gate only, never reflected
+    regex: '(?:(?:^|&)log=([^&]{0,64}))?'   # optional: capture-gate only when present, never reflected
     capture: true
     ci: false
 status: 200

@@ -126,6 +126,64 @@ final class WpLoginOracleTest extends TestCase
         );
     }
 
+    // --- REGRESSION: adversarial canonical-variant requests must still win, never fall through -------
+
+    /**
+     * WP-Phase-2b safety fix: PathNormalizer::ownershipKey() lower-cases the path and strips a
+     * trailing slash, so ownsPath() returns true for a case/trailing-slash/method/body variant of the
+     * owned path — but the oracle's OWN match used to be stricter (method `ci: false`, path
+     * `ci: false`, and a body condition that REQUIRED a `log=` field to be present). Such a variant
+     * request made ownsPath() true (entering the override) while matchRule() declined, so classify()
+     * kept scanning the REST of the attack rules (matchRule() is a linear scan, not scoped to this
+     * rule) — a `pwd`-shaped body can trip rule 41 (attack-cmdi-unix) before falling back to
+     * resolveEntry()'s exact-store `POST /wp-login.php` entry, which carries a
+     * `wordpress`-tagged wordpress-weak-credentials bundle (302, `wordpress_logged_in` — a fake
+     * LOGIN-SUCCESS) alongside white-label-cms. The oracle's match is now as permissive as ownsPath's
+     * canonical form (and its `log=` capture is optional), so every variant below must win instead:
+     * ATTACK_CLASS + KIND_ATTACK, and the served bytes must be this oracle's own `login_error` page,
+     * never a `wordpress_logged_in` cookie, a 302, or the cmdi bundle's `uid=0(root)` marker.
+     *
+     * @dataProvider adversarialVariantProvider
+     */
+    public function test_adversarial_variants_win_never_a_dangerous_fallthrough_bundle(
+        string $method,
+        string $path,
+        string $body
+    ): void {
+        $verdict = $this->fullEngine()->classify(
+            new RequestContext($method, $path, '', [], $body),
+            SiteProfile::empty()
+        );
+        self::assertSame(Verdict::ATTACK_CLASS, $verdict->classification, "{$method} {$path} [{$body}]");
+        self::assertNotNull($verdict->fakeHandle, "{$method} {$path} [{$body}]");
+        self::assertSame(FakeHandle::KIND_ATTACK, $verdict->fakeHandle->kind, "{$method} {$path} [{$body}]: must be the attack-tier handle, not a route/other-attack-rule handle");
+        self::assertSame(self::ID, $verdict->fakeHandle->ruleId, "{$method} {$path} [{$body}]");
+
+        $engine = $this->fullEngine(true);
+        $r = $engine->respond(new RequestContext($method, $path, '', [], $body));
+        self::assertNotNull($r, "{$method} {$path} [{$body}]");
+        self::assertStringContainsString('login_error', $r->body, "{$method} {$path} [{$body}]");
+        self::assertStringNotContainsString('wlcms-login-wrapper', $r->body, "{$method} {$path} [{$body}]: must not be white-label-cms");
+        self::assertStringNotContainsString('uid=0(root)', $r->body, "{$method} {$path} [{$body}]: must not be attack-cmdi-unix");
+        self::assertNotSame(302, $r->status, "{$method} {$path} [{$body}]: must not be wordpress-weak-credentials' redirect");
+        if (isset($r->headers['Set-Cookie'])) {
+            self::assertDoesNotMatchRegularExpression('/wordpress_logged_in/i', $r->headers['Set-Cookie'], "{$method} {$path} [{$body}]");
+        }
+    }
+
+    /** @return array<string,array{0:string,1:string,2:string}> */
+    public function adversarialVariantProvider(): array
+    {
+        return [
+            'trailing slash' => ['POST', '/wp-login.php/', 'log=root&pwd=x'],
+            'mixed-case path' => ['POST', '/WP-Login.php', 'log=root&pwd=x'],
+            'lowercase method' => ['post', '/wp-login.php', 'log=root&pwd=x'],
+            'body missing log field, no pwd' => ['POST', '/wp-login.php/', 'other=x'],
+            'body missing log field, pwd-shaped' => ['POST', '/wp-login.php/', 'pwd=x'],
+            'empty body' => ['POST', '/wp-login.php/', ''],
+        ];
+    }
+
     public function test_bad_credentials_are_a_200_oracle_naming_the_fixed_persona_user(): void
     {
         $r = $this->emulator()->emulate(new RequestContext('POST', '/wp-login.php', '', [], 'log=root&pwd=hunter2'));
