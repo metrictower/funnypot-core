@@ -54,6 +54,14 @@ final class RouteBundleSynth
                 'sig' => (int) ($np['sig'] ?? 0),
                 't' => [$id],
             ];
+            // Optional persona weight: when a brand-new path also carries niche corpus detections,
+            // a heavier tier makes THIS persona the one the seeded pick lands on far more often, so
+            // the page reads coherently to most scanners. Uncapped keys keep the weight the synth
+            // sets (merge-routes only re-tiers capped keys). Detection of the co-located templates is
+            // unaffected — this biases which bundle is SERVED, never what is detected.
+            if (isset($np['weight'])) {
+                $bundle['w'] = max(1, (int) $np['weight']);
+            }
             $typed = (array) ($np['typed_headers'] ?? []);
             if ($typed !== []) {
                 $bundle['th'] = [];

@@ -84355,6 +84355,17 @@ return array (
       ),
       'name' => 'phpPgAdmin intro (version disclosure)',
     ),
+    'route-ai-ollama-version' => 
+    array (
+      'sev' => 'medium',
+      'tags' => 
+      array (
+        0 => 'ai-recon',
+        1 => 'exposure',
+        2 => 'appliance',
+      ),
+      'name' => 'Exposed Ollama server version',
+    ),
   ),
   'routes' => 
   array (
@@ -127738,6 +127749,25 @@ return array (
           array (
             0 => 'windmill-panel',
           ),
+        ),
+        2 => 
+        array (
+          's' => 200,
+          'bw' => 
+          array (
+            0 => '"version"',
+          ),
+          'nf' => 
+          array (
+          ),
+          'pid' => 'route-ai-ollama-version',
+          'sev' => 'medium',
+          'sig' => 0,
+          't' => 
+          array (
+            0 => 'route-ai-ollama-version',
+          ),
+          'w' => 1000,
         ),
       ),
     ),

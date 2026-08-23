@@ -181,6 +181,17 @@ return array (
       ),
       'name' => 'LLM gateway auth required',
     ),
+    'route-ai-ollama-version' => 
+    array (
+      'sev' => 'medium',
+      'tags' => 
+      array (
+        0 => 'ai-recon',
+        1 => 'exposure',
+        2 => 'appliance',
+      ),
+      'name' => 'Exposed Ollama server version',
+    ),
     'route-config-php' => 
     array (
       'sev' => 'high',
@@ -1174,6 +1185,28 @@ return array (
         array (
           0 => 'route-llm-auth',
         ),
+      ),
+    ),
+    'GET /api/version' => 
+    array (
+      0 => 
+      array (
+        's' => 200,
+        'bw' => 
+        array (
+          0 => '"version"',
+        ),
+        'nf' => 
+        array (
+        ),
+        'pid' => 'route-ai-ollama-version',
+        'sev' => 'medium',
+        'sig' => 0,
+        't' => 
+        array (
+          0 => 'route-ai-ollama-version',
+        ),
+        'w' => 1000,
       ),
     ),
     'GET /config.php' => 

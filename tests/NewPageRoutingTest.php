@@ -135,6 +135,11 @@ final class NewPageRoutingTest extends TestCase
             'llm completions auth'    => ['/v1/completions', 401, 'invalid_request_error', 'application/json'],
             'v1/models enrich'        => ['/v1/models', 200, '"owned_by":"openai"', 'application/json'],
 
+            // Ollama GET recon surface — brand-new pages a scanner hits to fingerprint a running rig.
+            // /api/version is a static daemon banner; /api/tags + /api/ps are catalog-derived (compiled
+            // by `funnypot compile-ai` into templates/generated/, one source of truth in ModelCatalog).
+            'ollama version'          => ['/api/version', 200, '"version"', 'application/json; charset=utf-8'],
+
             // Config-file disclosure pack (M8). Each leaks persona-seeded secrets and MUST serve the
             // Content-Type its file/endpoint type implies (a mismatch is a honeypot tell).
             'config.php'             => ['/config.php', 200, 'DB_PASSWORD', 'text/plain; charset=utf-8'],

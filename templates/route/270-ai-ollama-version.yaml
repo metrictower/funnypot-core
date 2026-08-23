@@ -1,0 +1,24 @@
+id: route-ai-ollama-version
+priority: 270
+# Brand-new page: an unauth Ollama /api/version banner — the daemon version a running
+# Ollama inference server hands any GET, no auth. Static on purpose: the catalog drives
+# /api/tags and /api/ps, but a real daemon reports one fixed version string here.
+new_page:
+  method: GET
+  paths: ['/api/version']
+  sig: 0
+  status: 200
+  severity: medium
+  tags: [ai-recon, exposure, appliance]
+  name: 'Exposed Ollama server version'
+  body_words: ['"version"']
+  # /api/version is also probed by a couple of niche login-panel detections (sma, windmill).
+  # A heavy persona weight makes the Ollama banner the served persona for nearly every seed so
+  # the rig reads coherently; the panels stay detectable but rarely served. Deterministic
+  # ownership would need a merge-routes served-set change (routing precedence) — deferred.
+  weight: 1000
+response:
+  headers:
+    Content-Type: "application/json; charset=utf-8"
+  body: '{"version":"0.11.4"}'
+expect: ['"version"']
