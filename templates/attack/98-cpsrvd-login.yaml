@@ -1,0 +1,83 @@
+id: attack-cpsrvd-login
+severity: high
+priority: 98
+tags: [attack, cpanel, whm, cpsrvd, panel, login, credential-oracle]
+owns_path: [/login/]
+# Request-aware cpsrvd /login/ credential ORACLE, shared by BOTH cPanel (route 382) and WHM (route
+# 383): both panels' login forms POST to the same cpsrvd `/login/` endpoint, so one rule covers both
+# — the oracle has no way to tell a /cpanel POST from a /whm POST apart, and neither does real cpsrvd
+# (it answers both from the one `/login/` handler). /login/ has no exact-store route of its own (only
+# the GET-served /cpanel and /whm pages do), so this rule's owns_path claim is belt-and-suspenders:
+# it lets a future static /login page be overridden the same way 97-wp-login.yaml overrides route 50.
+#
+# ZERO EXECUTION: the ONLY body read is the bounded `user` field, captured purely to gate the match —
+# it is NEVER reflected in either branch. There is NO success path: real cpsrvd answers bad
+# credentials with a 401 (JSON when the AJAX `login_only=1` flag is set, the HTML login-failed page
+# otherwise) — never a redirect, never an authenticated session. The `cpsession` cookie emitted here
+# is the same INERT pre-auth token a real cpsrvd sets before login succeeds (leading `%3a` encodes an
+# empty username slot); it grants nothing. Gated to POST: any other verb misses (no route here at
+# all) → plain 404.
+#
+# `behavior: branch` picks the JSON case when the request carries `login_only=1` in the query (the
+# AJAX path real cPanel/WHM's login form JS uses); every other POST here — with or without a
+# different query — falls through to the base `response` below, the HTML login-failed page (real
+# cpsrvd's non-AJAX POST answer). Server + Version stay lockstep with routes 382/383 (one host).
+match:
+  - in: path
+    regex: '(?:^|/)login/?$'
+    ci: false
+  - in: method
+    regex: '^POST$'
+    ci: false
+  - in: body
+    regex: '(?:^|&)user=([^&]{0,64})'   # capture-gate only, never reflected
+    capture: true
+    ci: false
+status: 401
+response:
+  headers:
+    Content-Type: "text/html; charset=utf-8"
+    Server: "cpsrvd/11.118.0.13"
+    Set-Cookie: "cpsession=%3a{{fake.cp_sid:hexupper:8}}%2c{{fake.cp_ob:hex:32}}; HttpOnly; path=/; port=2083; secure"
+  body: |
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Login</title>
+    <link rel="stylesheet" href="/cpsess0000000000/styled/basic/css/cjt.css">
+    </head>
+    <body class="cpanel-login-page">
+    <div id="cpanel_lm_container" class="login-container">
+    <div class="brand"><h1>cPanel &amp; WHM</h1></div>
+    <div class="notice error">The login is invalid.</div>
+    <form action="/login/?login_only=1" method="post" id="login_form" name="login_form">
+    <input type="hidden" name="goto_uri" value="/">
+    <div class="form-group">
+    <label for="user">Username</label>
+    <input type="text" id="user" name="user" autocomplete="username" placeholder="Enter your username.">
+    </div>
+    <div class="form-group">
+    <label for="pass">Password</label>
+    <input type="password" id="pass" name="pass" autocomplete="current-password" placeholder="Enter your password.">
+    </div>
+    <button type="submit" id="login_submit" class="btn-primary">Log in</button>
+    </form>
+    <p class="notice">You can reach cPanel on port 2083 and WHM on port 2087.</p>
+    <div class="copyright">cPanel &amp; WHM Version 118.0.13</div>
+    </div>
+    </body>
+    </html>
+behavior: branch
+branch:
+  cases:
+    - when: { in: query, regex: '(?:^|[?&])login_only=1' }
+      response:
+        status: 401
+        headers:
+          Content-Type: 'text/plain; charset="utf-8"'
+          Server: "cpsrvd/11.118.0.13"
+          Set-Cookie: "cpsession=%3a{{fake.cp_sid:hexupper:8}}%2c{{fake.cp_ob:hex:32}}; HttpOnly; path=/; port=2083; secure"
+        body: "{\"status\":0,\"message\":\"see_login_log\"}"
+expect: ['The login is invalid.', 'cpsrvd/11.118.0.13']

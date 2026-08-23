@@ -2339,6 +2339,116 @@ $ </pre>
   ),
   40 => 
   array (
+    'id' => 'attack-cpsrvd-login',
+    'severity' => 'high',
+    'tags' => 
+    array (
+      0 => 'attack',
+      1 => 'cpanel',
+      2 => 'whm',
+      3 => 'cpsrvd',
+      4 => 'panel',
+      5 => 'login',
+      6 => 'credential-oracle',
+    ),
+    'status' => 401,
+    'match' => 
+    array (
+      0 => 
+      array (
+        'in' => 'path',
+        'regex' => '(?:^|/)login/?$',
+        'ci' => false,
+      ),
+      1 => 
+      array (
+        'in' => 'method',
+        'regex' => '^POST$',
+        'ci' => false,
+      ),
+      2 => 
+      array (
+        'in' => 'body',
+        'regex' => '(?:^|&)user=([^&]{0,64})',
+        'ci' => false,
+        'capture' => true,
+      ),
+    ),
+    'response' => 
+    array (
+      'headers' => 
+      array (
+        'Content-Type' => 'text/html; charset=utf-8',
+        'Server' => 'cpsrvd/11.118.0.13',
+        'Set-Cookie' => 'cpsession=%3a{{fake.cp_sid:hexupper:8}}%2c{{fake.cp_ob:hex:32}}; HttpOnly; path=/; port=2083; secure',
+      ),
+      'body' => '<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Login</title>
+<link rel="stylesheet" href="/cpsess0000000000/styled/basic/css/cjt.css">
+</head>
+<body class="cpanel-login-page">
+<div id="cpanel_lm_container" class="login-container">
+<div class="brand"><h1>cPanel &amp; WHM</h1></div>
+<div class="notice error">The login is invalid.</div>
+<form action="/login/?login_only=1" method="post" id="login_form" name="login_form">
+<input type="hidden" name="goto_uri" value="/">
+<div class="form-group">
+<label for="user">Username</label>
+<input type="text" id="user" name="user" autocomplete="username" placeholder="Enter your username.">
+</div>
+<div class="form-group">
+<label for="pass">Password</label>
+<input type="password" id="pass" name="pass" autocomplete="current-password" placeholder="Enter your password.">
+</div>
+<button type="submit" id="login_submit" class="btn-primary">Log in</button>
+</form>
+<p class="notice">You can reach cPanel on port 2083 and WHM on port 2087.</p>
+<div class="copyright">cPanel &amp; WHM Version 118.0.13</div>
+</div>
+</body>
+</html>
+',
+    ),
+    'lit' => 'POST',
+    'lit_in' => 'method',
+    'lit_ci' => false,
+    'owns_path' => 
+    array (
+      0 => '/login',
+    ),
+    'behavior' => 'branch',
+    'branch' => 
+    array (
+      'cases' => 
+      array (
+        0 => 
+        array (
+          'when' => 
+          array (
+            'in' => 'query',
+            'regex' => '(?:^|[?&])login_only=1',
+          ),
+          'response' => 
+          array (
+            'headers' => 
+            array (
+              'Content-Type' => 'text/plain; charset="utf-8"',
+              'Server' => 'cpsrvd/11.118.0.13',
+              'Set-Cookie' => 'cpsession=%3a{{fake.cp_sid:hexupper:8}}%2c{{fake.cp_ob:hex:32}}; HttpOnly; path=/; port=2083; secure',
+            ),
+            'body' => '{"status":0,"message":"see_login_log"}',
+            'status' => 401,
+          ),
+        ),
+      ),
+    ),
+  ),
+  41 => 
+  array (
     'id' => 'attack-crs-sqli',
     'severity' => 'high',
     'tags' => 
@@ -2367,7 +2477,7 @@ $ </pre>
 ',
     ),
   ),
-  41 => 
+  42 => 
   array (
     'id' => 'attack-crs-xss',
     'severity' => 'high',
@@ -2399,7 +2509,7 @@ $ </pre>
 ',
     ),
   ),
-  42 => 
+  43 => 
   array (
     'id' => 'attack-crs-lfi',
     'severity' => 'high',
@@ -2428,7 +2538,7 @@ $ </pre>
       'body' => '{{canned.passwd}}',
     ),
   ),
-  43 => 
+  44 => 
   array (
     'id' => 'attack-crs-rce',
     'severity' => 'critical',
