@@ -623,6 +623,10 @@ return array (
     'lit' => '<methodCall',
     'lit_in' => 'body',
     'lit_ci' => false,
+    'owns_path' => 
+    array (
+      0 => '/xmlrpc.php',
+    ),
     'behavior' => 'branch',
     'branch' => 
     array (

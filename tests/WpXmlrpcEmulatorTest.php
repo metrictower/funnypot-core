@@ -70,6 +70,14 @@ final class WpXmlrpcEmulatorTest extends TestCase
         );
     }
 
+    public function test_wp_xmlrpc_rule_owns_the_bare_path(): void
+    {
+        self::assertTrue(
+            $this->emulator()->ownsPath('/xmlrpc.php'),
+            'the compiled wp-xmlrpc rule must claim /xmlrpc.php so classify() overrides the static stub'
+        );
+    }
+
     // --- GET / bodyless (rule 27) -----------------------------------------------------------
 
     public function test_get_returns_405_post_only(): void

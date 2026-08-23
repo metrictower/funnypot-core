@@ -4,11 +4,11 @@ severity: high
 # adjacent so this POST dispatcher sorts directly before the 27 GET/fallback rule.
 priority: 26
 tags: [attack, wordpress, xmlrpc]
-# Request-aware WordPress xmlrpc.php — POST method dispatch. Fires on any PREFIXED path ending
-# /xmlrpc.php (/wp/xmlrpc.php, /news/xmlrpc.php, …) and, since real WP dispatches PATH_INFO, on
-# /xmlrpc.php/extra too. Gated to POST: real WP answers any other verb with the 405 (rule 27), so
-# a GET/HEAD/PUT with a methodName body must fall through, never dispatch. All matching is
-# case-SENSITIVE (ci:false), mirroring a case-sensitive path fs and XML-RPC method names.
+owns_path: [/xmlrpc.php]
+# Request-aware WordPress xmlrpc.php — POST method dispatch. Fires on any path ending /xmlrpc.php,
+# including the bare /xmlrpc.php: the bare path is an exact-store key, and this rule claims it via
+# owns_path so classify() runs the attack tier ahead of the static stub (falling back to the stub
+# only if this rule declines). Gated to POST: real WP answers any other verb with the 405 (rule 27).
 #
 # The FIRST top-level <methodName> is captured (anchored after <methodCall>, skipping leading
 # comments so a decoy name can't win) into captures[1]; branch cases dispatch on that ONE parsed
