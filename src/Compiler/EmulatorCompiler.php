@@ -147,14 +147,27 @@ final class EmulatorCompiler
         // trailing-slash probe variants. A plain path, never a signature (fingerprint-safe).
         if (isset($doc['owns_path'])) {
             $owns = [];
+            $rawOwns = [];
             foreach ((array) $doc['owns_path'] as $p) {
                 $p = (string) $p;
                 if ($p === '' || $p[0] !== '/') {
                     throw new RuntimeException("Template {$file}: owns_path entry '{$p}' must be an absolute path.");
                 }
+                $rawOwns[] = $p;
                 $owns[] = PathNormalizer::ownershipKey($p);
             }
             $rule['owns_path'] = array_values(array_unique($owns));
+
+            // Variant-coverage check: ownsPath() claims a request whenever its ownershipKey (any
+            // case, any count of trailing slashes) matches an owned entry. If the rule's own
+            // `in: path` match is stricter than that, a claimed variant can still DECLINE the
+            // rule match — a silent fallthrough (mitigated at runtime by
+            // Honeypot::hasAuthSuccessWitness, but worth flagging at author time). A warning, not
+            // a build failure: some owns_path rules intentionally rely on that runtime safety net
+            // instead of full variant coverage.
+            foreach ($this->ownsPathVariantWarnings($rawOwns, $match, $file) as $warning) {
+                fwrite(STDERR, "warning: {$warning}\n");
+            }
         }
 
         // An optional named behavior primitive. The base `response` above stays the ultimate
@@ -181,6 +194,71 @@ final class EmulatorCompiler
         }
 
         return $rule;
+    }
+
+    /**
+     * Compile-time guard for the owns_path/path-match variant-coverage bug: TemplateAttackEmulator's
+     * ownsPath() claims a request whenever PathNormalizer::ownershipKey(requestPath) equals a
+     * declared owns_path entry — that key function lower-cases the path and strips ALL trailing
+     * slashes, so ownsPath() is true for every case/trailing-slash variant of the owned path. If the
+     * rule's own `in: path` match condition(s) are stricter (case-sensitive, or intolerant of a
+     * doubled trailing slash), a variant request makes ownsPath() TRUE but matchRule() decline —
+     * classify() then falls through past this rule entirely. Mirrors the runtime's own regex
+     * construction exactly (`~regex~` + `i` iff ci, `s` iff dotall — see
+     * TemplateAttackEmulator::evalConditions) so the compile-time probe matches runtime behavior.
+     *
+     * Returns one warning string per (owns_path entry, failing variant) — never throws: an
+     * owns_path rule with a stricter path match isn't automatically unsafe (the runtime
+     * Honeypot::hasAuthSuccessWitness guard is the actual backstop), so this only flags the class
+     * of bug for an author to review, it doesn't fail the build.
+     *
+     * @param string[]                        $rawOwns the as-authored owns_path entries (before ownershipKey canonicalization)
+     * @param array<int,array<string,mixed>>  $match   the rule's normalized match conditions
+     * @return string[]
+     */
+    private function ownsPathVariantWarnings(array $rawOwns, array $match, string $file): array
+    {
+        $pathConditions = [];
+        foreach ($match as $cond) {
+            if (($cond['in'] ?? '') === 'path') {
+                $pathConditions[] = $cond;
+            }
+        }
+
+        $warnings = [];
+        foreach ($rawOwns as $raw) {
+            $canon = PathNormalizer::ownershipKey($raw);
+
+            // The exact variant set ownsPath() collapses onto this owned path: any case, and any
+            // count (0 or more) of trailing slashes. Testing the as-authored form too catches an
+            // owns_path entry itself written with mixed case or a trailing slash.
+            $variants = array_unique([
+                $raw, $raw . '/', $raw . '//', strtoupper($raw),
+                $canon, $canon . '/', $canon . '//', strtoupper($canon),
+            ]);
+
+            if ($pathConditions === []) {
+                $warnings[] = "Template {$file}: owns_path '{$raw}' but the rule has no 'in: path' match condition — it can never match its owned path.";
+                continue;
+            }
+
+            foreach ($pathConditions as $cond) {
+                if (!isset($cond['regex'])) {
+                    $warnings[] = "Template {$file}: owns_path '{$raw}' but its 'in: path' condition has no regex to verify variant coverage — an owns_path rule's path regex must be case-insensitive and tolerate trailing slashes (use `/*\$` + `ci: true`), or ownsPath will claim a request the rule declines. See the login-oracle templates.";
+                    continue;
+                }
+                $ci = ($cond['ci'] ?? true) !== false;
+                $flags = ($ci ? 'i' : '') . (($cond['dotall'] ?? false) ? 's' : '');
+                foreach ($variants as $variant) {
+                    $hit = @preg_match('~' . $cond['regex'] . '~' . $flags, $variant);
+                    if ($hit !== 1) {
+                        $warnings[] = "Template {$file}: owns_path '{$raw}' but the path match does not accept variant '{$variant}' — an owns_path rule's path regex must be case-insensitive and tolerate trailing slashes (use `/*\$` + `ci: true`), or ownsPath will claim a request the rule declines. See the login-oracle templates.";
+                    }
+                }
+            }
+        }
+
+        return $warnings;
     }
 
     /**

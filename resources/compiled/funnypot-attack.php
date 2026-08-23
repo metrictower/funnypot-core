@@ -579,7 +579,7 @@ return array (
       array (
         'in' => 'path',
         'regex' => '(?:^|/)xmlrpc\\.php(?:/|$)',
-        'ci' => false,
+        'ci' => true,
       ),
       1 => 
       array (

@@ -16,8 +16,15 @@ owns_path: [/xmlrpc.php]
 # and the unknown-method base reflects the true method.
 match:
   - in: path
+    # ci: true (not the case-sensitive PHP-filesystem rationale this used to document): ownsPath()
+    # claims any case/trailing-slash variant of /xmlrpc.php (PathNormalizer::ownershipKey lower-cases
+    # + strips ALL trailing slashes), so this match must be at least as permissive or a variant
+    # request DECLINEs here after ownsPath() already claimed it — see 97-wp-login.yaml's comment for
+    # the full reasoning. `(?:/|$)` already tolerates any number of trailing slashes: it isn't
+    # end-anchored, so it matches as soon as ONE trailing slash (or end of string) follows
+    # `xmlrpc.php`, and any further trailing slashes are simply unconsumed extra text.
     regex: '(?:^|/)xmlrpc\.php(?:/|$)'
-    ci: false
+    ci: true
   - in: method
     regex: '^POST$'
     ci: false
