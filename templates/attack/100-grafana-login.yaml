@@ -1,0 +1,42 @@
+id: attack-grafana-login
+severity: high
+# Priority 38, a free slot below the broad `in: request` archetypes 44-ssti-twig/45-ssti-numeric/
+# 46-php-glastopf/50-sqli (no path constraint at all), so an injection-laced `user` value at
+# /grafana/login still reaches THIS oracle instead of one of those generic bodies — the same fix
+# 97-wp-login.yaml (39), 98-cpsrvd-login.yaml (42), and 99-phppgadmin-login.yaml (43) already apply
+# for the same class of collision.
+priority: 38
+tags: [attack, grafana, panel, login, credential-oracle]
+owns_path: [/grafana/login]
+# Request-aware Grafana /grafana/login credential ORACLE, coherent with route 379's login shell
+# (Grafana 10.4.2, appSubUrl /grafana). /grafana/login has no exact-store route key for a POST (route
+# 379 only serves the GET login shell), so a POST misses that store and reaches the attack tier;
+# owns_path is belt-and-suspenders should a future static POST route be added.
+#
+# ZERO EXECUTION: the ONLY body field read is the bounded `user` field, captured purely to gate the
+# match — it is NEVER reflected. There is NO success path: real Grafana answers bad credentials with a
+# static 401 `password-auth.failed` JSON body; it never sets a `grafana_session` cookie until login
+# succeeds (route 379's cookie is pre-auth chrome only, unrelated to this failure path). Single static
+# failure body — no `behavior: branch` needed. Gated to POST: any other verb misses (no route here for
+# POST) => plain 404.
+match:
+  - in: path
+    regex: '(?:^|/)(?:grafana/)?login$'
+    ci: false
+  - in: method
+    regex: '^POST$'
+    ci: false
+  - in: body
+    regex: '"user"\s*:\s*"([^"]{0,64})"'   # capture-gate only, never reflected
+    capture: true
+    ci: false
+status: 401
+response:
+  headers:
+    Content-Type: "application/json"
+    X-Content-Type-Options: "nosniff"
+    X-Frame-Options: "deny"
+    X-XSS-Protection: "1; mode=block"
+    Cache-Control: "no-store"
+  body: '{"statusCode":401,"messageId":"password-auth.failed","message":"Invalid username or password"}'
+expect: ['password-auth.failed']
