@@ -28,6 +28,7 @@ final class RulesUpdateException extends RuntimeException
     public const REASON_REDOS = 'redos';
     public const REASON_BLINDING = 'coverage-drop';
     public const REASON_DOWNGRADE = 'downgrade';
+    public const REASON_SCHEMA_TOO_NEW = 'schema-too-new';
     public const REASON_SWAP_FAILED = 'swap-failed';
     public const REASON_NOT_RETAINED = 'not-retained';
     public const REASON_CONFIG = 'config';

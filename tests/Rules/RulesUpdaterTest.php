@@ -402,6 +402,24 @@ final class RulesUpdaterTest extends TestCase
         self::assertSame('v2', $this->updater('v2')->status()->version);
     }
 
+    public function test_a_newer_manifest_schema_is_refused_and_keeps_current(): void
+    {
+        // Good v1 first, on the schema this engine understands.
+        $this->factory->publish($this->fetcher, 'v1', 1, $this->factory->engineFiles());
+        $this->updater('v1')->update();
+        $before = $this->currentTarget();
+
+        // v2's manifest declares a schema ahead of SchemaVersion::CURRENT — an older deployed
+        // engine must refuse it rather than mis-parse a newer release format.
+        $this->factory->publish($this->fetcher, 'v2', 2, $this->factory->engineFiles(), ['schema' => 2]);
+        $result = $this->updater('v2')->update();
+
+        self::assertFalse($result->success);
+        self::assertSame('schema-too-new', $result->status);
+        self::assertSame($before, $this->currentTarget(), 'current must still point at v1');
+        self::assertSame('v1', $this->updater('v2')->status()->version);
+    }
+
     public function test_rollback_repoints_to_a_retained_release(): void
     {
         $this->factory->publish($this->fetcher, 'v1', 1, $this->factory->engineFiles(100, 100));

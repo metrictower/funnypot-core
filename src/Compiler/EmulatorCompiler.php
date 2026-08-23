@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Funnypot\Compiler;
 
+use Funnypot\SchemaVersion;
 use Funnypot\Support\PathNormalizer;
 use Funnypot\Support\PersonaIdentity;
 use Funnypot\Template\DirectiveRenderer;
@@ -90,6 +91,11 @@ final class EmulatorCompiler
             if (!isset($doc[$required])) {
                 throw new RuntimeException("Template {$file} missing '{$required}'.");
             }
+        }
+
+        $version = (int) ($doc['version'] ?? 1);
+        if ($version > SchemaVersion::CURRENT) {
+            throw new RuntimeException("Template {$file}: schema version {$version} exceeds the engine's supported schema " . SchemaVersion::CURRENT . " — refusing to compile (upgrade funnypot-core).");
         }
 
         $match = [];

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Funnypot\Compiler;
 
+use Funnypot\SchemaVersion;
 use Funnypot\Support\PersonaIdentity;
 use Funnypot\Template\DirectiveRenderer;
 use RuntimeException;
@@ -86,6 +87,11 @@ final class RouteEmulatorCompiler
             if (!isset($doc[$required])) {
                 throw new RuntimeException("Route template {$file} missing '{$required}'.");
             }
+        }
+
+        $version = (int) ($doc['version'] ?? 1);
+        if ($version > SchemaVersion::CURRENT) {
+            throw new RuntimeException("Route template {$file}: schema version {$version} exceeds the engine's supported schema " . SchemaVersion::CURRENT . " — refusing to compile (upgrade funnypot-core).");
         }
 
         // A new_page template routes to its OWN synthesized bundle (pid = id), so it may omit

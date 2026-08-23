@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Funnypot\Rules;
 
 use Funnypot\Compiler\Crs\FingerprintGuard;
+use Funnypot\SchemaVersion;
 use Funnypot\Store\PhpArrayStore;
 use PharData;
 use Throwable;
@@ -330,7 +331,16 @@ final class RulesUpdater
                 throw new RulesUpdateException(RulesUpdateException::REASON_BAD_MANIFEST, "Manifest is missing '{$field}'.");
             }
         }
-        if ((int) $manifest['schema'] !== 1) {
+        $schema = (int) $manifest['schema'];
+        // Fail-safe forward-compat: a schema ahead of what this engine understands means the
+        // release format changed, and an older engine must refuse it rather than mis-parse it.
+        if ($schema > SchemaVersion::CURRENT) {
+            throw new RulesUpdateException(
+                RulesUpdateException::REASON_SCHEMA_TOO_NEW,
+                "Release schema {$schema} exceeds the engine's supported schema " . SchemaVersion::CURRENT . " — refusing to load (upgrade funnypot-core)."
+            );
+        }
+        if ($schema < 1) {
             throw new RulesUpdateException(RulesUpdateException::REASON_BAD_MANIFEST, 'Unsupported manifest schema.');
         }
         // The manifest's own version must match the tag we asked for (no bait-and-switch).
