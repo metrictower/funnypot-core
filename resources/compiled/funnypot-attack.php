@@ -1347,6 +1347,448 @@ return array (
   ),
   17 => 
   array (
+    'id' => 'attack-ai-ollama-version',
+    'severity' => 'medium',
+    'tags' => 
+    array (
+      0 => 'ai-recon',
+      1 => 'exposure',
+      2 => 'appliance',
+    ),
+    'status' => 200,
+    'match' => 
+    array (
+      0 => 
+      array (
+        'in' => 'path',
+        'regex' => '^/api/version/?$',
+        'ci' => false,
+      ),
+      1 => 
+      array (
+        'in' => 'method',
+        'regex' => '^GET$',
+        'ci' => false,
+      ),
+    ),
+    'response' => 
+    array (
+      'headers' => 
+      array (
+        'Content-Type' => 'application/json; charset=utf-8',
+      ),
+      'body' => '{"version":"0.11.4"}',
+    ),
+    'lit' => '/api/version',
+    'lit_in' => 'path',
+    'lit_ci' => false,
+    'owns_path' => 
+    array (
+      0 => '/api/version',
+    ),
+  ),
+  18 => 
+  array (
+    'id' => 'attack-ai-ollama-tags',
+    'severity' => 'medium',
+    'tags' => 
+    array (
+      0 => 'ai-recon',
+      1 => 'exposure',
+      2 => 'appliance',
+    ),
+    'status' => 200,
+    'match' => 
+    array (
+      0 => 
+      array (
+        'in' => 'path',
+        'regex' => '^/api/tags/?$',
+        'ci' => false,
+      ),
+      1 => 
+      array (
+        'in' => 'method',
+        'regex' => '^GET$',
+        'ci' => false,
+      ),
+    ),
+    'response' => 
+    array (
+      'headers' => 
+      array (
+        'Content-Type' => 'application/json; charset=utf-8',
+      ),
+      'body' => '{"models":[{"name":"kimi-k3:2.8t","model":"kimi-k3:2.8t","modified_at":"2026-08-01T00:00:00Z","size":1780000000000,"digest":"541dc907f944c34646137387c114442d842fff71b476dffe0db5e0f78931f8e2","details":{"parent_model":"","format":"gguf","family":"kimi","families":["kimi"],"parameter_size":"2.8T","quantization_level":"Q4_K_M"}},{"name":"qwen3:235b","model":"qwen3:235b","modified_at":"2026-08-01T00:00:00Z","size":142000000000,"digest":"52a4cdafc54280f1d691038ad56c70803af9573c7495db5209b8df71963d661d","details":{"parent_model":"","format":"gguf","family":"qwen3","families":["qwen3"],"parameter_size":"235B","quantization_level":"Q4_K_M"}},{"name":"glm-4.6:355b","model":"glm-4.6:355b","modified_at":"2026-08-01T00:00:00Z","size":227000000000,"digest":"3cb6d03b68f8d11c850e3a17fc5c93a3cfa25d075e14ee638ddcd14cb0e4955a","details":{"parent_model":"","format":"gguf","family":"glm4","families":["glm4"],"parameter_size":"355B","quantization_level":"Q4_K_M"}},{"name":"deepseek-v3.2:671b","model":"deepseek-v3.2:671b","modified_at":"2026-08-01T00:00:00Z","size":404000000000,"digest":"8e5d9d98484a2e2292879b0edf86029b9b3da08c10d980b123b35a077f5720eb","details":{"parent_model":"","format":"gguf","family":"deepseek2","families":["deepseek2"],"parameter_size":"671B","quantization_level":"Q4_K_M"}},{"name":"mistral-large:123b","model":"mistral-large:123b","modified_at":"2026-08-01T00:00:00Z","size":73000000000,"digest":"d9ab4500cf1bda01354e6171e05dd2f772839e87a35a63467488aa9ef1458c09","details":{"parent_model":"","format":"gguf","family":"mistral","families":["mistral"],"parameter_size":"123B","quantization_level":"Q4_K_M"}},{"name":"nemotron-3-super:120b","model":"nemotron-3-super:120b","modified_at":"2026-08-01T00:00:00Z","size":72000000000,"digest":"26f5f7d6af9d510c4c518a154ea57867e647d643f6d84c1dfbbc59c09bee94cf","details":{"parent_model":"","format":"gguf","family":"nemotron","families":["nemotron"],"parameter_size":"120B","quantization_level":"Q4_K_M"}},{"name":"gpt-oss:120b","model":"gpt-oss:120b","modified_at":"2026-08-01T00:00:00Z","size":65000000000,"digest":"48545ebe6944bfa74944583d79ba9c95efb2f764b9cf04ed40e9e7e9e97179f9","details":{"parent_model":"","format":"gguf","family":"gptoss","families":["gptoss"],"parameter_size":"120B","quantization_level":"MXFP4"}},{"name":"gemma3:27b","model":"gemma3:27b","modified_at":"2026-08-01T00:00:00Z","size":17000000000,"digest":"3599665e02e3136eaf4bd9eccf6637c08490bbc1239292d70a3261bb21c5056a","details":{"parent_model":"","format":"gguf","family":"gemma3","families":["gemma3"],"parameter_size":"27B","quantization_level":"Q4_K_M"}},{"name":"big-pickle:1.5t","model":"big-pickle:1.5t","modified_at":"2026-08-01T00:00:00Z","size":1520000000000,"digest":"b1c47f0a2e8d3c6b5a04f19e72d8c3b6a0f5e2d7c4b1a8f36e0d5c2b7a4f18e63","details":{"parent_model":"","format":"gguf","family":"pickle","families":["pickle"],"parameter_size":"1.5T","quantization_level":"Q4_K_M"}}]}',
+    ),
+    'lit' => '/api/tags',
+    'lit_in' => 'path',
+    'lit_ci' => false,
+    'owns_path' => 
+    array (
+      0 => '/api/tags',
+    ),
+  ),
+  19 => 
+  array (
+    'id' => 'attack-ai-ollama-ps',
+    'severity' => 'medium',
+    'tags' => 
+    array (
+      0 => 'ai-recon',
+      1 => 'exposure',
+      2 => 'appliance',
+    ),
+    'status' => 200,
+    'match' => 
+    array (
+      0 => 
+      array (
+        'in' => 'path',
+        'regex' => '^/api/ps/?$',
+        'ci' => false,
+      ),
+      1 => 
+      array (
+        'in' => 'method',
+        'regex' => '^GET$',
+        'ci' => false,
+      ),
+    ),
+    'response' => 
+    array (
+      'headers' => 
+      array (
+        'Content-Type' => 'application/json; charset=utf-8',
+      ),
+      'body' => '{"models":[{"name":"kimi-k3:2.8t","model":"kimi-k3:2.8t","modified_at":"2026-08-01T00:00:00Z","size":1780000000000,"digest":"541dc907f944c34646137387c114442d842fff71b476dffe0db5e0f78931f8e2","details":{"parent_model":"","format":"gguf","family":"kimi","families":["kimi"],"parameter_size":"2.8T","quantization_level":"Q4_K_M"},"expires_at":"2026-08-01T00:00:00Z","size_vram":1780000000000},{"name":"qwen3:235b","model":"qwen3:235b","modified_at":"2026-08-01T00:00:00Z","size":142000000000,"digest":"52a4cdafc54280f1d691038ad56c70803af9573c7495db5209b8df71963d661d","details":{"parent_model":"","format":"gguf","family":"qwen3","families":["qwen3"],"parameter_size":"235B","quantization_level":"Q4_K_M"},"expires_at":"2026-08-01T00:00:00Z","size_vram":142000000000}]}',
+    ),
+    'lit' => '/api/ps',
+    'lit_in' => 'path',
+    'lit_ci' => false,
+    'owns_path' => 
+    array (
+      0 => '/api/ps',
+    ),
+  ),
+  20 => 
+  array (
+    'id' => 'attack-ai-ollama-show',
+    'severity' => 'medium',
+    'tags' => 
+    array (
+      0 => 'ai-recon',
+      1 => 'exposure',
+      2 => 'appliance',
+    ),
+    'status' => 404,
+    'match' => 
+    array (
+      0 => 
+      array (
+        'in' => 'path',
+        'regex' => '^/api/show/?$',
+        'ci' => false,
+      ),
+      1 => 
+      array (
+        'in' => 'method',
+        'regex' => '^POST$',
+        'ci' => false,
+      ),
+      2 => 
+      array (
+        'in' => 'body',
+        'regex' => '"model"\\s*:\\s*"([^"]{0,128})"',
+        'ci' => false,
+        'capture' => true,
+      ),
+    ),
+    'response' => 
+    array (
+      'headers' => 
+      array (
+        'Content-Type' => 'application/json; charset=utf-8',
+      ),
+      'body' => '{"error":"model \'{{match.1}}\' not found"}',
+    ),
+    'lit' => '/api/show',
+    'lit_in' => 'path',
+    'lit_ci' => false,
+    'owns_path' => 
+    array (
+      0 => '/api/show',
+    ),
+    'behavior' => 'branch',
+    'branch' => 
+    array (
+      'cases' => 
+      array (
+        0 => 
+        array (
+          'when' => 
+          array (
+            'in' => 'match.1',
+            'regex' => '^kimi\\-k3\\:2\\.8t$',
+            'ci' => false,
+          ),
+          'response' => 
+          array (
+            'headers' => 
+            array (
+              'Content-Type' => 'application/json; charset=utf-8',
+            ),
+            'body' => '{"modelfile":"# Modelfile generated by \\"ollama show\\"\\n# To build a new Modelfile based on this one, replace the FROM line with:\\n# FROM kimi-k3:2.8t\\n\\nFROM kimi-k3:2.8t\\nTEMPLATE \\"\\"\\"{{{{ .Prompt }}}}\\"\\"\\"\\nPARAMETER stop \\"<|end|>\\"\\n","parameters":"num_ctx                       1048576\\nstop                           \\"<|end|>\\"\\ntemperature                    0.7\\n","template":"{{{{ .Prompt }}}}","details":{"parent_model":"","format":"gguf","family":"kimi","families":["kimi"],"parameter_size":"2.8T","quantization_level":"Q4_K_M"},"model_info":{"general.architecture":"kimi","general.parameter_count":2800000000000,"general.quantization_version":2,"general.file_type":"Q4_K_M","kimi.context_length":1048576},"capabilities":["completion"]}',
+            'status' => 200,
+          ),
+        ),
+        1 => 
+        array (
+          'when' => 
+          array (
+            'in' => 'match.1',
+            'regex' => '^qwen3\\:235b$',
+            'ci' => false,
+          ),
+          'response' => 
+          array (
+            'headers' => 
+            array (
+              'Content-Type' => 'application/json; charset=utf-8',
+            ),
+            'body' => '{"modelfile":"# Modelfile generated by \\"ollama show\\"\\n# To build a new Modelfile based on this one, replace the FROM line with:\\n# FROM qwen3:235b\\n\\nFROM qwen3:235b\\nTEMPLATE \\"\\"\\"{{{{ .Prompt }}}}\\"\\"\\"\\nPARAMETER stop \\"<|end|>\\"\\n","parameters":"num_ctx                       262144\\nstop                           \\"<|end|>\\"\\ntemperature                    0.7\\n","template":"{{{{ .Prompt }}}}","details":{"parent_model":"","format":"gguf","family":"qwen3","families":["qwen3"],"parameter_size":"235B","quantization_level":"Q4_K_M"},"model_info":{"general.architecture":"qwen3","general.parameter_count":235000000000,"general.quantization_version":2,"general.file_type":"Q4_K_M","qwen3.context_length":262144},"capabilities":["completion"]}',
+            'status' => 200,
+          ),
+        ),
+        2 => 
+        array (
+          'when' => 
+          array (
+            'in' => 'match.1',
+            'regex' => '^glm\\-4\\.6\\:355b$',
+            'ci' => false,
+          ),
+          'response' => 
+          array (
+            'headers' => 
+            array (
+              'Content-Type' => 'application/json; charset=utf-8',
+            ),
+            'body' => '{"modelfile":"# Modelfile generated by \\"ollama show\\"\\n# To build a new Modelfile based on this one, replace the FROM line with:\\n# FROM glm-4.6:355b\\n\\nFROM glm-4.6:355b\\nTEMPLATE \\"\\"\\"{{{{ .Prompt }}}}\\"\\"\\"\\nPARAMETER stop \\"<|end|>\\"\\n","parameters":"num_ctx                       204800\\nstop                           \\"<|end|>\\"\\ntemperature                    0.7\\n","template":"{{{{ .Prompt }}}}","details":{"parent_model":"","format":"gguf","family":"glm4","families":["glm4"],"parameter_size":"355B","quantization_level":"Q4_K_M"},"model_info":{"general.architecture":"glm4","general.parameter_count":355000000000,"general.quantization_version":2,"general.file_type":"Q4_K_M","glm4.context_length":204800},"capabilities":["completion"]}',
+            'status' => 200,
+          ),
+        ),
+        3 => 
+        array (
+          'when' => 
+          array (
+            'in' => 'match.1',
+            'regex' => '^deepseek\\-v3\\.2\\:671b$',
+            'ci' => false,
+          ),
+          'response' => 
+          array (
+            'headers' => 
+            array (
+              'Content-Type' => 'application/json; charset=utf-8',
+            ),
+            'body' => '{"modelfile":"# Modelfile generated by \\"ollama show\\"\\n# To build a new Modelfile based on this one, replace the FROM line with:\\n# FROM deepseek-v3.2:671b\\n\\nFROM deepseek-v3.2:671b\\nTEMPLATE \\"\\"\\"{{{{ .Prompt }}}}\\"\\"\\"\\nPARAMETER stop \\"<|end|>\\"\\n","parameters":"num_ctx                       163840\\nstop                           \\"<|end|>\\"\\ntemperature                    0.7\\n","template":"{{{{ .Prompt }}}}","details":{"parent_model":"","format":"gguf","family":"deepseek2","families":["deepseek2"],"parameter_size":"671B","quantization_level":"Q4_K_M"},"model_info":{"general.architecture":"deepseek2","general.parameter_count":671000000000,"general.quantization_version":2,"general.file_type":"Q4_K_M","deepseek2.context_length":163840},"capabilities":["completion"]}',
+            'status' => 200,
+          ),
+        ),
+        4 => 
+        array (
+          'when' => 
+          array (
+            'in' => 'match.1',
+            'regex' => '^mistral\\-large\\:123b$',
+            'ci' => false,
+          ),
+          'response' => 
+          array (
+            'headers' => 
+            array (
+              'Content-Type' => 'application/json; charset=utf-8',
+            ),
+            'body' => '{"modelfile":"# Modelfile generated by \\"ollama show\\"\\n# To build a new Modelfile based on this one, replace the FROM line with:\\n# FROM mistral-large:123b\\n\\nFROM mistral-large:123b\\nTEMPLATE \\"\\"\\"{{{{ .Prompt }}}}\\"\\"\\"\\nPARAMETER stop \\"<|end|>\\"\\n","parameters":"num_ctx                       131072\\nstop                           \\"<|end|>\\"\\ntemperature                    0.7\\n","template":"{{{{ .Prompt }}}}","details":{"parent_model":"","format":"gguf","family":"mistral","families":["mistral"],"parameter_size":"123B","quantization_level":"Q4_K_M"},"model_info":{"general.architecture":"mistral","general.parameter_count":123000000000,"general.quantization_version":2,"general.file_type":"Q4_K_M","mistral.context_length":131072},"capabilities":["completion"]}',
+            'status' => 200,
+          ),
+        ),
+        5 => 
+        array (
+          'when' => 
+          array (
+            'in' => 'match.1',
+            'regex' => '^nemotron\\-3\\-super\\:120b$',
+            'ci' => false,
+          ),
+          'response' => 
+          array (
+            'headers' => 
+            array (
+              'Content-Type' => 'application/json; charset=utf-8',
+            ),
+            'body' => '{"modelfile":"# Modelfile generated by \\"ollama show\\"\\n# To build a new Modelfile based on this one, replace the FROM line with:\\n# FROM nemotron-3-super:120b\\n\\nFROM nemotron-3-super:120b\\nTEMPLATE \\"\\"\\"{{{{ .Prompt }}}}\\"\\"\\"\\nPARAMETER stop \\"<|end|>\\"\\n","parameters":"num_ctx                       262144\\nstop                           \\"<|end|>\\"\\ntemperature                    0.7\\n","template":"{{{{ .Prompt }}}}","details":{"parent_model":"","format":"gguf","family":"nemotron","families":["nemotron"],"parameter_size":"120B","quantization_level":"Q4_K_M"},"model_info":{"general.architecture":"nemotron","general.parameter_count":120000000000,"general.quantization_version":2,"general.file_type":"Q4_K_M","nemotron.context_length":262144},"capabilities":["completion"]}',
+            'status' => 200,
+          ),
+        ),
+        6 => 
+        array (
+          'when' => 
+          array (
+            'in' => 'match.1',
+            'regex' => '^gpt\\-oss\\:120b$',
+            'ci' => false,
+          ),
+          'response' => 
+          array (
+            'headers' => 
+            array (
+              'Content-Type' => 'application/json; charset=utf-8',
+            ),
+            'body' => '{"modelfile":"# Modelfile generated by \\"ollama show\\"\\n# To build a new Modelfile based on this one, replace the FROM line with:\\n# FROM gpt-oss:120b\\n\\nFROM gpt-oss:120b\\nTEMPLATE \\"\\"\\"{{{{ .Prompt }}}}\\"\\"\\"\\nPARAMETER stop \\"<|end|>\\"\\n","parameters":"num_ctx                       131072\\nstop                           \\"<|end|>\\"\\ntemperature                    0.7\\n","template":"{{{{ .Prompt }}}}","details":{"parent_model":"","format":"gguf","family":"gptoss","families":["gptoss"],"parameter_size":"120B","quantization_level":"MXFP4"},"model_info":{"general.architecture":"gptoss","general.parameter_count":120000000000,"general.quantization_version":2,"general.file_type":"MXFP4","gptoss.context_length":131072},"capabilities":["completion"]}',
+            'status' => 200,
+          ),
+        ),
+        7 => 
+        array (
+          'when' => 
+          array (
+            'in' => 'match.1',
+            'regex' => '^gemma3\\:27b$',
+            'ci' => false,
+          ),
+          'response' => 
+          array (
+            'headers' => 
+            array (
+              'Content-Type' => 'application/json; charset=utf-8',
+            ),
+            'body' => '{"modelfile":"# Modelfile generated by \\"ollama show\\"\\n# To build a new Modelfile based on this one, replace the FROM line with:\\n# FROM gemma3:27b\\n\\nFROM gemma3:27b\\nTEMPLATE \\"\\"\\"{{{{ .Prompt }}}}\\"\\"\\"\\nPARAMETER stop \\"<|end|>\\"\\n","parameters":"num_ctx                       131072\\nstop                           \\"<|end|>\\"\\ntemperature                    0.7\\n","template":"{{{{ .Prompt }}}}","details":{"parent_model":"","format":"gguf","family":"gemma3","families":["gemma3"],"parameter_size":"27B","quantization_level":"Q4_K_M"},"model_info":{"general.architecture":"gemma3","general.parameter_count":27000000000,"general.quantization_version":2,"general.file_type":"Q4_K_M","gemma3.context_length":131072},"capabilities":["completion"]}',
+            'status' => 200,
+          ),
+        ),
+        8 => 
+        array (
+          'when' => 
+          array (
+            'in' => 'match.1',
+            'regex' => '^big\\-pickle\\:1\\.5t$',
+            'ci' => false,
+          ),
+          'response' => 
+          array (
+            'headers' => 
+            array (
+              'Content-Type' => 'application/json; charset=utf-8',
+            ),
+            'body' => '{"modelfile":"# Modelfile generated by \\"ollama show\\"\\n# To build a new Modelfile based on this one, replace the FROM line with:\\n# FROM big-pickle:1.5t\\n\\nFROM big-pickle:1.5t\\nTEMPLATE \\"\\"\\"{{{{ .Prompt }}}}\\"\\"\\"\\nPARAMETER stop \\"<|end|>\\"\\n","parameters":"num_ctx                       262144\\nstop                           \\"<|end|>\\"\\ntemperature                    0.7\\n","template":"{{{{ .Prompt }}}}","details":{"parent_model":"","format":"gguf","family":"pickle","families":["pickle"],"parameter_size":"1.5T","quantization_level":"Q4_K_M"},"model_info":{"general.architecture":"pickle","general.parameter_count":1500000000000,"general.quantization_version":2,"general.file_type":"Q4_K_M","pickle.context_length":262144},"capabilities":["completion"]}',
+            'status' => 200,
+          ),
+        ),
+      ),
+    ),
+  ),
+  21 => 
+  array (
+    'id' => 'attack-ai-ollama-chat',
+    'severity' => 'medium',
+    'tags' => 
+    array (
+      0 => 'ai-recon',
+      1 => 'exposure',
+      2 => 'appliance',
+    ),
+    'status' => 200,
+    'match' => 
+    array (
+      0 => 
+      array (
+        'in' => 'path',
+        'regex' => '^/api/chat/?$',
+        'ci' => false,
+      ),
+      1 => 
+      array (
+        'in' => 'method',
+        'regex' => '^POST$',
+        'ci' => false,
+      ),
+      2 => 
+      array (
+        'in' => 'body',
+        'regex' => '"model"\\s*:\\s*"([^"]{0,128})"',
+        'ci' => false,
+        'capture' => true,
+      ),
+    ),
+    'response' => 
+    array (
+      'headers' => 
+      array (
+        'Content-Type' => 'application/json; charset=utf-8',
+      ),
+      'body' => '{"model":"{{match.1}}","created_at":"2026-08-01T00:00:00Z","message":{"role":"assistant","content":"{{pick:The capital of France is Berlin.,Two plus two equals five.,Water boils at forty degrees Celsius.,The sun orbits the Earth once per day.}}"},"done":true,"done_reason":"stop","total_duration":4883583458,"load_duration":1334875,"prompt_eval_count":26,"prompt_eval_duration":342546000,"eval_count":32,"eval_duration":1200000000}',
+    ),
+    'lit' => '/api/chat',
+    'lit_in' => 'path',
+    'lit_ci' => false,
+    'owns_path' => 
+    array (
+      0 => '/api/chat',
+    ),
+  ),
+  22 => 
+  array (
+    'id' => 'attack-ai-ollama-generate',
+    'severity' => 'medium',
+    'tags' => 
+    array (
+      0 => 'ai-recon',
+      1 => 'exposure',
+      2 => 'appliance',
+    ),
+    'status' => 200,
+    'match' => 
+    array (
+      0 => 
+      array (
+        'in' => 'path',
+        'regex' => '^/api/generate/?$',
+        'ci' => false,
+      ),
+      1 => 
+      array (
+        'in' => 'method',
+        'regex' => '^POST$',
+        'ci' => false,
+      ),
+      2 => 
+      array (
+        'in' => 'body',
+        'regex' => '"model"\\s*:\\s*"([^"]{0,128})"',
+        'ci' => false,
+        'capture' => true,
+      ),
+    ),
+    'response' => 
+    array (
+      'headers' => 
+      array (
+        'Content-Type' => 'application/json; charset=utf-8',
+      ),
+      'body' => '{"model":"{{match.1}}","created_at":"2026-08-01T00:00:00Z","response":"{{pick:The capital of France is Berlin.,Two plus two equals five.,Water boils at forty degrees Celsius.,The sun orbits the Earth once per day.}}","done":true,"done_reason":"stop","context":[1,2,3],"total_duration":4883583458,"load_duration":1334875,"prompt_eval_count":26,"prompt_eval_duration":342546000,"eval_count":32,"eval_duration":1200000000}',
+    ),
+    'lit' => '/api/generate',
+    'lit_in' => 'path',
+    'lit_ci' => false,
+    'owns_path' => 
+    array (
+      0 => '/api/generate',
+    ),
+  ),
+  23 => 
+  array (
     'id' => 'attack-kibana-login',
     'severity' => 'high',
     'tags' => 
@@ -1420,7 +1862,56 @@ return array (
       ),
     ),
   ),
-  18 => 
+  24 => 
+  array (
+    'id' => 'attack-ai-openai-chat',
+    'severity' => 'medium',
+    'tags' => 
+    array (
+      0 => 'ai-recon',
+      1 => 'exposure',
+      2 => 'appliance',
+    ),
+    'status' => 200,
+    'match' => 
+    array (
+      0 => 
+      array (
+        'in' => 'path',
+        'regex' => '^/v1/chat/completions/?$',
+        'ci' => false,
+      ),
+      1 => 
+      array (
+        'in' => 'method',
+        'regex' => '^POST$',
+        'ci' => false,
+      ),
+      2 => 
+      array (
+        'in' => 'body',
+        'regex' => '"model"\\s*:\\s*"([^"]{0,128})"',
+        'ci' => false,
+        'capture' => true,
+      ),
+    ),
+    'response' => 
+    array (
+      'headers' => 
+      array (
+        'Content-Type' => 'application/json',
+      ),
+      'body' => '{"id":"chatcmpl-B7kQw2ZfR3nT8xLmPa4Vd","object":"chat.completion","created":1769904000,"model":"{{match.1}}","choices":[{"index":0,"message":{"role":"assistant","content":"{{pick:The capital of France is Berlin.,Two plus two equals five.,Water boils at forty degrees Celsius.,The sun orbits the Earth once per day.}}","refusal":null},"logprobs":null,"finish_reason":"stop"}],"usage":{"prompt_tokens":19,"completion_tokens":10,"total_tokens":29}}',
+    ),
+    'lit' => '/v1/chat/completions',
+    'lit_in' => 'path',
+    'lit_ci' => false,
+    'owns_path' => 
+    array (
+      0 => '/v1/chat/completions',
+    ),
+  ),
+  25 => 
   array (
     'id' => 'attack-grafana-login',
     'severity' => 'high',
@@ -1475,7 +1966,7 @@ return array (
       0 => '/grafana/login',
     ),
   ),
-  19 => 
+  26 => 
   array (
     'id' => 'attack-wp-login',
     'severity' => 'high',
@@ -1564,7 +2055,7 @@ return array (
       0 => '/wp-login.php',
     ),
   ),
-  20 => 
+  27 => 
   array (
     'id' => 'attack-cmdi-windows',
     'severity' => 'critical',
@@ -1600,7 +2091,7 @@ Ethernet adapter Ethernet0:
 ',
     ),
   ),
-  21 => 
+  28 => 
   array (
     'id' => 'attack-cmdi-unix',
     'severity' => 'critical',
@@ -1628,7 +2119,56 @@ Ethernet adapter Ethernet0:
       'body' => '{{canned.uid}}',
     ),
   ),
-  22 => 
+  29 => 
+  array (
+    'id' => 'attack-ai-anthropic-messages',
+    'severity' => 'medium',
+    'tags' => 
+    array (
+      0 => 'ai-recon',
+      1 => 'exposure',
+      2 => 'appliance',
+    ),
+    'status' => 200,
+    'match' => 
+    array (
+      0 => 
+      array (
+        'in' => 'path',
+        'regex' => '^/v1/messages/?$',
+        'ci' => false,
+      ),
+      1 => 
+      array (
+        'in' => 'method',
+        'regex' => '^POST$',
+        'ci' => false,
+      ),
+      2 => 
+      array (
+        'in' => 'body',
+        'regex' => '"model"\\s*:\\s*"([^"]{0,128})"',
+        'ci' => false,
+        'capture' => true,
+      ),
+    ),
+    'response' => 
+    array (
+      'headers' => 
+      array (
+        'Content-Type' => 'application/json',
+      ),
+      'body' => '{"id":"msg_014kQw2ZfR3nT8xLmPa4VdRs","type":"message","role":"assistant","model":"{{match.1}}","content":[{"type":"text","text":"{{pick:The capital of France is Berlin.,Two plus two equals five.,Water boils at forty degrees Celsius.,The sun orbits the Earth once per day.}}"}],"stop_reason":"end_turn","stop_sequence":null,"usage":{"input_tokens":21,"output_tokens":10}}',
+    ),
+    'lit' => '/v1/messages',
+    'lit_in' => 'path',
+    'lit_ci' => false,
+    'owns_path' => 
+    array (
+      0 => '/v1/messages',
+    ),
+  ),
+  30 => 
   array (
     'id' => 'attack-cpsrvd-login',
     'severity' => 'high',
@@ -1738,7 +2278,7 @@ Ethernet adapter Ethernet0:
       ),
     ),
   ),
-  23 => 
+  31 => 
   array (
     'id' => 'attack-phppgadmin-login',
     'severity' => 'high',
@@ -1877,7 +2417,7 @@ Ethernet adapter Ethernet0:
       ),
     ),
   ),
-  24 => 
+  32 => 
   array (
     'id' => 'attack-ssti-twig',
     'severity' => 'high',
@@ -1906,7 +2446,7 @@ Ethernet adapter Ethernet0:
 ',
     ),
   ),
-  25 => 
+  33 => 
   array (
     'id' => 'attack-ssti-numeric',
     'severity' => 'high',
@@ -1934,7 +2474,7 @@ Ethernet adapter Ethernet0:
 ',
     ),
   ),
-  26 => 
+  34 => 
   array (
     'id' => 'attack-php-glastopf',
     'severity' => 'critical',
@@ -1966,7 +2506,7 @@ Ethernet adapter Ethernet0:
     'lit_in' => 'request',
     'lit_ci' => true,
   ),
-  27 => 
+  35 => 
   array (
     'id' => 'attack-sqli',
     'severity' => 'high',
@@ -1994,7 +2534,7 @@ Ethernet adapter Ethernet0:
 ',
     ),
   ),
-  28 => 
+  36 => 
   array (
     'id' => 'attack-open-redirect',
     'severity' => 'medium',
@@ -2023,7 +2563,7 @@ Ethernet adapter Ethernet0:
       'body' => '<html><head><title>302 Found</title></head><body>Redirecting...</body></html>',
     ),
   ),
-  29 => 
+  37 => 
   array (
     'id' => 'attack-xss',
     'severity' => 'medium',
@@ -2054,7 +2594,7 @@ Ethernet adapter Ethernet0:
 ',
     ),
   ),
-  30 => 
+  38 => 
   array (
     'id' => 'attack-thinkphp-rce',
     'severity' => 'critical',
@@ -2090,7 +2630,7 @@ Ethernet adapter Ethernet0:
 ',
     ),
   ),
-  31 => 
+  39 => 
   array (
     'id' => 'attack-owncloud-49103',
     'severity' => 'high',
@@ -2133,7 +2673,7 @@ Ethernet adapter Ethernet0:
     'lit_in' => 'path',
     'lit_ci' => true,
   ),
-  32 => 
+  40 => 
   array (
     'id' => 'attack-f5-1388',
     'severity' => 'critical',
@@ -2167,7 +2707,7 @@ Ethernet adapter Ethernet0:
     'lit_in' => 'path',
     'lit_ci' => true,
   ),
-  33 => 
+  41 => 
   array (
     'id' => 'attack-geoserver-36401',
     'severity' => 'critical',
@@ -2210,7 +2750,7 @@ Ethernet adapter Ethernet0:
     'lit_in' => 'path',
     'lit_ci' => true,
   ),
-  34 => 
+  42 => 
   array (
     'id' => 'attack-fortios-40684',
     'severity' => 'critical',
@@ -2249,7 +2789,7 @@ Ethernet adapter Ethernet0:
     'lit_in' => 'path',
     'lit_ci' => true,
   ),
-  35 => 
+  43 => 
   array (
     'id' => 'attack-ivanti-21887',
     'severity' => 'critical',
@@ -2284,7 +2824,7 @@ Ethernet adapter Ethernet0:
     'lit_in' => 'request',
     'lit_ci' => true,
   ),
-  36 => 
+  44 => 
   array (
     'id' => 'attack-citrix-bleed-4966',
     'severity' => 'critical',
@@ -2319,7 +2859,7 @@ Ethernet adapter Ethernet0:
     'lit_in' => 'path',
     'lit_ci' => true,
   ),
-  37 => 
+  45 => 
   array (
     'id' => 'attack-webshell-panel',
     'severity' => 'critical',
@@ -2354,7 +2894,7 @@ $ </pre>
 ',
     ),
   ),
-  38 => 
+  46 => 
   array (
     'id' => 'attack-spring-actuator',
     'severity' => 'high',
@@ -2387,7 +2927,7 @@ $ </pre>
     'lit_in' => 'path',
     'lit_ci' => true,
   ),
-  39 => 
+  47 => 
   array (
     'id' => 'attack-cloud-imds',
     'severity' => 'high',
@@ -2424,7 +2964,7 @@ $ </pre>
 ',
     ),
   ),
-  40 => 
+  48 => 
   array (
     'id' => 'attack-ignition-execute-solution',
     'severity' => 'high',
@@ -2513,7 +3053,7 @@ $ </pre>
       ),
     ),
   ),
-  41 => 
+  49 => 
   array (
     'id' => 'attack-webmin-session-login',
     'severity' => 'high',
@@ -2583,7 +3123,7 @@ $ </pre>
     'lit_in' => 'method',
     'lit_ci' => false,
   ),
-  42 => 
+  50 => 
   array (
     'id' => 'attack-jenkins-acegi-login',
     'severity' => 'high',
@@ -2631,7 +3171,7 @@ $ </pre>
     'lit_in' => 'method',
     'lit_ci' => false,
   ),
-  43 => 
+  51 => 
   array (
     'id' => 'attack-hnap-login',
     'severity' => 'high',
@@ -2716,7 +3256,7 @@ $ </pre>
       ),
     ),
   ),
-  44 => 
+  52 => 
   array (
     'id' => 'attack-crs-sqli',
     'severity' => 'high',
@@ -2746,7 +3286,7 @@ $ </pre>
 ',
     ),
   ),
-  45 => 
+  53 => 
   array (
     'id' => 'attack-crs-xss',
     'severity' => 'high',
@@ -2778,7 +3318,7 @@ $ </pre>
 ',
     ),
   ),
-  46 => 
+  54 => 
   array (
     'id' => 'attack-crs-lfi',
     'severity' => 'high',
@@ -2807,7 +3347,7 @@ $ </pre>
       'body' => '{{canned.passwd}}',
     ),
   ),
-  47 => 
+  55 => 
   array (
     'id' => 'attack-crs-rce',
     'severity' => 'critical',
