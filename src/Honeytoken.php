@@ -24,7 +24,7 @@ final class Honeytoken
     /** A `Set-Cookie` value planting the signed bait, scoped to the given path. */
     public function cookie(string $name = 'sess', string $payload = 'r=user', string $path = '/'): string
     {
-        return $name . '=' . rawurlencode($payload . '.' . $this->sign($payload)) . '; Path=' . $path . '; HttpOnly';
+        return $name . '=' . rawurlencode($payload . '.' . $this->sign($payload)) . '; path=' . $path . '; HttpOnly';
     }
 
     /**

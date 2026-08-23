@@ -38,7 +38,9 @@ final class HoneytokenTest extends TestCase
     {
         $h = new Honeytoken('server-side-secret');
 
-        self::assertStringContainsString('Path=/', $h->cookie());
+        // Lowercase `path=` matches PHP's setcookie() output (real PHP apps like phpMyAdmin) and
+        // the rest of the codebase's cookie emitters — capital `Path=` would be a subtle tell.
+        self::assertStringContainsString('path=/', $h->cookie());
         self::assertStringContainsString('HttpOnly', $h->cookie());
     }
 
@@ -47,7 +49,7 @@ final class HoneytokenTest extends TestCase
         $h = new Honeytoken('server-side-secret');
         $cookie = $h->cookie('phpMyAdmin', 's=1', '/phpmyadmin');
 
-        self::assertStringContainsString('Path=/phpmyadmin', $cookie);
+        self::assertStringContainsString('path=/phpmyadmin', $cookie);
         self::assertStringNotContainsString('path=/;', $cookie);
     }
 
