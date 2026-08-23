@@ -39,6 +39,15 @@ final class AttackEmulatorTest extends TestCase
         self::assertStringContainsString('root:x:0:0', $r->body);
     }
 
+    public function test_command_injection_matches_double_url_encoded(): void
+    {
+        // WAF-evasion double-encoding: %253B -> %3B -> ';'. A second decode pass recovers the payload.
+        $r = $this->emulate('/ping', 'host=127.0.0.1%253Bid');
+        self::assertNotNull($r);
+        self::assertStringContainsString('uid=0(root)', $r->body);
+        self::assertSame(['attack-cmdi-unix'], $r->satisfies->templateIds());
+    }
+
     public function test_sqli_returns_sql_error(): void
     {
         $r = $this->emulate('/item', "id=1' OR '1'='1");

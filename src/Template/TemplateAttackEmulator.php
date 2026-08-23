@@ -1012,8 +1012,15 @@ final class TemplateAttackEmulator
             case 'request':
             default:
                 $raw = $r->path . ' ' . $r->query . ' ' . (string) ($r->rawBody ?? '');
+                // A second decode pass recovers double-encoded WAF-evasion payloads (%253b -> %3b
+                // -> ;), added only when an encoded octet survived the first pass. Callers cap the
+                // result at MAX_SURFACE, so the extra copy cannot amplify backtracking cost.
+                $once = rawurldecode($raw);
+                if (preg_match('~%[0-9A-Fa-f]{2}~', $once) !== 1) {
+                    return $raw . ' ' . $once;
+                }
 
-                return $raw . ' ' . rawurldecode($raw);
+                return $raw . ' ' . $once . ' ' . rawurldecode($once);
         }
     }
 }
