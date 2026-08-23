@@ -5,7 +5,8 @@ priority: 378
 # json in the EXACT real shape `{"commit","database","version"}`. The commit reuses the `grafcommit`
 # fake name from the /api/frontend/settings enrich, so both surfaces of one host report the same build
 # for a given seed; the version (10.4.2) matches too. Opens with a lone `{` so the JSON taunt keeps it
-# parseable; the commit is a 40-char hex (no bare 6-digit run).
+# parseable; the commit is a short build hash (~10 hex, as a real Grafana build reports — no bare
+# 6-digit run).
 new_page:
   method: GET
   paths: ['/api/health']
@@ -20,7 +21,7 @@ response:
     Content-Type: "application/json"
   body: |
     {
-    "commit": "{{fake.grafcommit:hex:40}}",
+    "commit": "{{fake.grafcommit:hex:10}}",
     "database": "ok",
     "version": "10.4.2"
     }

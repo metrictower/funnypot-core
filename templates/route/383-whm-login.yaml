@@ -1,20 +1,21 @@
-id: route-cpanel-login
-priority: 382
-# Brand-new page: the cPanel end-user login screen served by cpsrvd (no nuclei template at this path).
-# /cpanel is one of the most-probed control-panel paths. cpsrvd discloses itself in the `Server:
-# cpsrvd/<ver>` response banner (version-coherent with the body's `Version 118.0.13`). WHM (/whm) is a
-# DISTINCT product surface with its own branding, split into its own template (383) — a real host does
-# not serve byte-identical chrome on both. Served text/html. Ports 2083/2087 appear in copy only
-# (4-digit, safe). Version is a dotted literal (no bare 6-digit run). Authored `low` severity.
+id: route-whm-login
+priority: 383
+# Brand-new page: the WHM (Web Host Manager) login screen served by cpsrvd on the reseller/admin
+# surface (no nuclei template at this path). WHM is a DISTINCT product from the end-user cPanel login
+# (382): a real host serves WHM-branded chrome here — the `Web Host Manager` wordmark, not cPanel — so
+# a scanner probing /whm that expects WHM branding must not see the cPanel page. cpsrvd discloses
+# itself in the `Server: cpsrvd/<ver>` banner (version-coherent with the body's `Version 118.0.13`).
+# Served text/html. Ports 2083/2087 appear in copy only (4-digit, safe). Version is a dotted literal
+# (no bare 6-digit run). Authored `low` severity.
 new_page:
   method: GET
-  paths: ['/cpanel']
+  paths: ['/whm']
   sig: 0
   status: 200
   severity: low
-  tags: [cpanel, panel, login, exposure]
-  name: 'cPanel login'
-  body_words: ['cPanel']
+  tags: [whm, cpanel, panel, login, exposure]
+  name: 'WHM login'
+  body_words: ['WHM']
 response:
   headers:
     Content-Type: "text/html; charset=utf-8"
@@ -28,9 +29,9 @@ response:
     <title>Login</title>
     <link rel="stylesheet" href="/cpsess0000000000/styled/basic/css/cjt.css">
     </head>
-    <body class="cpanel-login-page">
-    <div id="cpanel_lm_container" class="login-container">
-    <div class="brand"><h1>cPanel</h1></div>
+    <body class="whm-login-page">
+    <div id="whm_lm_container" class="login-container">
+    <div class="brand"><h1>WHM</h1><p class="product">Web Host Manager</p></div>
     <form action="/login/?login_only=1" method="post" id="login_form" name="login_form">
     <input type="hidden" name="goto_uri" value="/">
     <div class="form-group">
@@ -43,13 +44,14 @@ response:
     </div>
     <button type="submit" id="login_submit" class="btn-primary">Log in</button>
     </form>
-    <p class="notice">You can reach cPanel on port 2083 and WHM on port 2087.</p>
-    <div class="copyright">cPanel &amp; WHM Version 118.0.13</div>
+    <p class="notice">You can reach WHM on port 2087 and cPanel on port 2083.</p>
+    <div class="copyright">WHM Version 118.0.13</div>
     </div>
     </body>
     </html>
 taunt: { mode: block, open: '<!--', close: '-->' }
 expect:
-  - '<h1>cPanel</h1>'
+  - '<h1>WHM</h1>'
+  - 'Web Host Manager'
   - 'Version 118.0.13'
   - 'Server: cpsrvd/11.118.0.13'

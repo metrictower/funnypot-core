@@ -1,0 +1,44 @@
+id: route-phppgadmin-intro
+priority: 384
+# Brand-new page: the phpPgAdmin intro.php content frame (no nuclei template at this path). The
+# /phppgadmin/ frameset (371) points its detail frame at intro.php; this is where real phpPgAdmin
+# discloses its version — an `<h1>phpPgAdmin <ver></h1>` heading — NOT on the version-free frameset.
+# A scanner following the frame src lands here and lifts the version from the content where it really
+# lives. phpPgAdmin manages PostgreSQL, so this is coherent with the persona app db; it never names
+# MySQL. Served text/html; version is a dotted literal (no bare 6-digit run). Authored `low` severity.
+new_page:
+  method: GET
+  paths: ['/phppgadmin/intro.php']
+  sig: 0
+  status: 200
+  severity: low
+  tags: [phppgadmin, postgres, panel, version, disclosure]
+  name: 'phpPgAdmin intro (version disclosure)'
+  body_words: ['phpPgAdmin']
+response:
+  headers:
+    Content-Type: "text/html; charset=utf-8"
+  body: |
+    <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+    <html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+    <title>phpPgAdmin</title>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <link rel="stylesheet" href="themes/default/global.css" type="text/css" />
+    </head>
+    <body>
+    <div id="intro">
+    <h1>phpPgAdmin 7.13.0</h1>
+    <p>Welcome to phpPgAdmin.</p>
+    <ul>
+    <li><a href="https://github.com/phppgadmin/phppgadmin/wiki" target="_blank">phpPgAdmin Documentation</a></li>
+    <li><a href="https://www.postgresql.org/docs/" target="_blank">PostgreSQL Documentation</a></li>
+    <li><a href="https://github.com/phppgadmin/phppgadmin/issues" target="_blank">Report a bug</a></li>
+    </ul>
+    </div>
+    </body>
+    </html>
+taunt: { mode: block, open: '<!--', close: '-->' }
+expect:
+  - '<h1>phpPgAdmin 7.13.0</h1>'
+  - 'PostgreSQL Documentation'

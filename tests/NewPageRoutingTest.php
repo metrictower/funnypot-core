@@ -206,7 +206,7 @@ final class NewPageRoutingTest extends TestCase
             // minimal synth of the bare body words). Content-Type is exactly the endpoint's real type (a
             // mismatch is a honeypot tell): phpMyAdmin ChangeLog/README are text/plain, the doc index and
             // the login shells are text/html, the Grafana health + Jenkins API roots are application/json.
-            'phpmyadmin ChangeLog'  => ['/phpmyadmin/ChangeLog', 200, '5.2.1 (2023-05-09)', 'text/plain; charset=utf-8'],
+            'phpmyadmin ChangeLog'  => ['/phpmyadmin/ChangeLog', 200, '5.2.1 (2023-02-07)', 'text/plain; charset=utf-8'],
             'phpmyadmin README'     => ['/phpmyadmin/README', 200, 'Version 5.2.1', 'text/plain; charset=utf-8'],
             'phpmyadmin doc index'  => ['/phpmyadmin/doc/html/index.html', 200, 'phpMyAdmin 5.2.1 documentation', 'text/html; charset=utf-8'],
             'grafana health'        => ['/api/health', 200, '"database": "ok"', 'application/json'],
@@ -215,8 +215,8 @@ final class NewPageRoutingTest extends TestCase
             'jenkins api/json'      => ['/api/json', 200, '"_class": "hudson.model.Hudson"', 'application/json'],
             'pgadmin login'         => ['/pgadmin4/', 200, 'Version 8.5', 'text/html; charset=utf-8'],
             'pgadmin login (alt)'   => ['/pgadmin4/login', 200, 'Version 8.5', 'text/html; charset=utf-8'],
-            'cpanel login'          => ['/cpanel', 200, 'Version 118.0.13', 'text/html; charset=utf-8'],
-            'whm login'             => ['/whm', 200, 'Version 118.0.13', 'text/html; charset=utf-8'],
+            'cpanel login'          => ['/cpanel', 200, '<h1>cPanel</h1>', 'text/html; charset=utf-8'],
+            'whm login'             => ['/whm', 200, 'Web Host Manager', 'text/html; charset=utf-8'],
         ];
     }
 
@@ -767,13 +767,48 @@ final class NewPageRoutingTest extends TestCase
         // A scanner keys on the `X-Jenkins` response header to confirm Jenkins and lift its version.
         // Both the /jenkins/ dashboard enrich and the brand-new /api/json root must carry it end-to-end
         // (the emulator's headers survive the whole synthesizer), and both must report the SAME version
-        // — one host, one controller.
+        // — one host, one controller. X-Jenkins-Session must be a valid RFC-4122 v4 UUID (real Jenkins
+        // sets it from UUID.randomUUID()) and byte-identical across both surfaces (a per-boot constant),
+        // and each surface must carry the X-Instance-Identity pubkey blob core always sends.
         $inv = $this->inverter();
+        $sessions = [];
+        $v4 = '/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/';
         foreach (['/jenkins/', '/api/json'] as $path) {
             $resp = $inv->respond(new RequestContext('GET', $path));
             self::assertNotNull($resp, "{$path} must serve a fake");
             self::assertSame('2.426.3', $resp->headers['X-Jenkins'] ?? null, "{$path} must carry the X-Jenkins version header");
+            $session = $resp->headers['X-Jenkins-Session'] ?? '';
+            self::assertSame(1, preg_match($v4, $session), "{$path} X-Jenkins-Session must be a valid v4 UUID, got '{$session}'");
+            $sessions[] = $session;
+            self::assertStringStartsWith('MIIBIjAN', $resp->headers['X-Instance-Identity'] ?? '', "{$path} must carry the X-Instance-Identity pubkey blob");
         }
+        self::assertSame($sessions[0], $sessions[1], 'X-Jenkins-Session must be identical across /jenkins/ and /api/json (one controller, one boot)');
+    }
+
+    public function test_panel_disclosure_headers_are_tool_faithful(): void
+    {
+        // Webmin discloses its version in the Server banner (where real miniserv discloses it pre-auth),
+        // not a page footer, and sets the static cookie-support probe `testing=1` (not a random session
+        // token). cPanel/WHM are served by cpsrvd, whose Server banner both must carry, and /whm must be
+        // WHM-branded — distinct from the /cpanel end-user login.
+        $inv = $this->inverter();
+
+        $webmin = $inv->respond(new RequestContext('GET', '/webmin/'));
+        self::assertNotNull($webmin, '/webmin/ must serve a fake');
+        self::assertSame('MiniServ/2.111', $webmin->headers['Server'] ?? null, '/webmin/ must disclose the version via the MiniServ Server banner');
+        self::assertStringContainsString('testing=1', $webmin->headers['Set-Cookie'] ?? '', '/webmin/ must set the static testing=1 cookie-support probe');
+        self::assertStringNotContainsString('Webmin 2.111', $webmin->body, '/webmin/ login page must not print a version/OS footer');
+
+        foreach (['/cpanel', '/whm'] as $path) {
+            $resp = $inv->respond(new RequestContext('GET', $path));
+            self::assertNotNull($resp, "{$path} must serve a fake");
+            self::assertSame('cpsrvd/11.118.0.13', $resp->headers['Server'] ?? null, "{$path} must carry the cpsrvd Server banner");
+        }
+
+        $whm = $inv->respond(new RequestContext('GET', '/whm'));
+        self::assertNotNull($whm, '/whm must serve a fake');
+        self::assertStringContainsString('Web Host Manager', $whm->body, '/whm must be WHM-branded');
+        self::assertStringNotContainsString('<h1>cPanel</h1>', $whm->body, '/whm must not serve the cPanel wordmark');
     }
 
     public function test_panel_json_pages_stay_parseable(): void
@@ -798,15 +833,16 @@ final class NewPageRoutingTest extends TestCase
     {
         // One host runs one Grafana build: the commit hash and version the unauthenticated /api/health
         // discloses must be byte-identical to what the /api/frontend/settings bootstrap config discloses
-        // for the same seed — two surfaces reporting a different build would betray the fabrication.
+        // for the same seed — two surfaces reporting a different build would betray the fabrication. The
+        // commit is a SHORT build hash (~10 hex), the length a real Grafana build reports — not a 40-char SHA.
         for ($seed = 0; $seed <= 30; $seed++) {
             $inv = $this->seededInverter((string) $seed, 'realistic');
             $health = $inv->respond(new RequestContext('GET', '/api/health'));
             $settings = $inv->respond(new RequestContext('GET', '/api/frontend/settings'));
             self::assertNotNull($health, "seed {$seed}: /api/health must serve a fake");
             self::assertNotNull($settings, "seed {$seed}: /api/frontend/settings must serve a fake");
-            self::assertSame(1, preg_match('/"commit":\s*"([0-9a-f]{40})"/', $health->body, $hc), "seed {$seed}: /api/health must disclose a commit");
-            self::assertSame(1, preg_match('/"commit":\s*"([0-9a-f]{40})"/', $settings->body, $sc), "seed {$seed}: /api/frontend/settings must disclose a commit");
+            self::assertSame(1, preg_match('/"commit":\s*"([0-9a-f]{10})"/', $health->body, $hc), "seed {$seed}: /api/health must disclose a commit");
+            self::assertSame(1, preg_match('/"commit":\s*"([0-9a-f]{10})"/', $settings->body, $sc), "seed {$seed}: /api/frontend/settings must disclose a commit");
             self::assertSame($sc[1], $hc[1], "seed {$seed}: the Grafana commit must match across /api/health and /api/frontend/settings");
         }
     }

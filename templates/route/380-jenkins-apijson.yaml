@@ -2,10 +2,14 @@ id: route-jenkins-apijson
 priority: 380
 # Brand-new page: Jenkins' remote-access API root /api/json (no nuclei template at this path). A
 # scanner reads it to confirm Jenkins and enumerate jobs/views; the `X-Jenkins` version header rides
-# along, matching the /jenkins/ dashboard enrich (one host, one controller). Served application/json in
-# the real Hudson root shape (`_class`, `mode`, `jobs`, `views`, `useSecurity`). The job names are
-# persona-seeded. Opens with a lone `{` so the JSON taunt keeps it parseable; numExecutors is small and
-# the version is a dotted literal (no bare 6-digit run).
+# along (with an `X-Jenkins-Session` that is a real RFC-4122 v4 UUID — version nibble 4, variant
+# 8/9/a/b — the same value the /jenkins/ dashboard enrich sends: one host, one controller) and the
+# `X-Instance-Identity` pubkey blob core always sends, byte-identical to /jenkins/ (one instance). Served
+# application/json in the real Hudson root shape, carrying the keys a real root always returns
+# (`url`, `slaveAgentPort`, `overallLoad`, `unlabeledLoad`) alongside `_class`/`mode`/`jobs`/`views`/
+# `useSecurity`. The job names are persona-seeded. Opens with a lone `{` so the JSON taunt keeps it
+# parseable; numExecutors and slaveAgentPort are small and the version is a dotted literal (no bare
+# 6-digit run).
 new_page:
   method: GET
   paths: ['/api/json']
@@ -19,7 +23,8 @@ response:
   headers:
     Content-Type: "application/json"
     X-Jenkins: "2.426.3"
-    X-Jenkins-Session: "{{fake.jenkinssess1:hex:8}}-{{fake.jenkinssess2:hex:4}}-{{fake.jenkinssess3:hex:4}}-{{fake.jenkinssess4:hex:4}}-{{fake.jenkinssess5:hex:12}}"
+    X-Jenkins-Session: "{{fake.jenkinssess1:hex:8}}-{{fake.jenkinssess2:hex:4}}-4{{fake.jenkinssess3:hex:3}}-{{pick:8,9,a,b}}{{fake.jenkinssess4:hex:3}}-{{fake.jenkinssess5:hex:12}}"
+    X-Instance-Identity: "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA{{fake.jid1:b64:43}}{{fake.jid2:b64:43}}{{fake.jid3:b64:43}}{{fake.jid4:b64:43}}{{fake.jid5:b64:43}}{{fake.jid6:b64:43}}{{fake.jid7:b64:43}}{{fake.jid8:b64:41}}IDAQAB"
     X-Content-Type-Options: "nosniff"
   body: |
     {
@@ -34,8 +39,12 @@ response:
     {"_class": "hudson.model.FreeStyleProject", "name": "{{persona.company.slug}}-deploy", "url": "https://{{persona.company.domain}}/job/{{persona.company.slug}}-deploy/", "color": "blue"},
     {"_class": "hudson.model.FreeStyleProject", "name": "{{persona.company.slug}}-tests", "url": "https://{{persona.company.domain}}/job/{{persona.company.slug}}-tests/", "color": "yellow"}
     ],
+    "overallLoad": {},
     "primaryView": {"_class": "hudson.model.AllView", "name": "all", "url": "https://{{persona.company.domain}}/"},
     "quietingDown": false,
+    "slaveAgentPort": 0,
+    "unlabeledLoad": {"_class": "jenkins.model.UnlabeledLoadStatistics"},
+    "url": "https://{{persona.company.domain}}/",
     "useCrumbs": true,
     "useSecurity": true,
     "views": [{"_class": "hudson.model.AllView", "name": "all", "url": "https://{{persona.company.domain}}/"}]

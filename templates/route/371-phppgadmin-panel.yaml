@@ -2,11 +2,12 @@ id: route-phppgadmin
 priority: 371
 # Enrich: the corpus routes /phppgadmin/ to the `phppgadmin-panel` bundle (body words `intro.php`,
 # `browser.php`). Minimal synth would emit the bare words; here we serve the real phpPgAdmin frameset
-# — the `browser.php` navigation frame and the `intro.php` content frame — plus a generator meta that
-# carries the product name and version a scanner reads. Needle is the full upstream id (findRule is
-# global). phpPgAdmin manages PostgreSQL, so this panel is coherent with the persona app db (the
-# strongest coherence of the pack); it never names MySQL. Version is a dotted literal (no bare 6-digit
-# run). Content-Type is text/html.
+# — the `browser.php` navigation frame and the `intro.php` content frame. The real frameset carries NO
+# product version (a `generator` meta here is a fabricated disclosure the real index does not print);
+# the version lives on the intro.php content frame, served at /phppgadmin/intro.php (384). Needle is
+# the full upstream id (findRule is global). phpPgAdmin manages PostgreSQL, so this panel is coherent
+# with the persona app db (the strongest coherence of the pack); it never names MySQL. Content-Type is
+# text/html.
 match:
   template_needle: [phppgadmin-panel]
 response:
@@ -18,7 +19,6 @@ response:
     <head>
     <title>phpPgAdmin</title>
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-    <meta name="generator" content="phpPgAdmin 7.13.0" />
     </head>
     <frameset cols="25%,75%" id="frame">
     <frame src="browser.php" name="browser" title="phpPgAdmin navigation frame" />
@@ -33,4 +33,3 @@ taunt: { mode: block, open: '<!--', close: '-->' }
 expect:
   - 'browser.php'
   - 'intro.php'
-  - 'phpPgAdmin 7.13.0'

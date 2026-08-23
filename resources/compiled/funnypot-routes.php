@@ -4097,13 +4097,14 @@ RemoteManage=0
 <input type="submit" value="Login">
 <label><input type="checkbox" name="save" value="1"> Remember login permanently?</label>
 </form>
-<p class="footer">Webmin 2.111 on {{persona.company.domain}} (Debian Linux 12)</p>
 </div>
 </body></html>
 ',
     'headers' => 
     array (
       'Content-Type' => 'text/html; charset=utf-8',
+      'Server' => 'MiniServ/2.111',
+      'Set-Cookie' => 'testing=1; path=/; secure; httponly',
     ),
     'taunt' => 
     array (
@@ -4111,7 +4112,6 @@ RemoteManage=0
       'open' => '<!--',
       'close' => '-->',
     ),
-    'set_cookie' => 'testing',
   ),
   111 => 
   array (
@@ -4128,7 +4128,6 @@ RemoteManage=0
 <head>
 <title>phpPgAdmin</title>
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-<meta name="generator" content="phpPgAdmin 7.13.0" />
 </head>
 <frameset cols="25%,75%" id="frame">
 <frame src="browser.php" name="browser" title="phpPgAdmin navigation frame" />
@@ -4210,11 +4209,11 @@ RemoteManage=0
 <title>Dashboard [Jenkins]</title>
 <meta name="ROBOTS" content="NOFOLLOW">
 <meta http-equiv="X-UA-Compatible" content="IE=edge">
-<link rel="stylesheet" href="/static/2.426.3/css/style.css" type="text/css">
+<link rel="stylesheet" href="/static/{{fake.jenkinsres:hex:8}}/css/style.css" type="text/css">
 </head>
 <body>
 <header id="page-header" class="page-header">
-<div class="logo"><a href="/"><img src="/static/2.426.3/images/24x24/jenkins.png" alt="Jenkins"></a></div>
+<div class="logo"><a href="/"><img src="/static/{{fake.jenkinsres:hex:8}}/images/24x24/jenkins.png" alt="Jenkins"></a></div>
 </header>
 <div id="main-panel">
 <h1>Welcome to Jenkins!</h1>
@@ -4234,8 +4233,9 @@ RemoteManage=0
     array (
       'Content-Type' => 'text/html; charset=utf-8',
       'X-Jenkins' => '2.426.3',
-      'X-Jenkins-Session' => '{{fake.jenkinssess1:hex:8}}-{{fake.jenkinssess2:hex:4}}-{{fake.jenkinssess3:hex:4}}-{{fake.jenkinssess4:hex:4}}-{{fake.jenkinssess5:hex:12}}',
+      'X-Jenkins-Session' => '{{fake.jenkinssess1:hex:8}}-{{fake.jenkinssess2:hex:4}}-4{{fake.jenkinssess3:hex:3}}-{{pick:8,9,a,b}}{{fake.jenkinssess4:hex:3}}-{{fake.jenkinssess5:hex:12}}',
       'X-Hudson' => '1.395',
+      'X-Instance-Identity' => 'MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA{{fake.jid1:b64:43}}{{fake.jid2:b64:43}}{{fake.jid3:b64:43}}{{fake.jid4:b64:43}}{{fake.jid5:b64:43}}{{fake.jid6:b64:43}}{{fake.jid7:b64:43}}{{fake.jid8:b64:41}}IDAQAB',
       'X-Content-Type-Options' => 'nosniff',
     ),
     'taunt' => 
@@ -4256,7 +4256,7 @@ RemoteManage=0
       ),
     ),
     'body' => '{
-"buildInfo": {"version": "10.4.2", "commit": "{{fake.grafcommit:hex:40}}", "edition": "Open Source", "hasUpdate": false, "env": "production", "latestVersion": ""},
+"buildInfo": {"version": "10.4.2", "commit": "{{fake.grafcommit:hex:10}}", "edition": "Open Source", "hasUpdate": false, "env": "production", "latestVersion": ""},
 "licenseInfo": {"stateInfo": "", "licenseUrl": "", "edition": "oss", "enabledFeatures": {}},
 "appUrl": "https://{{persona.company.domain}}/grafana/",
 "appSubUrl": "/grafana",
@@ -4295,22 +4295,24 @@ RemoteManage=0
     'body' => 'phpMyAdmin - ChangeLog
 ======================
 
-5.2.1 (2023-05-09)
-- issue        Security fixes (see security/ directory)
-- bug   #17539 Fix export to browser for large tables
-- bug   #17462 Fix navigation tree when tables contain special characters
-- bug   #17401 Fix designer foreign key display on MariaDB 10.11
-- bug   #17388 Fix two-factor authentication with hardware keys
+5.2.1 (2023-02-07)
+- issue #17522 Fix case where the routes cache file is invalid
+- issue #17506 Fix error when configuring 2FA without XMLWriter or Imagick
+- issue        Fix blank page when some error occurs
+- issue #17519 Fix Export pages not working in certain conditions
+- issue #17496 Fix error in table operation page when partitions are broken
+- issue #17271 Fix database names not showing on Processes tab
 
 5.2.0 (2022-05-10)
-- improvement  Drop support for PHP 7.1 and lower, require PHP 7.2+
-- improvement  Add dark theme support to the pmahomme theme
-- bug   #16447 Fix column comments not shown on the table structure page
-- bug   #16812 Fix SQL export of routines with DEFINER clauses
+- issue #16521 Upgrade Bootstrap to version 5
+- issue #16521 Drop support for Internet Explorer and others
+- issue        Upgrade to shapefile 3
+- issue #16555 Bump minimum PHP version to 7.2
 
-5.1.3 (2022-02-07)
-- bug   #17158 Fix XSS in the import feature
-- bug   #17021 Fix session handling behind a reverse proxy
+5.1.3 (2022-02-10)
+- issue #17308 Fix broken pagination links in the navigation sidebar
+- issue #17331 Fix MariaDB has no support for system variable "disabled_storage_engines"
+- issue #17315 Fix unsupported operand types in Results.php when running "SHOW PROCESSLIST" SQL query
 
 For older entries see https://www.phpmyadmin.net/old-stable/
 ',
@@ -4438,7 +4440,7 @@ of MySQL and MariaDB over the web.</p>
       ),
     ),
     'body' => '{
-"commit": "{{fake.grafcommit:hex:40}}",
+"commit": "{{fake.grafcommit:hex:10}}",
 "database": "ok",
 "version": "10.4.2"
 }
@@ -4525,8 +4527,12 @@ window.grafanaBootData = {
 {"_class": "hudson.model.FreeStyleProject", "name": "{{persona.company.slug}}-deploy", "url": "https://{{persona.company.domain}}/job/{{persona.company.slug}}-deploy/", "color": "blue"},
 {"_class": "hudson.model.FreeStyleProject", "name": "{{persona.company.slug}}-tests", "url": "https://{{persona.company.domain}}/job/{{persona.company.slug}}-tests/", "color": "yellow"}
 ],
+"overallLoad": {},
 "primaryView": {"_class": "hudson.model.AllView", "name": "all", "url": "https://{{persona.company.domain}}/"},
 "quietingDown": false,
+"slaveAgentPort": 0,
+"unlabeledLoad": {"_class": "jenkins.model.UnlabeledLoadStatistics"},
+"url": "https://{{persona.company.domain}}/",
 "useCrumbs": true,
 "useSecurity": true,
 "views": [{"_class": "hudson.model.AllView", "name": "all", "url": "https://{{persona.company.domain}}/"}]
@@ -4536,7 +4542,8 @@ window.grafanaBootData = {
     array (
       'Content-Type' => 'application/json',
       'X-Jenkins' => '2.426.3',
-      'X-Jenkins-Session' => '{{fake.jenkinssess1:hex:8}}-{{fake.jenkinssess2:hex:4}}-{{fake.jenkinssess3:hex:4}}-{{fake.jenkinssess4:hex:4}}-{{fake.jenkinssess5:hex:12}}',
+      'X-Jenkins-Session' => '{{fake.jenkinssess1:hex:8}}-{{fake.jenkinssess2:hex:4}}-4{{fake.jenkinssess3:hex:3}}-{{pick:8,9,a,b}}{{fake.jenkinssess4:hex:3}}-{{fake.jenkinssess5:hex:12}}',
+      'X-Instance-Identity' => 'MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA{{fake.jid1:b64:43}}{{fake.jid2:b64:43}}{{fake.jid3:b64:43}}{{fake.jid4:b64:43}}{{fake.jid5:b64:43}}{{fake.jid6:b64:43}}{{fake.jid7:b64:43}}{{fake.jid8:b64:41}}IDAQAB',
       'X-Content-Type-Options' => 'nosniff',
     ),
     'taunt' => 
@@ -4635,6 +4642,99 @@ window.grafanaBootData = {
 </form>
 <p class="notice">You can reach cPanel on port 2083 and WHM on port 2087.</p>
 <div class="copyright">cPanel &amp; WHM Version 118.0.13</div>
+</div>
+</body>
+</html>
+',
+    'headers' => 
+    array (
+      'Content-Type' => 'text/html; charset=utf-8',
+      'Server' => 'cpsrvd/11.118.0.13',
+    ),
+    'taunt' => 
+    array (
+      'mode' => 'block',
+      'open' => '<!--',
+      'close' => '-->',
+    ),
+  ),
+  123 => 
+  array (
+    'id' => 'route-whm-login',
+    'match' => 
+    array (
+      'pid' => 
+      array (
+        0 => 'route-whm-login',
+      ),
+    ),
+    'body' => '<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Login</title>
+<link rel="stylesheet" href="/cpsess0000000000/styled/basic/css/cjt.css">
+</head>
+<body class="whm-login-page">
+<div id="whm_lm_container" class="login-container">
+<div class="brand"><h1>WHM</h1><p class="product">Web Host Manager</p></div>
+<form action="/login/?login_only=1" method="post" id="login_form" name="login_form">
+<input type="hidden" name="goto_uri" value="/">
+<div class="form-group">
+<label for="user">Username</label>
+<input type="text" id="user" name="user" autocomplete="username" placeholder="Enter your username.">
+</div>
+<div class="form-group">
+<label for="pass">Password</label>
+<input type="password" id="pass" name="pass" autocomplete="current-password" placeholder="Enter your password.">
+</div>
+<button type="submit" id="login_submit" class="btn-primary">Log in</button>
+</form>
+<p class="notice">You can reach WHM on port 2087 and cPanel on port 2083.</p>
+<div class="copyright">WHM Version 118.0.13</div>
+</div>
+</body>
+</html>
+',
+    'headers' => 
+    array (
+      'Content-Type' => 'text/html; charset=utf-8',
+      'Server' => 'cpsrvd/11.118.0.13',
+    ),
+    'taunt' => 
+    array (
+      'mode' => 'block',
+      'open' => '<!--',
+      'close' => '-->',
+    ),
+  ),
+  124 => 
+  array (
+    'id' => 'route-phppgadmin-intro',
+    'match' => 
+    array (
+      'pid' => 
+      array (
+        0 => 'route-phppgadmin-intro',
+      ),
+    ),
+    'body' => '<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title>phpPgAdmin</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<link rel="stylesheet" href="themes/default/global.css" type="text/css" />
+</head>
+<body>
+<div id="intro">
+<h1>phpPgAdmin 7.13.0</h1>
+<p>Welcome to phpPgAdmin.</p>
+<ul>
+<li><a href="https://github.com/phppgadmin/phppgadmin/wiki" target="_blank">phpPgAdmin Documentation</a></li>
+<li><a href="https://www.postgresql.org/docs/" target="_blank">PostgreSQL Documentation</a></li>
+<li><a href="https://github.com/phppgadmin/phppgadmin/issues" target="_blank">Report a bug</a></li>
+</ul>
 </div>
 </body>
 </html>

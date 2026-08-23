@@ -4,8 +4,9 @@ priority: 375
 # scanner reads /phpmyadmin/ChangeLog to lift the exact phpMyAdmin version from its top entry. Served
 # text/plain (the file's real type; a text/html tell would drop to minimal synth). The version matches
 # the /phpmyadmin/ login footer (5.2.x) — one host, one install. phpMyAdmin manages MySQL/MariaDB, so
-# this is coherent with the persona WordPress MySQL db; it never claims Postgres. Bug ids are 5-digit
-# and non-9-led, dates are hyphenated (no bare 6-digit run).
+# this is coherent with the persona WordPress MySQL db; it never claims Postgres. Entries mirror the
+# real upstream RELEASE_5_2_1 ChangeLog (the `- issue #NNNNN` format, verbatim release dates); issue
+# ids are 5-digit and non-9-led, dates are hyphenated (no bare 6-digit run).
 new_page:
   method: GET
   paths: ['/phpmyadmin/ChangeLog']
@@ -22,25 +23,27 @@ response:
     phpMyAdmin - ChangeLog
     ======================
 
-    5.2.1 (2023-05-09)
-    - issue        Security fixes (see security/ directory)
-    - bug   #17539 Fix export to browser for large tables
-    - bug   #17462 Fix navigation tree when tables contain special characters
-    - bug   #17401 Fix designer foreign key display on MariaDB 10.11
-    - bug   #17388 Fix two-factor authentication with hardware keys
+    5.2.1 (2023-02-07)
+    - issue #17522 Fix case where the routes cache file is invalid
+    - issue #17506 Fix error when configuring 2FA without XMLWriter or Imagick
+    - issue        Fix blank page when some error occurs
+    - issue #17519 Fix Export pages not working in certain conditions
+    - issue #17496 Fix error in table operation page when partitions are broken
+    - issue #17271 Fix database names not showing on Processes tab
 
     5.2.0 (2022-05-10)
-    - improvement  Drop support for PHP 7.1 and lower, require PHP 7.2+
-    - improvement  Add dark theme support to the pmahomme theme
-    - bug   #16447 Fix column comments not shown on the table structure page
-    - bug   #16812 Fix SQL export of routines with DEFINER clauses
+    - issue #16521 Upgrade Bootstrap to version 5
+    - issue #16521 Drop support for Internet Explorer and others
+    - issue        Upgrade to shapefile 3
+    - issue #16555 Bump minimum PHP version to 7.2
 
-    5.1.3 (2022-02-07)
-    - bug   #17158 Fix XSS in the import feature
-    - bug   #17021 Fix session handling behind a reverse proxy
+    5.1.3 (2022-02-10)
+    - issue #17308 Fix broken pagination links in the navigation sidebar
+    - issue #17331 Fix MariaDB has no support for system variable "disabled_storage_engines"
+    - issue #17315 Fix unsupported operand types in Results.php when running "SHOW PROCESSLIST" SQL query
 
     For older entries see https://www.phpmyadmin.net/old-stable/
 taunt: { mode: line, open: '#' }
 expect:
-  - '5.2.1 (2023-05-09)'
+  - '5.2.1 (2023-02-07)'
   - 'phpMyAdmin - ChangeLog'

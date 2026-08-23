@@ -2,17 +2,21 @@ id: route-webmin
 priority: 370
 # Enrich: the corpus routes /webmin/ to the `webmin-panel` bundle (body word
 # `<title>Login to Webmin</title>`). Minimal synth would emit the bare title; here we serve the real
-# Webmin session-login page — the `session_login.cgi` POST form with its `user`/`pass` fields and the
-# footer product/version line a scanner reads to confirm Webmin and lift its version. Needle is the
-# full upstream id (findRule is global). Content-Type is text/html. The page names only the host and
-# OS (never a database engine — Webmin fronts no single DB, and a backend-engine claim here would
-# contradict the other panels). Version is a dotted literal (no bare 6-digit run).
+# Webmin session-login page — the `session_login.cgi` POST form with its `user`/`pass` fields. The
+# real pre-auth login page names the HOSTNAME only: no product version, no OS (those appear on the
+# post-login index). The version is disclosed where real miniserv discloses it pre-auth — the `Server:
+# MiniServ/<ver>` response banner (keep the literal in lockstep with any version bump). No OS/distro
+# is named, so nothing floats against the Apache server-status `(Unix)` surface. Needle is the full
+# upstream id (findRule is global). Content-Type is text/html; version is a dotted literal (no bare
+# 6-digit run). The `testing` cookie is miniserv's static cookie-support probe (literal value `1`,
+# byte-static on every login-page load), not a session token — a random 32-hex value here is a tell.
 match:
   template_needle: [webmin-panel]
-set_cookie: testing
 response:
   headers:
     Content-Type: "text/html; charset=utf-8"
+    Server: "MiniServ/2.111"
+    Set-Cookie: "testing=1; path=/; secure; httponly"
   body: |
     <!DOCTYPE html>
     <html><head>
@@ -33,11 +37,11 @@ response:
     <input type="submit" value="Login">
     <label><input type="checkbox" name="save" value="1"> Remember login permanently?</label>
     </form>
-    <p class="footer">Webmin 2.111 on {{persona.company.domain}} (Debian Linux 12)</p>
     </div>
     </body></html>
 taunt: { mode: block, open: '<!--', close: '-->' }
 expect:
   - '<title>Login to Webmin</title>'
   - 'action="/session_login.cgi"'
-  - 'Webmin 2.111'
+  - 'Server: MiniServ/2.111'
+  - 'Set-Cookie: testing=1'

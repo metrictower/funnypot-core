@@ -84323,12 +84323,37 @@ return array (
       'tags' => 
       array (
         0 => 'cpanel',
-        1 => 'whm',
+        1 => 'panel',
+        2 => 'login',
+        3 => 'exposure',
+      ),
+      'name' => 'cPanel login',
+    ),
+    'route-whm-login' => 
+    array (
+      'sev' => 'low',
+      'tags' => 
+      array (
+        0 => 'whm',
+        1 => 'cpanel',
         2 => 'panel',
         3 => 'login',
         4 => 'exposure',
       ),
-      'name' => 'cPanel / WHM login',
+      'name' => 'WHM login',
+    ),
+    'route-phppgadmin-intro' => 
+    array (
+      'sev' => 'low',
+      'tags' => 
+      array (
+        0 => 'phppgadmin',
+        1 => 'postgres',
+        2 => 'panel',
+        3 => 'version',
+        4 => 'disclosure',
+      ),
+      'name' => 'phpPgAdmin intro (version disclosure)',
     ),
   ),
   'routes' => 
@@ -106992,7 +107017,7 @@ return array (
           's' => 200,
           'bw' => 
           array (
-            0 => 'ÐÏà¡±á',
+            0 => 'ï¿½ï¿½à¡±ï¿½',
           ),
           'hw' => 
           array (
@@ -207100,6 +207125,24 @@ a</title>',
             0 => 'phppgadmin-version',
           ),
         ),
+        1 => 
+        array (
+          's' => 200,
+          'bw' => 
+          array (
+            0 => 'phpPgAdmin',
+          ),
+          'nf' => 
+          array (
+          ),
+          'pid' => 'route-phppgadmin-intro',
+          'sev' => 'low',
+          'sig' => 0,
+          't' => 
+          array (
+            0 => 'route-phppgadmin-intro',
+          ),
+        ),
       ),
     ),
     'GET /phpspec.yml' => 
@@ -299862,17 +299905,17 @@ a</title>',
           's' => 200,
           'bw' => 
           array (
-            0 => 'cPanel',
+            0 => 'WHM',
           ),
           'nf' => 
           array (
           ),
-          'pid' => 'route-cpanel-login',
+          'pid' => 'route-whm-login',
           'sev' => 'low',
           'sig' => 0,
           't' => 
           array (
-            0 => 'route-cpanel-login',
+            0 => 'route-whm-login',
           ),
         ),
       ),

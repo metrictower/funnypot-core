@@ -8,8 +8,9 @@ priority: 374
 # upstream id (findRule is global). Content-Type is EXACTLY application/json (the endpoint's real type;
 # text/html would drop to minimal synth and is a tell). The `dashlist` name is written compact
 # (`"name":"Dashboard list"`) so the body word matches. Version is a dotted literal and the commit is a
-# 40-char hex (no bare 6-digit run). Opens with a lone `{` so the JSON taunt keeps the document
-# parseable. Grafana is engine-agnostic, so no database is named.
+# short build hash (~10 hex, as a real Grafana build reports — no bare 6-digit run). Opens with a lone
+# `{` so the JSON taunt keeps the document parseable. Grafana is engine-agnostic, so no database is
+# named.
 match:
   template_needle: [grafana-unauth-access]
 response:
@@ -17,7 +18,7 @@ response:
     Content-Type: "application/json"
   body: |
     {
-    "buildInfo": {"version": "10.4.2", "commit": "{{fake.grafcommit:hex:40}}", "edition": "Open Source", "hasUpdate": false, "env": "production", "latestVersion": ""},
+    "buildInfo": {"version": "10.4.2", "commit": "{{fake.grafcommit:hex:10}}", "edition": "Open Source", "hasUpdate": false, "env": "production", "latestVersion": ""},
     "licenseInfo": {"stateInfo": "", "licenseUrl": "", "edition": "oss", "enabledFeatures": {}},
     "appUrl": "https://{{persona.company.domain}}/grafana/",
     "appSubUrl": "/grafana",

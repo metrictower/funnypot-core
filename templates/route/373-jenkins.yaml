@@ -3,18 +3,22 @@ priority: 373
 # Enrich: the corpus routes /jenkins/ to the `unauthenticated-jenkins` bundle (body word
 # `Dashboard [Jenkins]`). Minimal synth would emit the bare title; here we serve the real Jenkins
 # dashboard shell AND the header set a scanner keys on to confirm Jenkins and lift its version:
-# `X-Jenkins` (the version), `X-Jenkins-Session` (a per-boot UUID), `X-Hudson` (the legacy constant),
+# `X-Jenkins` (the version), `X-Jenkins-Session` (a per-boot RFC-4122 v4 UUID — version nibble 4,
+# variant 8/9/a/b — the same value /api/json sends: one host, one controller), `X-Hudson` (the legacy
+# constant), `X-Instance-Identity` (the base64 instance-identity RSA pubkey blob core always sends),
 # and `X-Content-Type-Options: nosniff`. Needle is the full upstream id (findRule is global). Content-
-# Type is text/html. Versions are dotted literals (no bare 6-digit run); the session id is a UUID-
-# shaped token. Jenkins is engine-agnostic, so no database is named.
+# Type is text/html. Versions are dotted literals (no bare 6-digit run); static assets hang off a real
+# `/static/<8-hex resource hash>/` path, not the version. Jenkins is engine-agnostic, so no database
+# is named.
 match:
   template_needle: [unauthenticated-jenkins]
 response:
   headers:
     Content-Type: "text/html; charset=utf-8"
     X-Jenkins: "2.426.3"
-    X-Jenkins-Session: "{{fake.jenkinssess1:hex:8}}-{{fake.jenkinssess2:hex:4}}-{{fake.jenkinssess3:hex:4}}-{{fake.jenkinssess4:hex:4}}-{{fake.jenkinssess5:hex:12}}"
+    X-Jenkins-Session: "{{fake.jenkinssess1:hex:8}}-{{fake.jenkinssess2:hex:4}}-4{{fake.jenkinssess3:hex:3}}-{{pick:8,9,a,b}}{{fake.jenkinssess4:hex:3}}-{{fake.jenkinssess5:hex:12}}"
     X-Hudson: "1.395"
+    X-Instance-Identity: "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA{{fake.jid1:b64:43}}{{fake.jid2:b64:43}}{{fake.jid3:b64:43}}{{fake.jid4:b64:43}}{{fake.jid5:b64:43}}{{fake.jid6:b64:43}}{{fake.jid7:b64:43}}{{fake.jid8:b64:41}}IDAQAB"
     X-Content-Type-Options: "nosniff"
   body: |
     <!DOCTYPE html>
@@ -23,11 +27,11 @@ response:
     <title>Dashboard [Jenkins]</title>
     <meta name="ROBOTS" content="NOFOLLOW">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <link rel="stylesheet" href="/static/2.426.3/css/style.css" type="text/css">
+    <link rel="stylesheet" href="/static/{{fake.jenkinsres:hex:8}}/css/style.css" type="text/css">
     </head>
     <body>
     <header id="page-header" class="page-header">
-    <div class="logo"><a href="/"><img src="/static/2.426.3/images/24x24/jenkins.png" alt="Jenkins"></a></div>
+    <div class="logo"><a href="/"><img src="/static/{{fake.jenkinsres:hex:8}}/images/24x24/jenkins.png" alt="Jenkins"></a></div>
     </header>
     <div id="main-panel">
     <h1>Welcome to Jenkins!</h1>
