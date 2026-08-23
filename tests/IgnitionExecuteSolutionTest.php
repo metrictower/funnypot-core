@@ -13,9 +13,10 @@ use PHPUnit\Framework\TestCase;
  * The request-aware Laravel Ignition execute-solution rule (CVE-2021-3129, attack rule 92). Drives
  * the compiled attack rules against a live RequestContext, pinning the zero-execution dispatch and
  * its safety invariants: the ONLY body read is the first posted `solution` class leaf, every case
- * returns a canned JSON string (parameters.viewFile / variableName are never read — no file, no
- * eval, no egress), reflection is JSON- and denylist-safe, and the position-blind port degrades to
- * the base response.
+ * returns a canned response (a JSON body, or the bare 204 real Ignition's noContent() returns for a
+ * runnable solution) with parameters.viewFile / variableName never read — no file, no eval, no
+ * egress — reflection is JSON- and denylist-safe, and the position-blind port degrades to the base
+ * response.
  *
  * NOTE ON PATHS: /_ignition/execute-solution has no route key, so a POST misses the exact store and
  * reaches the attack tier. A GET falls back to the same path's (absent) GET bundle and then to 404,
@@ -101,26 +102,34 @@ final class IgnitionExecuteSolutionTest extends TestCase
     /**
      * @dataProvider solutions
      */
-    public function test_each_solution_dispatches_to_its_canned_json(string $leaf, string $needle): void
+    public function test_each_solution_dispatches_to_its_canned_response(string $leaf, int $status, string $needle): void
     {
         foreach ([$this->cvePayload($leaf), '{"solution":"' . $leaf . '"}'] as $body) {
             $resp = $this->serve('POST', $body);
             self::assertNotNull($resp, "{$leaf} must dispatch");
-            self::assertSame(200, $resp->status, "{$leaf} status");
+            self::assertSame($status, $resp->status, "{$leaf} status");
+            if ($status === 204) {
+                // Real Ignition runs the solution then returns response()->noContent(): an empty
+                // body and — like every bodyless response — no Content-Type header.
+                self::assertSame('', $resp->body, "{$leaf} must return an empty 204 body");
+                self::assertArrayNotHasKey('Content-Type', $resp->headers, "{$leaf} 204 carries no Content-Type");
+                continue;
+            }
             self::assertSame('application/json', $resp->headers['Content-Type'] ?? null, "{$leaf} Content-Type");
             self::assertStringContainsString($needle, $resp->body, "{$leaf} must return its canned body");
             self::assertIsArray(json_decode($resp->body, true), "{$leaf} body must be valid JSON: " . $resp->body);
         }
     }
 
-    /** @return array<string,array{0:string,1:string}> */
+    /** @return array<string,array{0:string,1:int,2:string}> */
     public static function solutions(): array
     {
         return [
-            'CVE MakeView'        => ['MakeViewVariableOptionalSolution', 'The parameters passed to the solution are invalid.'],
-            'GenerateAppKey'      => ['GenerateAppKeySolution', '{"success":true}'],
-            'RunMigrations'       => ['RunMigrationsSolution', '{"success":true}'],
-            'unknown class'       => ['SomeUnknownSolution', 'not found'],
+            // leaf, expected status, body needle ('' for the bodyless 204 runnable solutions)
+            'CVE MakeView'        => ['MakeViewVariableOptionalSolution', 200, 'The parameters passed to the solution are invalid.'],
+            'GenerateAppKey'      => ['GenerateAppKeySolution', 204, ''],
+            'RunMigrations'       => ['RunMigrationsSolution', 204, ''],
+            'unknown class'       => ['SomeUnknownSolution', 200, 'not found'],
         ];
     }
 

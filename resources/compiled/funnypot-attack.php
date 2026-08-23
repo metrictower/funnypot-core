@@ -2033,10 +2033,9 @@ $ </pre>
           array (
             'headers' => 
             array (
-              'Content-Type' => 'application/json',
             ),
-            'body' => '{"success":true}
-',
+            'body' => '',
+            'status' => 204,
           ),
         ),
       ),

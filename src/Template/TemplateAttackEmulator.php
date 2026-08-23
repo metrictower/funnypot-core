@@ -256,8 +256,9 @@ final class TemplateAttackEmulator
      * $r null, so a behavior that needs the request degrades to its request-free default there.
      *
      * All response envelope concerns are centralized HERE, never in a behavior handler: the empty
-     * Content-Type default, the single C8 header-splitting guard, and the app-chosen status (a
-     * behavior may only override it via EmulatedContent::$status — never the header set or C8).
+     * Content-Type default (suppressed for a bodyless 204/304, which real frameworks serve with no
+     * Content-Type), the single C8 header-splitting guard, and the app-chosen status (a behavior
+     * may only override it via EmulatedContent::$status — never the header set or C8).
      *
      * @param array<string,mixed>          $rule
      * @param array<int|string,string>     $captures
@@ -274,8 +275,15 @@ final class TemplateAttackEmulator
             $content = $this->defaultRender($rule, $captures, $seed);
         }
 
+        // Status is always app-chosen: a behavior may name one via EmulatedContent::$status, else
+        // the rule's own status. Never model/attacker-chosen (no open redirect via a fabricated 3xx).
+        $status = $content->status ?? (int) ($rule['status'] ?? 200);
+
         $headers = $content->headers;
-        if ($headers === []) {
+        // A bodyless status (204/304) carries no Content-Type: the real frameworks strip it when
+        // preparing an empty response, so defaulting one here would itself be a tell. Every other
+        // response with no authored headers keeps the plain-text default.
+        if ($headers === [] && !self::statusIsBodyless($status)) {
             $headers = ['Content-Type' => 'text/plain; charset=utf-8'];
         }
 
@@ -286,10 +294,6 @@ final class TemplateAttackEmulator
                 return null;
             }
         }
-
-        // Status is always app-chosen: a behavior may name one via EmulatedContent::$status, else
-        // the rule's own status. Never model/attacker-chosen (no open redirect via a fabricated 3xx).
-        $status = $content->status ?? (int) ($rule['status'] ?? 200);
 
         return new SynthesizedResponse($status, $headers, $content->body, self::detectionForRule($rule));
     }
@@ -843,6 +847,12 @@ final class TemplateAttackEmulator
             $id,
             $severity
         );
+    }
+
+    /** 204 No Content and 304 Not Modified carry no message body and no Content-Type header. */
+    private static function statusIsBodyless(int $status): bool
+    {
+        return $status === 204 || $status === 304;
     }
 
     /** Attacker-controlled surfaces are capped before regex to bound catastrophic backtracking. */

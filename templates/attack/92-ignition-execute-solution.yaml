@@ -8,8 +8,9 @@ tags: [attack, laravel, ignition, rce]
 # leaf, [A-Za-z_][A-Za-z0-9_]{0,95} — already inert, and a letter-initial leaf can never form the
 # denied \b9\d{5}\b token when reflected). Cases dispatch on that ONE capture via the `match.solution`
 # surface, never re-scanning the raw body (a planted second "solution" cannot steer the dispatch,
-# mirroring the xmlrpc match.1 discipline). Every case returns a CANNED JSON string:
-# parameters.viewFile / variableName are NEVER read, no file/include/eval, zero egress. On the
+# mirroring the xmlrpc match.1 discipline). Every case returns a CANNED response (a JSON body, or
+# the bare 204 the runnable solutions get): parameters.viewFile / variableName are NEVER read, no
+# file/include/eval, zero egress. On the
 # position-blind port ($r===null) no case can evaluate, so the base response (below) serves — the
 # safe degradation. Gated to POST: any other verb falls through (no route here) to the plain 404.
 match:
@@ -34,12 +35,13 @@ branch:
         headers: { Content-Type: "application/json" }
         body: |
           {"message":"The parameters passed to the solution are invalid."}
-    # Other advertised runnable solutions: a canned success acknowledgement, nothing run.
+    # Other advertised runnable solutions: real Ignition runs the solution then returns
+    # response()->noContent() — HTTP 204, empty body, and (like every bodyless response) no
+    # Content-Type. Zero execution here too: nothing runs, the bare 204 is the canned acknowledgement.
     - when: { in: match.solution, regex: '^(?:GenerateAppKeySolution|RunMigrationsSolution)$', ci: false }
       response:
-        headers: { Content-Type: "application/json" }
-        body: |
-          {"success":true}
+        status: 204
+        body: ""
 # Base response = unknown/absent solution AND the position-blind port fallback. Reflects the ONE
 # captured leaf (letter-initial, so JSON-safe and denylist-safe); renders empty on the port.
 response:
