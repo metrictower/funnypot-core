@@ -1347,6 +1347,81 @@ return array (
   ),
   17 => 
   array (
+    'id' => 'attack-kibana-login',
+    'severity' => 'high',
+    'tags' => 
+    array (
+      0 => 'attack',
+      1 => 'kibana',
+      2 => 'elasticsearch',
+      3 => 'panel',
+      4 => 'login',
+      5 => 'credential-oracle',
+    ),
+    'status' => 401,
+    'match' => 
+    array (
+      0 => 
+      array (
+        'in' => 'path',
+        'regex' => '(?:^|/)internal/security/login$',
+        'ci' => false,
+      ),
+      1 => 
+      array (
+        'in' => 'method',
+        'regex' => '^POST$',
+        'ci' => false,
+      ),
+    ),
+    'response' => 
+    array (
+      'headers' => 
+      array (
+        'Content-Type' => 'application/json; charset=utf-8',
+        'kbn-name' => '{{persona.company.slug}}-kibana01',
+        'kbn-license-sig' => '{{fake.klic:hex:64}}',
+        'x-content-type-options' => 'nosniff',
+        'referrer-policy' => 'no-referrer-when-downgrade',
+        'cache-control' => 'private, no-cache, no-store, must-revalidate',
+      ),
+      'body' => '{"statusCode":401,"error":"Unauthorized","message":"[security_exception: [security_exception] Reason: unable to authenticate user [admin] for REST request [/_security/_authenticate]]: unable to authenticate user [admin] for REST request [/_security/_authenticate]"}',
+    ),
+    'lit' => 'POST',
+    'lit_in' => 'method',
+    'lit_ci' => false,
+    'owns_path' => 
+    array (
+      0 => '/internal/security/login',
+    ),
+    'behavior' => 'branch',
+    'branch' => 
+    array (
+      'cases' => 
+      array (
+        0 => 
+        array (
+          'when' => 
+          array (
+            'in' => 'header:kbn-xsrf',
+            'regex' => '^$',
+            'ci' => false,
+          ),
+          'response' => 
+          array (
+            'headers' => 
+            array (
+              'Content-Type' => 'application/json; charset=utf-8',
+            ),
+            'body' => '{"statusCode":400,"error":"Bad Request","message":"Request must contain a kbn-xsrf header."}',
+            'status' => 400,
+          ),
+        ),
+      ),
+    ),
+  ),
+  18 => 
+  array (
     'id' => 'attack-grafana-login',
     'severity' => 'high',
     'tags' => 
@@ -1400,7 +1475,7 @@ return array (
       0 => '/grafana/login',
     ),
   ),
-  18 => 
+  19 => 
   array (
     'id' => 'attack-wp-login',
     'severity' => 'high',
@@ -1489,7 +1564,7 @@ return array (
       0 => '/wp-login.php',
     ),
   ),
-  19 => 
+  20 => 
   array (
     'id' => 'attack-cmdi-windows',
     'severity' => 'critical',
@@ -1525,7 +1600,7 @@ Ethernet adapter Ethernet0:
 ',
     ),
   ),
-  20 => 
+  21 => 
   array (
     'id' => 'attack-cmdi-unix',
     'severity' => 'critical',
@@ -1553,7 +1628,7 @@ Ethernet adapter Ethernet0:
       'body' => '{{canned.uid}}',
     ),
   ),
-  21 => 
+  22 => 
   array (
     'id' => 'attack-cpsrvd-login',
     'severity' => 'high',
@@ -1663,7 +1738,7 @@ Ethernet adapter Ethernet0:
       ),
     ),
   ),
-  22 => 
+  23 => 
   array (
     'id' => 'attack-phppgadmin-login',
     'severity' => 'high',
@@ -1802,7 +1877,7 @@ Ethernet adapter Ethernet0:
       ),
     ),
   ),
-  23 => 
+  24 => 
   array (
     'id' => 'attack-ssti-twig',
     'severity' => 'high',
@@ -1831,7 +1906,7 @@ Ethernet adapter Ethernet0:
 ',
     ),
   ),
-  24 => 
+  25 => 
   array (
     'id' => 'attack-ssti-numeric',
     'severity' => 'high',
@@ -1859,7 +1934,7 @@ Ethernet adapter Ethernet0:
 ',
     ),
   ),
-  25 => 
+  26 => 
   array (
     'id' => 'attack-php-glastopf',
     'severity' => 'critical',
@@ -1891,7 +1966,7 @@ Ethernet adapter Ethernet0:
     'lit_in' => 'request',
     'lit_ci' => true,
   ),
-  26 => 
+  27 => 
   array (
     'id' => 'attack-sqli',
     'severity' => 'high',
@@ -1919,7 +1994,7 @@ Ethernet adapter Ethernet0:
 ',
     ),
   ),
-  27 => 
+  28 => 
   array (
     'id' => 'attack-open-redirect',
     'severity' => 'medium',
@@ -1948,7 +2023,7 @@ Ethernet adapter Ethernet0:
       'body' => '<html><head><title>302 Found</title></head><body>Redirecting...</body></html>',
     ),
   ),
-  28 => 
+  29 => 
   array (
     'id' => 'attack-xss',
     'severity' => 'medium',
@@ -1979,7 +2054,7 @@ Ethernet adapter Ethernet0:
 ',
     ),
   ),
-  29 => 
+  30 => 
   array (
     'id' => 'attack-thinkphp-rce',
     'severity' => 'critical',
@@ -2015,7 +2090,7 @@ Ethernet adapter Ethernet0:
 ',
     ),
   ),
-  30 => 
+  31 => 
   array (
     'id' => 'attack-owncloud-49103',
     'severity' => 'high',
@@ -2058,7 +2133,7 @@ Ethernet adapter Ethernet0:
     'lit_in' => 'path',
     'lit_ci' => true,
   ),
-  31 => 
+  32 => 
   array (
     'id' => 'attack-f5-1388',
     'severity' => 'critical',
@@ -2092,7 +2167,7 @@ Ethernet adapter Ethernet0:
     'lit_in' => 'path',
     'lit_ci' => true,
   ),
-  32 => 
+  33 => 
   array (
     'id' => 'attack-geoserver-36401',
     'severity' => 'critical',
@@ -2135,7 +2210,7 @@ Ethernet adapter Ethernet0:
     'lit_in' => 'path',
     'lit_ci' => true,
   ),
-  33 => 
+  34 => 
   array (
     'id' => 'attack-fortios-40684',
     'severity' => 'critical',
@@ -2174,7 +2249,7 @@ Ethernet adapter Ethernet0:
     'lit_in' => 'path',
     'lit_ci' => true,
   ),
-  34 => 
+  35 => 
   array (
     'id' => 'attack-ivanti-21887',
     'severity' => 'critical',
@@ -2209,7 +2284,7 @@ Ethernet adapter Ethernet0:
     'lit_in' => 'request',
     'lit_ci' => true,
   ),
-  35 => 
+  36 => 
   array (
     'id' => 'attack-citrix-bleed-4966',
     'severity' => 'critical',
@@ -2244,7 +2319,7 @@ Ethernet adapter Ethernet0:
     'lit_in' => 'path',
     'lit_ci' => true,
   ),
-  36 => 
+  37 => 
   array (
     'id' => 'attack-webshell-panel',
     'severity' => 'critical',
@@ -2279,7 +2354,7 @@ $ </pre>
 ',
     ),
   ),
-  37 => 
+  38 => 
   array (
     'id' => 'attack-spring-actuator',
     'severity' => 'high',
@@ -2312,7 +2387,7 @@ $ </pre>
     'lit_in' => 'path',
     'lit_ci' => true,
   ),
-  38 => 
+  39 => 
   array (
     'id' => 'attack-cloud-imds',
     'severity' => 'high',
@@ -2349,7 +2424,7 @@ $ </pre>
 ',
     ),
   ),
-  39 => 
+  40 => 
   array (
     'id' => 'attack-ignition-execute-solution',
     'severity' => 'high',
@@ -2438,7 +2513,7 @@ $ </pre>
       ),
     ),
   ),
-  40 => 
+  41 => 
   array (
     'id' => 'attack-webmin-session-login',
     'severity' => 'high',
@@ -2508,7 +2583,7 @@ $ </pre>
     'lit_in' => 'method',
     'lit_ci' => false,
   ),
-  41 => 
+  42 => 
   array (
     'id' => 'attack-jenkins-acegi-login',
     'severity' => 'high',
@@ -2556,7 +2631,7 @@ $ </pre>
     'lit_in' => 'method',
     'lit_ci' => false,
   ),
-  42 => 
+  43 => 
   array (
     'id' => 'attack-hnap-login',
     'severity' => 'high',
@@ -2641,7 +2716,7 @@ $ </pre>
       ),
     ),
   ),
-  43 => 
+  44 => 
   array (
     'id' => 'attack-crs-sqli',
     'severity' => 'high',
@@ -2671,7 +2746,7 @@ $ </pre>
 ',
     ),
   ),
-  44 => 
+  45 => 
   array (
     'id' => 'attack-crs-xss',
     'severity' => 'high',
@@ -2703,7 +2778,7 @@ $ </pre>
 ',
     ),
   ),
-  45 => 
+  46 => 
   array (
     'id' => 'attack-crs-lfi',
     'severity' => 'high',
@@ -2732,7 +2807,7 @@ $ </pre>
       'body' => '{{canned.passwd}}',
     ),
   ),
-  46 => 
+  47 => 
   array (
     'id' => 'attack-crs-rce',
     'severity' => 'critical',

@@ -1,0 +1,67 @@
+id: attack-kibana-login
+severity: high
+# Priority 37, NOT the 101 the filename suggests: the broad `in: request` archetypes 44-ssti-twig/
+# 45-ssti-numeric/46-php-glastopf/50-sqli carry no path constraint at all, so an SQLi/SSTI-laced
+# `username` value (e.g. `admin' OR '1'='1' --`, `{{7*7}}`) would otherwise reach one of THOSE first
+# and answer with a generic attack body instead of this oracle's JSON — a real Kibana login answers
+# ANY bad login, payload or not, the same way. 37 is a free slot below all of them, the same fix
+# 97-wp-login.yaml (39), 98-cpsrvd-login.yaml (42), 99-phppgadmin-login.yaml (43), and
+# 100-grafana-login.yaml (38) already apply for the same class of collision.
+priority: 37
+tags: [attack, kibana, elasticsearch, panel, login, credential-oracle]
+owns_path: [/internal/security/login]
+# Request-aware Kibana /internal/security/login credential ORACLE (Kibana 7.17.18). This path carries
+# NO exact-store route key at all — route 372 (route-kibana) keys on the `exposed-kibana` template
+# needle, which the corpus binds only to `GET /app/kibana(/)` (the app-shell bootstrap page), never to
+# this API path or to POST. So resolveEntry() finds nothing for `POST /internal/security/login` (and
+# its GET fallback also misses), and classify() never even reaches the owns_path override check — this
+# rule simply reaches the linear attack scan on its own, exactly like 94-webmin-session-login.yaml's
+# session_login.cgi (no route key at all). owns_path is authored anyway as insurance against a future
+# static stub landing on this exact path, NOT because it overrides anything today (unlike
+# 97/98/100, where owns_path IS load-bearing against an existing GET route on the same path).
+#
+# ZERO EXECUTION: no body field is read at all — real Kibana's xsrf interceptor runs BEFORE any body
+# parsing, so this rule gates on path + method only and never captures a username/password (nothing to
+# reflect, nothing to branch on from the body). The kbn-xsrf HEADER presence alone selects the branch:
+# absent/empty -> 400 "must contain a kbn-xsrf header" (Kibana's real pre-auth guard, checked for every
+# request regardless of body); present -> 401 security_exception. FIXED persona username `admin` in the
+# 401 body — real Kibana double-reflects the submitted username in that message, but this oracle never
+# does (zero-reflection: the submitted username can never surface). There is NO success path anywhere:
+# no Set-Cookie is ever set (Kibana's session cookie is success-only), so no credential can ever
+# authenticate here. Gated to POST: any other verb misses (no route here for any verb) -> plain 404.
+match:
+  - in: path
+    regex: '(?:^|/)internal/security/login$'
+    ci: false
+  - in: method
+    regex: '^POST$'
+    ci: false
+status: 401
+response:
+  headers:
+    Content-Type: "application/json; charset=utf-8"
+    kbn-name: "{{persona.company.slug}}-kibana01"
+    kbn-license-sig: "{{fake.klic:hex:64}}"
+    x-content-type-options: "nosniff"
+    referrer-policy: "no-referrer-when-downgrade"
+    cache-control: "private, no-cache, no-store, must-revalidate"
+  body: '{"statusCode":401,"error":"Unauthorized","message":"[security_exception: [security_exception] Reason: unable to authenticate user [admin] for REST request [/_security/_authenticate]]: unable to authenticate user [admin] for REST request [/_security/_authenticate]"}'
+behavior: branch
+branch:
+  cases:
+    # kbn-xsrf absent/empty: the `header:kbn-xsrf` surface returns '' for a missing header (see
+    # TemplateAttackEmulator::surface()), so `^$` gates on absence the same way a present-but-blank
+    # header value would (real Kibana treats both as "no header"). This is the ONLY case; a present
+    # header falls through unchanged to the base/default 401 response above.
+    - when:
+        in: header:kbn-xsrf
+        regex: '^$'
+        ci: false
+      response:
+        status: 400
+        headers:
+          Content-Type: "application/json; charset=utf-8"
+        body: '{"statusCode":400,"error":"Bad Request","message":"Request must contain a kbn-xsrf header."}'
+# expect applies to the base/default 401 response only (assertMarkers renders the top-level `response`,
+# never a branch case) — the 400 case's own marker is pinned separately by the test suite instead.
+expect: ['security_exception']
