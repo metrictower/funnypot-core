@@ -1,0 +1,121 @@
+id: attack-phppgadmin-login
+severity: high
+# Priority 43, NOT the 99 the filename suggests: the broad `in: request` archetypes 44-ssti-twig/
+# 45-ssti-numeric/46-php-glastopf/50-sqli (and, further out, 60-open-redirect/65-xss-reflect) carry
+# no path constraint at all, so an injection-laced `loginUsername=` value (e.g. `admin' OR '1'='1'
+# --`) would otherwise reach one of THOSE first and answer with a generic attack body instead of this
+# oracle's login response — a real phpPgAdmin login form answers ANY bad login, payload or not, the
+# same way. 43 is a free slot below all of them (between 42-attack-cpsrvd-login and 44-ssti-twig),
+# the same fix 97-wp-login.yaml (priority 39) and 98-cpsrvd-login.yaml (priority 42) already apply for
+# the same class of collision.
+priority: 43
+tags: [attack, phppgadmin, postgres, panel, login, credential-oracle]
+owns_path: [/redirect.php]
+# Request-aware phpPgAdmin redirect.php credential ORACLE. redirect.php has no exact-store route key
+# of its own (only the GET-served /phppgadmin/ frameset (371) and intro.php (384) do), so a POST
+# misses the store and reaches the attack tier; owns_path is belt-and-suspenders should a future
+# static redirect.php page be added, the same guard 97/98 apply at their own owned paths. The path
+# regex also covers the `/phppgadmin/redirect.php` mount, so both deployment layouts are covered.
+#
+# ZERO EXECUTION: the ONLY body fields read are (a) the fixed dynamic-password-field name (a presence
+# gate, never a value) and (b) the bounded `loginUsername` field, captured purely to gate the match
+# and pick a branch — it is NEVER reflected in either branch. There is NO success path: real phpPgAdmin
+# answers bad credentials by re-rendering the login form (HTTP 200, not a redirect) with an error
+# message — no authenticated session is ever granted, and PPA_ID here is the same bare pre-auth
+# session token a real phpPgAdmin also sets before login succeeds; it carries no privilege.
+#
+# `behavior: branch` picks the "disallowed" case when the submitted username is one of the reserved
+# superuser/admin names real phpPgAdmin refuses outright ({postgres,pgsql,root,administrator},
+# case-insensitive) — that IS the base/default response below, since most brute-force traffic hits
+# `postgres` first. Every other username takes the ONE branch case (the negative-lookahead `when`),
+# the generic "Login failed" the real server gives any other bad credential. Gated to POST: any other
+# verb misses (no route here at all) => plain 404.
+match:
+  - in: path
+    regex: '(?:^|/)redirect\.php$'
+    ci: false
+  - in: method
+    regex: '^POST$'
+    ci: false
+  - in: body
+    regex: '(?:^|&)loginServer='                        # presence gate only, never reflected
+    ci: false
+  - in: body
+    regex: '(?:^|&)loginPassword_[0-9a-f]{32}='          # presence gate only, never reflected (no value read)
+    ci: false
+  - in: body
+    regex: '(?:^|&)loginUsername=([^&]{0,64})'           # capture-gate only, never reflected
+    capture: true
+    ci: false
+status: 200
+response:
+  headers:
+    Content-Type: "text/html; charset=utf-8"
+    Set-Cookie: "PPA_ID={{fake.ppa:hex:26}}; path=/"
+  body: |
+    <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+    <html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+    <title>phpPgAdmin</title>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <link rel="stylesheet" href="themes/default/global.css" type="text/css" />
+    </head>
+    <body>
+    <div id="topbar"><span class="appname">phpPgAdmin</span> <span class="version">7.13.0</span></div>
+    <div id="content">
+    <h2>Login</h2>
+    <p class="message">Login disallowed for security reasons.</p>
+    <form action="redirect.php" method="post" name="loginform">
+    <table>
+    <tr><th><label for="server">Server</label></th><td><select name="loginServer" id="server"><option value=":5432:allow" selected="selected">PostgreSQL</option></select></td></tr>
+    <tr><th><label for="username">Username</label></th><td><input type="text" name="loginUsername" id="username" value="" /></td></tr>
+    <tr><th><label for="password">Password</label></th><td><input type="password" name="loginPassword_43535f929f0cc24fff91705ab9522864" id="password" /></td></tr>
+    </table>
+    <p><input type="submit" value="Login" /></p>
+    </form>
+    </div>
+    <script type="text/javascript">parent.frames.browser.location.reload();</script>
+    </body>
+    </html>
+behavior: branch
+branch:
+  cases:
+    # Any username NOT one of the reserved names — the negative lookahead is how "otherwise" is
+    # expressed against a fixed anchored alternation. Reserved names (postgres/pgsql/root/
+    # administrator, case-insensitive) fail the lookahead and fall through to the base/default
+    # response above instead of this case.
+    - when:
+        in: match.1
+        regex: '^(?!(?:postgres|pgsql|root|administrator)$).*$'
+        ci: true
+      response:
+        status: 200
+        headers:
+          Content-Type: "text/html; charset=utf-8"
+          Set-Cookie: "PPA_ID={{fake.ppa:hex:26}}; path=/"
+        body: |
+          <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+          <html xmlns="http://www.w3.org/1999/xhtml">
+          <head>
+          <title>phpPgAdmin</title>
+          <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+          <link rel="stylesheet" href="themes/default/global.css" type="text/css" />
+          </head>
+          <body>
+          <div id="topbar"><span class="appname">phpPgAdmin</span> <span class="version">7.13.0</span></div>
+          <div id="content">
+          <h2>Login</h2>
+          <p class="message">Login failed</p>
+          <form action="redirect.php" method="post" name="loginform">
+          <table>
+          <tr><th><label for="server">Server</label></th><td><select name="loginServer" id="server"><option value=":5432:allow" selected="selected">PostgreSQL</option></select></td></tr>
+          <tr><th><label for="username">Username</label></th><td><input type="text" name="loginUsername" id="username" value="" /></td></tr>
+          <tr><th><label for="password">Password</label></th><td><input type="password" name="loginPassword_43535f929f0cc24fff91705ab9522864" id="password" /></td></tr>
+          </table>
+          <p><input type="submit" value="Login" /></p>
+          </form>
+          </div>
+          <script type="text/javascript">parent.frames.browser.location.reload();</script>
+          </body>
+          </html>
+expect: ['phpPgAdmin', '7.13.0']

@@ -1610,6 +1610,144 @@ Ethernet adapter Ethernet0:
   ),
   21 => 
   array (
+    'id' => 'attack-phppgadmin-login',
+    'severity' => 'high',
+    'tags' => 
+    array (
+      0 => 'attack',
+      1 => 'phppgadmin',
+      2 => 'postgres',
+      3 => 'panel',
+      4 => 'login',
+      5 => 'credential-oracle',
+    ),
+    'status' => 200,
+    'match' => 
+    array (
+      0 => 
+      array (
+        'in' => 'path',
+        'regex' => '(?:^|/)redirect\\.php$',
+        'ci' => false,
+      ),
+      1 => 
+      array (
+        'in' => 'method',
+        'regex' => '^POST$',
+        'ci' => false,
+      ),
+      2 => 
+      array (
+        'in' => 'body',
+        'regex' => '(?:^|&)loginServer=',
+        'ci' => false,
+      ),
+      3 => 
+      array (
+        'in' => 'body',
+        'regex' => '(?:^|&)loginPassword_[0-9a-f]{32}=',
+        'ci' => false,
+      ),
+      4 => 
+      array (
+        'in' => 'body',
+        'regex' => '(?:^|&)loginUsername=([^&]{0,64})',
+        'ci' => false,
+        'capture' => true,
+      ),
+    ),
+    'response' => 
+    array (
+      'headers' => 
+      array (
+        'Content-Type' => 'text/html; charset=utf-8',
+        'Set-Cookie' => 'PPA_ID={{fake.ppa:hex:26}}; path=/',
+      ),
+      'body' => '<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title>phpPgAdmin</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<link rel="stylesheet" href="themes/default/global.css" type="text/css" />
+</head>
+<body>
+<div id="topbar"><span class="appname">phpPgAdmin</span> <span class="version">7.13.0</span></div>
+<div id="content">
+<h2>Login</h2>
+<p class="message">Login disallowed for security reasons.</p>
+<form action="redirect.php" method="post" name="loginform">
+<table>
+<tr><th><label for="server">Server</label></th><td><select name="loginServer" id="server"><option value=":5432:allow" selected="selected">PostgreSQL</option></select></td></tr>
+<tr><th><label for="username">Username</label></th><td><input type="text" name="loginUsername" id="username" value="" /></td></tr>
+<tr><th><label for="password">Password</label></th><td><input type="password" name="loginPassword_43535f929f0cc24fff91705ab9522864" id="password" /></td></tr>
+</table>
+<p><input type="submit" value="Login" /></p>
+</form>
+</div>
+<script type="text/javascript">parent.frames.browser.location.reload();</script>
+</body>
+</html>
+',
+    ),
+    'lit' => 'POST',
+    'lit_in' => 'method',
+    'lit_ci' => false,
+    'owns_path' => 
+    array (
+      0 => '/redirect.php',
+    ),
+    'behavior' => 'branch',
+    'branch' => 
+    array (
+      'cases' => 
+      array (
+        0 => 
+        array (
+          'when' => 
+          array (
+            'in' => 'match.1',
+            'regex' => '^(?!(?:postgres|pgsql|root|administrator)$).*$',
+            'ci' => true,
+          ),
+          'response' => 
+          array (
+            'headers' => 
+            array (
+              'Content-Type' => 'text/html; charset=utf-8',
+              'Set-Cookie' => 'PPA_ID={{fake.ppa:hex:26}}; path=/',
+            ),
+            'body' => '<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title>phpPgAdmin</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<link rel="stylesheet" href="themes/default/global.css" type="text/css" />
+</head>
+<body>
+<div id="topbar"><span class="appname">phpPgAdmin</span> <span class="version">7.13.0</span></div>
+<div id="content">
+<h2>Login</h2>
+<p class="message">Login failed</p>
+<form action="redirect.php" method="post" name="loginform">
+<table>
+<tr><th><label for="server">Server</label></th><td><select name="loginServer" id="server"><option value=":5432:allow" selected="selected">PostgreSQL</option></select></td></tr>
+<tr><th><label for="username">Username</label></th><td><input type="text" name="loginUsername" id="username" value="" /></td></tr>
+<tr><th><label for="password">Password</label></th><td><input type="password" name="loginPassword_43535f929f0cc24fff91705ab9522864" id="password" /></td></tr>
+</table>
+<p><input type="submit" value="Login" /></p>
+</form>
+</div>
+<script type="text/javascript">parent.frames.browser.location.reload();</script>
+</body>
+</html>',
+            'status' => 200,
+          ),
+        ),
+      ),
+    ),
+  ),
+  22 => 
+  array (
     'id' => 'attack-ssti-twig',
     'severity' => 'high',
     'tags' => 
@@ -1637,7 +1775,7 @@ Ethernet adapter Ethernet0:
 ',
     ),
   ),
-  22 => 
+  23 => 
   array (
     'id' => 'attack-ssti-numeric',
     'severity' => 'high',
@@ -1665,7 +1803,7 @@ Ethernet adapter Ethernet0:
 ',
     ),
   ),
-  23 => 
+  24 => 
   array (
     'id' => 'attack-php-glastopf',
     'severity' => 'critical',
@@ -1697,7 +1835,7 @@ Ethernet adapter Ethernet0:
     'lit_in' => 'request',
     'lit_ci' => true,
   ),
-  24 => 
+  25 => 
   array (
     'id' => 'attack-sqli',
     'severity' => 'high',
@@ -1725,7 +1863,7 @@ Ethernet adapter Ethernet0:
 ',
     ),
   ),
-  25 => 
+  26 => 
   array (
     'id' => 'attack-open-redirect',
     'severity' => 'medium',
@@ -1754,7 +1892,7 @@ Ethernet adapter Ethernet0:
       'body' => '<html><head><title>302 Found</title></head><body>Redirecting...</body></html>',
     ),
   ),
-  26 => 
+  27 => 
   array (
     'id' => 'attack-xss',
     'severity' => 'medium',
@@ -1785,7 +1923,7 @@ Ethernet adapter Ethernet0:
 ',
     ),
   ),
-  27 => 
+  28 => 
   array (
     'id' => 'attack-thinkphp-rce',
     'severity' => 'critical',
@@ -1821,7 +1959,7 @@ Ethernet adapter Ethernet0:
 ',
     ),
   ),
-  28 => 
+  29 => 
   array (
     'id' => 'attack-owncloud-49103',
     'severity' => 'high',
@@ -1864,7 +2002,7 @@ Ethernet adapter Ethernet0:
     'lit_in' => 'path',
     'lit_ci' => true,
   ),
-  29 => 
+  30 => 
   array (
     'id' => 'attack-f5-1388',
     'severity' => 'critical',
@@ -1898,7 +2036,7 @@ Ethernet adapter Ethernet0:
     'lit_in' => 'path',
     'lit_ci' => true,
   ),
-  30 => 
+  31 => 
   array (
     'id' => 'attack-geoserver-36401',
     'severity' => 'critical',
@@ -1941,7 +2079,7 @@ Ethernet adapter Ethernet0:
     'lit_in' => 'path',
     'lit_ci' => true,
   ),
-  31 => 
+  32 => 
   array (
     'id' => 'attack-fortios-40684',
     'severity' => 'critical',
@@ -1980,7 +2118,7 @@ Ethernet adapter Ethernet0:
     'lit_in' => 'path',
     'lit_ci' => true,
   ),
-  32 => 
+  33 => 
   array (
     'id' => 'attack-ivanti-21887',
     'severity' => 'critical',
@@ -2015,7 +2153,7 @@ Ethernet adapter Ethernet0:
     'lit_in' => 'request',
     'lit_ci' => true,
   ),
-  33 => 
+  34 => 
   array (
     'id' => 'attack-citrix-bleed-4966',
     'severity' => 'critical',
@@ -2050,7 +2188,7 @@ Ethernet adapter Ethernet0:
     'lit_in' => 'path',
     'lit_ci' => true,
   ),
-  34 => 
+  35 => 
   array (
     'id' => 'attack-webshell-panel',
     'severity' => 'critical',
@@ -2085,7 +2223,7 @@ $ </pre>
 ',
     ),
   ),
-  35 => 
+  36 => 
   array (
     'id' => 'attack-spring-actuator',
     'severity' => 'high',
@@ -2118,7 +2256,7 @@ $ </pre>
     'lit_in' => 'path',
     'lit_ci' => true,
   ),
-  36 => 
+  37 => 
   array (
     'id' => 'attack-cloud-imds',
     'severity' => 'high',
@@ -2155,7 +2293,7 @@ $ </pre>
 ',
     ),
   ),
-  37 => 
+  38 => 
   array (
     'id' => 'attack-ignition-execute-solution',
     'severity' => 'high',
@@ -2244,7 +2382,7 @@ $ </pre>
       ),
     ),
   ),
-  38 => 
+  39 => 
   array (
     'id' => 'attack-webmin-session-login',
     'severity' => 'high',
@@ -2314,7 +2452,7 @@ $ </pre>
     'lit_in' => 'method',
     'lit_ci' => false,
   ),
-  39 => 
+  40 => 
   array (
     'id' => 'attack-jenkins-acegi-login',
     'severity' => 'high',
@@ -2362,7 +2500,7 @@ $ </pre>
     'lit_in' => 'method',
     'lit_ci' => false,
   ),
-  40 => 
+  41 => 
   array (
     'id' => 'attack-hnap-login',
     'severity' => 'high',
@@ -2447,7 +2585,7 @@ $ </pre>
       ),
     ),
   ),
-  41 => 
+  42 => 
   array (
     'id' => 'attack-crs-sqli',
     'severity' => 'high',
@@ -2477,7 +2615,7 @@ $ </pre>
 ',
     ),
   ),
-  42 => 
+  43 => 
   array (
     'id' => 'attack-crs-xss',
     'severity' => 'high',
@@ -2509,7 +2647,7 @@ $ </pre>
 ',
     ),
   ),
-  43 => 
+  44 => 
   array (
     'id' => 'attack-crs-lfi',
     'severity' => 'high',
@@ -2538,7 +2676,7 @@ $ </pre>
       'body' => '{{canned.passwd}}',
     ),
   ),
-  44 => 
+  45 => 
   array (
     'id' => 'attack-crs-rce',
     'severity' => 'critical',
