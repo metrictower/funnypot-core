@@ -41,7 +41,9 @@ by default (detect only); respond mode is opt-in and gated by your own suspicion
   archetype. It never invents a per-rule response and never touches the nuclei corpus — see
   [`docs/CRS.md`](docs/CRS.md).
 - **Product and route decoys.** Believable `.git/config`, `.env`, `wp-config`, `phpinfo`, `.htpasswd`,
-  `server-status`, SSH keys, SQL dumps, phpMyAdmin and more.
+  `server-status`, SSH keys, SQL dumps, phpMyAdmin and more. Data-bearing decoys draw people and records
+  from a shared seeded generator (`Support\Fake`, exposed to templates as `{{fake.person.*}}` directives),
+  so rows are coherent per deployment rather than repeated `jdoe`/`example.com` placeholders.
 - **Anti-fingerprint.** One coherent product persona per attacker (deterministic, spoof-proof seed)
   instead of an impossible "vulnerable to everything" host. Consistent `X-Powered-By`, tamper-evident
   honeytoken cookie.
