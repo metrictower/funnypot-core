@@ -5,8 +5,15 @@ declare(strict_types=1);
 namespace Funnypot\Tests;
 
 use Funnypot\Compiler\Crs\FingerprintGuard;
+use Funnypot\Config;
+use Funnypot\FakeHandle;
+use Funnypot\Honeypot;
 use Funnypot\RequestContext;
+use Funnypot\Response\Style;
+use Funnypot\SiteProfile;
+use Funnypot\Store\PhpArrayStore;
 use Funnypot\Template\TemplateAttackEmulator;
+use Funnypot\Verdict;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -17,6 +24,17 @@ use PHPUnit\Framework\TestCase;
  * submitted `user` field never surfaces in the response — the body is fully static), zero-execution
  * (the password is never read at all), never-authenticate (no Set-Cookie — Grafana's session cookie
  * is success-only), and POST-gated (any other verb misses — no route here for POST).
+ *
+ * owns_path IS LOAD-BEARING here (unlike a rule with no real-store collision): the REAL compiled
+ * corpus resources/compiled/nuclei-index.full.php — what PhpArrayStore::fromPackage() loads in prod —
+ * merges in funnypot's own routes, and has a live exact-store bundle keyed `GET /grafana/login`
+ * (pid `route-grafana-login`, route 379's static HTML login shell, body-watch token `Grafana`).
+ * resolveEntry()'s POST-falls-back-to-GET degradation (no `POST /grafana/login` key exists) means a
+ * POST here resolves that GET entry first. Without owns_path, classify() would resolve this POST to
+ * a ROUTE handle onto route 379's page (Verdict::SCANNER_PROBE), not this oracle; see
+ * test_classify_overrides_the_live_route_grafana_login_get_page and
+ * test_served_response_is_the_oracle_never_route_379s_html_login_page below, which drive a full
+ * Honeypot over the REAL corpus (not the compiled attack rules alone) to pin the override.
  */
 final class GrafanaLoginOracleTest extends TestCase
 {
@@ -51,6 +69,27 @@ final class GrafanaLoginOracleTest extends TestCase
         return json_encode(['user' => $user, 'password' => $pass]);
     }
 
+    /**
+     * A full Honeypot over the REAL compiled corpus (nuclei-index.full.php — what
+     * PhpArrayStore::fromPackage() loads in prod), not the small test fixture. This is the only way
+     * to reproduce the live `GET /grafana/login` = route-grafana-login collision (reached on a POST
+     * via resolveEntry's POST->GET fallback) owns_path overrides; mirrors
+     * KibanaLoginOracleTest::fullEngine(), with mode='respond' (+ a permissive gate) when the test
+     * also needs the actual served bytes, not just the verdict.
+     */
+    private function fullEngine(bool $respondMode = false): Honeypot
+    {
+        $store = new PhpArrayStore(require __DIR__ . '/../resources/compiled/nuclei-index.full.php');
+        $config = new Config(
+            $respondMode ? 'respond' : 'detect',
+            $respondMode ? static function (RequestContext $r): bool { return true; } : null,
+            'matched-only', null, 'coherent', Style::MINIMAL,
+            'high', 65536, 0, 0, true /* attackEmulation */
+        );
+
+        return new Honeypot($store, $config);
+    }
+
     // --- compile / ownership ------------------------------------------------------------------------
 
     public function test_rule_compiled_unique_and_owns_grafana_login(): void
@@ -63,6 +102,50 @@ final class GrafanaLoginOracleTest extends TestCase
         self::assertSame(1, array_count_values($ids)[self::ID], 'rule id must be unique');
 
         self::assertTrue($this->emulator()->ownsPath(self::PATH));
+    }
+
+    // --- REGRESSION: owns_path overrides a LIVE corpus route bundle reached via the GET fallback ----
+
+    /**
+     * The real compiled corpus (nuclei-index.full.php) has a bundle keyed `GET /grafana/login` (pid
+     * `route-grafana-login`, route 379's static HTML login page). resolveEntry() falls a POST with no
+     * `POST /grafana/login` key back onto that GET entry. Without owns_path, classify() would resolve
+     * this POST to a ROUTE handle onto route 379 (Verdict::SCANNER_PROBE), not this oracle. This pins
+     * that classify() instead returns the ATTACK_CLASS verdict with THIS rule's handle, so a future
+     * owns_path removal or corpus/index rebuild that drops the override can't silently regress into
+     * serving the static login page for a POST credential attempt.
+     */
+    public function test_classify_overrides_the_live_route_grafana_login_get_page(): void
+    {
+        $verdict = $this->fullEngine()->classify(
+            new RequestContext('POST', self::PATH, '', [], $this->body('admin')),
+            SiteProfile::empty()
+        );
+        self::assertSame(Verdict::ATTACK_CLASS, $verdict->classification);
+        self::assertNotNull($verdict->fakeHandle);
+        self::assertSame(
+            FakeHandle::KIND_ATTACK,
+            $verdict->fakeHandle->kind,
+            "must be the attack-tier handle, not a route handle onto route 379's GET login page"
+        );
+        self::assertSame(self::ID, $verdict->fakeHandle->ruleId);
+        self::assertContains(self::ID, $verdict->detection->templateIds());
+    }
+
+    /**
+     * The actual served bytes (via the full respond() facade over the REAL corpus) must be this
+     * oracle's static 401 `password-auth.failed` JSON — never route 379's HTML login page (its
+     * `Grafana` body-watch token, plain-text/html shape).
+     */
+    public function test_served_response_is_the_oracle_never_route_379s_html_login_page(): void
+    {
+        $engine = $this->fullEngine(true);
+
+        $r = $engine->respond(new RequestContext('POST', self::PATH, '', [], $this->body('admin')));
+        self::assertNotNull($r);
+        self::assertSame(401, $r->status, "must not be route 379's 200 HTML page");
+        self::assertSame(self::EXPECTED_BODY, $r->body);
+        self::assertSame('application/json', $r->headers['Content-Type'], "must not be route 379's HTML content type");
     }
 
     // --- basic dispatch: byte-accurate static 401 JSON --------------------------------------------

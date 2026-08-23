@@ -5,8 +5,15 @@ declare(strict_types=1);
 namespace Funnypot\Tests;
 
 use Funnypot\Compiler\Crs\FingerprintGuard;
+use Funnypot\Config;
+use Funnypot\FakeHandle;
+use Funnypot\Honeypot;
 use Funnypot\RequestContext;
+use Funnypot\Response\Style;
+use Funnypot\SiteProfile;
+use Funnypot\Store\PhpArrayStore;
 use Funnypot\Template\TemplateAttackEmulator;
+use Funnypot\Verdict;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -28,6 +35,16 @@ use PHPUnit\Framework\TestCase;
  * path-traversal probe can still trip an earlier archetype (see the residual gap above). Zero-
  * reflection/zero-execution assertions over such a crafted username therefore run against the rule in
  * ISOLATION (this rule alone), the same isolation pattern WebminSessionLoginTest uses for rule 94.
+ *
+ * owns_path IS LOAD-BEARING here (unlike a rule with no real-store collision): the REAL compiled
+ * corpus resources/compiled/nuclei-index.full.php — what PhpArrayStore::fromPackage() loads in prod —
+ * has a live exact-store bundle keyed EXACTLY `POST /login/` (nuclei template `szhe-default-login`):
+ * a fake LOGIN-SUCCESS, status 302 redirecting to `/` with a `Set-Cookie: session` header-watch —
+ * a DANGEROUS fake session, more so than Kibana's fake sid= (this one also carries a plausible
+ * redirect-to-home). Without owns_path, classify() would resolve a POST here to that dangerous corpus
+ * bundle instead of this oracle; see test_classify_overrides_the_live_szhe_default_login_bundle and
+ * test_served_response_is_the_oracle_never_the_szhe_login_success_bundle below, which drive a full
+ * Honeypot over the REAL corpus (not the compiled attack rules alone) to pin the override.
  */
 final class CpsrvdLoginOracleTest extends TestCase
 {
@@ -55,6 +72,26 @@ final class CpsrvdLoginOracleTest extends TestCase
         return new TemplateAttackEmulator([$this->isolatedRule()]);
     }
 
+    /**
+     * A full Honeypot over the REAL compiled corpus (nuclei-index.full.php — what
+     * PhpArrayStore::fromPackage() loads in prod), not the small test fixture. This is the only way
+     * to reproduce the live `POST /login/` = szhe-default-login collision owns_path overrides; mirrors
+     * KibanaLoginOracleTest::fullEngine(), with mode='respond' (+ a permissive gate) when the test
+     * also needs the actual served bytes, not just the verdict.
+     */
+    private function fullEngine(bool $respondMode = false): Honeypot
+    {
+        $store = new PhpArrayStore(require __DIR__ . '/../resources/compiled/nuclei-index.full.php');
+        $config = new Config(
+            $respondMode ? 'respond' : 'detect',
+            $respondMode ? static function (RequestContext $r): bool { return true; } : null,
+            'matched-only', null, 'coherent', Style::MINIMAL,
+            'high', 65536, 0, 0, true /* attackEmulation */
+        );
+
+        return new Honeypot($store, $config);
+    }
+
     public function test_rule_compiled_and_owns_both_slash_variants_of_login(): void
     {
         $rules = require self::COMPILED;
@@ -65,6 +102,61 @@ final class CpsrvdLoginOracleTest extends TestCase
 
         self::assertTrue($this->emulator()->ownsPath('/login/'));
         self::assertTrue($this->emulator()->ownsPath('/login'));
+    }
+
+    // --- REGRESSION: owns_path overrides a LIVE dangerous corpus bundle at this exact path ----------
+
+    /**
+     * The real compiled corpus (nuclei-index.full.php) has a bundle keyed EXACTLY `POST /login/` —
+     * nuclei template `szhe-default-login`, a fake LOGIN-SUCCESS (status 302, redirect to `/`,
+     * `Set-Cookie: session`). Without owns_path, classify() would resolve this request to a ROUTE
+     * handle onto that bundle (Verdict::SCANNER_PROBE), not this oracle. This pins that classify()
+     * instead returns the ATTACK_CLASS verdict with THIS rule's handle, so a future owns_path removal
+     * or corpus/index rebuild that drops the override can't silently regress into serving a fake
+     * authenticated session.
+     */
+    public function test_classify_overrides_the_live_szhe_default_login_bundle(): void
+    {
+        $verdict = $this->fullEngine()->classify(
+            new RequestContext('POST', '/login/', 'login_only=1', [], 'user=root&pass=x'),
+            SiteProfile::empty()
+        );
+        self::assertSame(Verdict::ATTACK_CLASS, $verdict->classification);
+        self::assertNotNull($verdict->fakeHandle);
+        self::assertSame(
+            FakeHandle::KIND_ATTACK,
+            $verdict->fakeHandle->kind,
+            'must be the attack-tier handle, not a route handle onto the szhe-default-login bundle'
+        );
+        self::assertSame(self::ID, $verdict->fakeHandle->ruleId);
+        self::assertContains(self::ID, $verdict->detection->templateIds());
+    }
+
+    /**
+     * The actual served bytes (via the full respond() facade over the REAL corpus) must be this
+     * oracle's response — never the szhe-default-login bundle's 302 redirect-to-home with its
+     * `Set-Cookie: session` fake login-success.
+     */
+    public function test_served_response_is_the_oracle_never_the_szhe_login_success_bundle(): void
+    {
+        $engine = $this->fullEngine(true);
+
+        $r = $engine->respond(new RequestContext('POST', '/login/', 'login_only=1', [], 'user=root&pass=x'));
+        self::assertNotNull($r);
+        self::assertSame(401, $r->status, 'must not be the szhe bundle\'s 302 redirect');
+        self::assertSame('{"status":0,"message":"see_login_log"}', $r->body);
+        self::assertStringNotContainsString(
+            'You should be redirected automatically to target URL',
+            $r->body,
+            'must not be the szhe bundle\'s redirect body'
+        );
+        self::assertArrayNotHasKey('Location', $r->headers);
+        self::assertArrayHasKey('Set-Cookie', $r->headers);
+        self::assertStringStartsWith(
+            'cpsession=',
+            $r->headers['Set-Cookie'],
+            'must be the cpsrvd pre-auth cookie, not the szhe bundle\'s bare session= cookie'
+        );
     }
 
     // --- login_only=1 branch: the JSON AJAX answer --------------------------------------------------
