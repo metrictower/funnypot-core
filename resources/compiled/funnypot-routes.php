@@ -4068,4 +4068,586 @@ RemoteManage=0
       'close' => '-->',
     ),
   ),
+  110 => 
+  array (
+    'id' => 'route-webmin',
+    'match' => 
+    array (
+      'template_needle' => 
+      array (
+        0 => 'webmin-panel',
+      ),
+    ),
+    'body' => '<!DOCTYPE html>
+<html><head>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<title>Login to Webmin</title>
+<link rel="stylesheet" type="text/css" href="/unauthenticated/style.css">
+</head>
+<body class="login" leftmargin="0" topmargin="0">
+<div class="login-page">
+<form action="/session_login.cgi" method="post" name="loginform" autocomplete="off">
+<input type="hidden" name="page" value="/">
+<h1>Login to Webmin</h1>
+<p>You must enter a username and password to login to the Webmin server on {{persona.company.domain}}.</p>
+<table cellpadding="3">
+<tr><td><b>Username</b></td><td><input name="user" type="text" size="20" value=""></td></tr>
+<tr><td><b>Password</b></td><td><input name="pass" type="password" size="20" value=""></td></tr>
+</table>
+<input type="submit" value="Login">
+<label><input type="checkbox" name="save" value="1"> Remember login permanently?</label>
+</form>
+<p class="footer">Webmin 2.111 on {{persona.company.domain}} (Debian Linux 12)</p>
+</div>
+</body></html>
+',
+    'headers' => 
+    array (
+      'Content-Type' => 'text/html; charset=utf-8',
+    ),
+    'taunt' => 
+    array (
+      'mode' => 'block',
+      'open' => '<!--',
+      'close' => '-->',
+    ),
+    'set_cookie' => 'testing',
+  ),
+  111 => 
+  array (
+    'id' => 'route-phppgadmin',
+    'match' => 
+    array (
+      'template_needle' => 
+      array (
+        0 => 'phppgadmin-panel',
+      ),
+    ),
+    'body' => '<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Frameset//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-frameset.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title>phpPgAdmin</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<meta name="generator" content="phpPgAdmin 7.13.0" />
+</head>
+<frameset cols="25%,75%" id="frame">
+<frame src="browser.php" name="browser" title="phpPgAdmin navigation frame" />
+<frame src="intro.php" name="detail" title="phpPgAdmin content frame" />
+<noframes><body>
+<p>Your browser does not support frames. phpPgAdmin requires a browser with frames support.</p>
+<p><a href="intro.php">Continue to phpPgAdmin</a></p>
+</body></noframes>
+</frameset>
+</html>
+',
+    'headers' => 
+    array (
+      'Content-Type' => 'text/html; charset=utf-8',
+    ),
+    'taunt' => 
+    array (
+      'mode' => 'block',
+      'open' => '<!--',
+      'close' => '-->',
+    ),
+  ),
+  112 => 
+  array (
+    'id' => 'route-kibana',
+    'match' => 
+    array (
+      'template_needle' => 
+      array (
+        0 => 'exposed-kibana',
+      ),
+    ),
+    'body' => '<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+<meta name="viewport" content="width=device-width">
+<title>Kibana</title>
+<style>.kibanaWelcomeView{height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center}</style>
+</head>
+<body>
+<kbn-injected-metadata data=\'{"version":"7.17.18","buildNumber":61123,"branch":"7.17","legacyMetadata":{"uiSettings":{"defaults":{},"user":{}}}}\'></kbn-injected-metadata>
+<div class="kibanaWelcomeView" id="kbn_loading_message" style="display:none">
+<div class="kibanaWelcomeLogo"></div>
+<div class="kibanaLoaderWrap"><div class="kibanaLoader"></div><p class="kibanaWelcomeText">Loading Kibana</p></div>
+</div>
+<div class="kibanaWelcomeView" id="kbn_legacy_browser_error" style="display:none">
+<p class="kibanaWelcomeText">Please upgrade your browser.</p>
+</div>
+<script>window.onload=function(){document.getElementById(\'kbn_loading_message\').style.display=\'flex\';};</script>
+</body>
+</html>
+',
+    'headers' => 
+    array (
+      'Content-Type' => 'text/html; charset=utf-8',
+    ),
+    'taunt' => 
+    array (
+      'mode' => 'block',
+      'open' => '<!--',
+      'close' => '-->',
+    ),
+  ),
+  113 => 
+  array (
+    'id' => 'route-jenkins',
+    'match' => 
+    array (
+      'template_needle' => 
+      array (
+        0 => 'unauthenticated-jenkins',
+      ),
+    ),
+    'body' => '<!DOCTYPE html>
+<html class="yui-skin-sam" lang="en" data-version="2.426.3">
+<head>
+<title>Dashboard [Jenkins]</title>
+<meta name="ROBOTS" content="NOFOLLOW">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<link rel="stylesheet" href="/static/2.426.3/css/style.css" type="text/css">
+</head>
+<body>
+<header id="page-header" class="page-header">
+<div class="logo"><a href="/"><img src="/static/2.426.3/images/24x24/jenkins.png" alt="Jenkins"></a></div>
+</header>
+<div id="main-panel">
+<h1>Welcome to Jenkins!</h1>
+<table id="projectstatus" class="pane jenkins-table sortable">
+<thead><tr><th>S</th><th>W</th><th>Name</th><th>Last Success</th><th>Last Failure</th></tr></thead>
+<tbody>
+<tr><td>Job</td><td>Build</td><td><a href="job/{{persona.company.slug}}-deploy/">{{persona.company.name}} deploy</a></td><td>2 days 3 hr</td><td>N/A</td></tr>
+<tr><td>Job</td><td>Build</td><td><a href="job/{{persona.company.slug}}-tests/">{{persona.company.name}} tests</a></td><td>14 hr</td><td>3 days 1 hr</td></tr>
+</tbody>
+</table>
+</div>
+<footer><div class="page-footer__flex-row"><div class="jenkins_ver"><a href="https://www.jenkins.io/">Jenkins 2.426.3</a></div></div></footer>
+</body>
+</html>
+',
+    'headers' => 
+    array (
+      'Content-Type' => 'text/html; charset=utf-8',
+      'X-Jenkins' => '2.426.3',
+      'X-Jenkins-Session' => '{{fake.jenkinssess1:hex:8}}-{{fake.jenkinssess2:hex:4}}-{{fake.jenkinssess3:hex:4}}-{{fake.jenkinssess4:hex:4}}-{{fake.jenkinssess5:hex:12}}',
+      'X-Hudson' => '1.395',
+      'X-Content-Type-Options' => 'nosniff',
+    ),
+    'taunt' => 
+    array (
+      'mode' => 'block',
+      'open' => '<!--',
+      'close' => '-->',
+    ),
+  ),
+  114 => 
+  array (
+    'id' => 'route-grafana-settings',
+    'match' => 
+    array (
+      'template_needle' => 
+      array (
+        0 => 'grafana-unauth-access',
+      ),
+    ),
+    'body' => '{
+"buildInfo": {"version": "10.4.2", "commit": "{{fake.grafcommit:hex:40}}", "edition": "Open Source", "hasUpdate": false, "env": "production", "latestVersion": ""},
+"licenseInfo": {"stateInfo": "", "licenseUrl": "", "edition": "oss", "enabledFeatures": {}},
+"appUrl": "https://{{persona.company.domain}}/grafana/",
+"appSubUrl": "/grafana",
+"allowOrgCreate": false,
+"authProxyEnabled": false,
+"disableLoginForm": false,
+"disableUserSignUp": true,
+"loginHint": "email or username",
+"passwordHint": "password",
+"defaultDatasource": "prometheus",
+"panels": {"dashlist": {"id": "dashlist","name":"Dashboard list","info": {"author": {"name": "Grafana Labs","url": "https://grafana.com"},"version": "10.4.2"},"module": "core:plugin/dashlist","baseUrl": "public/app/plugins/panel/dashlist","state": "","signature": "internal","sort": 100},"stat": {"id": "stat","name": "Stat","module": "core:plugin/stat","state": "","signature": "internal","sort": 100}},
+"rbacEnabled": true,
+"accessControl": {"dashboards:read": true, "dashboards:write": true, "datasources:read": true, "datasources:explore": true, "orgs:read": true, "users:read": false}
+}
+',
+    'headers' => 
+    array (
+      'Content-Type' => 'application/json',
+    ),
+    'taunt' => 
+    array (
+      'mode' => 'inline_field',
+      'key' => '_comment',
+    ),
+  ),
+  115 => 
+  array (
+    'id' => 'route-phpmyadmin-changelog',
+    'match' => 
+    array (
+      'pid' => 
+      array (
+        0 => 'route-phpmyadmin-changelog',
+      ),
+    ),
+    'body' => 'phpMyAdmin - ChangeLog
+======================
+
+5.2.1 (2023-05-09)
+- issue        Security fixes (see security/ directory)
+- bug   #17539 Fix export to browser for large tables
+- bug   #17462 Fix navigation tree when tables contain special characters
+- bug   #17401 Fix designer foreign key display on MariaDB 10.11
+- bug   #17388 Fix two-factor authentication with hardware keys
+
+5.2.0 (2022-05-10)
+- improvement  Drop support for PHP 7.1 and lower, require PHP 7.2+
+- improvement  Add dark theme support to the pmahomme theme
+- bug   #16447 Fix column comments not shown on the table structure page
+- bug   #16812 Fix SQL export of routines with DEFINER clauses
+
+5.1.3 (2022-02-07)
+- bug   #17158 Fix XSS in the import feature
+- bug   #17021 Fix session handling behind a reverse proxy
+
+For older entries see https://www.phpmyadmin.net/old-stable/
+',
+    'headers' => 
+    array (
+      'Content-Type' => 'text/plain; charset=utf-8',
+    ),
+    'taunt' => 
+    array (
+      'mode' => 'line',
+      'open' => '#',
+    ),
+  ),
+  116 => 
+  array (
+    'id' => 'route-phpmyadmin-readme',
+    'match' => 
+    array (
+      'pid' => 
+      array (
+        0 => 'route-phpmyadmin-readme',
+      ),
+    ),
+    'body' => 'phpMyAdmin - Readme
+===================
+
+Version 5.2.1
+
+A web interface for MySQL and MariaDB.
+
+Copyright (C) 1998-2023 phpMyAdmin contributors
+
+phpMyAdmin is intended to handle the administration of MySQL and MariaDB
+over the web. It supports a wide range of operations on MySQL, MariaDB and
+Drizzle. Frequently used operations (managing databases, tables, columns,
+relations, indexes, users, permissions, etc) can be performed via the user
+interface, while you still have the ability to directly execute any SQL
+statement.
+
+Documentation
+-------------
+
+The documentation is available in the doc/ subdirectory and online at
+https://docs.phpmyadmin.net/
+
+License
+-------
+
+phpMyAdmin is licensed under the GNU General Public License, version 2.
+See the LICENSE file for a copy of the license.
+',
+    'headers' => 
+    array (
+      'Content-Type' => 'text/plain; charset=utf-8',
+    ),
+    'taunt' => 
+    array (
+      'mode' => 'line',
+      'open' => '#',
+    ),
+  ),
+  117 => 
+  array (
+    'id' => 'route-phpmyadmin-doc',
+    'match' => 
+    array (
+      'pid' => 
+      array (
+        0 => 'route-phpmyadmin-doc',
+      ),
+    ),
+    'body' => '<!DOCTYPE html>
+<html class="writer-html5" lang="en">
+<head>
+<meta charset="utf-8" />
+<title>phpMyAdmin 5.2.1 documentation</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+<link rel="index" title="Index" href="genindex.html" />
+<link rel="search" title="Search" href="search.html" />
+</head>
+<body class="wy-body-for-nav">
+<div class="wy-grid-for-nav">
+<nav class="wy-nav-side"><div class="wy-side-scroll"><div class="wy-side-nav-search">
+<a href="#" class="icon icon-home">phpMyAdmin</a>
+<div class="version">5.2.1</div>
+</div></div></nav>
+<section class="wy-nav-content-wrap"><div class="wy-nav-content"><div class="rst-content">
+<h1>phpMyAdmin 5.2.1 documentation</h1>
+<p>phpMyAdmin is a free software tool written in PHP, intended to handle the administration
+of MySQL and MariaDB over the web.</p>
+<div class="toctree-wrapper compound">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="intro.html">Introduction</a></li>
+<li class="toctree-l1"><a class="reference internal" href="require.html">Requirements</a></li>
+<li class="toctree-l1"><a class="reference internal" href="setup.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="config.html">Configuration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="user.html">User Guide</a></li>
+</ul>
+</div>
+</div></div></section>
+</div>
+</body>
+</html>
+',
+    'headers' => 
+    array (
+      'Content-Type' => 'text/html; charset=utf-8',
+    ),
+    'taunt' => 
+    array (
+      'mode' => 'block',
+      'open' => '<!--',
+      'close' => '-->',
+    ),
+  ),
+  118 => 
+  array (
+    'id' => 'route-grafana-health',
+    'match' => 
+    array (
+      'pid' => 
+      array (
+        0 => 'route-grafana-health',
+      ),
+    ),
+    'body' => '{
+"commit": "{{fake.grafcommit:hex:40}}",
+"database": "ok",
+"version": "10.4.2"
+}
+',
+    'headers' => 
+    array (
+      'Content-Type' => 'application/json',
+    ),
+    'taunt' => 
+    array (
+      'mode' => 'inline_field',
+      'key' => '_comment',
+    ),
+  ),
+  119 => 
+  array (
+    'id' => 'route-grafana-login',
+    'match' => 
+    array (
+      'pid' => 
+      array (
+        0 => 'route-grafana-login',
+      ),
+    ),
+    'body' => '<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width"/>
+<title>Grafana</title>
+<base href="/grafana/"/>
+<link rel="icon" type="image/png" href="public/img/fav32.png"/>
+<link rel="stylesheet" href="public/build/grafana.dark.css"/>
+</head>
+<body class="theme-dark app-grafana">
+<grafana-app class="grafana-app">
+<div class="preloader">
+<div class="preloader__enter"><div class="preloader__bounce"><div class="preloader__logo"></div></div></div>
+</div>
+</grafana-app>
+<div id="reactRoot"></div>
+<script nonce="">
+window.grafanaBootData = {
+"user":{"isSignedIn":false,"id":0,"orgId":0,"login":"","theme":"dark"},
+"settings":{"appSubUrl":"/grafana","appUrl":"https://{{persona.company.domain}}/grafana/","disableLoginForm":false,"buildInfo":{"version":"10.4.2","edition":"Open Source","env":"production"}}
+};
+</script>
+<script src="public/build/runtime.js" type="text/javascript"></script>
+<script src="public/build/app.js" type="text/javascript"></script>
+</body>
+</html>
+',
+    'headers' => 
+    array (
+      'Content-Type' => 'text/html; charset=utf-8',
+    ),
+    'taunt' => 
+    array (
+      'mode' => 'block',
+      'open' => '<!--',
+      'close' => '-->',
+    ),
+    'set_cookie' => 'grafana_session',
+  ),
+  120 => 
+  array (
+    'id' => 'route-jenkins-apijson',
+    'match' => 
+    array (
+      'pid' => 
+      array (
+        0 => 'route-jenkins-apijson',
+      ),
+    ),
+    'body' => '{
+"_class": "hudson.model.Hudson",
+"assignedLabels": [{"name": "built-in"}],
+"mode": "NORMAL",
+"nodeDescription": "the built-in Jenkins node",
+"nodeName": "",
+"numExecutors": 2,
+"description": null,
+"jobs": [
+{"_class": "hudson.model.FreeStyleProject", "name": "{{persona.company.slug}}-deploy", "url": "https://{{persona.company.domain}}/job/{{persona.company.slug}}-deploy/", "color": "blue"},
+{"_class": "hudson.model.FreeStyleProject", "name": "{{persona.company.slug}}-tests", "url": "https://{{persona.company.domain}}/job/{{persona.company.slug}}-tests/", "color": "yellow"}
+],
+"primaryView": {"_class": "hudson.model.AllView", "name": "all", "url": "https://{{persona.company.domain}}/"},
+"quietingDown": false,
+"useCrumbs": true,
+"useSecurity": true,
+"views": [{"_class": "hudson.model.AllView", "name": "all", "url": "https://{{persona.company.domain}}/"}]
+}
+',
+    'headers' => 
+    array (
+      'Content-Type' => 'application/json',
+      'X-Jenkins' => '2.426.3',
+      'X-Jenkins-Session' => '{{fake.jenkinssess1:hex:8}}-{{fake.jenkinssess2:hex:4}}-{{fake.jenkinssess3:hex:4}}-{{fake.jenkinssess4:hex:4}}-{{fake.jenkinssess5:hex:12}}',
+      'X-Content-Type-Options' => 'nosniff',
+    ),
+    'taunt' => 
+    array (
+      'mode' => 'inline_field',
+      'key' => '_comment',
+    ),
+  ),
+  121 => 
+  array (
+    'id' => 'route-pgadmin-login',
+    'match' => 
+    array (
+      'pid' => 
+      array (
+        0 => 'route-pgadmin-login',
+      ),
+    ),
+    'body' => '<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+<title>pgAdmin 4</title>
+<link rel="icon" href="/pgadmin4/static/img/favicon.ico">
+<link rel="stylesheet" href="/pgadmin4/static/css/style.css">
+</head>
+<body>
+<div id="pgadmin-preloader"><div class="pg-sp-container"><div class="pg-sp-content"></div></div></div>
+<div class="container">
+<div class="card login-card">
+<div class="card-header"><h4>pgAdmin 4</h4></div>
+<div class="card-body">
+<form method="post" action="/pgadmin4/login" id="login-form" novalidate>
+<div class="form-group">
+<label for="email">Email Address / Username</label>
+<input type="text" class="form-control" id="email" name="email" placeholder="Email Address / Username" required autofocus>
+</div>
+<div class="form-group">
+<label for="password">Password</label>
+<input type="password" class="form-control" id="password" name="password" placeholder="Password" required>
+</div>
+<button type="submit" class="btn btn-primary">Login</button>
+</form>
+</div>
+<div class="card-footer">pgAdmin 4 Version 8.5</div>
+</div>
+</div>
+</body>
+</html>
+',
+    'headers' => 
+    array (
+      'Content-Type' => 'text/html; charset=utf-8',
+    ),
+    'taunt' => 
+    array (
+      'mode' => 'block',
+      'open' => '<!--',
+      'close' => '-->',
+    ),
+    'set_cookie' => 'pga4_session',
+  ),
+  122 => 
+  array (
+    'id' => 'route-cpanel-login',
+    'match' => 
+    array (
+      'pid' => 
+      array (
+        0 => 'route-cpanel-login',
+      ),
+    ),
+    'body' => '<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Login</title>
+<link rel="stylesheet" href="/cpsess0000000000/styled/basic/css/cjt.css">
+</head>
+<body class="cpanel-login-page">
+<div id="cpanel_lm_container" class="login-container">
+<div class="brand"><h1>cPanel</h1></div>
+<form action="/login/?login_only=1" method="post" id="login_form" name="login_form">
+<input type="hidden" name="goto_uri" value="/">
+<div class="form-group">
+<label for="user">Username</label>
+<input type="text" id="user" name="user" autocomplete="username" placeholder="Enter your username.">
+</div>
+<div class="form-group">
+<label for="pass">Password</label>
+<input type="password" id="pass" name="pass" autocomplete="current-password" placeholder="Enter your password.">
+</div>
+<button type="submit" id="login_submit" class="btn-primary">Log in</button>
+</form>
+<p class="notice">You can reach cPanel on port 2083 and WHM on port 2087.</p>
+<div class="copyright">cPanel &amp; WHM Version 118.0.13</div>
+</div>
+</body>
+</html>
+',
+    'headers' => 
+    array (
+      'Content-Type' => 'text/html; charset=utf-8',
+    ),
+    'taunt' => 
+    array (
+      'mode' => 'block',
+      'open' => '<!--',
+      'close' => '-->',
+    ),
+  ),
 );

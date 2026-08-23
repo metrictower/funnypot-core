@@ -1,0 +1,46 @@
+id: route-phpmyadmin-changelog
+priority: 375
+# Brand-new page: the phpMyAdmin ChangeLog file (no nuclei template at this path). A version-recon
+# scanner reads /phpmyadmin/ChangeLog to lift the exact phpMyAdmin version from its top entry. Served
+# text/plain (the file's real type; a text/html tell would drop to minimal synth). The version matches
+# the /phpmyadmin/ login footer (5.2.x) — one host, one install. phpMyAdmin manages MySQL/MariaDB, so
+# this is coherent with the persona WordPress MySQL db; it never claims Postgres. Bug ids are 5-digit
+# and non-9-led, dates are hyphenated (no bare 6-digit run).
+new_page:
+  method: GET
+  paths: ['/phpmyadmin/ChangeLog']
+  sig: 0
+  status: 200
+  severity: info
+  tags: [phpmyadmin, version, disclosure]
+  name: 'phpMyAdmin ChangeLog (version disclosure)'
+  body_words: ['phpMyAdmin', 'ChangeLog']
+response:
+  headers:
+    Content-Type: "text/plain; charset=utf-8"
+  body: |
+    phpMyAdmin - ChangeLog
+    ======================
+
+    5.2.1 (2023-05-09)
+    - issue        Security fixes (see security/ directory)
+    - bug   #17539 Fix export to browser for large tables
+    - bug   #17462 Fix navigation tree when tables contain special characters
+    - bug   #17401 Fix designer foreign key display on MariaDB 10.11
+    - bug   #17388 Fix two-factor authentication with hardware keys
+
+    5.2.0 (2022-05-10)
+    - improvement  Drop support for PHP 7.1 and lower, require PHP 7.2+
+    - improvement  Add dark theme support to the pmahomme theme
+    - bug   #16447 Fix column comments not shown on the table structure page
+    - bug   #16812 Fix SQL export of routines with DEFINER clauses
+
+    5.1.3 (2022-02-07)
+    - bug   #17158 Fix XSS in the import feature
+    - bug   #17021 Fix session handling behind a reverse proxy
+
+    For older entries see https://www.phpmyadmin.net/old-stable/
+taunt: { mode: line, open: '#' }
+expect:
+  - '5.2.1 (2023-05-09)'
+  - 'phpMyAdmin - ChangeLog'

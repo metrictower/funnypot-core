@@ -129,6 +129,18 @@ final class EmulatorBreadthTest extends TestCase
             'wavlink ExportAllSettings enrich' => ['GET /cgi-bin/ExportAllSettings.sh', 0, 'route-wavlink-exportsettings'],
             'epson PRTINFO enrich'             => ['GET /PRESENTATION/HTML/TOP/PRTINFO.HTML', 0, 'route-epson-prtinfo'],
             'hp color laserjet enrich'         => ['GET /hp/device/this.LCDispatcher', 0, 'route-hp-color-laserjet'],
+
+            // Management / admin-panel disclosure pack — each dresses a control-panel bundle the corpus
+            // already routes to (a fake Webmin / phpPgAdmin / Kibana / Jenkins / Grafana panel a scanner
+            // hammers). Every needle is a full upstream slug that resolves to EXACTLY ONE bundle
+            // (findRule is global; a generic pid would shadow other routes). All five are rx=0 and serve
+            // at the default (high) ceiling. Content-Type is exact for the JSON bundle (Grafana settings
+            // application/json), asserted separately in test_panel_pack_content_types_are_exact.
+            'webmin panel enrich'              => ['GET /webmin/', 0, 'route-webmin'],
+            'phppgadmin panel enrich'          => ['GET /phppgadmin/', 0, 'route-phppgadmin'],
+            'kibana panel enrich'              => ['GET /app/kibana', 0, 'route-kibana'],
+            'jenkins panel enrich'             => ['GET /jenkins/', 0, 'route-jenkins'],
+            'grafana settings enrich'          => ['GET /api/frontend/settings', 0, 'route-grafana-settings'],
         ];
     }
 
@@ -433,6 +445,99 @@ final class EmulatorBreadthTest extends TestCase
         $needles = ['openapi', 'fastapi-docs', 'redoc-api-docs', 'security-txt', 'openai-plugin', 'CVE-2019-9880'];
         foreach ($needles as $needle) {
             self::assertCount(1, $distinctIds($needle), "API-recon needle '{$needle}' must resolve to exactly one bundle id (else findRule shadows another route)");
+        }
+    }
+
+    /**
+     * The management/admin-panel pack's enrich needles are full upstream slugs, but findRule is GLOBAL
+     * (a needle that is a substring of ANY t-id in ANY bundle shadows that route). Lock each to EXACTLY
+     * ONE bundle id across the whole compiled index — /app/kibana carries two co-ids and the enrich
+     * deliberately keys on the tighter `exposed-kibana` — so a corpus refresh that introduced a
+     * colliding t-id fails CI before a rules release is signed.
+     */
+    public function test_panel_pack_needles_are_unique(): void
+    {
+        $routes = self::index()['routes'] ?? [];
+        $distinctIds = static function (string $needle) use ($routes): array {
+            $ids = [];
+            foreach ($routes as $entry) {
+                foreach ((array) ($entry['b'] ?? []) as $b) {
+                    if ((string) ($b['pid'] ?? '') === $needle) {
+                        $ids[$needle . ' (pid)'] = true;
+                    }
+                    foreach (array_map('strval', (array) ($b['t'] ?? [])) as $id) {
+                        if (strpos($id, $needle) !== false) {
+                            $ids[$id] = true;
+                        }
+                    }
+                }
+            }
+
+            return array_keys($ids);
+        };
+
+        $needles = ['webmin-panel', 'phppgadmin-panel', 'exposed-kibana', 'unauthenticated-jenkins', 'grafana-unauth-access'];
+        foreach ($needles as $needle) {
+            self::assertCount(1, $distinctIds($needle), "panel needle '{$needle}' must resolve to exactly one bundle id (else findRule shadows another route)");
+        }
+    }
+
+    /**
+     * Content-Type is a fingerprint tell AND a matcher gate: a login/dashboard page served as JSON, or
+     * a JSON settings endpoint served as HTML, drops to minimal synth and is itself a tell. Assert each
+     * panel enrich emits its EXACT Content-Type — the four HTML panels vs the Grafana settings JSON.
+     */
+    public function test_panel_pack_content_types_are_exact(): void
+    {
+        $expected = [
+            'GET /webmin/'               => 'text/html; charset=utf-8',
+            'GET /phppgadmin/'           => 'text/html; charset=utf-8',
+            'GET /app/kibana'            => 'text/html; charset=utf-8',
+            'GET /jenkins/'              => 'text/html; charset=utf-8',
+            'GET /api/frontend/settings' => 'application/json',
+        ];
+        $emulator = new RouteTemplateEmulator($this->set());
+        foreach ($expected as $route => $ct) {
+            $content = $emulator->render($this->bundle($route, 0), Style::REALISTIC, 7);
+            self::assertNotNull($content, "{$route} must render");
+            self::assertSame($ct, $content->headers['Content-Type'] ?? null, "{$route} Content-Type must be exact ({$ct})");
+        }
+    }
+
+    /**
+     * The Grafana /api/frontend/settings enrich is served application/json, so it must stay well-formed
+     * JSON for BOTH the realistic body and the `_comment` taunt across the persona pick space — a
+     * dropped body word appended as a bare line, or a mis-escaped value, would break the parser and
+     * betray the fake.
+     */
+    public function test_grafana_settings_json_is_valid(): void
+    {
+        $emulator = new RouteTemplateEmulator($this->set());
+        $bundle = $this->bundle('GET /api/frontend/settings', 0);
+        foreach (self::seeds() as $seed) {
+            foreach ([Style::REALISTIC, Style::TAUNT] as $style) {
+                $content = $emulator->render($bundle, $style, $seed);
+                self::assertNotNull($content, "grafana settings must render (seed {$seed}, {$style})");
+                self::assertSame('application/json', $content->headers['Content-Type'] ?? null, "grafana settings Content-Type (seed {$seed}, {$style})");
+                self::assertIsArray(json_decode($content->body, true), "grafana settings must be valid JSON (seed {$seed}, {$style}): " . $content->body);
+            }
+        }
+    }
+
+    /**
+     * The Jenkins panel enrich carries the exact header set a scanner keys on to confirm Jenkins and
+     * lift its version — `X-Jenkins` (the version), `X-Hudson` (the legacy constant), and a nosniff
+     * guard. A dropped X-Jenkins header would leave the fake indistinguishable from a generic HTML page.
+     */
+    public function test_jenkins_enrich_carries_the_version_headers(): void
+    {
+        $emulator = new RouteTemplateEmulator($this->set());
+        for ($seed = 0; $seed <= 30; $seed++) {
+            $content = $emulator->render($this->bundle('GET /jenkins/', 0), Style::REALISTIC, $seed);
+            self::assertNotNull($content, "jenkins panel must render (seed {$seed})");
+            self::assertSame('2.426.3', $content->headers['X-Jenkins'] ?? null, "jenkins panel must carry X-Jenkins (seed {$seed})");
+            self::assertSame('1.395', $content->headers['X-Hudson'] ?? null, "jenkins panel must carry X-Hudson (seed {$seed})");
+            self::assertSame('nosniff', $content->headers['X-Content-Type-Options'] ?? null, "jenkins panel must carry the nosniff guard (seed {$seed})");
         }
     }
 

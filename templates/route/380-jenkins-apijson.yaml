@@ -1,0 +1,47 @@
+id: route-jenkins-apijson
+priority: 380
+# Brand-new page: Jenkins' remote-access API root /api/json (no nuclei template at this path). A
+# scanner reads it to confirm Jenkins and enumerate jobs/views; the `X-Jenkins` version header rides
+# along, matching the /jenkins/ dashboard enrich (one host, one controller). Served application/json in
+# the real Hudson root shape (`_class`, `mode`, `jobs`, `views`, `useSecurity`). The job names are
+# persona-seeded. Opens with a lone `{` so the JSON taunt keeps it parseable; numExecutors is small and
+# the version is a dotted literal (no bare 6-digit run).
+new_page:
+  method: GET
+  paths: ['/api/json']
+  sig: 0
+  status: 200
+  severity: info
+  tags: [jenkins, api, version, disclosure]
+  name: 'Jenkins API root (version disclosure)'
+  body_words: ['jobs', 'mode']
+response:
+  headers:
+    Content-Type: "application/json"
+    X-Jenkins: "2.426.3"
+    X-Jenkins-Session: "{{fake.jenkinssess1:hex:8}}-{{fake.jenkinssess2:hex:4}}-{{fake.jenkinssess3:hex:4}}-{{fake.jenkinssess4:hex:4}}-{{fake.jenkinssess5:hex:12}}"
+    X-Content-Type-Options: "nosniff"
+  body: |
+    {
+    "_class": "hudson.model.Hudson",
+    "assignedLabels": [{"name": "built-in"}],
+    "mode": "NORMAL",
+    "nodeDescription": "the built-in Jenkins node",
+    "nodeName": "",
+    "numExecutors": 2,
+    "description": null,
+    "jobs": [
+    {"_class": "hudson.model.FreeStyleProject", "name": "{{persona.company.slug}}-deploy", "url": "https://{{persona.company.domain}}/job/{{persona.company.slug}}-deploy/", "color": "blue"},
+    {"_class": "hudson.model.FreeStyleProject", "name": "{{persona.company.slug}}-tests", "url": "https://{{persona.company.domain}}/job/{{persona.company.slug}}-tests/", "color": "yellow"}
+    ],
+    "primaryView": {"_class": "hudson.model.AllView", "name": "all", "url": "https://{{persona.company.domain}}/"},
+    "quietingDown": false,
+    "useCrumbs": true,
+    "useSecurity": true,
+    "views": [{"_class": "hudson.model.AllView", "name": "all", "url": "https://{{persona.company.domain}}/"}]
+    }
+taunt: { mode: inline_field, key: '_comment' }
+expect:
+  - '"_class": "hudson.model.Hudson"'
+  - '"useSecurity": true'
+  - 'X-Jenkins: 2.426.3'

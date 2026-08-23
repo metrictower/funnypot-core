@@ -199,6 +199,24 @@ final class NewPageRoutingTest extends TestCase
             // serves the ReDoc shell; /security.txt mirrors the .well-known security.txt file.
             'api/docs redoc'        => ['/api/docs', 200, 'Redoc.init', 'text/html; charset=utf-8'],
             'security.txt (root)'   => ['/security.txt', 200, 'Preferred-Languages', 'text/plain; charset=utf-8'],
+
+            // Management / admin-panel disclosure pack — brand-new version/health/login pages (no nuclei
+            // template at these paths). Each marker is a distinctive authored string that is NOT one of
+            // the synth bundle's body words, so its presence proves the authored body served (not a
+            // minimal synth of the bare body words). Content-Type is exactly the endpoint's real type (a
+            // mismatch is a honeypot tell): phpMyAdmin ChangeLog/README are text/plain, the doc index and
+            // the login shells are text/html, the Grafana health + Jenkins API roots are application/json.
+            'phpmyadmin ChangeLog'  => ['/phpmyadmin/ChangeLog', 200, '5.2.1 (2023-05-09)', 'text/plain; charset=utf-8'],
+            'phpmyadmin README'     => ['/phpmyadmin/README', 200, 'Version 5.2.1', 'text/plain; charset=utf-8'],
+            'phpmyadmin doc index'  => ['/phpmyadmin/doc/html/index.html', 200, 'phpMyAdmin 5.2.1 documentation', 'text/html; charset=utf-8'],
+            'grafana health'        => ['/api/health', 200, '"database": "ok"', 'application/json'],
+            'grafana login'         => ['/grafana/', 200, 'window.grafanaBootData', 'text/html; charset=utf-8'],
+            'grafana login (alt)'   => ['/grafana/login', 200, 'window.grafanaBootData', 'text/html; charset=utf-8'],
+            'jenkins api/json'      => ['/api/json', 200, '"_class": "hudson.model.Hudson"', 'application/json'],
+            'pgadmin login'         => ['/pgadmin4/', 200, 'Version 8.5', 'text/html; charset=utf-8'],
+            'pgadmin login (alt)'   => ['/pgadmin4/login', 200, 'Version 8.5', 'text/html; charset=utf-8'],
+            'cpanel login'          => ['/cpanel', 200, 'Version 118.0.13', 'text/html; charset=utf-8'],
+            'whm login'             => ['/whm', 200, 'Version 118.0.13', 'text/html; charset=utf-8'],
         ];
     }
 
@@ -588,6 +606,14 @@ final class NewPageRoutingTest extends TestCase
             // EmulatorBreadthTest::test_iot_pack_bodies_carry_no_denied_fingerprint_token instead.
             '/Security/users', '/webapi/entry.cgi', '/cgi-bin/nobody/Machine.cgi', '/device/config',
             '/cgi-bin/', '/hp/device/DeviceInformation/View', '/PRESENTATION/HTML/TOP/PRTINFO.HTML',
+            // Management / admin-panel disclosure pack — the enrich surfaces (single-bundle, so a fixed
+            // seed always renders THIS body) plus every brand-new version/health/login page. Panel bodies
+            // carry version strings, build/session ids and seed-derived commit hashes, so the \b9\d{5}\b
+            // run is the acute hazard here.
+            '/webmin/', '/phppgadmin/', '/app/kibana', '/jenkins/', '/api/frontend/settings',
+            '/phpmyadmin/ChangeLog', '/phpmyadmin/README', '/phpmyadmin/doc/html/index.html',
+            '/api/health', '/grafana/', '/grafana/login', '/api/json',
+            '/pgadmin4/', '/pgadmin4/login', '/cpanel', '/whm',
         ];
         // The vite-fs `/@fs/{path}` param route serves per-target disclosure bodies (its own RDS/cache
         // host islands live in the .env and wp-config.php loot targets), so exercise those too.
@@ -734,6 +760,55 @@ final class NewPageRoutingTest extends TestCase
 
         self::assertNotNull($resp);
         self::assertStringContainsString('Tomcat Web Application Manager', $resp->body);
+    }
+
+    public function test_jenkins_surfaces_carry_the_x_jenkins_version_header(): void
+    {
+        // A scanner keys on the `X-Jenkins` response header to confirm Jenkins and lift its version.
+        // Both the /jenkins/ dashboard enrich and the brand-new /api/json root must carry it end-to-end
+        // (the emulator's headers survive the whole synthesizer), and both must report the SAME version
+        // — one host, one controller.
+        $inv = $this->inverter();
+        foreach (['/jenkins/', '/api/json'] as $path) {
+            $resp = $inv->respond(new RequestContext('GET', $path));
+            self::assertNotNull($resp, "{$path} must serve a fake");
+            self::assertSame('2.426.3', $resp->headers['X-Jenkins'] ?? null, "{$path} must carry the X-Jenkins version header");
+        }
+    }
+
+    public function test_panel_json_pages_stay_parseable(): void
+    {
+        // The Grafana settings/health and Jenkins API-root pages are served application/json, so each
+        // must stay valid JSON across seeds × styles — a broken `_comment` taunt or an unescaped persona
+        // value would fail json_decode and betray the fake.
+        $paths = ['/api/frontend/settings', '/api/health', '/api/json'];
+        foreach ($paths as $path) {
+            foreach (['realistic', 'taunt'] as $style) {
+                for ($seed = 0; $seed <= 30; $seed++) {
+                    $resp = $this->seededInverter((string) $seed, $style)->respond(new RequestContext('GET', $path));
+                    self::assertNotNull($resp, "{$path} [{$style}] seed {$seed} must serve a fake");
+                    self::assertSame('application/json', $resp->headers['Content-Type'] ?? null, "{$path} [{$style}] seed {$seed} Content-Type");
+                    self::assertIsArray(json_decode($resp->body, true), "{$path} [{$style}] seed {$seed} must be a JSON object, got: " . $resp->body);
+                }
+            }
+        }
+    }
+
+    public function test_grafana_build_is_coherent_across_its_surfaces(): void
+    {
+        // One host runs one Grafana build: the commit hash and version the unauthenticated /api/health
+        // discloses must be byte-identical to what the /api/frontend/settings bootstrap config discloses
+        // for the same seed — two surfaces reporting a different build would betray the fabrication.
+        for ($seed = 0; $seed <= 30; $seed++) {
+            $inv = $this->seededInverter((string) $seed, 'realistic');
+            $health = $inv->respond(new RequestContext('GET', '/api/health'));
+            $settings = $inv->respond(new RequestContext('GET', '/api/frontend/settings'));
+            self::assertNotNull($health, "seed {$seed}: /api/health must serve a fake");
+            self::assertNotNull($settings, "seed {$seed}: /api/frontend/settings must serve a fake");
+            self::assertSame(1, preg_match('/"commit":\s*"([0-9a-f]{40})"/', $health->body, $hc), "seed {$seed}: /api/health must disclose a commit");
+            self::assertSame(1, preg_match('/"commit":\s*"([0-9a-f]{40})"/', $settings->body, $sc), "seed {$seed}: /api/frontend/settings must disclose a commit");
+            self::assertSame($sc[1], $hc[1], "seed {$seed}: the Grafana commit must match across /api/health and /api/frontend/settings");
+        }
     }
 
     public function test_werkzeug_console_enrich_serves_locked_page(): void

@@ -1,0 +1,30 @@
+id: route-grafana-health
+priority: 378
+# Brand-new page: Grafana's unauthenticated /api/health endpoint (no nuclei template at this path). A
+# version-recon scanner reads it to lift the exact Grafana version and DB status. Served application/
+# json in the EXACT real shape `{"commit","database","version"}`. The commit reuses the `grafcommit`
+# fake name from the /api/frontend/settings enrich, so both surfaces of one host report the same build
+# for a given seed; the version (10.4.2) matches too. Opens with a lone `{` so the JSON taunt keeps it
+# parseable; the commit is a 40-char hex (no bare 6-digit run).
+new_page:
+  method: GET
+  paths: ['/api/health']
+  sig: 0
+  status: 200
+  severity: info
+  tags: [grafana, health, version, disclosure]
+  name: 'Grafana health (version disclosure)'
+  body_words: ['commit', 'version']
+response:
+  headers:
+    Content-Type: "application/json"
+  body: |
+    {
+    "commit": "{{fake.grafcommit:hex:40}}",
+    "database": "ok",
+    "version": "10.4.2"
+    }
+taunt: { mode: inline_field, key: '_comment' }
+expect:
+  - '"database": "ok"'
+  - '"version": "10.4.2"'

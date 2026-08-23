@@ -1,0 +1,49 @@
+id: route-jenkins
+priority: 373
+# Enrich: the corpus routes /jenkins/ to the `unauthenticated-jenkins` bundle (body word
+# `Dashboard [Jenkins]`). Minimal synth would emit the bare title; here we serve the real Jenkins
+# dashboard shell AND the header set a scanner keys on to confirm Jenkins and lift its version:
+# `X-Jenkins` (the version), `X-Jenkins-Session` (a per-boot UUID), `X-Hudson` (the legacy constant),
+# and `X-Content-Type-Options: nosniff`. Needle is the full upstream id (findRule is global). Content-
+# Type is text/html. Versions are dotted literals (no bare 6-digit run); the session id is a UUID-
+# shaped token. Jenkins is engine-agnostic, so no database is named.
+match:
+  template_needle: [unauthenticated-jenkins]
+response:
+  headers:
+    Content-Type: "text/html; charset=utf-8"
+    X-Jenkins: "2.426.3"
+    X-Jenkins-Session: "{{fake.jenkinssess1:hex:8}}-{{fake.jenkinssess2:hex:4}}-{{fake.jenkinssess3:hex:4}}-{{fake.jenkinssess4:hex:4}}-{{fake.jenkinssess5:hex:12}}"
+    X-Hudson: "1.395"
+    X-Content-Type-Options: "nosniff"
+  body: |
+    <!DOCTYPE html>
+    <html class="yui-skin-sam" lang="en" data-version="2.426.3">
+    <head>
+    <title>Dashboard [Jenkins]</title>
+    <meta name="ROBOTS" content="NOFOLLOW">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <link rel="stylesheet" href="/static/2.426.3/css/style.css" type="text/css">
+    </head>
+    <body>
+    <header id="page-header" class="page-header">
+    <div class="logo"><a href="/"><img src="/static/2.426.3/images/24x24/jenkins.png" alt="Jenkins"></a></div>
+    </header>
+    <div id="main-panel">
+    <h1>Welcome to Jenkins!</h1>
+    <table id="projectstatus" class="pane jenkins-table sortable">
+    <thead><tr><th>S</th><th>W</th><th>Name</th><th>Last Success</th><th>Last Failure</th></tr></thead>
+    <tbody>
+    <tr><td>Job</td><td>Build</td><td><a href="job/{{persona.company.slug}}-deploy/">{{persona.company.name}} deploy</a></td><td>2 days 3 hr</td><td>N/A</td></tr>
+    <tr><td>Job</td><td>Build</td><td><a href="job/{{persona.company.slug}}-tests/">{{persona.company.name}} tests</a></td><td>14 hr</td><td>3 days 1 hr</td></tr>
+    </tbody>
+    </table>
+    </div>
+    <footer><div class="page-footer__flex-row"><div class="jenkins_ver"><a href="https://www.jenkins.io/">Jenkins 2.426.3</a></div></div></footer>
+    </body>
+    </html>
+taunt: { mode: block, open: '<!--', close: '-->' }
+expect:
+  - 'Dashboard [Jenkins]'
+  - 'Jenkins 2.426.3'
+  - 'X-Jenkins: 2.426.3'

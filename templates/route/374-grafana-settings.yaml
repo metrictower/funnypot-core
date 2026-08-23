@@ -1,0 +1,40 @@
+id: route-grafana-settings
+priority: 374
+# Enrich: the corpus routes /api/frontend/settings to the `grafana-unauth-access` bundle (body words
+# `dashboards:read`, `name":"Dashboard list`). This is the unauthenticated bootstrap config Grafana
+# hands the browser; reaching it without a session confirms anonymous access. Minimal synth would emit
+# the bare words; here we serve the real settings object — the `buildInfo` block (the exact version a
+# scanner reads), the `dashlist` core panel, and the RBAC `accessControl` map. Needle is the full
+# upstream id (findRule is global). Content-Type is EXACTLY application/json (the endpoint's real type;
+# text/html would drop to minimal synth and is a tell). The `dashlist` name is written compact
+# (`"name":"Dashboard list"`) so the body word matches. Version is a dotted literal and the commit is a
+# 40-char hex (no bare 6-digit run). Opens with a lone `{` so the JSON taunt keeps the document
+# parseable. Grafana is engine-agnostic, so no database is named.
+match:
+  template_needle: [grafana-unauth-access]
+response:
+  headers:
+    Content-Type: "application/json"
+  body: |
+    {
+    "buildInfo": {"version": "10.4.2", "commit": "{{fake.grafcommit:hex:40}}", "edition": "Open Source", "hasUpdate": false, "env": "production", "latestVersion": ""},
+    "licenseInfo": {"stateInfo": "", "licenseUrl": "", "edition": "oss", "enabledFeatures": {}},
+    "appUrl": "https://{{persona.company.domain}}/grafana/",
+    "appSubUrl": "/grafana",
+    "allowOrgCreate": false,
+    "authProxyEnabled": false,
+    "disableLoginForm": false,
+    "disableUserSignUp": true,
+    "loginHint": "email or username",
+    "passwordHint": "password",
+    "defaultDatasource": "prometheus",
+    "panels": {"dashlist": {"id": "dashlist","name":"Dashboard list","info": {"author": {"name": "Grafana Labs","url": "https://grafana.com"},"version": "10.4.2"},"module": "core:plugin/dashlist","baseUrl": "public/app/plugins/panel/dashlist","state": "","signature": "internal","sort": 100},"stat": {"id": "stat","name": "Stat","module": "core:plugin/stat","state": "","signature": "internal","sort": 100}},
+    "rbacEnabled": true,
+    "accessControl": {"dashboards:read": true, "dashboards:write": true, "datasources:read": true, "datasources:explore": true, "orgs:read": true, "users:read": false}
+    }
+taunt: { mode: inline_field, key: '_comment' }
+expect:
+  - '"dashboards:read": true'
+  - '"name":"Dashboard list"'
+  - '"buildInfo"'
+  - '"version": "10.4.2"'

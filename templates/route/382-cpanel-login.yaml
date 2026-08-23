@@ -1,0 +1,52 @@
+id: route-cpanel-login
+priority: 382
+# Brand-new page: the cPanel/WHM login screen served by cpsrvd (no nuclei template at these paths).
+# /cpanel and /whm are among the most-probed control-panel paths; both are served the same cpsrvd
+# login chrome by a real host, which carries the product name and version. Served text/html. Ports
+# 2083/2087 appear in copy only (4-digit, safe). Version is a dotted literal (no bare 6-digit run).
+# Authored `low` severity.
+new_page:
+  method: GET
+  paths: ['/cpanel', '/whm']
+  sig: 0
+  status: 200
+  severity: low
+  tags: [cpanel, whm, panel, login, exposure]
+  name: 'cPanel / WHM login'
+  body_words: ['cPanel']
+response:
+  headers:
+    Content-Type: "text/html; charset=utf-8"
+  body: |
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Login</title>
+    <link rel="stylesheet" href="/cpsess0000000000/styled/basic/css/cjt.css">
+    </head>
+    <body class="cpanel-login-page">
+    <div id="cpanel_lm_container" class="login-container">
+    <div class="brand"><h1>cPanel</h1></div>
+    <form action="/login/?login_only=1" method="post" id="login_form" name="login_form">
+    <input type="hidden" name="goto_uri" value="/">
+    <div class="form-group">
+    <label for="user">Username</label>
+    <input type="text" id="user" name="user" autocomplete="username" placeholder="Enter your username.">
+    </div>
+    <div class="form-group">
+    <label for="pass">Password</label>
+    <input type="password" id="pass" name="pass" autocomplete="current-password" placeholder="Enter your password.">
+    </div>
+    <button type="submit" id="login_submit" class="btn-primary">Log in</button>
+    </form>
+    <p class="notice">You can reach cPanel on port 2083 and WHM on port 2087.</p>
+    <div class="copyright">cPanel &amp; WHM Version 118.0.13</div>
+    </div>
+    </body>
+    </html>
+taunt: { mode: block, open: '<!--', close: '-->' }
+expect:
+  - '<h1>cPanel</h1>'
+  - 'Version 118.0.13'

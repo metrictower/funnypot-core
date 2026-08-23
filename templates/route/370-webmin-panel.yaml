@@ -1,0 +1,43 @@
+id: route-webmin
+priority: 370
+# Enrich: the corpus routes /webmin/ to the `webmin-panel` bundle (body word
+# `<title>Login to Webmin</title>`). Minimal synth would emit the bare title; here we serve the real
+# Webmin session-login page — the `session_login.cgi` POST form with its `user`/`pass` fields and the
+# footer product/version line a scanner reads to confirm Webmin and lift its version. Needle is the
+# full upstream id (findRule is global). Content-Type is text/html. The page names only the host and
+# OS (never a database engine — Webmin fronts no single DB, and a backend-engine claim here would
+# contradict the other panels). Version is a dotted literal (no bare 6-digit run).
+match:
+  template_needle: [webmin-panel]
+set_cookie: testing
+response:
+  headers:
+    Content-Type: "text/html; charset=utf-8"
+  body: |
+    <!DOCTYPE html>
+    <html><head>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+    <title>Login to Webmin</title>
+    <link rel="stylesheet" type="text/css" href="/unauthenticated/style.css">
+    </head>
+    <body class="login" leftmargin="0" topmargin="0">
+    <div class="login-page">
+    <form action="/session_login.cgi" method="post" name="loginform" autocomplete="off">
+    <input type="hidden" name="page" value="/">
+    <h1>Login to Webmin</h1>
+    <p>You must enter a username and password to login to the Webmin server on {{persona.company.domain}}.</p>
+    <table cellpadding="3">
+    <tr><td><b>Username</b></td><td><input name="user" type="text" size="20" value=""></td></tr>
+    <tr><td><b>Password</b></td><td><input name="pass" type="password" size="20" value=""></td></tr>
+    </table>
+    <input type="submit" value="Login">
+    <label><input type="checkbox" name="save" value="1"> Remember login permanently?</label>
+    </form>
+    <p class="footer">Webmin 2.111 on {{persona.company.domain}} (Debian Linux 12)</p>
+    </div>
+    </body></html>
+taunt: { mode: block, open: '<!--', close: '-->' }
+expect:
+  - '<title>Login to Webmin</title>'
+  - 'action="/session_login.cgi"'
+  - 'Webmin 2.111'

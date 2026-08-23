@@ -1,0 +1,51 @@
+id: route-phpmyadmin-readme
+priority: 376
+# Brand-new page: the phpMyAdmin README file (no nuclei template at this path). A version-recon
+# scanner reads /phpmyadmin/README to confirm phpMyAdmin and lift its version. Served text/plain (the
+# file's real type). Version matches the ChangeLog and the login footer — one install. phpMyAdmin
+# manages MySQL/MariaDB, coherent with the persona WordPress MySQL db; never claims Postgres. No
+# seed-derived numbers, so no bare 6-digit run is possible.
+new_page:
+  method: GET
+  paths: ['/phpmyadmin/README']
+  sig: 0
+  status: 200
+  severity: info
+  tags: [phpmyadmin, version, disclosure]
+  name: 'phpMyAdmin README (version disclosure)'
+  body_words: ['phpMyAdmin']
+response:
+  headers:
+    Content-Type: "text/plain; charset=utf-8"
+  body: |
+    phpMyAdmin - Readme
+    ===================
+
+    Version 5.2.1
+
+    A web interface for MySQL and MariaDB.
+
+    Copyright (C) 1998-2023 phpMyAdmin contributors
+
+    phpMyAdmin is intended to handle the administration of MySQL and MariaDB
+    over the web. It supports a wide range of operations on MySQL, MariaDB and
+    Drizzle. Frequently used operations (managing databases, tables, columns,
+    relations, indexes, users, permissions, etc) can be performed via the user
+    interface, while you still have the ability to directly execute any SQL
+    statement.
+
+    Documentation
+    -------------
+
+    The documentation is available in the doc/ subdirectory and online at
+    https://docs.phpmyadmin.net/
+
+    License
+    -------
+
+    phpMyAdmin is licensed under the GNU General Public License, version 2.
+    See the LICENSE file for a copy of the license.
+taunt: { mode: line, open: '#' }
+expect:
+  - 'Version 5.2.1'
+  - 'phpMyAdmin - Readme'

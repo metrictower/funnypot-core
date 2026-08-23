@@ -1,0 +1,57 @@
+id: route-pgadmin-login
+priority: 381
+# Brand-new page: the pgAdmin 4 login screen (no nuclei template at these paths). A scanner probes
+# /pgadmin4/ and /pgadmin4/login to confirm pgAdmin and read its footer version. Served text/html.
+# pgAdmin fronts PostgreSQL, so this panel is coherent with the persona app db (like phpPgAdmin); it
+# never names MySQL. A fresh `pga4_session` cookie per request. Version is a dotted literal (no bare
+# 6-digit run).
+new_page:
+  method: GET
+  paths: ['/pgadmin4/', '/pgadmin4/login']
+  sig: 0
+  status: 200
+  severity: info
+  tags: [pgadmin, panel, login, exposure]
+  name: 'pgAdmin 4 login'
+  body_words: ['pgAdmin']
+set_cookie: pga4_session
+response:
+  headers:
+    Content-Type: "text/html; charset=utf-8"
+  body: |
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <title>pgAdmin 4</title>
+    <link rel="icon" href="/pgadmin4/static/img/favicon.ico">
+    <link rel="stylesheet" href="/pgadmin4/static/css/style.css">
+    </head>
+    <body>
+    <div id="pgadmin-preloader"><div class="pg-sp-container"><div class="pg-sp-content"></div></div></div>
+    <div class="container">
+    <div class="card login-card">
+    <div class="card-header"><h4>pgAdmin 4</h4></div>
+    <div class="card-body">
+    <form method="post" action="/pgadmin4/login" id="login-form" novalidate>
+    <div class="form-group">
+    <label for="email">Email Address / Username</label>
+    <input type="text" class="form-control" id="email" name="email" placeholder="Email Address / Username" required autofocus>
+    </div>
+    <div class="form-group">
+    <label for="password">Password</label>
+    <input type="password" class="form-control" id="password" name="password" placeholder="Password" required>
+    </div>
+    <button type="submit" class="btn btn-primary">Login</button>
+    </form>
+    </div>
+    <div class="card-footer">pgAdmin 4 Version 8.5</div>
+    </div>
+    </div>
+    </body>
+    </html>
+taunt: { mode: block, open: '<!--', close: '-->' }
+expect:
+  - '<title>pgAdmin 4</title>'
+  - 'Version 8.5'

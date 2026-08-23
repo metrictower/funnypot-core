@@ -1,0 +1,55 @@
+id: route-phpmyadmin-doc
+priority: 377
+# Brand-new page: the phpMyAdmin bundled documentation index (Sphinx-generated, no nuclei template at
+# this path). A version-recon scanner reads /phpmyadmin/doc/html/index.html — the `<title>` carries the
+# exact version. Served text/html (the file's real type). Version matches the ChangeLog/README/login —
+# one install. No seed-derived numbers, so no bare 6-digit run is possible.
+new_page:
+  method: GET
+  paths: ['/phpmyadmin/doc/html/index.html']
+  sig: 0
+  status: 200
+  severity: info
+  tags: [phpmyadmin, version, disclosure]
+  name: 'phpMyAdmin documentation (version disclosure)'
+  body_words: ['phpMyAdmin']
+response:
+  headers:
+    Content-Type: "text/html; charset=utf-8"
+  body: |
+    <!DOCTYPE html>
+    <html class="writer-html5" lang="en">
+    <head>
+    <meta charset="utf-8" />
+    <title>phpMyAdmin 5.2.1 documentation</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    </head>
+    <body class="wy-body-for-nav">
+    <div class="wy-grid-for-nav">
+    <nav class="wy-nav-side"><div class="wy-side-scroll"><div class="wy-side-nav-search">
+    <a href="#" class="icon icon-home">phpMyAdmin</a>
+    <div class="version">5.2.1</div>
+    </div></div></nav>
+    <section class="wy-nav-content-wrap"><div class="wy-nav-content"><div class="rst-content">
+    <h1>phpMyAdmin 5.2.1 documentation</h1>
+    <p>phpMyAdmin is a free software tool written in PHP, intended to handle the administration
+    of MySQL and MariaDB over the web.</p>
+    <div class="toctree-wrapper compound">
+    <ul>
+    <li class="toctree-l1"><a class="reference internal" href="intro.html">Introduction</a></li>
+    <li class="toctree-l1"><a class="reference internal" href="require.html">Requirements</a></li>
+    <li class="toctree-l1"><a class="reference internal" href="setup.html">Installation</a></li>
+    <li class="toctree-l1"><a class="reference internal" href="config.html">Configuration</a></li>
+    <li class="toctree-l1"><a class="reference internal" href="user.html">User Guide</a></li>
+    </ul>
+    </div>
+    </div></div></section>
+    </div>
+    </body>
+    </html>
+taunt: { mode: block, open: '<!--', close: '-->' }
+expect:
+  - 'phpMyAdmin 5.2.1 documentation'

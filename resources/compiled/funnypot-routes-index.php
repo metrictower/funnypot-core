@@ -417,6 +417,100 @@ return array (
       ),
       'name' => 'Exposed REST API index (/api/v2)',
     ),
+    'route-phpmyadmin-changelog' => 
+    array (
+      'sev' => 'info',
+      'tags' => 
+      array (
+        0 => 'phpmyadmin',
+        1 => 'version',
+        2 => 'disclosure',
+      ),
+      'name' => 'phpMyAdmin ChangeLog (version disclosure)',
+    ),
+    'route-phpmyadmin-readme' => 
+    array (
+      'sev' => 'info',
+      'tags' => 
+      array (
+        0 => 'phpmyadmin',
+        1 => 'version',
+        2 => 'disclosure',
+      ),
+      'name' => 'phpMyAdmin README (version disclosure)',
+    ),
+    'route-phpmyadmin-doc' => 
+    array (
+      'sev' => 'info',
+      'tags' => 
+      array (
+        0 => 'phpmyadmin',
+        1 => 'version',
+        2 => 'disclosure',
+      ),
+      'name' => 'phpMyAdmin documentation (version disclosure)',
+    ),
+    'route-grafana-health' => 
+    array (
+      'sev' => 'info',
+      'tags' => 
+      array (
+        0 => 'grafana',
+        1 => 'health',
+        2 => 'version',
+        3 => 'disclosure',
+      ),
+      'name' => 'Grafana health (version disclosure)',
+    ),
+    'route-grafana-login' => 
+    array (
+      'sev' => 'info',
+      'tags' => 
+      array (
+        0 => 'grafana',
+        1 => 'panel',
+        2 => 'login',
+        3 => 'exposure',
+      ),
+      'name' => 'Grafana login',
+    ),
+    'route-jenkins-apijson' => 
+    array (
+      'sev' => 'info',
+      'tags' => 
+      array (
+        0 => 'jenkins',
+        1 => 'api',
+        2 => 'version',
+        3 => 'disclosure',
+      ),
+      'name' => 'Jenkins API root (version disclosure)',
+    ),
+    'route-pgadmin-login' => 
+    array (
+      'sev' => 'info',
+      'tags' => 
+      array (
+        0 => 'pgadmin',
+        1 => 'panel',
+        2 => 'login',
+        3 => 'exposure',
+      ),
+      'name' => 'pgAdmin 4 login',
+    ),
+    'route-cpanel-login' => 
+    array (
+      'sev' => 'low',
+      'tags' => 
+      array (
+        0 => 'cpanel',
+        1 => 'whm',
+        2 => 'panel',
+        3 => 'login',
+        4 => 'exposure',
+      ),
+      'name' => 'cPanel / WHM login',
+    ),
   ),
   'routes' => 
   array (
@@ -1896,6 +1990,240 @@ return array (
         't' => 
         array (
           0 => 'route-api-v2',
+        ),
+      ),
+    ),
+    'GET /phpmyadmin/ChangeLog' => 
+    array (
+      0 => 
+      array (
+        's' => 200,
+        'bw' => 
+        array (
+          0 => 'phpMyAdmin',
+          1 => 'ChangeLog',
+        ),
+        'nf' => 
+        array (
+        ),
+        'pid' => 'route-phpmyadmin-changelog',
+        'sev' => 'info',
+        'sig' => 0,
+        't' => 
+        array (
+          0 => 'route-phpmyadmin-changelog',
+        ),
+      ),
+    ),
+    'GET /phpmyadmin/README' => 
+    array (
+      0 => 
+      array (
+        's' => 200,
+        'bw' => 
+        array (
+          0 => 'phpMyAdmin',
+        ),
+        'nf' => 
+        array (
+        ),
+        'pid' => 'route-phpmyadmin-readme',
+        'sev' => 'info',
+        'sig' => 0,
+        't' => 
+        array (
+          0 => 'route-phpmyadmin-readme',
+        ),
+      ),
+    ),
+    'GET /phpmyadmin/doc/html/index.html' => 
+    array (
+      0 => 
+      array (
+        's' => 200,
+        'bw' => 
+        array (
+          0 => 'phpMyAdmin',
+        ),
+        'nf' => 
+        array (
+        ),
+        'pid' => 'route-phpmyadmin-doc',
+        'sev' => 'info',
+        'sig' => 0,
+        't' => 
+        array (
+          0 => 'route-phpmyadmin-doc',
+        ),
+      ),
+    ),
+    'GET /api/health' => 
+    array (
+      0 => 
+      array (
+        's' => 200,
+        'bw' => 
+        array (
+          0 => 'commit',
+          1 => 'version',
+        ),
+        'nf' => 
+        array (
+        ),
+        'pid' => 'route-grafana-health',
+        'sev' => 'info',
+        'sig' => 0,
+        't' => 
+        array (
+          0 => 'route-grafana-health',
+        ),
+      ),
+    ),
+    'GET /grafana/' => 
+    array (
+      0 => 
+      array (
+        's' => 200,
+        'bw' => 
+        array (
+          0 => 'Grafana',
+        ),
+        'nf' => 
+        array (
+        ),
+        'pid' => 'route-grafana-login',
+        'sev' => 'info',
+        'sig' => 0,
+        't' => 
+        array (
+          0 => 'route-grafana-login',
+        ),
+      ),
+    ),
+    'GET /grafana/login' => 
+    array (
+      0 => 
+      array (
+        's' => 200,
+        'bw' => 
+        array (
+          0 => 'Grafana',
+        ),
+        'nf' => 
+        array (
+        ),
+        'pid' => 'route-grafana-login',
+        'sev' => 'info',
+        'sig' => 0,
+        't' => 
+        array (
+          0 => 'route-grafana-login',
+        ),
+      ),
+    ),
+    'GET /api/json' => 
+    array (
+      0 => 
+      array (
+        's' => 200,
+        'bw' => 
+        array (
+          0 => 'jobs',
+          1 => 'mode',
+        ),
+        'nf' => 
+        array (
+        ),
+        'pid' => 'route-jenkins-apijson',
+        'sev' => 'info',
+        'sig' => 0,
+        't' => 
+        array (
+          0 => 'route-jenkins-apijson',
+        ),
+      ),
+    ),
+    'GET /pgadmin4/' => 
+    array (
+      0 => 
+      array (
+        's' => 200,
+        'bw' => 
+        array (
+          0 => 'pgAdmin',
+        ),
+        'nf' => 
+        array (
+        ),
+        'pid' => 'route-pgadmin-login',
+        'sev' => 'info',
+        'sig' => 0,
+        't' => 
+        array (
+          0 => 'route-pgadmin-login',
+        ),
+      ),
+    ),
+    'GET /pgadmin4/login' => 
+    array (
+      0 => 
+      array (
+        's' => 200,
+        'bw' => 
+        array (
+          0 => 'pgAdmin',
+        ),
+        'nf' => 
+        array (
+        ),
+        'pid' => 'route-pgadmin-login',
+        'sev' => 'info',
+        'sig' => 0,
+        't' => 
+        array (
+          0 => 'route-pgadmin-login',
+        ),
+      ),
+    ),
+    'GET /cpanel' => 
+    array (
+      0 => 
+      array (
+        's' => 200,
+        'bw' => 
+        array (
+          0 => 'cPanel',
+        ),
+        'nf' => 
+        array (
+        ),
+        'pid' => 'route-cpanel-login',
+        'sev' => 'low',
+        'sig' => 0,
+        't' => 
+        array (
+          0 => 'route-cpanel-login',
+        ),
+      ),
+    ),
+    'GET /whm' => 
+    array (
+      0 => 
+      array (
+        's' => 200,
+        'bw' => 
+        array (
+          0 => 'cPanel',
+        ),
+        'nf' => 
+        array (
+        ),
+        'pid' => 'route-cpanel-login',
+        'sev' => 'low',
+        'sig' => 0,
+        't' => 
+        array (
+          0 => 'route-cpanel-login',
         ),
       ),
     ),
