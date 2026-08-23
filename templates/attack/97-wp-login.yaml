@@ -1,0 +1,78 @@
+id: attack-wp-login
+severity: high
+# Priority 39, NOT the 97 the filename suggests: rule 41 (attack-cmdi-unix) matches ANY request
+# surface carrying `&pwd` — a shell-metacharacter '&' immediately before the unix `pwd` command —
+# and the real WordPress login field name IS `pwd`, so `log=x&pwd=y` collides with that heuristic
+# and would shadow this rule at any priority >= 41. 39 is the next free slot below it (see how
+# 26-wp-xmlrpc.yaml documents the same kind of priority pick).
+priority: 39
+tags: [attack, wordpress, login, credential-oracle]
+owns_path: [/wp-login.php]
+# Request-aware WordPress wp-login.php credential ORACLE. Route 50 keys the bare /wp-login.php as a
+# static GET page (open-registration persona); this rule claims the same path via owns_path so a
+# POST reaches the attack tier ahead of the static stub — a GET still misses the POST condition below
+# and falls through unchanged to route 50's page (classify() re-serves the static bundle on decline).
+# ZERO EXECUTION: the ONLY body read is the bounded `log` field, captured purely to gate the match —
+# it is NEVER reflected. The error always names the FIXED persona username `admin`, never the
+# submitted one, so a crafted username can never surface in the response. There is NO success path:
+# real WordPress answers bad credentials by re-serving the login page (HTTP 200, not a redirect) with
+# the login_error notice — no wordpress_logged_in_*/wordpress_sec_* cookie is ever set here, only the
+# inert wordpress_test_cookie a real server also sets pre-auth. Gated to POST: any other verb misses
+# this rule (no owns_path match) → the static route above. Chrome/site-name/domain mirror route 50
+# (blog.{{persona.company.domain}}, no WP version disclosed) so the two responses stay one coherent host.
+match:
+  - in: path
+    regex: '(?:^|/)wp-login\.php$'
+    ci: false
+  - in: method
+    regex: '^POST$'
+    ci: false
+  - in: body
+    regex: '(?:^|&)log=([^&]{0,64})'   # capture-gate only, never reflected
+    capture: true
+    ci: false
+status: 200
+response:
+  headers:
+    Content-Type: "text/html; charset=UTF-8"
+    Expires: "Wed, 11 Jan 1984 05:00:00 GMT"
+    Cache-Control: "no-cache, must-revalidate, max-age=0"
+    Set-Cookie: "wordpress_test_cookie=WP+Cookie+check; path=/; HttpOnly"
+  body: |
+    <!DOCTYPE html>
+    <html lang="en-US">
+    <head>
+    <meta charset="UTF-8" />
+    <title>Log In &lsaquo; {{pick:Example Site,Acme Blog,Company News,The Portal}} &#8212; WordPress</title>
+    <link rel='stylesheet' href='https://blog.{{persona.company.domain}}/wp-includes/css/dist/block-library/style.min.css' />
+    </head>
+    <body class="login no-js login-action-login wp-core-ui">
+    <div id="login">
+    <h1><a href="https://blog.{{persona.company.domain}}/">{{pick:Example Site,Acme Blog,Company News,The Portal}}</a></h1>
+    <p class="message register">Register For This Site</p>
+    <div id="login_error" class="notice notice-error"><p><strong>Error:</strong> The password you entered for the username <strong>admin</strong> is incorrect. <a href="https://blog.{{persona.company.domain}}/wp-login.php?action=lostpassword">Lost your password?</a></p></div>
+    <form name="loginform" id="loginform" action="https://blog.{{persona.company.domain}}/wp-login.php" method="post">
+    <p><label for="user_login">Username or Email Address<br />
+    <input type="text" name="log" id="user_login" class="input" value="" size="20" autocapitalize="off" /></label></p>
+    <div class="user-pass-wrap">
+    <label for="user_pass">Password<br />
+    <div class="wp-pwd">
+    <input type="password" name="pwd" id="user_pass" class="input password-input" value="" size="20" autocomplete="current-password" />
+    </div>
+    </label>
+    </div>
+    <p class="forgetmenot"><input name="rememberme" type="checkbox" id="rememberme" value="forever" /> <label for="rememberme">Remember Me</label></p>
+    <p class="submit">
+    <input type="submit" name="wp-submit" id="wp-submit" class="button button-primary button-large" value="Log In" />
+    <input type="hidden" name="redirect_to" value="https://blog.{{persona.company.domain}}/wp-admin/" />
+    <input type="hidden" name="testcookie" value="1" />
+    </p>
+    </form>
+    <p id="nav">
+    <a href="https://blog.{{persona.company.domain}}/wp-login.php?action=register">Register</a> |
+    <a href="https://blog.{{persona.company.domain}}/wp-login.php?action=lostpassword">Lost your password?</a>
+    </p>
+    </div>
+    </body>
+    </html>
+expect: ['login_error', 'wp-login.php']

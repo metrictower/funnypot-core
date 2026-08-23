@@ -219,11 +219,11 @@ final class WebminSessionLoginTest extends TestCase
 
     public function test_classify_store_shadowed_login_is_not_attack_class(): void
     {
-        // Store-shadow guard: POST /wp-login.php is an exact-store key answered before the attack tier
-        // is ever reached, so it is NOT an ATTACK_CLASS verdict — the deferred Phase-2 gap the pack
-        // documents (a bare store-keyed login POST needs the unbuilt precedence mechanism).
+        // Store-shadow guard: POST /admin/login is an exact-store key that no rule owns via
+        // owns_path, so it is answered before the attack tier is ever reached — NOT an ATTACK_CLASS
+        // verdict (wp-login.php no longer qualifies as of WP-Phase-2b: it is now owns_path-claimed).
         $verdict = $this->fullEngine()->classify(
-            new RequestContext('POST', '/wp-login.php', '', [], 'log=admin&pwd=x'),
+            new RequestContext('POST', '/admin/login', '', [], 'log=admin&pwd=x'),
             SiteProfile::empty()
         );
         self::assertNotSame(Verdict::ATTACK_CLASS, $verdict->classification);

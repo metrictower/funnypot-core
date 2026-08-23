@@ -1347,6 +1347,95 @@ return array (
   ),
   17 => 
   array (
+    'id' => 'attack-wp-login',
+    'severity' => 'high',
+    'tags' => 
+    array (
+      0 => 'attack',
+      1 => 'wordpress',
+      2 => 'login',
+      3 => 'credential-oracle',
+    ),
+    'status' => 200,
+    'match' => 
+    array (
+      0 => 
+      array (
+        'in' => 'path',
+        'regex' => '(?:^|/)wp-login\\.php$',
+        'ci' => false,
+      ),
+      1 => 
+      array (
+        'in' => 'method',
+        'regex' => '^POST$',
+        'ci' => false,
+      ),
+      2 => 
+      array (
+        'in' => 'body',
+        'regex' => '(?:^|&)log=([^&]{0,64})',
+        'ci' => false,
+        'capture' => true,
+      ),
+    ),
+    'response' => 
+    array (
+      'headers' => 
+      array (
+        'Content-Type' => 'text/html; charset=UTF-8',
+        'Expires' => 'Wed, 11 Jan 1984 05:00:00 GMT',
+        'Cache-Control' => 'no-cache, must-revalidate, max-age=0',
+        'Set-Cookie' => 'wordpress_test_cookie=WP+Cookie+check; path=/; HttpOnly',
+      ),
+      'body' => '<!DOCTYPE html>
+<html lang="en-US">
+<head>
+<meta charset="UTF-8" />
+<title>Log In &lsaquo; {{pick:Example Site,Acme Blog,Company News,The Portal}} &#8212; WordPress</title>
+<link rel=\'stylesheet\' href=\'https://blog.{{persona.company.domain}}/wp-includes/css/dist/block-library/style.min.css\' />
+</head>
+<body class="login no-js login-action-login wp-core-ui">
+<div id="login">
+<h1><a href="https://blog.{{persona.company.domain}}/">{{pick:Example Site,Acme Blog,Company News,The Portal}}</a></h1>
+<p class="message register">Register For This Site</p>
+<div id="login_error" class="notice notice-error"><p><strong>Error:</strong> The password you entered for the username <strong>admin</strong> is incorrect. <a href="https://blog.{{persona.company.domain}}/wp-login.php?action=lostpassword">Lost your password?</a></p></div>
+<form name="loginform" id="loginform" action="https://blog.{{persona.company.domain}}/wp-login.php" method="post">
+<p><label for="user_login">Username or Email Address<br />
+<input type="text" name="log" id="user_login" class="input" value="" size="20" autocapitalize="off" /></label></p>
+<div class="user-pass-wrap">
+<label for="user_pass">Password<br />
+<div class="wp-pwd">
+<input type="password" name="pwd" id="user_pass" class="input password-input" value="" size="20" autocomplete="current-password" />
+</div>
+</label>
+</div>
+<p class="forgetmenot"><input name="rememberme" type="checkbox" id="rememberme" value="forever" /> <label for="rememberme">Remember Me</label></p>
+<p class="submit">
+<input type="submit" name="wp-submit" id="wp-submit" class="button button-primary button-large" value="Log In" />
+<input type="hidden" name="redirect_to" value="https://blog.{{persona.company.domain}}/wp-admin/" />
+<input type="hidden" name="testcookie" value="1" />
+</p>
+</form>
+<p id="nav">
+<a href="https://blog.{{persona.company.domain}}/wp-login.php?action=register">Register</a> |
+<a href="https://blog.{{persona.company.domain}}/wp-login.php?action=lostpassword">Lost your password?</a>
+</p>
+</div>
+</body>
+</html>
+',
+    ),
+    'lit' => 'POST',
+    'lit_in' => 'method',
+    'lit_ci' => false,
+    'owns_path' => 
+    array (
+      0 => '/wp-login.php',
+    ),
+  ),
+  18 => 
+  array (
     'id' => 'attack-cmdi-windows',
     'severity' => 'critical',
     'tags' => 
@@ -1381,7 +1470,7 @@ Ethernet adapter Ethernet0:
 ',
     ),
   ),
-  18 => 
+  19 => 
   array (
     'id' => 'attack-cmdi-unix',
     'severity' => 'critical',
@@ -1409,7 +1498,7 @@ Ethernet adapter Ethernet0:
       'body' => '{{canned.uid}}',
     ),
   ),
-  19 => 
+  20 => 
   array (
     'id' => 'attack-ssti-twig',
     'severity' => 'high',
@@ -1438,7 +1527,7 @@ Ethernet adapter Ethernet0:
 ',
     ),
   ),
-  20 => 
+  21 => 
   array (
     'id' => 'attack-ssti-numeric',
     'severity' => 'high',
@@ -1466,7 +1555,7 @@ Ethernet adapter Ethernet0:
 ',
     ),
   ),
-  21 => 
+  22 => 
   array (
     'id' => 'attack-php-glastopf',
     'severity' => 'critical',
@@ -1498,7 +1587,7 @@ Ethernet adapter Ethernet0:
     'lit_in' => 'request',
     'lit_ci' => true,
   ),
-  22 => 
+  23 => 
   array (
     'id' => 'attack-sqli',
     'severity' => 'high',
@@ -1526,7 +1615,7 @@ Ethernet adapter Ethernet0:
 ',
     ),
   ),
-  23 => 
+  24 => 
   array (
     'id' => 'attack-open-redirect',
     'severity' => 'medium',
@@ -1555,7 +1644,7 @@ Ethernet adapter Ethernet0:
       'body' => '<html><head><title>302 Found</title></head><body>Redirecting...</body></html>',
     ),
   ),
-  24 => 
+  25 => 
   array (
     'id' => 'attack-xss',
     'severity' => 'medium',
@@ -1586,7 +1675,7 @@ Ethernet adapter Ethernet0:
 ',
     ),
   ),
-  25 => 
+  26 => 
   array (
     'id' => 'attack-thinkphp-rce',
     'severity' => 'critical',
@@ -1622,7 +1711,7 @@ Ethernet adapter Ethernet0:
 ',
     ),
   ),
-  26 => 
+  27 => 
   array (
     'id' => 'attack-owncloud-49103',
     'severity' => 'high',
@@ -1665,7 +1754,7 @@ Ethernet adapter Ethernet0:
     'lit_in' => 'path',
     'lit_ci' => true,
   ),
-  27 => 
+  28 => 
   array (
     'id' => 'attack-f5-1388',
     'severity' => 'critical',
@@ -1699,7 +1788,7 @@ Ethernet adapter Ethernet0:
     'lit_in' => 'path',
     'lit_ci' => true,
   ),
-  28 => 
+  29 => 
   array (
     'id' => 'attack-geoserver-36401',
     'severity' => 'critical',
@@ -1742,7 +1831,7 @@ Ethernet adapter Ethernet0:
     'lit_in' => 'path',
     'lit_ci' => true,
   ),
-  29 => 
+  30 => 
   array (
     'id' => 'attack-fortios-40684',
     'severity' => 'critical',
@@ -1781,7 +1870,7 @@ Ethernet adapter Ethernet0:
     'lit_in' => 'path',
     'lit_ci' => true,
   ),
-  30 => 
+  31 => 
   array (
     'id' => 'attack-ivanti-21887',
     'severity' => 'critical',
@@ -1816,7 +1905,7 @@ Ethernet adapter Ethernet0:
     'lit_in' => 'request',
     'lit_ci' => true,
   ),
-  31 => 
+  32 => 
   array (
     'id' => 'attack-citrix-bleed-4966',
     'severity' => 'critical',
@@ -1851,7 +1940,7 @@ Ethernet adapter Ethernet0:
     'lit_in' => 'path',
     'lit_ci' => true,
   ),
-  32 => 
+  33 => 
   array (
     'id' => 'attack-webshell-panel',
     'severity' => 'critical',
@@ -1886,7 +1975,7 @@ $ </pre>
 ',
     ),
   ),
-  33 => 
+  34 => 
   array (
     'id' => 'attack-spring-actuator',
     'severity' => 'high',
@@ -1919,7 +2008,7 @@ $ </pre>
     'lit_in' => 'path',
     'lit_ci' => true,
   ),
-  34 => 
+  35 => 
   array (
     'id' => 'attack-cloud-imds',
     'severity' => 'high',
@@ -1956,7 +2045,7 @@ $ </pre>
 ',
     ),
   ),
-  35 => 
+  36 => 
   array (
     'id' => 'attack-ignition-execute-solution',
     'severity' => 'high',
@@ -2045,7 +2134,7 @@ $ </pre>
       ),
     ),
   ),
-  36 => 
+  37 => 
   array (
     'id' => 'attack-webmin-session-login',
     'severity' => 'high',
@@ -2115,7 +2204,7 @@ $ </pre>
     'lit_in' => 'method',
     'lit_ci' => false,
   ),
-  37 => 
+  38 => 
   array (
     'id' => 'attack-jenkins-acegi-login',
     'severity' => 'high',
@@ -2163,7 +2252,7 @@ $ </pre>
     'lit_in' => 'method',
     'lit_ci' => false,
   ),
-  38 => 
+  39 => 
   array (
     'id' => 'attack-hnap-login',
     'severity' => 'high',
@@ -2248,7 +2337,7 @@ $ </pre>
       ),
     ),
   ),
-  39 => 
+  40 => 
   array (
     'id' => 'attack-crs-sqli',
     'severity' => 'high',
@@ -2278,7 +2367,7 @@ $ </pre>
 ',
     ),
   ),
-  40 => 
+  41 => 
   array (
     'id' => 'attack-crs-xss',
     'severity' => 'high',
@@ -2310,7 +2399,7 @@ $ </pre>
 ',
     ),
   ),
-  41 => 
+  42 => 
   array (
     'id' => 'attack-crs-lfi',
     'severity' => 'high',
@@ -2339,7 +2428,7 @@ $ </pre>
       'body' => '{{canned.passwd}}',
     ),
   ),
-  42 => 
+  43 => 
   array (
     'id' => 'attack-crs-rce',
     'severity' => 'critical',

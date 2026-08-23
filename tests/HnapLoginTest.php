@@ -301,10 +301,11 @@ final class HnapLoginTest extends TestCase
 
     public function test_classify_store_shadowed_login_is_not_attack_class(): void
     {
-        // Store-shadow guard: a store-keyed login POST is answered before the attack tier — NOT
-        // ATTACK_CLASS. Documents the deferred (store-shadowed) targets the pack cannot yet reach.
+        // Store-shadow guard: a store-keyed login POST that no rule owns via owns_path is answered
+        // before the attack tier — NOT ATTACK_CLASS. /admin/login is one such still-unclaimed target
+        // (wp-login.php no longer qualifies as of WP-Phase-2b: it is now owns_path-claimed).
         $verdict = $this->fullEngine()->classify(
-            new RequestContext('POST', '/wp-login.php', '', [], 'log=admin&pwd=x'),
+            new RequestContext('POST', '/admin/login', '', [], 'log=admin&pwd=x'),
             SiteProfile::empty()
         );
         self::assertNotSame(Verdict::ATTACK_CLASS, $verdict->classification);
