@@ -26,7 +26,25 @@ final class RouteEmulatorCompiler
      */
     public function compile(string $dir): array
     {
-        $files = glob(rtrim($dir, '/') . '/*.yaml') ?: [];
+        return $this->compileDirs([$dir]);
+    }
+
+    /**
+     * Compile several template dirs into one first-match-wins rule set. Order across dirs
+     * doesn't matter — `priority` (then `id`) is the real key — so hand-authored route
+     * templates and machine-generated ones (templates/generated) sort together correctly.
+     *
+     * @param string[] $dirs
+     * @return array<int,array<string,mixed>>
+     */
+    public function compileDirs(array $dirs): array
+    {
+        $files = [];
+        foreach ($dirs as $dir) {
+            foreach (glob(rtrim($dir, '/') . '/*.yaml') ?: [] as $file) {
+                $files[] = $file;
+            }
+        }
         sort($files);
 
         $rules = [];

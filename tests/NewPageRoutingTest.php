@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Funnypot\Tests;
 
+use Funnypot\Ai\ModelCatalog;
 use Funnypot\Compiler\Crs\FingerprintGuard;
 use Funnypot\Config;
 use Funnypot\Honeypot;
@@ -139,6 +140,7 @@ final class NewPageRoutingTest extends TestCase
             // /api/version is a static daemon banner; /api/tags + /api/ps are catalog-derived (compiled
             // by `funnypot compile-ai` into templates/generated/, one source of truth in ModelCatalog).
             'ollama version'          => ['/api/version', 200, '"version"', 'application/json; charset=utf-8'],
+            'ollama tags'             => ['/api/tags', 200, 'kimi-k3:2.8t', 'application/json; charset=utf-8'],
 
             // Config-file disclosure pack (M8). Each leaks persona-seeded secrets and MUST serve the
             // Content-Type its file/endpoint type implies (a mismatch is a honeypot tell).
@@ -748,6 +750,26 @@ final class NewPageRoutingTest extends TestCase
         self::assertSame(1, preg_match('/sk-ant-api03-[A-Za-z0-9_-]{93}AA/', $claude->body, $a));
         self::assertSame(1, preg_match('/sk-ant-api03-[A-Za-z0-9_-]{93}AA/', $continue->body, $b));
         self::assertSame($a[0], $b[0], 'same seed => identical Anthropic key across surfaces');
+    }
+
+    public function test_ollama_tags_is_catalog_derived(): void
+    {
+        // The Ollama /api/tags page is compiled by `funnypot compile-ai` straight from the shared
+        // ModelCatalog, so the served body must be byte-identical to json_encode($catalog->ollamaTags())
+        // — one source of truth, never a hand-duplicated list. That guarantees the first model name and
+        // the per-model quantization_level detail are present. /api/tags is also probed by a niche
+        // Ollama-unauth corpus detection, so the page carries a heavy persona weight; assert the
+        // catalog body serves across a wide seed sweep, not just the fixed seed.
+        $expected = (string) json_encode(ModelCatalog::fromPackage()->ollamaTags(), JSON_UNESCAPED_SLASHES);
+        for ($seed = 0; $seed <= 60; $seed++) {
+            $resp = $this->seededInverter((string) $seed, 'realistic')->respond(new RequestContext('GET', '/api/tags'));
+            self::assertNotNull($resp, "seed {$seed}: /api/tags must serve a fake");
+            self::assertSame(200, $resp->status, "seed {$seed}: /api/tags status");
+            self::assertSame('application/json; charset=utf-8', $resp->headers['Content-Type'] ?? null, "seed {$seed}: /api/tags Content-Type");
+            self::assertSame($expected, $resp->body, "seed {$seed}: /api/tags must serve the exact ModelCatalog->ollamaTags() body");
+            self::assertStringContainsString('kimi-k3:2.8t', $resp->body, "seed {$seed}: /api/tags must list the first catalog model");
+            self::assertStringContainsString('"quantization_level"', $resp->body, "seed {$seed}: /api/tags must carry the quantization_level detail");
+        }
     }
 
     public function test_basic_auth_emits_www_authenticate(): void

@@ -1571,6 +1571,22 @@ define(\'AWS_DEFAULT_REGION\', \'{{persona.cloud.aws.region}}\');
   ),
   42 => 
   array (
+    'id' => 'route-ai-ollama-tags',
+    'match' => 
+    array (
+      'pid' => 
+      array (
+        0 => 'route-ai-ollama-tags',
+      ),
+    ),
+    'body' => '{"models":[{"name":"kimi-k3:2.8t","model":"kimi-k3:2.8t","modified_at":"2026-08-01T00:00:00Z","size":1780000000000,"digest":"541dc907f944c34646137387c114442d842fff71b476dffe0db5e0f78931f8e2","details":{"parent_model":"","format":"gguf","family":"kimi","families":["kimi"],"parameter_size":"2.8T","quantization_level":"Q4_K_M"}},{"name":"qwen3:235b","model":"qwen3:235b","modified_at":"2026-08-01T00:00:00Z","size":142000000000,"digest":"52a4cdafc54280f1d691038ad56c70803af9573c7495db5209b8df71963d661d","details":{"parent_model":"","format":"gguf","family":"qwen3","families":["qwen3"],"parameter_size":"235B","quantization_level":"Q4_K_M"}},{"name":"glm-4.6:355b","model":"glm-4.6:355b","modified_at":"2026-08-01T00:00:00Z","size":227000000000,"digest":"3cb6d03b68f8d11c850e3a17fc5c93a3cfa25d075e14ee638ddcd14cb0e4955a","details":{"parent_model":"","format":"gguf","family":"glm4","families":["glm4"],"parameter_size":"355B","quantization_level":"Q4_K_M"}},{"name":"deepseek-v3.2:671b","model":"deepseek-v3.2:671b","modified_at":"2026-08-01T00:00:00Z","size":404000000000,"digest":"8e5d9d98484a2e2292879b0edf86029b9b3da08c10d980b123b35a077f5720eb","details":{"parent_model":"","format":"gguf","family":"deepseek2","families":["deepseek2"],"parameter_size":"671B","quantization_level":"Q4_K_M"}},{"name":"mistral-large:123b","model":"mistral-large:123b","modified_at":"2026-08-01T00:00:00Z","size":73000000000,"digest":"d9ab4500cf1bda01354e6171e05dd2f772839e87a35a63467488aa9ef1458c09","details":{"parent_model":"","format":"gguf","family":"mistral","families":["mistral"],"parameter_size":"123B","quantization_level":"Q4_K_M"}},{"name":"nemotron-3-super:120b","model":"nemotron-3-super:120b","modified_at":"2026-08-01T00:00:00Z","size":72000000000,"digest":"26f5f7d6af9d510c4c518a154ea57867e647d643f6d84c1dfbbc59c09bee94cf","details":{"parent_model":"","format":"gguf","family":"nemotron","families":["nemotron"],"parameter_size":"120B","quantization_level":"Q4_K_M"}},{"name":"gpt-oss:120b","model":"gpt-oss:120b","modified_at":"2026-08-01T00:00:00Z","size":65000000000,"digest":"48545ebe6944bfa74944583d79ba9c95efb2f764b9cf04ed40e9e7e9e97179f9","details":{"parent_model":"","format":"gguf","family":"gptoss","families":["gptoss"],"parameter_size":"120B","quantization_level":"MXFP4"}},{"name":"gemma3:27b","model":"gemma3:27b","modified_at":"2026-08-01T00:00:00Z","size":17000000000,"digest":"3599665e02e3136eaf4bd9eccf6637c08490bbc1239292d70a3261bb21c5056a","details":{"parent_model":"","format":"gguf","family":"gemma3","families":["gemma3"],"parameter_size":"27B","quantization_level":"Q4_K_M"}},{"name":"big-pickle:1.5t","model":"big-pickle:1.5t","modified_at":"2026-08-01T00:00:00Z","size":1520000000000,"digest":"b1c47f0a2e8d3c6b5a04f19e72d8c3b6a0f5e2d7c4b1a8f36e0d5c2b7a4f18e63","details":{"parent_model":"","format":"gguf","family":"pickle","families":["pickle"],"parameter_size":"1.5T","quantization_level":"Q4_K_M"}}]}',
+    'headers' => 
+    array (
+      'Content-Type' => 'application/json; charset=utf-8',
+    ),
+  ),
+  43 => 
+  array (
     'id' => 'route-envfile-prod',
     'match' => 
     array (
@@ -1607,7 +1623,7 @@ JWT_SECRET={{persona.secret.jwt}}
       'open' => '#',
     ),
   ),
-  43 => 
+  44 => 
   array (
     'id' => 'route-secrets-json',
     'match' => 
@@ -1644,7 +1660,7 @@ JWT_SECRET={{persona.secret.jwt}}
       'key' => '_comment',
     ),
   ),
-  44 => 
+  45 => 
   array (
     'id' => 'route-docker-compose',
     'match' => 
@@ -1697,7 +1713,7 @@ services:
       'open' => '#',
     ),
   ),
-  45 => 
+  46 => 
   array (
     'id' => 'route-application-properties',
     'match' => 
@@ -1729,7 +1745,7 @@ cloud.aws.region.static={{persona.cloud.aws.region}}
       'open' => '#',
     ),
   ),
-  46 => 
+  47 => 
   array (
     'id' => 'route-application-yml',
     'match' => 
@@ -1767,7 +1783,7 @@ cloud:
       'open' => '#',
     ),
   ),
-  47 => 
+  48 => 
   array (
     'id' => 'route-settings-json',
     'match' => 
@@ -1805,7 +1821,7 @@ cloud:
       'key' => '_comment',
     ),
   ),
-  48 => 
+  49 => 
   array (
     'id' => 'route-web-config',
     'match' => 
@@ -1849,7 +1865,7 @@ cloud:
       'close' => '-->',
     ),
   ),
-  49 => 
+  50 => 
   array (
     'id' => 'route-config-js-firebase',
     'match' => 
@@ -1881,7 +1897,7 @@ firebase.initializeApp(firebaseConfig);
       'open' => '//',
     ),
   ),
-  50 => 
+  51 => 
   array (
     'id' => 'route-envfile-local',
     'match' => 
@@ -1919,7 +1935,7 @@ JWT_SECRET={{persona.secret.jwt}}
       'open' => '#',
     ),
   ),
-  51 => 
+  52 => 
   array (
     'id' => 'route-react-runtime-env',
     'match' => 
@@ -1948,7 +1964,7 @@ REACT_APP_GA_MEASUREMENT_ID=G-{{fake.reactga:hexupper:10}}
       'open' => '#',
     ),
   ),
-  52 => 
+  53 => 
   array (
     'id' => 'route-iceflow-vpn-log',
     'match' => 
@@ -1976,7 +1992,7 @@ ICEFLOW VPN: [10/Oct/2024:13:55:52 +0000] gw=vpn-gw01 event=session-end user={{p
       'open' => '#',
     ),
   ),
-  53 => 
+  54 => 
   array (
     'id' => 'route-laravel-log-file',
     'match' => 
@@ -2006,7 +2022,7 @@ ICEFLOW VPN: [10/Oct/2024:13:55:52 +0000] gw=vpn-gw01 event=session-end user={{p
       'open' => '#',
     ),
   ),
-  54 => 
+  55 => 
   array (
     'id' => 'route-firebase-debug-log',
     'match' => 
@@ -2039,7 +2055,7 @@ ICEFLOW VPN: [10/Oct/2024:13:55:52 +0000] gw=vpn-gw01 event=session-end user={{p
       'open' => '#',
     ),
   ),
-  55 => 
+  56 => 
   array (
     'id' => 'route-magento-debug-log',
     'match' => 
@@ -2065,7 +2081,7 @@ ICEFLOW VPN: [10/Oct/2024:13:55:52 +0000] gw=vpn-gw01 event=session-end user={{p
       'open' => '#',
     ),
   ),
-  56 => 
+  57 => 
   array (
     'id' => 'route-rails-development-log',
     'match' => 
@@ -2094,7 +2110,7 @@ Completed 200 OK in 45ms (Views: 38.2ms | ActiveRecord: 3.1ms | Allocations: 421
       'open' => '#',
     ),
   ),
-  57 => 
+  58 => 
   array (
     'id' => 'route-rails-production-log',
     'match' => 
@@ -2125,7 +2141,7 @@ Completed 401 Unauthorized in 18ms (ActiveRecord: 2.4ms | Allocations: 3187)
       'open' => '#',
     ),
   ),
-  58 => 
+  59 => 
   array (
     'id' => 'route-access-log',
     'match' => 
@@ -2156,7 +2172,7 @@ Completed 401 Unauthorized in 18ms (ActiveRecord: 2.4ms | Allocations: 3187)
       'open' => '#',
     ),
   ),
-  59 => 
+  60 => 
   array (
     'id' => 'route-wp-debug-log',
     'match' => 
@@ -2181,7 +2197,7 @@ Completed 401 Unauthorized in 18ms (ActiveRecord: 2.4ms | Allocations: 3187)
       'open' => '#',
     ),
   ),
-  60 => 
+  61 => 
   array (
     'id' => 'route-php-error-log',
     'match' => 
@@ -2210,7 +2226,7 @@ Stack trace:
       'open' => '#',
     ),
   ),
-  61 => 
+  62 => 
   array (
     'id' => 'route-laravel-log-alt',
     'match' => 
@@ -2238,7 +2254,7 @@ Stack trace:
       'open' => '#',
     ),
   ),
-  62 => 
+  63 => 
   array (
     'id' => 'route-nginx-error-log',
     'match' => 
@@ -2263,7 +2279,7 @@ Stack trace:
       'open' => '#',
     ),
   ),
-  63 => 
+  64 => 
   array (
     'id' => 'route-nginx-access-log',
     'match' => 
@@ -2290,7 +2306,7 @@ Stack trace:
       'open' => '#',
     ),
   ),
-  64 => 
+  65 => 
   array (
     'id' => 'route-apache-error-log',
     'match' => 
@@ -2315,7 +2331,7 @@ Stack trace:
       'open' => '#',
     ),
   ),
-  65 => 
+  66 => 
   array (
     'id' => 'route-apache-access-log',
     'match' => 
@@ -2341,7 +2357,7 @@ Stack trace:
       'open' => '#',
     ),
   ),
-  66 => 
+  67 => 
   array (
     'id' => 'route-app-log',
     'match' => 
@@ -2367,7 +2383,7 @@ Stack trace:
       'open' => '#',
     ),
   ),
-  67 => 
+  68 => 
   array (
     'id' => 'route-catalina-out',
     'match' => 
@@ -2397,7 +2413,7 @@ Stack trace:
       'open' => '#',
     ),
   ),
-  68 => 
+  69 => 
   array (
     'id' => 'route-ignition-health-check',
     'match' => 
@@ -2421,7 +2437,7 @@ Stack trace:
       'key' => '_comment',
     ),
   ),
-  69 => 
+  70 => 
   array (
     'id' => 'route-ignition-logs',
     'match' => 
@@ -2441,7 +2457,7 @@ Stack trace:
       'Content-Type' => 'application/json',
     ),
   ),
-  70 => 
+  71 => 
   array (
     'id' => 'route-symfony-profiler',
     'match' => 
@@ -2493,7 +2509,7 @@ Stack trace:
       'close' => '-->',
     ),
   ),
-  71 => 
+  72 => 
   array (
     'id' => 'route-werkzeug-console',
     'match' => 
@@ -2528,7 +2544,7 @@ Stack trace:
       'close' => '-->',
     ),
   ),
-  72 => 
+  73 => 
   array (
     'id' => 'route-telescope',
     'match' => 
@@ -2571,7 +2587,7 @@ Stack trace:
       'close' => '-->',
     ),
   ),
-  73 => 
+  74 => 
   array (
     'id' => 'route-actuator-env',
     'match' => 
@@ -2614,7 +2630,7 @@ Stack trace:
       'key' => '_comment',
     ),
   ),
-  74 => 
+  75 => 
   array (
     'id' => 'route-actuator-health',
     'match' => 
@@ -2649,7 +2665,7 @@ Stack trace:
       'key' => '_comment',
     ),
   ),
-  75 => 
+  76 => 
   array (
     'id' => 'route-actuator-mappings',
     'match' => 
@@ -2693,7 +2709,7 @@ Stack trace:
       'key' => '_comment',
     ),
   ),
-  76 => 
+  77 => 
   array (
     'id' => 'route-actuator-info',
     'match' => 
@@ -2725,7 +2741,7 @@ Stack trace:
       'key' => '_comment',
     ),
   ),
-  77 => 
+  78 => 
   array (
     'id' => 'route-actuator-beans',
     'match' => 
@@ -2768,7 +2784,7 @@ Stack trace:
       'key' => '_comment',
     ),
   ),
-  78 => 
+  79 => 
   array (
     'id' => 'route-actuator-loggers',
     'match' => 
@@ -2797,7 +2813,7 @@ Stack trace:
       'key' => '_comment',
     ),
   ),
-  79 => 
+  80 => 
   array (
     'id' => 'route-actuator-threaddump',
     'match' => 
@@ -2841,7 +2857,7 @@ Stack trace:
       'key' => '_comment',
     ),
   ),
-  80 => 
+  81 => 
   array (
     'id' => 'route-actuator-configprops',
     'match' => 
@@ -2882,7 +2898,7 @@ Stack trace:
       'key' => '_comment',
     ),
   ),
-  81 => 
+  82 => 
   array (
     'id' => 'route-openapi-json',
     'match' => 
@@ -2945,7 +2961,7 @@ Stack trace:
       'key' => '_comment',
     ),
   ),
-  82 => 
+  83 => 
   array (
     'id' => 'route-openapi-json-swaggerui',
     'match' => 
@@ -2986,7 +3002,7 @@ Stack trace:
       'close' => '-->',
     ),
   ),
-  83 => 
+  84 => 
   array (
     'id' => 'route-openapi-redoc',
     'match' => 
@@ -3023,7 +3039,7 @@ Stack trace:
       'close' => '-->',
     ),
   ),
-  84 => 
+  85 => 
   array (
     'id' => 'route-security-txt',
     'match' => 
@@ -3051,7 +3067,7 @@ Policy: https://{{persona.company.domain}}/security-policy
       'open' => '#',
     ),
   ),
-  85 => 
+  86 => 
   array (
     'id' => 'route-ai-plugin',
     'match' => 
@@ -3084,7 +3100,7 @@ Policy: https://{{persona.company.domain}}/security-policy
       'key' => '_comment',
     ),
   ),
-  86 => 
+  87 => 
   array (
     'id' => 'route-graphql-introspection',
     'match' => 
@@ -3136,7 +3152,7 @@ Policy: https://{{persona.company.domain}}/security-policy
       'key' => '_comment',
     ),
   ),
-  87 => 
+  88 => 
   array (
     'id' => 'route-swagger-json-doc',
     'match' => 
@@ -3199,7 +3215,7 @@ Policy: https://{{persona.company.domain}}/security-policy
       'key' => '_comment',
     ),
   ),
-  88 => 
+  89 => 
   array (
     'id' => 'route-swagger2-apidocs',
     'match' => 
@@ -3241,7 +3257,7 @@ Policy: https://{{persona.company.domain}}/security-policy
       'key' => '_comment',
     ),
   ),
-  89 => 
+  90 => 
   array (
     'id' => 'route-swagger-yaml-doc',
     'match' => 
@@ -3299,7 +3315,7 @@ components:
       'open' => '#',
     ),
   ),
-  90 => 
+  91 => 
   array (
     'id' => 'route-swagger-ui-html',
     'match' => 
@@ -3343,7 +3359,7 @@ components:
       'close' => '-->',
     ),
   ),
-  91 => 
+  92 => 
   array (
     'id' => 'route-wp-json',
     'match' => 
@@ -3388,7 +3404,7 @@ components:
       'key' => '_comment',
     ),
   ),
-  92 => 
+  93 => 
   array (
     'id' => 'route-api-v2',
     'match' => 
@@ -3421,7 +3437,7 @@ components:
       'key' => '_comment',
     ),
   ),
-  93 => 
+  94 => 
   array (
     'id' => 'route-hikvision-deviceinfo',
     'match' => 
@@ -3466,7 +3482,7 @@ components:
       'close' => '-->',
     ),
   ),
-  94 => 
+  95 => 
   array (
     'id' => 'route-hikvision-users',
     'match' => 
@@ -3510,7 +3526,7 @@ components:
       'close' => '-->',
     ),
   ),
-  95 => 
+  96 => 
   array (
     'id' => 'route-netgear-currentsetting',
     'match' => 
@@ -3542,7 +3558,7 @@ DeviceMode=0
       'open' => '#',
     ),
   ),
-  96 => 
+  97 => 
   array (
     'id' => 'route-synology-dsm',
     'match' => 
@@ -3589,7 +3605,7 @@ DeviceMode=0
       'key' => '_comment',
     ),
   ),
-  97 => 
+  98 => 
   array (
     'id' => 'route-avtech-machine',
     'match' => 
@@ -3619,7 +3635,7 @@ HTTP.Port=80
       'open' => '#',
     ),
   ),
-  98 => 
+  99 => 
   array (
     'id' => 'route-tbk-dvr-devicersp',
     'match' => 
@@ -3663,7 +3679,7 @@ HTTP.Port=80
       'key' => '_comment',
     ),
   ),
-  99 => 
+  100 => 
   array (
     'id' => 'route-huawei-deviceinfo',
     'match' => 
@@ -3696,7 +3712,7 @@ HTTP.Port=80
       'close' => '-->',
     ),
   ),
-  100 => 
+  101 => 
   array (
     'id' => 'route-dlink-info-cgi',
     'match' => 
@@ -3724,7 +3740,7 @@ Temperature=41
       'open' => '#',
     ),
   ),
-  101 => 
+  102 => 
   array (
     'id' => 'route-dahua-sha1account',
     'match' => 
@@ -3758,7 +3774,7 @@ table.Account1.Sharable=true
       'open' => '#',
     ),
   ),
-  102 => 
+  103 => 
   array (
     'id' => 'route-apollo-device-config',
     'match' => 
@@ -3789,7 +3805,7 @@ table.Account1.Sharable=true
       'key' => '_comment',
     ),
   ),
-  103 => 
+  104 => 
   array (
     'id' => 'route-dahua-passwd',
     'match' => 
@@ -3816,7 +3832,7 @@ table.Account1.Sharable=true
       'open' => '#',
     ),
   ),
-  104 => 
+  105 => 
   array (
     'id' => 'route-qnap-qts',
     'match' => 
@@ -3857,7 +3873,7 @@ table.Account1.Sharable=true
       'close' => '-->',
     ),
   ),
-  105 => 
+  106 => 
   array (
     'id' => 'route-hp-device-info',
     'match' => 
@@ -3894,7 +3910,7 @@ table.Account1.Sharable=true
       'close' => '-->',
     ),
   ),
-  106 => 
+  107 => 
   array (
     'id' => 'route-openwrt-luci',
     'match' => 
@@ -3940,7 +3956,7 @@ table.Account1.Sharable=true
       'close' => '-->',
     ),
   ),
-  107 => 
+  108 => 
   array (
     'id' => 'route-dlink-getcfg',
     'match' => 
@@ -3982,7 +3998,7 @@ table.Account1.Sharable=true
       'close' => '-->',
     ),
   ),
-  108 => 
+  109 => 
   array (
     'id' => 'route-wavlink-exportsettings',
     'match' => 
@@ -4012,7 +4028,7 @@ RemoteManage=0
       'open' => '#',
     ),
   ),
-  109 => 
+  110 => 
   array (
     'id' => 'route-epson-prtinfo',
     'match' => 
@@ -4048,7 +4064,7 @@ RemoteManage=0
       'close' => '-->',
     ),
   ),
-  110 => 
+  111 => 
   array (
     'id' => 'route-hp-color-laserjet',
     'match' => 
@@ -4084,7 +4100,7 @@ RemoteManage=0
       'close' => '-->',
     ),
   ),
-  111 => 
+  112 => 
   array (
     'id' => 'route-webmin',
     'match' => 
@@ -4129,7 +4145,7 @@ RemoteManage=0
       'close' => '-->',
     ),
   ),
-  112 => 
+  113 => 
   array (
     'id' => 'route-phppgadmin',
     'match' => 
@@ -4166,7 +4182,7 @@ RemoteManage=0
       'close' => '-->',
     ),
   ),
-  113 => 
+  114 => 
   array (
     'id' => 'route-kibana',
     'match' => 
@@ -4209,7 +4225,7 @@ RemoteManage=0
       'close' => '-->',
     ),
   ),
-  114 => 
+  115 => 
   array (
     'id' => 'route-jenkins',
     'match' => 
@@ -4261,7 +4277,7 @@ RemoteManage=0
       'close' => '-->',
     ),
   ),
-  115 => 
+  116 => 
   array (
     'id' => 'route-grafana-settings',
     'match' => 
@@ -4298,7 +4314,7 @@ RemoteManage=0
       'key' => '_comment',
     ),
   ),
-  116 => 
+  117 => 
   array (
     'id' => 'route-phpmyadmin-changelog',
     'match' => 
@@ -4342,7 +4358,7 @@ For older entries see https://www.phpmyadmin.net/old-stable/
       'open' => '#',
     ),
   ),
-  117 => 
+  118 => 
   array (
     'id' => 'route-phpmyadmin-readme',
     'match' => 
@@ -4390,7 +4406,7 @@ See the LICENSE file for a copy of the license.
       'open' => '#',
     ),
   ),
-  118 => 
+  119 => 
   array (
     'id' => 'route-phpmyadmin-doc',
     'match' => 
@@ -4445,7 +4461,7 @@ of MySQL and MariaDB over the web.</p>
       'close' => '-->',
     ),
   ),
-  119 => 
+  120 => 
   array (
     'id' => 'route-grafana-health',
     'match' => 
@@ -4471,7 +4487,7 @@ of MySQL and MariaDB over the web.</p>
       'key' => '_comment',
     ),
   ),
-  120 => 
+  121 => 
   array (
     'id' => 'route-grafana-login',
     'match' => 
@@ -4521,7 +4537,7 @@ window.grafanaBootData = {
     ),
     'set_cookie' => 'grafana_session',
   ),
-  121 => 
+  122 => 
   array (
     'id' => 'route-jenkins-apijson',
     'match' => 
@@ -4568,7 +4584,7 @@ window.grafanaBootData = {
       'key' => '_comment',
     ),
   ),
-  122 => 
+  123 => 
   array (
     'id' => 'route-pgadmin-login',
     'match' => 
@@ -4623,7 +4639,7 @@ window.grafanaBootData = {
     ),
     'set_cookie' => 'pga4_session',
   ),
-  123 => 
+  124 => 
   array (
     'id' => 'route-cpanel-login',
     'match' => 
@@ -4674,7 +4690,7 @@ window.grafanaBootData = {
       'close' => '-->',
     ),
   ),
-  124 => 
+  125 => 
   array (
     'id' => 'route-whm-login',
     'match' => 
@@ -4725,7 +4741,7 @@ window.grafanaBootData = {
       'close' => '-->',
     ),
   ),
-  125 => 
+  126 => 
   array (
     'id' => 'route-phppgadmin-intro',
     'match' => 

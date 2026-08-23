@@ -24,7 +24,24 @@ final class RouteBundleSynth
      */
     public function fragment(string $dir): array
     {
-        $files = glob(rtrim($dir, '/') . '/*.yaml') ?: [];
+        return $this->fragmentDirs([$dir]);
+    }
+
+    /**
+     * Same as fragment(), across several dirs — hand-authored route templates plus the
+     * machine-generated ones (templates/generated) fold into one index fragment.
+     *
+     * @param string[] $dirs
+     * @return array{templates: array<string,array<string,mixed>>, routes: array<string,array<int,array<string,mixed>>>}
+     */
+    public function fragmentDirs(array $dirs): array
+    {
+        $files = [];
+        foreach ($dirs as $dir) {
+            foreach (glob(rtrim($dir, '/') . '/*.yaml') ?: [] as $file) {
+                $files[] = $file;
+            }
+        }
         sort($files);
 
         $templates = [];

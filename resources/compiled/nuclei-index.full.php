@@ -84366,6 +84366,17 @@ return array (
       ),
       'name' => 'Exposed Ollama server version',
     ),
+    'route-ai-ollama-tags' => 
+    array (
+      'sev' => 'medium',
+      'tags' => 
+      array (
+        0 => 'ai-recon',
+        1 => 'exposure',
+        2 => 'appliance',
+      ),
+      'name' => 'Exposed Ollama model list',
+    ),
   ),
   'routes' => 
   array (
@@ -124933,6 +124944,25 @@ return array (
               0 => 'application/json',
             ),
           ),
+        ),
+        1 => 
+        array (
+          's' => 200,
+          'bw' => 
+          array (
+            0 => '"models"',
+          ),
+          'nf' => 
+          array (
+          ),
+          'pid' => 'route-ai-ollama-tags',
+          'sev' => 'medium',
+          'sig' => 0,
+          't' => 
+          array (
+            0 => 'route-ai-ollama-tags',
+          ),
+          'w' => 1000,
         ),
       ),
     ),
