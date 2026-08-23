@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Funnypot\Tests\Ai;
 
 use Funnypot\Ai\ModelCatalog;
+use Funnypot\Compiler\Crs\FingerprintGuard;
 use PHPUnit\Framework\TestCase;
 
 final class ModelCatalogTest extends TestCase
@@ -78,5 +79,33 @@ final class ModelCatalogTest extends TestCase
         $this->assertArrayHasKey('models', $ps);
         $this->assertArrayHasKey('size_vram', $ps['models'][0]);
         $this->assertArrayHasKey('expires_at', $ps['models'][0]);
+    }
+
+    /**
+     * Defense-in-depth beyond the CI gate (which scans the compiled artifacts): scan every
+     * catalog-served body straight from the single source of truth, so a leak is caught here
+     * even if the compile step were ever skipped or its output went stale.
+     */
+    public function test_every_catalog_payload_is_fingerprint_clean(): void
+    {
+        $c = ModelCatalog::fromPackage();
+        $guard = FingerprintGuard::fromPackage();
+
+        $payloads = [
+            'ollamaTags' => $c->ollamaTags(),
+            'ollamaPs' => $c->ollamaPs(),
+            'openAiModels' => $c->openAiModels(),
+            'anthropicModels' => $c->anthropicModels(),
+        ];
+        foreach ($payloads as $name => $payload) {
+            $hits = $guard->scan((string) json_encode($payload, JSON_UNESCAPED_SLASHES));
+            $this->assertSame([], $hits, "{$name}() must be fingerprint-clean");
+        }
+
+        foreach ($c->all() as $entry) {
+            $name = (string) $entry['name'];
+            $hits = $guard->scan((string) json_encode($c->ollamaShow($name), JSON_UNESCAPED_SLASHES));
+            $this->assertSame([], $hits, "ollamaShow('{$name}') must be fingerprint-clean");
+        }
     }
 }
