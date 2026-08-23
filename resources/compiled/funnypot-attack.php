@@ -2043,6 +2043,209 @@ $ </pre>
   ),
   36 => 
   array (
+    'id' => 'attack-webmin-session-login',
+    'severity' => 'high',
+    'tags' => 
+    array (
+      0 => 'attack',
+      1 => 'webmin',
+      2 => 'panel',
+      3 => 'login',
+      4 => 'credential-oracle',
+    ),
+    'status' => 200,
+    'match' => 
+    array (
+      0 => 
+      array (
+        'in' => 'path',
+        'regex' => '(?:^|/)session_login\\.cgi$',
+        'ci' => false,
+      ),
+      1 => 
+      array (
+        'in' => 'method',
+        'regex' => '^POST$',
+        'ci' => false,
+      ),
+      2 => 
+      array (
+        'in' => 'body',
+        'regex' => '(?:^|&)user=([^&]{0,64})',
+        'ci' => false,
+        'capture' => true,
+      ),
+    ),
+    'response' => 
+    array (
+      'headers' => 
+      array (
+        'Content-Type' => 'text/html; charset=utf-8',
+        'Server' => 'MiniServ/2.111',
+        'Set-Cookie' => 'testing=1; path=/; secure; httponly',
+      ),
+      'body' => '<!DOCTYPE html>
+<html><head>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<title>Login to Webmin</title>
+<link rel="stylesheet" type="text/css" href="/unauthenticated/style.css">
+</head>
+<body class="login" leftmargin="0" topmargin="0">
+<div class="login-page">
+<form action="/session_login.cgi" method="post" name="loginform" autocomplete="off">
+<input type="hidden" name="page" value="/">
+<h1>Login to Webmin</h1>
+<p>Login failed. Please make sure you enter a valid username and password, and that your account has not been locked out.</p>
+<table cellpadding="3">
+<tr><td><b>Username</b></td><td><input name="user" type="text" size="20" value=""></td></tr>
+<tr><td><b>Password</b></td><td><input name="pass" type="password" size="20" value=""></td></tr>
+</table>
+<input type="submit" value="Login">
+<label><input type="checkbox" name="save" value="1"> Remember login permanently?</label>
+</form>
+</div>
+</body></html>
+',
+    ),
+    'lit' => 'POST',
+    'lit_in' => 'method',
+    'lit_ci' => false,
+  ),
+  37 => 
+  array (
+    'id' => 'attack-jenkins-acegi-login',
+    'severity' => 'high',
+    'tags' => 
+    array (
+      0 => 'attack',
+      1 => 'jenkins',
+      2 => 'panel',
+      3 => 'login',
+      4 => 'credential-oracle',
+    ),
+    'status' => 302,
+    'match' => 
+    array (
+      0 => 
+      array (
+        'in' => 'path',
+        'regex' => '(?:^|/)j_acegi_security_check$',
+        'ci' => false,
+      ),
+      1 => 
+      array (
+        'in' => 'method',
+        'regex' => '^POST$',
+        'ci' => false,
+      ),
+      2 => 
+      array (
+        'in' => 'body',
+        'regex' => '(?:^|&)j_username=([^&]{0,64})',
+        'ci' => false,
+        'capture' => true,
+      ),
+    ),
+    'response' => 
+    array (
+      'headers' => 
+      array (
+        'Location' => '/loginError',
+        'X-Content-Type-Options' => 'nosniff',
+      ),
+      'body' => '',
+    ),
+    'lit' => 'POST',
+    'lit_in' => 'method',
+    'lit_ci' => false,
+  ),
+  38 => 
+  array (
+    'id' => 'attack-hnap-login',
+    'severity' => 'high',
+    'tags' => 
+    array (
+      0 => 'attack',
+      1 => 'dlink',
+      2 => 'hnap',
+      3 => 'iot',
+      4 => 'login',
+      5 => 'credential-oracle',
+    ),
+    'status' => 200,
+    'match' => 
+    array (
+      0 => 
+      array (
+        'in' => 'path',
+        'regex' => '(?:^|/)HNAP1/?$',
+        'ci' => false,
+      ),
+      1 => 
+      array (
+        'in' => 'method',
+        'regex' => '^POST$',
+        'ci' => false,
+      ),
+      2 => 
+      array (
+        'in' => 'body',
+        'regex' => '<Action>\\s*([A-Za-z]{0,16})',
+        'ci' => false,
+        'capture' => true,
+      ),
+    ),
+    'response' => 
+    array (
+      'headers' => 
+      array (
+        'Content-Type' => 'text/xml; charset=utf-8',
+      ),
+      'body' => '<?xml version="1.0" encoding="utf-8"?>
+<soap:Envelope xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/">
+<soap:Body><LoginResponse xmlns="http://purenetworks.com/HNAP1/">
+<LoginResult>FAILED</LoginResult>
+</LoginResponse></soap:Body></soap:Envelope>
+',
+    ),
+    'lit' => '<Action>',
+    'lit_in' => 'body',
+    'lit_ci' => false,
+    'behavior' => 'branch',
+    'branch' => 
+    array (
+      'cases' => 
+      array (
+        0 => 
+        array (
+          'when' => 
+          array (
+            'in' => 'match.1',
+            'regex' => '^request$',
+            'ci' => false,
+          ),
+          'response' => 
+          array (
+            'headers' => 
+            array (
+              'Content-Type' => 'text/xml; charset=utf-8',
+            ),
+            'body' => '<?xml version="1.0" encoding="utf-8"?>
+<soap:Envelope xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/">
+<soap:Body><LoginResponse xmlns="http://purenetworks.com/HNAP1/">
+<Challenge>{{fake.hnap_ch:hex:16}}</Challenge>
+<Cookie>{{fake.hnap_ck:hex:16}}</Cookie>
+<PublicKey>{{fake.hnap_pk:hex:16}}</PublicKey>
+<LoginResult>OK</LoginResult>
+</LoginResponse></soap:Body></soap:Envelope>
+',
+          ),
+        ),
+      ),
+    ),
+  ),
+  39 => 
+  array (
     'id' => 'attack-crs-sqli',
     'severity' => 'high',
     'tags' => 
@@ -2071,7 +2274,7 @@ $ </pre>
 ',
     ),
   ),
-  37 => 
+  40 => 
   array (
     'id' => 'attack-crs-xss',
     'severity' => 'high',
@@ -2103,7 +2306,7 @@ $ </pre>
 ',
     ),
   ),
-  38 => 
+  41 => 
   array (
     'id' => 'attack-crs-lfi',
     'severity' => 'high',
@@ -2132,7 +2335,7 @@ $ </pre>
       'body' => '{{canned.passwd}}',
     ),
   ),
-  39 => 
+  42 => 
   array (
     'id' => 'attack-crs-rce',
     'severity' => 'critical',

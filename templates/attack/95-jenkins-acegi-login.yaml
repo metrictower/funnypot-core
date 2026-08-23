@@ -1,0 +1,35 @@
+id: attack-jenkins-acegi-login
+severity: high
+priority: 95
+tags: [attack, jenkins, panel, login, credential-oracle]
+# Request-aware Jenkins Acegi/Spring-Security form-login credential ORACLE. /j_acegi_security_check
+# has no route key, so a POST misses the exact store and reaches the attack tier. ZERO EXECUTION /
+# ZERO reflection: the bounded `j_username` capture only gates the match; nothing attacker-controlled
+# is echoed. There is NO success path: Spring Security answers a bad form login with a 302 to the
+# fixed authenticationFailureUrl. The Location is a STATIC LITERAL — never a reflected capture — so it
+# is not an open redirect and carries no CR/LF (C8). Gated to POST: any other verb misses → plain 404.
+#
+# Content-Type on the empty 302: a real modern Jenkins (Jetty 9.4 + Spring Security) sends the failure
+# redirect with NO Content-Type (Jetty's sendRedirect writes Content-Length: 0 and no body/type). We
+# author `X-Content-Type-Options: nosniff` (Jenkins always emits it — lockstep with route 373), so the
+# response already has a header and renderRule does NOT inject its text/plain default (that default
+# only fires when headers are empty). The served 302 therefore carries Location + nosniff and no
+# Content-Type — byte-faithful to a real Jenkins empty redirect, and no Content-Type tell.
+match:
+  - in: path
+    regex: '(?:^|/)j_acegi_security_check$'
+    ci: false
+  - in: method
+    regex: '^POST$'
+    ci: false
+  - in: body
+    regex: '(?:^|&)j_username=([^&]{0,64})'   # capture-gate only, never reflected
+    capture: true
+    ci: false
+status: 302
+response:
+  headers:
+    Location: "/loginError"                    # constant literal — never reflected, no open redirect
+    X-Content-Type-Options: "nosniff"          # Jenkins always emits this (lockstep with route 373)
+  body: ""
+expect: []      # 302 with an empty body: nothing to assert in the base body

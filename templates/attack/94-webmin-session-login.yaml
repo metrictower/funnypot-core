@@ -1,0 +1,53 @@
+id: attack-webmin-session-login
+severity: high
+priority: 94
+tags: [attack, webmin, panel, login, credential-oracle]
+# Request-aware Webmin/miniserv session_login.cgi credential ORACLE. /session_login.cgi has no route
+# key, so a POST misses the exact store and reaches the attack tier (route 370's GET shell keys
+# /webmin/, not this CGI). ZERO EXECUTION: the ONLY body read is the bounded `user` field, captured
+# purely to gate the match — it is NEVER reflected (the login page clears the field, so a numeric
+# username can never surface as a bare token). There is NO success path: miniserv answers bad
+# credentials by re-serving the login page with the "Login failed" banner — no sid session cookie, no
+# authenticated redirect. Gated to POST: any other verb misses (no route here) → plain 404. The
+# base response is a static literal, so the expect empty-capture render and the denied-token sweep are
+# trivially satisfied. Server banner + login chrome are byte-coherent with route 370 (one host).
+match:
+  - in: path
+    regex: '(?:^|/)session_login\.cgi$'
+    ci: false
+  - in: method
+    regex: '^POST$'
+    ci: false
+  - in: body
+    regex: '(?:^|&)user=([^&]{0,64})'   # capture-gate only, never reflected
+    capture: true
+    ci: false
+status: 200
+response:
+  headers:
+    Content-Type: "text/html; charset=utf-8"
+    Server: "MiniServ/2.111"                       # lockstep with route 370
+    Set-Cookie: "testing=1; path=/; secure; httponly"
+  body: |
+    <!DOCTYPE html>
+    <html><head>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+    <title>Login to Webmin</title>
+    <link rel="stylesheet" type="text/css" href="/unauthenticated/style.css">
+    </head>
+    <body class="login" leftmargin="0" topmargin="0">
+    <div class="login-page">
+    <form action="/session_login.cgi" method="post" name="loginform" autocomplete="off">
+    <input type="hidden" name="page" value="/">
+    <h1>Login to Webmin</h1>
+    <p>Login failed. Please make sure you enter a valid username and password, and that your account has not been locked out.</p>
+    <table cellpadding="3">
+    <tr><td><b>Username</b></td><td><input name="user" type="text" size="20" value=""></td></tr>
+    <tr><td><b>Password</b></td><td><input name="pass" type="password" size="20" value=""></td></tr>
+    </table>
+    <input type="submit" value="Login">
+    <label><input type="checkbox" name="save" value="1"> Remember login permanently?</label>
+    </form>
+    </div>
+    </body></html>
+expect: ['Login failed', 'session_login.cgi']

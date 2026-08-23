@@ -1,0 +1,54 @@
+id: attack-hnap-login
+severity: high
+priority: 96
+tags: [attack, dlink, hnap, iot, login, credential-oracle]
+# Request-aware D-Link/HNAP SOAP Login credential ORACLE. /HNAP1 has no route key, so a POST misses
+# the exact store and reaches the attack tier. ZERO EXECUTION: the ONLY body read is the ONE bounded
+# <Action> leaf, captured to gate + dispatch via `branch` on match.1 — never reflected. HNAP login is
+# two-phase: the "request" phase issues a challenge (the device returns Challenge/Cookie/PublicKey and
+# LoginResult OK BEFORE any credential is checked — a challenge is NOT authentication, no session or
+# token is granted), and the "login" phase submits the password hash. There is NO success path: the
+# login phase (and every non-request action, and the position-blind port) returns the authentic
+# <LoginResult>FAILED</LoginResult>. Challenge values are {{fake.*}} seed-derived (per-attacker stable,
+# distinct, denylist-safe as short hex bounded by XML tags). Gated to POST → any other verb misses →
+# plain 404. Zero egress; the password field is never read.
+match:
+  - in: path
+    regex: '(?:^|/)HNAP1/?$'
+    ci: false
+  - in: method
+    regex: '^POST$'
+    ci: false
+  - in: body
+    regex: '<Action>\s*([A-Za-z]{0,16})'   # capture-gate + dispatch key only, never reflected
+    capture: true
+    ci: false
+status: 200
+behavior: branch
+branch:
+  cases:
+    # Phase 1 — challenge request. The device issues the challenge material without checking any
+    # credential; LoginResult OK here means "challenge issued", NOT authenticated.
+    - when: { in: match.1, regex: '^request$', ci: false }
+      response:
+        headers: { Content-Type: "text/xml; charset=utf-8" }
+        body: |
+          <?xml version="1.0" encoding="utf-8"?>
+          <soap:Envelope xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/">
+          <soap:Body><LoginResponse xmlns="http://purenetworks.com/HNAP1/">
+          <Challenge>{{fake.hnap_ch:hex:16}}</Challenge>
+          <Cookie>{{fake.hnap_ck:hex:16}}</Cookie>
+          <PublicKey>{{fake.hnap_pk:hex:16}}</PublicKey>
+          <LoginResult>OK</LoginResult>
+          </LoginResponse></soap:Body></soap:Envelope>
+# Base = the login (Action=login) phase, every non-request action, and the position-blind port:
+# bad credentials, always. No success (authenticated) outcome exists anywhere in this rule.
+response:
+  headers: { Content-Type: "text/xml; charset=utf-8" }
+  body: |
+    <?xml version="1.0" encoding="utf-8"?>
+    <soap:Envelope xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/">
+    <soap:Body><LoginResponse xmlns="http://purenetworks.com/HNAP1/">
+    <LoginResult>FAILED</LoginResult>
+    </LoginResponse></soap:Body></soap:Envelope>
+expect: ['LoginResponse', 'FAILED']
