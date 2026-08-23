@@ -1,0 +1,33 @@
+id: route-dahua-sha1account
+priority: 358
+# Enrich: the corpus routes /current_config/Sha1Account1 to the CVE-2017-8229 bundle (body words
+# `DevInformation`,`SerialID`, header witness application/octet-stream). This is the config blob a
+# Dahua camera leaks unauthenticated. Minimal synth would emit the bare words; here we serve the real
+# `table.*` config dump. The needle is the full CVE id (findRule is global). Content-Type is
+# application/octet-stream (the header witness); a Dahua device serves this config as an octet blob.
+# Device identity is consistent with the /current_config/passwd enrich: the same admin password digest
+# `fake.dahua_pw` appears on both surfaces (one device, one secret). Model IPC-HDBW23A0RN-ZS ↔ serial
+# OUI-prefixed. Number safety: serial and hashes are continuous alnum tokens, the `0000000` build slot
+# has a leading zero, and every version is dotted/short — no bare leading-9 6-digit run.
+match:
+  template_needle: [CVE-2017-8229]
+response:
+  headers:
+    Content-Type: "application/octet-stream"
+  body: |
+    table.DevInformation.DeviceType=IPC-HDBW23A0RN-ZS
+    table.DevInformation.HardwareVersion=1.00
+    table.DevInformation.SerialID=3C{{fake.dahua_serial:hexupper:12}}
+    table.DevInformation.SoftwareVersion=2.800.0000000.16.R
+    table.DevInformation.WebVersion=3.2.1.253200
+    table.DevInformation.Vendor=Dahua
+    table.Account1.Group=admin
+    table.Account1.Name=admin
+    table.Account1.Password={{fake.dahua_pw:hex:40}}
+    table.Account1.PasswordType=Default
+    table.Account1.Reserved=true
+    table.Account1.Sharable=true
+taunt: { mode: line, open: '#' }
+expect:
+  - 'table.DevInformation.SerialID=3C'
+  - 'table.Account1.Name=admin'

@@ -101,7 +101,228 @@ final class EmulatorBreadthTest extends TestCase
             'actuator /loggers enrich'         => ['GET /actuator/loggers', 0, 'route-actuator-loggers'],
             'actuator /threaddump enrich'      => ['GET /actuator/threaddump', 0, 'route-actuator-threaddump'],
             'actuator /configprops enrich'     => ['GET /actuator/configprops', 0, 'route-actuator-configprops'],
+
+            // IoT / appliance HTTP disclosure pack — each dresses a device-info/config bundle the
+            // corpus already routes to (a fake camera / router / NAS / printer / DVR endpoint a
+            // scanner hammers). Every needle is a full upstream CVE id / slug that resolves to
+            // EXACTLY ONE bundle (findRule is global; a generic device pid — hikvision/router/hp/… —
+            // would shadow dozens of routes). The satisfaction asserts guard against a dropped
+            // bw/hw/CT silently falling back to minimal synth. Several routes are multi-bundle; the
+            // enrich targets bundle 0 (its full-id needle can't hijack a sibling). Content-Type is
+            // exact for the typed-CT bundles (Hikvision application/xml, D-Link getcfg text/xml,
+            // Dahua application/octet-stream), asserted separately in test_iot_pack_content_types_are_exact.
+            'hikvision deviceInfo enrich'      => ['GET /system/deviceInfo', 0, 'route-hikvision-deviceinfo'],
+            'hikvision users enrich'           => ['GET /Security/users', 0, 'route-hikvision-users'],
+            'netgear currentsetting enrich'    => ['GET /currentsetting.htm', 0, 'route-netgear-currentsetting'],
+            'synology dsm enrich'              => ['GET /webapi/entry.cgi', 0, 'route-synology-dsm'],
+            'avtech machine.cgi enrich'        => ['GET /cgi-bin/nobody/Machine.cgi', 0, 'route-avtech-machine'],
+            'tbk dvr device.rsp enrich'        => ['GET /device.rsp', 0, 'route-tbk-dvr-devicersp'],
+            'huawei deviceinfo enrich'         => ['GET /api/system/deviceinfo', 0, 'route-huawei-deviceinfo'],
+            'dlink info.cgi enrich'            => ['GET /cgi-bin/info.cgi', 0, 'route-dlink-info-cgi'],
+            'dahua Sha1Account1 enrich'        => ['GET /current_config/Sha1Account1', 0, 'route-dahua-sha1account'],
+            'apollo device/config enrich'      => ['GET /device/config', 0, 'route-apollo-device-config'],
+            'dahua passwd enrich'              => ['GET /current_config/passwd', 0, 'route-dahua-passwd'],
+            'qnap qts panel enrich'            => ['GET /cgi-bin/', 0, 'route-qnap-qts'],
+            'hp device info enrich'            => ['GET /hp/device/DeviceInformation/View', 0, 'route-hp-device-info'],
+            'openwrt luci enrich'              => ['GET /cgi-bin/luci', 0, 'route-openwrt-luci'],
+            'dlink getcfg enrich'              => ['GET /getcfg.php', 0, 'route-dlink-getcfg'],
+            'tenda ExportAllSettings enrich'   => ['GET /cgi-bin/ExportAllSettings.sh', 0, 'route-tenda-exportsettings'],
+            'epson PRTINFO enrich'             => ['GET /PRESENTATION/HTML/TOP/PRTINFO.HTML', 0, 'route-epson-prtinfo'],
+            'hp color laserjet enrich'         => ['GET /hp/device/this.LCDispatcher', 0, 'route-hp-color-laserjet'],
         ];
+    }
+
+    /**
+     * The IoT pack's needles are full upstream CVE ids / slugs, but findRule is GLOBAL (a needle that
+     * is a substring of ANY t-id in ANY bundle shadows that route). Lock every needle to EXACTLY ONE
+     * bundle id across the whole compiled index, and forbid any IoT needle from being a bare generic
+     * device pid (hikvision/router/hp/camera/…) that substrings dozens of routes — the M8/API-recon
+     * lesson made a CI guard.
+     */
+    public function test_iot_pack_needles_are_unique_and_carry_no_generic_pid(): void
+    {
+        $routes = self::index()['routes'] ?? [];
+        $distinctIds = static function (string $needle) use ($routes): array {
+            $ids = [];
+            foreach ($routes as $entry) {
+                foreach ((array) ($entry['b'] ?? []) as $b) {
+                    if ((string) ($b['pid'] ?? '') === $needle) {
+                        $ids[$needle . ' (pid)'] = true;
+                    }
+                    foreach (array_map('strval', (array) ($b['t'] ?? [])) as $id) {
+                        if (strpos($id, $needle) !== false) {
+                            $ids[$id] = true;
+                        }
+                    }
+                }
+            }
+
+            return array_keys($ids);
+        };
+
+        $needles = [
+            'CVE-2017-7921', 'hikvision-cam-info-exposure', 'CVE-2024-30569', 'synology-dsm-system-info',
+            'avtech-dvr-exposure', 'CVE-2018-9995', 'huawei-router-auth-bypass', 'CVE-2024-3274',
+            'CVE-2017-8229', 'CVE-2024-25735', 'CVE-2017-7925', 'qnap-qts-panel', 'hp-device-info-detect',
+            'openwrt-luci-panel', 'CVE-2025-14528', 'CVE-2020-12127', 'epson-wf-series', 'hp-color-laserjet-detect',
+        ];
+        foreach ($needles as $needle) {
+            self::assertCount(1, $distinctIds($needle), "IoT needle '{$needle}' must resolve to exactly one bundle id (else findRule shadows another route)");
+        }
+
+        // A generic device pid substrings dozens of routes; no IoT enrich may use one as a needle.
+        $generic = ['hp', 'camera', 'printer', 'hikvision', 'router', 'luci', 'laserjet', 'nas', 'firmware', 'cgi', 'dvr', 'qts', 'device', 'nvr'];
+        foreach ((require __DIR__ . '/../resources/compiled/funnypot-routes.php') as $rule) {
+            if (strpos((string) $rule['id'], 'route-') !== 0) {
+                continue;
+            }
+            foreach ((array) ($rule['match']['template_needle'] ?? []) as $n) {
+                self::assertNotContains((string) $n, $generic, "route template {$rule['id']} must not use a generic device pid needle '{$n}'");
+            }
+        }
+    }
+
+    /**
+     * Content-Type is a fingerprint tell AND a matcher gate: a bundle carrying a typed Content-Type
+     * check (Hikvision application/xml, D-Link getcfg text/xml, Dahua application/octet-stream) drops
+     * to minimal synth if the enrich serves the wrong media type — application/xml does NOT satisfy a
+     * text/xml check and vice-versa. Assert every IoT enrich emits its EXACT required Content-Type.
+     */
+    public function test_iot_pack_content_types_are_exact(): void
+    {
+        $expected = [
+            'GET /system/deviceInfo'                  => 'application/xml',
+            'GET /Security/users'                     => 'application/xml',
+            'GET /currentsetting.htm'                 => 'text/plain; charset=utf-8',
+            'GET /webapi/entry.cgi'                   => 'application/json',
+            'GET /cgi-bin/nobody/Machine.cgi'         => 'text/plain; charset=utf-8',
+            'GET /device.rsp'                         => 'application/json',
+            'GET /api/system/deviceinfo'              => 'text/xml; charset=utf-8',
+            'GET /cgi-bin/info.cgi'                   => 'text/plain; charset=utf-8',
+            'GET /current_config/Sha1Account1'        => 'application/octet-stream',
+            'GET /device/config'                      => 'application/json',
+            'GET /current_config/passwd'              => 'text/plain; charset=utf-8',
+            'GET /cgi-bin/'                           => 'text/html; charset=utf-8',
+            'GET /hp/device/DeviceInformation/View'   => 'text/html; charset=utf-8',
+            'GET /cgi-bin/luci'                       => 'text/html; charset=utf-8',
+            'GET /getcfg.php'                         => 'text/xml',
+            'GET /cgi-bin/ExportAllSettings.sh'       => 'text/plain; charset=utf-8',
+            'GET /PRESENTATION/HTML/TOP/PRTINFO.HTML' => 'text/html; charset=utf-8',
+            'GET /hp/device/this.LCDispatcher'        => 'text/html; charset=utf-8',
+        ];
+        $emulator = new RouteTemplateEmulator($this->set());
+        foreach ($expected as $route => $ct) {
+            $bundle = $this->bundle($route, 0);
+            $content = $emulator->render($bundle, Style::REALISTIC, 7);
+            self::assertNotNull($content, "{$route} must render");
+            self::assertSame($ct, $content->headers['Content-Type'] ?? null, "{$route} Content-Type must be exact ({$ct})");
+            // Any typed Content-Type check the bundle carries must be a substring of the emitted value.
+            foreach (array_map('strval', (array) ($bundle['th']['Content-Type'] ?? [])) as $sub) {
+                self::assertStringContainsString($sub, (string) ($content->headers['Content-Type'] ?? ''), "{$route} typed Content-Type must contain '{$sub}'");
+            }
+        }
+    }
+
+    /**
+     * The XML/JSON device pages must stay well-formed for BOTH the realistic body and the taunt body
+     * (a block XML comment / a JSON `_comment` field) across the persona pick space — a dropped bw
+     * appended as a bare line, or a mis-escaped value, would break the parser and betray the fake.
+     */
+    public function test_iot_xml_and_json_bodies_are_valid(): void
+    {
+        $xml = [
+            'GET /system/deviceInfo', 'GET /Security/users', 'GET /api/system/deviceinfo', 'GET /getcfg.php',
+        ];
+        $json = [
+            'GET /webapi/entry.cgi', 'GET /device.rsp', 'GET /device/config',
+        ];
+        $emulator = new RouteTemplateEmulator($this->set());
+        foreach (self::seeds() as $seed) {
+            foreach ([Style::REALISTIC, Style::TAUNT] as $style) {
+                foreach ($xml as $route) {
+                    $content = $emulator->render($this->bundle($route, 0), $style, $seed);
+                    self::assertNotNull($content, "{$route} must render (seed {$seed}, {$style})");
+                    $prev = libxml_use_internal_errors(true);
+                    $doc = new \DOMDocument();
+                    $ok = $doc->loadXML($content->body);
+                    libxml_clear_errors();
+                    libxml_use_internal_errors($prev);
+                    self::assertTrue($ok, "{$route} must be well-formed XML (seed {$seed}, {$style})");
+                }
+                foreach ($json as $route) {
+                    $content = $emulator->render($this->bundle($route, 0), $style, $seed);
+                    self::assertNotNull($content, "{$route} must render (seed {$seed}, {$style})");
+                    self::assertIsArray(json_decode($content->body, true), "{$route} must be valid JSON (seed {$seed}, {$style}): " . $content->body);
+                }
+            }
+        }
+    }
+
+    /**
+     * The number-safety gate (the bare \b9\d{5}\b CRS-rule-id run, plus every literal signature) must
+     * hold for the SERVED device bodies across a wide persona sweep, in both styles — a rendered MAC /
+     * serial / firmware / uptime island that trips it would let a scanner classify the reply as canned.
+     * Rendered at the emulator so the sweep is exact to the IoT bodies (ceiling/bundle-selection blind).
+     */
+    public function test_iot_pack_bodies_carry_no_denied_fingerprint_token(): void
+    {
+        $guard = \Funnypot\Compiler\Crs\FingerprintGuard::fromPackage();
+        $emulator = new RouteTemplateEmulator($this->set());
+        $routes = [];
+        foreach (self::targets() as $t) {
+            if (strpos($t[2], 'route-hikvision') === 0 || strpos($t[2], 'route-netgear') === 0
+                || strpos($t[2], 'route-synology') === 0 || strpos($t[2], 'route-avtech') === 0
+                || strpos($t[2], 'route-tbk') === 0 || strpos($t[2], 'route-huawei') === 0
+                || strpos($t[2], 'route-dlink') === 0 || strpos($t[2], 'route-dahua') === 0
+                || strpos($t[2], 'route-apollo') === 0 || strpos($t[2], 'route-qnap') === 0
+                || strpos($t[2], 'route-hp-') === 0 || strpos($t[2], 'route-openwrt') === 0
+                || strpos($t[2], 'route-tenda') === 0 || strpos($t[2], 'route-epson') === 0) {
+                $routes[$t[0]] = $t[1];
+            }
+        }
+        self::assertCount(18, $routes, 'the IoT denied-token sweep must cover all 18 targets');
+        // The synthesizer renders at crc32(personaSeedString), so sweep THAT value space (raw 0..N
+        // would only sample small ints and miss a value-dependent leak — the bounded-6 hex island the
+        // end-to-end sweep caught). A 6-digit-run hazard is value-dependent, so a wide sample matters.
+        for ($i = 0; $i <= 2000; $i++) {
+            $seed = crc32((string) $i);
+            foreach ($routes as $route => $bi) {
+                foreach ([Style::REALISTIC, Style::TAUNT] as $style) {
+                    $content = $emulator->render($this->bundle($route, $bi), $style, $seed);
+                    self::assertNotNull($content, "{$route} must render (seed#{$i})");
+                    $hits = $guard->scan($content->body);
+                    self::assertSame([], $hits, "{$route} seed#{$i} (crc32={$seed}) [{$style}] leaks a denied token (" . implode(',', $hits) . "): " . $content->body);
+                }
+            }
+        }
+    }
+
+    /**
+     * Device identity is coherent WITHIN a vendor: a fake.NAME reused across two surfaces of one
+     * device renders byte-identical (same seed ⇒ same value, path-independent), so an attacker who
+     * reads both pages sees one consistent device. The Dahua admin password digest appears on BOTH
+     * /current_config/Sha1Account1 and /current_config/passwd; the Hikvision MAC always carries the
+     * real vendor OUI constant.
+     */
+    public function test_iot_device_identity_is_coherent_across_a_vendors_surfaces(): void
+    {
+        $emulator = new RouteTemplateEmulator($this->set());
+        foreach ([0, 1, 7, 42, 777, 123456] as $seed) {
+            $sha1 = $emulator->render($this->bundle('GET /current_config/Sha1Account1', 0), Style::REALISTIC, $seed);
+            $passwd = $emulator->render($this->bundle('GET /current_config/passwd', 0), Style::REALISTIC, $seed);
+            self::assertNotNull($sha1);
+            self::assertNotNull($passwd);
+            self::assertSame(1, preg_match('/table\.Account1\.Password=([0-9a-f]{40})/', $sha1->body, $a), "Sha1Account1 must disclose the admin password digest (seed {$seed})");
+            self::assertSame(1, preg_match('/^1:admin:([0-9a-f]{40}):/m', $passwd->body, $b), "passwd must disclose the admin password digest (seed {$seed})");
+            self::assertSame($a[1], $b[1], "the Dahua admin password digest must be byte-identical across its two surfaces (seed {$seed})");
+        }
+
+        // The Hikvision MAC always carries the real 44:19:b6 OUI, whatever the seed.
+        for ($seed = 0; $seed <= 30; $seed++) {
+            $dev = $emulator->render($this->bundle('GET /system/deviceInfo', 0), Style::REALISTIC, $seed);
+            self::assertNotNull($dev);
+            self::assertSame(1, preg_match('/<macAddress>44:19:b6:[0-9a-f]{2}:[0-9a-f]{2}:[0-9a-f]{2}<\/macAddress>/', $dev->body), "Hikvision MAC must carry the 44:19:b6 vendor OUI (seed {$seed})");
+        }
     }
 
     /**

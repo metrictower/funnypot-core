@@ -1,0 +1,28 @@
+id: route-avtech-machine
+priority: 354
+# Enrich: the corpus routes /cgi-bin/nobody/Machine.cgi to the avtech-dvr-exposure bundle (body words
+# `Firmware.Version=`,`MACAddress=`,`Product.Type=`). This is the unauthenticated info endpoint an
+# AVTECH DVR/NVR leaks. Minimal synth would emit the bare keys; here we serve the real dotted-key dump.
+# The needle is the full upstream id (findRule is global; a generic `dvr` pid would shadow other
+# routes). This bundle carries no header/type witness, so Content-Type is text/plain. Device identity
+# is consistent: product AVN80X ↔ MAC OUI 00:0e:53 (a real AVTECH OUI). Number safety: the firmware is
+# a short static field, MAC octets are colon-separated hex, and the serial is one continuous token.
+match:
+  template_needle: [avtech-dvr-exposure]
+response:
+  headers:
+    Content-Type: "text/plain; charset=utf-8"
+  body: |
+    Firmware.Version=1035
+    Firmware.Language=English
+    System.Hostname=AVN80X
+    Product.Type=AVN80X
+    Video.OutputMode=NTSC
+    MACAddress=00:0e:53:{{fake.avt_mac1:hex:2}}:{{fake.avt_mac2:hex:2}}:{{fake.avt_mac3:hex:2}}
+    Serial.Number=AVT{{fake.avt_serial:hexupper:8}}
+    HTTP.Port=80
+taunt: { mode: line, open: '#' }
+expect:
+  - 'Firmware.Version=1035'
+  - 'Product.Type=AVN80X'
+  - 'MACAddress=00:0e:53:'

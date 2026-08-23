@@ -580,6 +580,14 @@ final class NewPageRoutingTest extends TestCase
             // Sibling paths the path-blind findRule also enriches (docs/redoc split between the redoc +
             // fastapi bundles; /api/docs is redoc-only; /security.txt mirrors the .well-known file).
             '/docs', '/redoc', '/api/docs', '/security.txt',
+            // IoT / appliance disclosure pack — the enrich surfaces that serve at the default (high)
+            // ceiling and route to exactly one bundle, so a fixed-seed sweep always renders THIS body.
+            // Device pages carry MAC/serial/firmware/uptime islands, so \b9\d{5}\b is the acute hazard.
+            // The 5 critical-severity device pages (deviceInfo/device.rsp/Sha1Account1/passwd/
+            // api·deviceinfo) sit above this ceiling and are swept both-styles at the emulator in
+            // EmulatorBreadthTest::test_iot_pack_bodies_carry_no_denied_fingerprint_token instead.
+            '/Security/users', '/webapi/entry.cgi', '/cgi-bin/nobody/Machine.cgi', '/device/config',
+            '/cgi-bin/', '/hp/device/DeviceInformation/View', '/PRESENTATION/HTML/TOP/PRTINFO.HTML',
         ];
         // The vite-fs `/@fs/{path}` param route serves per-target disclosure bodies (its own RDS/cache
         // host islands live in the .env and wp-config.php loot targets), so exercise those too.
@@ -598,6 +606,44 @@ final class NewPageRoutingTest extends TestCase
                 self::assertNotNull($resp, "{$path} seed {$seed} must serve a fake");
                 $hits = $guard->scan($resp->body);
                 self::assertSame([], $hits, "{$path} seed {$seed} leaks a denied fingerprint token (" . implode(',', $hits) . "): " . $resp->body);
+            }
+        }
+    }
+
+    public function test_iot_disclosure_pages_serve_enriched_body_end_to_end(): void
+    {
+        // The IoT enrich must survive the WHOLE synthesizer, not only the emulator: the served
+        // response must carry a distinctive authored marker that is NOT one of the bundle's body
+        // words (proving the rich body served, not a minimal synth of the bare bw) AND the exact
+        // Content-Type the device type demands (a mismatch would drop to minimal synth and is itself
+        // a tell). These are the single-bundle routes, so a fixed seed always lands on the enrich; the
+        // 5 critical-severity pages need the ceiling raised to serve at all (like the graphql enrich).
+        // Multi-bundle routes (currentsetting/info.cgi/luci/getcfg/ExportAllSettings/LCDispatcher) are
+        // seed-dependent in bundle selection and are proven at the bundle level in EmulatorBreadthTest.
+        $cases = [
+            ['/system/deviceInfo', '<model>DS-2CD2032-I</model>', 'application/xml'],
+            ['/Security/users', '<userLevel>Administrator</userLevel>', 'application/xml'],
+            ['/webapi/entry.cgi', '"api": "SYNO.Core.System"', 'application/json'],
+            ['/cgi-bin/nobody/Machine.cgi', 'Product.Type=AVN80X', 'text/plain; charset=utf-8'],
+            ['/device.rsp', '"uid": "admin"', 'application/json'],
+            ['/api/system/deviceinfo', '<DeviceName>HG8245H</DeviceName>', 'text/xml; charset=utf-8'],
+            ['/current_config/Sha1Account1', 'IPC-HDBW23A0RN-ZS', 'application/octet-stream'],
+            ['/device/config', 'Apollo VX20', 'application/json'],
+            ['/current_config/passwd', 'id:name:passwd', 'text/plain; charset=utf-8'],
+            ['/cgi-bin/', '<title>QNAP Turbo NAS</title>', 'text/html; charset=utf-8'],
+            ['/hp/device/DeviceInformation/View', '<h1>Device Information</h1>', 'text/html; charset=utf-8'],
+            ['/PRESENTATION/HTML/TOP/PRTINFO.HTML', 'SEIKO EPSON CORPORATION', 'text/html; charset=utf-8'],
+        ];
+        foreach (['realistic', 'taunt'] as $style) {
+            for ($seed = 0; $seed <= 12; $seed++) {
+                $inv = $this->seededInverterCeiling((string) $seed, $style, 'critical');
+                foreach ($cases as [$path, $marker, $ct]) {
+                    $resp = $inv->respond(new RequestContext('GET', $path));
+                    self::assertNotNull($resp, "{$path} [{$style}] seed {$seed} must serve a fake");
+                    self::assertSame(200, $resp->status, "{$path} [{$style}] seed {$seed} status");
+                    self::assertSame($ct, $resp->headers['Content-Type'] ?? null, "{$path} [{$style}] seed {$seed} Content-Type must be exact");
+                    self::assertStringContainsString($marker, $resp->body, "{$path} [{$style}] seed {$seed} must serve the enriched body, not a minimal synth");
+                }
             }
         }
     }

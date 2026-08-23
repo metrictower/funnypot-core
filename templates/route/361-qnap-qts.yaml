@@ -1,0 +1,36 @@
+id: route-qnap-qts
+priority: 361
+# Enrich: the corpus routes /cgi-bin/ to the qnap-qts-panel bundle (body word `QNAP Turbo NAS</title>`).
+# This is the QTS admin landing page a scanner fingerprints. Minimal synth would emit the bare title
+# fragment; here we serve a believable static QTS login shell. The needle is the full upstream id
+# (findRule is global; a generic `nas`/`qts` pid would shadow other routes). Content-Type is text/html.
+# The markup is static — no fabricated form that posts anywhere. Number safety: only a short dotted
+# QTS build version appears; no bare 6-digit run.
+match:
+  template_needle: [qnap-qts-panel]
+response:
+  headers:
+    Content-Type: "text/html; charset=utf-8"
+  body: |
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+    <meta charset="utf-8">
+    <title>QNAP Turbo NAS</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    </head>
+    <body>
+    <div id="qtsHeader">
+    <span class="model">TS-231P</span>
+    <span class="fw">QTS 5.0.1</span>
+    </div>
+    <div id="loginContainer">
+    <h1>Welcome to QNAP Turbo NAS</h1>
+    <p>Please sign in to continue to the administration console.</p>
+    </div>
+    </body>
+    </html>
+taunt: { mode: block, open: '<!--', close: '-->' }
+expect:
+  - '<title>QNAP Turbo NAS</title>'
+  - 'TS-231P'

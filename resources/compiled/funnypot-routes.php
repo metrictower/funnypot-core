@@ -3405,4 +3405,644 @@ components:
       'key' => '_comment',
     ),
   ),
+  92 => 
+  array (
+    'id' => 'route-hikvision-deviceinfo',
+    'match' => 
+    array (
+      'template_needle' => 
+      array (
+        0 => 'CVE-2017-7921',
+      ),
+    ),
+    'body' => '<?xml version="1.0" encoding="UTF-8"?>
+<DeviceInfo version="2.0" xmlns="http://www.hikvision.com/ver20/XMLSchema">
+<deviceName>IP CAMERA</deviceName>
+<deviceID>{{fake.hik_devid:hex:8}}-{{fake.hik_devid2:hex:4}}-{{fake.hik_devid3:hex:4}}-{{fake.hik_devid4:hex:4}}-{{fake.hik_devid5:hex:12}}</deviceID>
+<deviceDescription>IPCamera</deviceDescription>
+<deviceLocation>hangzhou</deviceLocation>
+<systemContact>admin</systemContact>
+<model>DS-2CD2032-I</model>
+<serialNumber>DS-2CD2032-I20160101AAWR{{fake.hik_serial:hexupper:10}}</serialNumber>
+<macAddress>44:19:b6:{{fake.hik_mac1:hex:2}}:{{fake.hik_mac2:hex:2}}:{{fake.hik_mac3:hex:2}}</macAddress>
+<firmwareVersion>V5.4.5</firmwareVersion>
+<firmwareReleasedDate>build 160925</firmwareReleasedDate>
+<encoderVersion>V7.3</encoderVersion>
+<encoderReleasedDate>build 160816</encoderReleasedDate>
+<bootVersion>V1.3.4</bootVersion>
+<bootReleasedDate>build 100316</bootReleasedDate>
+<hardwareVersion>0x0</hardwareVersion>
+<deviceType>IPCamera</deviceType>
+<telecontrolID>255</telecontrolID>
+<supportBeep>false</supportBeep>
+<supportVideoLoss>false</supportVideoLoss>
+</DeviceInfo>
+',
+    'headers' => 
+    array (
+      'Content-Type' => 'application/xml',
+    ),
+    'taunt' => 
+    array (
+      'mode' => 'block',
+      'open' => '<!--',
+      'close' => '-->',
+    ),
+  ),
+  93 => 
+  array (
+    'id' => 'route-hikvision-users',
+    'match' => 
+    array (
+      'template_needle' => 
+      array (
+        0 => 'hikvision-cam-info-exposure',
+      ),
+    ),
+    'body' => '<?xml version="1.0" encoding="UTF-8"?>
+<UserList version="2.0" xmlns="http://www.hikvision.com/ver20/XMLSchema">
+<User version="2.0">
+<id>1</id>
+<userName>admin</userName>
+<priority>high</priority>
+<userLevel>Administrator</userLevel>
+</User>
+<User version="2.0">
+<id>2</id>
+<userName>operator</userName>
+<priority>medium</priority>
+<userLevel>Operator</userLevel>
+</User>
+<User version="2.0">
+<id>3</id>
+<userName>guest{{fake.hik_guestid:dec:2}}</userName>
+<priority>low</priority>
+<userLevel>Viewer</userLevel>
+</User>
+</UserList>
+',
+    'headers' => 
+    array (
+      'Content-Type' => 'application/xml',
+    ),
+    'taunt' => 
+    array (
+      'mode' => 'block',
+      'open' => '<!--',
+      'close' => '-->',
+    ),
+  ),
+  94 => 
+  array (
+    'id' => 'route-netgear-currentsetting',
+    'match' => 
+    array (
+      'template_needle' => 
+      array (
+        0 => 'CVE-2024-30569',
+      ),
+    ),
+    'body' => 'Firmware=V1.0.0.42
+RegionTag=R6850_WW
+Region=WW
+Model=R6850
+InternetConnectionStatus=Up
+ParentalControlSupported=1
+SOAPVersion=1.1.0
+ReadyShareSupportedLevel=29
+LoginMethod=2.0
+silentUpgradeStatus=0
+DeviceMode=0
+',
+    'headers' => 
+    array (
+      'Content-Type' => 'text/plain; charset=utf-8',
+    ),
+    'taunt' => 
+    array (
+      'mode' => 'line',
+      'open' => '#',
+    ),
+  ),
+  95 => 
+  array (
+    'id' => 'route-synology-dsm',
+    'match' => 
+    array (
+      'template_needle' => 
+      array (
+        0 => 'synology-dsm-system-info',
+      ),
+    ),
+    'body' => '{
+"data": {
+  "api": "SYNO.Core.System",
+  "model": "DS220+",
+  "firmware_ver": "DSM 7.1.1-42962",
+  "serial": "{{fake.syno_serial:hexupper:10}}",
+  "ram_size": 2048,
+  "sys_temp": 42,
+  "up_time": {{fake.syno_uptime:dec:5}},
+  "cpu_family": "Realtek RTD1296",
+  "enabled_ntp": true
+},
+"success":true
+}
+',
+    'headers' => 
+    array (
+      'Content-Type' => 'application/json',
+    ),
+    'taunt' => 
+    array (
+      'mode' => 'inline_field',
+      'key' => '_comment',
+    ),
+  ),
+  96 => 
+  array (
+    'id' => 'route-avtech-machine',
+    'match' => 
+    array (
+      'template_needle' => 
+      array (
+        0 => 'avtech-dvr-exposure',
+      ),
+    ),
+    'body' => 'Firmware.Version=1035
+Firmware.Language=English
+System.Hostname=AVN80X
+Product.Type=AVN80X
+Video.OutputMode=NTSC
+MACAddress=00:0e:53:{{fake.avt_mac1:hex:2}}:{{fake.avt_mac2:hex:2}}:{{fake.avt_mac3:hex:2}}
+Serial.Number=AVT{{fake.avt_serial:hexupper:8}}
+HTTP.Port=80
+',
+    'headers' => 
+    array (
+      'Content-Type' => 'text/plain; charset=utf-8',
+    ),
+    'taunt' => 
+    array (
+      'mode' => 'line',
+      'open' => '#',
+    ),
+  ),
+  97 => 
+  array (
+    'id' => 'route-tbk-dvr-devicersp',
+    'match' => 
+    array (
+      'template_needle' => 
+      array (
+        0 => 'CVE-2018-9995',
+      ),
+    ),
+    'body' => '{
+"list": [
+  {
+    "uid": "admin",
+    "pwd": "{{fake.tbk_admin_pwd:hex:8}}",
+    "role": "Administrator",
+    "view": "1",
+    "playback": "1",
+    "record": "1",
+    "backup": "1"
+  },
+  {
+    "uid": "user",
+    "pwd": "{{fake.tbk_user_pwd:hex:8}}",
+    "role": "Operator",
+    "view": "1",
+    "playback": "1",
+    "record": "0",
+    "backup": "0"
+  }
+]
+}
+',
+    'headers' => 
+    array (
+      'Content-Type' => 'application/json',
+    ),
+    'taunt' => 
+    array (
+      'mode' => 'inline_field',
+      'key' => '_comment',
+    ),
+  ),
+  98 => 
+  array (
+    'id' => 'route-huawei-deviceinfo',
+    'match' => 
+    array (
+      'template_needle' => 
+      array (
+        0 => 'huawei-router-auth-bypass',
+      ),
+    ),
+    'body' => '<?xml version="1.0" encoding="UTF-8"?>
+<response>
+<DeviceName>HG8245H</DeviceName>
+<SerialNumber>{{fake.hw_serial:hexupper:16}}</SerialNumber>
+<HardwareVersion>168A</HardwareVersion>
+<SoftwareVersion>V3R017C10S115</SoftwareVersion>
+<ProductClass>HG8245H</ProductClass>
+<Manufacturer>Huawei Technologies Co., Ltd.</Manufacturer>
+<UpTime>{{fake.hw_uptime:dec:5}}</UpTime>
+</response>
+',
+    'headers' => 
+    array (
+      'Content-Type' => 'text/xml; charset=utf-8',
+    ),
+    'taunt' => 
+    array (
+      'mode' => 'block',
+      'open' => '<!--',
+      'close' => '-->',
+    ),
+  ),
+  99 => 
+  array (
+    'id' => 'route-dlink-info-cgi',
+    'match' => 
+    array (
+      'template_needle' => 
+      array (
+        0 => 'CVE-2024-3274',
+      ),
+    ),
+    'body' => 'Model=DNS-320L
+Build=160801
+Version=1.11
+Serial=DNL{{fake.dns_serial:hexupper:10}}
+Macaddr=b0:c5:54:{{fake.dns_mac1:hex:2}}:{{fake.dns_mac2:hex:2}}:{{fake.dns_mac3:hex:2}}
+Hostname=NAS-{{fake.dns_host:hexupper:4}}
+Temperature=41
+',
+    'headers' => 
+    array (
+      'Content-Type' => 'text/plain; charset=utf-8',
+    ),
+    'taunt' => 
+    array (
+      'mode' => 'line',
+      'open' => '#',
+    ),
+  ),
+  100 => 
+  array (
+    'id' => 'route-dahua-sha1account',
+    'match' => 
+    array (
+      'template_needle' => 
+      array (
+        0 => 'CVE-2017-8229',
+      ),
+    ),
+    'body' => 'table.DevInformation.DeviceType=IPC-HDBW23A0RN-ZS
+table.DevInformation.HardwareVersion=1.00
+table.DevInformation.SerialID=3C{{fake.dahua_serial:hexupper:12}}
+table.DevInformation.SoftwareVersion=2.800.0000000.16.R
+table.DevInformation.WebVersion=3.2.1.253200
+table.DevInformation.Vendor=Dahua
+table.Account1.Group=admin
+table.Account1.Name=admin
+table.Account1.Password={{fake.dahua_pw:hex:40}}
+table.Account1.PasswordType=Default
+table.Account1.Reserved=true
+table.Account1.Sharable=true
+',
+    'headers' => 
+    array (
+      'Content-Type' => 'application/octet-stream',
+    ),
+    'taunt' => 
+    array (
+      'mode' => 'line',
+      'open' => '#',
+    ),
+  ),
+  101 => 
+  array (
+    'id' => 'route-apollo-device-config',
+    'match' => 
+    array (
+      'template_needle' => 
+      array (
+        0 => 'CVE-2024-25735',
+      ),
+    ),
+    'body' => '{
+"deviceName": "Apollo-{{fake.apollo_id:hexupper:8}}",
+"model": "Apollo VX20",
+"firmware": "1.5.0",
+"ssid": "Apollo-AP",
+"softAp": true,
+"password": "{{fake.apollo_pw:hex:12}}",
+"serial": "{{fake.apollo_serial:hexupper:10}}",
+"adminUser": "admin"
+}
+',
+    'headers' => 
+    array (
+      'Content-Type' => 'application/json',
+    ),
+    'taunt' => 
+    array (
+      'mode' => 'inline_field',
+      'key' => '_comment',
+    ),
+  ),
+  102 => 
+  array (
+    'id' => 'route-dahua-passwd',
+    'match' => 
+    array (
+      'template_needle' => 
+      array (
+        0 => 'CVE-2017-7925',
+      ),
+    ),
+    'body' => 'ugm
+# id:name:passwd:group:memo
+1:admin:{{fake.dahua_pw:hex:40}}:admin:admin account
+2:default:{{fake.dahua_default_pw:hex:40}}:user:default account
+3:operator:{{fake.dahua_op_pw:hex:40}}:user:operator account
+',
+    'headers' => 
+    array (
+      'Content-Type' => 'text/plain; charset=utf-8',
+    ),
+    'taunt' => 
+    array (
+      'mode' => 'line',
+      'open' => '#',
+    ),
+  ),
+  103 => 
+  array (
+    'id' => 'route-qnap-qts',
+    'match' => 
+    array (
+      'template_needle' => 
+      array (
+        0 => 'qnap-qts-panel',
+      ),
+    ),
+    'body' => '<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>QNAP Turbo NAS</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+<body>
+<div id="qtsHeader">
+<span class="model">TS-231P</span>
+<span class="fw">QTS 5.0.1</span>
+</div>
+<div id="loginContainer">
+<h1>Welcome to QNAP Turbo NAS</h1>
+<p>Please sign in to continue to the administration console.</p>
+</div>
+</body>
+</html>
+',
+    'headers' => 
+    array (
+      'Content-Type' => 'text/html; charset=utf-8',
+    ),
+    'taunt' => 
+    array (
+      'mode' => 'block',
+      'open' => '<!--',
+      'close' => '-->',
+    ),
+  ),
+  104 => 
+  array (
+    'id' => 'route-hp-device-info',
+    'match' => 
+    array (
+      'template_needle' => 
+      array (
+        0 => 'hp-device-info-detect',
+      ),
+    ),
+    'body' => '<!DOCTYPE html>
+<html>
+<head><title>HP LaserJet MFP M428fdw - Device Information</title></head>
+<body>
+<h1>Device Information</h1>
+<p>Embedded Web Server &mdash; <a href="/hp/device/DeviceInformation/View">/hp/device/DeviceInformation/View</a></p>
+<table>
+<tr><td>Product Name</td><td>HP LaserJet MFP M428fdw</td></tr>
+<tr><td>Serial Number</td><td>{{fake.hp_serial:hexupper:10}}</td></tr>
+<tr><td>Firmware Datecode</td><td>20210915</td></tr>
+<tr><td>Total Page Count</td><td>{{fake.hp_pages:dec:5}}</td></tr>
+</table>
+</body>
+</html>
+',
+    'headers' => 
+    array (
+      'Content-Type' => 'text/html; charset=utf-8',
+    ),
+    'taunt' => 
+    array (
+      'mode' => 'block',
+      'open' => '<!--',
+      'close' => '-->',
+    ),
+  ),
+  105 => 
+  array (
+    'id' => 'route-openwrt-luci',
+    'match' => 
+    array (
+      'template_needle' => 
+      array (
+        0 => 'openwrt-luci-panel',
+      ),
+    ),
+    'body' => '<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>OpenWrt - LuCI</title>
+<link rel="stylesheet" href="/luci-static/bootstrap/cascade.css">
+</head>
+<body class="lang_en">
+<header><div class="fill"><div class="container"><span class="brand">OpenWrt</span></div></div></header>
+<div class="main">
+<div id="maincontent">
+<div class="cbi-map">
+<h2 name="content">Authorization Required</h2>
+<div class="cbi-map-descr">Please enter your username and password.</div>
+<div class="cbi-section" id="cbi-luci-login">
+<div class="cbi-value"><label class="cbi-value-title">Username</label></div>
+<div class="cbi-value"><label class="cbi-value-title">Password</label></div>
+</div>
+</div>
+</div>
+</div>
+<footer>Powered by LuCI (git-21.052) / OpenWrt 21.02.1</footer>
+</body>
+</html>
+',
+    'headers' => 
+    array (
+      'Content-Type' => 'text/html; charset=utf-8',
+    ),
+    'taunt' => 
+    array (
+      'mode' => 'block',
+      'open' => '<!--',
+      'close' => '-->',
+    ),
+  ),
+  106 => 
+  array (
+    'id' => 'route-dlink-getcfg',
+    'match' => 
+    array (
+      'template_needle' => 
+      array (
+        0 => 'CVE-2025-14528',
+      ),
+    ),
+    'body' => '<?xml version="1.0" encoding="utf-8"?>
+<postxml>
+<module>
+<service>DEVICE.ACCOUNT</service>
+<device>
+<account>
+<seqno>1</seqno>
+<max>2</max>
+<count>1</count>
+<entry>
+<uid>USR-</uid>
+<name>admin</name>
+<usrid></usrid>
+<password>{{fake.dlink_getcfg_pw:hex:16}}</password>
+<group>0</group>
+</entry>
+</account>
+</device>
+</module>
+</postxml>
+',
+    'headers' => 
+    array (
+      'Content-Type' => 'text/xml',
+    ),
+    'taunt' => 
+    array (
+      'mode' => 'block',
+      'open' => '<!--',
+      'close' => '-->',
+    ),
+  ),
+  107 => 
+  array (
+    'id' => 'route-tenda-exportsettings',
+    'match' => 
+    array (
+      'template_needle' => 
+      array (
+        0 => 'CVE-2020-12127',
+      ),
+    ),
+    'body' => 'Login=admin
+Password={{fake.tenda_pw:hex:12}}
+Model=WN530H4
+AuthMode=WPA2PSK
+Encrypt=AES
+SSID=MOTO_{{fake.tenda_ssid:hexupper:6}}
+WANMAC=c8:3a:35:{{fake.tenda_m1:hex:2}}:{{fake.tenda_m2:hex:2}}:{{fake.tenda_m3:hex:2}}
+WANMode=DHCP
+RemoteManage=0
+',
+    'headers' => 
+    array (
+      'Content-Type' => 'text/plain; charset=utf-8',
+    ),
+    'taunt' => 
+    array (
+      'mode' => 'line',
+      'open' => '#',
+    ),
+  ),
+  108 => 
+  array (
+    'id' => 'route-epson-prtinfo',
+    'match' => 
+    array (
+      'template_needle' => 
+      array (
+        0 => 'epson-wf-series',
+      ),
+    ),
+    'body' => '<!DOCTYPE html>
+<html>
+<head><title>WF-3620 Series</title></head>
+<body>
+<p>SEIKO EPSON CORPORATION</p>
+<table>
+<tr><td>Model Name</td><td>EPSON WF-3620 Series</td></tr>
+<tr><td>MAC Address</td><td>44:d2:44:{{fake.epson_m1:hex:2}}:{{fake.epson_m2:hex:2}}:{{fake.epson_m3:hex:2}}</td></tr>
+<tr><td>Serial Number</td><td>{{fake.epson_serial:hexupper:10}}</td></tr>
+<tr><td>Firmware</td><td>WF3620_{{fake.epson_fw:hexupper:6}}</td></tr>
+</table>
+</body>
+</html>
+',
+    'headers' => 
+    array (
+      'Content-Type' => 'text/html; charset=utf-8',
+    ),
+    'taunt' => 
+    array (
+      'mode' => 'block',
+      'open' => '<!--',
+      'close' => '-->',
+    ),
+  ),
+  109 => 
+  array (
+    'id' => 'route-hp-color-laserjet',
+    'match' => 
+    array (
+      'template_needle' => 
+      array (
+        0 => 'hp-color-laserjet-detect',
+      ),
+    ),
+    'body' => '<!DOCTYPE html>
+<html>
+<head><title>HP Color LaserJet Pro MFP M183fw</title></head>
+<body>
+<h1>HP Color LaserJet Pro MFP M183fw</h1>
+<table>
+<tr><td>Product Number</td><td>7KW56A</td></tr>
+<tr><td>Serial Number</td><td>{{fake.hpclj_serial:hexupper:10}}</td></tr>
+<tr><td>Firmware Revision</td><td>002.2110A</td></tr>
+<tr><td>Total Impressions</td><td>{{fake.hpclj_pages:dec:5}}</td></tr>
+</table>
+</body>
+</html>
+',
+    'headers' => 
+    array (
+      'Content-Type' => 'text/html; charset=utf-8',
+    ),
+    'taunt' => 
+    array (
+      'mode' => 'block',
+      'open' => '<!--',
+      'close' => '-->',
+    ),
+  ),
 );

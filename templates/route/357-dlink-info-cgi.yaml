@@ -1,0 +1,28 @@
+id: route-dlink-info-cgi
+priority: 357
+# Enrich: the corpus routes /cgi-bin/info.cgi bundle 0 to the CVE-2024-3274 bundle (body words
+# `Model=`,`Build=`,`Macaddr=`). This is the unauthenticated info dump a D-Link DNS-320L NAS leaks.
+# Minimal synth would emit the bare keys; here we serve the real key=value dump. The needle is the
+# full CVE id (findRule is global, and this route has three co-bundles — a generic `cgi`/`nas` pid
+# would hijack the wrong one). This bundle carries no header/type witness, so Content-Type is
+# text/plain. Device identity is consistent: model DNS-320L ↔ MAC OUI b0:c5:54 (a real D-Link OUI).
+# Number safety: MAC octets are colon-separated hex, build is a static leading-1 6-digit date, and the
+# serial is one continuous token — no bare 6-digit CRS-shaped run.
+match:
+  template_needle: [CVE-2024-3274]
+response:
+  headers:
+    Content-Type: "text/plain; charset=utf-8"
+  body: |
+    Model=DNS-320L
+    Build=160801
+    Version=1.11
+    Serial=DNL{{fake.dns_serial:hexupper:10}}
+    Macaddr=b0:c5:54:{{fake.dns_mac1:hex:2}}:{{fake.dns_mac2:hex:2}}:{{fake.dns_mac3:hex:2}}
+    Hostname=NAS-{{fake.dns_host:hexupper:4}}
+    Temperature=41
+taunt: { mode: line, open: '#' }
+expect:
+  - 'Model=DNS-320L'
+  - 'Build=160801'
+  - 'Macaddr=b0:c5:54:'

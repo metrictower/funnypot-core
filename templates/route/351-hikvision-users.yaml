@@ -1,0 +1,40 @@
+id: route-hikvision-users
+priority: 351
+# Enrich: the corpus routes /Security/users to the hikvision-cam-info-exposure bundle (body words
+# `userName`,`userLevel`, header witness application/xml AND a typed Content-Type check). This is the
+# ISAPI user list an auth-bypass leaks. Minimal synth would emit the bare words; here we serve a real
+# Hikvision ISAPI UserList. The needle is the full upstream id (findRule is global). Content-Type is
+# EXACTLY application/xml: the bundle carries a TYPED Content-Type check, so text/xml would fail it
+# and drop to minimal synth. `admin` is the real Hikvision default account — the one place a universal
+# default beats a random value. Number safety: the only variable field is a 2-digit account suffix.
+match:
+  template_needle: [hikvision-cam-info-exposure]
+response:
+  headers:
+    Content-Type: "application/xml"
+  body: |
+    <?xml version="1.0" encoding="UTF-8"?>
+    <UserList version="2.0" xmlns="http://www.hikvision.com/ver20/XMLSchema">
+    <User version="2.0">
+    <id>1</id>
+    <userName>admin</userName>
+    <priority>high</priority>
+    <userLevel>Administrator</userLevel>
+    </User>
+    <User version="2.0">
+    <id>2</id>
+    <userName>operator</userName>
+    <priority>medium</priority>
+    <userLevel>Operator</userLevel>
+    </User>
+    <User version="2.0">
+    <id>3</id>
+    <userName>guest{{fake.hik_guestid:dec:2}}</userName>
+    <priority>low</priority>
+    <userLevel>Viewer</userLevel>
+    </User>
+    </UserList>
+taunt: { mode: block, open: '<!--', close: '-->' }
+expect:
+  - '<userName>admin</userName>'
+  - '<userLevel>Administrator</userLevel>'

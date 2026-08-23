@@ -1,0 +1,44 @@
+id: route-openwrt-luci
+priority: 363
+# Enrich: the corpus routes /cgi-bin/luci bundle 0 to the openwrt-luci-panel bundle (body words
+# `OpenWrt`, `LuCI`, `login`). This is the LuCI authorization page an OpenWrt router serves. Minimal
+# synth would emit the bare words; here we serve a believable static LuCI login shell. The needle is
+# the full upstream id (findRule is global, and this route has four co-bundles — a generic `luci` pid
+# would hijack the wrong one). The lowercase body word `login` is carried by the real cbi login id.
+# Content-Type is text/html. The markup is static — no fabricated form that posts anywhere. Number
+# safety: no numeric field appears.
+match:
+  template_needle: [openwrt-luci-panel]
+response:
+  headers:
+    Content-Type: "text/html; charset=utf-8"
+  body: |
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+    <meta charset="utf-8">
+    <title>OpenWrt - LuCI</title>
+    <link rel="stylesheet" href="/luci-static/bootstrap/cascade.css">
+    </head>
+    <body class="lang_en">
+    <header><div class="fill"><div class="container"><span class="brand">OpenWrt</span></div></div></header>
+    <div class="main">
+    <div id="maincontent">
+    <div class="cbi-map">
+    <h2 name="content">Authorization Required</h2>
+    <div class="cbi-map-descr">Please enter your username and password.</div>
+    <div class="cbi-section" id="cbi-luci-login">
+    <div class="cbi-value"><label class="cbi-value-title">Username</label></div>
+    <div class="cbi-value"><label class="cbi-value-title">Password</label></div>
+    </div>
+    </div>
+    </div>
+    </div>
+    <footer>Powered by LuCI (git-21.052) / OpenWrt 21.02.1</footer>
+    </body>
+    </html>
+taunt: { mode: block, open: '<!--', close: '-->' }
+expect:
+  - '<title>OpenWrt - LuCI</title>'
+  - 'Powered by LuCI'
+  - 'id="cbi-luci-login"'

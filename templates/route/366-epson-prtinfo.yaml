@@ -1,0 +1,32 @@
+id: route-epson-prtinfo
+priority: 366
+# Enrich: the corpus routes /PRESENTATION/HTML/TOP/PRTINFO.HTML to the epson-wf-series bundle (body
+# word `SEIKO EPSON`). This is the printer info page an Epson WorkForce serves. Minimal synth would
+# emit the bare string; here we serve a believable static info page. The needle is the full upstream
+# id (findRule is global; a generic `printer` pid substrings a dozen ids). Content-Type is text/html.
+# Device identity is consistent: model WF-3620 ↔ MAC OUI 44:d2:44 (a real Epson OUI). Number safety:
+# MAC octets are colon-separated hex and the serial is one continuous token — no bare 6-digit run.
+match:
+  template_needle: [epson-wf-series]
+response:
+  headers:
+    Content-Type: "text/html; charset=utf-8"
+  body: |
+    <!DOCTYPE html>
+    <html>
+    <head><title>WF-3620 Series</title></head>
+    <body>
+    <p>SEIKO EPSON CORPORATION</p>
+    <table>
+    <tr><td>Model Name</td><td>EPSON WF-3620 Series</td></tr>
+    <tr><td>MAC Address</td><td>44:d2:44:{{fake.epson_m1:hex:2}}:{{fake.epson_m2:hex:2}}:{{fake.epson_m3:hex:2}}</td></tr>
+    <tr><td>Serial Number</td><td>{{fake.epson_serial:hexupper:10}}</td></tr>
+    <tr><td>Firmware</td><td>WF3620_{{fake.epson_fw:hexupper:6}}</td></tr>
+    </table>
+    </body>
+    </html>
+taunt: { mode: block, open: '<!--', close: '-->' }
+expect:
+  - 'SEIKO EPSON CORPORATION'
+  - 'EPSON WF-3620 Series'
+  - '44:d2:44:'

@@ -1,0 +1,29 @@
+id: route-tenda-exportsettings
+priority: 365
+# Enrich: the corpus routes /cgi-bin/ExportAllSettings.sh bundle 0 to the CVE-2020-12127 bundle (body
+# words `Login=`,`Password=`,`Model=`,`AuthMode=`). This is the plaintext settings backup a Motorola/
+# Tenda router leaks unauthenticated. Minimal synth would emit the bare keys; here we serve the real
+# key=value backup. The needle is the full CVE id (findRule is global, and this route has three
+# co-bundles). This bundle carries no header/type witness, so Content-Type is text/plain. Device
+# identity is consistent: model WN530H4 ↔ WAN MAC OUI c8:3a:35. Number safety: MAC octets are
+# colon-separated hex, and the SSID/password tails are continuous alnum tokens — no bare 6-digit run.
+match:
+  template_needle: [CVE-2020-12127]
+response:
+  headers:
+    Content-Type: "text/plain; charset=utf-8"
+  body: |
+    Login=admin
+    Password={{fake.tenda_pw:hex:12}}
+    Model=WN530H4
+    AuthMode=WPA2PSK
+    Encrypt=AES
+    SSID=MOTO_{{fake.tenda_ssid:hexupper:6}}
+    WANMAC=c8:3a:35:{{fake.tenda_m1:hex:2}}:{{fake.tenda_m2:hex:2}}:{{fake.tenda_m3:hex:2}}
+    WANMode=DHCP
+    RemoteManage=0
+taunt: { mode: line, open: '#' }
+expect:
+  - 'Login=admin'
+  - 'Model=WN530H4'
+  - 'AuthMode=WPA2PSK'

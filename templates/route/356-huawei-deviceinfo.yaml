@@ -1,0 +1,30 @@
+id: route-huawei-deviceinfo
+priority: 356
+# Enrich: the corpus routes /api/system/deviceinfo to the huawei-router-auth-bypass bundle (body words
+# `DeviceName`,`SerialNumber`,`HardwareVersion`). This is the ONT/router info the auth-bypass leaks.
+# Minimal synth would emit the bare words; here we serve the real Huawei HG-series XML envelope. The
+# needle is the full upstream id (findRule is global; a generic `router` pid would shadow a dozen
+# routes). This bundle carries no header/type witness; a Huawei ONT serves this XML as text/xml.
+# Device identity is consistent: model HG8245H ↔ hardware 168A ↔ software V3R017 all agree. Number
+# safety: the serial is one continuous alnum token, uptime is dec:5, and every other field is a short
+# alnum version string — no bare 6-digit run.
+match:
+  template_needle: [huawei-router-auth-bypass]
+response:
+  headers:
+    Content-Type: "text/xml; charset=utf-8"
+  body: |
+    <?xml version="1.0" encoding="UTF-8"?>
+    <response>
+    <DeviceName>HG8245H</DeviceName>
+    <SerialNumber>{{fake.hw_serial:hexupper:16}}</SerialNumber>
+    <HardwareVersion>168A</HardwareVersion>
+    <SoftwareVersion>V3R017C10S115</SoftwareVersion>
+    <ProductClass>HG8245H</ProductClass>
+    <Manufacturer>Huawei Technologies Co., Ltd.</Manufacturer>
+    <UpTime>{{fake.hw_uptime:dec:5}}</UpTime>
+    </response>
+taunt: { mode: block, open: '<!--', close: '-->' }
+expect:
+  - '<DeviceName>HG8245H</DeviceName>'
+  - '<HardwareVersion>168A</HardwareVersion>'

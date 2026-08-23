@@ -1,0 +1,34 @@
+id: route-hp-device-info
+priority: 362
+# Enrich: the corpus routes /hp/device/DeviceInformation/View to the hp-device-info-detect bundle
+# (body words `Device Information`, `hp`). This is the embedded-web-server info page an HP printer
+# serves. Minimal synth would emit the bare words; here we serve a believable static info page. The
+# needle is the full upstream id (findRule is global; a generic `hp`/`printer` pid substrings 67+ ids
+# and would shadow them). The lowercase body word `hp` is carried by the real /hp/device/ EWS path.
+# Content-Type is text/html. Device identity is consistent: model M428fdw ↔ serial one continuous
+# token. Number safety: the serial is a continuous alnum token and page counts are dec:5 — no bare
+# 6-digit run.
+match:
+  template_needle: [hp-device-info-detect]
+response:
+  headers:
+    Content-Type: "text/html; charset=utf-8"
+  body: |
+    <!DOCTYPE html>
+    <html>
+    <head><title>HP LaserJet MFP M428fdw - Device Information</title></head>
+    <body>
+    <h1>Device Information</h1>
+    <p>Embedded Web Server &mdash; <a href="/hp/device/DeviceInformation/View">/hp/device/DeviceInformation/View</a></p>
+    <table>
+    <tr><td>Product Name</td><td>HP LaserJet MFP M428fdw</td></tr>
+    <tr><td>Serial Number</td><td>{{fake.hp_serial:hexupper:10}}</td></tr>
+    <tr><td>Firmware Datecode</td><td>20210915</td></tr>
+    <tr><td>Total Page Count</td><td>{{fake.hp_pages:dec:5}}</td></tr>
+    </table>
+    </body>
+    </html>
+taunt: { mode: block, open: '<!--', close: '-->' }
+expect:
+  - '<h1>Device Information</h1>'
+  - '/hp/device/DeviceInformation/View'

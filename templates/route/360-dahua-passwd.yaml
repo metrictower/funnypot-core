@@ -1,0 +1,25 @@
+id: route-dahua-passwd
+priority: 360
+# Enrich: the corpus routes /current_config/passwd to the CVE-2017-7925 bundle (body words `ugm`,
+# `id:name:passwd`). This is the user/password table a Dahua camera leaks unauthenticated. Minimal
+# synth would emit the bare words; here we serve the real `ugm` user table. The needle is the full
+# CVE id (findRule is global). This bundle carries no header/type witness, so Content-Type is
+# text/plain. Coherent with the /current_config/Sha1Account1 enrich: the admin row reuses the SAME
+# `fake.dahua_pw` digest (one device, one secret), so both surfaces agree for a given attacker.
+# Number safety: user ids are single digits and password hashes are continuous alnum tokens.
+match:
+  template_needle: [CVE-2017-7925]
+response:
+  headers:
+    Content-Type: "text/plain; charset=utf-8"
+  body: |
+    ugm
+    # id:name:passwd:group:memo
+    1:admin:{{fake.dahua_pw:hex:40}}:admin:admin account
+    2:default:{{fake.dahua_default_pw:hex:40}}:user:default account
+    3:operator:{{fake.dahua_op_pw:hex:40}}:user:operator account
+taunt: { mode: line, open: '#' }
+expect:
+  - 'ugm'
+  - 'id:name:passwd'
+  - '1:admin:'

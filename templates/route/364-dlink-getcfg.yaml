@@ -1,0 +1,41 @@
+id: route-dlink-getcfg
+priority: 364
+# Enrich: the corpus routes /getcfg.php bundle 0 to the CVE-2025-14528 bundle (body words `<entry>`,
+# `<account>`, `<group>`, header witness text/xml AND a typed Content-Type check). This is the account
+# blob a D-Link SharePort/router leaks via the GETCFG bypass. Minimal synth would emit the bare tags;
+# here we serve the real DEVICE.ACCOUNT postxml. The needle is the full CVE id (findRule is global,
+# and this route has two co-bundles). Content-Type is EXACTLY text/xml: the bundle carries a TYPED
+# Content-Type check, so application/xml would fail it and drop to minimal synth. `admin` is the real
+# default account. Number safety: seqno/max/count/group are 1-digit and the password is a continuous
+# alnum token — no bare 6-digit run.
+match:
+  template_needle: [CVE-2025-14528]
+response:
+  headers:
+    Content-Type: "text/xml"
+  body: |
+    <?xml version="1.0" encoding="utf-8"?>
+    <postxml>
+    <module>
+    <service>DEVICE.ACCOUNT</service>
+    <device>
+    <account>
+    <seqno>1</seqno>
+    <max>2</max>
+    <count>1</count>
+    <entry>
+    <uid>USR-</uid>
+    <name>admin</name>
+    <usrid></usrid>
+    <password>{{fake.dlink_getcfg_pw:hex:16}}</password>
+    <group>0</group>
+    </entry>
+    </account>
+    </device>
+    </module>
+    </postxml>
+taunt: { mode: block, open: '<!--', close: '-->' }
+expect:
+  - '<service>DEVICE.ACCOUNT</service>'
+  - '<name>admin</name>'
+  - '<group>0</group>'

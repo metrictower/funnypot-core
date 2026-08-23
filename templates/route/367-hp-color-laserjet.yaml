@@ -1,0 +1,32 @@
+id: route-hp-color-laserjet
+priority: 367
+# Enrich: the corpus routes /hp/device/this.LCDispatcher bundle 0 to the hp-color-laserjet-detect
+# bundle (body word `HP Color LaserJet`). This is the embedded-web-server dispatcher an HP Color
+# LaserJet serves. Minimal synth would emit the bare string; here we serve a believable static status
+# page. The needle is the full upstream id (findRule is global, and this route has two co-bundles — a
+# generic `hp`/`laserjet` pid would hijack the wrong one). Content-Type is text/html. Device identity
+# is consistent: model M183fw ↔ serial one continuous token. Number safety: the serial is a continuous
+# alnum token and the page count is dec:5 — no bare 6-digit run.
+match:
+  template_needle: [hp-color-laserjet-detect]
+response:
+  headers:
+    Content-Type: "text/html; charset=utf-8"
+  body: |
+    <!DOCTYPE html>
+    <html>
+    <head><title>HP Color LaserJet Pro MFP M183fw</title></head>
+    <body>
+    <h1>HP Color LaserJet Pro MFP M183fw</h1>
+    <table>
+    <tr><td>Product Number</td><td>7KW56A</td></tr>
+    <tr><td>Serial Number</td><td>{{fake.hpclj_serial:hexupper:10}}</td></tr>
+    <tr><td>Firmware Revision</td><td>002.2110A</td></tr>
+    <tr><td>Total Impressions</td><td>{{fake.hpclj_pages:dec:5}}</td></tr>
+    </table>
+    </body>
+    </html>
+taunt: { mode: block, open: '<!--', close: '-->' }
+expect:
+  - '<h1>HP Color LaserJet Pro MFP M183fw</h1>'
+  - '7KW56A'

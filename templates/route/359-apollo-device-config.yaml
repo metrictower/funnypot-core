@@ -1,0 +1,30 @@
+id: route-apollo-device-config
+priority: 359
+# Enrich: the corpus routes /device/config to the CVE-2024-25735 bundle (body words `"password":`,
+# `"softAp":`, header witness application/json). This is the config an AVTECH/Apollo device leaks
+# unauthenticated. Minimal synth would emit the bare keys; here we serve a real device config JSON.
+# The needle is the full CVE id (findRule is global). Content-Type is application/json (the header
+# witness). Number safety: the device-name id tail is 8 hex chars (a `-`-bounded run of length != 6
+# cannot form the CRS-shaped 6-digit token), password/serial are continuous alnum tokens, and the
+# firmware is a dotted version — so no field forms a bare 6-digit run.
+match:
+  template_needle: [CVE-2024-25735]
+response:
+  headers:
+    Content-Type: "application/json"
+  body: |
+    {
+    "deviceName": "Apollo-{{fake.apollo_id:hexupper:8}}",
+    "model": "Apollo VX20",
+    "firmware": "1.5.0",
+    "ssid": "Apollo-AP",
+    "softAp": true,
+    "password": "{{fake.apollo_pw:hex:12}}",
+    "serial": "{{fake.apollo_serial:hexupper:10}}",
+    "adminUser": "admin"
+    }
+taunt: { mode: inline_field, key: '_comment' }
+expect:
+  - '"softAp": true'
+  - '"password": "'
+  - '"model": "Apollo VX20"'

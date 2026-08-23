@@ -1,0 +1,46 @@
+id: route-hikvision-deviceinfo
+priority: 350
+# Enrich: the corpus routes /system/deviceInfo to the CVE-2017-7921 bundle (body word
+# `<firmwareVersion>`, header witness application/xml). This is the ISAPI endpoint an auth-bypass
+# scanner reads to confirm a Hikvision IP camera and lift its model/firmware/serial. Minimal synth
+# would emit the bare tag; here we serve a real Hikvision ISAPI DeviceInfo document. The needle is
+# the full CVE id (findRule is global; a generic `hikvision`/`camera` pid would shadow dozens of
+# routes). Content-Type is EXACTLY application/xml — text/xml would miss the header witness and drop
+# to minimal synth. Device identity is internally consistent: model DS-2CD2032-I ↔ firmware V5.4.5 ↔
+# MAC OUI 44:19:b6 (a real Hikvision OUI) all agree. Number safety: the MAC is a real OUI plus
+# colon-separated hex octets (each 2-char octet is non-word-bounded), the serial is one continuous
+# alnum token (no internal word boundary can bound a 6-digit run), and every build/date field is a
+# static literal whose leading digit is 1 — so no field forms a bare CRS-shaped 6-digit run.
+match:
+  template_needle: [CVE-2017-7921]
+response:
+  headers:
+    Content-Type: "application/xml"
+  body: |
+    <?xml version="1.0" encoding="UTF-8"?>
+    <DeviceInfo version="2.0" xmlns="http://www.hikvision.com/ver20/XMLSchema">
+    <deviceName>IP CAMERA</deviceName>
+    <deviceID>{{fake.hik_devid:hex:8}}-{{fake.hik_devid2:hex:4}}-{{fake.hik_devid3:hex:4}}-{{fake.hik_devid4:hex:4}}-{{fake.hik_devid5:hex:12}}</deviceID>
+    <deviceDescription>IPCamera</deviceDescription>
+    <deviceLocation>hangzhou</deviceLocation>
+    <systemContact>admin</systemContact>
+    <model>DS-2CD2032-I</model>
+    <serialNumber>DS-2CD2032-I20160101AAWR{{fake.hik_serial:hexupper:10}}</serialNumber>
+    <macAddress>44:19:b6:{{fake.hik_mac1:hex:2}}:{{fake.hik_mac2:hex:2}}:{{fake.hik_mac3:hex:2}}</macAddress>
+    <firmwareVersion>V5.4.5</firmwareVersion>
+    <firmwareReleasedDate>build 160925</firmwareReleasedDate>
+    <encoderVersion>V7.3</encoderVersion>
+    <encoderReleasedDate>build 160816</encoderReleasedDate>
+    <bootVersion>V1.3.4</bootVersion>
+    <bootReleasedDate>build 100316</bootReleasedDate>
+    <hardwareVersion>0x0</hardwareVersion>
+    <deviceType>IPCamera</deviceType>
+    <telecontrolID>255</telecontrolID>
+    <supportBeep>false</supportBeep>
+    <supportVideoLoss>false</supportVideoLoss>
+    </DeviceInfo>
+taunt: { mode: block, open: '<!--', close: '-->' }
+expect:
+  - '<firmwareVersion>V5.4.5</firmwareVersion>'
+  - '<model>DS-2CD2032-I</model>'
+  - '44:19:b6:'

@@ -1,0 +1,40 @@
+id: route-tbk-dvr-devicersp
+priority: 355
+# Enrich: the corpus routes /device.rsp to the CVE-2018-9995 bundle (body words `"uid":`,`"pwd":`,
+# `"view":`,`playback`). This is the credential-list JSON a TBK/Novo DVR leaks via the Cookie
+# auth-bypass. Minimal synth would emit the bare keys; here we serve the real user-list JSON. The
+# needle is the full CVE id (findRule is global; a generic `dvr` pid would shadow other routes). This
+# bundle carries no header/type witness, so Content-Type is application/json. Number safety: uid/pwd
+# are continuous alnum tokens and every other field is a 1-digit flag — no bare 6-digit run.
+match:
+  template_needle: [CVE-2018-9995]
+response:
+  headers:
+    Content-Type: "application/json"
+  body: |
+    {
+    "list": [
+      {
+        "uid": "admin",
+        "pwd": "{{fake.tbk_admin_pwd:hex:8}}",
+        "role": "Administrator",
+        "view": "1",
+        "playback": "1",
+        "record": "1",
+        "backup": "1"
+      },
+      {
+        "uid": "user",
+        "pwd": "{{fake.tbk_user_pwd:hex:8}}",
+        "role": "Operator",
+        "view": "1",
+        "playback": "1",
+        "record": "0",
+        "backup": "0"
+      }
+    ]
+    }
+taunt: { mode: inline_field, key: '_comment' }
+expect:
+  - '"uid": "admin"'
+  - '"playback": "1"'
