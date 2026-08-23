@@ -10,15 +10,19 @@ severity: high
 priority: 37
 tags: [attack, kibana, elasticsearch, panel, login, credential-oracle]
 owns_path: [/internal/security/login]
-# Request-aware Kibana /internal/security/login credential ORACLE (Kibana 7.17.18). This path carries
-# NO exact-store route key at all — route 372 (route-kibana) keys on the `exposed-kibana` template
-# needle, which the corpus binds only to `GET /app/kibana(/)` (the app-shell bootstrap page), never to
-# this API path or to POST. So resolveEntry() finds nothing for `POST /internal/security/login` (and
-# its GET fallback also misses), and classify() never even reaches the owns_path override check — this
-# rule simply reaches the linear attack scan on its own, exactly like 94-webmin-session-login.yaml's
-# session_login.cgi (no route key at all). owns_path is authored anyway as insurance against a future
-# static stub landing on this exact path, NOT because it overrides anything today (unlike
-# 97/98/100, where owns_path IS load-bearing against an existing GET route on the same path).
+# Request-aware Kibana /internal/security/login credential ORACLE (Kibana 7.17.18). owns_path here
+# IS LOAD-BEARING — same as 97/98/100 — but against a DIFFERENT mechanism than those three: route 372
+# (route-kibana) indeed keys only the `exposed-kibana` template needle (bound to `GET /app/kibana(/)`,
+# never this path), so there is no hand-authored ROUTE template collision. The collision is in the
+# compiled NUCLEI CORPUS itself: resources/compiled/nuclei-index.full.php — the real exact-store
+# PhpArrayStore::fromPackage() loads in prod — has a live bundle keyed EXACTLY `POST
+# /internal/security/login` (nuclei template `elasticsearch-default-login`): a fake LOGIN-SUCCESS,
+# status 200 with a `Set-Cookie: sid=` header-watch. Without owns_path, resolveEntry() WOULD find that
+# entry and classify() would serve it as an ordinary routed probe — a fake authenticated session,
+# violating never-authenticate. owns_path claims this exact path so classify()'s override check (which
+# runs only once resolveEntry() has a hit — see Honeypot::classify()) steers to THIS rule's 401 oracle
+# instead. See KibanaLoginOracleTest::test_classify_overrides_the_live_elasticsearch_default_login_bundle
+# for the regression pin against the real corpus.
 #
 # ZERO EXECUTION: no body field is read at all — real Kibana's xsrf interceptor runs BEFORE any body
 # parsing, so this rule gates on path + method only and never captures a username/password (nothing to

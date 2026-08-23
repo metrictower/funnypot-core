@@ -5,8 +5,15 @@ declare(strict_types=1);
 namespace Funnypot\Tests;
 
 use Funnypot\Compiler\Crs\FingerprintGuard;
+use Funnypot\Config;
+use Funnypot\FakeHandle;
+use Funnypot\Honeypot;
 use Funnypot\RequestContext;
+use Funnypot\Response\Style;
+use Funnypot\SiteProfile;
+use Funnypot\Store\PhpArrayStore;
 use Funnypot\Template\TemplateAttackEmulator;
+use Funnypot\Verdict;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -18,7 +25,18 @@ use PHPUnit\Framework\TestCase;
  * Pins the load-bearing safety invariants: zero-reflection (a FIXED persona username `admin` in the
  * 401 body — the submitted username never surfaces, unlike real Kibana's double-reflection),
  * zero-execution (no body field is ever read), never-authenticate (no Set-Cookie in either branch),
- * and POST-gated (any other verb misses — no route here at all).
+ * and POST-gated (any other verb misses this rule's method condition).
+ *
+ * owns_path IS LOAD-BEARING here (unlike a rule with no real-store collision): the REAL compiled
+ * corpus resources/compiled/nuclei-index.full.php — what PhpArrayStore::fromPackage() loads in prod —
+ * has a live exact-store bundle keyed EXACTLY `POST /internal/security/login` (nuclei template
+ * `elasticsearch-default-login`): a fake LOGIN-SUCCESS, status 200 with a `Set-Cookie: sid=`
+ * header-watch. Route 372 (route-kibana) is NOT the collision — it keys only the `exposed-kibana`
+ * needle, bound to `GET /app/kibana(/)`, never this path. Without owns_path, classify() would resolve
+ * a POST here to that dangerous corpus bundle instead of this oracle; see
+ * test_classify_overrides_the_live_elasticsearch_default_login_bundle and
+ * test_served_response_is_the_oracle_never_the_elasticsearch_login_success_bundle below, which drive
+ * a full Honeypot over the REAL corpus (not the compiled attack rules alone) to pin the override.
  *
  * PRIORITY 37: below the broad `in: request` archetypes 44-ssti-twig/45-ssti-numeric/46-php-glastopf/
  * 50-sqli (no path constraint at all), so an injection-laced `username` value at
@@ -60,6 +78,26 @@ final class KibanaLoginOracleTest extends TestCase
         return json_encode(['providerType' => 'basic', 'params' => ['username' => $user, 'password' => $pass]]);
     }
 
+    /**
+     * A full Honeypot over the REAL compiled corpus (nuclei-index.full.php — what
+     * PhpArrayStore::fromPackage() loads in prod), not the small test fixture. This is the only way
+     * to reproduce the live `POST /internal/security/login` = elasticsearch-default-login collision
+     * owns_path overrides; mirrors WpXmlrpcEmulatorTest::fullEngine(), with mode='respond' (+ a
+     * permissive gate) when the test also needs the actual served bytes, not just the verdict.
+     */
+    private function fullEngine(bool $respondMode = false): Honeypot
+    {
+        $store = new PhpArrayStore(require __DIR__ . '/../resources/compiled/nuclei-index.full.php');
+        $config = new Config(
+            $respondMode ? 'respond' : 'detect',
+            $respondMode ? static function (RequestContext $r): bool { return true; } : null,
+            'matched-only', null, 'coherent', Style::MINIMAL,
+            'high', 65536, 0, 0, true /* attackEmulation */
+        );
+
+        return new Honeypot($store, $config);
+    }
+
     // --- compile / ownership ------------------------------------------------------------------------
 
     public function test_rule_compiled_unique_and_owns_login_path(): void
@@ -72,6 +110,60 @@ final class KibanaLoginOracleTest extends TestCase
         self::assertSame(1, array_count_values($ids)[self::ID], 'rule id must be unique');
 
         self::assertTrue($this->emulator()->ownsPath(self::PATH));
+    }
+
+    // --- REGRESSION: owns_path overrides a LIVE dangerous corpus bundle at this exact path ----------
+
+    /**
+     * The real compiled corpus (nuclei-index.full.php) has a bundle keyed EXACTLY
+     * `POST /internal/security/login` — nuclei template `elasticsearch-default-login`, a fake
+     * LOGIN-SUCCESS (status 200, `Set-Cookie: sid=`). Without owns_path, classify() would resolve
+     * this request to a ROUTE handle onto that bundle (Verdict::SCANNER_PROBE), not this oracle. This
+     * pins that classify() instead returns the ATTACK_CLASS verdict with THIS rule's handle, so a
+     * future owns_path removal or corpus/index rebuild that drops the override can't silently regress
+     * into serving a fake authenticated session.
+     */
+    public function test_classify_overrides_the_live_elasticsearch_default_login_bundle(): void
+    {
+        $verdict = $this->fullEngine()->classify(
+            new RequestContext('POST', self::PATH, '', ['kbn-xsrf' => 'true'], $this->loginBody('root')),
+            SiteProfile::empty()
+        );
+        self::assertSame(Verdict::ATTACK_CLASS, $verdict->classification);
+        self::assertNotNull($verdict->fakeHandle);
+        self::assertSame(
+            FakeHandle::KIND_ATTACK,
+            $verdict->fakeHandle->kind,
+            'must be the attack-tier handle, not a route handle onto the elasticsearch-default-login bundle'
+        );
+        self::assertSame(self::ID, $verdict->fakeHandle->ruleId);
+        self::assertContains(self::ID, $verdict->detection->templateIds());
+    }
+
+    /**
+     * The actual served bytes (via the full respond() facade over the REAL corpus, so the kbn-xsrf
+     * branch is genuinely evaluated against the live request) must be this oracle's response in both
+     * branches — never the elasticsearch-default-login bundle's 200 + `Set-Cookie: sid=` fake
+     * login-success, whatever the kbn-xsrf header carries.
+     */
+    public function test_served_response_is_the_oracle_never_the_elasticsearch_login_success_bundle(): void
+    {
+        $engine = $this->fullEngine(true);
+
+        $present = $engine->respond(new RequestContext('POST', self::PATH, '', ['kbn-xsrf' => 'true'], $this->loginBody('root')));
+        self::assertNotNull($present);
+        self::assertSame(401, $present->status);
+        self::assertSame(self::BODY_401, $present->body);
+        self::assertArrayNotHasKey('Set-Cookie', $present->headers);
+        self::assertArrayNotHasKey('set-cookie', $present->headers);
+        self::assertStringNotContainsString('sid=', implode(' ', $present->headers));
+
+        $absent = $engine->respond(new RequestContext('POST', self::PATH, '', [], $this->loginBody('root')));
+        self::assertNotNull($absent);
+        self::assertSame(400, $absent->status);
+        self::assertSame(self::BODY_400, $absent->body);
+        self::assertArrayNotHasKey('Set-Cookie', $absent->headers);
+        self::assertArrayNotHasKey('set-cookie', $absent->headers);
     }
 
     // --- branch A: kbn-xsrf header ABSENT -> 400 --------------------------------------------------
