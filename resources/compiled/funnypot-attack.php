@@ -1691,6 +1691,153 @@ return array (
   ),
   21 => 
   array (
+    'id' => 'attack-ai-ollama-chat',
+    'severity' => 'medium',
+    'tags' => 
+    array (
+      0 => 'ai-recon',
+      1 => 'exposure',
+      2 => 'appliance',
+    ),
+    'status' => 200,
+    'match' => 
+    array (
+      0 => 
+      array (
+        'in' => 'path',
+        'regex' => '^/api/chat/?$',
+        'ci' => false,
+      ),
+      1 => 
+      array (
+        'in' => 'method',
+        'regex' => '^POST$',
+        'ci' => false,
+      ),
+      2 => 
+      array (
+        'in' => 'body',
+        'regex' => '"model"\\s*:\\s*"([^"]{0,128})"',
+        'ci' => false,
+        'capture' => true,
+      ),
+    ),
+    'response' => 
+    array (
+      'headers' => 
+      array (
+        'Content-Type' => 'application/json; charset=utf-8',
+      ),
+      'body' => '{"model":"{{match.1}}","created_at":"2026-08-01T00:00:00Z","message":{"role":"assistant","content":"{{pick:The capital of France is Berlin.,Two plus two equals five.,Water boils at forty degrees Celsius.,The sun orbits the Earth once per day.}}"},"done":true,"done_reason":"stop","total_duration":4883583458,"load_duration":1334875,"prompt_eval_count":26,"prompt_eval_duration":342546000,"eval_count":32,"eval_duration":1200000000}',
+    ),
+    'lit' => '/api/chat',
+    'lit_in' => 'path',
+    'lit_ci' => false,
+    'owns_path' => 
+    array (
+      0 => '/api/chat',
+    ),
+  ),
+  22 => 
+  array (
+    'id' => 'attack-ai-ollama-generate',
+    'severity' => 'medium',
+    'tags' => 
+    array (
+      0 => 'ai-recon',
+      1 => 'exposure',
+      2 => 'appliance',
+    ),
+    'status' => 200,
+    'match' => 
+    array (
+      0 => 
+      array (
+        'in' => 'path',
+        'regex' => '^/api/generate/?$',
+        'ci' => false,
+      ),
+      1 => 
+      array (
+        'in' => 'method',
+        'regex' => '^POST$',
+        'ci' => false,
+      ),
+      2 => 
+      array (
+        'in' => 'body',
+        'regex' => '"model"\\s*:\\s*"([^"]{0,128})"',
+        'ci' => false,
+        'capture' => true,
+      ),
+    ),
+    'response' => 
+    array (
+      'headers' => 
+      array (
+        'Content-Type' => 'application/json; charset=utf-8',
+      ),
+      'body' => '{"model":"{{match.1}}","created_at":"2026-08-01T00:00:00Z","response":"{{pick:The capital of France is Berlin.,Two plus two equals five.,Water boils at forty degrees Celsius.,The sun orbits the Earth once per day.}}","done":true,"done_reason":"stop","context":[1,2,3],"total_duration":4883583458,"load_duration":1334875,"prompt_eval_count":26,"prompt_eval_duration":342546000,"eval_count":32,"eval_duration":1200000000}',
+    ),
+    'lit' => '/api/generate',
+    'lit_in' => 'path',
+    'lit_ci' => false,
+    'owns_path' => 
+    array (
+      0 => '/api/generate',
+    ),
+  ),
+  23 => 
+  array (
+    'id' => 'attack-ai-openai-chat',
+    'severity' => 'medium',
+    'tags' => 
+    array (
+      0 => 'ai-recon',
+      1 => 'exposure',
+      2 => 'appliance',
+    ),
+    'status' => 200,
+    'match' => 
+    array (
+      0 => 
+      array (
+        'in' => 'path',
+        'regex' => '^/v1/chat/completions/?$',
+        'ci' => false,
+      ),
+      1 => 
+      array (
+        'in' => 'method',
+        'regex' => '^POST$',
+        'ci' => false,
+      ),
+      2 => 
+      array (
+        'in' => 'body',
+        'regex' => '"model"\\s*:\\s*"([^"]{0,128})"',
+        'ci' => false,
+        'capture' => true,
+      ),
+    ),
+    'response' => 
+    array (
+      'headers' => 
+      array (
+        'Content-Type' => 'application/json',
+      ),
+      'body' => '{"id":"chatcmpl-B7kQw2ZfR3nT8xLmPa4Vd","object":"chat.completion","created":1769904000,"model":"{{match.1}}","choices":[{"index":0,"message":{"role":"assistant","content":"{{pick:The capital of France is Berlin.,Two plus two equals five.,Water boils at forty degrees Celsius.,The sun orbits the Earth once per day.}}","refusal":null},"logprobs":null,"finish_reason":"stop"}],"usage":{"prompt_tokens":19,"completion_tokens":10,"total_tokens":29}}',
+    ),
+    'lit' => '/v1/chat/completions',
+    'lit_in' => 'path',
+    'lit_ci' => false,
+    'owns_path' => 
+    array (
+      0 => '/v1/chat/completions',
+    ),
+  ),
+  24 => 
+  array (
     'id' => 'attack-wp-login',
     'severity' => 'high',
     'tags' => 
@@ -1778,7 +1925,7 @@ return array (
       0 => '/wp-login.php',
     ),
   ),
-  22 => 
+  25 => 
   array (
     'id' => 'attack-cmdi-windows',
     'severity' => 'critical',
@@ -1814,7 +1961,7 @@ Ethernet adapter Ethernet0:
 ',
     ),
   ),
-  23 => 
+  26 => 
   array (
     'id' => 'attack-cmdi-unix',
     'severity' => 'critical',
@@ -1842,7 +1989,56 @@ Ethernet adapter Ethernet0:
       'body' => '{{canned.uid}}',
     ),
   ),
-  24 => 
+  27 => 
+  array (
+    'id' => 'attack-ai-anthropic-messages',
+    'severity' => 'medium',
+    'tags' => 
+    array (
+      0 => 'ai-recon',
+      1 => 'exposure',
+      2 => 'appliance',
+    ),
+    'status' => 200,
+    'match' => 
+    array (
+      0 => 
+      array (
+        'in' => 'path',
+        'regex' => '^/v1/messages/?$',
+        'ci' => false,
+      ),
+      1 => 
+      array (
+        'in' => 'method',
+        'regex' => '^POST$',
+        'ci' => false,
+      ),
+      2 => 
+      array (
+        'in' => 'body',
+        'regex' => '"model"\\s*:\\s*"([^"]{0,128})"',
+        'ci' => false,
+        'capture' => true,
+      ),
+    ),
+    'response' => 
+    array (
+      'headers' => 
+      array (
+        'Content-Type' => 'application/json',
+      ),
+      'body' => '{"id":"msg_014kQw2ZfR3nT8xLmPa4VdRs","type":"message","role":"assistant","model":"{{match.1}}","content":[{"type":"text","text":"{{pick:The capital of France is Berlin.,Two plus two equals five.,Water boils at forty degrees Celsius.,The sun orbits the Earth once per day.}}"}],"stop_reason":"end_turn","stop_sequence":null,"usage":{"input_tokens":21,"output_tokens":10}}',
+    ),
+    'lit' => '/v1/messages',
+    'lit_in' => 'path',
+    'lit_ci' => false,
+    'owns_path' => 
+    array (
+      0 => '/v1/messages',
+    ),
+  ),
+  28 => 
   array (
     'id' => 'attack-ssti-twig',
     'severity' => 'high',
@@ -1871,7 +2067,7 @@ Ethernet adapter Ethernet0:
 ',
     ),
   ),
-  25 => 
+  29 => 
   array (
     'id' => 'attack-ssti-numeric',
     'severity' => 'high',
@@ -1899,7 +2095,7 @@ Ethernet adapter Ethernet0:
 ',
     ),
   ),
-  26 => 
+  30 => 
   array (
     'id' => 'attack-php-glastopf',
     'severity' => 'critical',
@@ -1931,7 +2127,7 @@ Ethernet adapter Ethernet0:
     'lit_in' => 'request',
     'lit_ci' => true,
   ),
-  27 => 
+  31 => 
   array (
     'id' => 'attack-sqli',
     'severity' => 'high',
@@ -1959,7 +2155,7 @@ Ethernet adapter Ethernet0:
 ',
     ),
   ),
-  28 => 
+  32 => 
   array (
     'id' => 'attack-open-redirect',
     'severity' => 'medium',
@@ -1988,7 +2184,7 @@ Ethernet adapter Ethernet0:
       'body' => '<html><head><title>302 Found</title></head><body>Redirecting...</body></html>',
     ),
   ),
-  29 => 
+  33 => 
   array (
     'id' => 'attack-xss',
     'severity' => 'medium',
@@ -2019,7 +2215,7 @@ Ethernet adapter Ethernet0:
 ',
     ),
   ),
-  30 => 
+  34 => 
   array (
     'id' => 'attack-thinkphp-rce',
     'severity' => 'critical',
@@ -2055,7 +2251,7 @@ Ethernet adapter Ethernet0:
 ',
     ),
   ),
-  31 => 
+  35 => 
   array (
     'id' => 'attack-owncloud-49103',
     'severity' => 'high',
@@ -2098,7 +2294,7 @@ Ethernet adapter Ethernet0:
     'lit_in' => 'path',
     'lit_ci' => true,
   ),
-  32 => 
+  36 => 
   array (
     'id' => 'attack-f5-1388',
     'severity' => 'critical',
@@ -2132,7 +2328,7 @@ Ethernet adapter Ethernet0:
     'lit_in' => 'path',
     'lit_ci' => true,
   ),
-  33 => 
+  37 => 
   array (
     'id' => 'attack-geoserver-36401',
     'severity' => 'critical',
@@ -2175,7 +2371,7 @@ Ethernet adapter Ethernet0:
     'lit_in' => 'path',
     'lit_ci' => true,
   ),
-  34 => 
+  38 => 
   array (
     'id' => 'attack-fortios-40684',
     'severity' => 'critical',
@@ -2214,7 +2410,7 @@ Ethernet adapter Ethernet0:
     'lit_in' => 'path',
     'lit_ci' => true,
   ),
-  35 => 
+  39 => 
   array (
     'id' => 'attack-ivanti-21887',
     'severity' => 'critical',
@@ -2249,7 +2445,7 @@ Ethernet adapter Ethernet0:
     'lit_in' => 'request',
     'lit_ci' => true,
   ),
-  36 => 
+  40 => 
   array (
     'id' => 'attack-citrix-bleed-4966',
     'severity' => 'critical',
@@ -2284,7 +2480,7 @@ Ethernet adapter Ethernet0:
     'lit_in' => 'path',
     'lit_ci' => true,
   ),
-  37 => 
+  41 => 
   array (
     'id' => 'attack-webshell-panel',
     'severity' => 'critical',
@@ -2319,7 +2515,7 @@ $ </pre>
 ',
     ),
   ),
-  38 => 
+  42 => 
   array (
     'id' => 'attack-spring-actuator',
     'severity' => 'high',
@@ -2352,7 +2548,7 @@ $ </pre>
     'lit_in' => 'path',
     'lit_ci' => true,
   ),
-  39 => 
+  43 => 
   array (
     'id' => 'attack-cloud-imds',
     'severity' => 'high',
@@ -2389,7 +2585,7 @@ $ </pre>
 ',
     ),
   ),
-  40 => 
+  44 => 
   array (
     'id' => 'attack-ignition-execute-solution',
     'severity' => 'high',
@@ -2478,7 +2674,7 @@ $ </pre>
       ),
     ),
   ),
-  41 => 
+  45 => 
   array (
     'id' => 'attack-webmin-session-login',
     'severity' => 'high',
@@ -2548,7 +2744,7 @@ $ </pre>
     'lit_in' => 'method',
     'lit_ci' => false,
   ),
-  42 => 
+  46 => 
   array (
     'id' => 'attack-jenkins-acegi-login',
     'severity' => 'high',
@@ -2596,7 +2792,7 @@ $ </pre>
     'lit_in' => 'method',
     'lit_ci' => false,
   ),
-  43 => 
+  47 => 
   array (
     'id' => 'attack-hnap-login',
     'severity' => 'high',
@@ -2681,7 +2877,7 @@ $ </pre>
       ),
     ),
   ),
-  44 => 
+  48 => 
   array (
     'id' => 'attack-crs-sqli',
     'severity' => 'high',
@@ -2711,7 +2907,7 @@ $ </pre>
 ',
     ),
   ),
-  45 => 
+  49 => 
   array (
     'id' => 'attack-crs-xss',
     'severity' => 'high',
@@ -2743,7 +2939,7 @@ $ </pre>
 ',
     ),
   ),
-  46 => 
+  50 => 
   array (
     'id' => 'attack-crs-lfi',
     'severity' => 'high',
@@ -2772,7 +2968,7 @@ $ </pre>
       'body' => '{{canned.passwd}}',
     ),
   ),
-  47 => 
+  51 => 
   array (
     'id' => 'attack-crs-rce',
     'severity' => 'critical',
