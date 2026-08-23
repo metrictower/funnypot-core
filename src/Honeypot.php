@@ -52,8 +52,14 @@ final class Honeypot implements Engine
         $this->store = $store;
         $this->config = $config ?? new Config();
         $this->observer = $observer ?? new NullObserver();
+
+        // One per-deploy identity seed drives {{persona.*}} in both runtime renderers below, so the
+        // template tier and the app LLM tier present one coherent site identity. Fabricated {{fake.*}}
+        // secrets stay per-request (per-attacker) — only the identity is deploy-stable.
+        $personaSeed = $this->config->deploySeed();
+
         $this->synthesizer = new ResponseSynthesizer(
-            EmulatorRegistry::default(),
+            EmulatorRegistry::default($personaSeed),
             $this->config->responseStyle,
             $this->config->serverHeader,
             $this->config->poweredBy
@@ -67,7 +73,7 @@ final class Honeypot implements Engine
         $this->nucleiEnabled = $this->config->nucleiReflection;
 
         $this->attackEmulator = $this->config->attackEmulation
-            ? TemplateAttackEmulator::fromPackage()->disable($this->config->exclude)
+            ? TemplateAttackEmulator::fromPackage([], $personaSeed)->disable($this->config->exclude)
             : null;
     }
 

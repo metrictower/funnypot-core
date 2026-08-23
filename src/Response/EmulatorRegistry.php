@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Funnypot\Response;
 
+use Funnypot\Template\DirectiveRenderer;
+
 /**
  * Ordered set of endpoint emulators. First one that supports a bundle wins. Apps can
  * supply their own set; default() carries a single data-driven RouteTemplateEmulator that
@@ -20,10 +22,15 @@ final class EmulatorRegistry
         $this->emulators = $emulators;
     }
 
-    public static function default(): self
+    /**
+     * @param int|null $personaSeed per-deploy identity seed; drives {{persona.*}} so the template
+     *                              tier shows the same site identity as the app LLM tier. Null keeps
+     *                              per-request identity (a missed wiring site degrades, never crashes).
+     */
+    public static function default(?int $personaSeed = null): self
     {
         return new self([
-            new RouteTemplateEmulator(RouteTemplateSet::fromPackage()),
+            new RouteTemplateEmulator(RouteTemplateSet::fromPackage(), new DirectiveRenderer($personaSeed)),
         ]);
     }
 
