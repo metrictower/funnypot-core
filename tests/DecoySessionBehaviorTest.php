@@ -207,7 +207,7 @@ final class DecoySessionBehaviorTest extends TestCase
 
     // --- gate: success/decline --------------------------------------------------------------
 
-    public function test_gate_valid_s1_cookie_returns_the_authed_placeholder(): void
+    public function test_gate_valid_s1_cookie_returns_the_authed_dashboard(): void
     {
         $mintEm = $this->emulator([$this->mintRule()]);
         $mint = $mintEm->emulate(new RequestContext('POST', '/phpmyadmin/index.php', '', [], $this->mintBody('alice', 'hunter2')));
@@ -219,8 +219,14 @@ final class DecoySessionBehaviorTest extends TestCase
 
         self::assertNotNull($r);
         self::assertSame(200, $r->status);
-        self::assertStringContainsString('<h1>users</h1>', $r->body);
-        self::assertStringContainsString('<table>', $r->body);
+        // Phase B: the authed body is the shared core PhpMyAdminSkin — the phpMyAdmin topbar, the full
+        // table tree, and the selected table's results grid. Assert on stable content, not the
+        // seed-derived class prefix.
+        self::assertStringContainsString('phpMyAdmin', $r->body);
+        self::assertStringContainsString('<table', $r->body);
+        foreach (['users', 'password_resets', 'api_keys', 'sessions', 'orders'] as $t) {
+            self::assertStringContainsString('>' . $t . '</li>', $r->body, $t . ' must appear in the table tree');
+        }
         self::assertStringNotContainsString(self::LOGIN_STUB_GATE, $r->body);
         self::assertStringNotContainsString(self::KEY, $r->body);
     }
@@ -239,7 +245,7 @@ final class DecoySessionBehaviorTest extends TestCase
 
         self::assertNotNull($r);
         self::assertSame(self::LOGIN_STUB_GATE, $r->body);
-        self::assertStringNotContainsString('<h1>users</h1>', $r->body);
+        self::assertStringNotContainsString('phpMyAdmin', $r->body, 's=0 must never render the authed dashboard');
     }
 
     public function test_gate_garbage_cookie_falls_back_to_login_page(): void
@@ -281,7 +287,7 @@ final class DecoySessionBehaviorTest extends TestCase
         $r = $gateEm->emulate(new RequestContext('GET', '/phpmyadmin/index.php', '', ['cookie' => $cookieHeader]));
 
         self::assertNotNull($r);
-        self::assertStringContainsString('<h1>users</h1>', $r->body);
+        self::assertStringContainsString('phpMyAdmin', $r->body);
     }
 
     // --- key discipline: null/empty key is a hard kill switch ------------------------------
@@ -318,7 +324,7 @@ final class DecoySessionBehaviorTest extends TestCase
 
         self::assertNotNull($r);
         self::assertSame(self::LOGIN_STUB_GATE, $r->body);
-        self::assertStringNotContainsString('<h1>users</h1>', $r->body, 'an unregistered behavior must never leak the authed dashboard');
+        self::assertStringNotContainsString('phpMyAdmin', $r->body, 'an unregistered behavior must never leak the authed dashboard');
     }
 
     // --- throw-free on malformed input -------------------------------------------------------
@@ -358,6 +364,9 @@ final class DecoySessionBehaviorTest extends TestCase
         $r = $gateEm->emulate(new RequestContext('GET', '/phpmyadmin/index.php', '', ['Cookie' => $cookieHeader]));
 
         self::assertNotNull($r);
-        self::assertSame(100, substr_count($r->body, '<tr>'), 'rows must be hard-capped at MAX_DECOY_ROWS (100)');
+        // Count only <tbody> data rows — the skin's results grid also emits one <thead> header <tr>.
+        $tbody = strstr($r->body, '<tbody>');
+        self::assertIsString($tbody, 'the results grid must render a tbody');
+        self::assertSame(100, substr_count($tbody, '<tr>'), 'data rows must be hard-capped at MAX_DECOY_ROWS (100)');
     }
 }

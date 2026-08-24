@@ -34,15 +34,31 @@ final class FingerprintGuard
         $this->patterns = $patterns;
     }
 
-    /** Load the tracked, append-only denylist bundled with the package. */
+    /**
+     * Load the tracked, append-only denylist bundled with the package. A missing file, or a
+     * present-but-degenerate denylist (empty literals AND patterns — e.g. a resource truncated to
+     * no `return`, or edited to `return []`), throws rather than silently building a no-op guard
+     * that would pass every response as clean: a caller relying on this to verify a response must
+     * fail CLOSED on a broken denylist, never fail open.
+     */
     public static function fromPackage(): self
     {
-        $denylist = require dirname(__DIR__, 3) . '/resources/fingerprint-denylist.php';
+        $file = dirname(__DIR__, 3) . '/resources/fingerprint-denylist.php';
+        if (!is_file($file)) {
+            throw new RuntimeException('Fingerprint denylist resource missing: ' . $file);
+        }
 
-        return new self(
-            (array) ($denylist['literals'] ?? []),
-            (array) ($denylist['patterns'] ?? [])
-        );
+        $denylist = require $file;
+        $literals = is_array($denylist) ? (array) ($denylist['literals'] ?? []) : [];
+        $patterns = is_array($denylist) ? (array) ($denylist['patterns'] ?? []) : [];
+        if ($literals === [] && $patterns === []) {
+            throw new RuntimeException(
+                'Fingerprint denylist is empty or malformed — refusing to build a no-op guard that '
+                . 'would pass every response as clean.'
+            );
+        }
+
+        return new self($literals, $patterns);
     }
 
     /**

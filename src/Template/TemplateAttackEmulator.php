@@ -7,14 +7,19 @@ namespace Funnypot\Template;
 use Funnypot\Behavior\DecoySession;
 use Funnypot\Behavior\NullEphemeralStore;
 use Funnypot\Behavior\SystemClock;
+use Funnypot\Compiler\Crs\FingerprintGuard;
 use Funnypot\Contracts\Clock;
 use Funnypot\Contracts\EphemeralStore;
 use Funnypot\Detection;
 use Funnypot\RequestContext;
 use Funnypot\Response\EmulatedContent;
 use Funnypot\Rules\RulesLocator;
+use Funnypot\Support\Chrome\Esc;
+use Funnypot\Support\Chrome\PageSlots;
+use Funnypot\Support\Chrome\PhpMyAdminSkin;
 use Funnypot\Support\Fake\FakeRecords;
 use Funnypot\Support\PathNormalizer;
+use Funnypot\Support\VisualPersona;
 use Funnypot\SynthesizedResponse;
 use Funnypot\TemplateMatch;
 
@@ -64,6 +69,31 @@ final class TemplateAttackEmulator
 
     /** @var string|null signing key for the decoy-session behavior; null/'' ⇒ that behavior is disabled */
     private $decoySessionKey;
+
+    /** @var FingerprintGuard|null runtime fingerprint-safety gate, loaded lazily once; scans the authed
+     *  decoy body before it is served so a fabricated cell can never leak an upstream detector signature */
+    private $fingerprintGuard;
+
+    /** @var bool whether the guard load has been attempted — a null guard after this is set means the
+     *  denylist was unavailable, handled fail-closed (never retried per request). */
+    private $fingerprintGuardLoaded = false;
+
+    /** The mock tables the authed phpMyAdmin decoy lists in its left tree, in display order. */
+    private const DECOY_TABLE_NAMES = ['users', 'password_resets', 'api_keys', 'sessions', 'orders'];
+
+    /**
+     * Column headers per mock table, matching FakeRecords' documented row shapes. Doubles as the
+     * whitelist of browsable tables: a `?table=` value is honored only if it is a key here.
+     *
+     * @var array<string,list<string>>
+     */
+    private const DECOY_TABLE_COLUMNS = [
+        'users' => ['id', 'username', 'email', 'created_at'],
+        'password_resets' => ['email', 'reset_token', 'requested_at', 'expires_at'],
+        'api_keys' => ['id', 'owner_name', 'api_key', 'created_at', 'last_used_at'],
+        'sessions' => ['id', 'username', 'ip', 'last_activity'],
+        'orders' => ['order_id', 'customer', 'amount', 'status', 'created_at'],
+    ];
 
     /**
      * Named behavior primitives, keyed by the rule's `behavior` value. Each is a closure over
@@ -819,28 +849,43 @@ final class TemplateAttackEmulator
             return null;
         }
 
-        return $this->decoySessionAuthedBody($config, $seed);
+        return $this->decoySessionAuthedBody($config, $seed, $r);
     }
 
     /**
-     * PHASE-A PLACEHOLDER authed body: a minimal HTML page carrying a FakeRecords table, just
-     * enough to prove the gate logic (a later task swaps this for the shared persona chrome). The
-     * deploy seed prefers $this->personaSeed (per-deploy coherence across the persona/template
-     * tiers) and falls back to the per-render $seed when no persona seed was wired. Row count is
-     * re-clamped to MAX_DECOY_ROWS in code regardless of the authored value (mirrors handleIterate's
-     * fan-out cap) — no amplification via a hand-crafted rules artifact.
+     * The authed decoy body: a hand-authored phpMyAdmin browse screen showing a fabricated "breached
+     * database" — the left tree lists the mock tables (DECOY_TABLE_NAMES) and the grid shows the
+     * selected one's rows, all seeded from FakeRecords. Renders through the shared core PhpMyAdminSkin
+     * so this tier and any template tier show ONE coherent product identity (class prefix + MySQL
+     * version banner are both seed-derived by the skin, never a fleet-wide literal).
+     *
+     * The rendered body is scanned by the runtime FingerprintGuard BEFORE it is served: a fabricated
+     * cell that happened to spell an upstream detector's signature (a bare CRS rule id, a matcher word)
+     * would let an attacker classify the reply as canned. Any hit — or a guard that could not load —
+     * fails CLOSED (return null → the gate declines → the base login page renders): never serve an
+     * unverified body, and never throw (a 500 is itself a tell), so this returns null rather than
+     * raising. The local guard-load try/catch is that fail-closed conversion, not error-swallowing.
+     *
+     * The deploy seed prefers $this->personaSeed (per-deploy coherence across the persona/template
+     * tiers) and falls back to the per-render $seed. Row count is re-clamped to MAX_DECOY_ROWS
+     * regardless of the authored value (mirrors handleIterate's fan-out cap) — no amplification via a
+     * hand-crafted rules artifact.
      *
      * @param array<string,mixed> $config
      */
-    private function decoySessionAuthedBody(array $config, int $seed): EmulatedContent
+    private function decoySessionAuthedBody(array $config, int $seed, ?RequestContext $r): ?EmulatedContent
     {
         $deploySeed = $this->personaSeed ?? $seed;
-        // domain may carry a directive (e.g. {{persona.company.domain}}) so the fake table's email
-        // column agrees with the site identity the template tier shows elsewhere; a plain literal
-        // (no `{{`) round-trips through render() unchanged (DirectiveRenderer's fast path), so this
-        // is a no-op for any rule authored before directive support existed here.
-        $domain = $this->renderer->render((string) ($config['domain'] ?? 'example.com'), [], $seed, $this->canary);
-        $tableKey = (string) ($config['table_key'] ?? 'users');
+        $persona = VisualPersona::fromSeed($deploySeed);
+        // The fake rows' email/account host tracks the SAME persona the skin renders (topbar server, db
+        // slug, MySQL version), so a fabricated user never disagrees with the site identity around it. An
+        // authored `domain` still wins — typically the `{{persona.company.domain}}` directive, which a
+        // plain literal round-trips through render() unchanged (DirectiveRenderer's fast path) — but the
+        // fallback is the coherent persona domain, not a giveaway literal like `example.com`.
+        $domain = isset($config['domain'])
+            ? $this->renderer->render((string) $config['domain'], [], $seed, $this->canary)
+            : $persona->domain();
+        $panelKey = (string) ($config['table_key'] ?? 'users');
 
         $rows = isset($config['rows']) ? (int) $config['rows'] : 10;
         if ($rows < 0) {
@@ -848,19 +893,97 @@ final class TemplateAttackEmulator
         }
         $rows = min($rows, self::MAX_DECOY_ROWS);
 
-        $records = FakeRecords::users($deploySeed, $domain, $tableKey, $rows);
+        $table = $this->decoySessionSelectedTable($r);
+        $slots = PageSlots::trusted(
+            'phpMyAdmin',
+            '',
+            $table,
+            '',
+            self::DECOY_TABLE_NAMES,
+            self::DECOY_TABLE_COLUMNS[$table],
+            $this->decoySessionTableRows($table, $deploySeed, $domain, $panelKey, $rows),
+            [],
+            '',
+            ''
+        );
 
-        $html = '<h1>' . htmlspecialchars($tableKey, ENT_QUOTES, 'UTF-8') . '</h1><table>';
-        foreach ($records as $record) {
-            $html .= '<tr>';
-            foreach ($record as $cell) {
-                $html .= '<td>' . htmlspecialchars($cell, ENT_QUOTES, 'UTF-8') . '</td>';
-            }
-            $html .= '</tr>';
+        $displayPath = $r !== null ? $r->path : '/phpmyadmin/index.php';
+        $html = (new PhpMyAdminSkin())->render(
+            $slots,
+            $persona,
+            Esc::text($displayPath),
+            $displayPath
+        );
+
+        // Verify-before-serve: a fabricated body carrying an upstream-detector signature, or a guard we
+        // could not load, fails closed to the login page rather than serving it or 500-ing.
+        $guard = $this->fingerprintGuard();
+        if ($guard === null || $guard->scan($html) !== []) {
+            return null;
         }
-        $html .= '</table>';
 
         return new EmulatedContent($html, ['Content-Type' => 'text/html; charset=utf-8'], 200);
+    }
+
+    /**
+     * Pick which mock table to browse from the request's `?table=` query, whitelisted against
+     * DECOY_TABLE_COLUMNS. The raw query value is only ever compared to the whitelist keys, never
+     * reflected, so a crafted value can neither inject nor steer output; an absent/unknown/position-
+     * blind ($r === null) request shows `users`.
+     */
+    private function decoySessionSelectedTable(?RequestContext $r): string
+    {
+        if ($r === null || $r->query === '') {
+            return 'users';
+        }
+        $params = [];
+        parse_str($r->query, $params);
+        $requested = isset($params['table']) && is_string($params['table']) ? $params['table'] : '';
+
+        return isset(self::DECOY_TABLE_COLUMNS[$requested]) ? $requested : 'users';
+    }
+
+    /**
+     * The seeded rows for one mock table. apiKeys and orders take no domain (no cell shows one); the
+     * rest fold the persona domain into the row draw so emails/accounts agree with the site identity.
+     *
+     * @return list<list<string>>
+     */
+    private function decoySessionTableRows(string $table, int $seed, string $domain, string $key, int $n): array
+    {
+        switch ($table) {
+            case 'password_resets':
+                return FakeRecords::passwordResets($seed, $domain, $key, $n);
+            case 'api_keys':
+                return FakeRecords::apiKeys($seed, $key, $n);
+            case 'sessions':
+                return FakeRecords::sessions($seed, $domain, $key, $n);
+            case 'orders':
+                return FakeRecords::orders($seed, $key, $n);
+            case 'users':
+            default:
+                return FakeRecords::users($seed, $domain, $key, $n);
+        }
+    }
+
+    /**
+     * The runtime fingerprint-safety gate, lazily loaded once from the package denylist. Returns null
+     * if the artifact can't be loaded — the caller treats that as "cannot verify" and fails closed.
+     * The load failure is cached (fingerprintGuardLoaded) so it isn't retried on every request, and the
+     * try/catch keeps a missing/broken denylist from escaping as a 500 on the hot path.
+     */
+    private function fingerprintGuard(): ?FingerprintGuard
+    {
+        if (!$this->fingerprintGuardLoaded) {
+            $this->fingerprintGuardLoaded = true;
+            try {
+                $this->fingerprintGuard = FingerprintGuard::fromPackage();
+            } catch (\Throwable $e) {
+                $this->fingerprintGuard = null;
+            }
+        }
+
+        return $this->fingerprintGuard;
     }
 
     /**

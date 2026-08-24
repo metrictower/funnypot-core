@@ -185,7 +185,7 @@ final class PhpMyAdminMockAuthTest extends TestCase
 
         self::assertNotNull($r);
         self::assertSame(200, $r->status);
-        self::assertStringContainsString('<table>', $r->body);
+        self::assertStringContainsString('Showing rows', $r->body);
         self::assertStringNotContainsString('id="login_form"', $r->body, 'an authed session must never re-show the login form');
     }
 
@@ -197,7 +197,7 @@ final class PhpMyAdminMockAuthTest extends TestCase
 
         self::assertNotNull($r);
         self::assertStringContainsString('id="login_form"', $r->body);
-        self::assertStringNotContainsString('<table>', $r->body);
+        self::assertStringNotContainsString('Showing rows', $r->body);
     }
 
     public function test_get_with_a_validly_signed_s0_cookie_is_not_authenticated(): void
@@ -211,7 +211,7 @@ final class PhpMyAdminMockAuthTest extends TestCase
 
         self::assertNotNull($r);
         self::assertStringContainsString('id="login_form"', $r->body);
-        self::assertStringNotContainsString('<table>', $r->body);
+        self::assertStringNotContainsString('Showing rows', $r->body);
     }
 
     // --- variant paths / methods: never an authed body on a decline -------------------------
@@ -228,7 +228,7 @@ final class PhpMyAdminMockAuthTest extends TestCase
         ] as [$method, $path]) {
             $r = $this->serve($method, $path);
             self::assertNotNull($r, "$method $path");
-            self::assertStringNotContainsString('<table>', $r->body, "$method $path must never authenticate on a decline");
+            self::assertStringNotContainsString('Showing rows', $r->body, "$method $path must never authenticate on a decline");
             self::assertStringContainsString('id="login_form"', $r->body, "$method $path must fall back to the login page");
         }
     }
@@ -245,7 +245,7 @@ final class PhpMyAdminMockAuthTest extends TestCase
         foreach (['/phpmyadmin//', '/PhpMyAdmin/', '/pma/', '/pma'] as $path) {
             $r = $this->serve('GET', $path, '', ['Cookie' => $cookieHeader]);
             self::assertNotNull($r, $path);
-            self::assertStringContainsString('<table>', $r->body, $path);
+            self::assertStringContainsString('Showing rows', $r->body, $path);
         }
     }
 
