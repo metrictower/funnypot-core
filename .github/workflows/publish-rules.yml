@@ -18,9 +18,12 @@ name: publish-rules
 # key into resources/rules-signing-keys.php.
 
 on:
-  push:
-    branches: [main]
-    paths: ['resources/compiled/**']
+  # Auto-trigger PAUSED 2026-08-24 (FP-0039) — workflow_dispatch-only. Dormant regardless until
+  # the funnypot-rules repo + signing keys exist. Re-enable the push trigger once funnypot-rules
+  # is set up and we want auto-publish on merges to main that touch resources/compiled/**.
+  # push:
+  #   branches: [main]
+  #   paths: ['resources/compiled/**']
   workflow_dispatch:
 
 permissions:

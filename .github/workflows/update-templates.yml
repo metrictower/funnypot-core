@@ -8,8 +8,11 @@ name: update-templates
 # `composer update` to pick up the new prebuilt index.
 
 on:
-  schedule:
-    - cron: '0 6 * * 1'   # Mondays 06:00 UTC
+  # Weekly cron PAUSED 2026-08-24 (FP-0039) — workflow_dispatch-only during rapid dev so the
+  # rule-refresh crons don't auto-open PRs. Re-enable the schedule once dev settles and we want
+  # the weekly nuclei-templates refresh back.
+  # schedule:
+  #   - cron: '0 6 * * 1'   # Mondays 06:00 UTC
   workflow_dispatch:
     inputs:
       tag:
