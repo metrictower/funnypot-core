@@ -76,14 +76,14 @@ final class CurlFetcher implements HttpFetcher
             $err = curl_error($ch);
 
             if ($body === false) {
-                curl_close($ch);
+                $this->closeHandle($ch);
                 throw new RulesUpdateException(RulesUpdateException::REASON_FETCH_FAILED, "GET {$url} failed: {$err}");
             }
 
             if ($status >= 300 && $status < 400) {
                 $location = (string) curl_getinfo($ch, CURLINFO_REDIRECT_URL);
                 if ($location === '' || ++$redirects > 5) {
-                    curl_close($ch);
+                    $this->closeHandle($ch);
                     throw new RulesUpdateException(RulesUpdateException::REASON_FETCH_FAILED, 'Too many/invalid redirects.');
                 }
                 $this->assertAllowed($location);
@@ -92,7 +92,7 @@ final class CurlFetcher implements HttpFetcher
                 continue;
             }
 
-            curl_close($ch);
+            $this->closeHandle($ch);
 
             if ($status !== 200) {
                 throw new RulesUpdateException(RulesUpdateException::REASON_FETCH_FAILED, "GET {$url} returned HTTP {$status}.");
@@ -102,6 +102,19 @@ final class CurlFetcher implements HttpFetcher
             }
 
             return (string) $body;
+        }
+    }
+
+    /**
+     * curl_close frees the handle only on PHP 7.x; from 8.0 it is a no-op (handles are GC-freed
+     * objects) and it is deprecated as of 8.5. Call it only where it still has an effect.
+     *
+     * @param resource|\CurlHandle $ch
+     */
+    private function closeHandle($ch): void
+    {
+        if (\PHP_VERSION_ID < 80000) {
+            curl_close($ch);
         }
     }
 
