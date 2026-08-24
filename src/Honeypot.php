@@ -535,6 +535,10 @@ final class Honeypot implements Engine
             return $this->declined($r, Outcome::VETOED);
         }
 
+        // Surface the winning handle to the app (debug tooling). Inert: never emitted (see
+        // SynthesizedResponse::$servedBy).
+        $built['r']->servedBy = $handle;
+
         $this->serveDelay();
         $this->observer->onOutcome($r, $built['r'], Outcome::SERVED);
 
@@ -554,6 +558,10 @@ final class Honeypot implements Engine
         if ($built['r'] === null) {
             return $this->declined($r, $built['reason']);
         }
+
+        // Surface the winning handle to the app (debug tooling). Inert: never emitted (see
+        // SynthesizedResponse::$servedBy).
+        $built['r']->servedBy = $verdict->fakeHandle;
 
         $this->serveDelay();
         $this->observer->onOutcome($r, $built['r'], Outcome::SERVED);

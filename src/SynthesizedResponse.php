@@ -23,6 +23,16 @@ final class SynthesizedResponse
     /** @var Detection */
     public $satisfies;
 
+    /**
+     * The winning decoy handle (route key / attack rule id) that produced this response, surfaced
+     * for the app's debug tooling. INTERNAL ONLY: never a served string. ResponseEmitter writes
+     * only $headers + $body, so this stays inert — a leaked decoy id would fingerprint the honeypot.
+     * Null on the position-blind synthesize() port; set by the respond() facade.
+     *
+     * @var FakeHandle|null
+     */
+    public $servedBy;
+
     /** @param array<string,string> $headers */
     public function __construct(
         int $status,
@@ -34,5 +44,6 @@ final class SynthesizedResponse
         $this->headers = $headers;
         $this->body = $body;
         $this->satisfies = $satisfies;
+        $this->servedBy = null;
     }
 }
