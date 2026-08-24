@@ -155,6 +155,39 @@ final class PersonaIdentity
         return $this->fields[$path] ?? null;
     }
 
+    /** Plausible MySQL/MariaDB version banners for the 'mysql' product key — never a copied
+     *  real-world signature string. */
+    private const PRODUCT_VERSION_POOLS = [
+        'mysql' => [
+            '10.6.14-MariaDB-log',
+            '10.11.6-MariaDB',
+            '8.0.35-0ubuntu0.22.04.1',
+            '5.7.42-log',
+            '10.5.23-MariaDB-1:10.5.23+maria~ubu2004',
+        ],
+    ];
+
+    /** Generic semver-shaped fallback for a $product with no dedicated pool above. */
+    private const DEFAULT_VERSION_POOL = ['1.0.0', '1.2.3', '2.0.1', '2.4.6', '3.1.4', '4.1.2'];
+
+    /**
+     * A stable-per-deployment version string for $product (e.g. "mysql"). Every field on this
+     * identity is a pure function of the seed, so hashing off two of them (company.slug/domain are
+     * always populated) makes this pure-per-seed too without needing the raw seed itself — any tier
+     * that wants to claim a version for the SAME product on the SAME deployment (a skin's banner, a
+     * future core-template) calls this and gets the identical string, never a second
+     * independently-rolled fake that could disagree. Falls back to a generic semver-shaped pool for
+     * an unrecognized product so the method is total.
+     */
+    public function productVersion(string $product): string
+    {
+        $pool = self::PRODUCT_VERSION_POOLS[$product] ?? self::DEFAULT_VERSION_POOL;
+        $seedMaterial = ($this->fields['company.slug'] ?? '') . '|' . ($this->fields['company.domain'] ?? '');
+        $idx = (int) (hexdec(substr(hash('sha256', $seedMaterial . '|product-version|' . $product), 0, 8)) % count($pool));
+
+        return $pool[$idx];
+    }
+
     /**
      * Canonical per-deploy persona-seed derivation, shared by the app (VisualPersona/AppConfig) and the
      * core template tier, so both resolve to the SAME PersonaIdentity for one deployment. $src is the
