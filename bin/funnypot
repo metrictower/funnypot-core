@@ -17,6 +17,7 @@ use Funnypot\Compiler\ArtifactWriter;
 use Funnypot\Compiler\Compiler;
 use Funnypot\Compiler\Crs\CrsCompiler;
 use Funnypot\Manifest\ManifestBuilder;
+use Funnypot\Manifest\RouteIntegrity;
 use Symfony\Component\Yaml\Yaml;
 
 $root = dirname(__DIR__);
@@ -568,6 +569,31 @@ if ($command === 'build-manifest') {
     exit(0);
 }
 
+if ($command === 'lint-routes') {
+    // Route-integrity gate: build the manifest in-memory, run the collision / shadow / dangling-link
+    // checks against it under resources/route-integrity.php, print the findings, and exit non-zero on
+    // any FAIL so CI can block. WARN/INFO/ACCEPTED are reported but never gate. Never serves a byte —
+    // build/CI-time only, beside scripts/ci/check-fingerprint-safety.php.
+    $format = 'table';
+    $configPath = $root . '/resources/route-integrity.php';
+    foreach ($argvv as $arg) {
+        if (strncmp($arg, '--format=', 9) === 0) {
+            $format = substr($arg, 9);
+        } elseif (strncmp($arg, '--config=', 9) === 0) {
+            $configPath = substr($arg, 9);
+        }
+    }
+
+    $manifest = (new ManifestBuilder())->build(ManifestBuilder::defaultPaths($root));
+    $config = is_file($configPath) ? require $configPath : array();
+    if (!is_array($config)) {
+        $config = array();
+    }
+    $result = (new RouteIntegrity())->analyze($manifest, $config);
+
+    exit(renderLintRoutes($result, $format === 'json' ? 'json' : 'table'));
+}
+
 if ($command !== 'compile') {
     fwrite(STDERR, "usage: funnypot compile <templates-dir> [--out=PATH]\n");
     fwrite(STDERR, "       funnypot compile-emulators [<attack-template-dir>] [--out=PATH]\n");
@@ -577,6 +603,7 @@ if ($command !== 'compile') {
     fwrite(STDERR, "       funnypot merge-routes [<index>] [--fragment=PATH] [--out=PATH]\n");
     fwrite(STDERR, "       funnypot compile-crs <coreruleset-rules-dir> [--out=PATH] [--pl=N]\n");
     fwrite(STDERR, "       funnypot build-manifest [--out=PATH]  (derive the two-band decoy registry)\n");
+    fwrite(STDERR, "       funnypot lint-routes [--format=table|json] [--config=PATH]  (route-integrity gate)\n");
     fwrite(STDERR, "       funnypot rules:update [--data-dir=PATH] [--channel=stable] [--version=vX]\n");
     fwrite(STDERR, "       funnypot rules:status [--data-dir=PATH]\n");
     fwrite(STDERR, "       funnypot rules:rollback [--data-dir=PATH] [--to=vX]\n");
@@ -686,6 +713,75 @@ function handleRulesCommand(string $command, array $args): int
 
             return 2;
     }
+}
+
+/**
+ * Print the route-integrity findings and return the process exit code: non-zero when any FAIL
+ * remains after the escape-hatch suppression (so CI blocks), 0 otherwise. `table` is the operator
+ * view; `json` is the machine view.
+ *
+ * @param array<string,mixed> $result RouteIntegrity::analyze() output
+ */
+function renderLintRoutes(array $result, string $format): int
+{
+    $findings = $result['findings'];
+    $order = array(RouteIntegrity::FAIL => 0, RouteIntegrity::WARN => 1, RouteIntegrity::ACCEPTED => 2, RouteIntegrity::INFO => 3);
+    $counts = array(RouteIntegrity::FAIL => 0, RouteIntegrity::WARN => 0, RouteIntegrity::ACCEPTED => 0, RouteIntegrity::INFO => 0);
+    foreach ($findings as $f) {
+        $counts[$f['severity']] = ($counts[$f['severity']] ?? 0) + 1;
+    }
+    $fails = $counts[RouteIntegrity::FAIL];
+
+    if ($format === 'json') {
+        fwrite(STDOUT, json_encode(array(
+            'ok' => $fails === 0,
+            'counts' => $counts,
+            'disabled_missing' => $result['disabled_missing'],
+            'findings' => $findings,
+        ), JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES) . "\n");
+
+        return $fails === 0 ? 0 : 1;
+    }
+
+    usort($findings, static function (array $a, array $b) use ($order): int {
+        $oa = $order[$a['severity']] ?? 9;
+        $ob = $order[$b['severity']] ?? 9;
+        if ($oa !== $ob) {
+            return $oa - $ob;
+        }
+
+        return strcmp($a['check'] . $a['a'] . $a['path'], $b['check'] . $b['a'] . $b['path']);
+    });
+
+    $label = array(
+        RouteIntegrity::FAIL => 'FAIL', RouteIntegrity::WARN => 'WARN',
+        RouteIntegrity::ACCEPTED => 'ACPT', RouteIntegrity::INFO => 'INFO',
+    );
+    foreach ($findings as $f) {
+        // INFO (designed overrides) is summarized in the footer, not printed line-by-line.
+        if ($f['severity'] === RouteIntegrity::INFO) {
+            continue;
+        }
+        $line = sprintf('[%s] %-9s %s', $label[$f['severity']] ?? '?', $f['check'], $f['message']);
+        if ($f['severity'] === RouteIntegrity::ACCEPTED && ($f['accepted_reason'] ?? '') !== '') {
+            $line .= "\n           accepted: " . $f['accepted_reason'];
+        }
+        fwrite(STDOUT, $line . "\n");
+    }
+    foreach ($result['disabled_missing'] as $id) {
+        fwrite(STDOUT, sprintf("[WARN] disabled   escape-hatch id no longer exists: %s\n", $id));
+    }
+
+    fwrite(STDOUT, sprintf(
+        "\nroute-integrity: %d FAIL, %d WARN, %d accepted, %d info(designed-override)\n",
+        $counts[RouteIntegrity::FAIL],
+        $counts[RouteIntegrity::WARN],
+        $counts[RouteIntegrity::ACCEPTED],
+        $counts[RouteIntegrity::INFO]
+    ));
+    fwrite($fails === 0 ? STDOUT : STDERR, $fails === 0 ? "OK\n" : "FAILED\n");
+
+    return $fails === 0 ? 0 : 1;
 }
 
 /**

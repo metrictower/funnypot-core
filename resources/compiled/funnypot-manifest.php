@@ -299,6 +299,12 @@ return array (
       'family' => 'wordpress',
       'owned_routes' => 
       array (
+        0 => 
+        array (
+          'method' => 'POST',
+          'path' => '/xmlrpc.php',
+          'via' => 'match-regex',
+        ),
       ),
       'outbound_links' => 
       array (
@@ -320,6 +326,12 @@ return array (
       'family' => 'wordpress',
       'owned_routes' => 
       array (
+        0 => 
+        array (
+          'method' => 'POST',
+          'path' => '/xmlrpc.php',
+          'via' => 'match-regex',
+        ),
       ),
       'outbound_links' => 
       array (
@@ -413,6 +425,12 @@ return array (
       'family' => 'wordpress',
       'owned_routes' => 
       array (
+        0 => 
+        array (
+          'method' => '*',
+          'path' => '/xmlrpc.php',
+          'via' => 'match-regex',
+        ),
       ),
       'outbound_links' => 
       array (
@@ -1353,6 +1371,12 @@ return array (
       'family' => 'laravel',
       'owned_routes' => 
       array (
+        0 => 
+        array (
+          'method' => 'POST',
+          'path' => '/_ignition/execute-solution',
+          'via' => 'match-regex',
+        ),
       ),
       'outbound_links' => 
       array (
@@ -1375,6 +1399,12 @@ return array (
       'family' => 'webmin',
       'owned_routes' => 
       array (
+        0 => 
+        array (
+          'method' => 'POST',
+          'path' => '/session_login.cgi',
+          'via' => 'match-regex',
+        ),
       ),
       'outbound_links' => 
       array (
@@ -1410,6 +1440,12 @@ return array (
       'family' => 'jenkins',
       'owned_routes' => 
       array (
+        0 => 
+        array (
+          'method' => 'POST',
+          'path' => '/j_acegi_security_check',
+          'via' => 'match-regex',
+        ),
       ),
       'outbound_links' => 
       array (
@@ -1439,6 +1475,12 @@ return array (
       'family' => 'dlink',
       'owned_routes' => 
       array (
+        0 => 
+        array (
+          'method' => 'POST',
+          'path' => '/HNAP1',
+          'via' => 'match-regex',
+        ),
       ),
       'outbound_links' => 
       array (

@@ -605,17 +605,47 @@ final class ManifestBuilder
             if (!is_array($cond) || ($cond['in'] ?? '') !== 'path') {
                 continue;
             }
-            $rx = (string) ($cond['regex'] ?? '');
-            if ($rx === '') {
-                continue;
+            $lit = $this->reduceRegexPath((string) ($cond['regex'] ?? ''));
+            if ($lit !== null) {
+                return $lit;
             }
-            $rx = preg_replace('/^\^/', '', $rx);
-            $rx = preg_replace('/\$$/', '', (string) $rx);
-            $rx = preg_replace('#/[?*+]$#', '', (string) $rx);
-            $rx = str_replace(array('\\.', '\\-', '\\/'), array('.', '-', '/'), (string) $rx);
-            if (preg_match('#^/[A-Za-z0-9._/-]+$#', $rx) === 1) {
-                return $rx;
-            }
+        }
+
+        return null;
+    }
+
+    /**
+     * Reduce an `in:path` regex to the single fixed path it anchors, or null when the pattern is an
+     * alternation / character class / wildcard no one path represents. Handles both anchor shapes
+     * the attack compiler emits: a root-anchored `^/x/?$`, and a segment-anchored
+     * `(?:^|/)x(?:/|$)` (matches at any path boundary — its canonical claim is `/x`). Recording the
+     * segment-anchored literal is load-bearing for the route-integrity dangling-link resolver: a
+     * decoy whose login form posts to `/session_login.cgi` owns that path via such a regex, not
+     * owns_path, and without this it would read as a dangling self-link.
+     */
+    private function reduceRegexPath(string $rx): ?string
+    {
+        if ($rx === '') {
+            return null;
+        }
+        // Leading anchor: '^' (root) or '(?:^|/)' (any segment start) both mean "path begins here".
+        if (strncmp($rx, '(?:^|/)', 7) === 0) {
+            $rx = '/' . substr($rx, 7);
+        } elseif ($rx[0] === '^') {
+            $rx = substr($rx, 1);
+        }
+        // Trailing anchor, in the compiler's forms: (?:/|$), an optional trailing slash then end,
+        // or a bare end.
+        $rx = preg_replace('/\(\?:\/\|\$\)$/', '', $rx);
+        $rx = preg_replace('#/[?*+]\$$#', '', (string) $rx);
+        $rx = preg_replace('/\/?\$$/', '', (string) $rx);
+        $rx = str_replace(array('\\.', '\\-', '\\/'), array('.', '-', '/'), (string) $rx);
+        if ($rx === '' || $rx[0] !== '/') {
+            $rx = '/' . $rx;
+        }
+        // Only a pure literal path qualifies — any leftover metacharacter means it is not fixed.
+        if (preg_match('#^/[\w.~@/-]+$#', $rx) === 1) {
+            return $rx;
         }
 
         return null;
