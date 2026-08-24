@@ -350,6 +350,81 @@ final class DecoySessionBehaviorTest extends TestCase
         self::assertNull($r);
     }
 
+    // --- canonical trailing-slash 301 (DirectorySlash) -------------------------------------
+
+    /** @return array<string,mixed> a gate rule matching the panel roots, with canonical-slash 301 on. */
+    private function canonicalGateRule(): array
+    {
+        return [
+            'id' => 'decoy-gate-canonical-fixture',
+            'severity' => 'info',
+            'tags' => [],
+            'status' => 200,
+            'match' => [
+                ['in' => 'method', 'regex' => '^(?:GET|HEAD)$'],
+                ['in' => 'path', 'regex' => '^/(?:phpmyadmin|pma)(?:/index\.php)?/*$', 'ci' => true],
+            ],
+            'response' => ['headers' => [], 'body' => self::LOGIN_STUB_GATE],
+            'behavior' => 'decoy-session',
+            'decoy-session' => [
+                'mode' => 'gate',
+                'cookie_name' => 'phpMyAdmin',
+                'cookie_path' => '/phpmyadmin',
+                'domain' => 'example.test',
+                'table_key' => 'users',
+                'rows' => 3,
+                'canonical_slash' => true,
+            ],
+        ];
+    }
+
+    public function test_gate_canonical_slash_301s_a_bare_directory_to_the_trailing_slash(): void
+    {
+        $em = $this->emulator([$this->canonicalGateRule()]);
+
+        $bare = $em->emulate(new RequestContext('GET', '/phpmyadmin'));
+        self::assertNotNull($bare);
+        self::assertSame(301, $bare->status, 'a bare /phpmyadmin must 301 to the trailing-slash form');
+        self::assertSame('/phpmyadmin/', $bare->headers['Location']);
+
+        $pma = $em->emulate(new RequestContext('GET', '/pma'));
+        self::assertNotNull($pma);
+        self::assertSame(301, $pma->status);
+        self::assertSame('/pma/', $pma->headers['Location']);
+    }
+
+    public function test_gate_canonical_slash_leaves_slashed_and_file_paths_alone(): void
+    {
+        $em = $this->emulator([$this->canonicalGateRule()]);
+
+        // Already slashed -> serve the login page, no redirect.
+        $slashed = $em->emulate(new RequestContext('GET', '/phpmyadmin/'));
+        self::assertNotNull($slashed);
+        self::assertSame(self::LOGIN_STUB_GATE, $slashed->body);
+        self::assertNotSame(301, $slashed->status);
+
+        // A file path (…/index.php) -> serve the login page, no redirect.
+        $file = $em->emulate(new RequestContext('GET', '/phpmyadmin/index.php'));
+        self::assertNotNull($file);
+        self::assertSame(self::LOGIN_STUB_GATE, $file->body);
+        self::assertNotSame(301, $file->status);
+    }
+
+    public function test_gate_without_canonical_slash_serves_login_on_a_bare_directory(): void
+    {
+        // The opt-in is off by default: the standard gateRule() (no canonical_slash) must still serve
+        // the login page for a bare directory, never a 301.
+        $rule = $this->gateRule();
+        $rule['match'][1]['regex'] = '^/(?:phpmyadmin|pma)(?:/index\.php)?/*$';
+        $rule['match'][1]['ci'] = true;
+        $em = $this->emulator([$rule]);
+
+        $r = $em->emulate(new RequestContext('GET', '/phpmyadmin'));
+        self::assertNotNull($r);
+        self::assertSame(self::LOGIN_STUB_GATE, $r->body);
+        self::assertNotSame(301, $r->status);
+    }
+
     // --- row cap --------------------------------------------------------------------------
 
     public function test_gate_row_count_is_capped_at_the_code_ceiling(): void

@@ -836,6 +836,19 @@ final class TemplateAttackEmulator
      */
     private function decoySessionGate(DecoySession $session, array $config, ?RequestContext $r, string $name, int $seed): ?EmulatedContent
     {
+        // Canonical trailing-slash redirect (what Apache DirectorySlash does in front of real
+        // phpMyAdmin): a bare directory request like `/phpmyadmin` 301s to `/phpmyadmin/` so the login
+        // page loads under a trailing-slash base and its relative form `action="index.php?route=/"`
+        // resolves to the owned `/phpmyadmin/index.php` rather than escaping to a bare `/index.php`
+        // (which this decoy does not own, so it would fall through to an unrelated rule). Opt-in per
+        // rule; fires before the auth check so it applies with or without a cookie.
+        if ($r !== null && !empty($config['canonical_slash'])) {
+            $redirect = $this->canonicalSlashRedirect($r->path);
+            if ($redirect !== null) {
+                return $redirect;
+            }
+        }
+
         $cookieHeader = null;
         if ($r !== null) {
             foreach ($r->headers as $key => $value) {
@@ -850,6 +863,39 @@ final class TemplateAttackEmulator
         }
 
         return $this->decoySessionAuthedBody($config, $seed, $r);
+    }
+
+    /**
+     * A 301 to `$path.'/'` when $path is a bare directory (no trailing slash, and its last segment has
+     * no dot so it is not a file like `…/index.php`), else null. The Location is $path with a single
+     * appended slash: $path already passed the rule's own path regex, so it is one of the owned panel
+     * aliases — appending '/' keeps it same-origin and same-path (no open redirect, no reflected
+     * arbitrary target). Mirrors an Apache DirectorySlash 301 (status + Content-Type + body shape).
+     */
+    private function canonicalSlashRedirect(string $path): ?EmulatedContent
+    {
+        if ($path === '' || substr($path, -1) === '/') {
+            return null;
+        }
+        $slash = strrpos($path, '/');
+        $segment = $slash === false ? $path : substr($path, $slash + 1);
+        if (strpos($segment, '.') !== false) {
+            return null;
+        }
+
+        $target = $path . '/';
+        $href = htmlspecialchars($target, ENT_QUOTES, 'UTF-8');
+        $body = "<!DOCTYPE HTML PUBLIC \"-//IETF//DTD HTML 2.0//EN\">\n"
+            . "<html><head>\n<title>301 Moved Permanently</title>\n</head><body>\n"
+            . "<h1>Moved Permanently</h1>\n"
+            . "<p>The document has moved <a href=\"{$href}\">here</a>.</p>\n"
+            . "</body></html>\n";
+
+        return new EmulatedContent(
+            $body,
+            ['Content-Type' => 'text/html; charset=iso-8859-1', 'Location' => $target],
+            301
+        );
     }
 
     /**
@@ -880,11 +926,13 @@ final class TemplateAttackEmulator
         // The fake rows' email/account host tracks the SAME persona the skin renders (topbar server, db
         // slug, MySQL version), so a fabricated user never disagrees with the site identity around it. An
         // authored `domain` still wins — typically the `{{persona.company.domain}}` directive, which a
-        // plain literal round-trips through render() unchanged (DirectiveRenderer's fast path) — but the
-        // fallback is the coherent persona domain, not a giveaway literal like `example.com`.
-        $domain = isset($config['domain'])
-            ? $this->renderer->render((string) $config['domain'], [], $seed, $this->canary)
-            : $persona->domain();
+        // plain literal round-trips through render() unchanged (DirectiveRenderer's fast path). The
+        // fallback is the coherent persona domain: the compiler normalizes an OMITTED `domain` to '', and
+        // an empty host would render bare `user@` cells, so an empty render resolves to the persona domain
+        // rather than a giveaway literal like `example.com`.
+        $authoredDomain = (string) ($config['domain'] ?? '');
+        $rendered = $authoredDomain !== '' ? $this->renderer->render($authoredDomain, [], $seed, $this->canary) : '';
+        $domain = $rendered !== '' ? $rendered : $persona->domain();
         $panelKey = (string) ($config['table_key'] ?? 'users');
 
         $rows = isset($config['rows']) ? (int) $config['rows'] : 10;

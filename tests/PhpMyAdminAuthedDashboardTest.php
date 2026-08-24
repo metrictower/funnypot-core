@@ -168,9 +168,10 @@ final class PhpMyAdminAuthedDashboardTest extends TestCase
     {
         // A gate rule that authors no `domain` must render fabricated emails on the SAME persona domain
         // the skin's topbar/db/version identity uses — never a giveaway literal like example.com. This
-        // keeps the user rows coherent with the site identity around them for every seed.
+        // keeps the user rows coherent with the site identity around them for every seed. The compiler
+        // normalizes an omitted `domain` to '' (not absent), so '' is the realistic case to pin.
         $rule = $this->gateRule();
-        unset($rule['decoy-session']['domain']);
+        $rule['decoy-session']['domain'] = '';
 
         $r = $this->authedGet($this->emulator([$rule], self::SEED));
         self::assertNotNull($r);

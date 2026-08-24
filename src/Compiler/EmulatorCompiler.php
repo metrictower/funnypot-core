@@ -403,6 +403,11 @@ final class EmulatorCompiler
             if (isset($config['rows'])) {
                 $out['rows'] = (int) $config['rows'];
             }
+            // Opt-in Apache-DirectorySlash 301: a bare no-slash directory request redirects to the
+            // trailing-slash form so the login page's relative form action resolves to an owned path.
+            if (!empty($config['canonical_slash'])) {
+                $out['canonical_slash'] = true;
+            }
         }
 
         return $out;

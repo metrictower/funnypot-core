@@ -361,6 +361,7 @@ body{margin:0;font-family:-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-s
       'domain' => '{{persona.company.domain}}',
       'table_key' => 'users',
       'rows' => 8,
+      'canonical_slash' => true,
     ),
   ),
   8 => 

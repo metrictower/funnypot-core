@@ -228,8 +228,14 @@ final class PhpMyAdminMockAuthTest extends TestCase
         ] as [$method, $path]) {
             $r = $this->serve($method, $path);
             self::assertNotNull($r, "$method $path");
+            // Never the authed body on a decline — whether the response is the login page or a
+            // canonical-slash 301 (a bare directory redirects to its trailing-slash form first).
             self::assertStringNotContainsString('Showing rows', $r->body, "$method $path must never authenticate on a decline");
-            self::assertStringContainsString('id="login_form"', $r->body, "$method $path must fall back to the login page");
+            if ($r->status === 301) {
+                self::assertSame($path . '/', $r->headers['Location'], "$method $path canonical-slash redirect");
+            } else {
+                self::assertStringContainsString('id="login_form"', $r->body, "$method $path must fall back to the login page");
+            }
         }
     }
 
@@ -245,7 +251,40 @@ final class PhpMyAdminMockAuthTest extends TestCase
         foreach (['/phpmyadmin//', '/PhpMyAdmin/', '/pma/', '/pma'] as $path) {
             $r = $this->serve('GET', $path, '', ['Cookie' => $cookieHeader]);
             self::assertNotNull($r, $path);
-            self::assertStringContainsString('Showing rows', $r->body, $path);
+            $isBareDir = substr($path, -1) !== '/' && strpos(basename($path), '.') === false;
+            if ($isBareDir) {
+                // A bare directory canonical-slash 301s BEFORE the auth check (DirectorySlash) — the
+                // authed body is served after the browser follows the redirect to the slashed form.
+                self::assertSame(301, $r->status, $path);
+                self::assertSame($path . '/', $r->headers['Location'], $path);
+            } else {
+                self::assertStringContainsString('Showing rows', $r->body, $path);
+            }
+        }
+    }
+
+    // --- canonical trailing-slash 301 (Apache DirectorySlash) -------------------------------
+
+    public function test_bare_panel_directory_301s_to_the_trailing_slash(): void
+    {
+        // Real phpMyAdmin sits behind Apache DirectorySlash: `/phpmyadmin` (no slash) 301s to
+        // `/phpmyadmin/` so the login form's relative `action="index.php?route=/"` resolves to the owned
+        // `/phpmyadmin/index.php` instead of escaping to a bare `/index.php` (which this decoy does not
+        // own, so it would fall through to an unrelated rule). Regression guard for that fall-through.
+        foreach (['/phpmyadmin' => '/phpmyadmin/', '/pma' => '/pma/'] as $bare => $slashed) {
+            $r = $this->serve('GET', $bare);
+            self::assertNotNull($r, $bare);
+            self::assertSame(301, $r->status, $bare . ' must 301 to the trailing-slash form');
+            self::assertSame($slashed, $r->headers['Location'], $bare . ' -> ' . $slashed);
+            self::assertStringNotContainsString('id="login_form"', $r->body, '301 body is not the login page');
+        }
+
+        // The slashed form and the index.php file still serve the login page — no redirect loop.
+        foreach (['/phpmyadmin/', '/phpmyadmin/index.php'] as $served) {
+            $r = $this->serve('GET', $served);
+            self::assertNotNull($r, $served);
+            self::assertNotSame(301, $r->status, $served . ' must not redirect');
+            self::assertStringContainsString('id="login_form"', $r->body, $served . ' serves the login page');
         }
     }
 

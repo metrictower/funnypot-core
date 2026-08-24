@@ -120,4 +120,8 @@ decoy-session:
   domain: '{{persona.company.domain}}'
   table_key: users
   rows: 8
+  # Real phpMyAdmin sits behind Apache DirectorySlash: a bare `/phpmyadmin` 301s to `/phpmyadmin/` so
+  # the login form's relative `action="index.php?route=/"` resolves to the owned `/phpmyadmin/index.php`
+  # instead of escaping to a bare `/index.php` this decoy does not own.
+  canonical_slash: true
 expect: ['<title>phpMyAdmin', 'id="login_form"', 'pma_username', 'pma_password', 'id="input_go"']
