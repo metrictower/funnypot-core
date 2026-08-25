@@ -9,7 +9,7 @@ TDD: the test is written and shown to fail first, then the code makes it pass, t
 run green before the next phase starts.
 
 > **Relocation (program decision F, 2026-08-19).** The reporter + its queue/transport classes are
-> **authored in the new standalone package `metrictower/mainnet-client`** (`Funnypot\Mainnet\`,
+> **authored in the new standalone package `metrictower/funnypot-mainnet-client`** (`Funnypot\Mainnet\`,
 > PHP >= 7.3), not in `funnypot-core/src/Report/`. **Phases 1–7 below relocate to that package** (F
 > builds them; they are retargeted from `funnypot-core/src/Report/` to the package `src/`).
 > **`funnypot-core` `require`s and re-exports the package.** **B's active phases are Phase 8 (app +
@@ -50,23 +50,23 @@ run green before the next phase starts.
 
 ### How to run the tests
 
-- **`metrictower/mainnet-client` package** (where Phases 1–7 land, per decision F): from the package
+- **`metrictower/funnypot-mainnet-client` package** (where Phases 1–7 land, per decision F): from the package
   root, run **`php vendor/bin/phpunit`**. Pure PHPUnit, no DB/container. Reporter/queue/transport tests
   live in the package (autoload `Funnypot\Mainnet\` → `src/`). These phases are F's to land; they are
   listed here as the behavioral contract B wires against.
-- **funnypot-core**: `require`s and re-exports the package (`composer require metrictower/mainnet-client`);
+- **funnypot-core**: `require`s and re-exports the package (`composer require metrictower/funnypot-mainnet-client`);
   from `funnypot-core/`, run **`php vendor/bin/phpunit`**.
 - **funnypot (app)** (where Phases 8–9 land — **B's active work**): from `funnypot/`, run
   **`php vendor/bin/phpunit`**. App tests live under `tests/App/`. The app consumes core from
   `vendor/metrictower/funnypot-core`; pulling the new core (which now depends on the package) requires
   **`composer update metrictower/funnypot-core`** (regenerates `composer.lock`).
 - **7.3 compat**: the host runs PHP **8.4** — `php -l` here will NOT catch 7.4+ constructs. The
-  **`metrictower/mainnet-client` package carries its own `php:7.3` CI** (decision F — supersedes D9);
+  **`metrictower/funnypot-mainnet-client` package carries its own `php:7.3` CI** (decision F — supersedes D9);
   B adds no 7.3 gate. See Phase 7.
 
 ### Constants fixed by the design (do not re-derive)
 
-- Namespace `Funnypot\Mainnet\` → the **`metrictower/mainnet-client`** package `src/` (decision F —
+- Namespace `Funnypot\Mainnet\` → the **`metrictower/funnypot-mainnet-client`** package `src/` (decision F —
   no longer `funnypot-core/src/Report/`; core `require`s and re-exports it). Keep
   `declare(strict_types=1)` (7.3-safe).
 - Tables in the **same** `intel.sqlite`, distinct names: `mainnet_queue(id,ip,categories,comment,created_at,attempts)`,
@@ -101,14 +101,14 @@ run green before the next phase starts.
 - **PHP 7.3 syntax throughout** the package `src/`: no enums, `match`, constructor promotion, named
   args, nullsafe (`?->`), arrow fns, **typed properties**, `??=`, union types in signatures. **Scalar
   and array *parameter* types ARE 7.3-valid and are kept** — only typed *properties* de-type to
-  untyped-prop + docblock (as design §4 shows). The **`metrictower/mainnet-client` package carries its
+  untyped-prop + docblock (as design §4 shows). The **`metrictower/funnypot-mainnet-client` package carries its
   own `php:7.3` CI** (decision F — **supersedes D9's "fold `src/Report/` into piece C"**); see Phase 7.
 
 ---
 
-## Phases 1–7 — build the `metrictower/mainnet-client` package (RELOCATED to F)
+## Phases 1–7 — build the `metrictower/funnypot-mainnet-client` package (RELOCATED to F)
 
-> Per decision F these phases **land in the `metrictower/mainnet-client` package**, not
+> Per decision F these phases **land in the `metrictower/funnypot-mainnet-client` package**, not
 > `funnypot-core/src/Report/`. They are F's to execute; retained here as the build contract (paths are
 > the package `src/`; the class is `Funnypot\Mainnet\Reporter`). **B's own work starts at Phase 8.**
 
@@ -330,7 +330,7 @@ test — this is called out so a reviewer does not expect a mocked-200 here.
 
 ## Phase 7 — PHP 7.3 conformance (the package's own CI — decision F)
 
-**Change.** Under decision F the **`metrictower/mainnet-client` package owns its own 7.3 CI** — this
+**Change.** Under decision F the **`metrictower/funnypot-mainnet-client` package owns its own 7.3 CI** — this
 **supersedes D9's "fold `src/Report/` into piece C's matrix"** (the code is no longer in core). In the
 package repo:
 1. Keep the package `src/*.php` free of 7.4+ constructs — no enums, `match`, constructor promotion,
@@ -360,8 +360,8 @@ package repo:
 > (`composer update metrictower/funnypot-core`). Keep the app suite green throughout.
 
 **Change.**
-1. **Pull core (which now requires the package):** land Phases 1–7 in `metrictower/mainnet-client` and
-   publish it; make `funnypot-core` `require metrictower/mainnet-client` and re-export it, push
+1. **Pull core (which now requires the package):** land Phases 1–7 in `metrictower/funnypot-mainnet-client` and
+   publish it; make `funnypot-core` `require metrictower/funnypot-mainnet-client` and re-export it, push
    `funnypot-core@main`; then in `funnypot/` run `composer update metrictower/funnypot-core`
    (regenerates `composer.lock`; both repos stay PUBLIC so the anonymous composer install keeps working).
 2. **AppConfig** (`src/App/Config/AppConfig.php`): add fields beside the `abuseIpdb*` ones —
@@ -449,7 +449,7 @@ no env set (so it never breaks offline CI).
    `https://api.funnypot.<tld>` (host only, no path — the reporter appends `/v1/report`). Before prod
    deploy the real host must be set (env override works regardless). Does not block Phases 1–8.
 2. **7.3 conformance is the package's own CI (Phase 7 / decision F).** Host is PHP 8.4, so `php -l`
-   here is blind to 7.4+ syntax. The **`metrictower/mainnet-client` package stands up its own `php:7.3`
+   here is blind to 7.4+ syntax. The **`metrictower/funnypot-mainnet-client` package stands up its own `php:7.3`
    lane** (carrying `pdo_sqlite`+`curl`+`sodium` so the conditional tests run there) — this
    **supersedes D9** (no fold into piece C). Risk moves to F: the package's 7.3 lane must exist before
    core `require`s it into a 7.3 deployment.
@@ -462,7 +462,7 @@ no env set (so it never breaks offline CI).
    Easy to miss when copying; C's 7.3 matrix (Phase 7) catches it. Scalar/array *parameter* types are fine.
 5. **Transport happy-path has no unit coverage.** By design the core suite is offline, so 2xx transport
    behavior is only proven in Phase 9 (live). Acceptable and called out so it is not mistaken for a gap.
-6. **Cross-repo ordering.** Phases 1–7 (the `metrictower/mainnet-client` package) must be published and
+6. **Cross-repo ordering.** Phases 1–7 (the `metrictower/funnypot-mainnet-client` package) must be published and
    `funnypot-core` must `require` + re-export it, then pulled (`composer update`), before Phase 8 (app)
    can wire them. Phase 9 needs a live A1. D and E consume `Funnypot\Mainnet\Reporter` only after the
    package + core re-export land.
@@ -472,9 +472,9 @@ no env set (so it never breaks offline CI).
 ## Definition of done
 
 - `Funnypot\Mainnet\{ReportQueue, ReportTransport, Reporter, PdoSqliteReportQueue, CurlReportTransport,
-  StreamReportTransport}` exist in the **`metrictower/mainnet-client`** package (`src/`), all
+  StreamReportTransport}` exist in the **`metrictower/funnypot-mainnet-client`** package (`src/`), all
   7.3-syntax-clean (delivered by F); `funnypot-core` `require`s and re-exports the package.
-- `php vendor/bin/phpunit` green in the **`metrictower/mainnet-client`** package (and green in
+- `php vendor/bin/phpunit` green in the **`metrictower/funnypot-mainnet-client`** package (and green in
   **funnypot-core** with the package required + re-exported), including ported enqueue-guard parity,
   drain status-branch parity (incl. the **`429` branch-on-`code`**: `duplicate_report` drop /
   `quota_exhausted` park), the **SF-6/decision-N drain envelope** (marker-skip, 10s budget, abort after
@@ -508,7 +508,7 @@ no env set (so it never breaks offline CI).
 3. **Real transports (Phase 6) get only failure-shape unit tests**; their 2xx path is covered by the Phase 9
    live-swap test. I did not invent a local HTTP server in the core suite (it is deliberately offline).
 4. **The package owns its 7.3 CI (decision F — supersedes D9).** The relocated `src/` is authored
-   7.3-clean and gated by the `metrictower/mainnet-client` package's own `php:7.3` lane — no fold into
+   7.3-clean and gated by the `metrictower/funnypot-mainnet-client` package's own `php:7.3` lane — no fold into
    piece C. Phase 7 stands up that lane in the package repo.
 5. **Phase 8: mainnet is the default destination, key-gated (D2).** The app keeps AbuseIPDB as an optional,
    off-by-default path and runs `Reporter` as the default, active only when `MAINNET_KEY` is set;
@@ -530,7 +530,7 @@ no env set (so it never breaks offline CI).
 - **E · honeypot-laravel (dependent):** reuses `Reporter` with a Laravel `DB`/Eloquent `ReportQueue`;
   depends on B in core, independent of D.
 - **funnypot app (this program's consumer):** Phases 8–9 wiring + `composer update metrictower/funnypot-core`
-  after Phases 1–7 land in `metrictower/mainnet-client` and `funnypot-core` `require`s + re-exports it.
+  after Phases 1–7 land in `metrictower/funnypot-mainnet-client` and `funnypot-core` `require`s + re-exports it.
 
 ---
 
@@ -568,7 +568,7 @@ no env set (so it never breaks offline CI).
 
 ### F relocation (program decision F, 2026-08-19)
 
-- **Phases 1–7 relocate to `metrictower/mainnet-client`.** The reporter/queue/transport classes are
+- **Phases 1–7 relocate to `metrictower/funnypot-mainnet-client`.** The reporter/queue/transport classes are
   built in the new standalone package (`Funnypot\Mainnet\`, `src/`, PHP >= 7.3), not
   `funnypot-core/src/Report/`. Added the relocation banner, a "Phases 1–7 (RELOCATED to F)" section
   header, and retargeted the phase paths (`src/Report/X.php` → the package `src/`) and the namespace/

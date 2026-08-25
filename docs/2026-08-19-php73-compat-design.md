@@ -24,11 +24,11 @@ properties / arrow functions** (7.4), with essentially nothing else.
 - Convert **all of `src/`** (runtime *and* compiler subtrees) plus the `tests/` suite to parse and run
   on PHP 7.3–8.4.
 - **Piece B's reporter is NOT in C's scope (F, supersedes D9).** B's `MainnetReporter` relocates out of
-  `funnypot-core/src/Report/` into the standalone `metrictower/mainnet-client` package as
+  `funnypot-core/src/Report/` into the standalone `metrictower/funnypot-mainnet-client` package as
   `Funnypot\Mainnet\Reporter`; it never lands in core, so there is no `src/Report/` tree for C to
   down-level or police. The package carries its own PHP `>=7.3` CI lane. This reverts the earlier D9
   "fold `src/Report/` into C's 7.3 matrix" decision.
-- **`funnypot-core` requires `metrictower/mainnet-client` (F).** Add a composer `require` on the new
+- **`funnypot-core` requires `metrictower/funnypot-mainnet-client` (F).** Add a composer `require` on the new
   standalone package (itself PHP `>=7.3`, dependency-light, with its own 7.3 CI); core re-exports it so
   the WP/Laravel bridges get it transitively. The require **must resolve on core's new 7.3 floor** —
   Phase 7 asserts the locked `mainnet-client` satisfies `>=7.3` (§4.3, §7).
@@ -76,7 +76,7 @@ Nothing about *where core runs* changes; only *which PHP parses it*.
         (unchanged; 8.x floor kept)                              (piece D — the reason C exists)
 ```
 
-- **Stack:** framework-free PHP library. Runtime `require` gains **`metrictower/mainnet-client`** (F —
+- **Stack:** framework-free PHP library. Runtime `require` gains **`metrictower/funnypot-mainnet-client`** (F —
   the relocated reporter's package; itself PHP `>=7.3`, dependency-light), which core re-exports; this
   is the one *runtime* dependency added by the program and it must satisfy the 7.3 floor (§4.3).
   `require-dev` is PHPUnit ^9.5, nyholm/psr7 ^1.8, the PSR HTTP interfaces, and symfony/yaml. PHPUnit 9
@@ -223,7 +223,7 @@ the undefined-index notice on the read exactly as `??=` did.
 ```jsonc
 "require": {
     "php": ">=7.3",                        // was ">=8.0"
-    "metrictower/mainnet-client": "^1.0"   // F — relocated reporter's home; PHP >=7.3 itself
+    "metrictower/funnypot-mainnet-client": "^1.0"   // F — relocated reporter's home; PHP >=7.3 itself
     // OPTIONAL forward-guard (see below):
     // "symfony/polyfill-php80": "^1.28"
 },
@@ -237,7 +237,7 @@ After editing the constraint, regenerate the lock (`composer update symfony/yaml
 5.4.x release; Phase 7 asserts the locked version is 5.4.x. (Alternatively, keep `^5.4 || ^6.0` but add
 `config.platform.php: "7.3"` so any re-resolve is forced onto the 7.3-capable arm.)
 
-- **`metrictower/mainnet-client` require must resolve on the 7.3 floor (F).** The new dependency is a
+- **`metrictower/funnypot-mainnet-client` require must resolve on the 7.3 floor (F).** The new dependency is a
   PHP `>=7.3` package, so it installs on core's widened floor — but that is a claim to *check*, not
   assume. After regenerating the lock, assert the locked `mainnet-client` release declares `"php"` that
   is satisfied by `>=7.3` (Phase 7), and that `composer install` succeeds on the 7.3 container. A
@@ -332,7 +332,7 @@ but the compiler *sources* are down-levelled too so the whole repo is honestly 7
 - **Parse-check gate.** A cheap `find src tests -name '*.php' -print0 | xargs -0 -n1 php -l` under a
   7.3 container catches any missed 7.4/8.0 syntax before the suite even boots.
 - **Dependency-floor check (F).** After regenerating the lock, assert the locked
-  `metrictower/mainnet-client` release declares a `"php"` constraint satisfied by `>=7.3`, and that
+  `metrictower/funnypot-mainnet-client` release declares a `"php"` constraint satisfied by `>=7.3`, and that
   `composer install` from that lock succeeds on the 7.3 container — the new runtime require must not
   re-raise core's effective floor above 7.3 (§4.3).
 - **Anti-regression lint (new, optional).** A tiny CI grep asserting the four converted constructs
@@ -378,7 +378,7 @@ but the compiler *sources* are down-levelled too so the whole repo is honestly 7
   PHP 7.x; C is its explicit prerequisite. D should be planned to consume core **after** C merges and a
   7.3-tagged core release exists. D builds its engine `Config` through the **`Config` array/builder
   factory** C exposes (§4.4, M15), not a hand-rolled positional constructor call.
-- **Piece B (report-to-mainnet) relocates its reporter to `metrictower/mainnet-client` (F, supersedes
+- **Piece B (report-to-mainnet) relocates its reporter to `metrictower/funnypot-mainnet-client` (F, supersedes
   D9).** B's `MainnetReporter` becomes `Funnypot\Mainnet\Reporter` in the standalone package, not
   `Funnypot\Report\*` in core — so **no `src/Report/` tree ever lands in core** and there is nothing for
   C to convert or police. The package owns its own PHP `>=7.3` CI lane, so B and C are policed by
@@ -413,11 +413,11 @@ but the compiler *sources* are down-levelled too so the whole repo is honestly 7
   reporter leaves core entirely; the `src/Laravel/*` exclusion and the `sodium` container requirement
   for the rules trust chain stand.)*
 - **F relocation** (decision F, `funnypot-mainnet/docs/2026-08-19-program-decisions.md`) — B's reporter
-  relocates from `funnypot-core/src/Report/` into the new standalone `metrictower/mainnet-client`
+  relocates from `funnypot-core/src/Report/` into the new standalone `metrictower/funnypot-mainnet-client`
   package (`Funnypot\Mainnet\Reporter`), which carries its own PHP `>=7.3` CI. §2: **removed `src/Report/`
   from C's conversion scope** (it never lands in core), reverting the D9 fold; added that `funnypot-core`
-  gains a runtime `require` on `metrictower/mainnet-client` and that the require **must resolve on the
-  7.3 floor**. §3: noted the new runtime require in the stack. §4.3: added `metrictower/mainnet-client`
+  gains a runtime `require` on `metrictower/funnypot-mainnet-client` and that the require **must resolve on the
+  7.3 floor**. §3: noted the new runtime require in the stack. §4.3: added `metrictower/funnypot-mainnet-client`
   to the composer `require` diff and a lock-resolution-on-7.3 check. §7: added a dependency-floor check
   asserting the locked `mainnet-client` satisfies `>=7.3`. §9: rewrote the Piece B dependency bullet —
   no `src/Report/` in core; C's only tie to B is the 7.3-resolvable require. C's construct inventory

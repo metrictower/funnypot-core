@@ -23,7 +23,7 @@ the host PHP throughout, while a real-7.3 interpreter goes progressively green a
   and the committed `composer.lock` resolve the 6.x arm — **v6.4.43**, whose own `"php": ">=8.1"` cannot
   install or parse on 7.3. This must be narrowed to `"symfony/yaml": "^5.4"` and the lock regenerated
   (Phase 7); until then the 7.3/7.4 CI lanes cannot boot phpunit. `ext-sodium`/`ext-openssl` are runtime
-  `suggest` extensions, untouched. **There is no runtime `require` today; C adds one — `metrictower/mainnet-client`
+  `suggest` extensions, untouched. **There is no runtime `require` today; C adds one — `metrictower/funnypot-mainnet-client`
   (F, Phase 7)** — the new home of Piece B's relocated reporter, a PHP `>=7.3` package core re-exports.
 - **Baseline (captured dynamically, D9):** `php vendor/bin/phpunit` on host **PHP 8.4.10** /
   **PHPUnit 9.6.36** was green at **327 tests / 4190 assertions** at the time of writing, but the plan
@@ -31,7 +31,7 @@ the host PHP throughout, while a real-7.3 interpreter goes progressively green a
   Phase 0 **records** whatever the host reports and every later phase compares against **that recorded
   baseline** (run-and-compare), not a literal 327/4190. The green baseline (at its recorded count) must
   hold on the host at every phase. (Under F, Piece B's reporter no longer lands `src/Report/` tests in
-  core — it relocates to `metrictower/mainnet-client` — so those conditional tests are not part of
+  core — it relocates to `metrictower/funnypot-mainnet-client` — so those conditional tests are not part of
   core's count.)
 - **Test config:** `phpunit.xml.dist` (bootstrap `tests/bootstrap.php`, suite = whole `tests/` dir).
   28 `*Test.php` files.
@@ -69,7 +69,7 @@ four constructs.** Confirmed arrow-fn code sites (from grep):
   **The 7.3 (and 7.4) verification container must carry `sodium`** so the rules trust-chain's
   extension-conditional tests actually **run** rather than skip; a skipped test silently shifts the
   count and defeats the run-and-compare baseline. (D9 also asked for `pdo_sqlite` + `curl` to cover
-  Piece B's `src/Report/` tests; under **F** those tests relocate to `metrictower/mainnet-client` and
+  Piece B's `src/Report/` tests; under **F** those tests relocate to `metrictower/funnypot-mainnet-client` and
   are no longer in core's suite, so `sodium` is the extension core's own 7.3 container actually needs —
   `pdo_sqlite`/`curl` stay harmless to include.) Build a one-off `php:7.3-cli` image with `sodium` in
   Phase 1 and reuse it for all 7.3 runs (the stock image lacks it). Commands below assume that image:
@@ -110,11 +110,11 @@ equivalence check is **run-and-compare against the Phase-0 baseline**, not a har
    tests/assertions pair the run reports** into the phase log (at time of writing 327/4190, but the
    recorded value — not that literal — is the oracle every later phase compares to via run-and-compare).
    Under **F** there is no `src/Report/` tree in core (B's reporter relocates to
-   `metrictower/mainnet-client`), so the count moves only for the new `ConfigFactoryTest` (M15, Phase 3).
+   `metrictower/funnypot-mainnet-client`), so the count moves only for the new `ConfigFactoryTest` (M15, Phase 3).
 2. Pull `php:7.3-cli`; run the parse-check sweep (command above) → **it fails** on the promotion/
    typed-prop/arrow-fn files. Capture the failing-file list; confirm it matches the design §4.1 inventory
    (19 promotion files + typed-prop files + 12 arrow-fn files + `CrsCompiler.php`). Under **F** there is
-   **no `src/Report/*`** to include — B's reporter lives in `metrictower/mainnet-client`, not core.
+   **no `src/Report/*`** to include — B's reporter lives in `metrictower/funnypot-mainnet-client`, not core.
 
 **Done-criteria:** host suite green at the **recorded** baseline count; 7.3 parse sweep reproduces the
 expected failures and the failing set equals the documented surface (the four constructs, across the src
@@ -247,7 +247,7 @@ add an install step: `docker run --rm -v "$PWD":/app -w /app php:7.3-cli sh -c "
 `php:7.3-cli` + **`sodium`** image once (design §7; documented in Phase 1
 harness notes) and reuse it for all 7.3 runs — `sodium` is what the rules trust-chain tests need to run
 rather than skip. (D9's extra `pdo_sqlite` + `curl` were for Piece B's `src/Report/` tests, which under
-**F** relocate to `metrictower/mainnet-client`; core no longer needs them, though they stay harmless.)
+**F** relocate to `metrictower/funnypot-mainnet-client`; core no longer needs them, though they stay harmless.)
 - Host: `php vendor/bin/phpunit` → **baseline-count green**.
 - 7.3, targeted at the rules classes → green (**must** include the signature + literal-validator tests).
 
@@ -269,7 +269,7 @@ no logic diff in the trust chain (review the diff for syntax-only changes).
 `Matcher/WordMatcherInverter.php` (arrow fns `:53`, `:112`), and `Store/PhpArrayStore.php`. `??=`
 recipe: `$classes[$class] = $classes[$class] ?? [...]`. Convert compiler test files' arrow fns too.
 - **No `src/Report/` to fold (F, supersedes D9).** B's reporter relocates to the standalone
-  `metrictower/mainnet-client` package (`Funnypot\Mainnet\Reporter`), which carries its own PHP `>=7.3`
+  `metrictower/funnypot-mainnet-client` package (`Funnypot\Mainnet\Reporter`), which carries its own PHP `>=7.3`
   CI lane — it never lands in core, so this sweep has no `src/Report/*` to convert or police. The
   earlier D9 "fold `src/Report/` into C's gate" step is dropped. C's only tie to B is the runtime
   `require` on `mainnet-client` added in Phase 7.
@@ -313,7 +313,7 @@ fixtures/helpers). After this, the entire `tests/` tree parses on 7.3.
 
 **Change (design §3 / §4.3):**
 - `composer.json`: `"php": ">=8.0"` → `">=7.3"`.
-- **Add a runtime `require` on `metrictower/mainnet-client` (F).** This is the relocated reporter's new
+- **Add a runtime `require` on `metrictower/funnypot-mainnet-client` (F).** This is the relocated reporter's new
   home (`Funnypot\Mainnet\Reporter`), a PHP `>=7.3` package core re-exports so the WP/Laravel bridges
   get it transitively. The require **must resolve on the new 7.3 floor** — verified below.
 - **Narrow require-dev `symfony/yaml` from `"^5.4 || ^6.0"` to `"^5.4"` (BL1).** The `^6.0` arm resolves
@@ -334,8 +334,8 @@ fixtures/helpers). After this, the entire `tests/` tree parses on 7.3.
   `symfony/yaml` is a **5.4.x** release (e.g. `php -r '...json_decode(file_get_contents("composer.lock"))...'`
   or `composer show symfony/yaml | grep -E "versions\s*:\s*\*?\s*v?5\.4"`) → fail the phase if it is 6.x.
 - **F dependency-floor assertion (write it as a checked step):** parse `composer.lock` and assert the
-  locked `metrictower/mainnet-client` declares a `"php"` constraint satisfied by `>=7.3` (`composer show
-  metrictower/mainnet-client` / read its `require.php`) → fail the phase if it ever demands `>8.0`. A
+  locked `metrictower/funnypot-mainnet-client` declares a `"php"` constraint satisfied by `>=7.3` (`composer show
+  metrictower/funnypot-mainnet-client` / read its `require.php`) → fail the phase if it ever demands `>8.0`. A
   mainnet-client release that raised its own floor would silently re-break core on the WP hosts C exists
   for. This is confirmed by the 7.3 `composer install` succeeding below.
 - `composer install` on the 7.3 container from the regenerated lock → **resolves and passes the
@@ -343,7 +343,7 @@ fixtures/helpers). After this, the entire `tests/` tree parses on 7.3.
   **baseline-count green** (deps still satisfy 7.3).
 - Host: `composer install && php vendor/bin/phpunit` → **baseline-count green** (8.x unaffected).
 
-**Done-criteria:** floor is `>=7.3`; **runtime `require` on `metrictower/mainnet-client` added and the
+**Done-criteria:** floor is `>=7.3`; **runtime `require` on `metrictower/funnypot-mainnet-client` added and the
 locked release resolves on the 7.3 floor (F, asserted)**; require-dev `symfony/yaml` is `^5.4` and the
 **lock pins 5.4.x** (asserted); lock regenerated and installs on 7.3 and 8.4; suite green on both;
 `composer validate --strict` clean. Polyfill decision recorded.
@@ -417,14 +417,14 @@ green. Ready to tag a 7.3-capable core release for piece D to consume.
       container carries `sodium`).
 - [ ] The four constructs are gone from `src` and `tests` (grep-verified); anti-regression lint green
       and wired as a hard gate in `tests.yml`.
-- [ ] `composer.json` floor = `>=7.3`; **runtime `require` on `metrictower/mainnet-client` added and its
+- [ ] `composer.json` floor = `>=7.3`; **runtime `require` on `metrictower/funnypot-mainnet-client` added and its
       locked release resolves on the 7.3 floor (F, asserted in Phase 7)**; **require-dev `symfony/yaml`
       narrowed to `^5.4` and the lock pins a 5.4.x release (BL1, asserted in Phase 7)**; `composer.lock`
       regenerated, installs on 7.3 and 8.4; `composer validate --strict` clean; polyfill decision recorded.
 - [ ] **`Config::fromArray()` factory exists (M15), is 7.3-callable, and `ConfigFactoryTest` passes on
       8.4 and 7.3** — 7.3 consumers build `Config` by named keys, not positional order.
 - [ ] **No `src/Report/` in core (F, supersedes D9)** — B's reporter relocates to
-      `metrictower/mainnet-client`, so it is not in C's conversion scope; C requires the package instead;
+      `metrictower/funnypot-mainnet-client`, so it is not in C's conversion scope; C requires the package instead;
       **`src/Laravel/*` excluded from C's scope if E extracts it.**
 - [ ] **funnypot-rules publish gate:** every published `.php` rule artifact `php -l`-clean on 7.3
       (design §6) so the 7.3 release is safe for D to consume.
@@ -475,11 +475,11 @@ green. Ready to tag a 7.3-capable core release for piece D to consume.
   **7.3-capable core release is tagged**. Phase 8's downstream check + a tag are D's entry gate. D builds
   its engine `Config` through C's **`Config::fromArray()` factory** (M15, Phase 3), not a hand-rolled
   positional constructor call.
-- **Piece B (report-to-mainnet) relocates its reporter to `metrictower/mainnet-client` (F, supersedes
+- **Piece B (report-to-mainnet) relocates its reporter to `metrictower/funnypot-mainnet-client` (F, supersedes
   D9).** B's `MainnetReporter` becomes `Funnypot\Mainnet\Reporter` in the standalone package, not
   `Funnypot\Report\*` in core — so **no `src/Report/` tree lands in core** and there is nothing for C to
   convert or police. The package owns its own PHP `>=7.3` CI lane; B and C are policed by separate gates
-  in separate repos. C's only tie to B is the runtime `require` on `metrictower/mainnet-client` (Phase
+  in separate repos. C's only tie to B is the runtime `require` on `metrictower/funnypot-mainnet-client` (Phase
   7), which **must resolve on the 7.3 floor** (asserted). Both the D9 "fold `src/Report/` into C's gate"
   arrangement and the older "B stays app-side, no conflict" claim it replaced are **dropped**.
 - **Piece E (honeypot-laravel):** independent of C for its *floor* (Laravel hosts run 8.x), but the file
@@ -510,13 +510,13 @@ green. Ready to tag a 7.3-capable core release for piece D to consume.
   requirement are later reverted by F below — the reporter leaves core entirely; the `sodium`
   requirement and the `src/Laravel/*` exclusion stand.)*
 - **F relocation** (decision F, `funnypot-mainnet/docs/2026-08-19-program-decisions.md`) — B's reporter
-  relocates from `funnypot-core/src/Report/` into the new standalone `metrictower/mainnet-client` package
+  relocates from `funnypot-core/src/Report/` into the new standalone `metrictower/funnypot-mainnet-client` package
   (`Funnypot\Mainnet\Reporter`), which carries its own PHP `>=7.3` CI. **Removed `src/Report/` from C's
   conversion scope** (it never lands in core), reverting the D9 fold: Orientation baseline note + Docker
   harness note (dropped the `pdo_sqlite`/`curl`-for-Report rationale; kept `sodium` for rules), Phase 0
   (no `src/Report/*` in the failing set), Phase 4 (container needs `sodium`, not the three-extension set),
   Phase 5 (no `src/Report/` to fold), Phase 6, Dependencies (Piece B bullet rewritten), Definition of
-  done. **Added the runtime `require` on `metrictower/mainnet-client`** (Orientation, Phase 7) with a
+  done. **Added the runtime `require` on `metrictower/funnypot-mainnet-client`** (Orientation, Phase 7) with a
   checked assertion that the locked release resolves on the 7.3 floor, plus a Definition-of-done item.
   C's construct inventory (promotion / typed props / arrow-fns / `??=`) is unchanged apart from dropping
   the `src/Report/` references.

@@ -1,7 +1,7 @@
 # funnypot-core 🍯
 
 [![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
-[![PHP](https://img.shields.io/badge/php-%3E%3D8.0-777bb3.svg)](composer.json)
+[![PHP](https://img.shields.io/badge/php-%3E%3D7.3-777bb3.svg)](composer.json)
 [![Runtime](https://img.shields.io/badge/runtime-PHP--only-blue.svg)](#how-it-works)
 
 > **Not sure you're in the right place?**

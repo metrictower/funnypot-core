@@ -6,7 +6,7 @@
 
 > **Relocation (program decision F, 2026-08-19).** The reporter and its queue/transport classes are
 > **no longer authored in `funnypot-core/src/Report/`**. They live in the new standalone composer
-> package **`metrictower/mainnet-client`** (namespace `Funnypot\Mainnet\`, PHP >= 7.3, framework-free)
+> package **`metrictower/funnypot-mainnet-client`** (namespace `Funnypot\Mainnet\`, PHP >= 7.3, framework-free)
 > as `Funnypot\Mainnet\Reporter` et al. **`funnypot-core` `require`s the package and re-exports it**;
 > the WordPress (D) and Laravel (E) extensions get it transitively; non-honeypot consumers depend on
 > it directly. **Piece B's scope is now the app + core wiring** (AppConfig, demo entrypoints,
@@ -29,7 +29,7 @@ skip. The report body is the *same* AbuseIPDB-compatible shape the app already e
 swap-compatible with the existing client, but repointing is done through **B's injected base URL**
 (the endpoint is injected, never a hardcoded constant), not by editing a URL constant. The
 load-bearing decision, **revised by program decision F**: the reporter is **authored in a new
-standalone composer package `metrictower/mainnet-client`** (namespace `Funnypot\Mainnet\`, PHP >= 7.3,
+standalone composer package `metrictower/funnypot-mainnet-client`** (namespace `Funnypot\Mainnet\`, PHP >= 7.3,
 framework-free) as `Funnypot\Mainnet\Reporter`, **not** inside funnypot-core. **funnypot-core
 `require`s that package and re-exports it**, so the app **and** the WordPress (D) and Laravel (E)
 extensions all reuse one reporter with one set of invariants — self-IP guard, per-IP dedup, daily
@@ -41,7 +41,7 @@ require/update), not to author the reporter.
 ## 2. Scope
 
 > **Scope after decision F.** The reporter, queue, and transport classes below are **authored in the
-> `metrictower/mainnet-client` package** (`Funnypot\Mainnet\`), not in `funnypot-core/src/Report/`.
+> `metrictower/funnypot-mainnet-client` package** (`Funnypot\Mainnet\`), not in `funnypot-core/src/Report/`.
 > funnypot-core `require`s and re-exports the package. **B delivers the app + core wiring only**
 > (AppConfig, `demo/*`, `entrypoint.sh`, `composer` require/update); the bullets that describe class
 > internals now describe the F package's surface B consumes and the behavioral decisions
@@ -64,7 +64,7 @@ require/update), not to author the reporter.
   check, per-IP dedup window, daily cap.
 - A **pluggable queue store** (`ReportQueue` contract) so core carries no storage dependency: the app
   binds a PDO/SQLite implementation (its existing `intel.sqlite`), and D/E bind their own.
-- **PHP 7.3 compatibility** from birth — the `metrictower/mainnet-client` package targets 7.3
+- **PHP 7.3 compatibility** from birth — the `metrictower/funnypot-mainnet-client` package targets 7.3
   independently (so WordPress hosts work), not via piece C's core-floor lowering: no enums, no
   `match`, no constructor promotion, no named args, no nullsafe (`?->`), no arrow functions, no
   **typed properties**, no `??=`. **Scalar and array *parameter* types are 7.3-valid and are kept** —
@@ -112,7 +112,7 @@ require/update), not to author the reporter.
         │ enqueue() — local write, never blocks         │ drain() — the HTTP POSTs
         ▼                                                ▼
   ┌───────────────────────────────┐              ┌──────────────────────────────┐
-  │ Funnypot\Mainnet\Reporter  (metrictower/mainnet-client, PHP 7.3)            │
+  │ Funnypot\Mainnet\Reporter  (metrictower/funnypot-mainnet-client, PHP 7.3)            │
   │  guards: self-IP · public-IP · dedup · daily-cap  (enqueue-time)           │
   │  drain: check decision-N marker (skip while OPEN) → budget 10s ·           │
   │         pop rows → POST base+/v1/report → 2xx drop · 429 branch-on-code    │
@@ -131,7 +131,7 @@ require/update), not to author the reporter.
   └──────────────────┘
 ```
 
-- **Where it lives:** the **`metrictower/mainnet-client`** package (`Funnypot\Mainnet\`), which
+- **Where it lives:** the **`metrictower/funnypot-mainnet-client`** package (`Funnypot\Mainnet\`), which
   `funnypot-core` `require`s and re-exports (decision F) — no longer `funnypot-core/src/Report/`. The
   package is plain framework-free PHP with an injected queue + transport, so it stays framework-free
   while D and E supply framework-native queue bindings; non-honeypot consumers depend on it directly,
@@ -145,13 +145,13 @@ require/update), not to author the reporter.
 
 ## 4. The concrete surface
 
-> **Authored in `metrictower/mainnet-client` (decision F), not core.** The classes below live in the
+> **Authored in `metrictower/funnypot-mainnet-client` (decision F), not core.** The classes below live in the
 > package under namespace `Funnypot\Mainnet\` (`Funnypot\Mainnet\Reporter` et al.); `funnypot-core`
 > `require`s and re-exports them. They are specified here because B **wires** the app + core to them
 > and because decisions D1/D2/D3/D6/D7 constrain their behavior — the authoritative package spec is
 > the F / `mainnet-client` design.
 
-Namespace `Funnypot\Mainnet\` in the **`metrictower/mainnet-client`** package. Signatures written for
+Namespace `Funnypot\Mainnet\` in the **`metrictower/funnypot-mainnet-client`** package. Signatures written for
 PHP 7.3: **untyped properties** + docblocks (typed properties are 7.4+), no constructor promotion, no
 union return types. **Scalar and array parameter types are 7.3-valid and are kept** (e.g.
 `array $selfIps`, `array $headers`) — only *properties* are de-typed, not parameters.
@@ -414,7 +414,7 @@ interface ReportTransport
 - **PHP 7.3 constraint (the package owns its own gate).** The whole `Funnypot\Mainnet\` component is
   written to 7.3: no enums/`match`/constructor-promotion/named-args/nullsafe/arrow-fns/**typed-props**/`??=`.
   **Scalar and array *parameter* types stay** (7.3-valid); only typed *properties* are de-typed.
-  Transport uses curl or streams. The **`metrictower/mainnet-client` package carries its own 7.3 CI**;
+  Transport uses curl or streams. The **`metrictower/funnypot-mainnet-client` package carries its own 7.3 CI**;
   this **supersedes D9's "fold `src/Report/` into piece C's matrix"** — the code left core, so C no
   longer polices it. Still mandatory because D targets PHP-7.x WordPress hosts and the package is a
   standalone 7.3 dependency of core.
@@ -453,7 +453,7 @@ interface ReportTransport
 ## 7. Testing strategy
 
 > **Ownership after decision F.** The class-level unit tests below (port-parity, `sensor_id`, queue
-> contract, transport) are authored in the **`metrictower/mainnet-client` package** (F); they remain
+> contract, transport) are authored in the **`metrictower/funnypot-mainnet-client` package** (F); they remain
 > here as the behavioral acceptance criteria the relocated `Funnypot\Mainnet\Reporter` must meet. **B
 > owns the app-integration and live-swap tests** that exercise the app + core wiring against the
 > re-exported package.
@@ -490,7 +490,7 @@ interface ReportTransport
   attempts/dedup/daily round-trips; `sensor_id` persistence in `mainnet_meta`; confirm `mainnet_*`
   tables are independent of `abuse_*`; a row pushed **with** `signals`/`confidence` round-trips through
   `take()` intact, and a row pushed **without** them reads back `NULL` (additive-column back-compat).
-- **7.3 compatibility:** owned by the **`metrictower/mainnet-client` package's own 7.3 CI** (F), not
+- **7.3 compatibility:** owned by the **`metrictower/funnypot-mainnet-client` package's own 7.3 CI** (F), not
   by piece C — this supersedes D9. B's app suite only exercises the wiring against the re-exported
   package.
 - **Live swap test (ties to A1 §11):** point `Reporter` at a local mainnet base URL; assert a
@@ -501,7 +501,7 @@ interface ReportTransport
 
 ## 8. Key decisions I made (confirm at review)
 
-1. **Reporter lives in the `metrictower/mainnet-client` package** (`Funnypot\Mainnet\Reporter`),
+1. **Reporter lives in the `metrictower/funnypot-mainnet-client` package** (`Funnypot\Mainnet\Reporter`),
    which `funnypot-core` `require`s and re-exports (decision F — supersedes the original "reporter in
    core" recommendation). App + WordPress (D) + Laravel (E) share one reporter and one set of
    invariants via that package; non-honeypot consumers depend on it directly. B's scope is the app +
@@ -546,7 +546,7 @@ interface ReportTransport
   `internal`-tier key (A1 §8). B's report shape is fixed by the parity reference A1 also follows; the
   A1 "swap test" (A1 §11) and B's live swap test are the same proof from both ends.
 - **C · funnypot-core → PHP 7.3 (related, not blocking):** the reporter's 7.3 conformance is now the
-  **`metrictower/mainnet-client` package's own CI** (F), not C's matrix — this **supersedes D9**. C
+  **`metrictower/funnypot-mainnet-client` package's own CI** (F), not C's matrix — this **supersedes D9**. C
   still lowers funnypot-core's own floor to 7.3 (core must run everywhere the package does), and core
   gains a `require` on the 7.3 package, but C no longer polices the reporter source.
 - **D · honeypot-wordpress (dependent):** D reuses `Reporter` and supplies a `wpdb`-backed
@@ -596,7 +596,7 @@ interface ReportTransport
 
 - **Reporter relocated out of core.** The reporter + its queue/transport classes move from
   `funnypot-core/src/Report/` (old `Funnypot\Report\*`) into the new standalone composer package
-  **`metrictower/mainnet-client`** (`Funnypot\Mainnet\`, `Funnypot\Mainnet\Reporter`, PHP >= 7.3).
+  **`metrictower/funnypot-mainnet-client`** (`Funnypot\Mainnet\`, `Funnypot\Mainnet\Reporter`, PHP >= 7.3).
   `funnypot-core` now **`require`s and re-exports** the package; WordPress (D) / Laravel (E) get it
   transitively; non-honeypot consumers depend on it directly. Namespace/class/path references updated
   throughout (top banner, §1, §2, §3 diagram + "where it lives", §4, §6, §8, §9).
@@ -616,7 +616,7 @@ interface ReportTransport
 
 Applies the canonical fail-open cooldown (decision **N**, futureproofing review §5) and its two
 drain-side items to the Reporter's `drain()` contract B wires against. The Reporter is authored in
-`metrictower/mainnet-client` (F, the breaker owner); these are the behavioral criteria the relocated
+`metrictower/funnypot-mainnet-client` (F, the breaker owner); these are the behavioral criteria the relocated
 `drain()` must meet and that B's `demo/mainnet-drain.php` worker + D/E drains rely on.
 
 - **SF-6 — bounded drain tick.** `drain()` gains a resilience envelope: a per-tick **wall-clock budget
