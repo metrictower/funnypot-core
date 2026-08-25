@@ -35,10 +35,20 @@ function packageSources(string $root): array
         }
     }
 
-    foreach (glob($root . '/vendor/metrictower/*', GLOB_ONLYDIR) ?: [] as $dir) {
-        $j = json_decode((string) @file_get_contents($dir . '/composer.json'), true);
-        if (is_array($j) && isset($j['name'])) {
-            $out[$j['name']] = $dir;
+    // Read what Composer actually installed rather than globbing vendor/. A directory glob also
+    // picks up leftovers a human left behind (a hand-made `.bak` copy of an older release, say),
+    // and reports that stale tree's namespaces as if they were live — a false positive nobody can
+    // act on, because the offending package is not installed at all.
+    $installed = json_decode((string) @file_get_contents($root . '/vendor/composer/installed.json'), true);
+    $entries = $installed['packages'] ?? $installed ?? [];
+
+    foreach (is_array($entries) ? $entries : [] as $pkg) {
+        if (!isset($pkg['name']) || strpos($pkg['name'], 'metrictower/') !== 0) {
+            continue;
+        }
+        $dir = $root . '/vendor/' . $pkg['name'];
+        if (is_dir($dir)) {
+            $out[$pkg['name']] = $dir;
         }
     }
 
