@@ -150,6 +150,45 @@ serves its own 404. `symfony/yaml` is only needed by the compiler (`bin/funnypot
 runs weekly against the latest nuclei-templates release. See [`SPEC.md`](SPEC.md) and
 [`docs/PERSONA-CAP.md`](docs/PERSONA-CAP.md).
 
+## Memory and opcache
+
+**opcache is an operating requirement, not an optimisation.** The compiled index is a pure literal
+PHP array, which is what lets opcache intern it into shared memory as an immutable array — shared
+across workers at no per-process cost. Turn opcache off and the index is re-materialised on **every
+request**.
+
+Measured on the shipped artifact (6,397 templates / 5,196 routes), identical on PHP 7.3, 8.0, 8.4
+and 8.5:
+
+| | opcache **on** | opcache **off** |
+|---|---|---|
+| process heap, per request | **0.00 MB** | 20.43 MB |
+| private memory, per worker | **~0.9 MB** | ~42 MB |
+| shared memory, once per host | ~14 MB | — |
+| `Honeypot::default()` + `detect()` | **0.2 ms** | 52 ms |
+
+Warm `detect()` is 2–20 µs. A pool of 20 workers costs roughly **35 MB total** with opcache and
+~840 MB without.
+
+What to check when embedding:
+
+- `opcache.enable=1`; also `opcache.enable_cli=1` if you construct the engine from CLI or queue
+  workers — CLI opcache is off by default, so a worker that touches `Honeypot::default()` pays the
+  full cost on every process boot
+- at least ~20 MB of opcache shared memory free above whatever your app already uses, and
+  `opcache.max_accelerated_files` above your app's file count
+- never `opcache.file_cache_only=1` — it loads into process memory and silently reinstates the full
+  cost
+- **bind `Honeypot::default()` lazily.** An eager service-provider binding makes every CLI and queue
+  process pay for an index it will never consult.
+
+Two ways to lose the interning silently: `file_cache_only` as above, and making the compiled
+artifact non-literal (a `const` reference, a function call, a computed key). Both are worth catching
+in review.
+
+Note a one-shot CLI process can never show the benefit — it is a guaranteed cold cache, so measuring
+there reports the opcache-off numbers no matter how opcache is configured.
+
 ### Response precedence
 
 `respond()` decides what to serve in a fixed order — an earlier tier always wins:
