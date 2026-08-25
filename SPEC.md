@@ -191,15 +191,14 @@ DTOs (all promoted-ctor, PHP-8.0-safe):
 `NullObserver`. Logging/scoring/banning live in the app's observer, never in core.
 
 **Adapters:** PSR-15 `Http\HoneypotMiddleware`; `Http\Honeypot::forRequest()` pure helper +
-`Http\ResponseEmitter::emit()` (the one opt-in side-effect); Laravel bridge (`Laravel\`,
-auto-discovered) binding `Engine`, publishing config, registering the update command. Only
-`Laravel*Mapper` touch `Illuminate\*`. iCabbiTools drop-ins: `Handler.php:236-242` and
-`RestrictIPAccess.php:53-54` become `respond()` calls with existing `funky404()` /
-`diewithBadResponse()` as the null fallback.
+`Http\ResponseEmitter::emit()` (the one opt-in side-effect). Core ships **no framework bridge** —
+PSR-15 is the only adapter here, because a framework binding contradicts "framework-agnostic".
+Framework integrations live in their own packages: `metrictower/funnypot-laravel`,
+`metrictower/funnypot-wordpress`, and `metrictower/funnypot` for a framework-free app.
 
 **Updateability:** `bin/funnypot update [--tag=vX]`: pull nuclei-templates at a **pinned
 released tag**, compile, golden test, atomic write (tmp/fsync/rename/opcache-invalidate), then
-stamp manifest. Laravel: `php artisan funnypot:update`.
+stamp manifest. Framework packages wrap this in their own scheduled command.
 
 ---
 

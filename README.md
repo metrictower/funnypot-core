@@ -18,7 +18,7 @@ scan: instead of sending a probe and reading the reply to decide "this host is v
 an incoming probe and writes the reply that satisfies the scanner's own matcher. The scanner walks
 away with a full, coherent, wrong vulnerability report while you log every move.
 
-This is the reusable PHP library. Drop it into any Laravel or PSR-15 app and its 404s start answering
+This is the reusable PHP library. Drop it into any PHP or PSR-15 app and its 404s start answering
 scanners with believable decoys. Runtime is pure PHP: no YAML, no extensions, no network. It is inert
 by default (detect only); respond mode is opt-in and gated by your own suspicion signal.
 
@@ -230,7 +230,8 @@ funnypot rules:status  --data-dir=/var/lib/funnypot/rules
 funnypot rules:rollback --data-dir=/var/lib/funnypot/rules  # network-free, to a retained release
 ```
 
-Laravel: schedule `php artisan funnypot:rules-update` (config block `funnypot.rules`). With no
+On Laravel, [funnypot-laravel](https://github.com/metrictower/funnypot-laravel) ships the scheduled
+command; core itself is framework-free. With no
 `data_dir` configured, nothing changes — the engine loads only the bundled artifacts, exactly as
 before. Because the compiled artifacts are `require`d PHP, an update is verified in depth before
 anything is loaded: an **ed25519 signature** against a public key vendored *inside this package*

@@ -9,4 +9,14 @@
             <directory>tests</directory>
         </testsuite>
     </testsuites>
+    <php>
+        <!--
+            The compiled index is a ~6 MB literal. Without opcache (which is how a test process
+            runs) materialising it costs ~20 MB per load, and the suite loads it across many
+            cases, so PHP's default 128M limit kills the run before it finishes. This is a
+            test-process cost only: under php-fpm with opcache the index is interned into shared
+            memory and costs no process heap at all.
+        -->
+        <ini name="memory_limit" value="1G"/>
+    </php>
 </phpunit>

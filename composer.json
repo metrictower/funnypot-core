@@ -15,10 +15,8 @@
         "symfony/yaml": "^5.4"
     },
     "suggest": {
-        "ext-sodium": "Required only for the pure-PHP SSH honeypot server (Protocol\\Ssh): curve25519 key exchange + ed25519 host key.",
-        "ext-openssl": "Required only for the pure-PHP SSH honeypot server (Protocol\\Ssh): the aes256-ctr transport cipher.",
+        "ext-sodium": "Required only to verify signed rule releases (Rules\\SignatureVerifier); the engine itself needs no extensions.",
         "symfony/yaml": "Required only to compile templates (bin/funnypot). Runtime needs PHP alone.",
-        "illuminate/support": "Required only to use the Laravel bridge (Laravel\\FunnypotServiceProvider).",
         "psr/http-server-middleware": "Required only to use the PSR-15 adapter (Http\\HoneypotMiddleware).",
         "psr/http-message": "Required only to use the PSR-15 adapter (Http\\PsrRequestMapper / Http\\PsrResponseMapper).",
         "psr/http-factory": "Required only to use the PSR-15 adapter (response/stream factories passed to Http\\HoneypotMiddleware)."
@@ -38,12 +36,5 @@
             "php": "7.3.0"
         },
         "sort-packages": true
-    },
-    "extra": {
-        "laravel": {
-            "providers": [
-                "Funnypot\\Laravel\\FunnypotServiceProvider"
-            ]
-        }
     }
 }
