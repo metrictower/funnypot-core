@@ -139,6 +139,13 @@ inputs plus the compiled store: same `(verdict, profile, seed)` → same bytes. 
   app suspicion `gate`, the `observer` veto/notifications, and the `usleep` serve-delay. These are WHEN/
   whether/side-effect concerns, not content construction.
 
+> **SUPERSEDED 2026-08-25 — the `Funnypot\FakeResponse` alias was removed.** `funnypot-policy`
+> defines its own real `Funnypot\Policy\FakeResponse`, so the alias left two same-named types
+> either side of the boundary, one of them a `class_alias`, with nothing depending on core's copy
+> but core's own test. The vocabulary argument below no longer applies: policy owns the
+> policy-facing name. Core's value object is `SynthesizedResponse`, full stop. Everything else in
+> this section still holds — read `FakeResponse` below as `SynthesizedResponse`.
+
 `FakeResponse` is the existing `SynthesizedResponse` value (`status`, `headers`, `body`, `satisfies`).
 The contract names it `FakeResponse` (per §M) via a class alias so the policy-facing vocabulary matches
 §M while every existing use of `SynthesizedResponse` keeps compiling. `satisfies` (the served subset, for
@@ -356,7 +363,7 @@ that is the point.
 - `Funnypot\SiteProfile` — `declaredStack[]` + `?routeExists` oracle + `::empty()`.
 - `Funnypot\SynthesisConfig` — the synthesize-only remainder of `Config` (style, ceiling, exclude,
   nucleiReflection, maxBodyBytes, serverHeader, poweredBy).
-- `Funnypot\FakeResponse` — class alias of `SynthesizedResponse` (policy-facing name per §M).
+- ~~`Funnypot\FakeResponse` — class alias of `SynthesizedResponse`~~ — **removed 2026-08-25**; use `SynthesizedResponse`.
 - `EvaluatorInterface` — defined in `funnypot-policy`; `Honeypot` implements it (see §4 phasing).
 
 **Changed:**

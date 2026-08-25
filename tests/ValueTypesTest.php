@@ -8,7 +8,6 @@ use Funnypot\Core\BotSignalSet;
 use Funnypot\Core\Config;
 use Funnypot\Core\Detection;
 use Funnypot\Core\FakeHandle;
-use Funnypot\Core\FakeResponse;
 use Funnypot\Core\SiteProfile;
 use Funnypot\Core\SynthesisConfig;
 use Funnypot\Core\SynthesizedResponse;
@@ -186,14 +185,5 @@ final class ValueTypesTest extends TestCase
         self::assertSame(1024, $derived->maxBodyBytes);
         self::assertSame('nginx', $derived->serverHeader);
         self::assertSame('PHP/8.2', $derived->poweredBy);
-    }
-
-    public function test_fakeresponse_is_an_alias_of_synthesized_response(): void
-    {
-        self::assertTrue(class_exists(FakeResponse::class));
-
-        $r = new FakeResponse(200, ['Content-Type' => 'text/plain'], 'body', Detection::none());
-        self::assertInstanceOf(SynthesizedResponse::class, $r);
-        self::assertSame(200, $r->status);
     }
 }
