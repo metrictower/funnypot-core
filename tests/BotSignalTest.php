@@ -296,4 +296,104 @@ final class BotSignalTest extends TestCase
         self::assertTrue($set->has(BotSignalSet::EMPTY_USER_AGENT));
     }
 
+
+    // ── FP-0095: a legitimate crawler is not merely "not a scanner" ──
+
+    /** @return array<string,string> */
+    private function crawler(string $ua): array
+    {
+        return array('Host' => 'host', 'User-Agent' => $ua, 'Accept' => 'text/html');
+    }
+
+    public function test_known_good_bots_are_classified_as_such(): void
+    {
+        $uas = array(
+            'Googlebot' => 'Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)',
+            'Googlebot-mobile' => 'Mozilla/5.0 (Linux; Android 6.0.1) AppleWebKit/537.36 (KHTML, like Gecko) '
+                . 'Chrome/W.X.Y.Z Mobile Safari/537.36 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)',
+            'Bingbot' => 'Mozilla/5.0 (compatible; bingbot/2.0; +http://www.bing.com/bingbot.htm)',
+            'Baiduspider' => 'Mozilla/5.0 (compatible; Baiduspider/2.0; +http://www.baidu.com/search/spider.html)',
+            'YandexBot' => 'Mozilla/5.0 (compatible; YandexBot/3.0; +http://yandex.com/bots)',
+            'DuckDuckBot' => 'DuckDuckBot/1.1; (+http://duckduckgo.com/duckduckbot.html)',
+            'Slurp' => 'Mozilla/5.0 (compatible; Yahoo! Slurp; http://help.yahoo.com/help/us/ysearch/slurp)',
+            'facebookexternalhit' => 'facebookexternalhit/1.1 (+http://www.facebook.com/externalhit_uatext.php)',
+        );
+
+        foreach ($uas as $name => $ua) {
+            self::assertSame(
+                BotSignalSet::UA_GOOD_BOT,
+                $this->signals($this->crawler($ua))->uaClass,
+                $name . ' is a legitimate crawler'
+            );
+        }
+    }
+
+    /** Weight 0: this is not evidence of badness, it is evidence of WHAT the client is. */
+    public function test_a_good_bot_adds_no_anomaly_weight_of_its_own(): void
+    {
+        $googlebot = 'Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)';
+        $unknown = 'SomeCrawler/1.0';
+
+        $good = $this->signals($this->crawler($googlebot));
+        $unk = $this->signals($this->crawler($unknown));
+
+        self::assertSame(BotSignalSet::UA_GOOD_BOT, $good->uaClass);
+        self::assertSame($unk->weight, $good->weight, 'the class itself carries no weight');
+    }
+
+    /** A scanner claiming to be Googlebot is a scanner. Order matters. */
+    public function test_a_scanner_claiming_to_be_googlebot_is_still_a_scanner(): void
+    {
+        $set = $this->signals($this->crawler('sqlmap/1.7 (compatible; Googlebot/2.1)'));
+
+        self::assertSame(BotSignalSet::UA_SCANNER, $set->uaClass);
+        self::assertTrue($set->has(BotSignalSet::SCANNER_USER_AGENT));
+    }
+
+    /** Tooling is its own thing — never folded into the good-bot class. */
+    public function test_tooling_is_not_a_good_bot(): void
+    {
+        foreach (array('Postman/7.36', 'HTTPie/3.2.1', 'Scrapy/2.11 (+https://scrapy.org)') as $ua) {
+            self::assertNotSame(
+                BotSignalSet::UA_GOOD_BOT,
+                $this->signals($this->crawler($ua))->uaClass,
+                $ua . ' is tooling, not a legitimate crawler'
+            );
+        }
+    }
+
+    /** A real browser is unaffected. */
+    public function test_a_browser_is_still_a_browser(): void
+    {
+        self::assertSame(BotSignalSet::UA_BROWSER, $this->signals($this->browser())->uaClass);
+    }
+
+
+    /**
+     * The false positive FP-0095 exists to remove: Googlebot's mobile UA contains "Chrome" and
+     * sends no client hints, which is normal for a crawler and a contradiction only for a browser.
+     */
+    public function test_a_good_bot_does_not_fire_the_browser_contradiction_signal(): void
+    {
+        $mobile = 'Mozilla/5.0 (Linux; Android 6.0.1) AppleWebKit/537.36 (KHTML, like Gecko) '
+            . 'Chrome/W.X.Y.Z Mobile Safari/537.36 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)';
+
+        $set = $this->signals($this->crawler($mobile));
+
+        self::assertSame(BotSignalSet::UA_GOOD_BOT, $set->uaClass);
+        self::assertFalse($set->has(BotSignalSet::UA_CLAIMS_BROWSER_NO_HINTS));
+    }
+
+    /** But a real Chrome UA with no hints and no fetch metadata still contradicts itself. */
+    public function test_a_hintless_chrome_claim_still_fires_for_a_non_crawler(): void
+    {
+        $set = $this->signals(array(
+            'Host' => 'host',
+            'User-Agent' => 'Mozilla/5.0 (Windows NT 10.0) AppleWebKit/537.36 Chrome/120.0.0.0 Safari/537.36',
+            'Accept' => 'text/html',
+        ));
+
+        self::assertTrue($set->has(BotSignalSet::UA_CLAIMS_BROWSER_NO_HINTS));
+    }
+
 }

@@ -350,7 +350,11 @@ final class Honeypot implements Engine
         }
 
         // Self-consistency contradictions — a contradiction beats an absence.
-        if ($claimsChromium && !$hasClientHints && !$hasFetchMeta) {
+        // A self-identifying crawler is exempt: Googlebot's mobile UA contains "Chrome" and sends
+        // no client hints, which is normal for a crawler and a contradiction only for a browser.
+        // Measured before this exemption: Googlebot-mobile fired this signal at weight 15.
+        if ($claimsChromium && !$hasClientHints && !$hasFetchMeta
+            && $uaClass !== BotSignalSet::UA_GOOD_BOT) {
             $flags[BotSignalSet::UA_CLAIMS_BROWSER_NO_HINTS] = true;
             $weight += 15;
         }
@@ -402,7 +406,20 @@ final class Honeypot implements Engine
         if (preg_match('#curl|wget|python-requests|python-urllib|urllib|go-http-client|libwww|okhttp|axios|node-fetch|guzzle|java/|apache-httpclient|ruby|perl|winhttp#i', $ua) === 1) {
             return BotSignalSet::UA_SCRIPT;
         }
-        if (stripos($ua, 'mozilla') !== false) {
+        // Checked after scanner and script: a tool claiming to be Googlebot is a tool. Checked
+        // before the browser test because most crawler UAs also contain "Mozilla".
+        if (preg_match(
+            '/googlebot|bingbot|slurp|duckduckbot|baiduspider|yandex(bot|images|mobile)|'
+            . 'applebot|facebookexternalhit|twitterbot|linkedinbot|pinterest(bot)?|'
+            . 'discordbot|telegrambot|whatsapp|slackbot|redditbot|petalbot|seznambot/i',
+            $ua
+        ) === 1) {
+            return BotSignalSet::UA_GOOD_BOT;
+        }
+
+        // Prefix, not substring: an unknown tool merely CONTAINING "mozilla" is not a browser.
+        // Real browsers and every major crawler UA start with it.
+        if (stripos($ua, 'mozilla') === 0) {
             return BotSignalSet::UA_BROWSER;
         }
 

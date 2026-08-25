@@ -32,6 +32,18 @@ final class BotSignalSet
     public const UA_BROWSER = 'browser';
     public const UA_SCRIPT = 'script';
     public const UA_SCANNER = 'scanner';
+    /**
+     * A crawler that identifies itself and is generally welcome — Googlebot, Bingbot and friends.
+     *
+     * CLAIMED, NOT VERIFIED. Anyone can send Googlebot's user agent. Real verification is a
+     * reverse-DNS lookup on the client IP, which is I/O and therefore not core's job: a host that
+     * needs certainty performs the rDNS check itself and feeds the result in. Treat this as "says
+     * it is a crawler", never as proof.
+     *
+     * Carries no weight of its own. Its value is that "a crawler doing its job" and "a client we
+     * have never heard of" stop being the same answer.
+     */
+    public const UA_GOOD_BOT = 'good-bot';
     public const UA_EMPTY = 'empty';
     public const UA_UNKNOWN = 'unknown';
 
