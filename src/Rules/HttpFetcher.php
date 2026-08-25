@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Funnypot\Rules;
+namespace Funnypot\Core\Rules;
 
 /**
  * Fetches a release asset by absolute URL and returns its raw bytes. A seam so tests (and a

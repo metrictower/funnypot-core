@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Funnypot\Compiler\Matcher;
+namespace Funnypot\Core\Compiler\Matcher;
 
 /**
  * Inverts a `status` matcher block (match.go `MatchStatusCode`).

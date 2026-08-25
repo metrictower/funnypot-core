@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Funnypot\Support;
+namespace Funnypot\Core\Support;
 
 /**
  * Picks ONE persona bundle for a route, deterministically from a seed string.

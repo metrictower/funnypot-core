@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Funnypot\Compiler;
+namespace Funnypot\Core\Compiler;
 
 /**
  * A single template's finalized, internally-satisfiable constraint set — the unit the

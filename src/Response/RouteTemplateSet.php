@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace Funnypot\Response;
+namespace Funnypot\Core\Response;
 
-use Funnypot\Rules\RulesLocator;
+use Funnypot\Core\Rules\RulesLocator;
 
 /**
  * The compiled route-template rules, priority-ordered, consumed by RouteTemplateEmulator.

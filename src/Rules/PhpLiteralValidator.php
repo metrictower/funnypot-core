@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Funnypot\Rules;
+namespace Funnypot\Core\Rules;
 
 /**
  * Proves that a compiled artifact is inert DATA before it is ever `require`d.

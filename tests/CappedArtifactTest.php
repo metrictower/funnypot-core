@@ -2,11 +2,11 @@
 
 declare(strict_types=1);
 
-namespace Funnypot\Tests;
+namespace Funnypot\Core\Tests;
 
-use Funnypot\Honeypot;
-use Funnypot\RequestContext;
-use Funnypot\Store\PhpArrayStore;
+use Funnypot\Core\Honeypot;
+use Funnypot\Core\RequestContext;
+use Funnypot\Core\Store\PhpArrayStore;
 use PHPUnit\Framework\TestCase;
 
 /**

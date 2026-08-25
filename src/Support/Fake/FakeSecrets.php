@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Funnypot\Support\Fake;
+namespace Funnypot\Core\Support\Fake;
 
 /**
  * Seeded fake-secret generator for the mock-auth panels: dead-but-syntactically-valid values

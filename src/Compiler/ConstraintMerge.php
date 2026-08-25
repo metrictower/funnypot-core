@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace Funnypot\Compiler;
+namespace Funnypot\Core\Compiler;
 
-use Funnypot\Compiler\Matcher\MatcherResult;
+use Funnypot\Core\Compiler\Matcher\MatcherResult;
 
 /**
  * Conjunction of two constraint sets — used both for dsl `&&` inside one expression and

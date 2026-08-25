@@ -1,6 +1,6 @@
 <?php
 declare(strict_types=1);
-namespace Funnypot\Support\Chrome;
+namespace Funnypot\Core\Support\Chrome;
 
 /**
  * Segment-anchored path matching for resemblance skins. A raw str_contains() lets a token match as

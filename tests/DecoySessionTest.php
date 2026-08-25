@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace Funnypot\Tests;
+namespace Funnypot\Core\Tests;
 
-use Funnypot\Behavior\DecoySession;
-use Funnypot\Honeytoken;
+use Funnypot\Core\Behavior\DecoySession;
+use Funnypot\Core\Honeytoken;
 use PHPUnit\Framework\TestCase;
 
 /**

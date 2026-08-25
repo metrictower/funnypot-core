@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Funnypot\Compiler;
+namespace Funnypot\Core\Compiler;
 
 /**
  * Exports a nested array as a 100%-literal PHP expression — no objects, closures, or

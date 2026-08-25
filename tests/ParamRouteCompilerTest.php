@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace Funnypot\Tests;
+namespace Funnypot\Core\Tests;
 
-use Funnypot\Compiler\ParamRouteCompiler;
-use Funnypot\Rules\PhpLiteralValidator;
+use Funnypot\Core\Compiler\ParamRouteCompiler;
+use Funnypot\Core\Rules\PhpLiteralValidator;
 use PHPUnit\Framework\TestCase;
 use RuntimeException;
 use Symfony\Component\Yaml\Yaml;

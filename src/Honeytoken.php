@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Funnypot;
+namespace Funnypot\Core;
 
 /**
  * A tamper-evident bait cookie. The honeypot plants a signed low-privilege cookie

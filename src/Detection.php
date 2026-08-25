@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Funnypot;
+namespace Funnypot\Core;
 
 /**
  * Result of detect mode: which known scanner probe(s) an incoming request maps to.

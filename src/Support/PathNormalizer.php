@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Funnypot\Support;
+namespace Funnypot\Core\Support;
 
 /**
  * Turns an incoming request path into the routing key path.

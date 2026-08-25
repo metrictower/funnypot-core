@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Funnypot;
+namespace Funnypot\Core;
 
 /**
  * Opaque, serializable pointer from a Verdict to what synthesize() would build — never

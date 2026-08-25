@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Funnypot\Response;
+namespace Funnypot\Core\Response;
 
 /**
  * Checks that a candidate (body, headers) actually satisfies a bundle's compiled

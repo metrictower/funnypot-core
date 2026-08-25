@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace Funnypot\Tests;
+namespace Funnypot\Core\Tests;
 
-use Funnypot\Compiler\EmulatorCompiler;
+use Funnypot\Core\Compiler\EmulatorCompiler;
 use PHPUnit\Framework\TestCase;
 use ReflectionMethod;
 

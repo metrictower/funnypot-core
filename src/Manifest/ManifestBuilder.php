@@ -2,11 +2,11 @@
 
 declare(strict_types=1);
 
-namespace Funnypot\Manifest;
+namespace Funnypot\Core\Manifest;
 
-use Funnypot\Honeytoken;
-use Funnypot\RequestContext;
-use Funnypot\Template\TemplateAttackEmulator;
+use Funnypot\Core\Honeytoken;
+use Funnypot\Core\RequestContext;
+use Funnypot\Core\Template\TemplateAttackEmulator;
 use Throwable;
 
 /**

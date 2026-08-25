@@ -2,12 +2,12 @@
 
 declare(strict_types=1);
 
-namespace Funnypot\Contracts;
+namespace Funnypot\Core\Contracts;
 
-use Funnypot\RequestContext;
-use Funnypot\SiteProfile;
-use Funnypot\SynthesizedResponse;
-use Funnypot\Verdict;
+use Funnypot\Core\RequestContext;
+use Funnypot\Core\SiteProfile;
+use Funnypot\Core\SynthesizedResponse;
+use Funnypot\Core\Verdict;
 
 /**
  * The position-blind, action-free two-phase engine port (two-phase design §4 / decision M2).

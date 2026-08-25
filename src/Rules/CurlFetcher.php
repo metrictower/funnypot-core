@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Funnypot\Rules;
+namespace Funnypot\Core\Rules;
 
 /**
  * Default transport: HTTPS GET via ext-curl, pinned to an allow-listed set of hosts with

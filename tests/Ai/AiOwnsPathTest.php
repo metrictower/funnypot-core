@@ -2,15 +2,15 @@
 
 declare(strict_types=1);
 
-namespace Funnypot\Tests\Ai;
+namespace Funnypot\Core\Tests\Ai;
 
-use Funnypot\Ai\ModelCatalog;
-use Funnypot\Compiler\Crs\FingerprintGuard;
-use Funnypot\Config;
-use Funnypot\Honeypot;
-use Funnypot\RequestContext;
-use Funnypot\Store\PhpArrayStore;
-use Funnypot\Template\TemplateAttackEmulator;
+use Funnypot\Core\Ai\ModelCatalog;
+use Funnypot\Core\Compiler\Crs\FingerprintGuard;
+use Funnypot\Core\Config;
+use Funnypot\Core\Honeypot;
+use Funnypot\Core\RequestContext;
+use Funnypot\Core\Store\PhpArrayStore;
+use Funnypot\Core\Template\TemplateAttackEmulator;
 use PHPUnit\Framework\TestCase;
 
 /**

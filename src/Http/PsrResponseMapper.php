@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace Funnypot\Http;
+namespace Funnypot\Core\Http;
 
-use Funnypot\SynthesizedResponse;
+use Funnypot\Core\SynthesizedResponse;
 use Psr\Http\Message\ResponseFactoryInterface;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\StreamFactoryInterface;

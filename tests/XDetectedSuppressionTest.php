@@ -2,17 +2,17 @@
 
 declare(strict_types=1);
 
-namespace Funnypot\Tests;
+namespace Funnypot\Core\Tests;
 
-use Funnypot\Detection;
-use Funnypot\Response\BundleValidator;
-use Funnypot\Response\EmulatedContent;
-use Funnypot\Response\EmulatorRegistry;
-use Funnypot\Response\EndpointEmulator;
-use Funnypot\Response\RouteTemplateEmulator;
-use Funnypot\Response\RouteTemplateSet;
-use Funnypot\Response\Style;
-use Funnypot\Synthesis\ResponseSynthesizer;
+use Funnypot\Core\Detection;
+use Funnypot\Core\Response\BundleValidator;
+use Funnypot\Core\Response\EmulatedContent;
+use Funnypot\Core\Response\EmulatorRegistry;
+use Funnypot\Core\Response\EndpointEmulator;
+use Funnypot\Core\Response\RouteTemplateEmulator;
+use Funnypot\Core\Response\RouteTemplateSet;
+use Funnypot\Core\Response\Style;
+use Funnypot\Core\Synthesis\ResponseSynthesizer;
 use PHPUnit\Framework\TestCase;
 
 /**

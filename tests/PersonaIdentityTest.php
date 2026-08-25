@@ -2,11 +2,11 @@
 
 declare(strict_types=1);
 
-namespace Funnypot\Tests;
+namespace Funnypot\Core\Tests;
 
-use Funnypot\Compiler\Crs\FingerprintGuard;
-use Funnypot\Compiler\EmulatorCompiler;
-use Funnypot\Support\PersonaIdentity;
+use Funnypot\Core\Compiler\Crs\FingerprintGuard;
+use Funnypot\Core\Compiler\EmulatorCompiler;
+use Funnypot\Core\Support\PersonaIdentity;
 use PHPUnit\Framework\TestCase;
 use ReflectionMethod;
 use RuntimeException;

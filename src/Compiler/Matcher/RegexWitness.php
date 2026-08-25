@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Funnypot\Compiler\Matcher;
+namespace Funnypot\Core\Compiler\Matcher;
 
 /**
  * Generates ONE string that a simple regular expression matches, offline.

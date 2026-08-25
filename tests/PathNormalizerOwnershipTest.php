@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace Funnypot\Tests;
+namespace Funnypot\Core\Tests;
 
-use Funnypot\Support\PathNormalizer;
+use Funnypot\Core\Support\PathNormalizer;
 use PHPUnit\Framework\TestCase;
 
 /**

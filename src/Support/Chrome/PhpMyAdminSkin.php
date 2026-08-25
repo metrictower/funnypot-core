@@ -1,8 +1,8 @@
 <?php
 declare(strict_types=1);
-namespace Funnypot\Support\Chrome;
+namespace Funnypot\Core\Support\Chrome;
 
-use Funnypot\Support\VisualPersona;
+use Funnypot\Core\Support\VisualPersona;
 
 /**
  * A hand-authored lookalike of the phpMyAdmin query-results screen: a database/table tree down the

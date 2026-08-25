@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace Funnypot\Tests\Crs;
+namespace Funnypot\Core\Tests\Crs;
 
-use Funnypot\Compiler\Crs\CrsCompiler;
+use Funnypot\Core\Compiler\Crs\CrsCompiler;
 use PHPUnit\Framework\TestCase;
 
 /**

@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Funnypot\Compiler;
+namespace Funnypot\Core\Compiler;
 
 /**
  * Persona cap for mega-collision route keys (SPEC §5, docs/PERSONA-CAP.md).

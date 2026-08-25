@@ -1,9 +1,9 @@
 <?php
 declare(strict_types=1);
-namespace Funnypot\Tests\Support\Chrome;
+namespace Funnypot\Core\Tests\Support\Chrome;
 
-use Funnypot\Support\Chrome\PageSlots;
-use Funnypot\Support\VisualPersona;
+use Funnypot\Core\Support\Chrome\PageSlots;
+use Funnypot\Core\Support\VisualPersona;
 use PHPUnit\Framework\TestCase;
 
 final class PageSlotsTest extends TestCase

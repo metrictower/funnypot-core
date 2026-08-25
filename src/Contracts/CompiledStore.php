@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Funnypot\Contracts;
+namespace Funnypot\Core\Contracts;
 
 /**
  * Read access to the compiled template index. Default implementation is a literal

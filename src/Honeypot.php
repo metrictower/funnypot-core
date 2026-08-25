@@ -2,16 +2,16 @@
 
 declare(strict_types=1);
 
-namespace Funnypot;
+namespace Funnypot\Core;
 
-use Funnypot\Contracts\CompiledStore;
-use Funnypot\Response\EmulatorRegistry;
-use Funnypot\Store\PhpArrayStore;
-use Funnypot\Support\PathNormalizer;
-use Funnypot\Support\PersonaSelector;
-use Funnypot\Support\Severity;
-use Funnypot\Synthesis\ResponseSynthesizer;
-use Funnypot\Template\TemplateAttackEmulator;
+use Funnypot\Core\Contracts\CompiledStore;
+use Funnypot\Core\Response\EmulatorRegistry;
+use Funnypot\Core\Store\PhpArrayStore;
+use Funnypot\Core\Support\PathNormalizer;
+use Funnypot\Core\Support\PersonaSelector;
+use Funnypot\Core\Support\Severity;
+use Funnypot\Core\Synthesis\ResponseSynthesizer;
+use Funnypot\Core\Template\TemplateAttackEmulator;
 
 /**
  * Core engine. Framework-agnostic and side-effect-free (all logging/scoring/banning

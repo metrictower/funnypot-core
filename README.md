@@ -8,6 +8,7 @@
 > - Want a ready-to-run **honeypot box** to deploy → [funnypot-app](https://github.com/metrictower/funnypot-app)
 > - Protecting a **Laravel** app → [funnypot-laravel](https://github.com/metrictower/funnypot-laravel)
 > - Protecting a **WordPress** site → [funnypot-wordpress](https://github.com/metrictower/funnypot-wordpress)
+> - Detection **and** IP reporting in any PHP app, batteries included → [funnypot](https://github.com/metrictower/funnypot)
 > - Embedding the deception/detection **engine** in your own PHP / PSR-15 app → funnypot-core **← you are here**
 > - Querying / reporting to the **IP-reputation service** from code (the SDK) → [funnypot-mainnet-client](https://github.com/metrictower/funnypot-mainnet-client)
 > - Building on the low-level **decision/policy engine** → [funnypot-policy](https://github.com/metrictower/funnypot-policy)
@@ -62,8 +63,8 @@ composer require metrictower/funnypot-core
 Detect never writes to the wire. It just tells you a request is a known scanner probe:
 
 ```php
-use Funnypot\Honeypot;
-use Funnypot\RequestContext;
+use Funnypot\Core\Honeypot;
+use Funnypot\Core\RequestContext;
 
 $funnypot = Honeypot::default();                       // inert: detect-only, gate closed
 
@@ -76,10 +77,10 @@ if ($detection->matched) {
 ## Respond mode (opt-in, gated)
 
 ```php
-use Funnypot\Config;
-use Funnypot\Honeypot;
-use Funnypot\RequestContext;
-use Funnypot\Http\ResponseEmitter;
+use Funnypot\Core\Config;
+use Funnypot\Core\Honeypot;
+use Funnypot\Core\RequestContext;
+use Funnypot\Core\Http\ResponseEmitter;
 
 $funnypot = Honeypot::default(new Config(
     mode: 'respond',
@@ -104,10 +105,13 @@ repo is the framework-agnostic engine.
 
 ### Any other framework (PSR-15)
 
-Wire the engine directly. A PSR-15 middleware (`Funnypot\Http\HoneypotMiddleware`) sends matched
+Wire the engine directly. A PSR-15 middleware (`Funnypot\Core\Http\HoneypotMiddleware`) sends matched
 probes an inert fake and passes everything else through, so your app serves its own 404 on a miss.
-Start detect-only, watch the logs, then set `mode = respond` and supply a `gate`. Step-by-step
-rollout: [`docs/INTEGRATION.md`](docs/INTEGRATION.md).
+Start detect-only, watch the logs, then set `mode = respond` and supply a `gate`.
+
+Want detection **and** IP reporting without assembling it yourself?
+**[metrictower/funnypot](https://github.com/metrictower/funnypot)** wires this engine to the mainnet
+reporting SDK and enforces the request-path invariants for you.
 
 ## Response styles
 
@@ -184,7 +188,7 @@ served JSON. `/api/tags` and `/api/ps` also carry a heavy-weighted tier-1 route 
 persona still wins the rare corpus-template collision even where owns_path isn't in play.
 
 Every body is `json_encode()` of a projection from `resources/ai/model-catalog.php`, read through
-`Funnypot\Ai\ModelCatalog` — one source of truth for both the route- and attack-tier copies, so
+`Funnypot\Core\Ai\ModelCatalog` — one source of truth for both the route- and attack-tier copies, so
 there's nothing to hand-sync. `bin/funnypot compile-ai` regenerates the templates from the catalog
 (route templates into `templates/generated/`, owns_path rules into `templates/attack-ai/`); re-run
 it after a catalog change, then rebuild in order: `compile-ai` → `compile-routes` → `merge-routes` →

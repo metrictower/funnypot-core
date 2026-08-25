@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Funnypot;
+namespace Funnypot\Core;
 
 /**
  * Policy-facing name for SynthesizedResponse (two-phase design §2.2 / decision M). The value

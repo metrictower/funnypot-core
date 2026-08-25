@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Funnypot;
+namespace Funnypot\Core;
 
 /**
  * The template / rule-artifact schema version this engine understands. The compiler rejects a template

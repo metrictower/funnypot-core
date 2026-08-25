@@ -2,14 +2,14 @@
 
 declare(strict_types=1);
 
-namespace Funnypot\Tests;
+namespace Funnypot\Core\Tests;
 
-use Funnypot\Ai\ModelCatalog;
-use Funnypot\Compiler\Crs\FingerprintGuard;
-use Funnypot\Config;
-use Funnypot\Honeypot;
-use Funnypot\RequestContext;
-use Funnypot\Store\PhpArrayStore;
+use Funnypot\Core\Ai\ModelCatalog;
+use Funnypot\Core\Compiler\Crs\FingerprintGuard;
+use Funnypot\Core\Config;
+use Funnypot\Core\Honeypot;
+use Funnypot\Core\RequestContext;
+use Funnypot\Core\Store\PhpArrayStore;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\Yaml\Yaml;
 

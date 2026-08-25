@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Funnypot\Response;
+namespace Funnypot\Core\Response;
 
 /**
  * How a fake response is dressed. Every style still satisfies the compiled matchers

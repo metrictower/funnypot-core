@@ -1,8 +1,8 @@
 <?php
 declare(strict_types=1);
-namespace Funnypot\Support\Chrome;
+namespace Funnypot\Core\Support\Chrome;
 
-use Funnypot\Support\VisualPersona;
+use Funnypot\Core\Support\VisualPersona;
 
 /**
  * Model-supplied page content, decoded and made safe for the renderer: every field has a typed

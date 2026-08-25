@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Funnypot\Ai;
+namespace Funnypot\Core\Ai;
 
 /**
  * Single source of truth for the advertised AI-model list. Every fake

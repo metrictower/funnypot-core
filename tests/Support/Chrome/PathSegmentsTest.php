@@ -1,8 +1,8 @@
 <?php
 declare(strict_types=1);
-namespace Funnypot\Tests\Support\Chrome;
+namespace Funnypot\Core\Tests\Support\Chrome;
 
-use Funnypot\Support\Chrome\PathSegments;
+use Funnypot\Core\Support\Chrome\PathSegments;
 use PHPUnit\Framework\TestCase;
 
 /**

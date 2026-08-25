@@ -2,12 +2,12 @@
 
 declare(strict_types=1);
 
-namespace Funnypot\Tests;
+namespace Funnypot\Core\Tests;
 
-use Funnypot\Config;
-use Funnypot\Honeypot;
-use Funnypot\RequestContext;
-use Funnypot\Store\PhpArrayStore;
+use Funnypot\Core\Config;
+use Funnypot\Core\Honeypot;
+use Funnypot\Core\RequestContext;
+use Funnypot\Core\Store\PhpArrayStore;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -61,7 +61,7 @@ final class GatingTest extends TestCase
             'matched-only',                                                                    // pathScope
             $overrides['personaSeed'] ?? static function (RequestContext $r): string { return 'seed-x'; }, // personaSeed
             'coherent',                                                                        // personaBreadth
-            \Funnypot\Response\Style::MINIMAL,                                                 // responseStyle
+            \Funnypot\Core\Response\Style::MINIMAL,                                                 // responseStyle
             $overrides['severityCeiling'] ?? 'high',                                           // severityCeiling
             $overrides['maxBodyBytes'] ?? 65536,                                               // maxBodyBytes
             0,                                                                                 // latencyMs
@@ -161,23 +161,23 @@ final class GatingTest extends TestCase
 
     public function test_observer_receives_outcomes(): void
     {
-        $observer = new class implements \Funnypot\Observer {
+        $observer = new class implements \Funnypot\Core\Observer {
             /** @var string[] */
             public $detections = [];
             /** @var string[] */
             public $outcomes = [];
 
-            public function onDetection(RequestContext $r, \Funnypot\Detection $d): void
+            public function onDetection(RequestContext $r, \Funnypot\Core\Detection $d): void
             {
                 $this->detections[] = $r->path;
             }
 
-            public function shouldRespond(RequestContext $r, \Funnypot\Detection $d): bool
+            public function shouldRespond(RequestContext $r, \Funnypot\Core\Detection $d): bool
             {
                 return true;
             }
 
-            public function onOutcome(RequestContext $r, ?\Funnypot\SynthesizedResponse $resp, string $reason): void
+            public function onOutcome(RequestContext $r, ?\Funnypot\Core\SynthesizedResponse $resp, string $reason): void
             {
                 $this->outcomes[] = $reason;
             }
@@ -191,6 +191,6 @@ final class GatingTest extends TestCase
         $inv2->respond(new RequestContext('GET', '/multi'));
 
         self::assertSame(['/multi', '/multi'], $observer->detections);
-        self::assertSame([\Funnypot\Outcome::SERVED, \Funnypot\Outcome::GATE_CLOSED], $observer->outcomes);
+        self::assertSame([\Funnypot\Core\Outcome::SERVED, \Funnypot\Core\Outcome::GATE_CLOSED], $observer->outcomes);
     }
 }

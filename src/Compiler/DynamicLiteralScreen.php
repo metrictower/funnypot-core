@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Funnypot\Compiler;
+namespace Funnypot\Core\Compiler;
 
 /**
  * Screen A2 — dynamic `{{…}}` literals (highest-priority classifier screen).

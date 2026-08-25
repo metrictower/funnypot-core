@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace Funnypot\Compiler\Crs;
+namespace Funnypot\Core\Compiler\Crs;
 
-use Funnypot\Support\Severity;
+use Funnypot\Core\Support\Severity;
 
 /**
  * Turns a CoreRuleSet `rules/` directory into funnypot attack templates — one broadened

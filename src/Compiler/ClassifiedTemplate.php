@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Funnypot\Compiler;
+namespace Funnypot\Core\Compiler;
 
 /**
  * Gate B outcome for one template: either an invertible {@see SatisfyPlan} (IN) or a

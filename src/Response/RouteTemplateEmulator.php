@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace Funnypot\Response;
+namespace Funnypot\Core\Response;
 
-use Funnypot\Template\DirectiveRenderer;
+use Funnypot\Core\Template\DirectiveRenderer;
 
 /**
  * One data-driven endpoint emulator, replacing all the hand-coded Response\Emulator

@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace Funnypot\Tests;
+namespace Funnypot\Core\Tests;
 
-use Funnypot\Support\PersonaSelector;
+use Funnypot\Core\Support\PersonaSelector;
 use PHPUnit\Framework\TestCase;
 
 /**

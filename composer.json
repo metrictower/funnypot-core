@@ -23,12 +23,12 @@
     },
     "autoload": {
         "psr-4": {
-            "Funnypot\\": "src/"
+            "Funnypot\\Core\\": "src/"
         }
     },
     "autoload-dev": {
         "psr-4": {
-            "Funnypot\\Tests\\": "tests/"
+            "Funnypot\\Core\\Tests\\": "tests/"
         }
     },
     "config": {

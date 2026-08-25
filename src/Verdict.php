@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Funnypot;
+namespace Funnypot\Core;
 
 /**
  * Result of classify() — what a request IS, as content (two-phase design §2.1). Content

@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Funnypot\Rules;
+namespace Funnypot\Core\Rules;
 
 /**
  * Fetch-time ReDoS screen for incoming attack-rule regexes.

@@ -2,7 +2,7 @@
 
 Signed, versioned rule artifacts for [funnypot-core](https://github.com/metrictower/funnypot-core).
 Consumers pull fresh nuclei/CRS-derived detection rules at runtime — **no `composer update`** —
-via `funnypot-core`'s built-in `Funnypot\Rules\RulesUpdater` (CLI: `funnypot rules:update`).
+via `funnypot-core`'s built-in `Funnypot\Core\Rules\RulesUpdater` (CLI: `funnypot rules:update`).
 
 This repo holds **no compiler and no PHP source**. It is a pure distribution surface: its GitHub
 Releases carry the compiled artifacts `funnypot-core` already produces, tests, and gates in its

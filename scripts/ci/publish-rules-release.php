@@ -60,7 +60,7 @@ $artifacts = ['nuclei-index.full.php', 'funnypot-attack.php', 'funnypot-routes.p
 
 // Stage engine/<artifact> and validate each is inert before it is ever shipped.
 require $root . '/vendor/autoload.php';
-$validator = new Funnypot\Rules\PhpLiteralValidator();
+$validator = new Funnypot\Core\Rules\PhpLiteralValidator();
 
 $stage = $out . '/stage';
 @mkdir($stage . '/engine', 0755, true);

@@ -2,13 +2,13 @@
 
 declare(strict_types=1);
 
-namespace Funnypot\Tests;
+namespace Funnypot\Core\Tests;
 
-use Funnypot\Config;
-use Funnypot\Detection;
-use Funnypot\Honeypot;
-use Funnypot\RequestContext;
-use Funnypot\Store\PhpArrayStore;
+use Funnypot\Core\Config;
+use Funnypot\Core\Detection;
+use Funnypot\Core\Honeypot;
+use Funnypot\Core\RequestContext;
+use Funnypot\Core\Store\PhpArrayStore;
 use PHPUnit\Framework\TestCase;
 
 final class DetectTest extends TestCase
@@ -157,7 +157,7 @@ final class DetectTest extends TestCase
             'matched-only',                                              // pathScope
             null,                                                        // personaSeed
             'coherent',                                                  // personaBreadth
-            \Funnypot\Response\Style::MINIMAL,                           // responseStyle
+            \Funnypot\Core\Response\Style::MINIMAL,                           // responseStyle
             'high',                                                      // severityCeiling
             65536,                                                       // maxBodyBytes
             0,                                                           // latencyMs

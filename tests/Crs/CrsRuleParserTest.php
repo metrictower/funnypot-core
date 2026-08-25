@@ -2,11 +2,11 @@
 
 declare(strict_types=1);
 
-namespace Funnypot\Tests\Crs;
+namespace Funnypot\Core\Tests\Crs;
 
-use Funnypot\Compiler\Crs\CrsRule;
-use Funnypot\Compiler\Crs\CrsRuleParser;
-use Funnypot\Compiler\Crs\CrsSeverity;
+use Funnypot\Core\Compiler\Crs\CrsRule;
+use Funnypot\Core\Compiler\Crs\CrsRuleParser;
+use Funnypot\Core\Compiler\Crs\CrsSeverity;
 use PHPUnit\Framework\TestCase;
 
 /**

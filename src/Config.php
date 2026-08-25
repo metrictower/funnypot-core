@@ -2,11 +2,11 @@
 
 declare(strict_types=1);
 
-namespace Funnypot;
+namespace Funnypot\Core;
 
 use Closure;
-use Funnypot\Response\Style;
-use Funnypot\Support\PersonaIdentity;
+use Funnypot\Core\Response\Style;
+use Funnypot\Core\Support\PersonaIdentity;
 
 /**
  * Host-app policy for the inverter. Defaults make an install INERT: detect mode

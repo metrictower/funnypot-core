@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Funnypot\Response;
+namespace Funnypot\Core\Response;
 
 /**
  * Shared helpers for endpoint emulators: matcher-token access, deterministic fake

@@ -13,11 +13,11 @@ declare(strict_types=1);
  *   php -S 127.0.0.1:8899 tests/acceptance/server.php
  */
 
-use Funnypot\Config;
-use Funnypot\Http\ResponseEmitter;
-use Funnypot\Honeypot;
-use Funnypot\RequestContext;
-use Funnypot\Store\PhpArrayStore;
+use Funnypot\Core\Config;
+use Funnypot\Core\Http\ResponseEmitter;
+use Funnypot\Core\Honeypot;
+use Funnypot\Core\RequestContext;
+use Funnypot\Core\Store\PhpArrayStore;
 
 $root = dirname(__DIR__, 2);
 require $root . '/vendor/autoload.php';

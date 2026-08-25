@@ -2,15 +2,15 @@
 
 declare(strict_types=1);
 
-namespace Funnypot\Tests;
+namespace Funnypot\Core\Tests;
 
-use Funnypot\Compiler\Classifier;
-use Funnypot\Compiler\LoadedTemplate;
-use Funnypot\Compiler\Matcher\RegexWitnessGenerator;
-use Funnypot\Compiler\TemplateLoader;
-use Funnypot\Detection;
-use Funnypot\Response\BundleValidator;
-use Funnypot\Synthesis\ResponseSynthesizer;
+use Funnypot\Core\Compiler\Classifier;
+use Funnypot\Core\Compiler\LoadedTemplate;
+use Funnypot\Core\Compiler\Matcher\RegexWitnessGenerator;
+use Funnypot\Core\Compiler\TemplateLoader;
+use Funnypot\Core\Detection;
+use Funnypot\Core\Response\BundleValidator;
+use Funnypot\Core\Synthesis\ResponseSynthesizer;
 use PHPUnit\Framework\TestCase;
 
 /**

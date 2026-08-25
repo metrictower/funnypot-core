@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace Funnypot\Response;
+namespace Funnypot\Core\Response;
 
-use Funnypot\Template\DirectiveRenderer;
+use Funnypot\Core\Template\DirectiveRenderer;
 
 /**
  * Ordered set of endpoint emulators. First one that supports a bundle wins. Apps can

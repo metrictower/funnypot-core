@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace Funnypot\Http;
+namespace Funnypot\Core\Http;
 
-use Funnypot\RequestContext;
+use Funnypot\Core\RequestContext;
 use Psr\Http\Message\ServerRequestInterface;
 
 /**

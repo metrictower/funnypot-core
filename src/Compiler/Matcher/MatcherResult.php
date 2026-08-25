@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Funnypot\Compiler\Matcher;
+namespace Funnypot\Core\Compiler\Matcher;
 
 /**
  * The invertibility verdict for one matcher block, plus the response constraints it

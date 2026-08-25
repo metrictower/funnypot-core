@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Funnypot\Rules;
+namespace Funnypot\Core\Rules;
 
 /**
  * A read-only snapshot of the installed rule set — what `rules:status` prints and what a

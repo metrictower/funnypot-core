@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace Funnypot\Tests;
+namespace Funnypot\Core\Tests;
 
-use Funnypot\Compiler\Bundle;
-use Funnypot\Compiler\PersonaCap;
+use Funnypot\Core\Compiler\Bundle;
+use Funnypot\Core\Compiler\PersonaCap;
 use PHPUnit\Framework\TestCase;
 
 /**

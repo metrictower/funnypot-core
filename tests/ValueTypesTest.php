@@ -2,18 +2,18 @@
 
 declare(strict_types=1);
 
-namespace Funnypot\Tests;
+namespace Funnypot\Core\Tests;
 
-use Funnypot\BotSignalSet;
-use Funnypot\Config;
-use Funnypot\Detection;
-use Funnypot\FakeHandle;
-use Funnypot\FakeResponse;
-use Funnypot\SiteProfile;
-use Funnypot\SynthesisConfig;
-use Funnypot\SynthesizedResponse;
-use Funnypot\TemplateMatch;
-use Funnypot\Verdict;
+use Funnypot\Core\BotSignalSet;
+use Funnypot\Core\Config;
+use Funnypot\Core\Detection;
+use Funnypot\Core\FakeHandle;
+use Funnypot\Core\FakeResponse;
+use Funnypot\Core\SiteProfile;
+use Funnypot\Core\SynthesisConfig;
+use Funnypot\Core\SynthesizedResponse;
+use Funnypot\Core\TemplateMatch;
+use Funnypot\Core\Verdict;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -164,7 +164,7 @@ final class ValueTypesTest extends TestCase
             'matched-only',                      // pathScope
             null,                                // personaSeed
             'coherent',                          // personaBreadth
-            \Funnypot\Response\Style::MINIMAL,   // responseStyle
+            \Funnypot\Core\Response\Style::MINIMAL,   // responseStyle
             'critical',                          // severityCeiling
             1024,                                // maxBodyBytes
             0,                                   // latencyMs

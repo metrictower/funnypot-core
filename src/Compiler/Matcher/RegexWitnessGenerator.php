@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace Funnypot\Compiler\Matcher;
+namespace Funnypot\Core\Compiler\Matcher;
 
-use Funnypot\Compiler\DynamicLiteralScreen;
+use Funnypot\Core\Compiler\DynamicLiteralScreen;
 
 /**
  * Inverts a `regex` matcher block (match.go `MatchRegex`, which fires on

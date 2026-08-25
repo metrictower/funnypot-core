@@ -2,20 +2,20 @@
 
 declare(strict_types=1);
 
-namespace Funnypot\Tests;
+namespace Funnypot\Core\Tests;
 
-use Funnypot\Behavior\NullEphemeralStore;
-use Funnypot\Behavior\SystemClock;
-use Funnypot\Compiler\EmulatorCompiler;
-use Funnypot\Config;
-use Funnypot\Honeypot;
-use Funnypot\RequestContext;
-use Funnypot\Response\Style;
-use Funnypot\Rules\PhpLiteralValidator;
-use Funnypot\SiteProfile;
-use Funnypot\Store\PhpArrayStore;
-use Funnypot\Template\TemplateAttackEmulator;
-use Funnypot\Verdict;
+use Funnypot\Core\Behavior\NullEphemeralStore;
+use Funnypot\Core\Behavior\SystemClock;
+use Funnypot\Core\Compiler\EmulatorCompiler;
+use Funnypot\Core\Config;
+use Funnypot\Core\Honeypot;
+use Funnypot\Core\RequestContext;
+use Funnypot\Core\Response\Style;
+use Funnypot\Core\Rules\PhpLiteralValidator;
+use Funnypot\Core\SiteProfile;
+use Funnypot\Core\Store\PhpArrayStore;
+use Funnypot\Core\Template\TemplateAttackEmulator;
+use Funnypot\Core\Verdict;
 use PHPUnit\Framework\TestCase;
 use ReflectionProperty;
 use RuntimeException;

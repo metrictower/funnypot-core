@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace Funnypot\Compiler\Matcher;
+namespace Funnypot\Core\Compiler\Matcher;
 
-use Funnypot\Compiler\ConstraintMerge;
-use Funnypot\Compiler\DynamicLiteralScreen;
+use Funnypot\Core\Compiler\ConstraintMerge;
+use Funnypot\Core\Compiler\DynamicLiteralScreen;
 
 /**
  * Inverts a `dsl` matcher block, but ONLY for the whitelisted subset (§3):

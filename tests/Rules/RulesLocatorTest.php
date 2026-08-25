@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace Funnypot\Tests\Rules;
+namespace Funnypot\Core\Tests\Rules;
 
-use Funnypot\Rules\RulesLocator;
+use Funnypot\Core\Rules\RulesLocator;
 use PHPUnit\Framework\TestCase;
 
 /**

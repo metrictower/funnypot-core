@@ -2,11 +2,11 @@
 
 declare(strict_types=1);
 
-namespace Funnypot\Rules;
+namespace Funnypot\Core\Rules;
 
-use Funnypot\Compiler\Crs\FingerprintGuard;
-use Funnypot\SchemaVersion;
-use Funnypot\Store\PhpArrayStore;
+use Funnypot\Core\Compiler\Crs\FingerprintGuard;
+use Funnypot\Core\SchemaVersion;
+use Funnypot\Core\Store\PhpArrayStore;
 use PharData;
 use Throwable;
 

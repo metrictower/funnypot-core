@@ -2,11 +2,11 @@
 
 declare(strict_types=1);
 
-namespace Funnypot\Tests\Http;
+namespace Funnypot\Core\Tests\Http;
 
-use Funnypot\Detection;
-use Funnypot\Http\PsrResponseMapper;
-use Funnypot\SynthesizedResponse;
+use Funnypot\Core\Detection;
+use Funnypot\Core\Http\PsrResponseMapper;
+use Funnypot\Core\SynthesizedResponse;
 use Nyholm\Psr7\Factory\Psr17Factory;
 use PHPUnit\Framework\TestCase;
 

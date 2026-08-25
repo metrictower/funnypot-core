@@ -2,26 +2,26 @@
 
 declare(strict_types=1);
 
-namespace Funnypot\Template;
+namespace Funnypot\Core\Template;
 
-use Funnypot\Behavior\DecoySession;
-use Funnypot\Behavior\NullEphemeralStore;
-use Funnypot\Behavior\SystemClock;
-use Funnypot\Compiler\Crs\FingerprintGuard;
-use Funnypot\Contracts\Clock;
-use Funnypot\Contracts\EphemeralStore;
-use Funnypot\Detection;
-use Funnypot\RequestContext;
-use Funnypot\Response\EmulatedContent;
-use Funnypot\Rules\RulesLocator;
-use Funnypot\Support\Chrome\Esc;
-use Funnypot\Support\Chrome\PageSlots;
-use Funnypot\Support\Chrome\PhpMyAdminSkin;
-use Funnypot\Support\Fake\FakeRecords;
-use Funnypot\Support\PathNormalizer;
-use Funnypot\Support\VisualPersona;
-use Funnypot\SynthesizedResponse;
-use Funnypot\TemplateMatch;
+use Funnypot\Core\Behavior\DecoySession;
+use Funnypot\Core\Behavior\NullEphemeralStore;
+use Funnypot\Core\Behavior\SystemClock;
+use Funnypot\Core\Compiler\Crs\FingerprintGuard;
+use Funnypot\Core\Contracts\Clock;
+use Funnypot\Core\Contracts\EphemeralStore;
+use Funnypot\Core\Detection;
+use Funnypot\Core\RequestContext;
+use Funnypot\Core\Response\EmulatedContent;
+use Funnypot\Core\Rules\RulesLocator;
+use Funnypot\Core\Support\Chrome\Esc;
+use Funnypot\Core\Support\Chrome\PageSlots;
+use Funnypot\Core\Support\Chrome\PhpMyAdminSkin;
+use Funnypot\Core\Support\Fake\FakeRecords;
+use Funnypot\Core\Support\PathNormalizer;
+use Funnypot\Core\Support\VisualPersona;
+use Funnypot\Core\SynthesizedResponse;
+use Funnypot\Core\TemplateMatch;
 
 /**
  * Data-driven attack emulation. Interprets compiled attack rules (from funnypot templates)

@@ -2,16 +2,16 @@
 
 declare(strict_types=1);
 
-namespace Funnypot\Tests\Manifest;
+namespace Funnypot\Core\Tests\Manifest;
 
-use Funnypot\Config;
-use Funnypot\FakeHandle;
-use Funnypot\Honeypot;
-use Funnypot\Manifest\ManifestBuilder;
-use Funnypot\Manifest\RouteIntegrity;
-use Funnypot\RequestContext;
-use Funnypot\Response\Style;
-use Funnypot\Store\PhpArrayStore;
+use Funnypot\Core\Config;
+use Funnypot\Core\FakeHandle;
+use Funnypot\Core\Honeypot;
+use Funnypot\Core\Manifest\ManifestBuilder;
+use Funnypot\Core\Manifest\RouteIntegrity;
+use Funnypot\Core\RequestContext;
+use Funnypot\Core\Response\Style;
+use Funnypot\Core\Store\PhpArrayStore;
 use PHPUnit\Framework\TestCase;
 
 /**

@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Funnypot\Support;
+namespace Funnypot\Core\Support;
 
 /**
  * nuclei severity ordering, shared by the detection ceiling and the respond-mode

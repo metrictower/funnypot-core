@@ -2,11 +2,11 @@
 
 declare(strict_types=1);
 
-namespace Funnypot\Tests;
+namespace Funnypot\Core\Tests;
 
-use Funnypot\Config;
-use Funnypot\RequestContext;
-use Funnypot\Support\PersonaIdentity;
+use Funnypot\Core\Config;
+use Funnypot\Core\RequestContext;
+use Funnypot\Core\Support\PersonaIdentity;
 use PHPUnit\Framework\TestCase;
 
 /**

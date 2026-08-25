@@ -2,13 +2,13 @@
 
 declare(strict_types=1);
 
-namespace Funnypot\Tests\Http;
+namespace Funnypot\Core\Tests\Http;
 
-use Funnypot\Config;
-use Funnypot\Http\Responder;
-use Funnypot\Honeypot;
-use Funnypot\RequestContext;
-use Funnypot\Store\PhpArrayStore;
+use Funnypot\Core\Config;
+use Funnypot\Core\Http\Responder;
+use Funnypot\Core\Honeypot;
+use Funnypot\Core\RequestContext;
+use Funnypot\Core\Store\PhpArrayStore;
 use PHPUnit\Framework\TestCase;
 
 /**

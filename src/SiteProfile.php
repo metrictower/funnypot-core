@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Funnypot;
+namespace Funnypot\Core;
 
 /**
  * Position-blind input the caller supplies to classify()/synthesize() (two-phase design §2.3).

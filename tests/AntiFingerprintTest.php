@@ -2,16 +2,16 @@
 
 declare(strict_types=1);
 
-namespace Funnypot\Tests;
+namespace Funnypot\Core\Tests;
 
-use Funnypot\Detection;
-use Funnypot\Honeytoken;
-use Funnypot\Log4ShellProbe;
-use Funnypot\RequestContext;
-use Funnypot\Response\RouteTemplateEmulator;
-use Funnypot\Response\RouteTemplateSet;
-use Funnypot\Response\Style;
-use Funnypot\Synthesis\ResponseSynthesizer;
+use Funnypot\Core\Detection;
+use Funnypot\Core\Honeytoken;
+use Funnypot\Core\Log4ShellProbe;
+use Funnypot\Core\RequestContext;
+use Funnypot\Core\Response\RouteTemplateEmulator;
+use Funnypot\Core\Response\RouteTemplateSet;
+use Funnypot\Core\Response\Style;
+use Funnypot\Core\Synthesis\ResponseSynthesizer;
 use PHPUnit\Framework\TestCase;
 
 final class AntiFingerprintTest extends TestCase

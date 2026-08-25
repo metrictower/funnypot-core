@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace Funnypot\Tests\Manifest;
+namespace Funnypot\Core\Tests\Manifest;
 
-use Funnypot\Manifest\ManifestBuilder;
+use Funnypot\Core\Manifest\ManifestBuilder;
 use PHPUnit\Framework\TestCase;
 
 /**

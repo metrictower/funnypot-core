@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Funnypot\Rules;
+namespace Funnypot\Core\Rules;
 
 /**
  * Verifies a detached ed25519 signature over the manifest bytes against the trusted key ring.

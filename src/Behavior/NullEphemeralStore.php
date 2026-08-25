@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace Funnypot\Behavior;
+namespace Funnypot\Core\Behavior;
 
-use Funnypot\Contracts\EphemeralStore;
+use Funnypot\Core\Contracts\EphemeralStore;
 
 /**
  * The safe default EphemeralStore: remembers nothing. get() is always a miss and put() is a

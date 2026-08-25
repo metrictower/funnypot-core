@@ -2,11 +2,11 @@
 
 declare(strict_types=1);
 
-namespace Funnypot\Template;
+namespace Funnypot\Core\Template;
 
-use Funnypot\Attack\CannedData;
-use Funnypot\Support\Fake\FakePeople;
-use Funnypot\Support\PersonaIdentity;
+use Funnypot\Core\Attack\CannedData;
+use Funnypot\Core\Support\Fake\FakePeople;
+use Funnypot\Core\Support\PersonaIdentity;
 
 /**
  * Fills the bounded `{{...}}` directives in a template body/header value. This is the ONLY

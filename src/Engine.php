@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace Funnypot;
+namespace Funnypot\Core;
 
-use Funnypot\Contracts\Evaluator;
+use Funnypot\Core\Contracts\Evaluator;
 
 /**
  * The package's contract. The forward-looking shape is the two-phase Evaluator port

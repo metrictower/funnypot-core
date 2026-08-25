@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace Funnypot\Tests\Http;
+namespace Funnypot\Core\Tests\Http;
 
-use Funnypot\Http\PsrRequestMapper;
+use Funnypot\Core\Http\PsrRequestMapper;
 use Nyholm\Psr7\ServerRequest;
 use Nyholm\Psr7\Stream;
 use PHPUnit\Framework\TestCase;

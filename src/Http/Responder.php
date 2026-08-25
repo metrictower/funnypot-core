@@ -2,11 +2,11 @@
 
 declare(strict_types=1);
 
-namespace Funnypot\Http;
+namespace Funnypot\Core\Http;
 
-use Funnypot\Engine;
-use Funnypot\RequestContext;
-use Funnypot\SynthesizedResponse;
+use Funnypot\Core\Engine;
+use Funnypot\Core\RequestContext;
+use Funnypot\Core\SynthesizedResponse;
 
 /**
  * Framework-agnostic convenience for the "call me from your 404 handler" path:

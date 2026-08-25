@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace Funnypot\Tests;
+namespace Funnypot\Core\Tests;
 
-use Funnypot\Compiler\EmulatorCompiler;
-use Funnypot\Compiler\RouteEmulatorCompiler;
+use Funnypot\Core\Compiler\EmulatorCompiler;
+use Funnypot\Core\Compiler\RouteEmulatorCompiler;
 use PHPUnit\Framework\TestCase;
 use ReflectionMethod;
 use RuntimeException;

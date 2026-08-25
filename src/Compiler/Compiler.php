@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace Funnypot\Compiler;
+namespace Funnypot\Core\Compiler;
 
-use Funnypot\Support\PathNormalizer;
+use Funnypot\Core\Support\PathNormalizer;
 
 /**
  * Orchestrates the offline build:

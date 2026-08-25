@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Funnypot\Support;
+namespace Funnypot\Core\Support;
 
 /**
  * A single coherent fake identity for one persona seed — the company, its database, an

@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace Funnypot\Tests\Support;
+namespace Funnypot\Core\Tests\Support;
 
-use Funnypot\Rules\HttpFetcher;
-use Funnypot\Rules\RulesUpdateException;
+use Funnypot\Core\Rules\HttpFetcher;
+use Funnypot\Core\Rules\RulesUpdateException;
 
 /**
  * A network-free HttpFetcher: serves bytes from an in-memory URL map. Test double for the

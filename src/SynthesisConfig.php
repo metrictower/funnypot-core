@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace Funnypot;
+namespace Funnypot\Core;
 
-use Funnypot\Response\Style;
+use Funnypot\Core\Response\Style;
 
 /**
  * The synthesize-only remainder of Config (two-phase design §3 / §7): the knobs that shape

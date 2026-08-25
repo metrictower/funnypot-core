@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Funnypot\Contracts;
+namespace Funnypot\Core\Contracts;
 
 /**
  * Small per-actor scratch space for behavior primitives that fake continuity across a

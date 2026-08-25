@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Funnypot\Response;
+namespace Funnypot\Core\Response;
 
 /**
  * Hand-crafted rich fake for a specific endpoint family (a believable .git/config,

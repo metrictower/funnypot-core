@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace Funnypot\Tests\Crs;
+namespace Funnypot\Core\Tests\Crs;
 
-use Funnypot\Compiler\Crs\FingerprintGuard;
+use Funnypot\Core\Compiler\Crs\FingerprintGuard;
 use PHPUnit\Framework\TestCase;
 use RuntimeException;
 

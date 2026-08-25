@@ -21,7 +21,7 @@ declare(strict_types=1);
  * resources/fingerprint-denylist.php (tracked, append-only).
  */
 
-use Funnypot\Compiler\Crs\FingerprintGuard;
+use Funnypot\Core\Compiler\Crs\FingerprintGuard;
 
 $root = dirname(__DIR__, 2);
 require $root . '/vendor/autoload.php';

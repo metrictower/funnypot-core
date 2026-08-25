@@ -1,8 +1,8 @@
 <?php
 declare(strict_types=1);
-namespace Funnypot\Support;
+namespace Funnypot\Core\Support;
 
-use Funnypot\Support\Fake\FakePeople;
+use Funnypot\Core\Support\Fake\FakePeople;
 
 /**
  * The visual half of a host's fake identity — the part PersonaIdentity (credential-shaped, no visual

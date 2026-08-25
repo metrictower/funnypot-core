@@ -2,13 +2,13 @@
 
 declare(strict_types=1);
 
-namespace Funnypot\Synthesis;
+namespace Funnypot\Core\Synthesis;
 
-use Funnypot\Detection;
-use Funnypot\Response\BundleValidator;
-use Funnypot\Response\EmulatorRegistry;
-use Funnypot\Response\Style;
-use Funnypot\SynthesizedResponse;
+use Funnypot\Core\Detection;
+use Funnypot\Core\Response\BundleValidator;
+use Funnypot\Core\Response\EmulatorRegistry;
+use Funnypot\Core\Response\Style;
+use Funnypot\Core\SynthesizedResponse;
 
 /**
  * Turns one compiled bundle into a fake response that satisfies its matchers.

@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Funnypot;
+namespace Funnypot\Core;
 
 /**
  * Request-shape bot signals computed by classify() (decision S / two-phase design §2.4).

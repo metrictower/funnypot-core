@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Funnypot\Compiler\Crs;
+namespace Funnypot\Core\Compiler\Crs;
 
 /**
  * Folds many CRS detection patterns of one attack class into a single broadened regex

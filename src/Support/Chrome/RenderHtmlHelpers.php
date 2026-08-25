@@ -1,6 +1,6 @@
 <?php
 declare(strict_types=1);
-namespace Funnypot\Support\Chrome;
+namespace Funnypot\Core\Support\Chrome;
 
 /**
  * The escape-by-construction rendering primitives, factored out of AbstractSkin so both a skin and a

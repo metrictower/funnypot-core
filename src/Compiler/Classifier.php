@@ -2,15 +2,15 @@
 
 declare(strict_types=1);
 
-namespace Funnypot\Compiler;
+namespace Funnypot\Core\Compiler;
 
-use Funnypot\Compiler\Matcher\BinaryMatcherInverter;
-use Funnypot\Compiler\Matcher\DslInverter;
-use Funnypot\Compiler\Matcher\MatcherResult;
-use Funnypot\Compiler\Matcher\RegexWitnessGenerator;
-use Funnypot\Compiler\Matcher\SizeMatcherInverter;
-use Funnypot\Compiler\Matcher\StatusMatcherInverter;
-use Funnypot\Compiler\Matcher\WordMatcherInverter;
+use Funnypot\Core\Compiler\Matcher\BinaryMatcherInverter;
+use Funnypot\Core\Compiler\Matcher\DslInverter;
+use Funnypot\Core\Compiler\Matcher\MatcherResult;
+use Funnypot\Core\Compiler\Matcher\RegexWitnessGenerator;
+use Funnypot\Core\Compiler\Matcher\SizeMatcherInverter;
+use Funnypot\Core\Compiler\Matcher\StatusMatcherInverter;
+use Funnypot\Core\Compiler\Matcher\WordMatcherInverter;
 
 /**
  * Gate B — per-matcher invertibility folded through `matchers-condition`.

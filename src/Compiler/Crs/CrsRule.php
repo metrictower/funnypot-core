@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Funnypot\Compiler\Crs;
+namespace Funnypot\Core\Compiler\Crs;
 
 /**
  * One parsed CRS `SecRule` directive, reduced to the fields funnypot cares about.

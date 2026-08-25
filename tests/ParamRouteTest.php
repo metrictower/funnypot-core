@@ -2,17 +2,17 @@
 
 declare(strict_types=1);
 
-namespace Funnypot\Tests;
+namespace Funnypot\Core\Tests;
 
-use Funnypot\Config;
-use Funnypot\FakeHandle;
-use Funnypot\Honeypot;
-use Funnypot\RequestContext;
-use Funnypot\Response\Style;
-use Funnypot\SiteProfile;
-use Funnypot\Store\PhpArrayStore;
-use Funnypot\Template\TemplateAttackEmulator;
-use Funnypot\Verdict;
+use Funnypot\Core\Config;
+use Funnypot\Core\FakeHandle;
+use Funnypot\Core\Honeypot;
+use Funnypot\Core\RequestContext;
+use Funnypot\Core\Response\Style;
+use Funnypot\Core\SiteProfile;
+use Funnypot\Core\Store\PhpArrayStore;
+use Funnypot\Core\Template\TemplateAttackEmulator;
+use Funnypot\Core\Verdict;
 use PHPUnit\Framework\TestCase;
 use ReflectionProperty;
 

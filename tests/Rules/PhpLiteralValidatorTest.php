@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace Funnypot\Tests\Rules;
+namespace Funnypot\Core\Tests\Rules;
 
-use Funnypot\Rules\PhpLiteralValidator;
-use Funnypot\Rules\PhpLiteralViolation;
+use Funnypot\Core\Rules\PhpLiteralValidator;
+use Funnypot\Core\Rules\PhpLiteralViolation;
 use PHPUnit\Framework\TestCase;
 
 /**

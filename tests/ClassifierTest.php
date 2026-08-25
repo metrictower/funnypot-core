@@ -2,11 +2,11 @@
 
 declare(strict_types=1);
 
-namespace Funnypot\Tests;
+namespace Funnypot\Core\Tests;
 
-use Funnypot\Compiler\Classifier;
-use Funnypot\Compiler\ClusterableFilter;
-use Funnypot\Compiler\TemplateLoader;
+use Funnypot\Core\Compiler\Classifier;
+use Funnypot\Core\Compiler\ClusterableFilter;
+use Funnypot\Core\Compiler\TemplateLoader;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -32,7 +32,7 @@ final class ClassifierTest extends TestCase
     }
 
     /** @param array<string,mixed> $doc */
-    private function load(array $doc): \Funnypot\Compiler\LoadedTemplate
+    private function load(array $doc): \Funnypot\Core\Compiler\LoadedTemplate
     {
         // rawText matters for the interactsh scan; serialize a rough approximation.
         return $this->loader->fromArray($doc, json_encode($doc) ?: '', '/virtual/' . ($doc['id'] ?? 'x') . '.yaml');

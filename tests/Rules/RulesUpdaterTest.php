@@ -2,14 +2,14 @@
 
 declare(strict_types=1);
 
-namespace Funnypot\Tests\Rules;
+namespace Funnypot\Core\Tests\Rules;
 
-use Funnypot\Rules\KeyRing;
-use Funnypot\Rules\RulesLocator;
-use Funnypot\Rules\RulesUpdater;
-use Funnypot\Rules\SignatureVerifier;
-use Funnypot\Tests\Support\ArrayFetcher;
-use Funnypot\Tests\Support\ReleaseFactory;
+use Funnypot\Core\Rules\KeyRing;
+use Funnypot\Core\Rules\RulesLocator;
+use Funnypot\Core\Rules\RulesUpdater;
+use Funnypot\Core\Rules\SignatureVerifier;
+use Funnypot\Core\Tests\Support\ArrayFetcher;
+use Funnypot\Core\Tests\Support\ReleaseFactory;
 use PHPUnit\Framework\TestCase;
 
 /**

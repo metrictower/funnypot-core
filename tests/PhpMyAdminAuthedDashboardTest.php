@@ -2,13 +2,13 @@
 
 declare(strict_types=1);
 
-namespace Funnypot\Tests;
+namespace Funnypot\Core\Tests;
 
-use Funnypot\Compiler\Crs\FingerprintGuard;
-use Funnypot\Honeytoken;
-use Funnypot\RequestContext;
-use Funnypot\Support\VisualPersona;
-use Funnypot\Template\TemplateAttackEmulator;
+use Funnypot\Core\Compiler\Crs\FingerprintGuard;
+use Funnypot\Core\Honeytoken;
+use Funnypot\Core\RequestContext;
+use Funnypot\Core\Support\VisualPersona;
+use Funnypot\Core\Template\TemplateAttackEmulator;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -68,7 +68,7 @@ final class PhpMyAdminAuthedDashboardTest extends TestCase
         return $semi === false ? $setCookie : substr($setCookie, 0, $semi);
     }
 
-    /** @return \Funnypot\SynthesizedResponse|null */
+    /** @return \Funnypot\Core\SynthesizedResponse|null */
     private function authedGet(TemplateAttackEmulator $em, string $query = '')
     {
         return $em->emulate(new RequestContext('GET', '/phpmyadmin/index.php', $query, ['Cookie' => $this->authedCookie()]));

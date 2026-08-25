@@ -2,13 +2,13 @@
 
 declare(strict_types=1);
 
-namespace Funnypot\Tests;
+namespace Funnypot\Core\Tests;
 
-use Funnypot\Response\BundleValidator;
-use Funnypot\Response\EmulatedContent;
-use Funnypot\Response\RouteTemplateEmulator;
-use Funnypot\Response\RouteTemplateSet;
-use Funnypot\Response\Style;
+use Funnypot\Core\Response\BundleValidator;
+use Funnypot\Core\Response\EmulatedContent;
+use Funnypot\Core\Response\RouteTemplateEmulator;
+use Funnypot\Core\Response\RouteTemplateSet;
+use Funnypot\Core\Response\Style;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -278,7 +278,7 @@ final class EmulatorBreadthTest extends TestCase
      */
     public function test_iot_pack_bodies_carry_no_denied_fingerprint_token(): void
     {
-        $guard = \Funnypot\Compiler\Crs\FingerprintGuard::fromPackage();
+        $guard = \Funnypot\Core\Compiler\Crs\FingerprintGuard::fromPackage();
         $emulator = new RouteTemplateEmulator($this->set());
         $routes = [];
         foreach (self::targets() as $t) {

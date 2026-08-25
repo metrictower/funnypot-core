@@ -2,18 +2,18 @@
 
 declare(strict_types=1);
 
-namespace Funnypot\Tests;
+namespace Funnypot\Core\Tests;
 
-use Funnypot\Config;
-use Funnypot\Honeypot;
-use Funnypot\RequestContext;
-use Funnypot\Response\Style;
-use Funnypot\Rules\PhpLiteralValidator;
-use Funnypot\Store\PhpArrayStore;
-use Funnypot\Support\PersonaIdentity;
-use Funnypot\SynthesizedResponse;
-use Funnypot\Template\DirectiveRenderer;
-use Funnypot\Template\TemplateAttackEmulator;
+use Funnypot\Core\Config;
+use Funnypot\Core\Honeypot;
+use Funnypot\Core\RequestContext;
+use Funnypot\Core\Response\Style;
+use Funnypot\Core\Rules\PhpLiteralValidator;
+use Funnypot\Core\Store\PhpArrayStore;
+use Funnypot\Core\Support\PersonaIdentity;
+use Funnypot\Core\SynthesizedResponse;
+use Funnypot\Core\Template\DirectiveRenderer;
+use Funnypot\Core\Template\TemplateAttackEmulator;
 use PHPUnit\Framework\TestCase;
 
 /**

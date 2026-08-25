@@ -2,15 +2,15 @@
 
 declare(strict_types=1);
 
-namespace Funnypot\Tests;
+namespace Funnypot\Core\Tests;
 
-use Funnypot\BotSignalSet;
-use Funnypot\Config;
-use Funnypot\Honeypot;
-use Funnypot\RequestContext;
-use Funnypot\SiteProfile;
-use Funnypot\Store\PhpArrayStore;
-use Funnypot\Verdict;
+use Funnypot\Core\BotSignalSet;
+use Funnypot\Core\Config;
+use Funnypot\Core\Honeypot;
+use Funnypot\Core\RequestContext;
+use Funnypot\Core\SiteProfile;
+use Funnypot\Core\Store\PhpArrayStore;
+use Funnypot\Core\Verdict;
 use PHPUnit\Framework\TestCase;
 
 /**

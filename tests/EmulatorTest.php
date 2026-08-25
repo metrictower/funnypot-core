@@ -2,14 +2,14 @@
 
 declare(strict_types=1);
 
-namespace Funnypot\Tests;
+namespace Funnypot\Core\Tests;
 
-use Funnypot\Config;
-use Funnypot\Honeypot;
-use Funnypot\RequestContext;
-use Funnypot\Response\BundleValidator;
-use Funnypot\Response\Style;
-use Funnypot\Store\PhpArrayStore;
+use Funnypot\Core\Config;
+use Funnypot\Core\Honeypot;
+use Funnypot\Core\RequestContext;
+use Funnypot\Core\Response\BundleValidator;
+use Funnypot\Core\Response\Style;
+use Funnypot\Core\Store\PhpArrayStore;
 
 use PHPUnit\Framework\TestCase;
 

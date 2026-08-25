@@ -1,8 +1,8 @@
 <?php
 declare(strict_types=1);
-namespace Funnypot\Support\Chrome;
+namespace Funnypot\Core\Support\Chrome;
 
-use Funnypot\Support\VisualPersona;
+use Funnypot\Core\Support\VisualPersona;
 
 /**
  * The default chrome for any path with no closer analog: a plain internal-app look (header, nav,

@@ -2,12 +2,12 @@
 
 declare(strict_types=1);
 
-namespace Funnypot\Tests;
+namespace Funnypot\Core\Tests;
 
-use Funnypot\Compiler\EmulatorCompiler;
-use Funnypot\RequestContext;
-use Funnypot\Rules\PhpLiteralValidator;
-use Funnypot\Template\TemplateAttackEmulator;
+use Funnypot\Core\Compiler\EmulatorCompiler;
+use Funnypot\Core\RequestContext;
+use Funnypot\Core\Rules\PhpLiteralValidator;
+use Funnypot\Core\Template\TemplateAttackEmulator;
 use PHPUnit\Framework\TestCase;
 use RuntimeException;
 

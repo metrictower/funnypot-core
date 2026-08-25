@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace Funnypot\Compiler;
+namespace Funnypot\Core\Compiler;
 
-use Funnypot\Detection;
+use Funnypot\Core\Detection;
 
 /**
  * One conflict-free persona: a set of template plans that can be satisfied by a SINGLE

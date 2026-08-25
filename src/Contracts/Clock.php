@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Funnypot\Contracts;
+namespace Funnypot\Core\Contracts;
 
 /**
  * Wall-clock source for behavior primitives that need the current time (e.g. a delay signal).

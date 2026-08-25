@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Funnypot\Attack;
+namespace Funnypot\Core\Attack;
 
 /**
  * Canned fake output shared by attack signatures — the standard markers nuclei's

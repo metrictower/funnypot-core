@@ -2,14 +2,14 @@
 
 declare(strict_types=1);
 
-namespace Funnypot\Tests\Http;
+namespace Funnypot\Core\Tests\Http;
 
-use Funnypot\Config;
-use Funnypot\Detection;
-use Funnypot\Http\HoneypotMiddleware;
-use Funnypot\Honeypot;
-use Funnypot\RequestContext;
-use Funnypot\Store\PhpArrayStore;
+use Funnypot\Core\Config;
+use Funnypot\Core\Detection;
+use Funnypot\Core\Http\HoneypotMiddleware;
+use Funnypot\Core\Honeypot;
+use Funnypot\Core\RequestContext;
+use Funnypot\Core\Store\PhpArrayStore;
 use Nyholm\Psr7\Factory\Psr17Factory;
 use Nyholm\Psr7\ServerRequest;
 use PHPUnit\Framework\TestCase;

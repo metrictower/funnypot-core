@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Funnypot\Support\Fake;
+namespace Funnypot\Core\Support\Fake;
 
 /**
  * Seeded fake-person generator shared by both tiers: the template tier (via DirectiveRenderer,

@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace Funnypot\Tests;
+namespace Funnypot\Core\Tests;
 
-use Funnypot\Support\Fake\FakeRecords;
+use Funnypot\Core\Support\Fake\FakeRecords;
 use PHPUnit\Framework\TestCase;
 
 /**

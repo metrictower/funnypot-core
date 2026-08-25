@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-use Funnypot\Response\Style;
+use Funnypot\Core\Response\Style;
 
 /**
  * funnypot config. Defaults are INERT: mode=detect, gate=null (closed),
@@ -70,7 +70,7 @@ return [
     // template ids or tags to never serve
     'exclude' => [],
 
-    // Runtime rules updates (Funnypot\Rules\RulesUpdater). INERT by default: with no
+    // Runtime rules updates (Funnypot\Core\Rules\RulesUpdater). INERT by default: with no
     // data_dir the engine loads only the bundled compiled artifacts, exactly as before.
     // Point data_dir at a writable dir OWNED BY A DEDICATED NON-WEB USER (0755, files
     // 0644, read-only to the web user, outside the web root — never 0777) and schedule

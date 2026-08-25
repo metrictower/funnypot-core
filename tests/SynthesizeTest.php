@@ -2,15 +2,15 @@
 
 declare(strict_types=1);
 
-namespace Funnypot\Tests;
+namespace Funnypot\Core\Tests;
 
-use Funnypot\Config;
-use Funnypot\FakeHandle;
-use Funnypot\Honeypot;
-use Funnypot\RequestContext;
-use Funnypot\SiteProfile;
-use Funnypot\Store\PhpArrayStore;
-use Funnypot\Verdict;
+use Funnypot\Core\Config;
+use Funnypot\Core\FakeHandle;
+use Funnypot\Core\Honeypot;
+use Funnypot\Core\RequestContext;
+use Funnypot\Core\SiteProfile;
+use Funnypot\Core\Store\PhpArrayStore;
+use Funnypot\Core\Verdict;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -85,7 +85,7 @@ final class SynthesizeTest extends TestCase
             'matched-only',                      // pathScope
             null,                                // personaSeed
             'coherent',                          // personaBreadth
-            \Funnypot\Response\Style::MINIMAL,   // responseStyle
+            \Funnypot\Core\Response\Style::MINIMAL,   // responseStyle
             'high',                              // severityCeiling
             65536,                               // maxBodyBytes
             0,                                   // latencyMs
@@ -113,7 +113,7 @@ final class SynthesizeTest extends TestCase
             'matched-only',                      // pathScope
             null,                                // personaSeed
             'coherent',                          // personaBreadth
-            \Funnypot\Response\Style::MINIMAL,   // responseStyle
+            \Funnypot\Core\Response\Style::MINIMAL,   // responseStyle
             'high',                              // severityCeiling
             65536,                               // maxBodyBytes
             0,                                   // latencyMs
@@ -130,7 +130,7 @@ final class SynthesizeTest extends TestCase
             'matched-only',                      // pathScope
             null,                                // personaSeed
             'coherent',                          // personaBreadth
-            \Funnypot\Response\Style::MINIMAL,   // responseStyle
+            \Funnypot\Core\Response\Style::MINIMAL,   // responseStyle
             'critical',                          // severityCeiling
             65536,                               // maxBodyBytes
             0,                                   // latencyMs
@@ -149,10 +149,10 @@ final class SynthesizeTest extends TestCase
         $engine = new Honeypot($this->store());
         $verdict = new Verdict(
             Verdict::SCANNER_PROBE,
-            \Funnypot\Detection::none(),
+            \Funnypot\Core\Detection::none(),
             '',
             0,
-            \Funnypot\BotSignalSet::empty(),
+            \Funnypot\Core\BotSignalSet::empty(),
             new FakeHandle(FakeHandle::KIND_LLM)
         );
 

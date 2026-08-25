@@ -1,6 +1,6 @@
 <?php
 declare(strict_types=1);
-namespace Funnypot\Support\Chrome;
+namespace Funnypot\Core\Support\Chrome;
 
 /**
  * Escape-by-construction base for every skin. A skin builds its page only through the RenderHtmlHelpers

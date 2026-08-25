@@ -2,11 +2,11 @@
 
 declare(strict_types=1);
 
-namespace Funnypot\Compiler;
+namespace Funnypot\Core\Compiler;
 
-use Funnypot\SchemaVersion;
-use Funnypot\Support\PersonaIdentity;
-use Funnypot\Template\DirectiveRenderer;
+use Funnypot\Core\SchemaVersion;
+use Funnypot\Core\Support\PersonaIdentity;
+use Funnypot\Core\Template\DirectiveRenderer;
 use RuntimeException;
 use Symfony\Component\Yaml\Yaml;
 

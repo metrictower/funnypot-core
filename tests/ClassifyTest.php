@@ -2,15 +2,15 @@
 
 declare(strict_types=1);
 
-namespace Funnypot\Tests;
+namespace Funnypot\Core\Tests;
 
-use Funnypot\Config;
-use Funnypot\FakeHandle;
-use Funnypot\Honeypot;
-use Funnypot\RequestContext;
-use Funnypot\SiteProfile;
-use Funnypot\Store\PhpArrayStore;
-use Funnypot\Verdict;
+use Funnypot\Core\Config;
+use Funnypot\Core\FakeHandle;
+use Funnypot\Core\Honeypot;
+use Funnypot\Core\RequestContext;
+use Funnypot\Core\SiteProfile;
+use Funnypot\Core\Store\PhpArrayStore;
+use Funnypot\Core\Verdict;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -34,7 +34,7 @@ final class ClassifyTest extends TestCase
             'matched-only',                      // pathScope
             null,                                // personaSeed
             'coherent',                          // personaBreadth
-            \Funnypot\Response\Style::MINIMAL,   // responseStyle
+            \Funnypot\Core\Response\Style::MINIMAL,   // responseStyle
             'high',                              // severityCeiling
             65536,                               // maxBodyBytes
             0,                                   // latencyMs
@@ -167,7 +167,7 @@ final class ClassifyTest extends TestCase
     {
         return new Honeypot($this->xmlrpcShadowStore(), new Config(
             'detect', null, 'matched-only', null, 'coherent',
-            \Funnypot\Response\Style::MINIMAL, 'critical', 65536, 0, 0,
+            \Funnypot\Core\Response\Style::MINIMAL, 'critical', 65536, 0, 0,
             true   // attackEmulation ON
         ));
     }

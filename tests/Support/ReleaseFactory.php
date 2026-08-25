@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace Funnypot\Tests\Support;
+namespace Funnypot\Core\Tests\Support;
 
-use Funnypot\Rules\KeyRing;
-use Funnypot\Rules\SignatureVerifier;
+use Funnypot\Core\Rules\KeyRing;
+use Funnypot\Core\Rules\SignatureVerifier;
 use Phar;
 use PharData;
 

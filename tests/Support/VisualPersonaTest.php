@@ -1,9 +1,9 @@
 <?php
 declare(strict_types=1);
-namespace Funnypot\Tests\Support;
+namespace Funnypot\Core\Tests\Support;
 
-use Funnypot\Support\PersonaIdentity;
-use Funnypot\Support\VisualPersona;
+use Funnypot\Core\Support\PersonaIdentity;
+use Funnypot\Core\Support\VisualPersona;
 use PHPUnit\Framework\TestCase;
 
 final class VisualPersonaTest extends TestCase

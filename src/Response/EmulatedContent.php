@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Funnypot\Response;
+namespace Funnypot\Core\Response;
 
 /**
  * Rich body + header overrides produced by an endpoint emulator. Headers are merged

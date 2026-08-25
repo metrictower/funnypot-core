@@ -1,6 +1,6 @@
 <?php
 declare(strict_types=1);
-namespace Funnypot\Support\Chrome;
+namespace Funnypot\Core\Support\Chrome;
 
 /** The only HTML-escape primitive the shell/skins use. Every model-supplied value passes through
  *  here before it reaches a text or attribute sink — the load-bearing anti-injection control. */

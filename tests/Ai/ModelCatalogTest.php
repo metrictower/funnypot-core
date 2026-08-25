@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace Funnypot\Tests\Ai;
+namespace Funnypot\Core\Tests\Ai;
 
-use Funnypot\Ai\ModelCatalog;
-use Funnypot\Compiler\Crs\FingerprintGuard;
+use Funnypot\Core\Ai\ModelCatalog;
+use Funnypot\Core\Compiler\Crs\FingerprintGuard;
 use PHPUnit\Framework\TestCase;
 
 final class ModelCatalogTest extends TestCase

@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Funnypot;
+namespace Funnypot\Core;
 
 /**
  * Detect a Log4Shell / JNDI lookup probe anywhere in a request. This is a DETECT-ONLY

@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace Funnypot\Http;
+namespace Funnypot\Core\Http;
 
-use Funnypot\SynthesizedResponse;
+use Funnypot\Core\SynthesizedResponse;
 
 /**
  * The one opt-in side effect: write a SynthesizedResponse to PHP's output using

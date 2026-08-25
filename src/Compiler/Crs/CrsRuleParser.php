@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Funnypot\Compiler\Crs;
+namespace Funnypot\Core\Compiler\Crs;
 
 /**
  * Parses OWASP CoreRuleSet `.conf` files into CrsRule value objects.

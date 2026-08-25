@@ -2,12 +2,12 @@
 
 declare(strict_types=1);
 
-namespace Funnypot\Tests;
+namespace Funnypot\Core\Tests;
 
-use Funnypot\RequestContext;
-use Funnypot\Support\PersonaIdentity;
-use Funnypot\Template\DirectiveRenderer;
-use Funnypot\Template\TemplateAttackEmulator;
+use Funnypot\Core\RequestContext;
+use Funnypot\Core\Support\PersonaIdentity;
+use Funnypot\Core\Template\DirectiveRenderer;
+use Funnypot\Core\Template\TemplateAttackEmulator;
 use PHPUnit\Framework\TestCase;
 
 final class TemplateEngineTest extends TestCase

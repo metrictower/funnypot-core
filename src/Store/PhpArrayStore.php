@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace Funnypot\Store;
+namespace Funnypot\Core\Store;
 
-use Funnypot\Contracts\CompiledStore;
-use Funnypot\Rules\RulesLocator;
+use Funnypot\Core\Contracts\CompiledStore;
+use Funnypot\Core\Rules\RulesLocator;
 use InvalidArgumentException;
 
 /**

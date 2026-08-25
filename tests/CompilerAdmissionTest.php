@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace Funnypot\Tests;
+namespace Funnypot\Core\Tests;
 
-use Funnypot\Compiler\Compiler;
+use Funnypot\Core\Compiler\Compiler;
 use PHPUnit\Framework\TestCase;
 
 /**

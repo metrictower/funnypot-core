@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace Funnypot\Behavior;
+namespace Funnypot\Core\Behavior;
 
-use Funnypot\Honeytoken;
+use Funnypot\Core\Honeytoken;
 
 /**
  * A stateless, self-verifying mock-auth decoy session. Two payload classes domain-separate

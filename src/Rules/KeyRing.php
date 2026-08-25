@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Funnypot\Rules;
+namespace Funnypot\Core\Rules;
 
 /**
  * The set of ed25519 public keys trusted to sign a rules release. Loaded from the vendored

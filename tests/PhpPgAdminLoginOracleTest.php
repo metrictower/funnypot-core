@@ -2,11 +2,11 @@
 
 declare(strict_types=1);
 
-namespace Funnypot\Tests;
+namespace Funnypot\Core\Tests;
 
-use Funnypot\Compiler\Crs\FingerprintGuard;
-use Funnypot\RequestContext;
-use Funnypot\Template\TemplateAttackEmulator;
+use Funnypot\Core\Compiler\Crs\FingerprintGuard;
+use Funnypot\Core\RequestContext;
+use Funnypot\Core\Template\TemplateAttackEmulator;
 use PHPUnit\Framework\TestCase;
 
 /**

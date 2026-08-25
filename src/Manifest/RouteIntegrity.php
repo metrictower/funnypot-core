@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace Funnypot\Manifest;
+namespace Funnypot\Core\Manifest;
 
-use Funnypot\Support\PathNormalizer;
+use Funnypot\Core\Support\PathNormalizer;
 
 /**
  * Route-integrity checks over the derived decoy registry (build/CI-time only — never served).
