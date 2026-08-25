@@ -1,0 +1,13 @@
+# Keep the published package to what a consumer actually runs. Everything below is
+# development material: it is in the repo, but `composer require` should not download it.
+# NOTE: scripts/ is deliberately NOT ignored — sibling packages CI-invoke
+# vendor/metrictower/funnypot-core/scripts/ci/check-namespace-collisions.php.
+/tests              export-ignore
+/docs               export-ignore
+/.github            export-ignore
+/.idea              export-ignore
+/phpunit.xml.dist   export-ignore
+/.gitattributes     export-ignore
+/.gitignore         export-ignore
+/templates          export-ignore
+/examples           export-ignore
