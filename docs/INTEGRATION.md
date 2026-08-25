@@ -2,7 +2,7 @@
 
 Documentation only. Nothing here is applied. This describes exactly how the
 `iCabbiTools` Laravel 8 app (the repo this package's monorepo lives in) would
-consume `metrictower/funnypot`, using its own existing honeypot pieces
+consume `metrictower/funnypot-core`, using its own existing honeypot pieces
 (`App\Http\Controllers\HoneyPotController`, `App\Http\Middleware\RestrictIPAccess`)
 as the fallback path rather than replacing them.
 
@@ -16,13 +16,13 @@ In the app's root `composer.json` (not touched by this change):
     { "type": "path", "url": "packages/funnypot" }
   ],
   "require": {
-    "metrictower/funnypot": "*"
+    "metrictower/funnypot-core": "*"
   }
 }
 ```
 
-`composer require metrictower/funnypot` then symlinks the package into
-`vendor/metrictower/funnypot`. Laravel package auto-discovery picks up
+`composer require metrictower/funnypot-core` then symlinks the package into
+`vendor/metrictower/funnypot-core`. Laravel package auto-discovery picks up
 `Funnypot\Laravel\FunnypotServiceProvider` from the
 package's `composer.json` `extra.laravel.providers`, so no manual provider
 registration is needed in `config/app.php`.
