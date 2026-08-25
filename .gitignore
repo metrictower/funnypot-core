@@ -5,3 +5,4 @@ scripts/deploy.env
 
 .claude/
 demo/storage/*.sqlite*
+.DS_Store
