@@ -594,6 +594,45 @@ if ($command === 'lint-routes') {
     exit(renderLintRoutes($result, $format === 'json' ? 'json' : 'table'));
 }
 
+/**
+ * `funnypot doctor` — is the compiled index actually shared, or is every request rebuilding it?
+ *
+ * That is a 0.00 MB vs 20.43 MB per-request difference and nothing else surfaces it: a
+ * misconfigured host looks exactly like a correct one until it runs out of memory under load.
+ * Exit 0 when shared, 1 when not — so a deploy check can gate on it.
+ */
+if ($command === 'doctor') {
+    // Load the index first. Under a web SAPI a previous request has usually already interned it,
+    // but a one-shot CLI process starts cold, so without this the answer is always "NO" and tells
+    // you nothing about the host. Loading makes the question the useful one: does this host intern
+    // it when asked?
+    \Funnypot\Core\Store\PhpArrayStore::fromPackage();
+
+    $d = \Funnypot\Core\Store\PhpArrayStore::diagnose();
+
+    printf("index shared : %s\n", $d['shared'] ? 'yes' : 'NO');
+    printf("reason       : %s\n", $d['reason']);
+    printf("sapi         : %s\n", $d['sapi']);
+    if ($d['shm_free'] > 0) {
+        printf("opcache free : %.1f MB\n", $d['shm_free'] / 1048576);
+    }
+    if ($d['restarts'] > 0) {
+        printf("restarts     : %d  (opcache is evicting under pressure)\n", $d['restarts']);
+    }
+    if ($d['remedy'] !== '') {
+        printf("remedy       : %s\n", $d['remedy']);
+    }
+
+    // Not an error on CLI: opcache.enable_cli is off by default, and running `doctor` from the
+    // shell is the normal way to look. What matters is the web SAPI the app actually serves from.
+    if (!$d['shared'] && $d['sapi'] === 'cli') {
+        fwrite(STDOUT, "\nnote: this is the CLI SAPI. Run the same check from your web SAPI —\n"
+            . "      that is the one serving requests.\n");
+    }
+
+    exit($d['shared'] ? 0 : 1);
+}
+
 if ($command !== 'compile') {
     fwrite(STDERR, "usage: funnypot compile <templates-dir> [--out=PATH]\n");
     fwrite(STDERR, "       funnypot compile-emulators [<attack-template-dir>] [--out=PATH]\n");
@@ -607,6 +646,7 @@ if ($command !== 'compile') {
     fwrite(STDERR, "       funnypot rules:update [--data-dir=PATH] [--channel=stable] [--version=vX]\n");
     fwrite(STDERR, "       funnypot rules:status [--data-dir=PATH]\n");
     fwrite(STDERR, "       funnypot rules:rollback [--data-dir=PATH] [--to=vX]\n");
+    fwrite(STDERR, "       funnypot doctor  (is the compiled index shared via opcache? exit 1 if not)\n");
     exit($command === '' || $command === 'help' || $command === '--help' ? 0 : 2);
 }
 

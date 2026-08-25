@@ -130,4 +130,93 @@ final class PhpArrayStore implements CompiledStore
     {
         return $this->manifest;
     }
+
+    /**
+     * Is the compiled index actually shared, or is every request re-materialising it?
+     *
+     * The cost difference is 0.00 MB vs 20.43 MB of process heap PER REQUEST, and nothing else
+     * tells you which side of that you are on — a misconfigured host looks identical to a correct
+     * one until it runs out of memory under load. Call this from a health check or a doctor
+     * command; never throw on the result, because a dev box legitimately runs without opcache.
+     *
+     * @param string|null $path defaults to the packaged index
+     * @return array{shared:bool,reason:string,remedy:string,sapi:string,shm_free:int,restarts:int}
+     */
+    public static function diagnose(?string $path = null): array
+    {
+        $path = $path ?? RulesLocator::resolve('nuclei-index.full.php');
+        $sapi = PHP_SAPI;
+
+        $out = [
+            'shared' => false,
+            'reason' => 'unknown',
+            'remedy' => '',
+            'sapi' => $sapi,
+            'shm_free' => 0,
+            'restarts' => 0,
+        ];
+
+        if (!function_exists('opcache_get_status') || !function_exists('opcache_is_script_cached')) {
+            $out['reason'] = 'opcache extension not loaded';
+            $out['remedy'] = 'Install and enable Zend OPcache. Without it the index costs ~20 MB of heap on every request.';
+
+            return $out;
+        }
+
+        // CLI is gated by opcache.enable_cli; every other SAPI by opcache.enable. Note `php -S`
+        // reports "cli-server" and is gated by opcache.enable, NOT enable_cli.
+        $flag = $sapi === 'cli' ? 'opcache.enable_cli' : 'opcache.enable';
+        if (!filter_var(ini_get($flag), FILTER_VALIDATE_BOOLEAN)) {
+            $out['reason'] = $flag . ' is off';
+            $out['remedy'] = 'Set ' . $flag . '=1.'
+                . ($sapi === 'cli' ? ' CLI opcache is off by default, so queue workers pay full cost per process.' : '');
+
+            return $out;
+        }
+
+        // file_cache_only loads into process memory, silently reinstating the full per-request cost.
+        if (filter_var(ini_get('opcache.file_cache_only'), FILTER_VALIDATE_BOOLEAN)) {
+            $out['reason'] = 'opcache.file_cache_only is on, so nothing is interned into shared memory';
+            $out['remedy'] = 'Set opcache.file_cache_only=0.';
+
+            return $out;
+        }
+
+        // opcache.restrict_api can make these fail for the calling script; degrade rather than throw.
+        try {
+            // Deliberately opcache_get_status(FALSE): the true form materialises every cached
+            // script, which on a large app is far more expensive than this check is worth.
+            $status = opcache_get_status(false);
+            $cached = opcache_is_script_cached($path);
+        } catch (\Throwable $e) {
+            $out['reason'] = 'opcache API unavailable (opcache.restrict_api?): ' . $e->getMessage();
+            $out['remedy'] = 'Allow this script under opcache.restrict_api, or check the host another way.';
+
+            return $out;
+        }
+
+        if (is_array($status)) {
+            $out['shm_free'] = (int) ($status['memory_usage']['free_memory'] ?? 0);
+            $out['restarts'] = (int) ($status['opcache_statistics']['oom_restarts'] ?? 0)
+                + (int) ($status['opcache_statistics']['hash_restarts'] ?? 0);
+        }
+
+        if (!$cached) {
+            $out['reason'] = 'the compiled index is not in opcache';
+            $out['remedy'] = 'Usually shared memory is full or the file-count cap is hit — raise'
+                . ' opcache.memory_consumption and opcache.max_accelerated_files above what the host app already uses.';
+
+            return $out;
+        }
+
+        $out['shared'] = true;
+        $out['reason'] = 'interned into opcache shared memory';
+
+        if ($out['restarts'] > 0) {
+            $out['remedy'] = 'Interned now, but opcache has restarted ' . $out['restarts']
+                . ' time(s) — it is being evicted under pressure. Raise opcache.memory_consumption.';
+        }
+
+        return $out;
+    }
 }

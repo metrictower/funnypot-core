@@ -182,6 +182,24 @@ What to check when embedding:
 - **bind `Honeypot::default()` lazily.** An eager service-provider binding makes every CLI and queue
   process pay for an index it will never consult.
 
+Check a host with the bundled command — exit 0 when the index is shared, 1 when it is not, so a
+deploy step can gate on it:
+
+```bash
+php vendor/metrictower/funnypot-core/bin/funnypot doctor
+```
+
+```
+index shared : yes
+reason       : interned into opcache shared memory
+sapi         : cli
+opcache free : 238.5 MB
+```
+
+Run it from the SAPI that actually serves your traffic. `PhpArrayStore::diagnose()` returns the same
+verdict as an array if you would rather wire it into a health endpoint; it never throws, and it
+degrades to `shared => false` when `opcache.restrict_api` blocks the introspection calls.
+
 Two ways to lose the interning silently: `file_cache_only` as above, and making the compiled
 artifact non-literal (a `const` reference, a function call, a computed key). Both are worth catching
 in review.
