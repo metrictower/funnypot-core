@@ -526,7 +526,7 @@ final class Honeypot implements Engine
             return $this->declined($r, Outcome::NO_SIGNATURE);
         }
 
-        $built = $this->buildFake($verdict, SiteProfile::empty(), $seed, $r);
+        $built = $this->buildFake($verdict->fakeHandle, SiteProfile::empty(), $seed, $r);
         if ($built['r'] === null) {
             return $this->declined($r, $built['reason']);
         }
@@ -554,7 +554,7 @@ final class Honeypot implements Engine
     {
         $this->observer->onDetection($r, $verdict->detection);
 
-        $built = $this->buildFake($verdict, SiteProfile::empty(), $seed, $r);
+        $built = $this->buildFake($verdict->fakeHandle, SiteProfile::empty(), $seed, $r);
         if ($built['r'] === null) {
             return $this->declined($r, $built['reason']);
         }
@@ -577,7 +577,12 @@ final class Honeypot implements Engine
      */
     public function synthesize(Verdict $verdict, SiteProfile $profile, string $seed): ?SynthesizedResponse
     {
-        return $this->buildFake($verdict, $profile, $seed)['r'];
+        return $this->buildFake($verdict->fakeHandle, $profile, $seed)['r'];
+    }
+
+    public function synthesizeFromHandle(?FakeHandle $handle, SiteProfile $profile, string $seed): ?SynthesizedResponse
+    {
+        return $this->buildFake($handle, $profile, $seed)['r'];
     }
 
     private function declined(RequestContext $r, string $reason): ?SynthesizedResponse
@@ -608,9 +613,8 @@ final class Honeypot implements Engine
      *
      * @return array{r:?SynthesizedResponse,reason:string}
      */
-    private function buildFake(Verdict $verdict, SiteProfile $profile, string $seed, ?RequestContext $r = null): array
+    private function buildFake(?FakeHandle $handle, SiteProfile $profile, string $seed, ?RequestContext $r = null): array
     {
-        $handle = $verdict->fakeHandle;
         if ($handle === null) {
             return ['r' => null, 'reason' => Outcome::NO_CANDIDATE];
         }
