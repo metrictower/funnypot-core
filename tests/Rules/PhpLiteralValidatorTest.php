@@ -13,6 +13,14 @@ use PHPUnit\Framework\TestCase;
  * artifacts this package ships (a false reject would break every legitimate update), and
  * it REJECTS anything that could execute on load (a false accept is the RCE this whole
  * mechanism exists to prevent).
+ *
+ * SECOND, LESS OBVIOUS PURPOSE: `test_accepts_the_real_compiled_artifacts()` is also what pins the
+ * opcache-interning invariant. Only a pure literal can be interned into shared memory as an
+ * immutable array, and that is the difference between the index costing 0.00 MB of process heap
+ * per request and 20.43 MB. Make the artifact non-literal — a `const` reference, a function call,
+ * a computed key — and interning is lost SILENTLY: everything still works, just at 20 MB a
+ * request. Nothing else would catch that, so do not weaken this test on the grounds that it is
+ * "only" about RCE.
  */
 final class PhpLiteralValidatorTest extends TestCase
 {
