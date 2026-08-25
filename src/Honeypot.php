@@ -256,17 +256,25 @@ final class Honeypot implements Engine
      * Reads the VALUE of sec-fetch-mode, not merely its presence. Defaults to true: an unknown
      * request shape is scored as a navigation, so nothing is suppressed without positive evidence.
      *
-     * A scanner can of course claim `sec-fetch-mode: cors`. What that buys is at most the three
-     * header-absence signals above; it does not touch the scanner-UA, empty-UA, client-hint
-     * contradiction, platform-mismatch or h2 signals, which are the ones that carry weight.
+     * A scanner can of course claim `sec-fetch-mode: cors`. What that buys is **5 points** — the
+     * Accept-Language absence, and nothing else. It cannot touch the scanner-UA, empty-UA,
+     * client-hint contradiction, platform-mismatch or h2 signals.
+     *
+     * That bound is not free, it is enforced by two things: `$hasFetchMeta` requires the sec-fetch
+     * TRIO, so a lone forged header cannot disarm the client-hint contradiction; and the mode is
+     * whitelisted, so an unrecognised value scores as a navigation. An earlier version had neither,
+     * and one forged header took a Chrome-UA scanner from 34 to 7.
      *
      * @param array<string,string> $h lowercased headers
      */
     private function isNavigation(array $h): bool
     {
+        // Whitelist, never blacklist. sec-fetch-mode is a closed set, so an unrecognised value is
+        // itself odd — treating "anything but navigate" as a subresource handed the full suppression
+        // to `Sec-Fetch-Mode: banana`, which is the opposite of requiring positive evidence.
         $mode = isset($h['sec-fetch-mode']) ? strtolower(trim($h['sec-fetch-mode'])) : '';
         if ($mode !== '') {
-            return $mode === 'navigate';
+            return !in_array($mode, array('cors', 'no-cors', 'same-origin', 'websocket'), true);
         }
 
         // Pre-fetch-metadata browsers and libraries: the classic AJAX marker.
@@ -319,7 +327,11 @@ final class Honeypot implements Engine
             $flags[BotSignalSet::MISSING_ACCEPT_LANGUAGE] = true;
             $weight += 5;
         }
-        if ($navigation && !isset($h['accept-encoding'])) {
+        // NOT suppressed on a subresource: Accept-Encoding is a forbidden header name, so the
+        // browser sets it on fetch/XHR exactly as on a navigation. Unlike Accept-Language it is
+        // never legitimately absent, and the XHR false positive this change fixed was 5 points of
+        // Accept-Language alone.
+        if (!isset($h['accept-encoding'])) {
             $flags[BotSignalSet::MISSING_ACCEPT_ENCODING] = true;
             $weight += 5;
         }
@@ -334,8 +346,12 @@ final class Honeypot implements Engine
 
         $claimsBrowser = stripos($ua, 'mozilla') !== false;
         $claimsChromium = preg_match('/chrome|chromium|crios|edg\//i', $ua) === 1;
-        $hasFetchMeta = isset($h['sec-fetch-site']) || isset($h['sec-fetch-mode'])
-            || isset($h['sec-fetch-dest']) || isset($h['sec-fetch-user']);
+        // The TRIO, not any one header. A real browser sends sec-fetch-site, -mode and -dest
+        // together on both navigations and subresources (only -user is navigation-only). Accepting
+        // any single header let one forged `Sec-Fetch-Mode: cors` disarm the 15-point client-hint
+        // contradiction below — measured, that took a Chrome-UA scanner from 34 to 7.
+        $hasFetchMeta = isset($h['sec-fetch-site']) && isset($h['sec-fetch-mode'])
+            && isset($h['sec-fetch-dest']);
         $hasClientHints = isset($h['sec-ch-ua']) || isset($h['sec-ch-ua-mobile'])
             || isset($h['sec-ch-ua-platform']);
 

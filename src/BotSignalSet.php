@@ -17,12 +17,14 @@ namespace Funnypot\Core;
  *
  * NAVIGATION vs SUBRESOURCE. `sec-fetch-mode` is read for its VALUE, not merely its presence:
  * a browser sends a different header set for a page load than for the fetch/XHR calls that page
- * makes. MISSING_ACCEPT_LANGUAGE, MISSING_ACCEPT_ENCODING and ACCEPT_WILDCARD_FROM_BROWSER are
+ * makes. MISSING_ACCEPT_LANGUAGE and ACCEPT_WILDCARD_FROM_BROWSER are
  * therefore scored on navigations ONLY — on a subresource those headers are irrelevant rather
  * than weak evidence, and charging them made every AJAX call on a JS-heavy site anomalous.
  * An unknown request shape is treated as a navigation, so nothing is suppressed without positive
- * evidence. A client claiming `sec-fetch-mode: cors` gains at most those three signals and cannot
- * suppress the scanner-UA, empty-UA, client-hint-contradiction, platform-mismatch or h2 signals.
+ * evidence. A client claiming `sec-fetch-mode: cors` gains exactly ONE signal — the Accept-Language
+ * absence, 5 points — and cannot suppress the scanner-UA, empty-UA, client-hint-contradiction,
+ * platform-mismatch or h2 signals. MISSING_ACCEPT and MISSING_ACCEPT_ENCODING are deliberately not
+ * suppressed either: both headers are sent on a subresource exactly as on a navigation.
  *
  * 7.3-clean: classic constructor, docblocked untyped properties (no promotion / typed props).
  */

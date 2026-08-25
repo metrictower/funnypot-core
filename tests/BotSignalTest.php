@@ -396,4 +396,68 @@ final class BotSignalTest extends TestCase
         self::assertTrue($set->has(BotSignalSet::UA_CLAIMS_BROWSER_NO_HINTS));
     }
 
+
+    // ── FP-0096 review fixes: the suppression must not be a laundering primitive ──
+
+    /** An unrecognised sec-fetch-mode is odd in itself, and must NOT earn the suppression. */
+    public function test_an_unknown_fetch_mode_is_treated_as_a_navigation(): void
+    {
+        $bare = array('Host' => 'host', 'User-Agent' => 'sqlmap/1.7');
+
+        $absent = $this->signals($bare)->weight;
+        $garbage = $this->signals($bare + array('Sec-Fetch-Mode' => 'banana'))->weight;
+        $cors = $this->signals($bare + array('Sec-Fetch-Mode' => 'cors'))->weight;
+
+        self::assertSame($absent, $garbage, 'an unknown value must score as a navigation');
+        self::assertLessThan($garbage, $cors, 'only a recognised subresource mode suppresses');
+    }
+
+    /**
+     * Accept-Encoding is a forbidden header name — the browser sets it on fetch/XHR exactly as on
+     * a navigation, so its absence is never legitimate and must not be suppressed.
+     */
+    public function test_missing_accept_encoding_fires_on_a_subresource_too(): void
+    {
+        $set = $this->signals($this->browser(array(
+            'Accept' => 'application/json',
+            'Accept-Encoding' => null,
+            'Sec-Fetch-Mode' => 'cors',
+            'Sec-Fetch-Dest' => 'empty',
+        )), '/api/data');
+
+        self::assertTrue($set->has(BotSignalSet::MISSING_ACCEPT_ENCODING));
+    }
+
+    /**
+     * One forged header must not disarm the client-hint contradiction. A real browser sends
+     * sec-fetch-site, -mode and -dest together, so the trio is what counts as fetch metadata.
+     */
+    public function test_a_lone_forged_fetch_mode_does_not_disarm_the_contradiction(): void
+    {
+        $chrome = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 '
+            . '(KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36';
+
+        $set = $this->signals(array(
+            'Host' => 'host',
+            'User-Agent' => $chrome,
+            'Sec-Fetch-Mode' => 'cors',
+        ));
+
+        self::assertTrue(
+            $set->has(BotSignalSet::UA_CLAIMS_BROWSER_NO_HINTS),
+            'claiming Chrome with no client hints is still a contradiction'
+        );
+    }
+
+    /** The laundering budget, pinned: one forged header may buy Accept-Language and no more. */
+    public function test_forging_a_subresource_mode_launders_at_most_five_points(): void
+    {
+        $bare = array('Host' => 'host', 'User-Agent' => 'sqlmap/1.7');
+
+        $honest = $this->signals($bare)->weight;
+        $forged = $this->signals($bare + array('Sec-Fetch-Mode' => 'cors'))->weight;
+
+        self::assertSame(5, $honest - $forged, 'only MISSING_ACCEPT_LANGUAGE may be suppressed');
+    }
+
 }
