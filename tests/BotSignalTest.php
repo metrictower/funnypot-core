@@ -227,4 +227,73 @@ final class BotSignalTest extends TestCase
         self::assertStringNotContainsString($verdict->signals->fingerprint, $haystack);
         self::assertNotSame('', $verdict->signals->fingerprint);
     }
+
+    // ── FP-0096: a non-navigation must not be scored for headers a navigation sends ──
+
+    /**
+     * A genuine XHR from a real browser. Chrome omits Accept-Language on fetch/XHR, so scoring
+     * header absence unconditionally charged every AJAX call on a JS-heavy site.
+     */
+    public function test_xhr_from_a_real_browser_scores_zero(): void
+    {
+        $set = $this->signals($this->browser([
+            'Accept' => 'application/json',
+            'Accept-Language' => null,
+            'X-Requested-With' => 'XMLHttpRequest',
+            'Sec-Fetch-Mode' => 'cors',
+            'Sec-Fetch-Dest' => 'empty',
+            'Sec-Fetch-User' => null,
+        ]), '/api/data');
+
+        self::assertSame(0, $set->weight, 'a genuine XHR is not anomalous');
+    }
+
+    /** fetch() defaults to Accept: */ /* — normal for a non-navigation, suspicious only for one. */
+    public function test_fetch_with_wildcard_accept_scores_zero(): void
+    {
+        $set = $this->signals($this->browser([
+            'Accept' => '*/*',
+            'Accept-Language' => null,
+            'Sec-Fetch-Mode' => 'cors',
+            'Sec-Fetch-Dest' => 'empty',
+            'Sec-Fetch-User' => null,
+        ]), '/api/data');
+
+        self::assertSame(0, $set->weight);
+        self::assertFalse($set->has(BotSignalSet::ACCEPT_WILDCARD_FROM_BROWSER));
+    }
+
+    /** The suppression is scoped to non-navigations: a navigation is scored exactly as before. */
+    public function test_a_navigation_missing_accept_language_still_scores(): void
+    {
+        $set = $this->signals($this->browser(['Accept-Language' => null]));
+
+        self::assertTrue($set->has(BotSignalSet::MISSING_ACCEPT_LANGUAGE));
+        self::assertSame(5, $set->weight);
+    }
+
+    /** Claiming cors must not launder a scanner past the signals that matter. */
+    public function test_faking_cors_does_not_suppress_the_scanner_signal(): void
+    {
+        $set = $this->signals([
+            'Host' => 'host',
+            'User-Agent' => 'sqlmap/1.7',
+            'Sec-Fetch-Mode' => 'cors',
+        ], '/api/data');
+
+        self::assertTrue($set->has(BotSignalSet::SCANNER_USER_AGENT), 'scanner UA is never suppressed');
+        self::assertGreaterThanOrEqual(20, $set->weight);
+    }
+
+    /** An empty UA is about the client, not the request kind — never suppressed. */
+    public function test_faking_cors_does_not_suppress_an_empty_user_agent(): void
+    {
+        $set = $this->signals([
+            'Host' => 'host',
+            'Sec-Fetch-Mode' => 'cors',
+        ], '/api/data');
+
+        self::assertTrue($set->has(BotSignalSet::EMPTY_USER_AGENT));
+    }
+
 }

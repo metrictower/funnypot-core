@@ -250,6 +250,44 @@ final class Honeypot implements Engine
      *
      * INPUT-side only: nothing computed here is ever emitted in a response (invariant #1).
      */
+    /**
+     * Whether the request looks like a top-level navigation rather than a subresource or API call.
+     *
+     * Reads the VALUE of sec-fetch-mode, not merely its presence. Defaults to true: an unknown
+     * request shape is scored as a navigation, so nothing is suppressed without positive evidence.
+     *
+     * A scanner can of course claim `sec-fetch-mode: cors`. What that buys is at most the three
+     * header-absence signals above; it does not touch the scanner-UA, empty-UA, client-hint
+     * contradiction, platform-mismatch or h2 signals, which are the ones that carry weight.
+     *
+     * @param array<string,string> $h lowercased headers
+     */
+    private function isNavigation(array $h): bool
+    {
+        $mode = isset($h['sec-fetch-mode']) ? strtolower(trim($h['sec-fetch-mode'])) : '';
+        if ($mode !== '') {
+            return $mode === 'navigate';
+        }
+
+        // Pre-fetch-metadata browsers and libraries: the classic AJAX marker.
+        if (isset($h['x-requested-with'])
+            && strtolower(trim($h['x-requested-with'])) === 'xmlhttprequest') {
+            return false;
+        }
+
+        // An Accept asking only for a data format is not a page load.
+        if (isset($h['accept'])) {
+            $accept = strtolower(trim($h['accept']));
+            if ($accept !== '' && strpos($accept, 'text/html') === false
+                && strpos($accept, 'application/xhtml') === false
+                && (strpos($accept, 'application/json') === 0 || strpos($accept, 'text/event-stream') === 0)) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
     private function botSignals(RequestContext $r): BotSignalSet
     {
         $h = $this->lowercaseHeaders($r->headers);
@@ -259,16 +297,29 @@ final class Honeypot implements Engine
         $flags = [];
         $weight = 0;
 
+        // Is this a top-level navigation, or a subresource/API call the page made?
+        //
+        // Browsers send a different header set for each. Accept-Language and a document-shaped
+        // Accept belong to a navigation; on fetch/XHR Chrome omits the former and sends `*/*` for
+        // the latter. Scoring their absence unconditionally charged every AJAX call on a JS-heavy
+        // site — measured at anomaly 5 for a plain XHR and 17 for a bare fetch(), from the same
+        // browser that scored 0 on the navigation a moment earlier.
+        //
+        // Suppressed, not merely re-weighted: on a non-navigation these headers are irrelevant
+        // rather than weak evidence, and a smaller weight still accumulates across a page's worth
+        // of requests.
+        $navigation = $this->isNavigation($h);
+
         // Header presence — the coarsest signal.
         if (!isset($h['accept'])) {
             $flags[BotSignalSet::MISSING_ACCEPT] = true;
             $weight += 5;
         }
-        if (!isset($h['accept-language'])) {
+        if ($navigation && !isset($h['accept-language'])) {
             $flags[BotSignalSet::MISSING_ACCEPT_LANGUAGE] = true;
             $weight += 5;
         }
-        if (!isset($h['accept-encoding'])) {
+        if ($navigation && !isset($h['accept-encoding'])) {
             $flags[BotSignalSet::MISSING_ACCEPT_ENCODING] = true;
             $weight += 5;
         }
@@ -303,7 +354,9 @@ final class Honeypot implements Engine
             $flags[BotSignalSet::UA_CLAIMS_BROWSER_NO_HINTS] = true;
             $weight += 15;
         }
-        if ($claimsBrowser && isset($h['accept']) && trim($h['accept']) === '*/*') {
+        // `*/*` is what fetch() sends by default, so it is normal for a subresource and odd only
+        // for a navigation.
+        if ($navigation && $claimsBrowser && isset($h['accept']) && trim($h['accept']) === '*/*') {
             $flags[BotSignalSet::ACCEPT_WILDCARD_FROM_BROWSER] = true;
             $weight += 10;
         }
