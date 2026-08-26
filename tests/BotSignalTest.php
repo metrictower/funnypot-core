@@ -532,4 +532,95 @@ final class BotSignalTest extends TestCase
         self::assertSame(5, $honest - $forged, 'only MISSING_ACCEPT_LANGUAGE may be suppressed');
     }
 
+    private function signalsWithHost(string $host, array $headers = [], string $path = '/totally/legit/page'): BotSignalSet
+    {
+        $h = empty($headers) ? $this->browser() : $headers;
+        $r = new RequestContext('GET', $path, '', $h, null, $host, 'https', '');
+
+        return $this->engine()->classify($r, SiteProfile::empty())->signals;
+    }
+
+    public function test_bare_ipv4_host_fires_signal(): void
+    {
+        $set = $this->signalsWithHost('203.0.113.7');
+        self::assertTrue($set->has(BotSignalSet::HOST_IS_BARE_IP));
+        self::assertSame(10, $set->weight);
+    }
+
+    public function test_bare_ipv4_with_port_fires_signal(): void
+    {
+        $set = $this->signalsWithHost('203.0.113.7:8080');
+        self::assertTrue($set->has(BotSignalSet::HOST_IS_BARE_IP));
+        self::assertSame(10, $set->weight);
+    }
+
+    public function test_bracketed_ipv6_host_fires_signal(): void
+    {
+        $set = $this->signalsWithHost('[2001:db8::1]');
+        self::assertTrue($set->has(BotSignalSet::HOST_IS_BARE_IP));
+        self::assertSame(10, $set->weight);
+    }
+
+    public function test_bracketed_ipv6_with_port_fires_signal(): void
+    {
+        $set = $this->signalsWithHost('[2001:db8::1]:443');
+        self::assertTrue($set->has(BotSignalSet::HOST_IS_BARE_IP));
+        self::assertSame(10, $set->weight);
+    }
+
+    public function test_unbracketed_ipv6_host_fires_signal(): void
+    {
+        $set = $this->signalsWithHost('2001:db8::1');
+        self::assertTrue($set->has(BotSignalSet::HOST_IS_BARE_IP));
+        self::assertSame(10, $set->weight);
+
+        $setLocal = $this->signalsWithHost('::1');
+        self::assertTrue($setLocal->has(BotSignalSet::HOST_IS_BARE_IP));
+        self::assertSame(10, $setLocal->weight);
+    }
+
+    public function test_domain_names_and_digits_do_not_fire_bare_ip_signal(): void
+    {
+        $domains = [
+            'example.com',
+            'example.com:8080',
+            'host',
+            'server123.com',
+            '123.example.com',
+            '1-2-3-4.compute-1.amazonaws.com',
+            'node-1.cluster.local:443',
+            '203.0.113.7.nip.io',
+            '203.0.113.7.nip.io:8080',
+            '',
+        ];
+
+        foreach ($domains as $d) {
+            $set = $this->signalsWithHost($d);
+            self::assertFalse(
+                $set->has(BotSignalSet::HOST_IS_BARE_IP),
+                "Host '{$d}' must NOT fire HOST_IS_BARE_IP"
+            );
+        }
+    }
+
+    public function test_bare_ip_via_host_header_fallback(): void
+    {
+        $headers = $this->browser(['Host' => '198.51.100.22:8443']);
+        $r = new RequestContext('GET', '/totally/legit/page', '', $headers, null, '', 'https', '');
+        $verdict = $this->engine()->classify($r, SiteProfile::empty());
+
+        self::assertTrue($verdict->signals->has(BotSignalSet::HOST_IS_BARE_IP));
+        self::assertSame(10, $verdict->signals->weight);
+    }
+
+    public function test_bare_ip_alone_does_not_change_clean_classification(): void
+    {
+        $r = new RequestContext('GET', '/totally/legit/page', '', $this->browser(), null, '203.0.113.7', 'https', '');
+        $verdict = $this->engine()->classify($r, SiteProfile::empty());
+
+        self::assertSame(Verdict::CLEAN, $verdict->classification);
+        self::assertSame(10, $verdict->anomaly);
+        self::assertTrue($verdict->signals->has(BotSignalSet::HOST_IS_BARE_IP));
+    }
 }
+

@@ -392,7 +392,53 @@ final class Honeypot implements Engine
             $weight += 10;
         }
 
+        $host = $r->host !== '' ? $r->host : (isset($h['host']) ? $h['host'] : '');
+        if ($this->isBareIpHost($host)) {
+            $flags[BotSignalSet::HOST_IS_BARE_IP] = true;
+            $weight += 10;
+        }
+
         return new BotSignalSet($flags, $weight, $uaClass, $this->structuralFingerprint($r->headers));
+    }
+
+    /**
+     * True when the host header / request host is an IP literal rather than a domain name.
+     */
+    private function isBareIpHost(string $host): bool
+    {
+        $host = trim($host);
+        if ($host === '') {
+            return false;
+        }
+
+        // Direct IP check: covers raw IPv4 ('203.0.113.7') and unbracketed IPv6 ('2001:db8::1', '::1')
+        if (filter_var($host, FILTER_VALIDATE_IP) !== false) {
+            return true;
+        }
+
+        // Bracketed IPv6, with optional port: '[2001:db8::1]' or '[2001:db8::1]:443'
+        if ($host[0] === '[') {
+            $close = strrpos($host, ']');
+            if ($close !== false) {
+                $ip = substr($host, 1, $close - 1);
+                $rest = substr($host, $close + 1);
+                if ($rest === '' || preg_match('/^:\d+$/', $rest) === 1) {
+                    return filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_IPV6) !== false;
+                }
+            }
+
+            return false;
+        }
+
+        // IPv4 with port: '203.0.113.7:8080'
+        if (substr_count($host, ':') === 1) {
+            $parts = explode(':', $host, 2);
+            if (preg_match('/^\d+$/', $parts[1]) === 1) {
+                return filter_var($parts[0], FILTER_VALIDATE_IP, FILTER_FLAG_IPV4) !== false;
+            }
+        }
+
+        return false;
     }
 
     /**

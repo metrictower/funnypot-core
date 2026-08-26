@@ -63,6 +63,7 @@ final class BotSignalSet
     public const ACCEPT_ENCODING_NO_GZIP = 'accept_encoding_no_gzip';
     public const UA_PLATFORM_MISMATCH = 'ua_platform_mismatch';
     public const SCANNER_USER_AGENT = 'scanner_user_agent';
+    public const HOST_IS_BARE_IP = 'host_is_bare_ip';
 
     /** @var array<string,bool> named boolean flags for each fired signal */
     public $flags;
