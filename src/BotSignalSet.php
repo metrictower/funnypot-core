@@ -42,8 +42,9 @@ final class BotSignalSet
      * needs certainty performs the rDNS check itself and feeds the result in. Treat this as "says
      * it is a crawler", never as proof.
      *
-     * Carries no weight of its own. Its value is that "a crawler doing its job" and "a client we
-     * have never heard of" stop being the same answer.
+     * Pure evidence: it adds no weight and suppresses no signal, so appending a crawler word to a
+     * user agent buys nothing. Its value is that "a crawler doing its job" and "a client we have
+     * never heard of" stop being the same answer.
      */
     public const UA_GOOD_BOT = 'good-bot';
     public const UA_EMPTY = 'empty';

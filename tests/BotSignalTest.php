@@ -328,7 +328,32 @@ final class BotSignalTest extends TestCase
         }
     }
 
-    /** Weight 0: this is not evidence of badness, it is evidence of WHAT the client is. */
+    /**
+     * Weight 0 means weight 0 in both directions: the class must not buy a discount either.
+     * A crawler word appended to a Chromium-claiming UA is the cheapest laundering attempt there
+     * is, so every recognised token is pinned at a delta of exactly zero.
+     */
+    public function test_appending_a_crawler_token_to_a_chrome_ua_changes_nothing(): void
+    {
+        $chrome = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 '
+            . '(KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36';
+        $tokens = array(
+            'Googlebot', 'bingbot', 'Slurp', 'DuckDuckBot', 'Baiduspider', 'YandexBot', 'Applebot',
+            'facebookexternalhit', 'Twitterbot', 'LinkedInBot', 'Pinterest', 'Discordbot',
+            'TelegramBot', 'WhatsApp', 'Slackbot', 'RedditBot', 'PetalBot', 'SeznamBot',
+        );
+
+        $plain = $this->signals($this->crawler($chrome))->weight;
+
+        foreach ($tokens as $token) {
+            $laundered = $this->signals($this->crawler($chrome . ' ' . $token));
+
+            self::assertSame(BotSignalSet::UA_GOOD_BOT, $laundered->uaClass, $token . ' is claimed');
+            self::assertSame($plain, $laundered->weight, 'claiming ' . $token . ' must buy nothing');
+        }
+    }
+
+    /** Still no weight of its own: an honest crawler UA scores as any other non-browser client. */
     public function test_a_good_bot_adds_no_anomaly_weight_of_its_own(): void
     {
         $googlebot = 'Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)';
@@ -368,12 +393,25 @@ final class BotSignalTest extends TestCase
         self::assertSame(BotSignalSet::UA_BROWSER, $this->signals($this->browser())->uaClass);
     }
 
+    /** The browser test is the `Mozilla/` prefix — the word alone, anywhere, proves nothing. */
+    public function test_a_ua_merely_containing_mozilla_is_not_a_browser(): void
+    {
+        foreach (array('EvilTool (mozilla)', 'mozilla-ish-scanner') as $ua) {
+            self::assertSame(
+                BotSignalSet::UA_UNKNOWN,
+                $this->signals($this->crawler($ua))->uaClass,
+                $ua . ' does not start with Mozilla/'
+            );
+        }
+    }
+
 
     /**
-     * The false positive FP-0095 exists to remove: Googlebot's mobile UA contains "Chrome" and
-     * sends no client hints, which is normal for a crawler and a contradiction only for a browser.
+     * Googlebot's mobile UA contains "Chrome" and sends no client hints, so it fires the
+     * contradiction — and must keep firing. The claim is an unverified string; a host that has
+     * confirmed the crawler by reverse DNS is the one entitled to forgive the signal.
      */
-    public function test_a_good_bot_does_not_fire_the_browser_contradiction_signal(): void
+    public function test_a_good_bot_claim_does_not_suppress_the_browser_contradiction(): void
     {
         $mobile = 'Mozilla/5.0 (Linux; Android 6.0.1) AppleWebKit/537.36 (KHTML, like Gecko) '
             . 'Chrome/W.X.Y.Z Mobile Safari/537.36 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)';
@@ -381,7 +419,7 @@ final class BotSignalTest extends TestCase
         $set = $this->signals($this->crawler($mobile));
 
         self::assertSame(BotSignalSet::UA_GOOD_BOT, $set->uaClass);
-        self::assertFalse($set->has(BotSignalSet::UA_CLAIMS_BROWSER_NO_HINTS));
+        self::assertTrue($set->has(BotSignalSet::UA_CLAIMS_BROWSER_NO_HINTS));
     }
 
     /** But a real Chrome UA with no hints and no fetch metadata still contradicts itself. */

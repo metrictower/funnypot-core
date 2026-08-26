@@ -366,11 +366,10 @@ final class Honeypot implements Engine
         }
 
         // Self-consistency contradictions — a contradiction beats an absence.
-        // A self-identifying crawler is exempt: Googlebot's mobile UA contains "Chrome" and sends
-        // no client hints, which is normal for a crawler and a contradiction only for a browser.
-        // Measured before this exemption: Googlebot-mobile fired this signal at weight 15.
-        if ($claimsChromium && !$hasClientHints && !$hasFetchMeta
-            && $uaClass !== BotSignalSet::UA_GOOD_BOT) {
+        // No UA class is exempt. A crawler claim is an unverified string anyone can send, so
+        // exempting it here would sell this signal for the price of one appended word. Forgiving a
+        // real crawler is the host's call, after the reverse-DNS check core cannot perform.
+        if ($claimsChromium && !$hasClientHints && !$hasFetchMeta) {
             $flags[BotSignalSet::UA_CLAIMS_BROWSER_NO_HINTS] = true;
             $weight += 15;
         }
@@ -433,9 +432,9 @@ final class Honeypot implements Engine
             return BotSignalSet::UA_GOOD_BOT;
         }
 
-        // Prefix, not substring: an unknown tool merely CONTAINING "mozilla" is not a browser.
-        // Real browsers and every major crawler UA start with it.
-        if (stripos($ua, 'mozilla') === 0) {
+        // The `Mozilla/` prefix, not a substring: real browsers and every major crawler UA start
+        // with it, while an unknown tool merely containing "mozilla" is not a browser.
+        if (strncasecmp($ua, 'Mozilla/', 8) === 0) {
             return BotSignalSet::UA_BROWSER;
         }
 
