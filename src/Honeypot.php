@@ -415,10 +415,13 @@ final class Honeypot implements Engine
         if ($ua === '') {
             return BotSignalSet::UA_EMPTY;
         }
-        if (preg_match('/nmap|sqlmap|nuclei|nikto|masscan|zgrab|acunetix|nessus|wpscan|dirbuster|gobuster|ffuf|feroxbuster|arachni|httpx|zaproxy|semrush/i', $ua) === 1) {
+        // Attack tools ONLY. This class is the one that acts without an opt-in, so an ordinary
+        // HTTP client (python-httpx) or a commercial crawler (SemrushBot) must never be listed
+        // here — they belong in the script and good-bot classes below.
+        if (preg_match('/nmap|sqlmap|nuclei|nikto|masscan|zgrab|acunetix|nessus|wpscan|dirbuster|gobuster|ffuf|feroxbuster|arachni|zaproxy/i', $ua) === 1) {
             return BotSignalSet::UA_SCANNER;
         }
-        if (preg_match('#curl|wget|python-requests|python-urllib|urllib|go-http-client|libwww|okhttp|axios|node-fetch|guzzle|java/|apache-httpclient|ruby|perl|winhttp#i', $ua) === 1) {
+        if (preg_match('#curl|wget|python-requests|python-urllib|python-httpx|urllib|go-http-client|libwww|okhttp|axios|node-fetch|guzzle|java/|apache-httpclient|ruby|perl|winhttp#i', $ua) === 1) {
             return BotSignalSet::UA_SCRIPT;
         }
         // Checked after scanner and script: a tool claiming to be Googlebot is a tool. Checked
@@ -426,7 +429,7 @@ final class Honeypot implements Engine
         if (preg_match(
             '/googlebot|bingbot|slurp|duckduckbot|baiduspider|yandex(bot|images|mobile)|'
             . 'applebot|facebookexternalhit|twitterbot|linkedinbot|pinterest(bot)?|'
-            . 'discordbot|telegrambot|whatsapp|slackbot|redditbot|petalbot|seznambot/i',
+            . 'discordbot|telegrambot|whatsapp|slackbot|redditbot|petalbot|seznambot|semrushbot/i',
             $ua
         ) === 1) {
             return BotSignalSet::UA_GOOD_BOT;

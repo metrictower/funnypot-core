@@ -162,9 +162,42 @@ final class BotSignalTest extends TestCase
 
     public function test_script_clients_are_classified(): void
     {
-        self::assertSame(BotSignalSet::UA_SCRIPT, $this->signals(['User-Agent' => 'curl/7.68.0'])->uaClass);
-        self::assertSame(BotSignalSet::UA_SCRIPT, $this->signals(['User-Agent' => 'python-requests/2.25.1'])->uaClass);
-        self::assertSame(BotSignalSet::UA_SCRIPT, $this->signals(['User-Agent' => 'Go-http-client/2.0'])->uaClass);
+        $uas = [
+            'curl/7.68.0',
+            'python-requests/2.25.1',
+            'Go-http-client/2.0',
+            'python-httpx/0.27.0',
+            'axios/1.6.0',
+            'Java/17',
+            'Apache-HttpClient/5.3',
+        ];
+
+        foreach ($uas as $ua) {
+            self::assertSame(
+                BotSignalSet::UA_SCRIPT,
+                $this->signals(['User-Agent' => $ua])->uaClass,
+                $ua . ' is an HTTP client library, not an attack tool'
+            );
+        }
+    }
+
+    /**
+     * UA_SCANNER is the class that acts with no opt-in, so the boundary has to hold: an ordinary
+     * HTTP client and a commercial SEO crawler must not land in it and must not carry its 20 points.
+     */
+    public function test_ordinary_clients_and_seo_crawlers_are_not_scanners(): void
+    {
+        $uas = [
+            'python-httpx/0.27.0',
+            'Mozilla/5.0 (compatible; SemrushBot/7~bl; +http://www.semrush.com/bot.html)',
+        ];
+
+        foreach ($uas as $ua) {
+            $s = $this->signals(['User-Agent' => $ua]);
+
+            self::assertNotSame(BotSignalSet::UA_SCANNER, $s->uaClass, $ua . ' is not an attack tool');
+            self::assertFalse($s->has(BotSignalSet::SCANNER_USER_AGENT), $ua . ' must not be flagged a scanner');
+        }
     }
 
     public function test_fingerprint_is_stable_across_version_bump_and_list_reorder(): void
@@ -317,6 +350,7 @@ final class BotSignalTest extends TestCase
             'DuckDuckBot' => 'DuckDuckBot/1.1; (+http://duckduckgo.com/duckduckbot.html)',
             'Slurp' => 'Mozilla/5.0 (compatible; Yahoo! Slurp; http://help.yahoo.com/help/us/ysearch/slurp)',
             'facebookexternalhit' => 'facebookexternalhit/1.1 (+http://www.facebook.com/externalhit_uatext.php)',
+            'SemrushBot' => 'Mozilla/5.0 (compatible; SemrushBot/7~bl; +http://www.semrush.com/bot.html)',
         );
 
         foreach ($uas as $name => $ua) {
