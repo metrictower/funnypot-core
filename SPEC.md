@@ -7,7 +7,7 @@
 > report, wasting the attacker's time.
 
 Package: `metrictower/funnypot-core` · namespace `Funnypot\Core\` · PHP `>=7.3`
-(promoted constructors; no enums / `readonly` / `never`). Runtime require = PHP only;
+(standard constructors, untyped docblocked properties; no enums / `readonly` / `never`). Runtime require = PHP only;
 `symfony/yaml` is a compile-time dev/suggest dep. Ships a prebuilt compiled artifact so
 `composer require` needs no build step.
 
@@ -163,7 +163,7 @@ interface Engine {
 }
 ```
 
-DTOs (all promoted-ctor, PHP-8.0-safe):
+DTOs (standard constructors, PHP 7.3+ compatible):
 - `RequestContext(string $method, string $path, string $query='', array $headers=[], ?string $rawBody=null, string $host='', string $scheme='https')`: primitives only; **core never
   parses/reflects `$rawBody`**. `::fromGlobals()` helper.
 - `TemplateMatch(string $id, string $severity, array $tags, string $name='')`.
@@ -190,7 +190,7 @@ DTOs (all promoted-ctor, PHP-8.0-safe):
 **App-policy seam:** `Observer { onDetection(...); shouldRespond(...):bool }` +
 `NullObserver`. Logging/scoring/banning live in the app's observer, never in core.
 
-**Adapters:** PSR-15 `Http\HoneypotMiddleware`; `Http\Honeypot::forRequest()` pure helper +
+**Adapters:** PSR-15 `Http\HoneypotMiddleware`; `Http\Responder::forRequest()` pure helper +
 `Http\ResponseEmitter::emit()` (the one opt-in side-effect). Core ships **no framework bridge** —
 PSR-15 is the only adapter here, because a framework binding contradicts "framework-agnostic".
 Framework integrations live in their own packages: `metrictower/funnypot-laravel`,
