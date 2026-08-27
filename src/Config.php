@@ -118,7 +118,7 @@ final class Config
         string $pathScope = 'matched-only',
         ?Closure $personaSeed = null,
         string $personaBreadth = 'coherent',
-        string $responseStyle = Style::MINIMAL,
+        string $responseStyle = Style::REALISTIC,
         string $severityCeiling = 'high',
         int $maxBodyBytes = 65536,
         int $latencyMs = 0,

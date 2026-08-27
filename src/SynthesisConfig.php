@@ -43,7 +43,7 @@ final class SynthesisConfig
      * @param string[] $exclude
      */
     public function __construct(
-        string $responseStyle = Style::MINIMAL,
+        string $responseStyle = Style::REALISTIC,
         string $severityCeiling = 'high',
         array $exclude = [],
         bool $nucleiReflection = true,
