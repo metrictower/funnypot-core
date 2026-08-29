@@ -753,14 +753,47 @@ final class Honeypot implements Engine
             return ['r' => null, 'reason' => Outcome::NO_CANDIDATE];
         }
         if ($handle->kind === FakeHandle::KIND_ROUTE) {
-            return $this->buildRouteFake($handle, $profile, $seed);
-        }
-        if ($handle->kind === FakeHandle::KIND_ATTACK) {
-            return $this->buildAttackFake($handle, $seed, $r);
+            $built = $this->buildRouteFake($handle, $profile, $seed);
+        } elseif ($handle->kind === FakeHandle::KIND_ATTACK) {
+            $built = $this->buildAttackFake($handle, $seed, $r);
+        } else {
+            // Unknown / llm kinds are host-injected synthesizers; core builds nothing.
+            return ['r' => null, 'reason' => Outcome::UNSYNTHESIZABLE];
         }
 
-        // Unknown / llm kinds are host-injected synthesizers; core builds nothing.
-        return ['r' => null, 'reason' => Outcome::UNSYNTHESIZABLE];
+        // Single convergence point: every served fake gets the same front-layer envelope, so the
+        // route (synthesizer) path and the attack-template path are indistinguishable by it. Without
+        // this, attack fakes shipped no X-Request-Id and its absence marked the branch as canned.
+        if ($built['r'] !== null) {
+            $this->stampEnvelope($built['r']);
+        }
+
+        return $built;
+    }
+
+    /**
+     * Stamp the cosmetic front-layer headers a real proxy/app adds to every response: a
+     * per-request X-Request-Id (16 hex, like a real edge) plus the deploy's coherent Server /
+     * X-Powered-By identity. Each is guarded so a value the synthesizer or an emulator already set
+     * is never overwritten — the route path stamps these itself, so this only fills the attack-
+     * template path (and any future branch) without double-stamping. Pure hex is CR/LF/NUL-safe,
+     * so X-Request-Id never trips the C8 header guard.
+     */
+    private function stampEnvelope(SynthesizedResponse $response): void
+    {
+        $headers = $response->headers;
+
+        if ($this->config->serverHeader !== null && !isset($headers['Server'])) {
+            $headers['Server'] = $this->config->serverHeader;
+        }
+        if ($this->config->poweredBy !== null && !isset($headers['X-Powered-By'])) {
+            $headers['X-Powered-By'] = $this->config->poweredBy;
+        }
+        if (!isset($headers['X-Request-Id'])) {
+            $headers['X-Request-Id'] = bin2hex(random_bytes(8));
+        }
+
+        $response->headers = $headers;
     }
 
     /**
