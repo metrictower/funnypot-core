@@ -7,7 +7,9 @@ declare(strict_types=1);
  * /api/ps, /api/show; OpenAI-compatible /v1/models; Anthropic-compatible
  * /v1/models). Every advertised model NAME below is a real, currently-shipping
  * model — verified against ollama.com/library and the vendor's Hugging Face org
- * on 2026-08-23. Sizes, digests, and vram/expiry timestamps are fabricated (a
+ * on 2026-08-23 — with two deliberate house exceptions called out at the end
+ * (the "mythos" flagship and "big-pickle"). Sizes, digests, and vram/expiry
+ * timestamps are fabricated (a
  * real weight file's exact bytes are never public, so faking them carries no
  * fingerprint risk) but shaped to be plausible for the real parameter count.
  *
@@ -22,14 +24,31 @@ declare(strict_types=1);
  *  - gpt-oss:120b      https://ollama.com/library/gpt-oss            (OpenAI, 120B MoE, MXFP4, 128K ctx)
  *  - gemma3:27b        https://ollama.com/library/gemma3             (Google, 27B dense, 128K ctx)
  *
- * "big-pickle" is the one intentional exception to the "real, verified model" rule
- * above: it's an OpenCode Zen router alias with no public weights, advertised as an
- * exotic/premium rig headline. Its vendor/size/param count are fabricated like every
- * other non-name field. Appended last so callers that key off the first entry still
- * land on a verified model.
+ * Two entries are intentional fictions, not real models:
+ *  - "mythos" (owned_by anthropic) is the box's house flagship, placed FIRST on
+ *    purpose so it leads /v1/models + /api/tags and shows as the loaded/running
+ *    model on /api/ps. This is the box's persona identity — the same name the chat
+ *    surface gives when asked "what model are you". The name is invented, so it
+ *    carries no fingerprint risk; its size/params/digest are fabricated like every
+ *    other non-name field.
+ *  - "big-pickle" is an OpenCode Zen router alias with no public weights, an
+ *    exotic/premium rig headline, appended last.
  */
 
 return [
+    [
+        'name' => 'mythos:1.2t',
+        'openai_id' => 'mythos',
+        'display_name' => 'Mythos',
+        'owned_by' => 'anthropic',
+        'size' => 760000000000,
+        'digest' => 'a7f3c9e12b8d4a6f05e7c1b9d38f2a640c5e9b1728d4f6a3e0c8b5d29f1a7e36',
+        'family' => 'mythos',
+        'families' => ['mythos'],
+        'parameter_size' => '1.2T',
+        'quantization_level' => 'Q4_K_M',
+        'context_length' => 1048576,
+    ],
     [
         'name' => 'kimi-k3:2.8t',
         'openai_id' => 'kimi-k3',

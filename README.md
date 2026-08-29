@@ -246,7 +246,10 @@ persona still wins the rare corpus-template collision even where owns_path isn't
 
 Every body is `json_encode()` of a projection from `resources/ai/model-catalog.php`, read through
 `Funnypot\Core\Ai\ModelCatalog` — one source of truth for both the route- and attack-tier copies, so
-there's nothing to hand-sync. `bin/funnypot compile-ai` regenerates the templates from the catalog
+there's nothing to hand-sync. The catalog leads with `mythos` (owned_by anthropic), the box's fictional
+house flagship — placed first so it heads `/v1/models` + `/api/tags` and shows as the loaded model on
+`/api/ps`, matching the identity the chat surface gives when asked "what model are you"; the real,
+verified models follow as the also-available multi-model rig. `bin/funnypot compile-ai` regenerates the templates from the catalog
 (route templates into `templates/generated/`, owns_path rules into `templates/attack-ai/`); re-run
 it after a catalog change, then rebuild in order: `compile-ai` → `compile-routes` → `merge-routes` →
 `compile-emulators` (`merge-routes` is idempotent by pid, so re-folding never duplicates a route; a

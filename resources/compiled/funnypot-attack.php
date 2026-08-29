@@ -1659,7 +1659,7 @@ body{margin:0;font-family:-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-s
       array (
         'Content-Type' => 'application/json; charset=utf-8',
       ),
-      'body' => '{"models":[{"name":"kimi-k3:2.8t","model":"kimi-k3:2.8t","modified_at":"2026-08-01T00:00:00Z","size":1780000000000,"digest":"541dc907f944c34646137387c114442d842fff71b476dffe0db5e0f78931f8e2","details":{"parent_model":"","format":"gguf","family":"kimi","families":["kimi"],"parameter_size":"2.8T","quantization_level":"Q4_K_M"}},{"name":"qwen3:235b","model":"qwen3:235b","modified_at":"2026-08-01T00:00:00Z","size":142000000000,"digest":"52a4cdafc54280f1d691038ad56c70803af9573c7495db5209b8df71963d661d","details":{"parent_model":"","format":"gguf","family":"qwen3","families":["qwen3"],"parameter_size":"235B","quantization_level":"Q4_K_M"}},{"name":"glm-4.6:355b","model":"glm-4.6:355b","modified_at":"2026-08-01T00:00:00Z","size":227000000000,"digest":"3cb6d03b68f8d11c850e3a17fc5c93a3cfa25d075e14ee638ddcd14cb0e4955a","details":{"parent_model":"","format":"gguf","family":"glm4","families":["glm4"],"parameter_size":"355B","quantization_level":"Q4_K_M"}},{"name":"deepseek-v3.2:671b","model":"deepseek-v3.2:671b","modified_at":"2026-08-01T00:00:00Z","size":404000000000,"digest":"8e5d9d98484a2e2292879b0edf86029b9b3da08c10d980b123b35a077f5720eb","details":{"parent_model":"","format":"gguf","family":"deepseek2","families":["deepseek2"],"parameter_size":"671B","quantization_level":"Q4_K_M"}},{"name":"mistral-large:123b","model":"mistral-large:123b","modified_at":"2026-08-01T00:00:00Z","size":73000000000,"digest":"d9ab4500cf1bda01354e6171e05dd2f772839e87a35a63467488aa9ef1458c09","details":{"parent_model":"","format":"gguf","family":"mistral","families":["mistral"],"parameter_size":"123B","quantization_level":"Q4_K_M"}},{"name":"nemotron-3-super:120b","model":"nemotron-3-super:120b","modified_at":"2026-08-01T00:00:00Z","size":72000000000,"digest":"26f5f7d6af9d510c4c518a154ea57867e647d643f6d84c1dfbbc59c09bee94cf","details":{"parent_model":"","format":"gguf","family":"nemotron","families":["nemotron"],"parameter_size":"120B","quantization_level":"Q4_K_M"}},{"name":"gpt-oss:120b","model":"gpt-oss:120b","modified_at":"2026-08-01T00:00:00Z","size":65000000000,"digest":"48545ebe6944bfa74944583d79ba9c95efb2f764b9cf04ed40e9e7e9e97179f9","details":{"parent_model":"","format":"gguf","family":"gptoss","families":["gptoss"],"parameter_size":"120B","quantization_level":"MXFP4"}},{"name":"gemma3:27b","model":"gemma3:27b","modified_at":"2026-08-01T00:00:00Z","size":17000000000,"digest":"3599665e02e3136eaf4bd9eccf6637c08490bbc1239292d70a3261bb21c5056a","details":{"parent_model":"","format":"gguf","family":"gemma3","families":["gemma3"],"parameter_size":"27B","quantization_level":"Q4_K_M"}},{"name":"big-pickle:1.5t","model":"big-pickle:1.5t","modified_at":"2026-08-01T00:00:00Z","size":1520000000000,"digest":"b1c47f0a2e8d3c6b5a04f19e72d8c3b6a0f5e2d7c4b1a8f36e0d5c2b7a4f18e63","details":{"parent_model":"","format":"gguf","family":"pickle","families":["pickle"],"parameter_size":"1.5T","quantization_level":"Q4_K_M"}}]}',
+      'body' => '{"models":[{"name":"mythos:1.2t","model":"mythos:1.2t","modified_at":"2026-08-01T00:00:00Z","size":760000000000,"digest":"a7f3c9e12b8d4a6f05e7c1b9d38f2a640c5e9b1728d4f6a3e0c8b5d29f1a7e36","details":{"parent_model":"","format":"gguf","family":"mythos","families":["mythos"],"parameter_size":"1.2T","quantization_level":"Q4_K_M"}},{"name":"kimi-k3:2.8t","model":"kimi-k3:2.8t","modified_at":"2026-08-01T00:00:00Z","size":1780000000000,"digest":"541dc907f944c34646137387c114442d842fff71b476dffe0db5e0f78931f8e2","details":{"parent_model":"","format":"gguf","family":"kimi","families":["kimi"],"parameter_size":"2.8T","quantization_level":"Q4_K_M"}},{"name":"qwen3:235b","model":"qwen3:235b","modified_at":"2026-08-01T00:00:00Z","size":142000000000,"digest":"52a4cdafc54280f1d691038ad56c70803af9573c7495db5209b8df71963d661d","details":{"parent_model":"","format":"gguf","family":"qwen3","families":["qwen3"],"parameter_size":"235B","quantization_level":"Q4_K_M"}},{"name":"glm-4.6:355b","model":"glm-4.6:355b","modified_at":"2026-08-01T00:00:00Z","size":227000000000,"digest":"3cb6d03b68f8d11c850e3a17fc5c93a3cfa25d075e14ee638ddcd14cb0e4955a","details":{"parent_model":"","format":"gguf","family":"glm4","families":["glm4"],"parameter_size":"355B","quantization_level":"Q4_K_M"}},{"name":"deepseek-v3.2:671b","model":"deepseek-v3.2:671b","modified_at":"2026-08-01T00:00:00Z","size":404000000000,"digest":"8e5d9d98484a2e2292879b0edf86029b9b3da08c10d980b123b35a077f5720eb","details":{"parent_model":"","format":"gguf","family":"deepseek2","families":["deepseek2"],"parameter_size":"671B","quantization_level":"Q4_K_M"}},{"name":"mistral-large:123b","model":"mistral-large:123b","modified_at":"2026-08-01T00:00:00Z","size":73000000000,"digest":"d9ab4500cf1bda01354e6171e05dd2f772839e87a35a63467488aa9ef1458c09","details":{"parent_model":"","format":"gguf","family":"mistral","families":["mistral"],"parameter_size":"123B","quantization_level":"Q4_K_M"}},{"name":"nemotron-3-super:120b","model":"nemotron-3-super:120b","modified_at":"2026-08-01T00:00:00Z","size":72000000000,"digest":"26f5f7d6af9d510c4c518a154ea57867e647d643f6d84c1dfbbc59c09bee94cf","details":{"parent_model":"","format":"gguf","family":"nemotron","families":["nemotron"],"parameter_size":"120B","quantization_level":"Q4_K_M"}},{"name":"gpt-oss:120b","model":"gpt-oss:120b","modified_at":"2026-08-01T00:00:00Z","size":65000000000,"digest":"48545ebe6944bfa74944583d79ba9c95efb2f764b9cf04ed40e9e7e9e97179f9","details":{"parent_model":"","format":"gguf","family":"gptoss","families":["gptoss"],"parameter_size":"120B","quantization_level":"MXFP4"}},{"name":"gemma3:27b","model":"gemma3:27b","modified_at":"2026-08-01T00:00:00Z","size":17000000000,"digest":"3599665e02e3136eaf4bd9eccf6637c08490bbc1239292d70a3261bb21c5056a","details":{"parent_model":"","format":"gguf","family":"gemma3","families":["gemma3"],"parameter_size":"27B","quantization_level":"Q4_K_M"}},{"name":"big-pickle:1.5t","model":"big-pickle:1.5t","modified_at":"2026-08-01T00:00:00Z","size":1520000000000,"digest":"b1c47f0a2e8d3c6b5a04f19e72d8c3b6a0f5e2d7c4b1a8f36e0d5c2b7a4f18e63","details":{"parent_model":"","format":"gguf","family":"pickle","families":["pickle"],"parameter_size":"1.5T","quantization_level":"Q4_K_M"}}]}',
     ),
     'lit' => '/api/tags',
     'lit_in' => 'path',
@@ -1701,7 +1701,7 @@ body{margin:0;font-family:-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-s
       array (
         'Content-Type' => 'application/json; charset=utf-8',
       ),
-      'body' => '{"models":[{"name":"kimi-k3:2.8t","model":"kimi-k3:2.8t","modified_at":"2026-08-01T00:00:00Z","size":1780000000000,"digest":"541dc907f944c34646137387c114442d842fff71b476dffe0db5e0f78931f8e2","details":{"parent_model":"","format":"gguf","family":"kimi","families":["kimi"],"parameter_size":"2.8T","quantization_level":"Q4_K_M"},"expires_at":"2026-08-01T00:00:00Z","size_vram":1780000000000},{"name":"qwen3:235b","model":"qwen3:235b","modified_at":"2026-08-01T00:00:00Z","size":142000000000,"digest":"52a4cdafc54280f1d691038ad56c70803af9573c7495db5209b8df71963d661d","details":{"parent_model":"","format":"gguf","family":"qwen3","families":["qwen3"],"parameter_size":"235B","quantization_level":"Q4_K_M"},"expires_at":"2026-08-01T00:00:00Z","size_vram":142000000000}]}',
+      'body' => '{"models":[{"name":"mythos:1.2t","model":"mythos:1.2t","modified_at":"2026-08-01T00:00:00Z","size":760000000000,"digest":"a7f3c9e12b8d4a6f05e7c1b9d38f2a640c5e9b1728d4f6a3e0c8b5d29f1a7e36","details":{"parent_model":"","format":"gguf","family":"mythos","families":["mythos"],"parameter_size":"1.2T","quantization_level":"Q4_K_M"},"expires_at":"2026-08-01T00:00:00Z","size_vram":760000000000},{"name":"kimi-k3:2.8t","model":"kimi-k3:2.8t","modified_at":"2026-08-01T00:00:00Z","size":1780000000000,"digest":"541dc907f944c34646137387c114442d842fff71b476dffe0db5e0f78931f8e2","details":{"parent_model":"","format":"gguf","family":"kimi","families":["kimi"],"parameter_size":"2.8T","quantization_level":"Q4_K_M"},"expires_at":"2026-08-01T00:00:00Z","size_vram":1780000000000}]}',
     ),
     'lit' => '/api/ps',
     'lit_in' => 'path',
@@ -1769,6 +1769,24 @@ body{margin:0;font-family:-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-s
           'when' => 
           array (
             'in' => 'match.1',
+            'regex' => '^mythos\\:1\\.2t$',
+            'ci' => false,
+          ),
+          'response' => 
+          array (
+            'headers' => 
+            array (
+              'Content-Type' => 'application/json; charset=utf-8',
+            ),
+            'body' => '{"modelfile":"# Modelfile generated by \\"ollama show\\"\\n# To build a new Modelfile based on this one, replace the FROM line with:\\n# FROM mythos:1.2t\\n\\nFROM mythos:1.2t\\nTEMPLATE \\"\\"\\"{{{{ .Prompt }}}}\\"\\"\\"\\nPARAMETER stop \\"<|end|>\\"\\n","parameters":"num_ctx                       1048576\\nstop                           \\"<|end|>\\"\\ntemperature                    0.7\\n","template":"{{{{ .Prompt }}}}","details":{"parent_model":"","format":"gguf","family":"mythos","families":["mythos"],"parameter_size":"1.2T","quantization_level":"Q4_K_M"},"model_info":{"general.architecture":"mythos","general.parameter_count":1200000000000,"general.quantization_version":2,"general.file_type":"Q4_K_M","mythos.context_length":1048576},"capabilities":["completion"]}',
+            'status' => 200,
+          ),
+        ),
+        1 => 
+        array (
+          'when' => 
+          array (
+            'in' => 'match.1',
             'regex' => '^kimi\\-k3\\:2\\.8t$',
             'ci' => false,
           ),
@@ -1782,7 +1800,7 @@ body{margin:0;font-family:-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-s
             'status' => 200,
           ),
         ),
-        1 => 
+        2 => 
         array (
           'when' => 
           array (
@@ -1800,7 +1818,7 @@ body{margin:0;font-family:-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-s
             'status' => 200,
           ),
         ),
-        2 => 
+        3 => 
         array (
           'when' => 
           array (
@@ -1818,7 +1836,7 @@ body{margin:0;font-family:-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-s
             'status' => 200,
           ),
         ),
-        3 => 
+        4 => 
         array (
           'when' => 
           array (
@@ -1836,7 +1854,7 @@ body{margin:0;font-family:-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-s
             'status' => 200,
           ),
         ),
-        4 => 
+        5 => 
         array (
           'when' => 
           array (
@@ -1854,7 +1872,7 @@ body{margin:0;font-family:-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-s
             'status' => 200,
           ),
         ),
-        5 => 
+        6 => 
         array (
           'when' => 
           array (
@@ -1872,7 +1890,7 @@ body{margin:0;font-family:-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-s
             'status' => 200,
           ),
         ),
-        6 => 
+        7 => 
         array (
           'when' => 
           array (
@@ -1890,7 +1908,7 @@ body{margin:0;font-family:-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-s
             'status' => 200,
           ),
         ),
-        7 => 
+        8 => 
         array (
           'when' => 
           array (
@@ -1908,7 +1926,7 @@ body{margin:0;font-family:-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-s
             'status' => 200,
           ),
         ),
-        8 => 
+        9 => 
         array (
           'when' => 
           array (
@@ -2550,7 +2568,7 @@ Ethernet adapter Ethernet0:
       array (
         'Content-Type' => 'application/json',
       ),
-      'body' => '{"object":"list","data":[{"id":"kimi-k3","object":"model","created":1769904000,"owned_by":"moonshotai"},{"id":"qwen3-235b","object":"model","created":1769904000,"owned_by":"qwen"},{"id":"glm-4.6","object":"model","created":1769904000,"owned_by":"zai-org"},{"id":"deepseek-v3.2","object":"model","created":1769904000,"owned_by":"deepseek-ai"},{"id":"mistral-large","object":"model","created":1769904000,"owned_by":"mistralai"},{"id":"nemotron-3-super","object":"model","created":1769904000,"owned_by":"nvidia"},{"id":"gpt-oss-120b","object":"model","created":1769904000,"owned_by":"openai"},{"id":"gemma-3-27b","object":"model","created":1769904000,"owned_by":"google"},{"id":"big-pickle","object":"model","created":1769904000,"owned_by":"opencode-zen"}]}',
+      'body' => '{"object":"list","data":[{"id":"mythos","object":"model","created":1769904000,"owned_by":"anthropic"},{"id":"kimi-k3","object":"model","created":1769904000,"owned_by":"moonshotai"},{"id":"qwen3-235b","object":"model","created":1769904000,"owned_by":"qwen"},{"id":"glm-4.6","object":"model","created":1769904000,"owned_by":"zai-org"},{"id":"deepseek-v3.2","object":"model","created":1769904000,"owned_by":"deepseek-ai"},{"id":"mistral-large","object":"model","created":1769904000,"owned_by":"mistralai"},{"id":"nemotron-3-super","object":"model","created":1769904000,"owned_by":"nvidia"},{"id":"gpt-oss-120b","object":"model","created":1769904000,"owned_by":"openai"},{"id":"gemma-3-27b","object":"model","created":1769904000,"owned_by":"google"},{"id":"big-pickle","object":"model","created":1769904000,"owned_by":"opencode-zen"}]}',
     ),
     'lit' => '/v1/models',
     'lit_in' => 'path',
@@ -2578,7 +2596,7 @@ Ethernet adapter Ethernet0:
             array (
               'Content-Type' => 'application/json',
             ),
-            'body' => '{"data":[{"id":"kimi-k3","type":"model","display_name":"Kimi K3","created_at":"2026-08-01T00:00:00Z"},{"id":"qwen3-235b","type":"model","display_name":"Qwen3 235B","created_at":"2026-08-01T00:00:00Z"},{"id":"glm-4.6","type":"model","display_name":"GLM-4.6","created_at":"2026-08-01T00:00:00Z"},{"id":"deepseek-v3.2","type":"model","display_name":"DeepSeek V3.2","created_at":"2026-08-01T00:00:00Z"},{"id":"mistral-large","type":"model","display_name":"Mistral Large","created_at":"2026-08-01T00:00:00Z"},{"id":"nemotron-3-super","type":"model","display_name":"Nemotron 3 Super","created_at":"2026-08-01T00:00:00Z"},{"id":"gpt-oss-120b","type":"model","display_name":"GPT-OSS 120B","created_at":"2026-08-01T00:00:00Z"},{"id":"gemma-3-27b","type":"model","display_name":"Gemma 3 27B","created_at":"2026-08-01T00:00:00Z"},{"id":"big-pickle","type":"model","display_name":"Big Pickle","created_at":"2026-08-01T00:00:00Z"}],"first_id":"kimi-k3","has_more":false,"last_id":"big-pickle"}',
+            'body' => '{"data":[{"id":"mythos","type":"model","display_name":"Mythos","created_at":"2026-08-01T00:00:00Z"},{"id":"kimi-k3","type":"model","display_name":"Kimi K3","created_at":"2026-08-01T00:00:00Z"},{"id":"qwen3-235b","type":"model","display_name":"Qwen3 235B","created_at":"2026-08-01T00:00:00Z"},{"id":"glm-4.6","type":"model","display_name":"GLM-4.6","created_at":"2026-08-01T00:00:00Z"},{"id":"deepseek-v3.2","type":"model","display_name":"DeepSeek V3.2","created_at":"2026-08-01T00:00:00Z"},{"id":"mistral-large","type":"model","display_name":"Mistral Large","created_at":"2026-08-01T00:00:00Z"},{"id":"nemotron-3-super","type":"model","display_name":"Nemotron 3 Super","created_at":"2026-08-01T00:00:00Z"},{"id":"gpt-oss-120b","type":"model","display_name":"GPT-OSS 120B","created_at":"2026-08-01T00:00:00Z"},{"id":"gemma-3-27b","type":"model","display_name":"Gemma 3 27B","created_at":"2026-08-01T00:00:00Z"},{"id":"big-pickle","type":"model","display_name":"Big Pickle","created_at":"2026-08-01T00:00:00Z"}],"first_id":"mythos","has_more":false,"last_id":"big-pickle"}',
             'status' => 200,
           ),
         ),
