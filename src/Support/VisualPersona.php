@@ -43,7 +43,15 @@ final class VisualPersona
             'muted' => '#6b7280',
             'border' => '#' . self::light(self::hashFor($seed, 'border')),
         ];
-        return new self('fp-' . substr(self::hashFor($seed, 'prefix'), 0, 4), $palette, PersonaIdentity::fromSeed($seed), $seed);
+        // The class prefix is sourced from PersonaIdentity (single source of truth), so the phpMyAdmin
+        // login/gate templates ({{persona.classPrefix}}) and this skin's dashboard share one value.
+        // PersonaIdentity derives it from the SAME `|visual|prefix` material used below, so the value
+        // is unchanged from what this class shipped historically; the inline derivation stays as a
+        // null fallback for an identity that (some future path) does not carry the field.
+        $identity = PersonaIdentity::fromSeed($seed);
+        $classPrefix = $identity->field('classPrefix')
+            ?? ('fp-' . substr(self::hashFor($seed, 'prefix'), 0, 4));
+        return new self($classPrefix, $palette, $identity, $seed);
     }
 
     /** Per-field visual sub-hash, tagged distinctly from PersonaIdentity's own `|persona|` space. */

@@ -30,6 +30,11 @@ final class PersonaIdentity
         'cloud.stripe.secretKey', 'cloud.sendgrid.apiKey', 'cloud.google.apiKey',
         'secret.jwt',
         'php.version',
+        'phpmyadmin.version',
+        // The deploy-stable presentation class prefix. Derived from the SAME `|visual|prefix` hash
+        // material VisualPersona uses, so the phpMyAdmin login/gate templates ({{persona.classPrefix}})
+        // and the authed dashboard skin (VisualPersona::classPrefix()) resolve to one identical prefix.
+        'classPrefix',
         'wordpress.version', 'wordpress.theme', 'wordpress.themeVersion',
         // The one canonical WordPress author set for this deploy — five users, index 1 = the admin
         // account (its nicename derives from user.admin.username). Every WP author-enumeration surface
@@ -174,6 +179,16 @@ final class PersonaIdentity
             // productVersion('php') always agree.
             'php.version' => self::pickProductVersion($slug, $domain, 'php'),
 
+            // The phpMyAdmin application version this host claims — advertised on the login/gate
+            // footer. Derived like php.version so field() and productVersion('phpmyadmin') can never
+            // drift. Distinct from the MySQL server version the authed dashboard banner shows: those
+            // are two different products and a real phpMyAdmin shows both, so they need not be equal.
+            'phpmyadmin.version' => self::pickProductVersion($slug, $domain, 'phpmyadmin'),
+
+            // The deploy-stable class prefix, identical to VisualPersona's, so the phpMyAdmin login
+            // page and the authed dashboard render one coherent class vocabulary. See classPrefix().
+            'classPrefix' => self::classPrefix($seed),
+
             // The WordPress core version, active theme and theme version this host claims — the single
             // source of truth for the front-door markers a WP fingerprinter reads (generator meta plus
             // versioned wp-includes/wp-content asset links). Core version is derived like php.version so
@@ -261,6 +276,16 @@ final class PersonaIdentity
             '8.0.30',
             '7.4.33',
         ],
+        // Plausible recent phpMyAdmin application releases — the version shown on the login footer.
+        // One per deploy; a real version number is not a detector signature (same posture as the
+        // php/mysql/wordpress pools — the anti-fingerprint property is per-deploy variation).
+        'phpmyadmin' => [
+            '5.2.2',
+            '5.2.1',
+            '5.2.0',
+            '5.1.4',
+            '5.1.3',
+        ],
         // Plausible recent WordPress core releases — the version advertised on the front-door
         // markers (generator meta + versioned wp-includes asset links). One per deploy.
         'wordpress' => [
@@ -315,6 +340,19 @@ final class PersonaIdentity
         $idx = (int) (hexdec(substr(hash('sha256', $seedMaterial . '|product-version|' . $product), 0, 8)) % count($pool));
 
         return $pool[$idx];
+    }
+
+    /**
+     * The deploy-stable presentation class prefix (shape `fp-XXXX`). Deliberately hashes the SAME
+     * `|visual|prefix` material VisualPersona uses for its own prefix, NOT this class's `|persona|`
+     * tag — so the value is byte-identical to the prefix VisualPersona already ships. That is what
+     * makes the phpMyAdmin login/gate templates (which read this via {{persona.classPrefix}}) and the
+     * authed dashboard (which reads VisualPersona::classPrefix()) present one coherent class
+     * vocabulary; VisualPersona::classPrefix() delegates here so there is a single source of truth.
+     */
+    private static function classPrefix(int $seed): string
+    {
+        return 'fp-' . substr(hash('sha256', $seed . '|visual|prefix'), 0, 4);
     }
 
     /**

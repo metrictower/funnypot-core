@@ -111,4 +111,35 @@ final class VisualPersonaTest extends TestCase
         self::assertInstanceOf(PersonaIdentity::class, $p->identity());
         self::assertSame($p->domain(), $p->identity()->field('company.domain'));
     }
+
+    /**
+     * The class prefix is now a PersonaIdentity field, and VisualPersona delegates to it. For the whole
+     * flow to read as one host, the value the login/gate templates resolve ({{persona.classPrefix}} ->
+     * PersonaIdentity::field('classPrefix')) MUST equal the value the authed dashboard skin renders
+     * (VisualPersona::classPrefix()). Sweep seeds and require byte-equality plus the shipped shape.
+     */
+    public function test_class_prefix_is_coherent_across_persona_and_visual_tiers(): void
+    {
+        for ($seed = 0; $seed < 40; $seed++) {
+            $identityPrefix = PersonaIdentity::fromSeed($seed)->field('classPrefix');
+            $visualPrefix = VisualPersona::fromSeed($seed)->classPrefix();
+            self::assertNotNull($identityPrefix, "seed {$seed}: classPrefix field must exist");
+            self::assertSame($identityPrefix, $visualPrefix, "seed {$seed}: login and dashboard prefixes must match");
+            self::assertMatchesRegularExpression('/^fp-[0-9a-f]{4}$/', (string) $visualPrefix, "seed {$seed}: prefix shape");
+        }
+    }
+
+    /**
+     * Regression guard for the FP-0005 invariant: routing the prefix through PersonaIdentity must NOT
+     * change the value VisualPersona has always shipped. The historical derivation hashed the
+     * `|visual|prefix` material; PersonaIdentity reuses exactly that, so the already-deployed dashboard
+     * prefix is byte-identical. Assert against the literal historical formula so any drift is caught.
+     */
+    public function test_class_prefix_value_is_unchanged_from_historical_derivation(): void
+    {
+        for ($seed = 0; $seed < 40; $seed++) {
+            $expected = 'fp-' . substr(hash('sha256', $seed . '|visual|prefix'), 0, 4);
+            self::assertSame($expected, VisualPersona::fromSeed($seed)->classPrefix(), "seed {$seed}: shipped dashboard prefix must not move");
+        }
+    }
 }

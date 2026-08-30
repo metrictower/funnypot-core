@@ -7,6 +7,8 @@ namespace Funnypot\Core\Tests;
 use Funnypot\Core\Compiler\Crs\FingerprintGuard;
 use Funnypot\Core\Honeytoken;
 use Funnypot\Core\RequestContext;
+use Funnypot\Core\Support\PersonaIdentity;
+use Funnypot\Core\Support\VisualPersona;
 use Funnypot\Core\Template\TemplateAttackEmulator;
 use PHPUnit\Framework\TestCase;
 
@@ -36,6 +38,13 @@ final class PhpMyAdminMockAuthTest extends TestCase
     private function emulator(): TemplateAttackEmulator
     {
         return TemplateAttackEmulator::fromFile(self::COMPILED, [], null, self::KEY);
+    }
+
+    /** An emulator wired with an explicit per-deploy persona seed, so {{persona.*}} in the login/gate
+     *  body and the authed dashboard skin both resolve from THIS seed (the prod deploy precondition). */
+    private function seededEmulator(int $seed): TemplateAttackEmulator
+    {
+        return TemplateAttackEmulator::fromFile(self::COMPILED, [], $seed, self::KEY);
     }
 
     private function serve(string $method, string $path, string $query = '', array $headers = [], ?string $body = null): ?object
@@ -332,5 +341,112 @@ final class PhpMyAdminMockAuthTest extends TestCase
         $mint = $this->mintValidLogin();
         self::assertStringNotContainsString(self::KEY, $mint->headers['Set-Cookie']);
         self::assertStringNotContainsString(self::KEY, $mint->headers['Location']);
+    }
+
+    // --- FP-0005: seed-derived app version + class prefix (no fleet-wide literal) -------------
+
+    /** The rendered login body carries the seed-derived phpMyAdmin app version + class prefix, and
+     *  none of the old fleet-wide literals (`phpMyAdmin 5.2.1`, the invented `pma-*` classes, the id
+     *  `pma_errors`) survive. Real phpMyAdmin field names (`pma_username`/`pma_password`) stay. */
+    public function test_login_body_carries_seed_derived_version_and_prefix_no_fleet_literal(): void
+    {
+        $seed = 0x5f0005;
+        $version = (string) PersonaIdentity::fromSeed($seed)->field('phpmyadmin.version');
+        $prefix = VisualPersona::fromSeed($seed)->classPrefix();
+
+        $r = $this->seededEmulator($seed)->emulate(new RequestContext('GET', '/phpmyadmin/', '', []));
+        self::assertNotNull($r);
+        $body = $r->body;
+
+        self::assertStringContainsString('phpMyAdmin ' . $version, $body, 'footer shows the seed-derived app version');
+        self::assertStringContainsString('class="' . $prefix . '-wrap"', $body, 'the wrapper carries the seed-derived class prefix');
+        self::assertStringContainsString('id="' . $prefix . '-errors"', $body, 'the errors box id carries the prefix');
+
+        // The killed fleet-wide literals are gone; the real protocol field names remain.
+        self::assertStringNotContainsString('phpMyAdmin 5.2.1', $body);
+        self::assertStringNotContainsString('pma-wrap', $body);
+        self::assertStringNotContainsString('pma-card', $body);
+        self::assertStringNotContainsString('id="pma_errors"', $body);
+        self::assertStringContainsString('name="pma_username"', $body);
+        self::assertStringContainsString('name="pma_password"', $body);
+        self::assertStringNotContainsString('{{', $body, 'no directive may survive unrendered');
+    }
+
+    /** Deploy-stable, not per-request: two consecutive serves at one seed are byte-identical (a
+     *  per-request {{pick}}/random would diverge). */
+    public function test_login_body_is_deploy_stable_across_two_serves(): void
+    {
+        $em = $this->seededEmulator(0x5f0005);
+        $a = $em->emulate(new RequestContext('GET', '/phpmyadmin/', '', []));
+        $b = $em->emulate(new RequestContext('GET', '/phpmyadmin/', '', []));
+        self::assertNotNull($a);
+        self::assertNotNull($b);
+        self::assertSame($a->body, $b->body, 'the seed-derived login body must be byte-stable per deploy');
+    }
+
+    /** Per-deploy variation: across distinct seeds the rendered version/prefix track their seed-derived
+     *  values (asserted against the derived value, not a bare "not equal", to avoid pool-collision flake). */
+    public function test_login_body_varies_by_deploy_seed(): void
+    {
+        $prefixes = [];
+        foreach ([11, 22, 33, 44, 55] as $seed) {
+            $version = (string) PersonaIdentity::fromSeed($seed)->field('phpmyadmin.version');
+            $prefix = VisualPersona::fromSeed($seed)->classPrefix();
+            $r = $this->seededEmulator($seed)->emulate(new RequestContext('GET', '/phpmyadmin/', '', []));
+            self::assertNotNull($r);
+            self::assertStringContainsString('phpMyAdmin ' . $version, $r->body, "seed {$seed}: version tracks the seed");
+            self::assertStringContainsString('class="' . $prefix . '-wrap"', $r->body, "seed {$seed}: prefix tracks the seed");
+            $prefixes[] = $prefix;
+        }
+        self::assertGreaterThan(1, count(array_unique($prefixes)), 'the class prefix must not collapse to one value across deploys');
+    }
+
+    /** Gate (GET, rule 102) and login-decline (POST empty password, rule 103) render the identical
+     *  body for one deploy seed — gate == login by construction. */
+    public function test_gate_and_login_decline_bodies_are_identical_for_one_seed(): void
+    {
+        $em = $this->seededEmulator(0x5f0005);
+        $gate = $em->emulate(new RequestContext('GET', '/phpmyadmin/', '', []));
+        $decline = $em->emulate(new RequestContext('POST', '/phpmyadmin/index.php', '', [], 'pma_username=admin&pma_password='));
+        self::assertNotNull($gate);
+        self::assertNotNull($decline);
+        self::assertNotSame(302, $decline->status, 'empty password must decline, not mint');
+        self::assertSame($gate->body, $decline->body, 'gate and login-decline must serve the identical login body');
+    }
+
+    /** Gate <-> dashboard coherence: the class prefix in the login body equals the prefix
+     *  PhpMyAdminSkin renders into the authed dashboard for the same deploy seed. */
+    public function test_login_and_authed_dashboard_share_one_class_prefix(): void
+    {
+        $seed = 0x5f0005;
+        $prefix = VisualPersona::fromSeed($seed)->classPrefix();
+        $em = $this->seededEmulator($seed);
+
+        // Login page carries the prefix.
+        $login = $em->emulate(new RequestContext('GET', '/phpmyadmin/', '', []));
+        self::assertNotNull($login);
+        self::assertStringContainsString('class="' . $prefix . '-wrap"', $login->body);
+
+        // Mint a session, then the authed dashboard body carries the SAME prefix.
+        $mint = $em->emulate(new RequestContext('POST', '/phpmyadmin/index.php', '', [], 'pma_username=admin&pma_password=secret'));
+        self::assertNotNull($mint);
+        self::assertSame(302, $mint->status);
+        $cookieHeader = $this->cookieHeaderFrom($mint->headers['Set-Cookie']);
+        $dash = $em->emulate(new RequestContext('GET', '/phpmyadmin/', '', ['Cookie' => $cookieHeader]));
+        self::assertNotNull($dash);
+        self::assertStringContainsString('Showing rows', $dash->body, 'the authed dashboard renders');
+        self::assertStringContainsString($prefix . '-', $dash->body, 'dashboard shares the login class prefix');
+    }
+
+    /** Fingerprint-clean across seeds: the seed-derived rendered login body never trips the runtime
+     *  FingerprintGuard (the directive substitution introduced no detector token). */
+    public function test_seeded_login_bodies_stay_fingerprint_clean(): void
+    {
+        $guard = FingerprintGuard::fromPackage();
+        foreach ([0, 1, 7, 0x5f0005, 484348449122915112] as $seed) {
+            $r = $this->seededEmulator($seed)->emulate(new RequestContext('GET', '/phpmyadmin/', '', []));
+            self::assertNotNull($r);
+            self::assertSame([], $guard->scan($r->body), "seed {$seed}: login body must be fingerprint-clean");
+        }
     }
 }

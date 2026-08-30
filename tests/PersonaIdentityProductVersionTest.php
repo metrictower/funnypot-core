@@ -92,6 +92,38 @@ final class PersonaIdentityProductVersionTest extends TestCase
         self::assertGreaterThan(1, count(array_unique($versions)), 'the PHP version must not collapse to one fixed value across deployments');
     }
 
+    public function test_phpmyadmin_version_field_equals_product_version(): void
+    {
+        // Same one-derivation guarantee as php.version: the phpmyadmin.version field and
+        // productVersion('phpmyadmin') come from one helper, so the login footer and any other
+        // surface can never advertise two different phpMyAdmin app versions for the same host.
+        for ($seed = 0; $seed < 40; $seed++) {
+            $id = PersonaIdentity::fromSeed($seed);
+            $field = $id->field('phpmyadmin.version');
+            self::assertNotNull($field, "seed {$seed}: phpmyadmin.version field must exist");
+            self::assertSame($id->productVersion('phpmyadmin'), $field, "seed {$seed}: field and productVersion('phpmyadmin') must agree");
+            self::assertMatchesRegularExpression('/^\d+\.\d+\.\d+$/', (string) $field, "seed {$seed}: phpMyAdmin version is an X.Y.Z release");
+        }
+    }
+
+    public function test_phpmyadmin_version_picks_from_its_pool(): void
+    {
+        $pool = ['5.2.2', '5.2.1', '5.2.0', '5.1.4', '5.1.3'];
+        for ($seed = 0; $seed < 30; $seed++) {
+            $version = PersonaIdentity::fromSeed($seed)->productVersion('phpmyadmin');
+            self::assertContains($version, $pool, "seed {$seed} must pick a plausible phpMyAdmin version");
+        }
+    }
+
+    public function test_phpmyadmin_versions_diverge_across_seeds(): void
+    {
+        $versions = [];
+        for ($seed = 0; $seed < 40; $seed++) {
+            $versions[] = PersonaIdentity::fromSeed($seed)->field('phpmyadmin.version');
+        }
+        self::assertGreaterThan(1, count(array_unique($versions)), 'the phpMyAdmin version must not collapse to one fixed value across deployments');
+    }
+
     public function test_wordpress_version_field_equals_product_version(): void
     {
         // Same one-derivation guarantee as php.version: the wordpress.version field and

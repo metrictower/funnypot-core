@@ -328,40 +328,40 @@ return array (
 :root{color-scheme:light}
 *{box-sizing:border-box}
 body{margin:0;font-family:-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;background:#eef1f5;color:#212529}
-.pma-wrap{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:2rem 1rem}
-.pma-card{width:100%;max-width:25rem;background:#fff;border:1px solid rgba(0,0,0,.125);border-radius:.375rem;box-shadow:0 .125rem .5rem rgba(0,0,0,.08);overflow:hidden}
-.pma-card__header{padding:.75rem 1.25rem;background:#f8f9fa;border-bottom:1px solid rgba(0,0,0,.125);font-size:1.15rem;font-weight:600}
-.pma-card__body{padding:1.25rem}
-.pma-card__footer{padding:.75rem 1.25rem;background:#f8f9fa;border-top:1px solid rgba(0,0,0,.125);text-align:right}
-.pma-field{margin-bottom:1rem}
-.pma-field label{display:block;margin-bottom:.25rem;font-weight:500}
+.{{persona.classPrefix}}-wrap{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:2rem 1rem}
+.{{persona.classPrefix}}-card{width:100%;max-width:25rem;background:#fff;border:1px solid rgba(0,0,0,.125);border-radius:.375rem;box-shadow:0 .125rem .5rem rgba(0,0,0,.08);overflow:hidden}
+.{{persona.classPrefix}}-card__header{padding:.75rem 1.25rem;background:#f8f9fa;border-bottom:1px solid rgba(0,0,0,.125);font-size:1.15rem;font-weight:600}
+.{{persona.classPrefix}}-card__body{padding:1.25rem}
+.{{persona.classPrefix}}-card__footer{padding:.75rem 1.25rem;background:#f8f9fa;border-top:1px solid rgba(0,0,0,.125);text-align:right}
+.{{persona.classPrefix}}-field{margin-bottom:1rem}
+.{{persona.classPrefix}}-field label{display:block;margin-bottom:.25rem;font-weight:500}
 .form-control,.form-select{display:block;width:100%;padding:.375rem .75rem;border:1px solid #ced4da;border-radius:.25rem;font-size:1rem;line-height:1.5}
 .btn-primary{display:inline-block;padding:.375rem .9rem;background:#0d6efd;border:1px solid #0d6efd;color:#fff;border-radius:.25rem;font-size:1rem;cursor:pointer}
-#pma_errors:empty{display:none}
-#pma_errors{color:#842029;background:#f8d7da;border:1px solid #f5c2c7;border-radius:.25rem;padding:.5rem .75rem;margin-bottom:1rem}
-.pma-lang{margin-top:1rem}
-.pma-footer-version{text-align:center;color:#6c757d;font-size:.75rem;margin-top:.75rem}
+#{{persona.classPrefix}}-errors:empty{display:none}
+#{{persona.classPrefix}}-errors{color:#842029;background:#f8d7da;border:1px solid #f5c2c7;border-radius:.25rem;padding:.5rem .75rem;margin-bottom:1rem}
+.{{persona.classPrefix}}-lang{margin-top:1rem}
+.{{persona.classPrefix}}-footer-version{text-align:center;color:#6c757d;font-size:.75rem;margin-top:.75rem}
 </style>
 </head>
 <body class="loginform">
-<div class="pma-wrap">
-<div class="pma-card">
-<div class="pma-card__header">Log in</div>
-<div class="pma-card__body">
-<div id="pma_errors"></div>
+<div class="{{persona.classPrefix}}-wrap">
+<div class="{{persona.classPrefix}}-card">
+<div class="{{persona.classPrefix}}-card__header">Log in</div>
+<div class="{{persona.classPrefix}}-card__body">
+<div id="{{persona.classPrefix}}-errors"></div>
 <form method="post" id="login_form" name="login_form" class="disableAjax hide js-show" action="index.php?route=/">
-<div class="pma-field">
+<div class="{{persona.classPrefix}}-field">
 <label for="input_username">Username:</label>
 <input type="text" name="pma_username" id="input_username" class="form-control" autocomplete="username" autocapitalize="off" autofocus>
 </div>
-<div class="pma-field">
+<div class="{{persona.classPrefix}}-field">
 <label for="input_password">Password:</label>
 <input type="password" name="pma_password" id="input_password" class="form-control" autocomplete="current-password">
 </div>
 <input type="hidden" name="pma_servername" id="serverNameInput" value="">
 <input type="hidden" name="server" value="1">
 <input type="hidden" name="set_session" value="{{fake.set_session:hex:32}}">
-<div class="pma-field pma-lang">
+<div class="{{persona.classPrefix}}-field {{persona.classPrefix}}-lang">
 <label for="languageSelect">Language</label>
 <select name="lang" id="languageSelect" class="form-select autosubmit">
 <option value="en" selected>English</option>
@@ -371,13 +371,13 @@ body{margin:0;font-family:-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-s
 </select>
 </div>
 </div>
-<div class="pma-card__footer">
+<div class="{{persona.classPrefix}}-card__footer">
 <input type="submit" name="Go" value="Go" id="input_go" class="btn btn-primary">
 </div>
 </form>
 </div>
 </div>
-<div class="pma-footer-version">phpMyAdmin 5.2.1</div>
+<div class="{{persona.classPrefix}}-footer-version">phpMyAdmin {{persona.phpmyadmin.version}}</div>
 </body>
 </html>
 ',
@@ -483,40 +483,40 @@ body{margin:0;font-family:-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-s
 :root{color-scheme:light}
 *{box-sizing:border-box}
 body{margin:0;font-family:-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;background:#eef1f5;color:#212529}
-.pma-wrap{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:2rem 1rem}
-.pma-card{width:100%;max-width:25rem;background:#fff;border:1px solid rgba(0,0,0,.125);border-radius:.375rem;box-shadow:0 .125rem .5rem rgba(0,0,0,.08);overflow:hidden}
-.pma-card__header{padding:.75rem 1.25rem;background:#f8f9fa;border-bottom:1px solid rgba(0,0,0,.125);font-size:1.15rem;font-weight:600}
-.pma-card__body{padding:1.25rem}
-.pma-card__footer{padding:.75rem 1.25rem;background:#f8f9fa;border-top:1px solid rgba(0,0,0,.125);text-align:right}
-.pma-field{margin-bottom:1rem}
-.pma-field label{display:block;margin-bottom:.25rem;font-weight:500}
+.{{persona.classPrefix}}-wrap{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:2rem 1rem}
+.{{persona.classPrefix}}-card{width:100%;max-width:25rem;background:#fff;border:1px solid rgba(0,0,0,.125);border-radius:.375rem;box-shadow:0 .125rem .5rem rgba(0,0,0,.08);overflow:hidden}
+.{{persona.classPrefix}}-card__header{padding:.75rem 1.25rem;background:#f8f9fa;border-bottom:1px solid rgba(0,0,0,.125);font-size:1.15rem;font-weight:600}
+.{{persona.classPrefix}}-card__body{padding:1.25rem}
+.{{persona.classPrefix}}-card__footer{padding:.75rem 1.25rem;background:#f8f9fa;border-top:1px solid rgba(0,0,0,.125);text-align:right}
+.{{persona.classPrefix}}-field{margin-bottom:1rem}
+.{{persona.classPrefix}}-field label{display:block;margin-bottom:.25rem;font-weight:500}
 .form-control,.form-select{display:block;width:100%;padding:.375rem .75rem;border:1px solid #ced4da;border-radius:.25rem;font-size:1rem;line-height:1.5}
 .btn-primary{display:inline-block;padding:.375rem .9rem;background:#0d6efd;border:1px solid #0d6efd;color:#fff;border-radius:.25rem;font-size:1rem;cursor:pointer}
-#pma_errors:empty{display:none}
-#pma_errors{color:#842029;background:#f8d7da;border:1px solid #f5c2c7;border-radius:.25rem;padding:.5rem .75rem;margin-bottom:1rem}
-.pma-lang{margin-top:1rem}
-.pma-footer-version{text-align:center;color:#6c757d;font-size:.75rem;margin-top:.75rem}
+#{{persona.classPrefix}}-errors:empty{display:none}
+#{{persona.classPrefix}}-errors{color:#842029;background:#f8d7da;border:1px solid #f5c2c7;border-radius:.25rem;padding:.5rem .75rem;margin-bottom:1rem}
+.{{persona.classPrefix}}-lang{margin-top:1rem}
+.{{persona.classPrefix}}-footer-version{text-align:center;color:#6c757d;font-size:.75rem;margin-top:.75rem}
 </style>
 </head>
 <body class="loginform">
-<div class="pma-wrap">
-<div class="pma-card">
-<div class="pma-card__header">Log in</div>
-<div class="pma-card__body">
-<div id="pma_errors"></div>
+<div class="{{persona.classPrefix}}-wrap">
+<div class="{{persona.classPrefix}}-card">
+<div class="{{persona.classPrefix}}-card__header">Log in</div>
+<div class="{{persona.classPrefix}}-card__body">
+<div id="{{persona.classPrefix}}-errors"></div>
 <form method="post" id="login_form" name="login_form" class="disableAjax hide js-show" action="index.php?route=/">
-<div class="pma-field">
+<div class="{{persona.classPrefix}}-field">
 <label for="input_username">Username:</label>
 <input type="text" name="pma_username" id="input_username" class="form-control" autocomplete="username" autocapitalize="off" autofocus>
 </div>
-<div class="pma-field">
+<div class="{{persona.classPrefix}}-field">
 <label for="input_password">Password:</label>
 <input type="password" name="pma_password" id="input_password" class="form-control" autocomplete="current-password">
 </div>
 <input type="hidden" name="pma_servername" id="serverNameInput" value="">
 <input type="hidden" name="server" value="1">
 <input type="hidden" name="set_session" value="{{fake.set_session:hex:32}}">
-<div class="pma-field pma-lang">
+<div class="{{persona.classPrefix}}-field {{persona.classPrefix}}-lang">
 <label for="languageSelect">Language</label>
 <select name="lang" id="languageSelect" class="form-select autosubmit">
 <option value="en" selected>English</option>
@@ -526,13 +526,13 @@ body{margin:0;font-family:-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-s
 </select>
 </div>
 </div>
-<div class="pma-card__footer">
+<div class="{{persona.classPrefix}}-card__footer">
 <input type="submit" name="Go" value="Go" id="input_go" class="btn btn-primary">
 </div>
 </form>
 </div>
 </div>
-<div class="pma-footer-version">phpMyAdmin 5.2.1</div>
+<div class="{{persona.classPrefix}}-footer-version">phpMyAdmin {{persona.phpmyadmin.version}}</div>
 </body>
 </html>
 ',
