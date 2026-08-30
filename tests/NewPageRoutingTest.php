@@ -10,6 +10,7 @@ use Funnypot\Core\Config;
 use Funnypot\Core\Honeypot;
 use Funnypot\Core\RequestContext;
 use Funnypot\Core\Store\PhpArrayStore;
+use Funnypot\Core\Support\PersonaIdentity;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\Yaml\Yaml;
 
@@ -90,6 +91,34 @@ final class NewPageRoutingTest extends TestCase
     }
 
     /**
+     * An inverter with an explicit per-deploy seedSalt, so the persona IDENTITY (company, and now the
+     * PHP version) varies by deployment. The 15th positional arg is seedSalt (no named args — the
+     * package floor is PHP 7.3).
+     */
+    private function saltedInverter(string $salt): Honeypot
+    {
+        $store = new PhpArrayStore(require __DIR__ . '/../resources/compiled/nuclei-index.full.php');
+
+        return new Honeypot($store, new Config(
+            'respond',
+            static function (RequestContext $r): bool { return true; },
+            'matched-only',
+            static function (RequestContext $r): string { return 'fixed'; },
+            'coherent',
+            'realistic',
+            'high',
+            65536,
+            0,
+            0,
+            false,
+            null,
+            null,
+            null,
+            $salt // seedSalt ⇒ drives deploySeed() ⇒ the persona identity (php.version, slug, …)
+        ));
+    }
+
+    /**
      * @dataProvider pages
      */
     public function test_new_page_routes_and_serves(string $path, int $status, string $marker, string $contentType): void
@@ -118,6 +147,12 @@ final class NewPageRoutingTest extends TestCase
             'sql backup'        => ['/backup.sql', 200, 'CREATE TABLE', 'application/sql'],
             'basic-auth 401'    => ['/private/', 401, 'Authorization Required', 'text/html; charset=iso-8859-1'],
             'phpmyadmin login'  => ['/phpmyadmin/', 200, 'phpMyAdmin', 'text/html; charset=utf-8'],
+
+            // Inert phpinfo() recon page — brand-new single-bundle keys (no nuclei template at these
+            // exact paths). pdo_pgsql is authored only in the enriched body (not a bundle body word),
+            // so its presence proves the full page served, not a minimal synth of the bare bw.
+            'phpinfo.php'       => ['/phpinfo.php', 200, 'pdo_pgsql', 'text/html; charset=utf-8'],
+            'phpinfo'           => ['/phpinfo', 200, 'pdo_pgsql', 'text/html; charset=utf-8'],
 
             // AI-agent-config + MCP route pack. Config-file exposures (200) carry a scanner-shaped
             // key; the MCP/LLM endpoints answer with their vendor error status.
@@ -1236,5 +1271,87 @@ final class NewPageRoutingTest extends TestCase
         self::assertNotNull($v3);
         self::assertStringContainsString('"swagger": "2.0"', $v2->body, '/v2/api-docs must be a Swagger 2.0 doc');
         self::assertStringContainsString('"openapi": "3.0.3"', $v3->body, '/v3/api-docs must be an OpenAPI 3.0 doc');
+    }
+
+    public function test_phpinfo_page_is_inert_and_persona_version_coherent(): void
+    {
+        // The phpinfo page MUST be inert: never a real phpinfo() call. Proof — the PHP version is a pure
+        // function of the deploy persona (PersonaIdentity::php.version, the single source of truth an
+        // X-Powered-By the deploy derives from the persona would use), so the page can never disclose the
+        // runtime's actual PHP build. It is byte-stable per deploy, the version is coherent within the
+        // page (the h1 and the Core module row agree), and the docroot carries the persona slug (never a
+        // real path or the example.com stub).
+        foreach (['default' => '', 'alt-deploy' => 'alpha'] as $salt) {
+            $expected = PersonaIdentity::fromSeed(PersonaIdentity::seedFromMaterial($salt))->field('php.version');
+            self::assertNotSame('', (string) $expected, 'persona must expose a php.version');
+
+            $inv = $this->saltedInverter($salt);
+            foreach (['/phpinfo.php', '/phpinfo', '/info.php'] as $path) {
+                $resp = $inv->respond(new RequestContext('GET', $path));
+                self::assertNotNull($resp, "{$path} [salt={$salt}] must serve a fake");
+                // /info.php also carries the D-Link bundle; only assert version coherence when the
+                // phpinfo bundle is the one served (the fixed seed lands on it here, but guard anyway).
+                if (strpos($resp->body, 'phpinfo()') === false) {
+                    continue;
+                }
+                self::assertSame(200, $resp->status, "{$path} [salt={$salt}] status");
+                self::assertSame('text/html; charset=utf-8', $resp->headers['Content-Type'] ?? null, "{$path} [salt={$salt}] Content-Type");
+                self::assertStringContainsString('PHP Version ' . $expected, $resp->body, "{$path} [salt={$salt}] must show the persona PHP version");
+                self::assertStringContainsString('<tr><td class="e">Core</td><td class="v">' . $expected . '</td></tr>', $resp->body, "{$path} [salt={$salt}] Core row must agree with the h1 version");
+                self::assertStringNotContainsString('example.com', $resp->body, "{$path} [salt={$salt}] must not carry the example.com stub");
+                self::assertSame(1, preg_match('#/var/www/[a-z0-9]+/public#', $resp->body), "{$path} [salt={$salt}] docroot must carry the persona slug");
+            }
+        }
+
+        // Deterministic per deploy: two renders of the same host are byte-identical (a live phpinfo()
+        // would vary), and the version tracks the deploy (not one baked-in constant across all hosts).
+        $a = $this->saltedInverter('')->respond(new RequestContext('GET', '/phpinfo.php'));
+        $b = $this->saltedInverter('')->respond(new RequestContext('GET', '/phpinfo.php'));
+        self::assertNotNull($a);
+        self::assertNotNull($b);
+        self::assertSame($a->body, $b->body, 'the phpinfo page must be byte-stable per deploy');
+
+        $seen = [];
+        foreach (['', 'alpha', 'bravo', 'charlie', 'delta', 'echo', 'foxtrot'] as $salt) {
+            $resp = $this->saltedInverter($salt)->respond(new RequestContext('GET', '/phpinfo.php'));
+            self::assertNotNull($resp);
+            self::assertSame(1, preg_match('/PHP Version (\d+\.\d+\.\d+)/', $resp->body, $m), "salt={$salt} must show a semver PHP version");
+            $seen[$m[1]] = true;
+        }
+        self::assertGreaterThan(1, count($seen), 'the PHP version must vary across deployments, not collapse to one constant');
+    }
+
+    public function test_info_php_serves_phpinfo_but_preserves_the_dlink_cve(): void
+    {
+        // /info.php is shared: a brand-new phpinfo page AND a niche D-Link DIR-816L XSS bundle already in
+        // the corpus. A real phpinfo at /info.php is far more common than that appliance, so phpinfo (the
+        // heavier tier) must be the persona MOST seeds serve — but the D-Link CVE must NOT be shadowed
+        // away: it keeps a minority slice of personas, and detection fires for EVERY seed (the weight
+        // biases which bundle is SERVED, never what is DETECTED).
+        $phpinfo = 0;
+        $dlink = 0;
+        for ($seed = 0; $seed < 90; $seed++) {
+            $inv = $this->seededInverter((string) $seed, 'realistic');
+
+            self::assertTrue(
+                $inv->detect(new RequestContext('GET', '/info.php'))->matched,
+                "seed {$seed}: /info.php must still be detected"
+            );
+
+            $resp = $inv->respond(new RequestContext('GET', '/info.php'));
+            self::assertNotNull($resp, "seed {$seed}: /info.php must serve a fake");
+            self::assertSame(200, $resp->status, "seed {$seed}: /info.php status");
+            self::assertStringContainsString('text/html', (string) ($resp->headers['Content-Type'] ?? ''), "seed {$seed}: /info.php Content-Type");
+
+            if (strpos($resp->body, 'phpinfo()') !== false) {
+                $phpinfo++;
+            } elseif (strpos($resp->body, 'DIR-816L') !== false) {
+                $dlink++;
+            } else {
+                self::fail("seed {$seed}: /info.php served neither the phpinfo page nor the D-Link body: " . $resp->body);
+            }
+        }
+        self::assertGreaterThan($dlink, $phpinfo, 'phpinfo must be the more common persona at /info.php');
+        self::assertGreaterThan(0, $dlink, 'the D-Link CVE emulator must still serve for a minority of personas (not shadowed away)');
     }
 }

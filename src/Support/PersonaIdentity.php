@@ -27,6 +27,7 @@ final class PersonaIdentity
         'cloud.anthropic.apiKey', 'cloud.openai.apiKey', 'cloud.github.copilotToken',
         'cloud.stripe.secretKey', 'cloud.sendgrid.apiKey', 'cloud.google.apiKey',
         'secret.jwt',
+        'php.version',
     ];
 
     /**
@@ -145,6 +146,13 @@ final class PersonaIdentity
             'cloud.sendgrid.apiKey' => 'SG.' . self::base62($seed, 'sg1', 22) . '.' . self::base62($seed, 'sg2', 43),
             'cloud.google.apiKey' => self::googleApiKey($seed),
             'secret.jwt' => substr(self::h($seed, 'jwt_secret'), 0, 64),
+
+            // The PHP interpreter version this host claims — the single source of truth for the
+            // version shown on any PHP-identity surface (phpinfo, an X-Powered-By the deploy derives
+            // from the same persona), so two surfaces never advertise different PHP versions. Derived
+            // from the same slug|domain material productVersion() uses, so field() and
+            // productVersion('php') always agree.
+            'php.version' => self::pickProductVersion($slug, $domain, 'php'),
         ];
 
         return new self($fields);
@@ -155,8 +163,7 @@ final class PersonaIdentity
         return $this->fields[$path] ?? null;
     }
 
-    /** Plausible MySQL/MariaDB version banners for the 'mysql' product key — never a copied
-     *  real-world signature string. */
+    /** Plausible product version banners per key — never a copied real-world signature string. */
     private const PRODUCT_VERSION_POOLS = [
         'mysql' => [
             '10.6.14-MariaDB-log',
@@ -164,6 +171,14 @@ final class PersonaIdentity
             '8.0.35-0ubuntu0.22.04.1',
             '5.7.42-log',
             '10.5.23-MariaDB-1:10.5.23+maria~ubu2004',
+        ],
+        // Supported PHP patch releases across the 7.4–8.3 range still seen in the wild.
+        'php' => [
+            '8.3.6',
+            '8.2.18',
+            '8.1.27',
+            '8.0.30',
+            '7.4.33',
         ],
     ];
 
@@ -181,8 +196,22 @@ final class PersonaIdentity
      */
     public function productVersion(string $product): string
     {
+        return self::pickProductVersion(
+            $this->fields['company.slug'] ?? '',
+            $this->fields['company.domain'] ?? '',
+            $product
+        );
+    }
+
+    /**
+     * The version pick behind productVersion(), as a pure static so fromSeed() can seed the
+     * php.version field with the exact value productVersion('php') later returns — one derivation,
+     * no drift. Keyed off the same slug|domain material, so it stays pure-per-seed.
+     */
+    private static function pickProductVersion(string $slug, string $domain, string $product): string
+    {
         $pool = self::PRODUCT_VERSION_POOLS[$product] ?? self::DEFAULT_VERSION_POOL;
-        $seedMaterial = ($this->fields['company.slug'] ?? '') . '|' . ($this->fields['company.domain'] ?? '');
+        $seedMaterial = $slug . '|' . $domain;
         $idx = (int) (hexdec(substr(hash('sha256', $seedMaterial . '|product-version|' . $product), 0, 8)) % count($pool));
 
         return $pool[$idx];

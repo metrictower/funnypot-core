@@ -616,6 +616,17 @@ return array (
       ),
       'name' => 'phpPgAdmin intro (version disclosure)',
     ),
+    'route-phpinfo' => 
+    array (
+      'sev' => 'medium',
+      'tags' => 
+      array (
+        0 => 'recon',
+        1 => 'phpinfo',
+        2 => 'exposure',
+      ),
+      'name' => 'PHP info page disclosure',
+    ),
   ),
   'routes' => 
   array (
@@ -2593,6 +2604,75 @@ return array (
         array (
           0 => 'route-phppgadmin-intro',
         ),
+      ),
+    ),
+    'GET /phpinfo.php' => 
+    array (
+      0 => 
+      array (
+        's' => 200,
+        'bw' => 
+        array (
+          0 => 'phpinfo()',
+          1 => 'PHP Version',
+        ),
+        'nf' => 
+        array (
+        ),
+        'pid' => 'route-phpinfo',
+        'sev' => 'medium',
+        'sig' => 0,
+        't' => 
+        array (
+          0 => 'route-phpinfo',
+        ),
+        'w' => 8,
+      ),
+    ),
+    'GET /phpinfo' => 
+    array (
+      0 => 
+      array (
+        's' => 200,
+        'bw' => 
+        array (
+          0 => 'phpinfo()',
+          1 => 'PHP Version',
+        ),
+        'nf' => 
+        array (
+        ),
+        'pid' => 'route-phpinfo',
+        'sev' => 'medium',
+        'sig' => 0,
+        't' => 
+        array (
+          0 => 'route-phpinfo',
+        ),
+        'w' => 8,
+      ),
+    ),
+    'GET /info.php' => 
+    array (
+      0 => 
+      array (
+        's' => 200,
+        'bw' => 
+        array (
+          0 => 'phpinfo()',
+          1 => 'PHP Version',
+        ),
+        'nf' => 
+        array (
+        ),
+        'pid' => 'route-phpinfo',
+        'sev' => 'medium',
+        'sig' => 0,
+        't' => 
+        array (
+          0 => 'route-phpinfo',
+        ),
+        'w' => 8,
       ),
     ),
   ),

@@ -68,4 +68,27 @@ final class PersonaIdentityProductVersionTest extends TestCase
         }
         self::assertGreaterThan(1, count(array_unique($versions)), 'the version banner must not collapse to one fixed value across deployments');
     }
+
+    public function test_php_version_field_equals_product_version(): void
+    {
+        // The php.version field and productVersion('php') derive from one helper, so a surface reading
+        // the field (phpinfo) and one calling productVersion('php') can never advertise different PHP
+        // versions for the same host. Sweep seeds and require byte-equality plus a plausible PHP shape.
+        for ($seed = 0; $seed < 40; $seed++) {
+            $id = PersonaIdentity::fromSeed($seed);
+            $field = $id->field('php.version');
+            self::assertNotNull($field, "seed {$seed}: php.version field must exist");
+            self::assertSame($id->productVersion('php'), $field, "seed {$seed}: field and productVersion('php') must agree");
+            self::assertMatchesRegularExpression('/^\d+\.\d+\.\d+$/', (string) $field, "seed {$seed}: php.version must be a PHP-shaped semver");
+        }
+    }
+
+    public function test_php_versions_diverge_across_seeds(): void
+    {
+        $versions = [];
+        for ($seed = 0; $seed < 40; $seed++) {
+            $versions[] = PersonaIdentity::fromSeed($seed)->field('php.version');
+        }
+        self::assertGreaterThan(1, count(array_unique($versions)), 'the PHP version must not collapse to one fixed value across deployments');
+    }
 }

@@ -84435,6 +84435,17 @@ return array (
       ),
       'name' => 'phpMyAdmin theme stylesheet',
     ),
+    'route-phpinfo' => 
+    array (
+      'sev' => 'medium',
+      'tags' => 
+      array (
+        0 => 'recon',
+        1 => 'phpinfo',
+        2 => 'exposure',
+      ),
+      'name' => 'PHP info page disclosure',
+    ),
   ),
   'routes' => 
   array (
@@ -178342,6 +178353,26 @@ a</title>',
           array (
             0 => 'CVE-2020-15895',
           ),
+        ),
+        1 => 
+        array (
+          's' => 200,
+          'bw' => 
+          array (
+            0 => 'phpinfo()',
+            1 => 'PHP Version',
+          ),
+          'nf' => 
+          array (
+          ),
+          'pid' => 'route-phpinfo',
+          'sev' => 'medium',
+          'sig' => 0,
+          't' => 
+          array (
+            0 => 'route-phpinfo',
+          ),
+          'w' => 8,
         ),
       ),
     ),
@@ -300248,6 +300279,58 @@ a</title>',
           array (
             0 => 'route-phpmyadmin-css',
           ),
+        ),
+      ),
+    ),
+    'GET /phpinfo.php' => 
+    array (
+      'b' => 
+      array (
+        0 => 
+        array (
+          's' => 200,
+          'bw' => 
+          array (
+            0 => 'phpinfo()',
+            1 => 'PHP Version',
+          ),
+          'nf' => 
+          array (
+          ),
+          'pid' => 'route-phpinfo',
+          'sev' => 'medium',
+          'sig' => 0,
+          't' => 
+          array (
+            0 => 'route-phpinfo',
+          ),
+          'w' => 8,
+        ),
+      ),
+    ),
+    'GET /phpinfo' => 
+    array (
+      'b' => 
+      array (
+        0 => 
+        array (
+          's' => 200,
+          'bw' => 
+          array (
+            0 => 'phpinfo()',
+            1 => 'PHP Version',
+          ),
+          'nf' => 
+          array (
+          ),
+          'pid' => 'route-phpinfo',
+          'sev' => 'medium',
+          'sig' => 0,
+          't' => 
+          array (
+            0 => 'route-phpinfo',
+          ),
+          'w' => 8,
         ),
       ),
     ),
