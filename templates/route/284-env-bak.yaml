@@ -1,0 +1,47 @@
+id: route-envfile-bak
+priority: 284
+# Brand-new page: a dropped /.env.bak — an editor/deploy backup of the production .env left in the
+# webroot. It is a PRODUCTION config (APP_ENV=production, APP_DEBUG=false, the remote persona DB
+# host) carrying the host's real identity and the same AWS/Stripe/SendGrid/JWT secrets as every
+# other leaked config for this deployment (one host, one identity).
+# The id avoids the route-dotenv needles (dotenv/exposed-config/environment) and the bare `env-`
+# substring; the body_word is AWS_SECRET_ACCESS_KEY (not APP_DEBUG=) — both keep that global enrich
+# from hijacking this page to application/octet-stream instead of text/plain.
+new_page:
+  method: GET
+  paths: ['/.env.bak']
+  sig: 0
+  status: 200
+  severity: high
+  tags: [exposure, config-disclosure, secrets]
+  name: 'Exposed environment file (.env.bak)'
+  body_words: ['AWS_SECRET_ACCESS_KEY']
+response:
+  headers:
+    Content-Type: "text/plain; charset=utf-8"
+  body: |
+    APP_ENV=production
+    APP_DEBUG=false
+
+    DB_CONNECTION=pgsql
+    DB_HOST={{persona.db.host}}
+    DB_PORT=5432
+    DB_DATABASE={{persona.db.name}}
+    DB_USERNAME={{persona.db.user}}
+    DB_PASSWORD={{persona.db.password}}
+
+    AWS_ACCESS_KEY_ID={{persona.cloud.aws.accessKeyId}}
+    AWS_SECRET_ACCESS_KEY={{persona.cloud.aws.secretKey}}
+    AWS_DEFAULT_REGION={{persona.cloud.aws.region}}
+
+    STRIPE_SECRET_KEY={{persona.cloud.stripe.secretKey}}
+    SENDGRID_API_KEY={{persona.cloud.sendgrid.apiKey}}
+    JWT_SECRET={{persona.secret.jwt}}
+taunt: { mode: line, open: '#' }
+expect:
+  - 'APP_ENV=production'
+  - 'APP_DEBUG=false'
+  - 'AWS_ACCESS_KEY_ID=AKIA'
+  - 'AWS_SECRET_ACCESS_KEY='
+  - 'STRIPE_SECRET_KEY=sk_live_'
+  - 'SENDGRID_API_KEY=SG.'

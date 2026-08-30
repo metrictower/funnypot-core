@@ -327,6 +327,73 @@ return array (
       ),
       'name' => 'Exposed environment file (.env.local)',
     ),
+    'route-envfile-dev' => 
+    array (
+      'sev' => 'high',
+      'tags' => 
+      array (
+        0 => 'exposure',
+        1 => 'config-disclosure',
+        2 => 'secrets',
+      ),
+      'name' => 'Exposed environment file (.env.development)',
+    ),
+    'route-envfile-staging' => 
+    array (
+      'sev' => 'high',
+      'tags' => 
+      array (
+        0 => 'exposure',
+        1 => 'config-disclosure',
+        2 => 'secrets',
+      ),
+      'name' => 'Exposed environment file (.env.staging)',
+    ),
+    'route-envfile-test' => 
+    array (
+      'sev' => 'high',
+      'tags' => 
+      array (
+        0 => 'exposure',
+        1 => 'config-disclosure',
+        2 => 'secrets',
+      ),
+      'name' => 'Exposed environment file (.env.test)',
+    ),
+    'route-envfile-bak' => 
+    array (
+      'sev' => 'high',
+      'tags' => 
+      array (
+        0 => 'exposure',
+        1 => 'config-disclosure',
+        2 => 'secrets',
+      ),
+      'name' => 'Exposed environment file (.env.bak)',
+    ),
+    'route-envfile-php-src' => 
+    array (
+      'sev' => 'high',
+      'tags' => 
+      array (
+        0 => 'exposure',
+        1 => 'config-disclosure',
+        2 => 'secrets',
+        3 => 'source-leak',
+      ),
+      'name' => 'Exposed environment file source (.env.php)',
+    ),
+    'route-envfile-laravel' => 
+    array (
+      'sev' => 'high',
+      'tags' => 
+      array (
+        0 => 'exposure',
+        1 => 'config-disclosure',
+        2 => 'secrets',
+      ),
+      'name' => 'Exposed environment file (/laravel/.env)',
+    ),
     'route-wp-debug-log' => 
     array (
       'sev' => 'medium',
@@ -1632,6 +1699,132 @@ return array (
         't' => 
         array (
           0 => 'route-envfile-local',
+        ),
+      ),
+    ),
+    'GET /.env.development' => 
+    array (
+      0 => 
+      array (
+        's' => 200,
+        'bw' => 
+        array (
+          0 => 'AWS_SECRET_ACCESS_KEY',
+        ),
+        'nf' => 
+        array (
+        ),
+        'pid' => 'route-envfile-dev',
+        'sev' => 'high',
+        'sig' => 0,
+        't' => 
+        array (
+          0 => 'route-envfile-dev',
+        ),
+      ),
+    ),
+    'GET /.env.staging' => 
+    array (
+      0 => 
+      array (
+        's' => 200,
+        'bw' => 
+        array (
+          0 => 'AWS_SECRET_ACCESS_KEY',
+        ),
+        'nf' => 
+        array (
+        ),
+        'pid' => 'route-envfile-staging',
+        'sev' => 'high',
+        'sig' => 0,
+        't' => 
+        array (
+          0 => 'route-envfile-staging',
+        ),
+      ),
+    ),
+    'GET /.env.test' => 
+    array (
+      0 => 
+      array (
+        's' => 200,
+        'bw' => 
+        array (
+          0 => 'AWS_SECRET_ACCESS_KEY',
+        ),
+        'nf' => 
+        array (
+        ),
+        'pid' => 'route-envfile-test',
+        'sev' => 'high',
+        'sig' => 0,
+        't' => 
+        array (
+          0 => 'route-envfile-test',
+        ),
+      ),
+    ),
+    'GET /.env.bak' => 
+    array (
+      0 => 
+      array (
+        's' => 200,
+        'bw' => 
+        array (
+          0 => 'AWS_SECRET_ACCESS_KEY',
+        ),
+        'nf' => 
+        array (
+        ),
+        'pid' => 'route-envfile-bak',
+        'sev' => 'high',
+        'sig' => 0,
+        't' => 
+        array (
+          0 => 'route-envfile-bak',
+        ),
+      ),
+    ),
+    'GET /.env.php' => 
+    array (
+      0 => 
+      array (
+        's' => 200,
+        'bw' => 
+        array (
+          0 => 'AWS_SECRET_ACCESS_KEY',
+        ),
+        'nf' => 
+        array (
+        ),
+        'pid' => 'route-envfile-php-src',
+        'sev' => 'high',
+        'sig' => 0,
+        't' => 
+        array (
+          0 => 'route-envfile-php-src',
+        ),
+      ),
+    ),
+    'GET /laravel/.env' => 
+    array (
+      0 => 
+      array (
+        's' => 200,
+        'bw' => 
+        array (
+          0 => 'AWS_SECRET_ACCESS_KEY',
+        ),
+        'nf' => 
+        array (
+        ),
+        'pid' => 'route-envfile-laravel',
+        'sev' => 'high',
+        'sig' => 0,
+        't' => 
+        array (
+          0 => 'route-envfile-laravel',
         ),
       ),
     ),

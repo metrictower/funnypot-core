@@ -72,16 +72,23 @@ final class ZapCoverageTest extends TestCase
         self::assertContains('attack-wp-login', $ids, 'the wp-login credential oracle must be untouched');
     }
 
-    public function test_route_rule_count_is_128_plus_the_four_new_rules(): void
+    public function test_route_rule_count_is_128_plus_the_new_rules(): void
     {
         $rules = require __DIR__ . '/../resources/compiled/funnypot-routes.php';
-        self::assertCount(132, $rules, 'route rule count must be 128 (baseline) + 4 (css, listing, credentials, config)');
+        self::assertCount(138, $rules, 'route rule count must be 128 (baseline) + 4 (css, listing, credentials, config) + 6 (.env family: development/staging/test/bak/php/laravel-subdir)');
 
         $ids = array_map(static function (array $r): string { return (string) $r['id']; }, $rules);
         self::assertContains('route-phpmyadmin-css', $ids);
         self::assertContains('route-dotaws-listing', $ids);
         self::assertContains('route-aws-cli-credentials', $ids);
         self::assertContains('route-aws-cli-config', $ids);
+        // .env suffix family + .env.php source leak + subdir install.
+        self::assertContains('route-envfile-dev', $ids);
+        self::assertContains('route-envfile-staging', $ids);
+        self::assertContains('route-envfile-test', $ids);
+        self::assertContains('route-envfile-bak', $ids);
+        self::assertContains('route-envfile-php-src', $ids);
+        self::assertContains('route-envfile-laravel', $ids);
     }
 
     // --- IMDS base listing (attack/91-imds-base.yaml) -----------------------------------------

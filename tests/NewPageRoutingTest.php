@@ -188,6 +188,17 @@ final class NewPageRoutingTest extends TestCase
             'config.php'             => ['/config.php', 200, 'DB_PASSWORD', 'text/plain; charset=utf-8'],
             '.env.production'        => ['/.env.production', 200, 'AWS_SECRET_ACCESS_KEY', 'text/plain; charset=utf-8'],
             '.env.local'             => ['/.env.local', 200, 'AWS_SECRET_ACCESS_KEY', 'text/plain; charset=utf-8'],
+            // .env suffix family (development/staging/test/bak), the .env.php source leak, and a
+            // subdir install. Each serves text/plain KEY=VALUE loot (the .env.php is a raw PHP source
+            // leak, NOT application/x-php). The id avoids the route-dotenv needles so none is hijacked
+            // to application/octet-stream (test_env_family_variants_serve_coherent_inert_configs guards
+            // that per variant, plus per-variant APP_ENV and HEAD honoring).
+            '.env.development'       => ['/.env.development', 200, 'AWS_SECRET_ACCESS_KEY', 'text/plain; charset=utf-8'],
+            '.env.staging'           => ['/.env.staging', 200, 'AWS_SECRET_ACCESS_KEY', 'text/plain; charset=utf-8'],
+            '.env.test'              => ['/.env.test', 200, 'AWS_SECRET_ACCESS_KEY', 'text/plain; charset=utf-8'],
+            '.env.bak'               => ['/.env.bak', 200, 'AWS_SECRET_ACCESS_KEY', 'text/plain; charset=utf-8'],
+            '.env.php (source leak)' => ['/.env.php', 200, 'AWS_SECRET_ACCESS_KEY', 'text/plain; charset=utf-8'],
+            '/laravel/.env (subdir)' => ['/laravel/.env', 200, 'AWS_SECRET_ACCESS_KEY', 'text/plain; charset=utf-8'],
             'secrets.json'           => ['/secrets.json', 200, 'secretKey', 'application/json'],
             'docker-compose.yml'     => ['/docker-compose.yml', 200, 'services:', 'text/yaml; charset=utf-8'],
             'application.properties' => ['/application.properties', 200, 'spring.datasource', 'text/plain; charset=utf-8'],
@@ -525,6 +536,58 @@ final class NewPageRoutingTest extends TestCase
         self::assertSame($a[0], $b[0], '.env.local and .env.production must share one AWS identity');
     }
 
+    public function test_env_family_variants_serve_coherent_inert_configs(): void
+    {
+        // The .env suffix family (development/staging/test/bak), the .env.php source leak, and the
+        // /laravel/.env subdir install must each: serve text/plain (a .env.php raw source leak is
+        // text/plain, NEVER application/x-php), never be hijacked to application/octet-stream by the
+        // broad route-dotenv enrich, carry the host's ONE AWS identity (same key as /.env.production),
+        // declare its environment-appropriate APP_ENV/APP_DEBUG, and honor HEAD like the siblings.
+        $inv = $this->inverter();
+        $prodResp = $inv->respond(new RequestContext('GET', '/.env.production'));
+        self::assertNotNull($prodResp, '/.env.production must serve a fake');
+        self::assertSame(1, preg_match('/AKIA[A-Z2-7]{16}/', $prodResp->body, $prod), 'prod baseline AWS key');
+        $prodAws = $prod[0];
+
+        // path => [APP_ENV line, APP_DEBUG line]
+        $variants = [
+            '/.env.development' => ['APP_ENV=development', 'APP_DEBUG=true'],
+            '/.env.staging'     => ['APP_ENV=staging', 'APP_DEBUG=false'],
+            '/.env.test'        => ['APP_ENV=testing', 'APP_DEBUG=true'],
+            '/.env.bak'         => ['APP_ENV=production', 'APP_DEBUG=false'],
+            '/.env.php'         => ['APP_ENV', 'APP_DEBUG'], // PHP-array form: 'APP_ENV' => 'production'
+            '/laravel/.env'     => ['APP_ENV=production', 'APP_DEBUG=false'],
+        ];
+        foreach ($variants as $path => [$appEnv, $appDebug]) {
+            $resp = $inv->respond(new RequestContext('GET', $path));
+            self::assertNotNull($resp, "{$path} must serve a fake");
+            self::assertSame(200, $resp->status, "{$path} status");
+            $ct = $resp->headers['Content-Type'] ?? null;
+            self::assertSame('text/plain; charset=utf-8', $ct, "{$path} must serve text/plain");
+            self::assertNotSame('application/octet-stream', $ct, "{$path} must NOT be hijacked to octet-stream by route-dotenv");
+            self::assertStringContainsString('AWS_SECRET_ACCESS_KEY', $resp->body, "{$path} must leak the AWS secret marker");
+            self::assertStringContainsString($appEnv, $resp->body, "{$path} must declare its APP_ENV");
+            self::assertStringContainsString($appDebug, $resp->body, "{$path} must declare its APP_DEBUG");
+            // One host, one identity: every variant discloses the SAME AWS key as /.env.production.
+            self::assertSame(1, preg_match('/AKIA[A-Z2-7]{16}/', $resp->body, $m), "{$path} must disclose a persona AWS key");
+            self::assertSame($prodAws, $m[0], "{$path} must share the host's one AWS identity with /.env.production");
+
+            // HEAD is honored (POST/HEAD fall back to the GET bundle): same status + Content-Type.
+            $head = $inv->respond(new RequestContext('HEAD', $path));
+            self::assertNotNull($head, "HEAD {$path} must serve a fake");
+            self::assertSame(200, $head->status, "HEAD {$path} status");
+            self::assertSame('text/plain; charset=utf-8', $head->headers['Content-Type'] ?? null, "HEAD {$path} Content-Type");
+        }
+
+        // The .env.php leak is the PHP-array source form (proves the enriched body served, not a
+        // minimal synth of the bare body word) — and it is served as source text, never executed.
+        $php = $inv->respond(new RequestContext('GET', '/.env.php'));
+        self::assertNotNull($php);
+        self::assertStringContainsString('<?php', $php->body, '.env.php must leak raw PHP source');
+        self::assertStringContainsString('return [', $php->body, '.env.php must be the PHP-array env form');
+        self::assertNotSame('application/x-php', $php->headers['Content-Type'] ?? null, '.env.php must not be served as x-php (a tell)');
+    }
+
     public function test_settings_json_is_a_shaped_indented_document(): void
     {
         // The VS Code settings.json must read as an authored file (nested lines indented), be a real
@@ -613,6 +676,9 @@ final class NewPageRoutingTest extends TestCase
         // the vite-fs traversal-read bodies). A future hex island on any of these regresses here.
         $paths = [
             '/config.php', '/.env.production', '/.env.local', '/secrets.json', '/docker-compose.yml',
+            // .env suffix family + the .env.php source leak + the subdir install. Each renders the same
+            // persona-seeded secret islands (AWS/DB/JWT hex), so the \b9\d{5}\b run is a hazard here too.
+            '/.env.development', '/.env.staging', '/.env.test', '/.env.bak', '/.env.php', '/laravel/.env',
             '/application.properties', '/application.yml', '/settings.json', '/web.config', '/config.js',
             '/credentials.txt', '/backup.sql', '/install/froxlor.sql',
             '/wp-config.php-backup', '/terraform.tfstate', '/.terraform/terraform.tfstate', '/infra/terraform.tfstate',

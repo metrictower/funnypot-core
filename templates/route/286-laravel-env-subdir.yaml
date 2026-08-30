@@ -1,0 +1,50 @@
+id: route-envfile-laravel
+priority: 286
+# Brand-new page: a dropped /laravel/.env — a Laravel app installed in a subdirectory (a common
+# layout scanners probe once the webroot .env misses). A PRODUCTION config carrying the host's real
+# identity: APP_NAME/APP_URL derive from the persona company, and the DB/AWS/Stripe/SendGrid/JWT
+# secrets are the same persona-seeded values as every other leaked config for this deployment (one
+# host, one identity).
+# The id avoids the route-dotenv needles (dotenv/exposed-config/environment) and the bare `env-`
+# substring; the body_word is AWS_SECRET_ACCESS_KEY (not APP_DEBUG=) — both keep that global enrich
+# from hijacking this page to application/octet-stream instead of text/plain.
+new_page:
+  method: GET
+  paths: ['/laravel/.env']
+  sig: 0
+  status: 200
+  severity: high
+  tags: [exposure, config-disclosure, secrets]
+  name: 'Exposed environment file (/laravel/.env)'
+  body_words: ['AWS_SECRET_ACCESS_KEY']
+response:
+  headers:
+    Content-Type: "text/plain; charset=utf-8"
+  body: |
+    APP_NAME={{persona.company.name}}
+    APP_ENV=production
+    APP_DEBUG=false
+    APP_URL=https://{{persona.company.domain}}
+
+    DB_CONNECTION=pgsql
+    DB_HOST={{persona.db.host}}
+    DB_PORT=5432
+    DB_DATABASE={{persona.db.name}}
+    DB_USERNAME={{persona.db.user}}
+    DB_PASSWORD={{persona.db.password}}
+
+    AWS_ACCESS_KEY_ID={{persona.cloud.aws.accessKeyId}}
+    AWS_SECRET_ACCESS_KEY={{persona.cloud.aws.secretKey}}
+    AWS_DEFAULT_REGION={{persona.cloud.aws.region}}
+
+    STRIPE_SECRET_KEY={{persona.cloud.stripe.secretKey}}
+    SENDGRID_API_KEY={{persona.cloud.sendgrid.apiKey}}
+    JWT_SECRET={{persona.secret.jwt}}
+taunt: { mode: line, open: '#' }
+expect:
+  - 'APP_ENV=production'
+  - 'APP_URL=https://'
+  - 'AWS_ACCESS_KEY_ID=AKIA'
+  - 'AWS_SECRET_ACCESS_KEY='
+  - 'STRIPE_SECRET_KEY=sk_live_'
+  - 'SENDGRID_API_KEY=SG.'

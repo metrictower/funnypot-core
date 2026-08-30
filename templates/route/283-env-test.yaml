@@ -1,0 +1,48 @@
+id: route-envfile-test
+priority: 283
+# Brand-new page: a dropped /.env.test. Same host identity as the sibling .env files (one host, one
+# identity), declaring a TEST environment (APP_ENV=testing, APP_DEBUG=true, DB_HOST=127.0.0.1). A
+# test suite runs against its own database, so DB_DATABASE carries the persona db name with a _test
+# suffix — coherent with the host (same base name) yet never the production database.
+# The id avoids the route-dotenv needles (dotenv/exposed-config/environment) and the bare `env-`
+# substring; the body_word is AWS_SECRET_ACCESS_KEY (not APP_DEBUG=) — both keep that global enrich
+# from hijacking this page to application/octet-stream instead of text/plain.
+new_page:
+  method: GET
+  paths: ['/.env.test']
+  sig: 0
+  status: 200
+  severity: high
+  tags: [exposure, config-disclosure, secrets]
+  name: 'Exposed environment file (.env.test)'
+  body_words: ['AWS_SECRET_ACCESS_KEY']
+response:
+  headers:
+    Content-Type: "text/plain; charset=utf-8"
+  body: |
+    APP_ENV=testing
+    APP_DEBUG=true
+
+    DB_CONNECTION=pgsql
+    DB_HOST=127.0.0.1
+    DB_PORT=5432
+    DB_DATABASE={{persona.db.name}}_test
+    DB_USERNAME={{persona.db.user}}
+    DB_PASSWORD={{persona.db.password}}
+
+    AWS_ACCESS_KEY_ID={{persona.cloud.aws.accessKeyId}}
+    AWS_SECRET_ACCESS_KEY={{persona.cloud.aws.secretKey}}
+    AWS_DEFAULT_REGION={{persona.cloud.aws.region}}
+
+    STRIPE_SECRET_KEY={{persona.cloud.stripe.secretKey}}
+    SENDGRID_API_KEY={{persona.cloud.sendgrid.apiKey}}
+    JWT_SECRET={{persona.secret.jwt}}
+taunt: { mode: line, open: '#' }
+expect:
+  - 'APP_ENV=testing'
+  - 'APP_DEBUG=true'
+  - '_test'
+  - 'AWS_ACCESS_KEY_ID=AKIA'
+  - 'AWS_SECRET_ACCESS_KEY='
+  - 'STRIPE_SECRET_KEY=sk_live_'
+  - 'SENDGRID_API_KEY=SG.'
