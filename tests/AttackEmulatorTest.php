@@ -39,6 +39,55 @@ final class AttackEmulatorTest extends TestCase
         self::assertStringContainsString('root:x:0:0', $r->body);
     }
 
+    public function test_lfi_hostname_returns_a_hostname_not_passwd(): void
+    {
+        // The bug this pins: /etc/hostname used to fall through to a passwd/uid-shaped body.
+        $r = $this->emulate('/download', 'file=../../../../etc/hostname');
+        self::assertNotNull($r);
+        self::assertSame(['attack-lfi-hostname'], $r->satisfies->templateIds());
+        self::assertStringContainsString('web-prod-01', $r->body);
+        self::assertStringNotContainsString('root:x:0:0', $r->body);
+    }
+
+    public function test_lfi_ssh_key_returns_inert_pem_not_passwd(): void
+    {
+        // /root/.ssh/id_rsa used to return passwd content — a clear format-mismatch tell.
+        $r = $this->emulate('/download', 'file=../../../root/.ssh/id_rsa');
+        self::assertNotNull($r);
+        self::assertSame(['attack-lfi-sshkey'], $r->satisfies->templateIds());
+        self::assertStringContainsString('-----BEGIN OPENSSH PRIVATE KEY-----', $r->body);
+        self::assertStringContainsString('-----END OPENSSH PRIVATE KEY-----', $r->body);
+        self::assertStringNotContainsString('root:x:0:0', $r->body);
+
+        // Inert: the base64 body is well-formed but decodes to no OpenSSH key structure, so it
+        // authenticates nowhere (a real key's blob begins with the magic "openssh-key-v1\0").
+        preg_match('/-----BEGIN OPENSSH PRIVATE KEY-----\n(.*)\n-----END/s', $r->body, $m);
+        $blob = base64_decode(str_replace("\n", '', $m[1] ?? ''), true);
+        self::assertNotFalse($blob, 'key body must be valid base64');
+        self::assertStringStartsNotWith("openssh-key-v1\0", $blob);
+    }
+
+    public function test_lfi_passwd_traversal_still_returns_passwd(): void
+    {
+        $r = $this->emulate('/download', 'file=../../../../etc/passwd');
+        self::assertNotNull($r);
+        self::assertSame(['attack-lfi-unix'], $r->satisfies->templateIds());
+        self::assertStringContainsString('root:x:0:0', $r->body);
+    }
+
+    public function test_phpcgi_source_varies_by_requested_script(): void
+    {
+        // Byte-identical source across every path was a canned-response tell; the fake source now
+        // names the requested .php script, so two different scripts return different bodies.
+        $a = $this->emulate('/wp-login.php', '-s');
+        $b = $this->emulate('/config.php', '-s');
+        self::assertNotNull($a);
+        self::assertNotNull($b);
+        self::assertStringContainsString('wp-login.php', $a->body);
+        self::assertStringContainsString('config.php', $b->body);
+        self::assertNotSame($a->body, $b->body);
+    }
+
     public function test_command_injection_matches_double_url_encoded(): void
     {
         // WAF-evasion double-encoding: %253B -> %3B -> ';'. A second decode pass recovers the payload.

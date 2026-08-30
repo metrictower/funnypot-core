@@ -59,6 +59,12 @@ return array (
         'in' => 'query',
         'regex' => '^-[sdw](?:[+ &=]|$)',
       ),
+      1 => 
+      array (
+        'in' => 'path',
+        'regex' => '([\\w.-]{1,64}\\.php)',
+        'capture' => true,
+      ),
     ),
     'response' => 
     array (
@@ -68,6 +74,7 @@ return array (
       ),
       'body' => '<code><span style="color: #000000">
 <span style="color: #0000BB">&lt;?php<br /></span>
+<span style="color: #FF8000">/* {{match.1}} */<br /></span>
 <span style="color: #007700">$db </span><span style="color: #0000BB">= new mysqli</span><span style="color: #007700">(</span><span style="color: #DD0000">"localhost"</span><span style="color: #007700">, </span><span style="color: #DD0000">"root"</span><span style="color: #007700">, </span><span style="color: #DD0000">"S3cr3tP@ss"</span><span style="color: #007700">);<br /></span>
 <span style="color: #0000BB">?&gt;</span>
 </span></code>
@@ -250,6 +257,35 @@ return array (
   ),
   7 => 
   array (
+    'id' => 'attack-lfi-sshkey',
+    'severity' => 'high',
+    'tags' => 
+    array (
+      0 => 'attack',
+      1 => 'lfi',
+      2 => 'traversal',
+      3 => 'ssh',
+    ),
+    'status' => 200,
+    'match' => 
+    array (
+      0 => 
+      array (
+        'in' => 'request',
+        'regex' => '(?:id_rsa|id_ed25519|id_ecdsa|id_dsa|\\.ssh[\\\\/])',
+      ),
+    ),
+    'response' => 
+    array (
+      'headers' => 
+      array (
+        'Content-Type' => 'text/plain; charset=utf-8',
+      ),
+      'body' => '{{canned.ssh_private_key}}',
+    ),
+  ),
+  8 => 
+  array (
     'id' => 'attack-phpmyadmin-gate',
     'severity' => 'high',
     'tags' => 
@@ -364,7 +400,38 @@ body{margin:0;font-family:-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-s
       'canonical_slash' => true,
     ),
   ),
-  8 => 
+  9 => 
+  array (
+    'id' => 'attack-lfi-hostname',
+    'severity' => 'high',
+    'tags' => 
+    array (
+      0 => 'attack',
+      1 => 'lfi',
+      2 => 'traversal',
+    ),
+    'status' => 200,
+    'match' => 
+    array (
+      0 => 
+      array (
+        'in' => 'request',
+        'regex' => 'etc/hostname',
+      ),
+    ),
+    'response' => 
+    array (
+      'headers' => 
+      array (
+        'Content-Type' => 'text/plain; charset=utf-8',
+      ),
+      'body' => '{{canned.hostname}}',
+    ),
+    'lit' => 'etc/hostname',
+    'lit_in' => 'request',
+    'lit_ci' => true,
+  ),
+  10 => 
   array (
     'id' => 'attack-phpmyadmin-login',
     'severity' => 'high',
@@ -488,7 +555,7 @@ body{margin:0;font-family:-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-s
       'cookie_path' => '/phpmyadmin',
     ),
   ),
-  9 => 
+  11 => 
   array (
     'id' => 'attack-wp-xmlrpc-addtwo',
     'severity' => 'high',
@@ -577,7 +644,7 @@ body{margin:0;font-family:-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-s
       'bind' => 'sum',
     ),
   ),
-  10 => 
+  12 => 
   array (
     'id' => 'attack-wp-xmlrpc-multicall',
     'severity' => 'high',
@@ -726,7 +793,7 @@ body{margin:0;font-family:-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-s
       ),
     ),
   ),
-  11 => 
+  13 => 
   array (
     'id' => 'attack-lfi-smbconf',
     'severity' => 'high',
@@ -770,7 +837,7 @@ body{margin:0;font-family:-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-s
     'lit_in' => 'request',
     'lit_ci' => true,
   ),
-  12 => 
+  14 => 
   array (
     'id' => 'attack-lfi-environ',
     'severity' => 'high',
@@ -802,7 +869,7 @@ body{margin:0;font-family:-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-s
     'lit_in' => 'request',
     'lit_ci' => true,
   ),
-  13 => 
+  15 => 
   array (
     'id' => 'attack-wp-xmlrpc',
     'severity' => 'high',
@@ -1354,7 +1421,7 @@ body{margin:0;font-family:-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-s
       ),
     ),
   ),
-  14 => 
+  16 => 
   array (
     'id' => 'attack-wp-xmlrpc-get',
     'severity' => 'info',
@@ -1466,7 +1533,7 @@ body{margin:0;font-family:-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-s
       ),
     ),
   ),
-  15 => 
+  17 => 
   array (
     'id' => 'attack-lfi-shadow',
     'severity' => 'high',
@@ -1497,7 +1564,7 @@ body{margin:0;font-family:-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-s
     'lit_in' => 'request',
     'lit_ci' => true,
   ),
-  16 => 
+  18 => 
   array (
     'id' => 'attack-lfi-group',
     'severity' => 'high',
@@ -1528,7 +1595,7 @@ body{margin:0;font-family:-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-s
     'lit_in' => 'request',
     'lit_ci' => true,
   ),
-  17 => 
+  19 => 
   array (
     'id' => 'attack-lfi-windows',
     'severity' => 'high',
@@ -1557,7 +1624,7 @@ body{margin:0;font-family:-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-s
       'body' => '{{canned.winini}}',
     ),
   ),
-  18 => 
+  20 => 
   array (
     'id' => 'attack-lfi-unix',
     'severity' => 'high',
@@ -1573,7 +1640,7 @@ body{margin:0;font-family:-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-s
       0 => 
       array (
         'in' => 'request',
-        'regex' => '(?:\\.\\.[\\\\/]|%2e%2e|\\.\\.%2f|\\.\\.%5c|etc/passwd|etc/shadow|/proc/self/environ|wp-config\\.php%00)',
+        'regex' => 'etc/passwd',
       ),
     ),
     'response' => 
@@ -1584,8 +1651,11 @@ body{margin:0;font-family:-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-s
       ),
       'body' => '{{canned.passwd}}',
     ),
+    'lit' => 'etc/passwd',
+    'lit_in' => 'request',
+    'lit_ci' => true,
   ),
-  19 => 
+  21 => 
   array (
     'id' => 'attack-ai-ollama-version',
     'severity' => 'medium',
@@ -1627,7 +1697,7 @@ body{margin:0;font-family:-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-s
       0 => '/api/version',
     ),
   ),
-  20 => 
+  22 => 
   array (
     'id' => 'attack-ai-ollama-tags',
     'severity' => 'medium',
@@ -1669,7 +1739,7 @@ body{margin:0;font-family:-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-s
       0 => '/api/tags',
     ),
   ),
-  21 => 
+  23 => 
   array (
     'id' => 'attack-ai-ollama-ps',
     'severity' => 'medium',
@@ -1711,7 +1781,7 @@ body{margin:0;font-family:-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-s
       0 => '/api/ps',
     ),
   ),
-  22 => 
+  24 => 
   array (
     'id' => 'attack-ai-ollama-show',
     'severity' => 'medium',
@@ -1947,7 +2017,7 @@ body{margin:0;font-family:-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-s
       ),
     ),
   ),
-  23 => 
+  25 => 
   array (
     'id' => 'attack-ai-ollama-chat',
     'severity' => 'medium',
@@ -1996,7 +2066,7 @@ body{margin:0;font-family:-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-s
       0 => '/api/chat',
     ),
   ),
-  24 => 
+  26 => 
   array (
     'id' => 'attack-ai-ollama-generate',
     'severity' => 'medium',
@@ -2045,7 +2115,7 @@ body{margin:0;font-family:-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-s
       0 => '/api/generate',
     ),
   ),
-  25 => 
+  27 => 
   array (
     'id' => 'attack-kibana-login',
     'severity' => 'high',
@@ -2120,7 +2190,7 @@ body{margin:0;font-family:-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-s
       ),
     ),
   ),
-  26 => 
+  28 => 
   array (
     'id' => 'attack-ai-openai-chat',
     'severity' => 'medium',
@@ -2169,7 +2239,7 @@ body{margin:0;font-family:-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-s
       0 => '/v1/chat/completions',
     ),
   ),
-  27 => 
+  29 => 
   array (
     'id' => 'attack-grafana-login',
     'severity' => 'high',
@@ -2224,7 +2294,7 @@ body{margin:0;font-family:-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-s
       0 => '/grafana/login',
     ),
   ),
-  28 => 
+  30 => 
   array (
     'id' => 'attack-wp-login',
     'severity' => 'high',
@@ -2313,7 +2383,7 @@ body{margin:0;font-family:-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-s
       0 => '/wp-login.php',
     ),
   ),
-  29 => 
+  31 => 
   array (
     'id' => 'attack-cmdi-windows',
     'severity' => 'critical',
@@ -2349,7 +2419,7 @@ Ethernet adapter Ethernet0:
 ',
     ),
   ),
-  30 => 
+  32 => 
   array (
     'id' => 'attack-cmdi-unix',
     'severity' => 'critical',
@@ -2377,7 +2447,7 @@ Ethernet adapter Ethernet0:
       'body' => '{{canned.uid}}',
     ),
   ),
-  31 => 
+  33 => 
   array (
     'id' => 'attack-ai-anthropic-messages',
     'severity' => 'medium',
@@ -2426,7 +2496,7 @@ Ethernet adapter Ethernet0:
       0 => '/v1/messages',
     ),
   ),
-  32 => 
+  34 => 
   array (
     'id' => 'attack-cpsrvd-login',
     'severity' => 'high',
@@ -2536,7 +2606,7 @@ Ethernet adapter Ethernet0:
       ),
     ),
   ),
-  33 => 
+  35 => 
   array (
     'id' => 'attack-ai-v1-models',
     'severity' => 'medium',
@@ -2603,7 +2673,7 @@ Ethernet adapter Ethernet0:
       ),
     ),
   ),
-  34 => 
+  36 => 
   array (
     'id' => 'attack-phppgadmin-login',
     'severity' => 'high',
@@ -2742,7 +2812,7 @@ Ethernet adapter Ethernet0:
       ),
     ),
   ),
-  35 => 
+  37 => 
   array (
     'id' => 'attack-ssti-twig',
     'severity' => 'high',
@@ -2771,7 +2841,7 @@ Ethernet adapter Ethernet0:
 ',
     ),
   ),
-  36 => 
+  38 => 
   array (
     'id' => 'attack-ssti-numeric',
     'severity' => 'high',
@@ -2799,7 +2869,7 @@ Ethernet adapter Ethernet0:
 ',
     ),
   ),
-  37 => 
+  39 => 
   array (
     'id' => 'attack-php-glastopf',
     'severity' => 'critical',
@@ -2831,7 +2901,7 @@ Ethernet adapter Ethernet0:
     'lit_in' => 'request',
     'lit_ci' => true,
   ),
-  38 => 
+  40 => 
   array (
     'id' => 'attack-sqli',
     'severity' => 'high',
@@ -2859,7 +2929,7 @@ Ethernet adapter Ethernet0:
 ',
     ),
   ),
-  39 => 
+  41 => 
   array (
     'id' => 'attack-open-redirect',
     'severity' => 'medium',
@@ -2888,7 +2958,7 @@ Ethernet adapter Ethernet0:
       'body' => '<html><head><title>302 Found</title></head><body>Redirecting...</body></html>',
     ),
   ),
-  40 => 
+  42 => 
   array (
     'id' => 'attack-xss',
     'severity' => 'medium',
@@ -2919,7 +2989,7 @@ Ethernet adapter Ethernet0:
 ',
     ),
   ),
-  41 => 
+  43 => 
   array (
     'id' => 'attack-thinkphp-rce',
     'severity' => 'critical',
@@ -2955,7 +3025,7 @@ Ethernet adapter Ethernet0:
 ',
     ),
   ),
-  42 => 
+  44 => 
   array (
     'id' => 'attack-owncloud-49103',
     'severity' => 'high',
@@ -2998,7 +3068,7 @@ Ethernet adapter Ethernet0:
     'lit_in' => 'path',
     'lit_ci' => true,
   ),
-  43 => 
+  45 => 
   array (
     'id' => 'attack-f5-1388',
     'severity' => 'critical',
@@ -3032,7 +3102,7 @@ Ethernet adapter Ethernet0:
     'lit_in' => 'path',
     'lit_ci' => true,
   ),
-  44 => 
+  46 => 
   array (
     'id' => 'attack-geoserver-36401',
     'severity' => 'critical',
@@ -3075,7 +3145,7 @@ Ethernet adapter Ethernet0:
     'lit_in' => 'path',
     'lit_ci' => true,
   ),
-  45 => 
+  47 => 
   array (
     'id' => 'attack-fortios-40684',
     'severity' => 'critical',
@@ -3114,7 +3184,7 @@ Ethernet adapter Ethernet0:
     'lit_in' => 'path',
     'lit_ci' => true,
   ),
-  46 => 
+  48 => 
   array (
     'id' => 'attack-ivanti-21887',
     'severity' => 'critical',
@@ -3149,7 +3219,7 @@ Ethernet adapter Ethernet0:
     'lit_in' => 'request',
     'lit_ci' => true,
   ),
-  47 => 
+  49 => 
   array (
     'id' => 'attack-citrix-bleed-4966',
     'severity' => 'critical',
@@ -3184,7 +3254,7 @@ Ethernet adapter Ethernet0:
     'lit_in' => 'path',
     'lit_ci' => true,
   ),
-  48 => 
+  50 => 
   array (
     'id' => 'attack-webshell-panel',
     'severity' => 'critical',
@@ -3219,7 +3289,7 @@ $ </pre>
 ',
     ),
   ),
-  49 => 
+  51 => 
   array (
     'id' => 'attack-spring-actuator',
     'severity' => 'high',
@@ -3252,7 +3322,7 @@ $ </pre>
     'lit_in' => 'path',
     'lit_ci' => true,
   ),
-  50 => 
+  52 => 
   array (
     'id' => 'attack-cloud-imds',
     'severity' => 'high',
@@ -3289,7 +3359,7 @@ $ </pre>
 ',
     ),
   ),
-  51 => 
+  53 => 
   array (
     'id' => 'attack-imds-base',
     'severity' => 'high',
@@ -3338,7 +3408,7 @@ security-groups
     'lit_in' => 'path',
     'lit_ci' => true,
   ),
-  52 => 
+  54 => 
   array (
     'id' => 'attack-ignition-execute-solution',
     'severity' => 'high',
@@ -3427,7 +3497,7 @@ security-groups
       ),
     ),
   ),
-  53 => 
+  55 => 
   array (
     'id' => 'attack-webmin-session-login',
     'severity' => 'high',
@@ -3497,7 +3567,7 @@ security-groups
     'lit_in' => 'method',
     'lit_ci' => false,
   ),
-  54 => 
+  56 => 
   array (
     'id' => 'attack-jenkins-acegi-login',
     'severity' => 'high',
@@ -3545,7 +3615,7 @@ security-groups
     'lit_in' => 'method',
     'lit_ci' => false,
   ),
-  55 => 
+  57 => 
   array (
     'id' => 'attack-hnap-login',
     'severity' => 'high',
@@ -3630,7 +3700,7 @@ security-groups
       ),
     ),
   ),
-  56 => 
+  58 => 
   array (
     'id' => 'attack-wp-admin-redirect',
     'severity' => 'low',
@@ -3673,7 +3743,7 @@ security-groups
       0 => '/wp-admin',
     ),
   ),
-  57 => 
+  59 => 
   array (
     'id' => 'attack-crs-sqli',
     'severity' => 'high',
@@ -3703,7 +3773,7 @@ security-groups
 ',
     ),
   ),
-  58 => 
+  60 => 
   array (
     'id' => 'attack-crs-xss',
     'severity' => 'high',
@@ -3735,7 +3805,7 @@ security-groups
 ',
     ),
   ),
-  59 => 
+  61 => 
   array (
     'id' => 'attack-crs-lfi',
     'severity' => 'high',
@@ -3764,7 +3834,7 @@ security-groups
       'body' => '{{canned.passwd}}',
     ),
   ),
-  60 => 
+  62 => 
   array (
     'id' => 'attack-crs-rce',
     'severity' => 'critical',

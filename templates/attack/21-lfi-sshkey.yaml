@@ -1,0 +1,15 @@
+id: attack-lfi-sshkey
+severity: high
+priority: 21
+tags: [attack, lfi, traversal, ssh]
+# LFI targeting an SSH private key (id_rsa/.ssh) -> an inert, key-shaped OpenSSH blob, NOT passwd.
+# Ahead of the generic unix rule so a key request returns a believable key file instead of a
+# format-mismatched /etc/passwd. The served key decodes to nothing and authenticates nowhere.
+match:
+  - in: request
+    regex: '(?:id_rsa|id_ed25519|id_ecdsa|id_dsa|\.ssh[\\/])'
+response:
+  headers:
+    Content-Type: "text/plain; charset=utf-8"
+  body: "{{canned.ssh_private_key}}"
+expect: ["-----BEGIN OPENSSH PRIVATE KEY-----"]

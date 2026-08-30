@@ -57,11 +57,15 @@ final class ZapCoverageTest extends TestCase
     public function test_attack_rule_count_is_59_plus_the_two_new_rules(): void
     {
         $rules = require self::ATTACK_COMPILED;
-        self::assertCount(61, $rules, 'attack rule count must be 59 (baseline) + 2 (imds-base, wp-admin-redirect)');
+        self::assertCount(63, $rules, 'attack rule count must be 59 (baseline) + 2 (imds-base, wp-admin-redirect) + 2 (lfi-sshkey, lfi-hostname)');
 
         $ids = array_map(static function (array $r): string { return (string) $r['id']; }, $rules);
         self::assertContains('attack-imds-base', $ids);
         self::assertContains('attack-wp-admin-redirect', $ids);
+        // Target-aware LFI: an id_rsa/.ssh or /etc/hostname read returns key/hostname content
+        // instead of a format-mismatched passwd, each ahead of the generic passwd rule.
+        self::assertContains('attack-lfi-sshkey', $ids);
+        self::assertContains('attack-lfi-hostname', $ids);
         // The pre-existing AI/CRS families must stay intact — this integration touches neither.
         self::assertContains('attack-cloud-imds', $ids, 'the deeper 90-imds rule must be untouched');
         self::assertContains('attack-wp-login', $ids, 'the wp-login credential oracle must be untouched');

@@ -2,12 +2,15 @@ id: attack-lfi-unix
 severity: high
 priority: 31
 tags: [attack, lfi, traversal]
-# Path traversal or a unix LFI target -> fake /etc/passwd with the root:x:0:0 marker.
-# Matches both raw (../) and percent-encoded (..%2f) forms; the request surface also folds
-# in a decoded copy, so an encoded traversal is caught either way. Never reads a real file.
+# LFI targeting /etc/passwd -> fake passwd with the root:x:0:0 marker. Keyed on the named
+# target (raw or percent-encoded: the request surface folds in a decoded copy, so `etc%2fpasswd`
+# is caught too), NOT on a bare `../`. A traversal to some other file this family has no believable
+# content for falls through to the normal page rather than wrongly returning passwd — the specific
+# targets (shadow/group/environ/hostname/ssh-key/windows/smb.conf) each own a higher-priority rule
+# ahead of this one. Never reads a real file.
 match:
   - in: request
-    regex: '(?:\.\.[\\/]|%2e%2e|\.\.%2f|\.\.%5c|etc/passwd|etc/shadow|/proc/self/environ|wp-config\.php%00)'
+    regex: 'etc/passwd'
 response:
   headers:
     Content-Type: "text/plain; charset=utf-8"

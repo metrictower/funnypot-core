@@ -1,0 +1,14 @@
+id: attack-lfi-hostname
+severity: high
+priority: 22
+tags: [attack, lfi, traversal]
+# LFI targeting /etc/hostname -> a single plausible hostname line, NOT passwd. Ahead of the
+# generic unix rule so a hostname request returns the right file shape.
+match:
+  - in: request
+    regex: 'etc/hostname'
+response:
+  headers:
+    Content-Type: "text/plain; charset=utf-8"
+  body: "{{canned.hostname}}"
+expect: ["web-prod-01"]

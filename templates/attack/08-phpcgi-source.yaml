@@ -5,15 +5,23 @@ tags: [attack, php-cgi, source-disclosure, cve-2012-1823]
 # php-cgi argument injection: GET /index.php?-s makes php-cgi print the highlighted source.
 # The query string is a bare option (-s source, -d define, -w strip). We return fake
 # highlighted PHP source carrying the tell-tale highlight spans + a juicy fake credential.
+# The fake source names the actual requested .php script (bounded capture, `\w.-` only, so the
+# reflection is HTML-safe) so the body varies by path instead of being byte-identical everywhere —
+# a byte-for-byte constant across every path is itself a canned-response tell. Requires a .php
+# target (that is what php-cgi serves); a `?-s` against a non-.php path falls through.
 match:
   - in: query
     regex: '^-[sdw](?:[+ &=]|$)'
+  - in: path
+    regex: '([\w.-]{1,64}\.php)'
+    capture: true
 response:
   headers:
     Content-Type: "text/html"
   body: |
     <code><span style="color: #000000">
     <span style="color: #0000BB">&lt;?php<br /></span>
+    <span style="color: #FF8000">/* {{match.1}} */<br /></span>
     <span style="color: #007700">$db </span><span style="color: #0000BB">= new mysqli</span><span style="color: #007700">(</span><span style="color: #DD0000">"localhost"</span><span style="color: #007700">, </span><span style="color: #DD0000">"root"</span><span style="color: #007700">, </span><span style="color: #DD0000">"S3cr3tP@ss"</span><span style="color: #007700">);<br /></span>
     <span style="color: #0000BB">?&gt;</span>
     </span></code>

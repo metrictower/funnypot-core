@@ -49,6 +49,8 @@ final class DirectiveRenderer
         'winini' => CannedData::WININI,
         'shadow' => CannedData::SHADOW,
         'group' => CannedData::GROUP,
+        'hostname' => CannedData::HOSTNAME,
+        'ssh_private_key' => CannedData::SSH_PRIVATE_KEY,
         'environ' => CannedData::ENVIRON,
         'k8s_sa_unsigned' => CannedData::K8S_SA_UNSIGNED,
     ];
