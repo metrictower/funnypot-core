@@ -2733,14 +2733,26 @@ Ethernet adapter Ethernet0:
 <head>
 <title>phpPgAdmin</title>
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-<link rel="stylesheet" href="themes/default/global.css" type="text/css" />
+<style type="text/css">
+body { font-family: Verdana, Arial, Helvetica, sans-serif; font-size: 12px; color: #000000; background-color: #ffffff; margin: 0; padding: 0; }
+#topbar { background-color: #cccccc; padding: 4px 6px; border-bottom: 1px solid #9a9a9a; }
+#topbar .appname { font-weight: bold; }
+#topbar .version { color: #333333; }
+#content { padding: 10px; }
+h2 { font-size: 14px; margin: 6px 0; }
+p.message { color: #660000; font-weight: bold; }
+table { border-collapse: collapse; }
+th { text-align: right; padding: 3px 6px; font-weight: normal; }
+td { padding: 3px 6px; }
+input, select { font-family: inherit; font-size: 12px; }
+</style>
 </head>
 <body>
 <div id="topbar"><span class="appname">phpPgAdmin</span> <span class="version">7.13.0</span></div>
 <div id="content">
 <h2>Login</h2>
 <p class="message">Login disallowed for security reasons.</p>
-<form action="redirect.php" method="post" name="loginform">
+<form action="/redirect.php" method="post" name="loginform">
 <table>
 <tr><th><label for="server">Server</label></th><td><select name="loginServer" id="server"><option value=":5432:allow" selected="selected">PostgreSQL</option></select></td></tr>
 <tr><th><label for="username">Username</label></th><td><input type="text" name="loginUsername" id="username" value="" /></td></tr>
@@ -2786,14 +2798,26 @@ Ethernet adapter Ethernet0:
 <head>
 <title>phpPgAdmin</title>
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-<link rel="stylesheet" href="themes/default/global.css" type="text/css" />
+<style type="text/css">
+body { font-family: Verdana, Arial, Helvetica, sans-serif; font-size: 12px; color: #000000; background-color: #ffffff; margin: 0; padding: 0; }
+#topbar { background-color: #cccccc; padding: 4px 6px; border-bottom: 1px solid #9a9a9a; }
+#topbar .appname { font-weight: bold; }
+#topbar .version { color: #333333; }
+#content { padding: 10px; }
+h2 { font-size: 14px; margin: 6px 0; }
+p.message { color: #660000; font-weight: bold; }
+table { border-collapse: collapse; }
+th { text-align: right; padding: 3px 6px; font-weight: normal; }
+td { padding: 3px 6px; }
+input, select { font-family: inherit; font-size: 12px; }
+</style>
 </head>
 <body>
 <div id="topbar"><span class="appname">phpPgAdmin</span> <span class="version">7.13.0</span></div>
 <div id="content">
 <h2>Login</h2>
 <p class="message">Login failed</p>
-<form action="redirect.php" method="post" name="loginform">
+<form action="/redirect.php" method="post" name="loginform">
 <table>
 <tr><th><label for="server">Server</label></th><td><select name="loginServer" id="server"><option value=":5432:allow" selected="selected">PostgreSQL</option></select></td></tr>
 <tr><th><label for="username">Username</label></th><td><input type="text" name="loginUsername" id="username" value="" /></td></tr>

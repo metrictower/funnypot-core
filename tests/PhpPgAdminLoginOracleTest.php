@@ -119,6 +119,30 @@ final class PhpPgAdminLoginOracleTest extends TestCase
         self::assertSame(substr($disallowed->body, -1), substr($failed->body, -1), 'both branch bodies must end with the same trailing byte');
     }
 
+    // --- coherence: no dangling relative self-links in either branch ---------------------------------
+
+    public function test_no_dangling_relative_links_in_either_branch(): void
+    {
+        // Both bodies must carry the ROOT-ABSOLUTE form action /redirect.php (the honeypot owns that
+        // path) — never the base-dependent relative `redirect.php` a browser and a scanner resolve
+        // against different bases. The stylesheet is inlined, so there is no external CSS request that
+        // resolves to nothing. Asserted on the base (disallowed) and the branch (login-failed) bodies.
+        $emu = $this->isolated();
+        $disallowed = $emu->emulate(new RequestContext('POST', self::PATH, '', [], $this->body('postgres')));
+        $failed = $emu->emulate(new RequestContext('POST', self::PATH, '', [], $this->body('alice')));
+        self::assertNotNull($disallowed);
+        self::assertNotNull($failed);
+        foreach (['disallowed' => $disallowed, 'failed' => $failed] as $label => $r) {
+            self::assertStringContainsString('action="/redirect.php"', $r->body, "{$label}: form action must be root-absolute /redirect.php");
+            self::assertStringNotContainsString('action="redirect.php"', $r->body, "{$label}: no relative (base-dependent) form action");
+            self::assertStringNotContainsString('themes/default/global.css', $r->body, "{$label}: no dangling external stylesheet reference");
+            self::assertStringNotContainsString('<link rel="stylesheet"', $r->body, "{$label}: stylesheet must be inlined, no external <link>");
+            self::assertStringContainsString('<style type="text/css">', $r->body, "{$label}: inline stylesheet keeps the page styled");
+        }
+        // The owned path the form action points at is actually claimed by this rule.
+        self::assertTrue($this->emulator()->ownsPath('/redirect.php'));
+    }
+
     // --- coherence: topbar + version + password field literal -----------------------------------------
 
     public function test_topbar_and_password_field_are_byte_coherent(): void

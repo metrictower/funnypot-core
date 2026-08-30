@@ -40,21 +40,41 @@ return array(
             'reason' => 'relative form action mitigated by the canonical_slash 301 (base becomes /phpmyadmin/); resolves to the owned /phpmyadmin/index.php',
         ),
 
-        // PRE-EXISTING, UNMITIGATED (phpMyAdmin-class): the phpPgAdmin login body carries relative
-        // links (form action `redirect.php`, stylesheet `themes/default/global.css`) with no
-        // canonical_slash. Correct fix is a root-absolute action + owned asset path (triage in a
-        // follow-up); accepted here to land the lint baseline. Flagged in the FP-0002 report.
+        // Login decoys reference a secondary product asset/URL that is root-absolute (the correct,
+        // base-independent link shape) and byte-faithful to the real product, but that the honeypot
+        // does not itself own — so a scanner that follows it gets a plain 404. Owning each target
+        // would mean authoring a new per-product asset/page decoy for marginal gain; the emitted
+        // bodies stay byte-faithful and the link shape is already correct, so these are accepted.
         array(
             'check' => 'dangling',
-            'a' => 'attack-phppgadmin-login',
-            'path' => 'redirect.php',
-            'reason' => 'PRE-EXISTING relative form action, no canonical_slash mitigation — triage: make root-absolute (/redirect.php is owned) or add a canonical_slash redirect',
+            'a' => 'attack-cpsrvd-login',
+            'path' => '/cpsess0000000000/styled/basic/css/cjt.css',
+            'reason' => 'root-absolute stylesheet href, byte-faithful to cpsrvd (per-session cpsess-scoped asset path); the honeypot serves no such asset so a follow-up GET 404s — correct link shape, owning a per-session CSS asset would be a separate decoy',
         ),
         array(
             'check' => 'dangling',
-            'a' => 'attack-phppgadmin-login',
-            'path' => 'themes/default/global.css',
-            'reason' => 'PRE-EXISTING relative stylesheet href, no owned target — triage: serve the asset from an owned root-absolute path',
+            'a' => 'attack-jenkins-acegi-login',
+            'path' => '/loginError',
+            'reason' => 'root-absolute redirect target, byte-faithful to Spring Security authenticationFailureUrl; the honeypot owns no GET /loginError page so a follow-up 404s — correct link shape, a GET /loginError login-error page is a separate decoy',
+        ),
+        array(
+            'check' => 'dangling',
+            'a' => 'attack-webmin-session-login',
+            'path' => '/unauthenticated/style.css',
+            'reason' => 'root-absolute stylesheet href, byte-faithful to miniserv (unauthenticated asset path); the honeypot serves no such asset so a follow-up GET 404s — correct link shape, owning the asset would be a separate decoy',
+        ),
+
+        // wp-admin(/) 302s to the byte-faithful auth_redirect() target /wp-login.php; the wordpress
+        // attack family owns /wp-login.php by POST only, so a GET navigation resolves to the corpus
+        // /wp-login.php page instead. That corpus entry is a WordPress-plugin sample, so the served
+        // page is itself a WordPress login — coherent in content, a family-label-only difference.
+        // Re-homing the corpus GET key to the wordpress family is a routing/corpus-precedence change
+        // that would alter what GET /wp-login.php serves, so it is accepted here rather than forced.
+        array(
+            'check' => 'dangling',
+            'a' => 'attack-wp-admin-redirect',
+            'path' => '/wp-login.php',
+            'reason' => 'root-absolute redirect target, byte-faithful to auth_redirect(); the GET resolves to the corpus /wp-login.php page (a WordPress-plugin sample serving a WordPress login) — content-coherent, family-label-only leak; re-homing the corpus key would change prod GET /wp-login.php',
         ),
     ),
 );
