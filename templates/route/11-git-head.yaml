@@ -1,0 +1,27 @@
+id: route-vcs-head
+priority: 11
+# Brand-new page: a leaked /.git/HEAD. HEAD names the checked-out branch via the SAME {{pick}} the
+# existing /.git/config (route-git-config) uses for its [branch "..."], so — under one host's render
+# seed — HEAD and config always agree on the branch. That branch also appears in packed-refs and
+# info/refs, keeping the whole git surface coherent.
+#
+# The id is route-vcs-head, deliberately WITHOUT the substring `git`: route-git-config (priority 10)
+# carries a broad `git` template_needle and findRule is global, so an id containing `git` would let
+# that enrich hijack this page and serve the .git/config body instead of the HEAD ref. text/plain
+# matches the sibling git text files (only /.git/logs/HEAD is octet-stream, corpus-pinned).
+new_page:
+  method: GET
+  paths: ['/.git/HEAD']
+  sig: 0
+  status: 200
+  severity: medium
+  tags: [exposure, vcs, git, source-disclosure]
+  name: 'Exposed git HEAD (.git/HEAD)'
+  body_words: ['ref: refs/heads/']
+response:
+  headers:
+    Content-Type: "text/plain; charset=utf-8"
+  body: |
+    ref: refs/heads/{{pick:main,master,develop,release}}
+expect:
+  - 'ref: refs/heads/'

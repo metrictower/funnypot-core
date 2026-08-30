@@ -1,0 +1,22 @@
+id: route-vcs-refs-main
+priority: 13
+# Brand-new page: a leaked /.git/refs/heads/main — the loose ref for the main branch, which is a
+# single 40-hex sha and nothing else (a real loose ref carries no other bytes). The sha is the tip
+# {{fake.gitcommit}}, the SAME value packed-refs/info/refs/logs-HEAD use, so main and the checked-out
+# branch are at one commit — coherent whatever branch HEAD's {{pick}} lands on, with no contradicting sha.
+# The body is entirely seed-derived, so there is no static body_word/marker; the path itself is the
+# detection specificity. id avoids the substring `git` (see 11-git-head.yaml). No taunt (strict sha file).
+new_page:
+  method: GET
+  paths: ['/.git/refs/heads/main']
+  sig: 0
+  status: 200
+  severity: medium
+  tags: [exposure, vcs, git, source-disclosure]
+  name: 'Exposed git ref (.git/refs/heads/main)'
+  body_words: []
+response:
+  headers:
+    Content-Type: "text/plain; charset=utf-8"
+  body: |
+    {{fake.gitcommit:hex:40}}

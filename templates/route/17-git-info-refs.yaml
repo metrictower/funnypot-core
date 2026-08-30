@@ -1,0 +1,26 @@
+id: route-vcs-info-refs
+priority: 17
+# Brand-new page: a leaked /.git/info/refs (the dumb-HTTP ref advertisement written by
+# `git update-server-info`). Format is `<sha>\t<refname>` per line. It lists the checked-out branch
+# head at the tip sha (same {{pick}} branch + {{fake.gitcommit}} as HEAD/packed-refs/refs-heads) and
+# the v1.0.0 tag at the parent sha ({{fake.gitparent}}, matching packed-refs) — so the ref graph is
+# consistent across every git surface. The tab is emitted as a real byte via {{hex:09}}. id avoids
+# the substring `git` (see 11-git-head.yaml). No taunt (strict `<sha>\t<ref>` format).
+new_page:
+  method: GET
+  paths: ['/.git/info/refs']
+  sig: 0
+  status: 200
+  severity: medium
+  tags: [exposure, vcs, git, source-disclosure]
+  name: 'Exposed git info/refs (.git/info/refs)'
+  body_words: ['refs/heads/']
+response:
+  headers:
+    Content-Type: "text/plain; charset=utf-8"
+  body: |
+    {{fake.gitcommit:hex:40}}{{hex:09}}refs/heads/{{pick:main,master,develop,release}}
+    {{fake.gitparent:hex:40}}{{hex:09}}refs/tags/v1.0.0
+expect:
+  - 'refs/heads/'
+  - 'refs/tags/v1.0.0'

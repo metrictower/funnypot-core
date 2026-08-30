@@ -1,0 +1,23 @@
+id: route-vcs-commit-msg
+priority: 15
+# Brand-new page: a leaked /.git/COMMIT_EDITMSG (the last commit's message buffer). It carries the
+# SAME {{pick}} message the logs/HEAD tip entry does, so the disclosed "last commit message" agrees
+# across the two surfaces for one host. A real COMMIT_EDITMSG is just the message text, so the body
+# is entirely the seed-derived pick and has no static marker. id avoids the substring `git`
+# (see 11-git-head.yaml). Taunt is `#`-line: git treats leading-`#` lines in a commit buffer as
+# strippable comments, so an appended taunt stays realistic.
+new_page:
+  method: GET
+  paths: ['/.git/COMMIT_EDITMSG']
+  sig: 0
+  status: 200
+  severity: medium
+  tags: [exposure, vcs, git, source-disclosure]
+  name: 'Exposed git commit message (.git/COMMIT_EDITMSG)'
+  body_words: []
+response:
+  headers:
+    Content-Type: "text/plain; charset=utf-8"
+  body: |
+    {{pick:Update dependencies,Fix login redirect,Refactor config loader,Add health endpoint,Bump version}}
+taunt: { mode: line, open: '#' }

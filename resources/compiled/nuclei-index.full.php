@@ -84513,6 +84513,114 @@ return array (
       ),
       'name' => 'Exposed environment file (/laravel/.env)',
     ),
+    'route-vcs-head' => 
+    array (
+      'sev' => 'medium',
+      'tags' => 
+      array (
+        0 => 'exposure',
+        1 => 'vcs',
+        2 => 'git',
+        3 => 'source-disclosure',
+      ),
+      'name' => 'Exposed git HEAD (.git/HEAD)',
+    ),
+    'route-vcs-packed-refs' => 
+    array (
+      'sev' => 'medium',
+      'tags' => 
+      array (
+        0 => 'exposure',
+        1 => 'vcs',
+        2 => 'git',
+        3 => 'source-disclosure',
+      ),
+      'name' => 'Exposed git packed-refs (.git/packed-refs)',
+    ),
+    'route-vcs-refs-main' => 
+    array (
+      'sev' => 'medium',
+      'tags' => 
+      array (
+        0 => 'exposure',
+        1 => 'vcs',
+        2 => 'git',
+        3 => 'source-disclosure',
+      ),
+      'name' => 'Exposed git ref (.git/refs/heads/main)',
+    ),
+    'route-vcs-description' => 
+    array (
+      'sev' => 'medium',
+      'tags' => 
+      array (
+        0 => 'exposure',
+        1 => 'vcs',
+        2 => 'git',
+        3 => 'source-disclosure',
+      ),
+      'name' => 'Exposed git description (.git/description)',
+    ),
+    'route-vcs-commit-msg' => 
+    array (
+      'sev' => 'medium',
+      'tags' => 
+      array (
+        0 => 'exposure',
+        1 => 'vcs',
+        2 => 'git',
+        3 => 'source-disclosure',
+      ),
+      'name' => 'Exposed git commit message (.git/COMMIT_EDITMSG)',
+    ),
+    'route-vcs-exclude' => 
+    array (
+      'sev' => 'medium',
+      'tags' => 
+      array (
+        0 => 'exposure',
+        1 => 'vcs',
+        2 => 'git',
+        3 => 'source-disclosure',
+      ),
+      'name' => 'Exposed git exclude (.git/info/exclude)',
+    ),
+    'route-vcs-info-refs' => 
+    array (
+      'sev' => 'medium',
+      'tags' => 
+      array (
+        0 => 'exposure',
+        1 => 'vcs',
+        2 => 'git',
+        3 => 'source-disclosure',
+      ),
+      'name' => 'Exposed git info/refs (.git/info/refs)',
+    ),
+    'route-vcs-svn-entries' => 
+    array (
+      'sev' => 'medium',
+      'tags' => 
+      array (
+        0 => 'exposure',
+        1 => 'vcs',
+        2 => 'subversion',
+        3 => 'source-disclosure',
+      ),
+      'name' => 'Exposed Subversion entries (.svn/entries)',
+    ),
+    'route-vcs-hg-requires' => 
+    array (
+      'sev' => 'medium',
+      'tags' => 
+      array (
+        0 => 'exposure',
+        1 => 'vcs',
+        2 => 'mercurial',
+        3 => 'source-disclosure',
+      ),
+      'name' => 'Exposed Mercurial requires (.hg/requires)',
+    ),
   ),
   'routes' => 
   array (
@@ -300541,6 +300649,220 @@ a</title>',
           't' => 
           array (
             0 => 'route-envfile-laravel',
+          ),
+        ),
+      ),
+    ),
+    'GET /.git/HEAD' => 
+    array (
+      'b' => 
+      array (
+        0 => 
+        array (
+          's' => 200,
+          'bw' => 
+          array (
+            0 => 'ref: refs/heads/',
+          ),
+          'nf' => 
+          array (
+          ),
+          'pid' => 'route-vcs-head',
+          'sev' => 'medium',
+          'sig' => 0,
+          't' => 
+          array (
+            0 => 'route-vcs-head',
+          ),
+        ),
+      ),
+    ),
+    'GET /.git/packed-refs' => 
+    array (
+      'b' => 
+      array (
+        0 => 
+        array (
+          's' => 200,
+          'bw' => 
+          array (
+            0 => 'refs/remotes/origin/',
+          ),
+          'nf' => 
+          array (
+          ),
+          'pid' => 'route-vcs-packed-refs',
+          'sev' => 'medium',
+          'sig' => 0,
+          't' => 
+          array (
+            0 => 'route-vcs-packed-refs',
+          ),
+        ),
+      ),
+    ),
+    'GET /.git/refs/heads/main' => 
+    array (
+      'b' => 
+      array (
+        0 => 
+        array (
+          's' => 200,
+          'bw' => 
+          array (
+          ),
+          'nf' => 
+          array (
+          ),
+          'pid' => 'route-vcs-refs-main',
+          'sev' => 'medium',
+          'sig' => 0,
+          't' => 
+          array (
+            0 => 'route-vcs-refs-main',
+          ),
+        ),
+      ),
+    ),
+    'GET /.git/description' => 
+    array (
+      'b' => 
+      array (
+        0 => 
+        array (
+          's' => 200,
+          'bw' => 
+          array (
+            0 => 'Unnamed repository',
+          ),
+          'nf' => 
+          array (
+          ),
+          'pid' => 'route-vcs-description',
+          'sev' => 'medium',
+          'sig' => 0,
+          't' => 
+          array (
+            0 => 'route-vcs-description',
+          ),
+        ),
+      ),
+    ),
+    'GET /.git/COMMIT_EDITMSG' => 
+    array (
+      'b' => 
+      array (
+        0 => 
+        array (
+          's' => 200,
+          'bw' => 
+          array (
+          ),
+          'nf' => 
+          array (
+          ),
+          'pid' => 'route-vcs-commit-msg',
+          'sev' => 'medium',
+          'sig' => 0,
+          't' => 
+          array (
+            0 => 'route-vcs-commit-msg',
+          ),
+        ),
+      ),
+    ),
+    'GET /.git/info/exclude' => 
+    array (
+      'b' => 
+      array (
+        0 => 
+        array (
+          's' => 200,
+          'bw' => 
+          array (
+            0 => 'git ls-files --others',
+          ),
+          'nf' => 
+          array (
+          ),
+          'pid' => 'route-vcs-exclude',
+          'sev' => 'medium',
+          'sig' => 0,
+          't' => 
+          array (
+            0 => 'route-vcs-exclude',
+          ),
+        ),
+      ),
+    ),
+    'GET /.git/info/refs' => 
+    array (
+      'b' => 
+      array (
+        0 => 
+        array (
+          's' => 200,
+          'bw' => 
+          array (
+            0 => 'refs/heads/',
+          ),
+          'nf' => 
+          array (
+          ),
+          'pid' => 'route-vcs-info-refs',
+          'sev' => 'medium',
+          'sig' => 0,
+          't' => 
+          array (
+            0 => 'route-vcs-info-refs',
+          ),
+        ),
+      ),
+    ),
+    'GET /.svn/entries' => 
+    array (
+      'b' => 
+      array (
+        0 => 
+        array (
+          's' => 200,
+          'bw' => 
+          array (
+            0 => 'dir',
+          ),
+          'nf' => 
+          array (
+          ),
+          'pid' => 'route-vcs-svn-entries',
+          'sev' => 'medium',
+          'sig' => 0,
+          't' => 
+          array (
+            0 => 'route-vcs-svn-entries',
+          ),
+        ),
+      ),
+    ),
+    'GET /.hg/requires' => 
+    array (
+      'b' => 
+      array (
+        0 => 
+        array (
+          's' => 200,
+          'bw' => 
+          array (
+            0 => 'revlogv1',
+          ),
+          'nf' => 
+          array (
+          ),
+          'pid' => 'route-vcs-hg-requires',
+          'sev' => 'medium',
+          'sig' => 0,
+          't' => 
+          array (
+            0 => 'route-vcs-hg-requires',
           ),
         ),
       ),

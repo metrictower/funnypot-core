@@ -7,6 +7,73 @@ declare(strict_types=1);
 return array (
   0 => 
   array (
+    'id' => 'route-git-logs-head',
+    'match' => 
+    array (
+      'template_needle' => 
+      array (
+        0 => 'git-logs-exposure',
+      ),
+    ),
+    'body' => '0000000000000000000000000000000000000000 {{fake.gitparent:hex:40}} {{fake.person.full:gitauthor}} <{{fake.person.email:gitauthor}}> 170{{fake.gitts0:dec:7}} +0000{{hex:09}}commit (initial): Set up a new repository
+{{fake.gitparent:hex:40}} {{fake.gitcommit:hex:40}} {{fake.person.full:gitauthor}} <{{fake.person.email:gitauthor}}> 175{{fake.gitts1:dec:7}} +0000{{hex:09}}commit: {{pick:Update dependencies,Fix login redirect,Refactor config loader,Add health endpoint,Bump version}}
+',
+    'headers' => 
+    array (
+      'Content-Type' => 'application/octet-stream',
+    ),
+  ),
+  1 => 
+  array (
+    'id' => 'route-bzr-branch-conf',
+    'match' => 
+    array (
+      'template_needle' => 
+      array (
+        0 => 'exposed-bzr',
+      ),
+    ),
+    'body' => 'parent_location = https://bzr.{{persona.company.domain}}/{{pick:app,platform,api,web,core}}/trunk/
+push_location = https://bzr.{{persona.company.domain}}/{{pick:app,platform,api,web,core}}/trunk/
+',
+    'headers' => 
+    array (
+      'Content-Type' => 'text/plain; charset=utf-8',
+    ),
+    'taunt' => 
+    array (
+      'mode' => 'line',
+      'open' => '#',
+    ),
+  ),
+  2 => 
+  array (
+    'id' => 'route-hg-hgrc',
+    'match' => 
+    array (
+      'template_needle' => 
+      array (
+        0 => 'exposed-hg',
+      ),
+    ),
+    'body' => '[paths]
+default = https://hg.{{persona.company.domain}}/{{pick:app,platform,api,web,core}}
+
+[ui]
+username = {{fake.person.full:hgauthor}} <{{fake.person.email:hgauthor}}>
+',
+    'headers' => 
+    array (
+      'Content-Type' => 'text/plain; charset=utf-8',
+    ),
+    'taunt' => 
+    array (
+      'mode' => 'line',
+      'open' => '#',
+    ),
+  ),
+  3 => 
+  array (
     'id' => 'route-git-config',
     'match' => 
     array (
@@ -38,7 +105,196 @@ return array (
       'open' => '#',
     ),
   ),
-  1 => 
+  4 => 
+  array (
+    'id' => 'route-vcs-head',
+    'match' => 
+    array (
+      'pid' => 
+      array (
+        0 => 'route-vcs-head',
+      ),
+    ),
+    'body' => 'ref: refs/heads/{{pick:main,master,develop,release}}
+',
+    'headers' => 
+    array (
+      'Content-Type' => 'text/plain; charset=utf-8',
+    ),
+  ),
+  5 => 
+  array (
+    'id' => 'route-vcs-packed-refs',
+    'match' => 
+    array (
+      'pid' => 
+      array (
+        0 => 'route-vcs-packed-refs',
+      ),
+    ),
+    'body' => '# pack-refs with: peeled fully-peeled sorted
+{{fake.gitcommit:hex:40}} refs/remotes/origin/{{pick:main,master,develop,release}}
+{{fake.gitparent:hex:40}} refs/tags/v1.0.0
+',
+    'headers' => 
+    array (
+      'Content-Type' => 'text/plain; charset=utf-8',
+    ),
+  ),
+  6 => 
+  array (
+    'id' => 'route-vcs-refs-main',
+    'match' => 
+    array (
+      'pid' => 
+      array (
+        0 => 'route-vcs-refs-main',
+      ),
+    ),
+    'body' => '{{fake.gitcommit:hex:40}}
+',
+    'headers' => 
+    array (
+      'Content-Type' => 'text/plain; charset=utf-8',
+    ),
+  ),
+  7 => 
+  array (
+    'id' => 'route-vcs-description',
+    'match' => 
+    array (
+      'pid' => 
+      array (
+        0 => 'route-vcs-description',
+      ),
+    ),
+    'body' => 'Unnamed repository; edit this file \'description\' to name the repository.
+',
+    'headers' => 
+    array (
+      'Content-Type' => 'text/plain; charset=utf-8',
+    ),
+    'taunt' => 
+    array (
+      'mode' => 'line',
+      'open' => '#',
+    ),
+  ),
+  8 => 
+  array (
+    'id' => 'route-vcs-commit-msg',
+    'match' => 
+    array (
+      'pid' => 
+      array (
+        0 => 'route-vcs-commit-msg',
+      ),
+    ),
+    'body' => '{{pick:Update dependencies,Fix login redirect,Refactor config loader,Add health endpoint,Bump version}}
+',
+    'headers' => 
+    array (
+      'Content-Type' => 'text/plain; charset=utf-8',
+    ),
+    'taunt' => 
+    array (
+      'mode' => 'line',
+      'open' => '#',
+    ),
+  ),
+  9 => 
+  array (
+    'id' => 'route-vcs-exclude',
+    'match' => 
+    array (
+      'pid' => 
+      array (
+        0 => 'route-vcs-exclude',
+      ),
+    ),
+    'body' => '# git ls-files --others --exclude-from=.git/info/exclude
+# Lines that start with \'#\' are comments.
+# For a project mostly in C, the following would be a good set of
+# exclude patterns (uncomment them if you want to use them):
+# *.[oa]
+# *~
+',
+    'headers' => 
+    array (
+      'Content-Type' => 'text/plain; charset=utf-8',
+    ),
+  ),
+  10 => 
+  array (
+    'id' => 'route-vcs-info-refs',
+    'match' => 
+    array (
+      'pid' => 
+      array (
+        0 => 'route-vcs-info-refs',
+      ),
+    ),
+    'body' => '{{fake.gitcommit:hex:40}}{{hex:09}}refs/heads/{{pick:main,master,develop,release}}
+{{fake.gitparent:hex:40}}{{hex:09}}refs/tags/v1.0.0
+',
+    'headers' => 
+    array (
+      'Content-Type' => 'text/plain; charset=utf-8',
+    ),
+  ),
+  11 => 
+  array (
+    'id' => 'route-vcs-svn-entries',
+    'match' => 
+    array (
+      'pid' => 
+      array (
+        0 => 'route-vcs-svn-entries',
+      ),
+    ),
+    'body' => '10
+
+dir
+{{fake.svnrev:dec:4}}
+https://svn.{{persona.company.domain}}/svn/{{pick:app,platform,api,web,core}}/trunk
+https://svn.{{persona.company.domain}}/svn/{{pick:app,platform,api,web,core}}
+
+
+
+2024-11-18T14:07:52.000000Z
+{{fake.svnrev:dec:4}}
+{{fake.person.username:svnauthor}}
+
+{{fake.svnuuid:hex:8}}-{{fake.svnuuidb:hex:4}}-{{fake.svnuuidc:hex:4}}-{{fake.svnuuidd:hex:4}}-{{fake.svnuuide:hex:12}}
+',
+    'headers' => 
+    array (
+      'Content-Type' => 'text/plain; charset=utf-8',
+    ),
+  ),
+  12 => 
+  array (
+    'id' => 'route-vcs-hg-requires',
+    'match' => 
+    array (
+      'pid' => 
+      array (
+        0 => 'route-vcs-hg-requires',
+      ),
+    ),
+    'body' => 'dotencode
+fncache
+generaldelta
+revlogv1
+sparserevlog
+store
+',
+    'headers' => 
+    array (
+      'Content-Type' => 'text/plain; charset=utf-8',
+    ),
+  ),
+  13 => 
   array (
     'id' => 'route-dotenv',
     'match' => 
@@ -106,7 +362,7 @@ SLACK_WEBHOOK_URL=https://hooks.slack.com/services/T{{fake.slackt:hex:8}}/B{{fak
       'open' => '#',
     ),
   ),
-  2 => 
+  14 => 
   array (
     'id' => 'route-xmlrpc',
     'match' => 
@@ -148,7 +404,7 @@ SLACK_WEBHOOK_URL=https://hooks.slack.com/services/T{{fake.slackt:hex:8}}/B{{fak
       'close' => '-->',
     ),
   ),
-  3 => 
+  15 => 
   array (
     'id' => 'route-wp-config',
     'match' => 
@@ -205,7 +461,7 @@ define(\'WP_DEBUG\', false);
       'open' => '#',
     ),
   ),
-  4 => 
+  16 => 
   array (
     'id' => 'route-wp-login',
     'match' => 
@@ -255,7 +511,7 @@ define(\'WP_DEBUG\', false);
     ),
     'set_cookie' => 'PHPSESSID',
   ),
-  5 => 
+  17 => 
   array (
     'id' => 'route-phpinfo',
     'match' => 
@@ -304,7 +560,7 @@ define(\'WP_DEBUG\', false);
       'close' => '-->',
     ),
   ),
-  6 => 
+  18 => 
   array (
     'id' => 'route-htpasswd',
     'match' => 
@@ -331,7 +587,7 @@ legacy:{SHA}{{fake.shalegacy:b64:27}}=
       'open' => '#',
     ),
   ),
-  7 => 
+  19 => 
   array (
     'id' => 'route-apache-server-status',
     'match' => 
@@ -372,7 +628,7 @@ Srv  Client          VHost                Request
       'close' => '-->',
     ),
   ),
-  8 => 
+  20 => 
   array (
     'id' => 'route-package-json',
     'match' => 
@@ -410,7 +666,7 @@ Srv  Client          VHost                Request
       'key' => '_comment',
     ),
   ),
-  9 => 
+  21 => 
   array (
     'id' => 'route-npm-debug-log',
     'match' => 
@@ -450,7 +706,7 @@ Srv  Client          VHost                Request
       'open' => '#',
     ),
   ),
-  10 => 
+  22 => 
   array (
     'id' => 'route-npmrc',
     'match' => 
@@ -487,7 +743,7 @@ always-auth=true
       'open' => '#',
     ),
   ),
-  11 => 
+  23 => 
   array (
     'id' => 'route-ssh-private-key',
     'match' => 
@@ -533,7 +789,7 @@ always-auth=true
       'open' => '#',
     ),
   ),
-  12 => 
+  24 => 
   array (
     'id' => 'route-sql-dump',
     'match' => 
@@ -586,7 +842,7 @@ INSERT INTO `api_credentials` VALUES (4,\'SENDGRID_API_KEY\',\'{{persona.cloud.s
       'open' => '--',
     ),
   ),
-  13 => 
+  25 => 
   array (
     'id' => 'route-weblogic',
     'match' => 
@@ -621,7 +877,7 @@ INSERT INTO `api_credentials` VALUES (4,\'SENDGRID_API_KEY\',\'{{persona.cloud.s
     ),
     'set_cookie' => 'JSESSIONID',
   ),
-  14 => 
+  26 => 
   array (
     'id' => 'route-exchange-owa',
     'match' => 
@@ -657,7 +913,7 @@ INSERT INTO `api_credentials` VALUES (4,\'SENDGRID_API_KEY\',\'{{persona.cloud.s
     ),
     'set_cookie' => 'ASP.NET_SessionId',
   ),
-  15 => 
+  27 => 
   array (
     'id' => 'route-adminer',
     'match' => 
@@ -693,7 +949,7 @@ INSERT INTO `api_credentials` VALUES (4,\'SENDGRID_API_KEY\',\'{{persona.cloud.s
     ),
     'set_cookie' => 'PHPSESSID',
   ),
-  16 => 
+  28 => 
   array (
     'id' => 'route-joomla',
     'match' => 
@@ -728,7 +984,7 @@ INSERT INTO `api_credentials` VALUES (4,\'SENDGRID_API_KEY\',\'{{persona.cloud.s
     ),
     'set_cookie' => 'PHPSESSID',
   ),
-  17 => 
+  29 => 
   array (
     'id' => 'route-wp-readme',
     'match' => 
@@ -758,7 +1014,7 @@ INSERT INTO `api_credentials` VALUES (4,\'SENDGRID_API_KEY\',\'{{persona.cloud.s
       'close' => '-->',
     ),
   ),
-  18 => 
+  30 => 
   array (
     'id' => 'route-citrix',
     'match' => 
@@ -792,7 +1048,7 @@ INSERT INTO `api_credentials` VALUES (4,\'SENDGRID_API_KEY\',\'{{persona.cloud.s
     ),
     'set_cookie' => 'NSC_AAAC',
   ),
-  19 => 
+  31 => 
   array (
     'id' => 'route-directory-listing',
     'match' => 
@@ -827,7 +1083,7 @@ INSERT INTO `api_credentials` VALUES (4,\'SENDGRID_API_KEY\',\'{{persona.cloud.s
       'close' => '-->',
     ),
   ),
-  20 => 
+  32 => 
   array (
     'id' => 'route-django-admin',
     'match' => 
@@ -865,7 +1121,7 @@ INSERT INTO `api_credentials` VALUES (4,\'SENDGRID_API_KEY\',\'{{persona.cloud.s
     ),
     'set_cookie' => 'sessionid',
   ),
-  21 => 
+  33 => 
   array (
     'id' => 'route-tomcat-manager',
     'match' => 
@@ -905,7 +1161,7 @@ INSERT INTO `api_credentials` VALUES (4,\'SENDGRID_API_KEY\',\'{{persona.cloud.s
     ),
     'set_cookie' => 'JSESSIONID',
   ),
-  22 => 
+  34 => 
   array (
     'id' => 'route-basic-auth',
     'match' => 
@@ -927,7 +1183,7 @@ INSERT INTO `api_credentials` VALUES (4,\'SENDGRID_API_KEY\',\'{{persona.cloud.s
       'WWW-Authenticate' => 'Basic realm="Restricted Area"',
     ),
   ),
-  23 => 
+  35 => 
   array (
     'id' => 'route-credentials-txt',
     'match' => 
@@ -976,7 +1232,7 @@ SLACK_WEBHOOK_URL=https://hooks.slack.com/services/T{{fake.slt:hex:8}}/B{{fake.s
       'open' => '#',
     ),
   ),
-  24 => 
+  36 => 
   array (
     'id' => 'route-terraform-tfstate',
     'match' => 
@@ -1048,7 +1304,7 @@ SLACK_WEBHOOK_URL=https://hooks.slack.com/services/T{{fake.slt:hex:8}}/B{{fake.s
       'key' => '_comment',
     ),
   ),
-  25 => 
+  37 => 
   array (
     'id' => 'route-users-csv',
     'match' => 
@@ -1078,7 +1334,7 @@ SLACK_WEBHOOK_URL=https://hooks.slack.com/services/T{{fake.slt:hex:8}}/B{{fake.s
       'open' => '#',
     ),
   ),
-  26 => 
+  38 => 
   array (
     'id' => 'route-sql-backup',
     'match' => 
@@ -1129,7 +1385,7 @@ INSERT INTO `api_keys` VALUES (4,\'SENDGRID_API_KEY\',\'{{persona.cloud.sendgrid
       'open' => '--',
     ),
   ),
-  27 => 
+  39 => 
   array (
     'id' => 'route-dotaws-listing',
     'match' => 
@@ -1163,7 +1419,7 @@ INSERT INTO `api_keys` VALUES (4,\'SENDGRID_API_KEY\',\'{{persona.cloud.sendgrid
       'close' => '-->',
     ),
   ),
-  28 => 
+  40 => 
   array (
     'id' => 'route-aws-cli-credentials',
     'match' => 
@@ -1182,7 +1438,7 @@ aws_secret_access_key = {{persona.cloud.aws.secretKey}}
       'Content-Type' => 'text/plain; charset=utf-8',
     ),
   ),
-  29 => 
+  41 => 
   array (
     'id' => 'route-aws-cli-config',
     'match' => 
@@ -1201,7 +1457,7 @@ output = json
       'Content-Type' => 'text/plain; charset=utf-8',
     ),
   ),
-  30 => 
+  42 => 
   array (
     'id' => 'route-phpmyadmin',
     'match' => 
@@ -1244,7 +1500,7 @@ output = json
     ),
     'set_cookie' => 'phpMyAdmin',
   ),
-  31 => 
+  43 => 
   array (
     'id' => 'route-phpmyadmin-css',
     'match' => 
@@ -1270,7 +1526,7 @@ body.loginform{background:#eef1f5;color:#212529;font:.9rem/1.5 -apple-system,"Se
       'Content-Type' => 'text/css; charset=UTF-8',
     ),
   ),
-  32 => 
+  44 => 
   array (
     'id' => 'route-ai-claude-json',
     'match' => 
@@ -1308,7 +1564,7 @@ body.loginform{background:#eef1f5;color:#212529;font:.9rem/1.5 -apple-system,"Se
       'key' => '_comment',
     ),
   ),
-  33 => 
+  45 => 
   array (
     'id' => 'route-ai-claude-settings',
     'match' => 
@@ -1341,7 +1597,7 @@ body.loginform{background:#eef1f5;color:#212529;font:.9rem/1.5 -apple-system,"Se
       'key' => '_comment',
     ),
   ),
-  34 => 
+  46 => 
   array (
     'id' => 'route-ai-claude-desktop',
     'match' => 
@@ -1375,7 +1631,7 @@ body.loginform{background:#eef1f5;color:#212529;font:.9rem/1.5 -apple-system,"Se
       'key' => '_comment',
     ),
   ),
-  35 => 
+  47 => 
   array (
     'id' => 'route-ai-mcp-json',
     'match' => 
@@ -1409,7 +1665,7 @@ body.loginform{background:#eef1f5;color:#212529;font:.9rem/1.5 -apple-system,"Se
       'key' => '_comment',
     ),
   ),
-  36 => 
+  48 => 
   array (
     'id' => 'route-ai-continue',
     'match' => 
@@ -1446,7 +1702,7 @@ body.loginform{background:#eef1f5;color:#212529;font:.9rem/1.5 -apple-system,"Se
       'key' => '_comment',
     ),
   ),
-  37 => 
+  49 => 
   array (
     'id' => 'route-ai-aider',
     'match' => 
@@ -1474,7 +1730,7 @@ gitignore: false
       'open' => '#',
     ),
   ),
-  38 => 
+  50 => 
   array (
     'id' => 'route-ai-copilot-token',
     'match' => 
@@ -1502,7 +1758,7 @@ gitignore: false
       'key' => '_comment',
     ),
   ),
-  39 => 
+  51 => 
   array (
     'id' => 'route-ai-openai-models',
     'match' => 
@@ -1532,7 +1788,7 @@ gitignore: false
       'key' => '_comment',
     ),
   ),
-  40 => 
+  52 => 
   array (
     'id' => 'route-mcp-endpoint',
     'match' => 
@@ -1549,7 +1805,7 @@ gitignore: false
       'Content-Type' => 'application/json',
     ),
   ),
-  41 => 
+  53 => 
   array (
     'id' => 'route-llm-auth',
     'match' => 
@@ -1566,7 +1822,7 @@ gitignore: false
       'Content-Type' => 'application/json',
     ),
   ),
-  42 => 
+  54 => 
   array (
     'id' => 'route-v1-models-enrich',
     'match' => 
@@ -1596,7 +1852,7 @@ gitignore: false
       'key' => '_comment',
     ),
   ),
-  43 => 
+  55 => 
   array (
     'id' => 'route-v1-models-vllm',
     'match' => 
@@ -1624,7 +1880,7 @@ gitignore: false
       'key' => '_comment',
     ),
   ),
-  44 => 
+  56 => 
   array (
     'id' => 'route-ai-ollama-version',
     'match' => 
@@ -1640,7 +1896,7 @@ gitignore: false
       'Content-Type' => 'application/json; charset=utf-8',
     ),
   ),
-  45 => 
+  57 => 
   array (
     'id' => 'route-config-php',
     'match' => 
@@ -1676,7 +1932,7 @@ define(\'AWS_DEFAULT_REGION\', \'{{persona.cloud.aws.region}}\');
       'open' => '#',
     ),
   ),
-  46 => 
+  58 => 
   array (
     'id' => 'route-ai-ollama-tags',
     'match' => 
@@ -1692,7 +1948,7 @@ define(\'AWS_DEFAULT_REGION\', \'{{persona.cloud.aws.region}}\');
       'Content-Type' => 'application/json; charset=utf-8',
     ),
   ),
-  47 => 
+  59 => 
   array (
     'id' => 'route-envfile-prod',
     'match' => 
@@ -1730,7 +1986,7 @@ JWT_SECRET={{persona.secret.jwt}}
       'open' => '#',
     ),
   ),
-  48 => 
+  60 => 
   array (
     'id' => 'route-ai-ollama-ps',
     'match' => 
@@ -1746,7 +2002,7 @@ JWT_SECRET={{persona.secret.jwt}}
       'Content-Type' => 'application/json; charset=utf-8',
     ),
   ),
-  49 => 
+  61 => 
   array (
     'id' => 'route-secrets-json',
     'match' => 
@@ -1783,7 +2039,7 @@ JWT_SECRET={{persona.secret.jwt}}
       'key' => '_comment',
     ),
   ),
-  50 => 
+  62 => 
   array (
     'id' => 'route-docker-compose',
     'match' => 
@@ -1836,7 +2092,7 @@ services:
       'open' => '#',
     ),
   ),
-  51 => 
+  63 => 
   array (
     'id' => 'route-application-properties',
     'match' => 
@@ -1868,7 +2124,7 @@ cloud.aws.region.static={{persona.cloud.aws.region}}
       'open' => '#',
     ),
   ),
-  52 => 
+  64 => 
   array (
     'id' => 'route-application-yml',
     'match' => 
@@ -1906,7 +2162,7 @@ cloud:
       'open' => '#',
     ),
   ),
-  53 => 
+  65 => 
   array (
     'id' => 'route-settings-json',
     'match' => 
@@ -1944,7 +2200,7 @@ cloud:
       'key' => '_comment',
     ),
   ),
-  54 => 
+  66 => 
   array (
     'id' => 'route-web-config',
     'match' => 
@@ -1988,7 +2244,7 @@ cloud:
       'close' => '-->',
     ),
   ),
-  55 => 
+  67 => 
   array (
     'id' => 'route-config-js-firebase',
     'match' => 
@@ -2020,7 +2276,7 @@ firebase.initializeApp(firebaseConfig);
       'open' => '//',
     ),
   ),
-  56 => 
+  68 => 
   array (
     'id' => 'route-envfile-local',
     'match' => 
@@ -2058,7 +2314,7 @@ JWT_SECRET={{persona.secret.jwt}}
       'open' => '#',
     ),
   ),
-  57 => 
+  69 => 
   array (
     'id' => 'route-react-runtime-env',
     'match' => 
@@ -2087,7 +2343,7 @@ REACT_APP_GA_MEASUREMENT_ID=G-{{fake.reactga:hexupper:10}}
       'open' => '#',
     ),
   ),
-  58 => 
+  70 => 
   array (
     'id' => 'route-envfile-dev',
     'match' => 
@@ -2125,7 +2381,7 @@ JWT_SECRET={{persona.secret.jwt}}
       'open' => '#',
     ),
   ),
-  59 => 
+  71 => 
   array (
     'id' => 'route-envfile-staging',
     'match' => 
@@ -2163,7 +2419,7 @@ JWT_SECRET={{persona.secret.jwt}}
       'open' => '#',
     ),
   ),
-  60 => 
+  72 => 
   array (
     'id' => 'route-envfile-test',
     'match' => 
@@ -2201,7 +2457,7 @@ JWT_SECRET={{persona.secret.jwt}}
       'open' => '#',
     ),
   ),
-  61 => 
+  73 => 
   array (
     'id' => 'route-envfile-bak',
     'match' => 
@@ -2239,7 +2495,7 @@ JWT_SECRET={{persona.secret.jwt}}
       'open' => '#',
     ),
   ),
-  62 => 
+  74 => 
   array (
     'id' => 'route-envfile-php-src',
     'match' => 
@@ -2282,7 +2538,7 @@ return [
       'open' => '#',
     ),
   ),
-  63 => 
+  75 => 
   array (
     'id' => 'route-envfile-laravel',
     'match' => 
@@ -2322,7 +2578,7 @@ JWT_SECRET={{persona.secret.jwt}}
       'open' => '#',
     ),
   ),
-  64 => 
+  76 => 
   array (
     'id' => 'route-iceflow-vpn-log',
     'match' => 
@@ -2350,7 +2606,7 @@ ICEFLOW VPN: [10/Oct/2024:13:55:52 +0000] gw=vpn-gw01 event=session-end user={{p
       'open' => '#',
     ),
   ),
-  65 => 
+  77 => 
   array (
     'id' => 'route-laravel-log-file',
     'match' => 
@@ -2380,7 +2636,7 @@ ICEFLOW VPN: [10/Oct/2024:13:55:52 +0000] gw=vpn-gw01 event=session-end user={{p
       'open' => '#',
     ),
   ),
-  66 => 
+  78 => 
   array (
     'id' => 'route-firebase-debug-log',
     'match' => 
@@ -2413,7 +2669,7 @@ ICEFLOW VPN: [10/Oct/2024:13:55:52 +0000] gw=vpn-gw01 event=session-end user={{p
       'open' => '#',
     ),
   ),
-  67 => 
+  79 => 
   array (
     'id' => 'route-magento-debug-log',
     'match' => 
@@ -2439,7 +2695,7 @@ ICEFLOW VPN: [10/Oct/2024:13:55:52 +0000] gw=vpn-gw01 event=session-end user={{p
       'open' => '#',
     ),
   ),
-  68 => 
+  80 => 
   array (
     'id' => 'route-rails-development-log',
     'match' => 
@@ -2468,7 +2724,7 @@ Completed 200 OK in 45ms (Views: 38.2ms | ActiveRecord: 3.1ms | Allocations: 421
       'open' => '#',
     ),
   ),
-  69 => 
+  81 => 
   array (
     'id' => 'route-rails-production-log',
     'match' => 
@@ -2499,7 +2755,7 @@ Completed 401 Unauthorized in 18ms (ActiveRecord: 2.4ms | Allocations: 3187)
       'open' => '#',
     ),
   ),
-  70 => 
+  82 => 
   array (
     'id' => 'route-access-log',
     'match' => 
@@ -2530,7 +2786,7 @@ Completed 401 Unauthorized in 18ms (ActiveRecord: 2.4ms | Allocations: 3187)
       'open' => '#',
     ),
   ),
-  71 => 
+  83 => 
   array (
     'id' => 'route-wp-debug-log',
     'match' => 
@@ -2555,7 +2811,7 @@ Completed 401 Unauthorized in 18ms (ActiveRecord: 2.4ms | Allocations: 3187)
       'open' => '#',
     ),
   ),
-  72 => 
+  84 => 
   array (
     'id' => 'route-php-error-log',
     'match' => 
@@ -2584,7 +2840,7 @@ Stack trace:
       'open' => '#',
     ),
   ),
-  73 => 
+  85 => 
   array (
     'id' => 'route-laravel-log-alt',
     'match' => 
@@ -2612,7 +2868,7 @@ Stack trace:
       'open' => '#',
     ),
   ),
-  74 => 
+  86 => 
   array (
     'id' => 'route-nginx-error-log',
     'match' => 
@@ -2637,7 +2893,7 @@ Stack trace:
       'open' => '#',
     ),
   ),
-  75 => 
+  87 => 
   array (
     'id' => 'route-nginx-access-log',
     'match' => 
@@ -2664,7 +2920,7 @@ Stack trace:
       'open' => '#',
     ),
   ),
-  76 => 
+  88 => 
   array (
     'id' => 'route-apache-error-log',
     'match' => 
@@ -2689,7 +2945,7 @@ Stack trace:
       'open' => '#',
     ),
   ),
-  77 => 
+  89 => 
   array (
     'id' => 'route-apache-access-log',
     'match' => 
@@ -2715,7 +2971,7 @@ Stack trace:
       'open' => '#',
     ),
   ),
-  78 => 
+  90 => 
   array (
     'id' => 'route-app-log',
     'match' => 
@@ -2741,7 +2997,7 @@ Stack trace:
       'open' => '#',
     ),
   ),
-  79 => 
+  91 => 
   array (
     'id' => 'route-catalina-out',
     'match' => 
@@ -2771,7 +3027,7 @@ Stack trace:
       'open' => '#',
     ),
   ),
-  80 => 
+  92 => 
   array (
     'id' => 'route-ignition-health-check',
     'match' => 
@@ -2795,7 +3051,7 @@ Stack trace:
       'key' => '_comment',
     ),
   ),
-  81 => 
+  93 => 
   array (
     'id' => 'route-ignition-logs',
     'match' => 
@@ -2815,7 +3071,7 @@ Stack trace:
       'Content-Type' => 'application/json',
     ),
   ),
-  82 => 
+  94 => 
   array (
     'id' => 'route-symfony-profiler',
     'match' => 
@@ -2867,7 +3123,7 @@ Stack trace:
       'close' => '-->',
     ),
   ),
-  83 => 
+  95 => 
   array (
     'id' => 'route-werkzeug-console',
     'match' => 
@@ -2902,7 +3158,7 @@ Stack trace:
       'close' => '-->',
     ),
   ),
-  84 => 
+  96 => 
   array (
     'id' => 'route-telescope',
     'match' => 
@@ -2945,7 +3201,7 @@ Stack trace:
       'close' => '-->',
     ),
   ),
-  85 => 
+  97 => 
   array (
     'id' => 'route-actuator-env',
     'match' => 
@@ -2988,7 +3244,7 @@ Stack trace:
       'key' => '_comment',
     ),
   ),
-  86 => 
+  98 => 
   array (
     'id' => 'route-actuator-health',
     'match' => 
@@ -3023,7 +3279,7 @@ Stack trace:
       'key' => '_comment',
     ),
   ),
-  87 => 
+  99 => 
   array (
     'id' => 'route-actuator-mappings',
     'match' => 
@@ -3067,7 +3323,7 @@ Stack trace:
       'key' => '_comment',
     ),
   ),
-  88 => 
+  100 => 
   array (
     'id' => 'route-actuator-info',
     'match' => 
@@ -3099,7 +3355,7 @@ Stack trace:
       'key' => '_comment',
     ),
   ),
-  89 => 
+  101 => 
   array (
     'id' => 'route-actuator-beans',
     'match' => 
@@ -3142,7 +3398,7 @@ Stack trace:
       'key' => '_comment',
     ),
   ),
-  90 => 
+  102 => 
   array (
     'id' => 'route-actuator-loggers',
     'match' => 
@@ -3171,7 +3427,7 @@ Stack trace:
       'key' => '_comment',
     ),
   ),
-  91 => 
+  103 => 
   array (
     'id' => 'route-actuator-threaddump',
     'match' => 
@@ -3215,7 +3471,7 @@ Stack trace:
       'key' => '_comment',
     ),
   ),
-  92 => 
+  104 => 
   array (
     'id' => 'route-actuator-configprops',
     'match' => 
@@ -3256,7 +3512,7 @@ Stack trace:
       'key' => '_comment',
     ),
   ),
-  93 => 
+  105 => 
   array (
     'id' => 'route-openapi-json',
     'match' => 
@@ -3319,7 +3575,7 @@ Stack trace:
       'key' => '_comment',
     ),
   ),
-  94 => 
+  106 => 
   array (
     'id' => 'route-openapi-json-swaggerui',
     'match' => 
@@ -3360,7 +3616,7 @@ Stack trace:
       'close' => '-->',
     ),
   ),
-  95 => 
+  107 => 
   array (
     'id' => 'route-openapi-redoc',
     'match' => 
@@ -3397,7 +3653,7 @@ Stack trace:
       'close' => '-->',
     ),
   ),
-  96 => 
+  108 => 
   array (
     'id' => 'route-security-txt',
     'match' => 
@@ -3425,7 +3681,7 @@ Policy: https://{{persona.company.domain}}/security-policy
       'open' => '#',
     ),
   ),
-  97 => 
+  109 => 
   array (
     'id' => 'route-ai-plugin',
     'match' => 
@@ -3458,7 +3714,7 @@ Policy: https://{{persona.company.domain}}/security-policy
       'key' => '_comment',
     ),
   ),
-  98 => 
+  110 => 
   array (
     'id' => 'route-graphql-introspection',
     'match' => 
@@ -3510,7 +3766,7 @@ Policy: https://{{persona.company.domain}}/security-policy
       'key' => '_comment',
     ),
   ),
-  99 => 
+  111 => 
   array (
     'id' => 'route-swagger-json-doc',
     'match' => 
@@ -3573,7 +3829,7 @@ Policy: https://{{persona.company.domain}}/security-policy
       'key' => '_comment',
     ),
   ),
-  100 => 
+  112 => 
   array (
     'id' => 'route-swagger2-apidocs',
     'match' => 
@@ -3615,7 +3871,7 @@ Policy: https://{{persona.company.domain}}/security-policy
       'key' => '_comment',
     ),
   ),
-  101 => 
+  113 => 
   array (
     'id' => 'route-swagger-yaml-doc',
     'match' => 
@@ -3673,7 +3929,7 @@ components:
       'open' => '#',
     ),
   ),
-  102 => 
+  114 => 
   array (
     'id' => 'route-swagger-ui-html',
     'match' => 
@@ -3717,7 +3973,7 @@ components:
       'close' => '-->',
     ),
   ),
-  103 => 
+  115 => 
   array (
     'id' => 'route-wp-json',
     'match' => 
@@ -3762,7 +4018,7 @@ components:
       'key' => '_comment',
     ),
   ),
-  104 => 
+  116 => 
   array (
     'id' => 'route-api-v2',
     'match' => 
@@ -3795,7 +4051,7 @@ components:
       'key' => '_comment',
     ),
   ),
-  105 => 
+  117 => 
   array (
     'id' => 'route-hikvision-deviceinfo',
     'match' => 
@@ -3840,7 +4096,7 @@ components:
       'close' => '-->',
     ),
   ),
-  106 => 
+  118 => 
   array (
     'id' => 'route-hikvision-users',
     'match' => 
@@ -3884,7 +4140,7 @@ components:
       'close' => '-->',
     ),
   ),
-  107 => 
+  119 => 
   array (
     'id' => 'route-netgear-currentsetting',
     'match' => 
@@ -3916,7 +4172,7 @@ DeviceMode=0
       'open' => '#',
     ),
   ),
-  108 => 
+  120 => 
   array (
     'id' => 'route-synology-dsm',
     'match' => 
@@ -3963,7 +4219,7 @@ DeviceMode=0
       'key' => '_comment',
     ),
   ),
-  109 => 
+  121 => 
   array (
     'id' => 'route-avtech-machine',
     'match' => 
@@ -3993,7 +4249,7 @@ HTTP.Port=80
       'open' => '#',
     ),
   ),
-  110 => 
+  122 => 
   array (
     'id' => 'route-tbk-dvr-devicersp',
     'match' => 
@@ -4037,7 +4293,7 @@ HTTP.Port=80
       'key' => '_comment',
     ),
   ),
-  111 => 
+  123 => 
   array (
     'id' => 'route-huawei-deviceinfo',
     'match' => 
@@ -4070,7 +4326,7 @@ HTTP.Port=80
       'close' => '-->',
     ),
   ),
-  112 => 
+  124 => 
   array (
     'id' => 'route-dlink-info-cgi',
     'match' => 
@@ -4098,7 +4354,7 @@ Temperature=41
       'open' => '#',
     ),
   ),
-  113 => 
+  125 => 
   array (
     'id' => 'route-dahua-sha1account',
     'match' => 
@@ -4132,7 +4388,7 @@ table.Account1.Sharable=true
       'open' => '#',
     ),
   ),
-  114 => 
+  126 => 
   array (
     'id' => 'route-apollo-device-config',
     'match' => 
@@ -4163,7 +4419,7 @@ table.Account1.Sharable=true
       'key' => '_comment',
     ),
   ),
-  115 => 
+  127 => 
   array (
     'id' => 'route-dahua-passwd',
     'match' => 
@@ -4190,7 +4446,7 @@ table.Account1.Sharable=true
       'open' => '#',
     ),
   ),
-  116 => 
+  128 => 
   array (
     'id' => 'route-qnap-qts',
     'match' => 
@@ -4231,7 +4487,7 @@ table.Account1.Sharable=true
       'close' => '-->',
     ),
   ),
-  117 => 
+  129 => 
   array (
     'id' => 'route-hp-device-info',
     'match' => 
@@ -4268,7 +4524,7 @@ table.Account1.Sharable=true
       'close' => '-->',
     ),
   ),
-  118 => 
+  130 => 
   array (
     'id' => 'route-openwrt-luci',
     'match' => 
@@ -4314,7 +4570,7 @@ table.Account1.Sharable=true
       'close' => '-->',
     ),
   ),
-  119 => 
+  131 => 
   array (
     'id' => 'route-dlink-getcfg',
     'match' => 
@@ -4356,7 +4612,7 @@ table.Account1.Sharable=true
       'close' => '-->',
     ),
   ),
-  120 => 
+  132 => 
   array (
     'id' => 'route-wavlink-exportsettings',
     'match' => 
@@ -4386,7 +4642,7 @@ RemoteManage=0
       'open' => '#',
     ),
   ),
-  121 => 
+  133 => 
   array (
     'id' => 'route-epson-prtinfo',
     'match' => 
@@ -4422,7 +4678,7 @@ RemoteManage=0
       'close' => '-->',
     ),
   ),
-  122 => 
+  134 => 
   array (
     'id' => 'route-hp-color-laserjet',
     'match' => 
@@ -4458,7 +4714,7 @@ RemoteManage=0
       'close' => '-->',
     ),
   ),
-  123 => 
+  135 => 
   array (
     'id' => 'route-webmin',
     'match' => 
@@ -4503,7 +4759,7 @@ RemoteManage=0
       'close' => '-->',
     ),
   ),
-  124 => 
+  136 => 
   array (
     'id' => 'route-phppgadmin',
     'match' => 
@@ -4540,7 +4796,7 @@ RemoteManage=0
       'close' => '-->',
     ),
   ),
-  125 => 
+  137 => 
   array (
     'id' => 'route-kibana',
     'match' => 
@@ -4583,7 +4839,7 @@ RemoteManage=0
       'close' => '-->',
     ),
   ),
-  126 => 
+  138 => 
   array (
     'id' => 'route-jenkins',
     'match' => 
@@ -4635,7 +4891,7 @@ RemoteManage=0
       'close' => '-->',
     ),
   ),
-  127 => 
+  139 => 
   array (
     'id' => 'route-grafana-settings',
     'match' => 
@@ -4672,7 +4928,7 @@ RemoteManage=0
       'key' => '_comment',
     ),
   ),
-  128 => 
+  140 => 
   array (
     'id' => 'route-phpmyadmin-changelog',
     'match' => 
@@ -4716,7 +4972,7 @@ For older entries see https://www.phpmyadmin.net/old-stable/
       'open' => '#',
     ),
   ),
-  129 => 
+  141 => 
   array (
     'id' => 'route-phpmyadmin-readme',
     'match' => 
@@ -4764,7 +5020,7 @@ See the LICENSE file for a copy of the license.
       'open' => '#',
     ),
   ),
-  130 => 
+  142 => 
   array (
     'id' => 'route-phpmyadmin-doc',
     'match' => 
@@ -4819,7 +5075,7 @@ of MySQL and MariaDB over the web.</p>
       'close' => '-->',
     ),
   ),
-  131 => 
+  143 => 
   array (
     'id' => 'route-grafana-health',
     'match' => 
@@ -4845,7 +5101,7 @@ of MySQL and MariaDB over the web.</p>
       'key' => '_comment',
     ),
   ),
-  132 => 
+  144 => 
   array (
     'id' => 'route-grafana-login',
     'match' => 
@@ -4895,7 +5151,7 @@ window.grafanaBootData = {
     ),
     'set_cookie' => 'grafana_session',
   ),
-  133 => 
+  145 => 
   array (
     'id' => 'route-jenkins-apijson',
     'match' => 
@@ -4942,7 +5198,7 @@ window.grafanaBootData = {
       'key' => '_comment',
     ),
   ),
-  134 => 
+  146 => 
   array (
     'id' => 'route-pgadmin-login',
     'match' => 
@@ -4997,7 +5253,7 @@ window.grafanaBootData = {
     ),
     'set_cookie' => 'pga4_session',
   ),
-  135 => 
+  147 => 
   array (
     'id' => 'route-cpanel-login',
     'match' => 
@@ -5048,7 +5304,7 @@ window.grafanaBootData = {
       'close' => '-->',
     ),
   ),
-  136 => 
+  148 => 
   array (
     'id' => 'route-whm-login',
     'match' => 
@@ -5099,7 +5355,7 @@ window.grafanaBootData = {
       'close' => '-->',
     ),
   ),
-  137 => 
+  149 => 
   array (
     'id' => 'route-phppgadmin-intro',
     'match' => 

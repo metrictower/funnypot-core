@@ -1,0 +1,29 @@
+id: route-vcs-packed-refs
+priority: 12
+# Brand-new page: a leaked /.git/packed-refs. Post-clone shape: the standard header line, then a
+# packed remote-tracking ref for origin/<branch> at the tip sha, then a lightweight tag at the
+# parent (older) commit. The branch reuses the same {{pick}} as HEAD/config; the tip sha
+# {{fake.gitcommit}} matches refs/heads/main + info/refs + the logs/HEAD tip; the tag/parent sha
+# {{fake.gitparent}} matches the logs/HEAD initial commit and info/refs tag — so nothing contradicts.
+# id avoids the substring `git` (see 11-git-head.yaml). No taunt: the packed-refs parser only tolerates
+# the leading `# pack-refs with:` header line, so appended comment lines would be malformed.
+new_page:
+  method: GET
+  paths: ['/.git/packed-refs']
+  sig: 0
+  status: 200
+  severity: medium
+  tags: [exposure, vcs, git, source-disclosure]
+  name: 'Exposed git packed-refs (.git/packed-refs)'
+  body_words: ['refs/remotes/origin/']
+response:
+  headers:
+    Content-Type: "text/plain; charset=utf-8"
+  body: |
+    # pack-refs with: peeled fully-peeled sorted
+    {{fake.gitcommit:hex:40}} refs/remotes/origin/{{pick:main,master,develop,release}}
+    {{fake.gitparent:hex:40}} refs/tags/v1.0.0
+expect:
+  - '# pack-refs with: peeled fully-peeled sorted'
+  - 'refs/remotes/origin/'
+  - 'refs/tags/v1.0.0'

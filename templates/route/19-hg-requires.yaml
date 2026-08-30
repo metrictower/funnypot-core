@@ -1,0 +1,29 @@
+id: route-vcs-hg-requires
+priority: 19
+# Brand-new page: a leaked /.hg/requires — Mercurial's repo-format requirements list. The set below
+# is the standard requires content for a modern hg repository (one requirement per line), so the
+# fixed constant IS the authentic content, not a fingerprint. Complements the /.hg/hgrc enrich; the
+# two together read as a genuine leaked Mercurial store. id avoids the substring `git`
+# (see 11-git-head.yaml). No taunt (strict requirement list).
+new_page:
+  method: GET
+  paths: ['/.hg/requires']
+  sig: 0
+  status: 200
+  severity: medium
+  tags: [exposure, vcs, mercurial, source-disclosure]
+  name: 'Exposed Mercurial requires (.hg/requires)'
+  body_words: ['revlogv1']
+response:
+  headers:
+    Content-Type: "text/plain; charset=utf-8"
+  body: |
+    dotencode
+    fncache
+    generaldelta
+    revlogv1
+    sparserevlog
+    store
+expect:
+  - 'revlogv1'
+  - 'store'

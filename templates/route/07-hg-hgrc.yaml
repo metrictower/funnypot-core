@@ -1,0 +1,23 @@
+id: route-hg-hgrc
+priority: 7
+# Enrich for the corpus exposed-hg bundle at /.hg/hgrc: replace the bare `[paths]`/`default`
+# minimal synth with a real Mercurial hgrc. The [paths] default is this host's persona-domain
+# Mercurial server (a plausible internal remote, never a placeholder), and [ui] carries a
+# fabricated committer identity (name + persona-domain email) from the shared person generator.
+# The repo name reuses the same {{pick}} the other VCS surfaces use, so the project name is stable.
+match:
+  template_needle: [exposed-hg]
+response:
+  headers:
+    Content-Type: "text/plain; charset=utf-8"
+  body: |
+    [paths]
+    default = https://hg.{{persona.company.domain}}/{{pick:app,platform,api,web,core}}
+
+    [ui]
+    username = {{fake.person.full:hgauthor}} <{{fake.person.email:hgauthor}}>
+taunt: { mode: line, open: '#' }
+expect:
+  - '[paths]'
+  - 'default = https://hg.'
+  - '[ui]'

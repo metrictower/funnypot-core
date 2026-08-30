@@ -75,7 +75,7 @@ final class ZapCoverageTest extends TestCase
     public function test_route_rule_count_is_128_plus_the_new_rules(): void
     {
         $rules = require __DIR__ . '/../resources/compiled/funnypot-routes.php';
-        self::assertCount(138, $rules, 'route rule count must be 128 (baseline) + 4 (css, listing, credentials, config) + 6 (.env family: development/staging/test/bak/php/laravel-subdir)');
+        self::assertCount(150, $rules, 'route rule count must be 128 (baseline) + 4 (css, listing, credentials, config) + 6 (.env family: development/staging/test/bak/php/laravel-subdir) + 12 (VCS-exposure pack: 3 enrich .git-logs/.bzr/.hg-hgrc + 9 new .git/.svn/.hg pages)');
 
         $ids = array_map(static function (array $r): string { return (string) $r['id']; }, $rules);
         self::assertContains('route-phpmyadmin-css', $ids);
@@ -89,6 +89,21 @@ final class ZapCoverageTest extends TestCase
         self::assertContains('route-envfile-bak', $ids);
         self::assertContains('route-envfile-php-src', $ids);
         self::assertContains('route-envfile-laravel', $ids);
+        // VCS-exposure pack: 3 enrich rules (dress corpus git-logs / bzr / hg-hgrc bundles) + 9
+        // brand-new .git/.svn/.hg pages. The new-page ids are route-vcs-* (never carrying `git`), so
+        // route-git-config's broad `git` needle cannot hijack them.
+        self::assertContains('route-git-logs-head', $ids);
+        self::assertContains('route-bzr-branch-conf', $ids);
+        self::assertContains('route-hg-hgrc', $ids);
+        self::assertContains('route-vcs-head', $ids);
+        self::assertContains('route-vcs-packed-refs', $ids);
+        self::assertContains('route-vcs-refs-main', $ids);
+        self::assertContains('route-vcs-description', $ids);
+        self::assertContains('route-vcs-commit-msg', $ids);
+        self::assertContains('route-vcs-exclude', $ids);
+        self::assertContains('route-vcs-info-refs', $ids);
+        self::assertContains('route-vcs-svn-entries', $ids);
+        self::assertContains('route-vcs-hg-requires', $ids);
     }
 
     // --- IMDS base listing (attack/91-imds-base.yaml) -----------------------------------------

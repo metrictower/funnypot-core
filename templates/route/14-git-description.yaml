@@ -1,0 +1,23 @@
+id: route-vcs-description
+priority: 14
+# Brand-new page: a leaked /.git/description. This file is byte-identical in every git repo (it ships
+# from the git templates and is only changed by gitweb users), so the exact default text IS the
+# authentic content — a fixed constant here is correct, not a fingerprint. id avoids the substring
+# `git` (see 11-git-head.yaml).
+new_page:
+  method: GET
+  paths: ['/.git/description']
+  sig: 0
+  status: 200
+  severity: medium
+  tags: [exposure, vcs, git, source-disclosure]
+  name: 'Exposed git description (.git/description)'
+  body_words: ["Unnamed repository"]
+response:
+  headers:
+    Content-Type: "text/plain; charset=utf-8"
+  body: |
+    Unnamed repository; edit this file 'description' to name the repository.
+taunt: { mode: line, open: '#' }
+expect:
+  - "Unnamed repository; edit this file 'description' to name the repository."

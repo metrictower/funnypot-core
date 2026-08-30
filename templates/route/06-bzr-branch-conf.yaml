@@ -1,0 +1,24 @@
+id: route-bzr-branch-conf
+priority: 6
+# Enrich for the corpus exposed-bzr bundle at /.bzr/branch/branch.conf (a golden acceptance id).
+# The minimal synth only emits the bare word `parent_location`; this serves a real Bazaar
+# branch.conf so both matcher words are present and the file reads as a genuine leaked checkout.
+#
+# The golden matcher (tests/acceptance/golden-templates/exposed-bzr.yaml) is: body word
+# parent_location OR push_location, Content-Type text/plain, status 200 — all satisfied here.
+# The two location URLs point at this host's persona domain (a plausible internal Bazaar server),
+# never a placeholder. parent_location / push_location are legitimate bzr file content, not a
+# scanner signature. The repo name reuses the same {{pick}} the git remote uses, so the disclosed
+# project name is stable across the host's VCS surfaces.
+match:
+  template_needle: [exposed-bzr]
+response:
+  headers:
+    Content-Type: "text/plain; charset=utf-8"
+  body: |
+    parent_location = https://bzr.{{persona.company.domain}}/{{pick:app,platform,api,web,core}}/trunk/
+    push_location = https://bzr.{{persona.company.domain}}/{{pick:app,platform,api,web,core}}/trunk/
+taunt: { mode: line, open: '#' }
+expect:
+  - 'parent_location = https://bzr.'
+  - 'push_location = https://bzr.'

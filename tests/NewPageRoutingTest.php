@@ -276,7 +276,122 @@ final class NewPageRoutingTest extends TestCase
             'pgadmin login (alt)'   => ['/pgadmin4/login', 200, 'Version 8.5', 'text/html; charset=utf-8'],
             'cpanel login'          => ['/cpanel', 200, '<h1>cPanel</h1>', 'text/html; charset=utf-8'],
             'whm login'             => ['/whm', 200, 'Web Host Manager', 'text/html; charset=utf-8'],
+
+            // VCS-exposure pack (.git / .svn / .hg / .bzr). Each serves its file's real type — the
+            // git text metadata files are text/plain, and /.git/logs/HEAD is application/octet-stream
+            // (the corpus git-logs-exposure matcher requires that header, and a static server serves
+            // an extensionless reflog as octet-stream). The marker proves the AUTHORED body served,
+            // not the .git/config body (a broad `git` needle would hijack an id containing `git`, so
+            // the new-page ids are route-vcs-*): /.git/HEAD carries a HEAD ref, never [core]. The
+            // logs/HEAD marker is the static initial-commit line, which only appears when the rich
+            // reflog served (the minimal-synth fallback would be the bare regex witness).
+            '.git/HEAD'           => ['/.git/HEAD', 200, 'ref: refs/heads/', 'text/plain; charset=utf-8'],
+            '.git/logs/HEAD'      => ['/.git/logs/HEAD', 200, 'commit (initial): Set up a new repository', 'application/octet-stream'],
+            '.git/packed-refs'    => ['/.git/packed-refs', 200, '# pack-refs with: peeled fully-peeled sorted', 'text/plain; charset=utf-8'],
+            '.git/description'    => ['/.git/description', 200, 'Unnamed repository', 'text/plain; charset=utf-8'],
+            '.git/info/exclude'   => ['/.git/info/exclude', 200, 'git ls-files --others', 'text/plain; charset=utf-8'],
+            '.git/info/refs'      => ['/.git/info/refs', 200, 'refs/tags/v1.0.0', 'text/plain; charset=utf-8'],
+            '.svn/entries'        => ['/.svn/entries', 200, 'https://svn.', 'text/plain; charset=utf-8'],
+            '.hg/requires'        => ['/.hg/requires', 200, 'revlogv1', 'text/plain; charset=utf-8'],
+            '.hg/hgrc'            => ['/.hg/hgrc', 200, '[paths]', 'text/plain; charset=utf-8'],
+            '.bzr/branch.conf'    => ['/.bzr/branch/branch.conf', 200, 'parent_location = https://bzr.', 'text/plain; charset=utf-8'],
         ];
+    }
+
+    public function test_vcs_git_surface_is_coherent_and_not_hijacked(): void
+    {
+        // The VCS-exposure git pack must present ONE coherent repository per host (per seed): the
+        // branch, the tip sha and the parent sha agree across /.git/config, HEAD, logs/HEAD,
+        // packed-refs, refs/heads/main and info/refs, and the last commit message is identical on
+        // COMMIT_EDITMSG and the logs/HEAD tip. None of the new git pages may serve the .git/config
+        // body (the `git`-needle hijack the route-vcs-* ids are named to avoid).
+        for ($seed = 0; $seed <= 40; $seed++) {
+            $inv = $this->seededInverter((string) $seed, 'realistic');
+            $body = static function (string $path) use ($inv): string {
+                $r = $inv->respond(new RequestContext('GET', $path));
+                self::assertNotNull($r, "{$path} must serve a fake");
+
+                return $r->body;
+            };
+            $config = $body('/.git/config');
+            $head = $body('/.git/HEAD');
+            $logs = $body('/.git/logs/HEAD');
+            $packed = $body('/.git/packed-refs');
+            $mainRef = $body('/.git/refs/heads/main');
+            $editMsg = $body('/.git/COMMIT_EDITMSG');
+            $infoRefs = $body('/.git/info/refs');
+
+            // No git page is hijacked to the .git/config body.
+            foreach (['/.git/HEAD' => $head, '/.git/packed-refs' => $packed, '/.git/refs/heads/main' => $mainRef, '/.git/info/refs' => $infoRefs] as $p => $b) {
+                self::assertStringNotContainsString('[core]', $b, "seed {$seed}: {$p} must not serve the .git/config body");
+            }
+
+            // Branch agrees: config [branch "X"] == HEAD ref == packed origin/X == info/refs heads/X.
+            self::assertSame(1, preg_match('#\[branch "([^"]+)"\]#', $config, $cb), "seed {$seed}: config must declare a branch");
+            self::assertSame(1, preg_match('#ref: refs/heads/(\S+)#', $head, $hb), "seed {$seed}: HEAD must name a branch");
+            self::assertSame($cb[1], $hb[1], "seed {$seed}: HEAD branch must match .git/config");
+            self::assertSame(1, preg_match('#refs/remotes/origin/(\S+)#', $packed, $pb), "seed {$seed}: packed-refs must carry origin ref");
+            self::assertSame($hb[1], $pb[1], "seed {$seed}: packed-refs origin branch must match HEAD");
+            self::assertStringContainsString('refs/heads/' . $hb[1], $infoRefs, "seed {$seed}: info/refs must list the HEAD branch");
+
+            // Tip sha agrees: refs/heads/main == packed origin tip == info/refs heads tip == logs tip.
+            $tip = trim($mainRef);
+            self::assertSame(1, preg_match('/^[0-9a-f]{40}$/', $tip), "seed {$seed}: refs/heads/main must be a bare 40-hex sha");
+            self::assertSame(1, preg_match('#^([0-9a-f]{40}) refs/remotes/origin/#m', $packed, $pt), "seed {$seed}: packed-refs origin sha");
+            self::assertSame($tip, $pt[1], "seed {$seed}: packed-refs origin sha must equal refs/heads/main");
+            self::assertSame(1, preg_match("#^([0-9a-f]{40})\trefs/heads/#m", $infoRefs, $it), "seed {$seed}: info/refs heads sha");
+            self::assertSame($tip, $it[1], "seed {$seed}: info/refs heads sha must equal refs/heads/main");
+
+            // logs/HEAD: two ordered entries; tip line == tip sha, its parent == the initial line's
+            // new sha == the tag sha in packed-refs / info/refs.
+            $logLines = explode("\n", trim($logs));
+            self::assertGreaterThanOrEqual(2, count($logLines), "seed {$seed}: logs/HEAD must have two reflog entries");
+            $initFields = preg_split('/\s+/', $logLines[0]);
+            $tipFields = preg_split('/\s+/', $logLines[1]);
+            self::assertSame($tip, $tipFields[1], "seed {$seed}: logs/HEAD tip sha must equal refs/heads/main");
+            self::assertSame($initFields[1], $tipFields[0], "seed {$seed}: logs/HEAD tip parent must equal the initial commit sha");
+            self::assertSame('0000000000000000000000000000000000000000', $initFields[0], "seed {$seed}: logs/HEAD initial 'from' sha must be zeros");
+            $parent = $tipFields[0];
+            self::assertSame(1, preg_match('#^([0-9a-f]{40}) refs/tags/v1\.0\.0#m', $packed, $ptag), "seed {$seed}: packed-refs tag sha");
+            self::assertSame($parent, $ptag[1], "seed {$seed}: packed-refs tag sha must equal the parent commit");
+
+            // Commit message coherence: COMMIT_EDITMSG == logs/HEAD tip message.
+            self::assertSame(1, preg_match('#commit: (.+)$#m', $logs, $lm), "seed {$seed}: logs/HEAD must carry a tip commit message");
+            self::assertSame(trim($editMsg), trim($lm[1]), "seed {$seed}: COMMIT_EDITMSG must equal the logs/HEAD tip message");
+
+            // The reflog author is fabricated PII: a "Name <local@domain>" pair, never the zero-sha
+            // placeholders — and the email domain is the host persona's domain.
+            self::assertSame(1, preg_match('/ ([^<]+) <([^@]+)@([^>]+)>/', $logs, $au), "seed {$seed}: logs/HEAD must carry a Name <email> author");
+            self::assertNotSame('', trim($au[1]), "seed {$seed}: author name must be non-empty");
+        }
+    }
+
+    public function test_other_vcs_stores_serve_coherent_bodies(): void
+    {
+        // .bzr must satisfy the exposed-bzr golden matcher (parent_location OR push_location, in a
+        // text/plain body); .hg/hgrc + .svn/entries must disclose a persona-domain remote URL; and
+        // every non-git VCS metadata file is served text/plain.
+        for ($seed = 0; $seed <= 30; $seed++) {
+            $inv = $this->seededInverter((string) $seed, 'realistic');
+
+            $bzr = $inv->respond(new RequestContext('GET', '/.bzr/branch/branch.conf'));
+            self::assertNotNull($bzr, "seed {$seed}: /.bzr/branch/branch.conf must serve");
+            self::assertSame('text/plain; charset=utf-8', $bzr->headers['Content-Type'] ?? null, "seed {$seed}: bzr Content-Type");
+            self::assertStringContainsString('parent_location', $bzr->body, "seed {$seed}: bzr must carry parent_location (golden matcher)");
+            self::assertStringContainsString('push_location', $bzr->body, "seed {$seed}: bzr must carry push_location");
+            self::assertStringContainsString('https://bzr.', $bzr->body, "seed {$seed}: bzr must disclose a persona bzr URL");
+
+            $hgrc = $inv->respond(new RequestContext('GET', '/.hg/hgrc'));
+            self::assertNotNull($hgrc, "seed {$seed}: /.hg/hgrc must serve");
+            self::assertStringContainsString('[paths]', $hgrc->body, "seed {$seed}: hgrc [paths]");
+            self::assertSame(1, preg_match('#default = https://hg\.\S+#', $hgrc->body), "seed {$seed}: hgrc must disclose a persona hg remote");
+
+            $svn = $inv->respond(new RequestContext('GET', '/.svn/entries'));
+            self::assertNotNull($svn, "seed {$seed}: /.svn/entries must serve");
+            self::assertSame('text/plain; charset=utf-8', $svn->headers['Content-Type'] ?? null, "seed {$seed}: svn entries Content-Type");
+            self::assertSame(1, preg_match('#https://svn\.\S+/svn/#', $svn->body), "seed {$seed}: svn entries must disclose a persona svn URL");
+            self::assertSame(1, preg_match('/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/', $svn->body), "seed {$seed}: svn entries must carry a repository UUID");
+        }
     }
 
     public function test_config_json_pages_stay_parseable(): void
@@ -728,6 +843,10 @@ final class NewPageRoutingTest extends TestCase
             '/phpmyadmin/ChangeLog', '/phpmyadmin/README', '/phpmyadmin/doc/html/index.html',
             '/api/health', '/grafana/', '/grafana/login', '/api/json',
             '/pgadmin4/', '/pgadmin4/login', '/cpanel', '/whm',
+            // VCS-exposure pack — the surfaces carrying seed-derived islands (40-hex commit shas,
+            // reflog unix timestamps, a repository UUID). A future hex/digit island regresses here.
+            '/.git/logs/HEAD', '/.git/packed-refs', '/.git/refs/heads/main', '/.git/info/refs',
+            '/.svn/entries', '/.hg/hgrc', '/.bzr/branch/branch.conf',
         ];
         // The vite-fs `/@fs/{path}` param route serves per-target disclosure bodies (its own RDS/cache
         // host islands live in the .env and wp-config.php loot targets), so exercise those too.

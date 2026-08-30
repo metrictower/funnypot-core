@@ -1,0 +1,35 @@
+id: route-git-logs-head
+priority: 5
+# Enrich for the corpus git-logs-exposure bundle at /.git/logs/HEAD: replace the empty minimal
+# synth with a believable HEAD reflog. Two entries (initial commit -> tip), so the parent sha, the
+# tip sha, the author identity and the latest message read like a real leaked repo.
+#
+# Content-Type is application/octet-stream, NOT text/plain: the corpus bundle's header matcher
+# requires that byte string (a static webserver serves an extensionless .git/logs/HEAD as
+# octet-stream), so text/plain would drop the detection or force a synthetic X-Detected witness
+# (a tell). This is the one git surface pinned to octet-stream; the sibling text files are text/plain.
+#
+# Coherence with the other git surfaces for one host (same render seed): the tip sha
+# {{fake.gitcommit}} and parent sha {{fake.gitparent}} match packed-refs / info/refs / refs/heads;
+# the latest message reuses the same {{pick}} as COMMIT_EDITMSG; the branch is not named here (the
+# HEAD reflog is branch-implicit). The author is fabricated PII from the shared person generator
+# (name + email whose domain is this host's persona domain), never a real identity. The two
+# timestamps are seed-derived but prefixed 170.. / 175.. so the tip is always after the initial.
+# This rule wins findRule over route-git-config (priority 10, whose broad `git` needle also matches
+# this pid=git bundle) by sitting at a lower priority; its specific needle never dresses any other bundle.
+#
+# The corpus bundle carries a regex witness the served body must contain (the literal "a "); the
+# rich path is only used when the body already satisfies it (else it degrades to the minimal synth,
+# which would emit just that witness). The static initial-commit message below always contains "a ",
+# so the believable reflog is served for every seed rather than sometimes falling back.
+match:
+  template_needle: [git-logs-exposure]
+response:
+  headers:
+    Content-Type: "application/octet-stream"
+  body: |
+    0000000000000000000000000000000000000000 {{fake.gitparent:hex:40}} {{fake.person.full:gitauthor}} <{{fake.person.email:gitauthor}}> 170{{fake.gitts0:dec:7}} +0000{{hex:09}}commit (initial): Set up a new repository
+    {{fake.gitparent:hex:40}} {{fake.gitcommit:hex:40}} {{fake.person.full:gitauthor}} <{{fake.person.email:gitauthor}}> 175{{fake.gitts1:dec:7}} +0000{{hex:09}}commit: {{pick:Update dependencies,Fix login redirect,Refactor config loader,Add health endpoint,Bump version}}
+expect:
+  - 'commit (initial): Set up a new repository'
+  - 'commit: '

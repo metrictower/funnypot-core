@@ -1,0 +1,40 @@
+id: route-vcs-svn-entries
+priority: 18
+# Brand-new page: a leaked /.svn/entries — the classic Subversion working-copy metadata file that
+# exposure scanners fetch. Non-XML format-10 layout: format number, the `dir` entry kind, the
+# working-copy revision, the checkout URL and repository root, the committed date/rev/author, and
+# the repository UUID. URLs point at this host's persona-domain Subversion server; the revision is
+# seed-derived and reused for the committed-rev (one consistent revision); the committer is a
+# fabricated username from the shared person generator; the UUID is seed-derived hex in 8-4-4-4-12
+# shape. (The corpus already serves the modern binary /.svn/wc.db separately.) id avoids the
+# substring `git` (see 11-git-head.yaml). No taunt (strict positional format).
+new_page:
+  method: GET
+  paths: ['/.svn/entries']
+  sig: 0
+  status: 200
+  severity: medium
+  tags: [exposure, vcs, subversion, source-disclosure]
+  name: 'Exposed Subversion entries (.svn/entries)'
+  body_words: ['dir']
+response:
+  headers:
+    Content-Type: "text/plain; charset=utf-8"
+  body: |
+    10
+
+    dir
+    {{fake.svnrev:dec:4}}
+    https://svn.{{persona.company.domain}}/svn/{{pick:app,platform,api,web,core}}/trunk
+    https://svn.{{persona.company.domain}}/svn/{{pick:app,platform,api,web,core}}
+
+
+
+    2024-11-18T14:07:52.000000Z
+    {{fake.svnrev:dec:4}}
+    {{fake.person.username:svnauthor}}
+
+    {{fake.svnuuid:hex:8}}-{{fake.svnuuidb:hex:4}}-{{fake.svnuuidc:hex:4}}-{{fake.svnuuidd:hex:4}}-{{fake.svnuuide:hex:12}}
+expect:
+  - 'https://svn.'
+  - '/svn/'

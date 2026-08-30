@@ -1,0 +1,26 @@
+id: route-vcs-exclude
+priority: 16
+# Brand-new page: a leaked /.git/info/exclude. Like description, this ships byte-identical from the
+# git templates, so the exact default text is the authentic content (a fixed constant is correct
+# here, not a fingerprint). id avoids the substring `git` (see 11-git-head.yaml).
+new_page:
+  method: GET
+  paths: ['/.git/info/exclude']
+  sig: 0
+  status: 200
+  severity: medium
+  tags: [exposure, vcs, git, source-disclosure]
+  name: 'Exposed git exclude (.git/info/exclude)'
+  body_words: ["git ls-files --others"]
+response:
+  headers:
+    Content-Type: "text/plain; charset=utf-8"
+  body: |
+    # git ls-files --others --exclude-from=.git/info/exclude
+    # Lines that start with '#' are comments.
+    # For a project mostly in C, the following would be a good set of
+    # exclude patterns (uncomment them if you want to use them):
+    # *.[oa]
+    # *~
+expect:
+  - 'git ls-files --others --exclude-from=.git/info/exclude'
