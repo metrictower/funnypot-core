@@ -295,6 +295,18 @@ final class NewPageRoutingTest extends TestCase
             '.hg/requires'        => ['/.hg/requires', 200, 'revlogv1', 'text/plain; charset=utf-8'],
             '.hg/hgrc'            => ['/.hg/hgrc', 200, '[paths]', 'text/plain; charset=utf-8'],
             '.bzr/branch.conf'    => ['/.bzr/branch/branch.conf', 200, 'parent_location = https://bzr.', 'text/plain; charset=utf-8'],
+            // CVS/Entries is the third VCS-metadata exposure. The marker is the authored revision-bearing
+            // line, NOT the bare `/index.php/` body word, so its presence proves the full Entries body
+            // served rather than a minimal synth. Strict positional format ⇒ served text/plain.
+            'CVS/Entries'         => ['/CVS/Entries', 200, '/index.php/1.4/', 'text/plain; charset=utf-8'],
+
+            // TYPO3 typo3conf pack — a leaked CMS config directory listing + its linked localconf.php.
+            // The listing is text/html (autoindex), localconf.php is text/plain (a raw PHP source leak,
+            // NEVER application/x-php). The localconf marker is $typo_db_username (authored, not the bare
+            // $typo_db_password body word), so it proves the full config body served, not a minimal synth.
+            'typo3conf listing'      => ['/typo3conf/', 200, 'Index of /typo3conf', 'text/html; charset=utf-8'],
+            'typo3conf (no slash)'   => ['/typo3conf', 200, 'Index of /typo3conf', 'text/html; charset=utf-8'],
+            'typo3conf localconf.php' => ['/typo3conf/localconf.php', 200, '$typo_db_username', 'text/plain; charset=utf-8'],
         ];
     }
 
@@ -391,6 +403,90 @@ final class NewPageRoutingTest extends TestCase
             self::assertSame('text/plain; charset=utf-8', $svn->headers['Content-Type'] ?? null, "seed {$seed}: svn entries Content-Type");
             self::assertSame(1, preg_match('#https://svn\.\S+/svn/#', $svn->body), "seed {$seed}: svn entries must disclose a persona svn URL");
             self::assertSame(1, preg_match('/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/', $svn->body), "seed {$seed}: svn entries must carry a repository UUID");
+        }
+    }
+
+    public function test_cvs_entries_is_a_well_formed_inert_working_copy(): void
+    {
+        // /CVS/Entries must serve text/plain and every non-empty line must satisfy the CVS Entries
+        // grammar: a file line `/name/rev/timestamp//` (empty options + tagdate) or a directory line
+        // `D/name////`. No secrets and no directive residue — the disclosure is a plain inert file
+        // list. Deterministic (no persona directives), so one representative seed is enough.
+        $resp = $this->inverter()->respond(new RequestContext('GET', '/CVS/Entries'));
+        self::assertNotNull($resp, '/CVS/Entries must serve a fake');
+        self::assertSame(200, $resp->status, '/CVS/Entries status');
+        self::assertSame('text/plain; charset=utf-8', $resp->headers['Content-Type'] ?? null, '/CVS/Entries Content-Type');
+        self::assertStringNotContainsString('{{', $resp->body, '/CVS/Entries must carry no unrendered directive');
+
+        $sawFile = false;
+        $sawDir = false;
+        foreach (explode("\n", trim($resp->body)) as $line) {
+            if ($line === '') {
+                continue;
+            }
+            if ($line[0] === 'D') {
+                self::assertSame(1, preg_match('#^D/[^/]+/{4}$#', $line), "CVS dir entry must be D/name////: {$line}");
+                $sawDir = true;
+                continue;
+            }
+            // File: /name/revision/timestamp/options/tagdate — options + tagdate empty here.
+            self::assertSame(1, preg_match('#^/[^/]+/\d+\.\d+/[A-Za-z0-9: ]+//$#', $line), "CVS file entry grammar: {$line}");
+            $sawFile = true;
+        }
+        self::assertTrue($sawFile, '/CVS/Entries must list at least one file');
+        self::assertTrue($sawDir, '/CVS/Entries must list at least one subdirectory');
+    }
+
+    public function test_typo3conf_pair_is_coherent_and_links_only_to_served_paths(): void
+    {
+        // The typo3conf listing (both /typo3conf/ and the no-slash variant) must serve an autoindex
+        // whose ONLY file link is localconf.php — the page route 392 actually serves — so it creates
+        // no dangling link (a link that 404s is its own tell). localconf.php must be a text/plain PHP
+        // source leak (never executed, never x-php) disclosing the host's ONE db identity: the SAME
+        // db name/user/password the config pack (/.env.production) discloses for the same seed.
+        for ($seed = 0; $seed <= 20; $seed++) {
+            $inv = $this->seededInverter((string) $seed, 'realistic');
+
+            foreach (['/typo3conf/', '/typo3conf'] as $listPath) {
+                $list = $inv->respond(new RequestContext('GET', $listPath));
+                self::assertNotNull($list, "seed {$seed}: {$listPath} must serve a fake");
+                self::assertSame(200, $list->status, "seed {$seed}: {$listPath} status");
+                self::assertSame('text/html; charset=utf-8', $list->headers['Content-Type'] ?? null, "seed {$seed}: {$listPath} Content-Type");
+                self::assertStringContainsString('href="localconf.php"', $list->body, "seed {$seed}: {$listPath} must link localconf.php");
+                // No link to a path this pack does not serve (ext/, l10n/, database.sql were dropped).
+                self::assertStringNotContainsString('href="ext/"', $list->body, "seed {$seed}: {$listPath} must not link an unserved ext/ dir");
+                self::assertStringNotContainsString('href="l10n/"', $list->body, "seed {$seed}: {$listPath} must not link an unserved l10n/ dir");
+                self::assertStringNotContainsString('database.sql', $list->body, "seed {$seed}: {$listPath} must not link an unserved database.sql");
+            }
+
+            // The linked localconf.php resolves to a served page (the link is not dangling).
+            $conf = $inv->respond(new RequestContext('GET', '/typo3conf/localconf.php'));
+            self::assertNotNull($conf, "seed {$seed}: /typo3conf/localconf.php must serve a fake");
+            self::assertSame(200, $conf->status, "seed {$seed}: localconf.php status");
+            $ct = $conf->headers['Content-Type'] ?? null;
+            self::assertSame('text/plain; charset=utf-8', $ct, "seed {$seed}: localconf.php must serve text/plain");
+            self::assertNotSame('application/x-php', $ct, "seed {$seed}: localconf.php must not be served as x-php (a tell)");
+            self::assertStringContainsString('<?php', $conf->body, "seed {$seed}: localconf.php must leak raw PHP source");
+
+            // One host, one identity: the db fields must be byte-identical to the config pack's.
+            $env = $inv->respond(new RequestContext('GET', '/.env.production'));
+            self::assertNotNull($env, "seed {$seed}: /.env.production must serve a fake");
+
+            self::assertSame(1, preg_match('/\$typo_db = \'([^\']+)\';/', $conf->body, $cn), "seed {$seed}: localconf must set \$typo_db");
+            self::assertSame(1, preg_match('/DB_DATABASE=([A-Za-z0-9_]+)/', $env->body, $en), "seed {$seed}: .env must set DB_DATABASE");
+            self::assertSame($en[1], $cn[1], "seed {$seed}: localconf db name must match the config pack");
+
+            self::assertSame(1, preg_match('/\$typo_db_username = \'([^\']+)\';/', $conf->body, $cu), "seed {$seed}: localconf must set \$typo_db_username");
+            self::assertSame(1, preg_match('/DB_USERNAME=([A-Za-z0-9_]+)/', $env->body, $eu), "seed {$seed}: .env must set DB_USERNAME");
+            self::assertSame($eu[1], $cu[1], "seed {$seed}: localconf db user must match the config pack");
+
+            self::assertSame(1, preg_match('/\$typo_db_password = \'([^\']+)\';/', $conf->body, $cp), "seed {$seed}: localconf must set \$typo_db_password");
+            self::assertSame(1, preg_match('/DB_PASSWORD=([A-Za-z0-9._~-]+)/', $env->body, $ep), "seed {$seed}: .env must set DB_PASSWORD");
+            self::assertSame($ep[1], $cp[1], "seed {$seed}: localconf db password must match the config pack");
+
+            // The encryptionKey is the host's JWT signing secret (a 64-hex value), coherent with the
+            // config pack surfaces that carry it.
+            self::assertSame(1, preg_match("/encryptionKey'\\] = '([0-9a-f]{64})';/", $conf->body), "seed {$seed}: localconf encryptionKey must be the persona 64-hex jwt secret");
         }
     }
 

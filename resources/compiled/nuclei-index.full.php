@@ -84621,6 +84621,43 @@ return array (
       ),
       'name' => 'Exposed Mercurial requires (.hg/requires)',
     ),
+    'route-vcs-cvs-entries' => 
+    array (
+      'sev' => 'medium',
+      'tags' => 
+      array (
+        0 => 'exposure',
+        1 => 'vcs',
+        2 => 'cvs',
+        3 => 'source-disclosure',
+      ),
+      'name' => 'Exposed CVS/Entries',
+    ),
+    'route-typo3conf-listing' => 
+    array (
+      'sev' => 'medium',
+      'tags' => 
+      array (
+        0 => 'exposure',
+        1 => 'cms',
+        2 => 'typo3',
+        3 => 'directory-listing',
+      ),
+      'name' => 'Exposed TYPO3 typo3conf directory listing',
+    ),
+    'route-typo3conf-localconf' => 
+    array (
+      'sev' => 'high',
+      'tags' => 
+      array (
+        0 => 'exposure',
+        1 => 'cms',
+        2 => 'typo3',
+        3 => 'config-disclosure',
+        4 => 'secrets',
+      ),
+      'name' => 'Exposed TYPO3 localconf.php',
+    ),
   ),
   'routes' => 
   array (
@@ -300863,6 +300900,102 @@ a</title>',
           't' => 
           array (
             0 => 'route-vcs-hg-requires',
+          ),
+        ),
+      ),
+    ),
+    'GET /CVS/Entries' => 
+    array (
+      'b' => 
+      array (
+        0 => 
+        array (
+          's' => 200,
+          'bw' => 
+          array (
+            0 => '/index.php/',
+          ),
+          'nf' => 
+          array (
+          ),
+          'pid' => 'route-vcs-cvs-entries',
+          'sev' => 'medium',
+          'sig' => 0,
+          't' => 
+          array (
+            0 => 'route-vcs-cvs-entries',
+          ),
+        ),
+      ),
+    ),
+    'GET /typo3conf/' => 
+    array (
+      'b' => 
+      array (
+        0 => 
+        array (
+          's' => 200,
+          'bw' => 
+          array (
+            0 => 'Index of',
+          ),
+          'nf' => 
+          array (
+          ),
+          'pid' => 'route-typo3conf-listing',
+          'sev' => 'medium',
+          'sig' => 0,
+          't' => 
+          array (
+            0 => 'route-typo3conf-listing',
+          ),
+        ),
+      ),
+    ),
+    'GET /typo3conf' => 
+    array (
+      'b' => 
+      array (
+        0 => 
+        array (
+          's' => 200,
+          'bw' => 
+          array (
+            0 => 'Index of',
+          ),
+          'nf' => 
+          array (
+          ),
+          'pid' => 'route-typo3conf-listing',
+          'sev' => 'medium',
+          'sig' => 0,
+          't' => 
+          array (
+            0 => 'route-typo3conf-listing',
+          ),
+        ),
+      ),
+    ),
+    'GET /typo3conf/localconf.php' => 
+    array (
+      'b' => 
+      array (
+        0 => 
+        array (
+          's' => 200,
+          'bw' => 
+          array (
+            0 => '$typo_db_password',
+          ),
+          'nf' => 
+          array (
+          ),
+          'pid' => 'route-typo3conf-localconf',
+          'sev' => 'high',
+          'sig' => 0,
+          't' => 
+          array (
+            0 => 'route-typo3conf-localconf',
           ),
         ),
       ),

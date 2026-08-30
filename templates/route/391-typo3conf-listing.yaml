@@ -1,0 +1,36 @@
+id: route-typo3conf-listing
+priority: 391
+# Brand-new page: an Apache-autoindex listing of a leaked /typo3conf/ — the config directory of a
+# classic (pre-v6) TYPO3 install, the mainstream PHP CMS the corpus had no coverage of. Same
+# autoindex shape as route/234-dotaws-listing.yaml. The ONLY linked entry is localconf.php, which
+# route-typo3conf-localconf (priority 392) actually serves, so the listing creates no dangling link
+# (a link that 404s is its own tell). The id avoids the `directory-listing` needle (route 180) so
+# that enrich never redresses this page.
+new_page:
+  method: GET
+  paths: ['/typo3conf/', '/typo3conf']
+  sig: 0
+  status: 200
+  severity: medium
+  tags: [exposure, cms, typo3, directory-listing]
+  name: 'Exposed TYPO3 typo3conf directory listing'
+  body_words: ['Index of']
+response:
+  headers:
+    Content-Type: "text/html; charset=utf-8"
+  body: |
+    <!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 3.2 Final//EN">
+    <html><head><title>Index of /typo3conf</title></head>
+    <body>
+    <h1>Index of /typo3conf</h1>
+    <pre><a href="?C=N;O=D">Name</a>  <a href="?C=M;O=A">Last modified</a>  <a href="?C=S;O=A">Size</a>
+    <hr>
+    <a href="../">Parent Directory</a>                        -
+    <a href="localconf.php">localconf.php</a>            2019-11-18 14:07  2.1K
+    <hr></pre>
+    <address>Apache Server at {{persona.company.domain}} Port 80</address>
+    </body></html>
+taunt: { mode: block, open: '<!--', close: '-->' }
+expect:
+  - 'Index of /typo3conf'
+  - 'href="localconf.php"'
