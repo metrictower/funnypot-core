@@ -74,9 +74,40 @@ final class WordpressSkin extends AbstractSkin
             $this->css(),
             $html,
             ' lang="en-US"',
-            '<meta charset="utf-8"><meta name="viewport" content="width=device-width">',
+            '<meta charset="utf-8"><meta name="viewport" content="width=device-width">'
+                . $this->wpMarkers($persona),
             ' class="login no-js"'
         );
+    }
+
+    /**
+     * The passive WordPress front-door markers a WP fingerprinter reads straight from the served
+     * <head>: the generator meta, the REST API + oEmbed discovery links, and versioned
+     * wp-includes / wp-content/themes asset references. These are ordinary WordPress output —
+     * emitting them is the intended bait, not a scanner signature, so blending into the real WP
+     * install-base is the anti-fingerprint property (same reasoning as the fixed WP class names).
+     *
+     * Every value is a fixed literal or a persona-derived version/theme/domain drawn from closed
+     * pools (and a slug.tld domain), so nothing here is attacker-shaped; each is still escaped for
+     * its attribute sink as defence in depth. One coherent version per deploy: the core version
+     * pins the generator and the wp-includes asset ?ver=, while the theme stylesheet carries the
+     * theme's own differently-shaped version — so the ?ver= values are never mechanically identical.
+     */
+    private function wpMarkers(VisualPersona $persona): string
+    {
+        $id = $persona->identity();
+        $core = $this->esc($id->field('wordpress.version') ?? '6.4.3');
+        $theme = $this->esc($id->field('wordpress.theme') ?? 'twentytwentyfour');
+        $themeVer = $this->esc($id->field('wordpress.themeVersion') ?? '1.2');
+        $oembed = $this->esc('/wp-json/oembed/1.0/embed?url=' . rawurlencode('https://' . $persona->domain() . '/'));
+
+        return '<meta name="generator" content="WordPress ' . $core . '">'
+            . '<link rel="https://api.w.org/" href="/wp-json/">'
+            . '<link rel="alternate" type="application/json+oembed" href="' . $oembed . '&#038;format=json">'
+            . '<link rel="alternate" type="text/xml+oembed" href="' . $oembed . '&#038;format=xml">'
+            . '<link rel="stylesheet" id="dashicons-css" href="/wp-includes/css/dashicons.min.css?ver=' . $core . '" media="all">'
+            . '<link rel="stylesheet" id="' . $theme . '-style-css" href="/wp-content/themes/' . $theme . '/style.css?ver=' . $themeVer . '" media="all">'
+            . '<script src="/wp-includes/js/jquery/jquery.min.js?ver=' . $core . '"></script>';
     }
 
     private function css(): string

@@ -28,6 +28,7 @@ final class PersonaIdentity
         'cloud.stripe.secretKey', 'cloud.sendgrid.apiKey', 'cloud.google.apiKey',
         'secret.jwt',
         'php.version',
+        'wordpress.version', 'wordpress.theme', 'wordpress.themeVersion',
     ];
 
     /**
@@ -62,6 +63,13 @@ final class PersonaIdentity
     private const DB_USER_SUFFIX = ['app', 'admin', 'svc', 'user'];
 
     private const ADMIN_USERNAMES = ['admin', 'administrator', 'root', 'sysadmin', 'webadmin'];
+
+    // Real WordPress theme slugs — bundled defaults plus widely-installed third-party themes — so the
+    // active-theme asset path reads like a genuine install. Every slug is [a-z0-9-].
+    private const WP_THEMES = [
+        'twentytwentyfour', 'twentytwentythree', 'twentytwentytwo', 'twentytwentyone',
+        'astra', 'generatepress', 'oceanwp', 'kadence', 'hello-elementor',
+    ];
 
     private const AWS_REGIONS = [
         'us-east-1', 'us-east-2', 'us-west-1', 'us-west-2', 'eu-west-1', 'eu-west-2',
@@ -153,6 +161,15 @@ final class PersonaIdentity
             // from the same slug|domain material productVersion() uses, so field() and
             // productVersion('php') always agree.
             'php.version' => self::pickProductVersion($slug, $domain, 'php'),
+
+            // The WordPress core version, active theme and theme version this host claims — the single
+            // source of truth for the front-door markers a WP fingerprinter reads (generator meta plus
+            // versioned wp-includes/wp-content asset links). Core version is derived like php.version so
+            // every tier claiming a WP version for this deploy agrees; theme name/version are seed-picked
+            // the same way, keeping the whole WordPress surface coherent per deployment.
+            'wordpress.version' => self::pickProductVersion($slug, $domain, 'wordpress'),
+            'wordpress.theme' => self::pick(self::WP_THEMES, $seed, 'wp_theme'),
+            'wordpress.themeVersion' => self::pickProductVersion($slug, $domain, 'wp-theme'),
         ];
 
         return new self($fields);
@@ -179,6 +196,25 @@ final class PersonaIdentity
             '8.1.27',
             '8.0.30',
             '7.4.33',
+        ],
+        // Plausible recent WordPress core releases — the version advertised on the front-door
+        // markers (generator meta + versioned wp-includes asset links). One per deploy.
+        'wordpress' => [
+            '6.4.3',
+            '6.5.5',
+            '6.6.2',
+            '6.3.4',
+            '6.5.2',
+        ],
+        // The active theme's own version. Deliberately a two-part shape, unlike core's X.Y.Z, so a
+        // theme asset's ?ver= can never mechanically match the core assets' ?ver= on the same page.
+        'wp-theme' => [
+            '1.2',
+            '2.4',
+            '3.1',
+            '1.9',
+            '2.0',
+            '4.6',
         ],
     ];
 

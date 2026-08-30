@@ -91,4 +91,46 @@ final class PersonaIdentityProductVersionTest extends TestCase
         }
         self::assertGreaterThan(1, count(array_unique($versions)), 'the PHP version must not collapse to one fixed value across deployments');
     }
+
+    public function test_wordpress_version_field_equals_product_version(): void
+    {
+        // Same one-derivation guarantee as php.version: the wordpress.version field and
+        // productVersion('wordpress') come from one helper, so the generator meta and any other WP
+        // surface can never advertise two different core versions for the same host.
+        for ($seed = 0; $seed < 40; $seed++) {
+            $id = PersonaIdentity::fromSeed($seed);
+            $field = $id->field('wordpress.version');
+            self::assertNotNull($field, "seed {$seed}: wordpress.version field must exist");
+            self::assertSame($id->productVersion('wordpress'), $field, "seed {$seed}: field and productVersion('wordpress') must agree");
+            self::assertMatchesRegularExpression('/^\d+\.\d+\.\d+$/', (string) $field, "seed {$seed}: WordPress version is an X.Y.Z release");
+        }
+    }
+
+    public function test_wordpress_theme_and_theme_version_are_realistic(): void
+    {
+        for ($seed = 0; $seed < 40; $seed++) {
+            $id = PersonaIdentity::fromSeed($seed);
+            $theme = (string) $id->field('wordpress.theme');
+            $themeVer = (string) $id->field('wordpress.themeVersion');
+
+            self::assertMatchesRegularExpression('/^[a-z0-9-]+$/', $theme, "seed {$seed}: theme is a plausible slug");
+            // Theme version is deliberately a two-part shape, so it never equals the core X.Y.Z
+            // version on the same page (the "not mechanically identical ?ver=" invariant).
+            self::assertMatchesRegularExpression('/^\d+\.\d+$/', $themeVer, "seed {$seed}: theme version shape");
+            self::assertNotSame((string) $id->field('wordpress.version'), $themeVer, "seed {$seed}: theme version differs from core");
+        }
+    }
+
+    public function test_wordpress_versions_and_themes_diverge_across_seeds(): void
+    {
+        $versions = [];
+        $themes = [];
+        for ($seed = 0; $seed < 40; $seed++) {
+            $id = PersonaIdentity::fromSeed($seed);
+            $versions[] = $id->field('wordpress.version');
+            $themes[] = $id->field('wordpress.theme');
+        }
+        self::assertGreaterThan(1, count(array_unique($versions)), 'the WordPress version must not collapse to one value across deployments');
+        self::assertGreaterThan(1, count(array_unique($themes)), 'the WordPress theme must not collapse to one value across deployments');
+    }
 }
