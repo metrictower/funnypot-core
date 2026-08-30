@@ -75,7 +75,7 @@ final class NewPageRoutingTest extends TestCase
     {
         $store = new PhpArrayStore(require __DIR__ . '/../resources/compiled/nuclei-index.full.php');
 
-        return new Honeypot($store, new Config(
+        $config = new Config(
             'respond',
             static function (RequestContext $r): bool { return true; },
             'matched-only',
@@ -87,7 +87,12 @@ final class NewPageRoutingTest extends TestCase
             0,
             0,
             true // attackEmulation ⇒ builds the emulator, which loads the param buckets
-        ));
+        );
+        // The /@fs param route reflects the attacker path into its base body — a reflecting decoy
+        // that serves only from an isolated origin, which these param-path serve sweeps exercise.
+        $config->isolatedOrigin = true;
+
+        return new Honeypot($store, $config);
     }
 
     /**

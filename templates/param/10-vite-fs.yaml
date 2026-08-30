@@ -3,6 +3,11 @@ severity: high
 priority: 10
 status: 404
 tags: [param, vite, lfi]
+reflects_input: true
+# reflects_input: the base `response` echoes the raw attacker path ({{match.path}}) into the body;
+# its {path*} capture compiles to an unbounded `.+`, so the only inline guard is the text/plain
+# Content-Type, which a re-wrapping host can drop. Serves ONLY from an isolated-origin honeypot
+# (Config::$isolatedOrigin=true); suppressed inline in a response-owning host.
 # The Vite dev-server `/@fs/{path}` arbitrary-file-read slice of the AI-stack pack. A parameterized
 # path can't be keyed in the exact O(1) store, so it is modeled as an attack-tier-style rule
 # (compiled path regex + named captures) dispatched via the prefix-bucket index. The base `response`

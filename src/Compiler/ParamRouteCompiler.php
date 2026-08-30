@@ -140,6 +140,14 @@ final class ParamRouteCompiler
             ],
         ];
 
+        // Reflecting-decoy marker: this route echoes attacker request bytes into the served body.
+        // The only guard against reflection inline is a text/plain Content-Type, which a host that
+        // re-wraps the response can drop — so the runtime serves it only from an isolated origin
+        // (Config::$isolatedOrigin), same fail-safe rule as the attack tier.
+        if (!empty($doc['reflects_input'])) {
+            $entry['reflects_input'] = true;
+        }
+
         // An optional named behavior primitive, same shape the attack tier renders. The base
         // `response` stays the ultimate fallback; this build knows `branch` and `traversal-read`.
         if (isset($doc['behavior'])) {

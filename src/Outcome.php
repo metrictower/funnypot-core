@@ -19,4 +19,5 @@ final class Outcome
     public const VETOED = 'vetoed';             // observer.shouldRespond returned false
     public const OVER_CAP = 'over-cap';         // synthesized body exceeded maxBodyBytes
     public const UNSYNTHESIZABLE = 'unsynthesizable'; // synth out of scope for this bundle
+    public const REFLECTION_SUPPRESSED = 'reflection-suppressed'; // reflecting decoy withheld off a non-isolated origin
 }

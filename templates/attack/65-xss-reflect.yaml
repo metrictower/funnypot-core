@@ -2,10 +2,13 @@ id: attack-xss
 severity: medium
 priority: 65
 tags: [attack, xss]
+reflects_input: true
 # Reflected XSS: the one rule that echoes attacker bytes — the bounded exception to
 # "never reflect input". ONLY the matched payload ({{match.0}}) is reflected, into a fixed
 # page; nothing else from the request, nothing stored. dotall so <script>.*?</script> spans
 # newlines. Runs last (broad regex) so more specific classes win first.
+# reflects_input: serves ONLY from an isolated-origin honeypot (Config::$isolatedOrigin=true);
+# suppressed inline in a response-owning host, where the reflection would be a live XSS.
 match:
   - in: request
     dotall: true

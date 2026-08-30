@@ -55,7 +55,7 @@ final class TraversalReadTest extends TestCase
     {
         $store = new PhpArrayStore(require __DIR__ . '/../resources/compiled/nuclei-index.php');
 
-        return new Honeypot($store, new Config(
+        $config = new Config(
             'respond',
             static function (RequestContext $r): bool { return true; },
             'matched-only',
@@ -67,7 +67,12 @@ final class TraversalReadTest extends TestCase
             0,
             0,
             true
-        ));
+        );
+        // The /@fs route reflects the attacker path into its base body, so it is a reflecting decoy
+        // that serves only from an isolated origin; these end-to-end serve tests assert that path.
+        $config->isolatedOrigin = true;
+
+        return new Honeypot($store, $config);
     }
 
     // --- the six served targets, end-to-end through respond() ------------------------------

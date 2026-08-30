@@ -50,7 +50,7 @@ final class ParamRouteTest extends TestCase
     /** A respond-mode engine (open gate) so we can assert the served body. */
     private function responder(): Honeypot
     {
-        return new Honeypot($this->store(), new Config(
+        $config = new Config(
             'respond',
             static function (RequestContext $r): bool { return true; },
             'matched-only',
@@ -62,7 +62,12 @@ final class ParamRouteTest extends TestCase
             0,
             0,
             true
-        ));
+        );
+        // The /@fs route reflects the attacker path into its base body — a reflecting decoy that
+        // serves only from an isolated origin, which the served-body assertions below exercise.
+        $config->isolatedOrigin = true;
+
+        return new Honeypot($this->store(), $config);
     }
 
     public function test_matches_and_captures_the_spanning_path(): void

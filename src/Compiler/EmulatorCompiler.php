@@ -131,6 +131,13 @@ final class EmulatorCompiler
             '_priority' => (int) ($doc['priority'] ?? 100),
         ];
 
+        // Reflecting-decoy marker: this rule echoes attacker request bytes into an active context
+        // (an HTML body or a redirect Location). The runtime serves it only from an isolated origin
+        // (Config::$isolatedOrigin); inline in a response-owning host it would be a live XSS/redirect.
+        if (!empty($doc['reflects_input'])) {
+            $rule['reflects_input'] = true;
+        }
+
         // Cheap literal pre-filter hint for the runtime: a substring that must be present in a
         // named surface for this rule to have any chance of matching. Only emitted when it is
         // provably required (see requiredLiteral); rules without one keep the always-evaluate

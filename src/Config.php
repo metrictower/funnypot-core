@@ -124,6 +124,16 @@ final class Config
     /** @var string|null per-deploy secret signing the decoy mock-auth session cookie; null ⇒ feature off */
     public $decoySessionKey;
 
+    /**
+     * @var bool fail-safe origin posture. false (default) ⇒ treat this install as embedded/inline in
+     * a response-owning host, where a decoy that reflects attacker request bytes into an active
+     * context (an HTML body or a redirect Location) would be a live XSS/open-redirect in the host's
+     * real origin — so such decoys are suppressed from SERVING (detection is unaffected). true ⇒ a
+     * standalone isolated-origin honeypot that owns its origin, where reflecting those bytes is safe
+     * bait; the reflect/redirect decoys serve intact.
+     */
+    public $isolatedOrigin;
+
     public function __construct(
         string $mode = 'detect',
         ?Closure $gate = null,
@@ -147,7 +157,8 @@ final class Config
         ?string $honeytokenKey = null,
         ?string $deploySeed = null,
         ?string $decoySessionKey = null,
-        array $ignoreTemplates = []
+        array $ignoreTemplates = [],
+        bool $isolatedOrigin = false
     ) {
         $this->mode = $mode;
         $this->gate = $gate;
@@ -172,6 +183,7 @@ final class Config
         $this->deploySeed = $deploySeed;
         $this->decoySessionKey = $decoySessionKey;
         $this->ignoreTemplates = $ignoreTemplates;
+        $this->isolatedOrigin = $isolatedOrigin;
     }
 
     public function respondEnabled(): bool

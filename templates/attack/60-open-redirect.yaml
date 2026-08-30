@@ -3,8 +3,11 @@ severity: medium
 status: 302
 priority: 60
 tags: [attack, redirect, open-redirect]
+reflects_input: true
 # A redirect-style param carrying an external URL. Location bounded-reflects it (decoded,
 # so an encoded CRLF becomes real CR/LF and is declined by the header-safety guard).
+# reflects_input: serves ONLY from an isolated-origin honeypot (Config::$isolatedOrigin=true);
+# suppressed inline in a response-owning host, where it would be a live open redirect.
 match:
   - in: query
     regex: '(?:url|redirect|redirect_uri|redirect_url|next|dest|destination|return|returnurl|returnto|goto|target|continue|forward)=((?:https?:)?//[^&]+)'

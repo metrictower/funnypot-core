@@ -79,7 +79,7 @@ final class SynthesizeTest extends TestCase
 
     public function test_synthesize_renders_an_attack_verdict_with_reflected_captures(): void
     {
-        $engine = new Honeypot($this->store(), new Config(
+        $config = new Config(
             'detect',                            // mode
             null,                                // gate
             'matched-only',                      // pathScope
@@ -91,7 +91,10 @@ final class SynthesizeTest extends TestCase
             0,                                   // latencyMs
             0,                                   // latencyJitterMs
             true                                 // attackEmulation
-        ));
+        );
+        // The xss reflect decoy serves (and reflects captures) only from an isolated origin.
+        $config->isolatedOrigin = true;
+        $engine = new Honeypot($this->store(), $config);
         $payload = '<script>alert(document.domain)</script>';
         $verdict = $engine->classify(new RequestContext('GET', '/search', 'q=' . $payload), SiteProfile::empty());
 

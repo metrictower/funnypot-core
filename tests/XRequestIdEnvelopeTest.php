@@ -28,7 +28,7 @@ final class XRequestIdEnvelopeTest extends TestCase
     {
         $store = new PhpArrayStore(require __DIR__ . '/../resources/compiled/nuclei-index.php');
 
-        return new Honeypot($store, new Config(
+        $config = new Config(
             'respond',                                                    // mode
             static function (RequestContext $r): bool { return true; },   // gate
             'matched-only',                                               // pathScope
@@ -48,7 +48,12 @@ final class XRequestIdEnvelopeTest extends TestCase
             true,                                                         // nucleiReflection
             $server,                                                      // serverHeader
             $poweredBy                                                    // poweredBy
-        ));
+        );
+        // This suite verifies the served envelope of every branch, including the reflecting decoys
+        // (xss-reflect, open-redirect) — which serve only from an isolated origin. Opt in.
+        $config->isolatedOrigin = true;
+
+        return new Honeypot($store, $config);
     }
 
     /** Count header keys equal to $name case-insensitively — an over-stamp would exceed one. */

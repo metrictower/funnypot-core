@@ -868,6 +868,16 @@ final class Honeypot implements Engine
             return ['r' => null, 'reason' => Outcome::NO_CANDIDATE];
         }
 
+        // A decoy that reflects attacker request bytes into an active context (an HTML body or a
+        // redirect Location) is safe bait only from an isolated origin; inline in a response-owning
+        // host it would be a live XSS/open-redirect in that host's real origin. classify() already
+        // ran, so the detection/intel is captured — this only withholds the reflection. Covers both
+        // the attack tier and the param tier: a matched param route rides an attack handle and
+        // ruleById() resolves param entries here too.
+        if (!$this->config->isolatedOrigin && !empty($rule['reflects_input'])) {
+            return ['r' => null, 'reason' => Outcome::REFLECTION_SUPPRESSED];
+        }
+
         // Seed fake values from the persona so a given attacker sees stable, but per-attacker
         // distinct, fabricated secrets (not one shared seed-0 value that would fingerprint). $r is
         // present only on the facade path; the port leaves it null (behavior renders its default).

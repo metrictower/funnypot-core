@@ -137,6 +137,34 @@ if ($response !== null) {
 // nothing matched: serve your normal 404
 ```
 
+### Embedded vs. isolated origin (reflecting decoys)
+
+A few decoys are believable only if they **reflect the attacker's own request bytes** into an active
+response context — the reflected-XSS decoy echoes the payload into an HTML body, the open-redirect
+decoy echoes the target into a `Location`, and the Vite `/@fs/` decoy echoes the path into its body.
+On a **standalone** honeypot that owns its origin, that is safe bait. Embedded **inline in a
+response-owning host** (via `funnypot-laravel` or the `funnypot` embedder), the same reflection would
+be a live XSS / open redirect in that host's real origin.
+
+The engine is **fail-safe by default**: `Config::$isolatedOrigin` defaults to `false`, meaning "treat
+this install as embedded" — reflecting decoys are **withheld from serving**, while detection is
+untouched (the probe still classifies, so the intel is captured; only the reflection is suppressed).
+A standalone honeypot opts in to keep the bait:
+
+```php
+$funnypot = Honeypot::default(new Config(
+    mode: 'respond',
+    gate: fn (RequestContext $r) => isSuspicious($r),
+    attackEmulation: true,
+    isolatedOrigin: true,   // this box owns its origin — reflecting decoys are safe bait
+));
+```
+
+Embedded hosts (`funnypot-laravel`, the `funnypot` embedder) inherit the safe default and need no
+change. A template joins this class by declaring `reflects_input: true` at its top level (the attack
+and param compilers carry the flag into the compiled rule; the runtime reads it as data), so covering
+a future reflector is a one-line template edit with no engine change.
+
 ### Using Laravel?
 
 Use **[funnypot-laravel](https://github.com/metrictower/funnypot-laravel)**

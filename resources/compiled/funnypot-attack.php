@@ -2957,6 +2957,7 @@ Ethernet adapter Ethernet0:
       ),
       'body' => '<html><head><title>302 Found</title></head><body>Redirecting...</body></html>',
     ),
+    'reflects_input' => true,
   ),
   42 => 
   array (
@@ -2988,6 +2989,7 @@ Ethernet adapter Ethernet0:
 </body></html>
 ',
     ),
+    'reflects_input' => true,
   ),
   43 => 
   array (

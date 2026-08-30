@@ -187,6 +187,7 @@ DTOs (standard constructors, PHP 7.3+ compatible):
 | `seedSalt` | `''` (Laravel: `app.key`) | per-deploy persona salt |
 | `exclude` | `[]` | template-id/tag deny list — never **SERVE** (respond path); detection unaffected |
 | `ignoreTemplates` | `[]` | template-id/tag list — never let **DRIVE a detection** (classify path); serving unaffected |
+| `isolatedOrigin` | `false` | fail-safe origin posture. `false` = embedded/inline — decoys tagged `reflects_input` (echo attacker bytes into an HTML body or a redirect `Location`) are **withheld from serving** (detection unaffected); `true` = standalone origin, keep the reflect/redirect bait |
 
 **`exclude` vs `ignoreTemplates` — two axes, never overloaded.** `exclude` silences a template on the
 **serving** side only (it drops from `respond()`); `ignoreTemplates` silences it on the **detection**

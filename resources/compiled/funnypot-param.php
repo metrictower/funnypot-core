@@ -36,6 +36,7 @@ return array (
           'body' => 'Not Found: /@fs/{{match.path}}
 ',
         ),
+        'reflects_input' => true,
         'behavior' => 'traversal-read',
         'traversal-read' => 
         array (
