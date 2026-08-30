@@ -74,6 +74,46 @@ if ($detection->matched) {
 }
 ```
 
+## Silencing a noisy template
+
+When one template turns out to be noisy on a particular site, you don't have to switch the sensor
+off — you can drop just that template. The id to name is the one you already log:
+`Detection::templateIds()` gives the matching ids (and `->tags()` the tags) for a flagged request, so
+read a false-positive log line and you have the exact id to silence:
+
+```
+/telescope/requests   scanner-probe   ids=laravel-telescope
+/robots.txt           ambient         ids=CVE-2023-33960,robots-txt,robots-txt-endpoint,bigcommerce-detect
+```
+
+Then list it (or a whole tag) under `ignoreTemplates`:
+
+```php
+use Funnypot\Core\Config;
+use Funnypot\Core\Honeypot;
+
+$funnypot = Honeypot::default(new Config(
+    ignoreTemplates: ['laravel-telescope', 'miscellaneous'],   // ids AND tags accepted
+));
+```
+
+An ignored template contributes **no evidence** to the classification. A path that matched only
+ignored templates classifies `CLEAN`; a path that also matches a non-ignored template is still a
+probe on that remaining template (drop-from-evidence). Ids and tags are both accepted, so a whole
+noisy tag can go in one entry.
+
+**`ignoreTemplates` is not `exclude`.** They govern opposite sides and never cross over:
+
+| Knob | Governs | Effect |
+|---|---|---|
+| `ignoreTemplates` | **detection** (`detect()` / `check()`) | the template no longer drives a classification |
+| `exclude` | **serving** (`respond()`) | the template's fake is never served, but it still detects |
+
+So `exclude` alone keeps detecting a probe while refusing to serve it a fake; `ignoreTemplates` alone
+stops the classification while leaving every other template's serving untouched. Reach for
+`ignoreTemplates` when a template is a false positive on your site; reach for `exclude` when you want
+the intel but not the decoy.
+
 ## Respond mode (opt-in, gated)
 
 ```php

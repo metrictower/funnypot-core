@@ -41,6 +41,9 @@ final class Honeypot implements Engine
     /** @var string[] template ids/pids/tags never served: Config->exclude merged with the disabled catalog set */
     private $effectiveExclude;
 
+    /** @var array<string,int> Config->ignoreTemplates flipped to a set: ids/tags never allowed to drive a detection */
+    private $ignoreTemplates;
+
     /** @var bool */
     private $nucleiEnabled;
 
@@ -71,6 +74,10 @@ final class Honeypot implements Engine
         // free of any catalog dependency. A disabled attack id in the exclude set is also skipped.
         $this->effectiveExclude = $this->config->exclude;
         $this->nucleiEnabled = $this->config->nucleiReflection;
+
+        // Detection-side deny-set, distinct from $effectiveExclude (serving). Flipped once here so
+        // the per-request membership test in applyIgnore() is O(1).
+        $this->ignoreTemplates = array_flip($this->config->ignoreTemplates);
 
         $this->attackEmulator = $this->config->attackEmulation
             ? TemplateAttackEmulator::fromPackage([], $personaSeed, $this->config->decoySessionKey)->disable($this->config->exclude)
@@ -151,6 +158,15 @@ final class Honeypot implements Engine
             }
 
             $detection = $this->detectionFor($key, $this->detectIds($entry));
+
+            // Ignore-from-detection (Config->ignoreTemplates): when the host has silenced every
+            // template that would have matched here, the entry carries no evidence and is no longer
+            // a probe — classify CLEAN. Drop-from-evidence: an entry with any surviving match still
+            // classifies below. Guarded on the set so behaviour is untouched when the feature is off.
+            if ($this->ignoreTemplates !== [] && $detection->isEmpty()) {
+                return new Verdict(Verdict::CLEAN, Detection::none(), '', $anomaly, $signals, null);
+            }
+
             $handle = FakeHandle::route($key);
 
             // A bare root/homepage entry (all bundles sig=1) is an ordinary-visitor path: classify
@@ -939,7 +955,7 @@ final class Honeypot implements Engine
     private function detectIds(array $entry): array
     {
         if (isset($entry['d'])) {
-            return $entry['d'];
+            return $this->applyIgnore($entry['d']);
         }
 
         $ids = [];
@@ -949,7 +965,46 @@ final class Honeypot implements Engine
             }
         }
 
-        return $ids;
+        return $this->applyIgnore($ids);
+    }
+
+    /**
+     * Drop template ids the host has marked ignore-from-detection (Config->ignoreTemplates): an id
+     * named directly, or one whose template carries an ignored tag. Detection-only — it never
+     * changes which bundles are served (that is Config->exclude's separate job). When the set is
+     * empty the list is returned unchanged, so a host that does not use the feature pays nothing.
+     *
+     * Drop-from-evidence: an ignored id simply contributes no evidence; any remaining id still
+     * drives the detection. classify() reads the emptied result and degrades that entry to CLEAN.
+     *
+     * @param string[] $ids
+     * @return string[]
+     */
+    private function applyIgnore(array $ids): array
+    {
+        if ($this->ignoreTemplates === []) {
+            return $ids;
+        }
+
+        $kept = [];
+        foreach ($ids as $id) {
+            if (isset($this->ignoreTemplates[$id])) {
+                continue;
+            }
+            $meta = $this->store->template($id);
+            $byTag = false;
+            foreach ((array) ($meta['tags'] ?? []) as $tag) {
+                if (isset($this->ignoreTemplates[$tag])) {
+                    $byTag = true;
+                    break;
+                }
+            }
+            if (!$byTag) {
+                $kept[] = $id;
+            }
+        }
+
+        return $kept;
     }
 
     /**

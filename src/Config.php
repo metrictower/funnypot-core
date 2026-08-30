@@ -32,7 +32,10 @@ final class Config
      * @param Closure|null  $killSwitch      fn():bool — true ⇒ respond disabled (un-poison)
      * @param Closure|null  $probeSignature  fn(RequestContext):bool — root/homepage (sig=1) fires ONLY when true; null ⇒ never
      * @param string        $seedSalt        per-deploy salt so persona differs per site
-     * @param string[]      $exclude         template ids or tags to never serve
+     * @param string[]      $exclude         template ids or tags to never SERVE (respond path only;
+     *                                        detection is unaffected — see $ignoreTemplates)
+     * @param string[]      $ignoreTemplates template ids or tags to never let DRIVE a detection
+     *                                        (classify path only; serving is unaffected — see $exclude)
      * @param bool          $nucleiReflection false drops every nuclei-corpus fake (discrete attack
      *                                        and route emulations still serve); the app's emulation
      *                                        catalog toggle drives this
@@ -91,8 +94,17 @@ final class Config
     /** @var string per-deploy salt so persona differs per site */
     public $seedSalt;
 
-    /** @var string[] template ids or tags to never serve */
+    /** @var string[] template ids or tags to never SERVE (respond path); detection is unaffected */
     public $exclude;
+
+    /**
+     * @var string[] template ids or tags to exclude from DETECTION (classify path). A request whose
+     * matching templates are all in this list carries no evidence and classifies CLEAN; any other
+     * matching template still drives the detection (drop-from-evidence). Distinct from $exclude:
+     * this governs classification, $exclude governs serving. The engine flips it to a set once for
+     * O(1) per-request lookup.
+     */
+    public $ignoreTemplates;
 
     /** @var bool false drops every nuclei-corpus fake (attack and route emulations still serve) */
     public $nucleiReflection;
@@ -134,7 +146,8 @@ final class Config
         ?string $poweredBy = null,
         ?string $honeytokenKey = null,
         ?string $deploySeed = null,
-        ?string $decoySessionKey = null
+        ?string $decoySessionKey = null,
+        array $ignoreTemplates = []
     ) {
         $this->mode = $mode;
         $this->gate = $gate;
@@ -158,6 +171,7 @@ final class Config
         $this->honeytokenKey = $honeytokenKey;
         $this->deploySeed = $deploySeed;
         $this->decoySessionKey = $decoySessionKey;
+        $this->ignoreTemplates = $ignoreTemplates;
     }
 
     public function respondEnabled(): bool

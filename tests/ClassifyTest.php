@@ -152,6 +152,143 @@ final class ClassifyTest extends TestCase
         }
     }
 
+    /**
+     * Build an engine over the shipped store with an explicit exclude (serving) and/or
+     * ignoreTemplates (detection) set — the two are distinct axes on Config.
+     *
+     * @param string[] $exclude
+     * @param string[] $ignore
+     */
+    private function engineFor(array $exclude = [], array $ignore = [], ?PhpArrayStore $store = null): Honeypot
+    {
+        return new Honeypot($store ?? $this->store(), new Config(
+            'detect', null, 'matched-only', null, 'coherent',
+            \Funnypot\Core\Response\Style::MINIMAL, 'high', 65536, 0, 0,
+            false,     // attackEmulation
+            null,      // trustedBypass
+            null,      // killSwitch
+            null,      // probeSignature
+            '',        // seedSalt
+            $exclude,  // exclude — never SERVE these
+            true,      // nucleiReflection
+            null,      // serverHeader
+            null,      // poweredBy
+            null,      // honeytokenKey
+            null,      // deploySeed
+            null,      // decoySessionKey
+            $ignore    // ignoreTemplates — never let these DRIVE a detection
+        ));
+    }
+
+    public function test_ignore_by_id_degrades_a_single_match_probe_to_clean(): void
+    {
+        $r = new RequestContext('GET', '/.git/config');
+
+        // Baseline: without ignore this path is a probe on git-config.
+        self::assertSame(
+            Verdict::SCANNER_PROBE,
+            $this->engineFor()->classify($r, SiteProfile::empty())->classification
+        );
+
+        $verdict = $this->engineFor([], ['git-config'])->classify($r, SiteProfile::empty());
+
+        self::assertSame(Verdict::CLEAN, $verdict->classification);
+        self::assertTrue($verdict->detection->isEmpty());
+        self::assertFalse($verdict->detection->matched);
+        self::assertSame([], $verdict->detection->templateIds());
+        self::assertNull($verdict->fakeHandle);
+    }
+
+    public function test_ignore_by_tag_degrades_probe_to_clean(): void
+    {
+        // git-config carries the 'git' tag; ignoring the tag suppresses the id too.
+        $verdict = $this->engineFor([], ['git'])
+            ->classify(new RequestContext('GET', '/.git/config'), SiteProfile::empty());
+
+        self::assertSame(Verdict::CLEAN, $verdict->classification);
+        self::assertTrue($verdict->detection->isEmpty());
+    }
+
+    public function test_a_template_not_in_ignore_is_unaffected(): void
+    {
+        // Ignoring an unrelated id/tag leaves git-config driving the detection as before.
+        $verdict = $this->engineFor([], ['some-other-template', 'unrelated-tag'])
+            ->classify(new RequestContext('GET', '/.git/config'), SiteProfile::empty());
+
+        self::assertSame(Verdict::SCANNER_PROBE, $verdict->classification);
+        self::assertSame(['git-config'], $verdict->detection->templateIds());
+    }
+
+    public function test_ignore_drops_from_evidence_but_a_remaining_match_still_fires(): void
+    {
+        // Two templates match one path; ignoring one leaves the other as evidence (Option (a)).
+        $store = new PhpArrayStore([
+            'schema' => 1,
+            'manifest' => [],
+            'templates' => [
+                'noisy' => ['sev' => 'low', 'tags' => ['miscellaneous'], 'name' => 'Noisy'],
+                'real' => ['sev' => 'high', 'tags' => ['exposure'], 'name' => 'Real'],
+            ],
+            'routes' => [
+                'GET /multi' => ['b' => [
+                    ['s' => 200, 'bw' => ['X'], 'nf' => [], 'h' => [], 'pid' => 'p', 'sev' => 'high', 'sig' => 0, 't' => ['noisy', 'real']],
+                ]],
+            ],
+        ]);
+        $r = new RequestContext('GET', '/multi');
+
+        $verdict = $this->engineFor([], ['noisy'], $store)->classify($r, SiteProfile::empty());
+
+        self::assertSame(Verdict::SCANNER_PROBE, $verdict->classification);
+        self::assertTrue($verdict->detection->matched);
+        self::assertSame(['real'], $verdict->detection->templateIds());
+
+        // Ignoring both matches empties the evidence and degrades to CLEAN.
+        $both = $this->engineFor([], ['noisy', 'real'], $store)->classify($r, SiteProfile::empty());
+        self::assertSame(Verdict::CLEAN, $both->classification);
+        self::assertTrue($both->detection->isEmpty());
+    }
+
+    public function test_ignore_works_by_tag_on_a_multi_match_entry(): void
+    {
+        // The whole 'miscellaneous' tag is the noise source; ignoring it drops only that template.
+        $store = new PhpArrayStore([
+            'schema' => 1,
+            'manifest' => [],
+            'templates' => [
+                'noisy' => ['sev' => 'low', 'tags' => ['miscellaneous'], 'name' => 'Noisy'],
+                'real' => ['sev' => 'high', 'tags' => ['exposure'], 'name' => 'Real'],
+            ],
+            'routes' => [
+                'GET /multi' => ['b' => [
+                    ['s' => 200, 'bw' => ['X'], 'nf' => [], 'h' => [], 'pid' => 'p', 'sev' => 'high', 'sig' => 0, 't' => ['noisy', 'real']],
+                ]],
+            ],
+        ]);
+
+        $verdict = $this->engineFor([], ['miscellaneous'], $store)
+            ->classify(new RequestContext('GET', '/multi'), SiteProfile::empty());
+
+        self::assertSame(Verdict::SCANNER_PROBE, $verdict->classification);
+        self::assertSame(['real'], $verdict->detection->templateIds());
+    }
+
+    public function test_exclude_and_ignore_are_independent(): void
+    {
+        $r = new RequestContext('GET', '/.git/config');
+
+        // exclude governs SERVING only: it must NOT suppress the detection.
+        $excluded = $this->engineFor(['git-config'], [])->classify($r, SiteProfile::empty());
+        self::assertSame(Verdict::SCANNER_PROBE, $excluded->classification);
+        self::assertSame(['git-config'], $excluded->detection->templateIds());
+
+        // ignoreTemplates governs DETECTION only: it degrades to CLEAN, and does so even when a
+        // different id is the one excluded-from-serving — the two lists never cross-talk.
+        $ignored = $this->engineFor(['unrelated'], ['git-config'])->classify($r, SiteProfile::empty());
+        self::assertSame(Verdict::CLEAN, $ignored->classification);
+        self::assertTrue($ignored->detection->isEmpty());
+    }
+
     /** A store that keys only GET /xmlrpc.php (a non-root bundle) — the shadow the override must beat. */
     private function xmlrpcShadowStore(): PhpArrayStore
     {

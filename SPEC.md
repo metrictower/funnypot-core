@@ -185,7 +185,20 @@ DTOs (standard constructors, PHP 7.3+ compatible):
 | `trustedBypass fn:bool` | RFC1918 + shared-secret header | checked FIRST; force null for own scanners |
 | `killSwitch fn:bool` | `NUCLEI_INVERTER_ENABLED` | runtime disable / un-poison |
 | `seedSalt` | `''` (Laravel: `app.key`) | per-deploy persona salt |
-| `exclude` | `[]` | template-id/tag deny list |
+| `exclude` | `[]` | template-id/tag deny list — never **SERVE** (respond path); detection unaffected |
+| `ignoreTemplates` | `[]` | template-id/tag list — never let **DRIVE a detection** (classify path); serving unaffected |
+
+**`exclude` vs `ignoreTemplates` — two axes, never overloaded.** `exclude` silences a template on the
+**serving** side only (it drops from `respond()`); `ignoreTemplates` silences it on the **detection**
+side only (it drops from `classify()`). They are independent: setting one never affects the other, so a
+host can stop serving a fake while still detecting the probe, or stop a noisy template from
+classifying while leaving every other template's serving intact. `ignoreTemplates` uses
+**drop-from-evidence** (Option (a), FP-0092): an ignored id contributes no evidence, and any remaining
+match still classifies the request a probe; only when **every** matching template on an entry is
+ignored does that entry degrade to `CLEAN`. The `Detection::matched` flag keeps its meaning — false iff
+no non-ignored template matched. Chosen over suppress-on-any-match because it composes and it denies an
+attacker the trick of disarming a detection by also tripping a commonly-ignored template. To find the
+id/tag to list, read `Detection::templateIds()` / `->tags()` off a flagged request (§ below).
 
 **App-policy seam:** `Observer { onDetection(...); shouldRespond(...):bool }` +
 `NullObserver`. Logging/scoring/banning live in the app's observer, never in core.
