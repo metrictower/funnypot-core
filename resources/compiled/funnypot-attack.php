@@ -3324,43 +3324,6 @@ $ </pre>
   ),
   52 => 
   array (
-    'id' => 'attack-cloud-imds',
-    'severity' => 'high',
-    'tags' => 
-    array (
-      0 => 'attack',
-      1 => 'ssrf',
-      2 => 'cloud-metadata',
-      3 => 'imds',
-    ),
-    'status' => 200,
-    'match' => 
-    array (
-      0 => 
-      array (
-        'in' => 'path',
-        'regex' => '(?:/latest/meta-data/iam/security-credentials|/latest/dynamic/instance-identity|/computeMetadata/v1/|/metadata/instance)',
-      ),
-    ),
-    'response' => 
-    array (
-      'headers' => 
-      array (
-        'Content-Type' => 'application/json',
-      ),
-      'body' => '{
-  "Code" : "Success",
-  "Type" : "AWS-HMAC",
-  "AccessKeyId" : "ASIA{{fake.imdsak:hexupper:16}}",
-  "SecretAccessKey" : "{{fake.imdssecret:b64:40}}",
-  "Token" : "{{fake.imdstoken:b64:100}}",
-  "Expiration" : "2030-01-01T00:00:00Z"
-}
-',
-    ),
-  ),
-  53 => 
-  array (
     'id' => 'attack-imds-base',
     'severity' => 'high',
     'tags' => 
@@ -3370,6 +3333,7 @@ $ </pre>
       2 => 'cloud-metadata',
       3 => 'imds',
       4 => 'aws',
+      5 => 'ec2',
     ),
     'status' => 200,
     'match' => 
@@ -3377,7 +3341,8 @@ $ </pre>
       0 => 
       array (
         'in' => 'path',
-        'regex' => '^/latest/meta-data/?$',
+        'regex' => '^/latest/meta-data(?:$|/(?!iam/security-credentials/[^/]).*)',
+        'ci' => true,
       ),
     ),
     'response' => 
@@ -3407,8 +3372,757 @@ security-groups
     'lit' => '/latest/meta-data',
     'lit_in' => 'path',
     'lit_ci' => true,
+    'behavior' => 'branch',
+    'branch' => 
+    array (
+      'cases' => 
+      array (
+        0 => 
+        array (
+          'when' => 
+          array (
+            'in' => 'path',
+            'regex' => '^/latest/meta-data/ami-id/?$',
+            'ci' => true,
+          ),
+          'response' => 
+          array (
+            'headers' => 
+            array (
+              'Content-Type' => 'text/plain',
+            ),
+            'body' => 'ami-0{{fake.imds_amiid:hex:16}}',
+          ),
+        ),
+        1 => 
+        array (
+          'when' => 
+          array (
+            'in' => 'path',
+            'regex' => '^/latest/meta-data/ami-launch-index/?$',
+            'ci' => true,
+          ),
+          'response' => 
+          array (
+            'headers' => 
+            array (
+              'Content-Type' => 'text/plain',
+            ),
+            'body' => '0',
+          ),
+        ),
+        2 => 
+        array (
+          'when' => 
+          array (
+            'in' => 'path',
+            'regex' => '^/latest/meta-data/instance-id/?$',
+            'ci' => true,
+          ),
+          'response' => 
+          array (
+            'headers' => 
+            array (
+              'Content-Type' => 'text/plain',
+            ),
+            'body' => 'i-0{{fake.imds_instid:hex:16}}',
+          ),
+        ),
+        3 => 
+        array (
+          'when' => 
+          array (
+            'in' => 'path',
+            'regex' => '^/latest/meta-data/instance-type/?$',
+            'ci' => true,
+          ),
+          'response' => 
+          array (
+            'headers' => 
+            array (
+              'Content-Type' => 'text/plain',
+            ),
+            'body' => '{{pick:t3.medium,t3.large,m5.large,m5.xlarge,c5.large,t3a.medium,m6i.large}}',
+          ),
+        ),
+        4 => 
+        array (
+          'when' => 
+          array (
+            'in' => 'path',
+            'regex' => '^/latest/meta-data/local-ipv4/?$',
+            'ci' => true,
+          ),
+          'response' => 
+          array (
+            'headers' => 
+            array (
+              'Content-Type' => 'text/plain',
+            ),
+            'body' => '10.0.{{fake.imds_ip3:dec:1}}.{{fake.imds_ip4:dec:2}}',
+          ),
+        ),
+        5 => 
+        array (
+          'when' => 
+          array (
+            'in' => 'path',
+            'regex' => '^/latest/meta-data/public-ipv4/?$',
+            'ci' => true,
+          ),
+          'response' => 
+          array (
+            'headers' => 
+            array (
+              'Content-Type' => 'text/plain',
+            ),
+            'body' => '{{pick:3,15,18,34,52,54}}.{{fake.imds_pub2:dec:2}}.{{fake.imds_pub3:dec:2}}.{{fake.imds_pub4:dec:2}}',
+          ),
+        ),
+        6 => 
+        array (
+          'when' => 
+          array (
+            'in' => 'path',
+            'regex' => '^/latest/meta-data/mac/?$',
+            'ci' => true,
+          ),
+          'response' => 
+          array (
+            'headers' => 
+            array (
+              'Content-Type' => 'text/plain',
+            ),
+            'body' => '06:{{fake.imds_mac_a:hex:2}}:{{fake.imds_mac_b:hex:2}}:{{fake.imds_mac_c:hex:2}}:{{fake.imds_mac_d:hex:2}}:{{fake.imds_mac_e:hex:2}}',
+          ),
+        ),
+        7 => 
+        array (
+          'when' => 
+          array (
+            'in' => 'path',
+            'regex' => '^/latest/meta-data/security-groups/?$',
+            'ci' => true,
+          ),
+          'response' => 
+          array (
+            'headers' => 
+            array (
+              'Content-Type' => 'text/plain',
+            ),
+            'body' => 'default',
+          ),
+        ),
+        8 => 
+        array (
+          'when' => 
+          array (
+            'in' => 'path',
+            'regex' => '^/latest/meta-data/hostname/?$',
+            'ci' => true,
+          ),
+          'response' => 
+          array (
+            'headers' => 
+            array (
+              'Content-Type' => 'text/plain',
+            ),
+            'body' => 'ip-10-0-{{fake.imds_ip3:dec:1}}-{{fake.imds_ip4:dec:2}}.{{persona.cloud.aws.region}}.compute.internal',
+          ),
+        ),
+        9 => 
+        array (
+          'when' => 
+          array (
+            'in' => 'path',
+            'regex' => '^/latest/meta-data/local-hostname/?$',
+            'ci' => true,
+          ),
+          'response' => 
+          array (
+            'headers' => 
+            array (
+              'Content-Type' => 'text/plain',
+            ),
+            'body' => 'ip-10-0-{{fake.imds_ip3:dec:1}}-{{fake.imds_ip4:dec:2}}.{{persona.cloud.aws.region}}.compute.internal',
+          ),
+        ),
+        10 => 
+        array (
+          'when' => 
+          array (
+            'in' => 'path',
+            'regex' => '^/latest/meta-data/public-hostname/?$',
+            'ci' => true,
+          ),
+          'response' => 
+          array (
+            'headers' => 
+            array (
+              'Content-Type' => 'text/plain',
+            ),
+            'body' => 'ec2-{{pick:3,15,18,34,52,54}}-{{fake.imds_pub2:dec:2}}-{{fake.imds_pub3:dec:2}}-{{fake.imds_pub4:dec:2}}.{{persona.cloud.aws.region}}.compute.amazonaws.com',
+          ),
+        ),
+        11 => 
+        array (
+          'when' => 
+          array (
+            'in' => 'path',
+            'regex' => '^/latest/meta-data/placement/?$',
+            'ci' => true,
+          ),
+          'response' => 
+          array (
+            'headers' => 
+            array (
+              'Content-Type' => 'text/plain',
+            ),
+            'body' => 'availability-zone
+region
+',
+          ),
+        ),
+        12 => 
+        array (
+          'when' => 
+          array (
+            'in' => 'path',
+            'regex' => '^/latest/meta-data/placement/availability-zone/?$',
+            'ci' => true,
+          ),
+          'response' => 
+          array (
+            'headers' => 
+            array (
+              'Content-Type' => 'text/plain',
+            ),
+            'body' => '{{persona.cloud.aws.region}}{{pick:a,b,c}}',
+          ),
+        ),
+        13 => 
+        array (
+          'when' => 
+          array (
+            'in' => 'path',
+            'regex' => '^/latest/meta-data/placement/region/?$',
+            'ci' => true,
+          ),
+          'response' => 
+          array (
+            'headers' => 
+            array (
+              'Content-Type' => 'text/plain',
+            ),
+            'body' => '{{persona.cloud.aws.region}}',
+          ),
+        ),
+        14 => 
+        array (
+          'when' => 
+          array (
+            'in' => 'path',
+            'regex' => '^/latest/meta-data/iam/?$',
+            'ci' => true,
+          ),
+          'response' => 
+          array (
+            'headers' => 
+            array (
+              'Content-Type' => 'text/plain',
+            ),
+            'body' => 'info
+security-credentials/
+',
+          ),
+        ),
+        15 => 
+        array (
+          'when' => 
+          array (
+            'in' => 'path',
+            'regex' => '^/latest/meta-data/iam/info/?$',
+            'ci' => true,
+          ),
+          'response' => 
+          array (
+            'headers' => 
+            array (
+              'Content-Type' => 'application/json',
+            ),
+            'body' => '{
+  "Code" : "Success",
+  "LastUpdated" : "2024-11-14T09:37:22Z",
+  "InstanceProfileArn" : "arn:aws:iam::{{fake.imds_acct:dec:12}}:instance-profile/{{pick:app-ec2-role,ec2-app-role,web-server-role,ec2-instance-role,ssm-managed-instance}}",
+  "InstanceProfileId" : "AIPA{{fake.imds_ipid:hexupper:16}}"
+}
+',
+          ),
+        ),
+        16 => 
+        array (
+          'when' => 
+          array (
+            'in' => 'path',
+            'regex' => '^/latest/meta-data/iam/security-credentials/?$',
+            'ci' => true,
+          ),
+          'response' => 
+          array (
+            'headers' => 
+            array (
+              'Content-Type' => 'text/plain',
+            ),
+            'body' => '{{pick:app-ec2-role,ec2-app-role,web-server-role,ec2-instance-role,ssm-managed-instance}}',
+          ),
+        ),
+        17 => 
+        array (
+          'when' => 
+          array (
+            'in' => 'path',
+            'regex' => '^/latest/meta-data/block-device-mapping/?$',
+            'ci' => true,
+          ),
+          'response' => 
+          array (
+            'headers' => 
+            array (
+              'Content-Type' => 'text/plain',
+            ),
+            'body' => 'ami
+ephemeral0
+root
+',
+          ),
+        ),
+        18 => 
+        array (
+          'when' => 
+          array (
+            'in' => 'path',
+            'regex' => '^/latest/meta-data/block-device-mapping/ami/?$',
+            'ci' => true,
+          ),
+          'response' => 
+          array (
+            'headers' => 
+            array (
+              'Content-Type' => 'text/plain',
+            ),
+            'body' => 'xvda',
+          ),
+        ),
+        19 => 
+        array (
+          'when' => 
+          array (
+            'in' => 'path',
+            'regex' => '^/latest/meta-data/block-device-mapping/ephemeral0/?$',
+            'ci' => true,
+          ),
+          'response' => 
+          array (
+            'headers' => 
+            array (
+              'Content-Type' => 'text/plain',
+            ),
+            'body' => 'sdb',
+          ),
+        ),
+        20 => 
+        array (
+          'when' => 
+          array (
+            'in' => 'path',
+            'regex' => '^/latest/meta-data/block-device-mapping/root/?$',
+            'ci' => true,
+          ),
+          'response' => 
+          array (
+            'headers' => 
+            array (
+              'Content-Type' => 'text/plain',
+            ),
+            'body' => '/dev/xvda',
+          ),
+        ),
+        21 => 
+        array (
+          'when' => 
+          array (
+            'in' => 'path',
+            'regex' => '^/latest/meta-data/metrics/?$',
+            'ci' => true,
+          ),
+          'response' => 
+          array (
+            'headers' => 
+            array (
+              'Content-Type' => 'text/plain',
+            ),
+            'body' => 'vhostmd',
+          ),
+        ),
+        22 => 
+        array (
+          'when' => 
+          array (
+            'in' => 'path',
+            'regex' => '^/latest/meta-data/metrics/vhostmd/?$',
+            'ci' => true,
+          ),
+          'response' => 
+          array (
+            'headers' => 
+            array (
+              'Content-Type' => 'text/plain',
+            ),
+            'body' => '<?xml version="1.0" encoding="UTF-8"?>',
+          ),
+        ),
+        23 => 
+        array (
+          'when' => 
+          array (
+            'in' => 'path',
+            'regex' => '^/latest/meta-data/network/?$',
+            'ci' => true,
+          ),
+          'response' => 
+          array (
+            'headers' => 
+            array (
+              'Content-Type' => 'text/plain',
+            ),
+            'body' => 'interfaces/',
+          ),
+        ),
+        24 => 
+        array (
+          'when' => 
+          array (
+            'in' => 'path',
+            'regex' => '^/latest/meta-data/network/interfaces/?$',
+            'ci' => true,
+          ),
+          'response' => 
+          array (
+            'headers' => 
+            array (
+              'Content-Type' => 'text/plain',
+            ),
+            'body' => 'macs/',
+          ),
+        ),
+        25 => 
+        array (
+          'when' => 
+          array (
+            'in' => 'path',
+            'regex' => '^/latest/meta-data/network/interfaces/macs/?$',
+            'ci' => true,
+          ),
+          'response' => 
+          array (
+            'headers' => 
+            array (
+              'Content-Type' => 'text/plain',
+            ),
+            'body' => '06:{{fake.imds_mac_a:hex:2}}:{{fake.imds_mac_b:hex:2}}:{{fake.imds_mac_c:hex:2}}:{{fake.imds_mac_d:hex:2}}:{{fake.imds_mac_e:hex:2}}/',
+          ),
+        ),
+        26 => 
+        array (
+          'when' => 
+          array (
+            'in' => 'path',
+            'regex' => '^/latest/meta-data/network/interfaces/macs/[^/]+/?$',
+            'ci' => true,
+          ),
+          'response' => 
+          array (
+            'headers' => 
+            array (
+              'Content-Type' => 'text/plain',
+            ),
+            'body' => 'device-number
+interface-id
+local-ipv4s
+mac
+owner-id
+security-groups
+subnet-id
+subnet-ipv4-cidr-block
+vpc-id
+vpc-ipv4-cidr-block
+',
+          ),
+        ),
+        27 => 
+        array (
+          'when' => 
+          array (
+            'in' => 'path',
+            'regex' => '^/latest/meta-data/network/interfaces/macs/[^/]+/device-number/?$',
+            'ci' => true,
+          ),
+          'response' => 
+          array (
+            'headers' => 
+            array (
+              'Content-Type' => 'text/plain',
+            ),
+            'body' => '0',
+          ),
+        ),
+        28 => 
+        array (
+          'when' => 
+          array (
+            'in' => 'path',
+            'regex' => '^/latest/meta-data/network/interfaces/macs/[^/]+/interface-id/?$',
+            'ci' => true,
+          ),
+          'response' => 
+          array (
+            'headers' => 
+            array (
+              'Content-Type' => 'text/plain',
+            ),
+            'body' => 'eni-0{{fake.imds_eni:hex:16}}',
+          ),
+        ),
+        29 => 
+        array (
+          'when' => 
+          array (
+            'in' => 'path',
+            'regex' => '^/latest/meta-data/network/interfaces/macs/[^/]+/local-ipv4s/?$',
+            'ci' => true,
+          ),
+          'response' => 
+          array (
+            'headers' => 
+            array (
+              'Content-Type' => 'text/plain',
+            ),
+            'body' => '10.0.{{fake.imds_ip3:dec:1}}.{{fake.imds_ip4:dec:2}}',
+          ),
+        ),
+        30 => 
+        array (
+          'when' => 
+          array (
+            'in' => 'path',
+            'regex' => '^/latest/meta-data/network/interfaces/macs/[^/]+/mac/?$',
+            'ci' => true,
+          ),
+          'response' => 
+          array (
+            'headers' => 
+            array (
+              'Content-Type' => 'text/plain',
+            ),
+            'body' => '06:{{fake.imds_mac_a:hex:2}}:{{fake.imds_mac_b:hex:2}}:{{fake.imds_mac_c:hex:2}}:{{fake.imds_mac_d:hex:2}}:{{fake.imds_mac_e:hex:2}}',
+          ),
+        ),
+        31 => 
+        array (
+          'when' => 
+          array (
+            'in' => 'path',
+            'regex' => '^/latest/meta-data/network/interfaces/macs/[^/]+/owner-id/?$',
+            'ci' => true,
+          ),
+          'response' => 
+          array (
+            'headers' => 
+            array (
+              'Content-Type' => 'text/plain',
+            ),
+            'body' => '{{fake.imds_acct:dec:12}}',
+          ),
+        ),
+        32 => 
+        array (
+          'when' => 
+          array (
+            'in' => 'path',
+            'regex' => '^/latest/meta-data/network/interfaces/macs/[^/]+/security-groups/?$',
+            'ci' => true,
+          ),
+          'response' => 
+          array (
+            'headers' => 
+            array (
+              'Content-Type' => 'text/plain',
+            ),
+            'body' => 'default',
+          ),
+        ),
+        33 => 
+        array (
+          'when' => 
+          array (
+            'in' => 'path',
+            'regex' => '^/latest/meta-data/network/interfaces/macs/[^/]+/subnet-id/?$',
+            'ci' => true,
+          ),
+          'response' => 
+          array (
+            'headers' => 
+            array (
+              'Content-Type' => 'text/plain',
+            ),
+            'body' => 'subnet-0{{fake.imds_subnet:hex:16}}',
+          ),
+        ),
+        34 => 
+        array (
+          'when' => 
+          array (
+            'in' => 'path',
+            'regex' => '^/latest/meta-data/network/interfaces/macs/[^/]+/subnet-ipv4-cidr-block/?$',
+            'ci' => true,
+          ),
+          'response' => 
+          array (
+            'headers' => 
+            array (
+              'Content-Type' => 'text/plain',
+            ),
+            'body' => '10.0.0.0/20',
+          ),
+        ),
+        35 => 
+        array (
+          'when' => 
+          array (
+            'in' => 'path',
+            'regex' => '^/latest/meta-data/network/interfaces/macs/[^/]+/vpc-id/?$',
+            'ci' => true,
+          ),
+          'response' => 
+          array (
+            'headers' => 
+            array (
+              'Content-Type' => 'text/plain',
+            ),
+            'body' => 'vpc-0{{fake.imds_vpc:hex:16}}',
+          ),
+        ),
+        36 => 
+        array (
+          'when' => 
+          array (
+            'in' => 'path',
+            'regex' => '^/latest/meta-data/network/interfaces/macs/[^/]+/vpc-ipv4-cidr-block/?$',
+            'ci' => true,
+          ),
+          'response' => 
+          array (
+            'headers' => 
+            array (
+              'Content-Type' => 'text/plain',
+            ),
+            'body' => '10.0.0.0/16',
+          ),
+        ),
+      ),
+    ),
+  ),
+  53 => 
+  array (
+    'id' => 'attack-imds-identity-doc',
+    'severity' => 'high',
+    'tags' => 
+    array (
+      0 => 'attack',
+      1 => 'ssrf',
+      2 => 'cloud-metadata',
+      3 => 'imds',
+      4 => 'aws',
+      5 => 'ec2',
+    ),
+    'status' => 200,
+    'match' => 
+    array (
+      0 => 
+      array (
+        'in' => 'path',
+        'regex' => '^/latest/dynamic/instance-identity/document/?$',
+        'ci' => true,
+      ),
+    ),
+    'response' => 
+    array (
+      'headers' => 
+      array (
+        'Content-Type' => 'application/json',
+      ),
+      'body' => '{
+  "accountId" : "{{fake.imds_acct:dec:12}}",
+  "architecture" : "x86_64",
+  "availabilityZone" : "{{persona.cloud.aws.region}}{{pick:a,b,c}}",
+  "billingProducts" : null,
+  "devpayProductCodes" : null,
+  "marketplaceProductCodes" : null,
+  "imageId" : "ami-0{{fake.imds_amiid:hex:16}}",
+  "instanceId" : "i-0{{fake.imds_instid:hex:16}}",
+  "instanceType" : "{{pick:t3.medium,t3.large,m5.large,m5.xlarge,c5.large,t3a.medium,m6i.large}}",
+  "kernelId" : null,
+  "pendingTime" : "2024-11-14T09:37:22Z",
+  "privateIp" : "10.0.{{fake.imds_ip3:dec:1}}.{{fake.imds_ip4:dec:2}}",
+  "ramdiskId" : null,
+  "region" : "{{persona.cloud.aws.region}}",
+  "version" : "2017-09-30"
+}
+',
+    ),
+    'lit' => '/latest/dynamic/instance-identity/document',
+    'lit_in' => 'path',
+    'lit_ci' => true,
   ),
   54 => 
+  array (
+    'id' => 'attack-cloud-imds',
+    'severity' => 'high',
+    'tags' => 
+    array (
+      0 => 'attack',
+      1 => 'ssrf',
+      2 => 'cloud-metadata',
+      3 => 'imds',
+    ),
+    'status' => 200,
+    'match' => 
+    array (
+      0 => 
+      array (
+        'in' => 'path',
+        'regex' => '(?:/latest/meta-data/iam/security-credentials|/latest/dynamic/instance-identity|/computeMetadata/v1/|/metadata/instance)',
+      ),
+    ),
+    'response' => 
+    array (
+      'headers' => 
+      array (
+        'Content-Type' => 'application/json',
+      ),
+      'body' => '{
+  "Code" : "Success",
+  "LastUpdated" : "2024-11-14T09:37:22Z",
+  "Type" : "AWS-HMAC",
+  "AccessKeyId" : "ASIA{{fake.imdsak:hexupper:16}}",
+  "SecretAccessKey" : "{{fake.imdssecret:b64:40}}",
+  "Token" : "{{fake.imdstoken:b64:100}}",
+  "Expiration" : "2030-01-01T00:00:00Z"
+}
+',
+    ),
+  ),
+  55 => 
   array (
     'id' => 'attack-ignition-execute-solution',
     'severity' => 'high',
@@ -3497,7 +4211,7 @@ security-groups
       ),
     ),
   ),
-  55 => 
+  56 => 
   array (
     'id' => 'attack-webmin-session-login',
     'severity' => 'high',
@@ -3567,7 +4281,7 @@ security-groups
     'lit_in' => 'method',
     'lit_ci' => false,
   ),
-  56 => 
+  57 => 
   array (
     'id' => 'attack-jenkins-acegi-login',
     'severity' => 'high',
@@ -3615,7 +4329,7 @@ security-groups
     'lit_in' => 'method',
     'lit_ci' => false,
   ),
-  57 => 
+  58 => 
   array (
     'id' => 'attack-hnap-login',
     'severity' => 'high',
@@ -3700,7 +4414,7 @@ security-groups
       ),
     ),
   ),
-  58 => 
+  59 => 
   array (
     'id' => 'attack-wp-admin-redirect',
     'severity' => 'low',
@@ -3743,7 +4457,7 @@ security-groups
       0 => '/wp-admin',
     ),
   ),
-  59 => 
+  60 => 
   array (
     'id' => 'attack-crs-sqli',
     'severity' => 'high',
@@ -3773,7 +4487,7 @@ security-groups
 ',
     ),
   ),
-  60 => 
+  61 => 
   array (
     'id' => 'attack-crs-xss',
     'severity' => 'high',
@@ -3805,7 +4519,7 @@ security-groups
 ',
     ),
   ),
-  61 => 
+  62 => 
   array (
     'id' => 'attack-crs-lfi',
     'severity' => 'high',
@@ -3834,7 +4548,7 @@ security-groups
       'body' => '{{canned.passwd}}',
     ),
   ),
-  62 => 
+  63 => 
   array (
     'id' => 'attack-crs-rce',
     'severity' => 'critical',

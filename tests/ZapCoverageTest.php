@@ -57,10 +57,11 @@ final class ZapCoverageTest extends TestCase
     public function test_attack_rule_count_is_59_plus_the_two_new_rules(): void
     {
         $rules = require self::ATTACK_COMPILED;
-        self::assertCount(63, $rules, 'attack rule count must be 59 (baseline) + 2 (imds-base, wp-admin-redirect) + 2 (lfi-sshkey, lfi-hostname)');
+        self::assertCount(64, $rules, 'attack rule count must be 59 (baseline) + 2 (imds-base, wp-admin-redirect) + 2 (lfi-sshkey, lfi-hostname) + 1 (imds-identity-doc)');
 
         $ids = array_map(static function (array $r): string { return (string) $r['id']; }, $rules);
         self::assertContains('attack-imds-base', $ids);
+        self::assertContains('attack-imds-identity-doc', $ids, 'the coherent instance-identity document rule');
         self::assertContains('attack-wp-admin-redirect', $ids);
         // Target-aware LFI: an id_rsa/.ssh or /etc/hostname read returns key/hostname content
         // instead of a format-mismatched passwd, each ahead of the generic passwd rule.

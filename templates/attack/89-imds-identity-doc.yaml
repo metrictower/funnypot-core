@@ -1,0 +1,39 @@
+id: attack-imds-identity-doc
+severity: high
+# Priority 89 (below 90-imds): the EC2 instance-identity document. 90-imds matches the broader
+# /latest/dynamic/instance-identity prefix, so this more specific rule must sort ahead of it to own
+# the /document leaf. Every field is INERT and reuses the SAME seeded directive names as the
+# meta-data tree (91-imds-base.yaml), so the document never contradicts the leaves an SSRF walker
+# reads: instanceId == /instance-id, imageId == /ami-id, privateIp == /local-ipv4,
+# region == /placement/region, availabilityZone == /placement/availability-zone (region is its
+# prefix), accountId == the iam owner-id, instanceType == /instance-type. The real document carries
+# no MAC field, so none is emitted here. Fields follow the real document's shape and order.
+priority: 89
+tags: [attack, ssrf, cloud-metadata, imds, aws, ec2]
+match:
+  - in: path
+    regex: '^/latest/dynamic/instance-identity/document/?$'
+    ci: true
+status: 200
+response:
+  headers:
+    Content-Type: "application/json"
+  body: |
+    {
+      "accountId" : "{{fake.imds_acct:dec:12}}",
+      "architecture" : "x86_64",
+      "availabilityZone" : "{{persona.cloud.aws.region}}{{pick:a,b,c}}",
+      "billingProducts" : null,
+      "devpayProductCodes" : null,
+      "marketplaceProductCodes" : null,
+      "imageId" : "ami-0{{fake.imds_amiid:hex:16}}",
+      "instanceId" : "i-0{{fake.imds_instid:hex:16}}",
+      "instanceType" : "{{pick:t3.medium,t3.large,m5.large,m5.xlarge,c5.large,t3a.medium,m6i.large}}",
+      "kernelId" : null,
+      "pendingTime" : "2024-11-14T09:37:22Z",
+      "privateIp" : "10.0.{{fake.imds_ip3:dec:1}}.{{fake.imds_ip4:dec:2}}",
+      "ramdiskId" : null,
+      "region" : "{{persona.cloud.aws.region}}",
+      "version" : "2017-09-30"
+    }
+expect: ['instanceId', 'region', 'privateIp']

@@ -1,16 +1,33 @@
 id: attack-imds-base
 severity: high
-priority: 91
-tags: [attack, ssrf, cloud-metadata, imds, aws]
-# The bare IMDSv1 category listing (no deeper suffix) — closes a gap next to 90-imds.yaml,
-# which only matches the deeper credential/identity sub-paths. A real EC2 instance answers
-# THIS path first, before a caller even knows which IAM role name to walk further, so it is
-# the highest-signal miss in the IMDS family (found via a ZAP scan of this honeypot). Learn-
-# don't-vendor: the category list is the real, unversioned IMDSv1 shape, not copied from a
-# scanner or tool. Inert — no secrets here; the deeper credential leaf stays 90-imds's job.
+# Priority 89 (below 90-imds): this rule owns the whole AWS instance-metadata tree UNDER
+# /latest/meta-data/ — the category listing AND every advertised child — so an SSRF walker that
+# reads the listing and follows each entry never hits a 404. A half-served tree (listing present,
+# leaves 404) is a partial tell ("broken EC2" is worse than "not EC2"), which is exactly what this
+# closes. Sitting below 90-imds lets THIS rule serve the iam role-name listing while 90-imds keeps
+# the deeper credential leaf (/iam/security-credentials/<role>) — see the top-level match note.
+#
+# Learn-don't-vendor: the tree shape + field names are the real, unversioned IMDSv1 layout, not
+# copied from any scanner/tool. Every value is INERT and deterministic from the persona/render seed
+# (no real instance data), and coherent across leaves: the same instance-id/ami-id/private-ip/
+# region appear wherever they recur (see the shared {{fake.*}} names and {{pick:...}} lists below),
+# and the identity document (89-imds-identity-doc.yaml) reuses the identical names so it never
+# contradicts these leaves.
+priority: 89
+tags: [attack, ssrf, cloud-metadata, imds, aws, ec2]
 match:
+  # Match /latest/meta-data and any child EXCEPT the credential leaf
+  # /iam/security-credentials/<role> — the negative lookahead hands that one path back to 90-imds
+  # (which serves the STS JSON there), while /iam/security-credentials/ (no role) still matches here
+  # and is answered with the role-name listing. Anchored at the start, so the compiler's literal
+  # pre-filter is exactly '/latest/meta-data'.
   - in: path
-    regex: '^/latest/meta-data/?$'
+    regex: '^/latest/meta-data(?:$|/(?!iam/security-credentials/[^/]).*)'
+    ci: true
+status: 200
+# Served for the bare /latest/meta-data[/] root (no branch case fires) and, on the position-blind
+# port, as the fallback: the IMDSv1 category listing. Directory entries end with '/'. This is also
+# the compile-time `expect` anchor below.
 response:
   headers:
     Content-Type: "text/plain"
@@ -31,4 +48,135 @@ response:
     public-hostname
     public-ipv4
     security-groups
+behavior: branch
+branch:
+  cases:
+    # --- flat leaves -----------------------------------------------------------------------------
+    - when: { in: path, regex: '^/latest/meta-data/ami-id/?$', ci: true }
+      response: { headers: { Content-Type: "text/plain" }, body: "ami-0{{fake.imds_amiid:hex:16}}" }
+    - when: { in: path, regex: '^/latest/meta-data/ami-launch-index/?$', ci: true }
+      response: { headers: { Content-Type: "text/plain" }, body: "0" }
+    - when: { in: path, regex: '^/latest/meta-data/instance-id/?$', ci: true }
+      response: { headers: { Content-Type: "text/plain" }, body: "i-0{{fake.imds_instid:hex:16}}" }
+    - when: { in: path, regex: '^/latest/meta-data/instance-type/?$', ci: true }
+      response: { headers: { Content-Type: "text/plain" }, body: "{{pick:t3.medium,t3.large,m5.large,m5.xlarge,c5.large,t3a.medium,m6i.large}}" }
+    - when: { in: path, regex: '^/latest/meta-data/local-ipv4/?$', ci: true }
+      response: { headers: { Content-Type: "text/plain" }, body: "10.0.{{fake.imds_ip3:dec:1}}.{{fake.imds_ip4:dec:2}}" }
+    - when: { in: path, regex: '^/latest/meta-data/public-ipv4/?$', ci: true }
+      response: { headers: { Content-Type: "text/plain" }, body: "{{pick:3,15,18,34,52,54}}.{{fake.imds_pub2:dec:2}}.{{fake.imds_pub3:dec:2}}.{{fake.imds_pub4:dec:2}}" }
+    - when: { in: path, regex: '^/latest/meta-data/mac/?$', ci: true }
+      response: { headers: { Content-Type: "text/plain" }, body: "06:{{fake.imds_mac_a:hex:2}}:{{fake.imds_mac_b:hex:2}}:{{fake.imds_mac_c:hex:2}}:{{fake.imds_mac_d:hex:2}}:{{fake.imds_mac_e:hex:2}}" }
+    - when: { in: path, regex: '^/latest/meta-data/security-groups/?$', ci: true }
+      response: { headers: { Content-Type: "text/plain" }, body: "default" }
+    # local-hostname == hostname == the internal DNS name, embedding the same private IP octets as
+    # /local-ipv4. Region domain uses <region>.compute.internal (the general EC2 form).
+    - when: { in: path, regex: '^/latest/meta-data/hostname/?$', ci: true }
+      response: { headers: { Content-Type: "text/plain" }, body: "ip-10-0-{{fake.imds_ip3:dec:1}}-{{fake.imds_ip4:dec:2}}.{{persona.cloud.aws.region}}.compute.internal" }
+    - when: { in: path, regex: '^/latest/meta-data/local-hostname/?$', ci: true }
+      response: { headers: { Content-Type: "text/plain" }, body: "ip-10-0-{{fake.imds_ip3:dec:1}}-{{fake.imds_ip4:dec:2}}.{{persona.cloud.aws.region}}.compute.internal" }
+    # public-hostname embeds the same public-ipv4 octets (dashed), coherent with /public-ipv4.
+    - when: { in: path, regex: '^/latest/meta-data/public-hostname/?$', ci: true }
+      response: { headers: { Content-Type: "text/plain" }, body: "ec2-{{pick:3,15,18,34,52,54}}-{{fake.imds_pub2:dec:2}}-{{fake.imds_pub3:dec:2}}-{{fake.imds_pub4:dec:2}}.{{persona.cloud.aws.region}}.compute.amazonaws.com" }
+
+    # --- placement/ ------------------------------------------------------------------------------
+    - when: { in: path, regex: '^/latest/meta-data/placement/?$', ci: true }
+      response:
+        headers: { Content-Type: "text/plain" }
+        body: |
+          availability-zone
+          region
+    # AZ = region + a stable letter, so region is derivable from the AZ (region is its prefix).
+    - when: { in: path, regex: '^/latest/meta-data/placement/availability-zone/?$', ci: true }
+      response: { headers: { Content-Type: "text/plain" }, body: "{{persona.cloud.aws.region}}{{pick:a,b,c}}" }
+    - when: { in: path, regex: '^/latest/meta-data/placement/region/?$', ci: true }
+      response: { headers: { Content-Type: "text/plain" }, body: "{{persona.cloud.aws.region}}" }
+
+    # --- iam/ ------------------------------------------------------------------------------------
+    - when: { in: path, regex: '^/latest/meta-data/iam/?$', ci: true }
+      response:
+        headers: { Content-Type: "text/plain" }
+        body: |
+          info
+          security-credentials/
+    # iam/info: coherent with the credential leaf 90-imds serves — the account id is the shared
+    # {{fake.imds_acct}} and the instance-profile name is the SAME role the listing below advertises.
+    - when: { in: path, regex: '^/latest/meta-data/iam/info/?$', ci: true }
+      response:
+        headers: { Content-Type: "application/json" }
+        body: |
+          {
+            "Code" : "Success",
+            "LastUpdated" : "2024-11-14T09:37:22Z",
+            "InstanceProfileArn" : "arn:aws:iam::{{fake.imds_acct:dec:12}}:instance-profile/{{pick:app-ec2-role,ec2-app-role,web-server-role,ec2-instance-role,ssm-managed-instance}}",
+            "InstanceProfileId" : "AIPA{{fake.imds_ipid:hexupper:16}}"
+          }
+    # The role-NAME listing (the real shape at this path). 90-imds serves the STS JSON at the deeper
+    # /iam/security-credentials/<role>, which the top-level lookahead keeps out of this rule.
+    - when: { in: path, regex: '^/latest/meta-data/iam/security-credentials/?$', ci: true }
+      response: { headers: { Content-Type: "text/plain" }, body: "{{pick:app-ec2-role,ec2-app-role,web-server-role,ec2-instance-role,ssm-managed-instance}}" }
+
+    # --- block-device-mapping/ -------------------------------------------------------------------
+    - when: { in: path, regex: '^/latest/meta-data/block-device-mapping/?$', ci: true }
+      response:
+        headers: { Content-Type: "text/plain" }
+        body: |
+          ami
+          ephemeral0
+          root
+    - when: { in: path, regex: '^/latest/meta-data/block-device-mapping/ami/?$', ci: true }
+      response: { headers: { Content-Type: "text/plain" }, body: "xvda" }
+    - when: { in: path, regex: '^/latest/meta-data/block-device-mapping/ephemeral0/?$', ci: true }
+      response: { headers: { Content-Type: "text/plain" }, body: "sdb" }
+    - when: { in: path, regex: '^/latest/meta-data/block-device-mapping/root/?$', ci: true }
+      response: { headers: { Content-Type: "text/plain" }, body: "/dev/xvda" }
+
+    # --- metrics/ --------------------------------------------------------------------------------
+    - when: { in: path, regex: '^/latest/meta-data/metrics/?$', ci: true }
+      response: { headers: { Content-Type: "text/plain" }, body: "vhostmd" }
+    - when: { in: path, regex: '^/latest/meta-data/metrics/vhostmd/?$', ci: true }
+      response: { headers: { Content-Type: "text/plain" }, body: '<?xml version="1.0" encoding="UTF-8"?>' }
+
+    # --- network/interfaces/macs/<mac>/ ----------------------------------------------------------
+    - when: { in: path, regex: '^/latest/meta-data/network/?$', ci: true }
+      response: { headers: { Content-Type: "text/plain" }, body: "interfaces/" }
+    - when: { in: path, regex: '^/latest/meta-data/network/interfaces/?$', ci: true }
+      response: { headers: { Content-Type: "text/plain" }, body: "macs/" }
+    - when: { in: path, regex: '^/latest/meta-data/network/interfaces/macs/?$', ci: true }
+      response: { headers: { Content-Type: "text/plain" }, body: "06:{{fake.imds_mac_a:hex:2}}:{{fake.imds_mac_b:hex:2}}:{{fake.imds_mac_c:hex:2}}:{{fake.imds_mac_d:hex:2}}:{{fake.imds_mac_e:hex:2}}/" }
+    # The per-mac leaf listing. The <mac> path segment ([^/]+) is never reflected — every leaf serves
+    # the same seeded value regardless of the requested mac, so a probe for any mac still resolves.
+    - when: { in: path, regex: '^/latest/meta-data/network/interfaces/macs/[^/]+/?$', ci: true }
+      response:
+        headers: { Content-Type: "text/plain" }
+        body: |
+          device-number
+          interface-id
+          local-ipv4s
+          mac
+          owner-id
+          security-groups
+          subnet-id
+          subnet-ipv4-cidr-block
+          vpc-id
+          vpc-ipv4-cidr-block
+    - when: { in: path, regex: '^/latest/meta-data/network/interfaces/macs/[^/]+/device-number/?$', ci: true }
+      response: { headers: { Content-Type: "text/plain" }, body: "0" }
+    - when: { in: path, regex: '^/latest/meta-data/network/interfaces/macs/[^/]+/interface-id/?$', ci: true }
+      response: { headers: { Content-Type: "text/plain" }, body: "eni-0{{fake.imds_eni:hex:16}}" }
+    - when: { in: path, regex: '^/latest/meta-data/network/interfaces/macs/[^/]+/local-ipv4s/?$', ci: true }
+      response: { headers: { Content-Type: "text/plain" }, body: "10.0.{{fake.imds_ip3:dec:1}}.{{fake.imds_ip4:dec:2}}" }
+    - when: { in: path, regex: '^/latest/meta-data/network/interfaces/macs/[^/]+/mac/?$', ci: true }
+      response: { headers: { Content-Type: "text/plain" }, body: "06:{{fake.imds_mac_a:hex:2}}:{{fake.imds_mac_b:hex:2}}:{{fake.imds_mac_c:hex:2}}:{{fake.imds_mac_d:hex:2}}:{{fake.imds_mac_e:hex:2}}" }
+    - when: { in: path, regex: '^/latest/meta-data/network/interfaces/macs/[^/]+/owner-id/?$', ci: true }
+      response: { headers: { Content-Type: "text/plain" }, body: "{{fake.imds_acct:dec:12}}" }
+    - when: { in: path, regex: '^/latest/meta-data/network/interfaces/macs/[^/]+/security-groups/?$', ci: true }
+      response: { headers: { Content-Type: "text/plain" }, body: "default" }
+    - when: { in: path, regex: '^/latest/meta-data/network/interfaces/macs/[^/]+/subnet-id/?$', ci: true }
+      response: { headers: { Content-Type: "text/plain" }, body: "subnet-0{{fake.imds_subnet:hex:16}}" }
+    - when: { in: path, regex: '^/latest/meta-data/network/interfaces/macs/[^/]+/subnet-ipv4-cidr-block/?$', ci: true }
+      response: { headers: { Content-Type: "text/plain" }, body: "10.0.0.0/20" }
+    - when: { in: path, regex: '^/latest/meta-data/network/interfaces/macs/[^/]+/vpc-id/?$', ci: true }
+      response: { headers: { Content-Type: "text/plain" }, body: "vpc-0{{fake.imds_vpc:hex:16}}" }
+    - when: { in: path, regex: '^/latest/meta-data/network/interfaces/macs/[^/]+/vpc-ipv4-cidr-block/?$', ci: true }
+      response: { headers: { Content-Type: "text/plain" }, body: "10.0.0.0/16" }
 expect: ['ami-id', 'instance-id']

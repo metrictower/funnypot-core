@@ -275,7 +275,7 @@ at build time and not listed here. Every response stays **inert** (emulates outp
 | **Injection & reflection** | SQLi · XSS · SSTI (Twig · numeric) · command injection (unix · windows) · XXE · open-redirect · php-glastopf | Plausible reflected-payload behaviour, never executed |
 | **LFI / traversal** | `/etc/shadow` · `/etc/group` · `/proc/*/environ` · unix · windows · SMB conf | Bounded fake file-read, in-string only — no filesystem access |
 | **Network appliances (CVE)** | FortiOS (40684) · Ivanti Connect Secure (21887) · Citrix Bleed (4966) | Edge-device exploit surfaces bots sweep hardest |
-| **Cloud / IMDS** | EC2 instance-metadata tree · base listing | SSRF/LFI bait → fake IAM creds |
+| **Cloud / IMDS** | EC2 instance-metadata tree (category listing · every leaf · `placement`/`iam`/`network`/`block-device-mapping` sub-listings) · `instance-identity/document` · `iam/security-credentials` role listing → inert STS creds | Fully-walkable SSRF/LFI bait — every advertised child resolves (no partial tell), all values inert, seed-coherent, and consistent across the document and leaves |
 | **AI-API impersonation** | Ollama (`/api/tags` · `version` · `ps` · `show` · `chat` · `generate`) · OpenAI chat · Anthropic messages · `GET /v1/models` | Byte-exact inference-API surfaces to bait LLM/GPU scanners; buffered troll-chat floor |
 | **CRS attack-class engine** | sqli · xss · lfi · rce | A coverage multiplier for tier 2 — broadens the generic attack-class alternation |
 | **Static file & config leaks** *(route tier)* | config & secret files, cloud/AWS creds, `.env`, logs, API docs / Swagger, VCS dirs (`.git`/`.svn`), backups, `phpinfo`, directory listings | The long tail scanners crawl for — served as plausible disclosure pages |

@@ -4,7 +4,13 @@ priority: 90
 tags: [attack, ssrf, cloud-metadata, imds]
 # A direct probe for the cloud instance-metadata service (AWS/GCP/Azure paths). Return a
 # well-formed fake IAM credential blob — inert, seeded per attacker. No outbound call is ever
-# made (the OOB-SSRF variant is deliberately not emulated).
+# made (the OOB-SSRF variant is deliberately not emulated). The AWS role-name listing lives at
+# /iam/security-credentials/ (91-imds-base.yaml, priority 89); this rule serves the STS blob at the
+# deeper /iam/security-credentials/<role> leaf, which that rule's match lookahead hands back here.
+#
+# INERT credentials: the temporary-credential shape is exact (ASIA-prefixed key, all the STS
+# fields incl. Code:Success/LastUpdated/Type/Expiration) so it baits a secret scanner, but every
+# value is a random per-attacker digest — never a working AWS credential. Using it gets nothing.
 match:
   - in: path
     regex: '(?:/latest/meta-data/iam/security-credentials|/latest/dynamic/instance-identity|/computeMetadata/v1/|/metadata/instance)'
@@ -14,6 +20,7 @@ response:
   body: |
     {
       "Code" : "Success",
+      "LastUpdated" : "2024-11-14T09:37:22Z",
       "Type" : "AWS-HMAC",
       "AccessKeyId" : "ASIA{{fake.imdsak:hexupper:16}}",
       "SecretAccessKey" : "{{fake.imdssecret:b64:40}}",
