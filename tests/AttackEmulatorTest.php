@@ -119,6 +119,43 @@ final class AttackEmulatorTest extends TestCase
         self::assertStringContainsString('7777777', $this->emulate('/hello', "name={{7*'7'}}")->body);
     }
 
+    public function test_ssti_computes_across_markers_and_operators(): void
+    {
+        // Every recognized template marker "renders" the arithmetic to the same integer.
+        foreach (['name={{7*7}}', 'name=${7*7}', 'name=#{7*7}', 'name=${{7*7}}', 'x=<%= 7*7 %>'] as $q) {
+            $r = $this->emulate('/hello', $q);
+            self::assertNotNull($r, $q);
+            self::assertSame(['attack-ssti-numeric'], $r->satisfies->templateIds(), $q);
+            self::assertSame("49\n", $r->body, $q);
+        }
+
+        // Multi-op and randomized operands — a canned 49 could not fake these.
+        self::assertSame("50\n", $this->emulate('/hello', 'name={{7*7+1}}')->body);
+        self::assertSame("1337\n", $this->emulate('/hello', 'name={{1338-1}}')->body);
+        self::assertSame("20\n", $this->emulate('/hello', 'name={{ (2+3) * 4 }}')->body);
+    }
+
+    public function test_ssti_non_arithmetic_payload_does_not_execute(): void
+    {
+        // Hostile object-access SSTI payloads must never render a value and never error — the SSTI
+        // decoy simply does not fire (no attack fake), so the request falls through unremarkably.
+        self::assertNull($this->emulate('/hello', 'name={{config}}'));
+        self::assertNull($this->emulate('/hello', "name={{7*''.__class__}}"));
+        self::assertNull($this->emulate('/hello', 'name={{request.application}}'));
+    }
+
+    public function test_ssti_unsafe_arithmetic_degrades_without_500(): void
+    {
+        // Division by zero and overflow: the rule matches but the evaluator declines, so the inert
+        // base page serves at 200 — never a 500 (which would itself be a tell).
+        foreach (['name={{1/0}}', 'name={{99999999999999*2}}'] as $q) {
+            $r = $this->emulate('/hello', $q);
+            self::assertNotNull($r, $q);
+            self::assertSame(200, $r->status, $q);
+            self::assertStringNotContainsString('49', $r->body, $q);
+        }
+    }
+
     public function test_xss_reflects_only_the_payload(): void
     {
         $payload = '<script>alert(document.domain)</script>';

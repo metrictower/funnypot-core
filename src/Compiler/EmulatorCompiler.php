@@ -179,8 +179,8 @@ final class EmulatorCompiler
 
         // An optional named behavior primitive. The base `response` above stays the ultimate
         // fallback; the behavior only picks the content when it fires. Unknown names are a build
-        // failure — this build knows branch, arith-eval, iterate, and decoy-session (other
-        // primitives are deferred).
+        // failure — this build knows branch, arith-eval, expr-eval, iterate, and decoy-session
+        // (other primitives are deferred).
         if (isset($doc['behavior'])) {
             $behavior = (string) $doc['behavior'];
             switch ($behavior) {
@@ -192,6 +192,10 @@ final class EmulatorCompiler
                     $rule['behavior'] = 'arith-eval';
                     $rule['arith-eval'] = $this->normalizeArithEval((array) ($doc['arith-eval'] ?? []), $file);
                     break;
+                case 'expr-eval':
+                    $rule['behavior'] = 'expr-eval';
+                    $rule['expr-eval'] = $this->normalizeExprEval((array) ($doc['expr-eval'] ?? []), $file);
+                    break;
                 case 'iterate':
                     $rule['behavior'] = 'iterate';
                     $rule['iterate'] = $this->normalizeIterate((array) ($doc['iterate'] ?? []), $file);
@@ -201,7 +205,7 @@ final class EmulatorCompiler
                     $rule['decoy-session'] = $this->normalizeDecoySession((array) ($doc['decoy-session'] ?? []), $file);
                     break;
                 default:
-                    throw new RuntimeException("Template {$file}: unknown behavior '{$behavior}'. This build knows 'branch', 'arith-eval', 'iterate', 'decoy-session'.");
+                    throw new RuntimeException("Template {$file}: unknown behavior '{$behavior}'. This build knows 'branch', 'arith-eval', 'expr-eval', 'iterate', 'decoy-session'.");
             }
         }
 
@@ -479,6 +483,60 @@ final class EmulatorCompiler
         $out['bind'] = isset($config['bind']) ? (string) $config['bind'] : 'result';
 
         return $out;
+    }
+
+    /** Hard ceiling on an expr-eval raw expression length; a larger authored max_len is clamped down. */
+    private const EXPR_MAX_LEN = 256;
+
+    /** The default expression-length cap when a template authors none. */
+    private const EXPR_MAX_LEN_DEFAULT = 32;
+
+    /**
+     * Normalize an `expr-eval` behavior config. Evaluates a FULL arithmetic expression (grammar in
+     * Support\SafeArithmetic: + - * / %, parentheses, unary sign, integer-only) held in the `expr`
+     * capture, and binds the integer result into a capture key for reflection. Unlike arith-eval
+     * (single closed op, no division), this is the SSTI-decoy engine: it accepts multi-op
+     * expressions and division/modulo, with every unsafe case (div/mod by zero, overflow, oversized,
+     * non-arithmetic) declining to null at runtime so the base response serves — never a 500, never
+     * a code path that executes attacker input. `max_operand` is clamped to [1, ARITH_MAX_OPERAND]
+     * and `max_len` to [1, EXPR_MAX_LEN]; `bind` defaults to 'result'. The `response` is directive-
+     * and static-header-checked like any base response.
+     *
+     * @param array<string,mixed> $config
+     * @return array<string,mixed>
+     */
+    private function normalizeExprEval(array $config, string $file): array
+    {
+        if (!isset($config['response'])) {
+            throw new RuntimeException("Template {$file}: behavior 'expr-eval' must author a 'response'.");
+        }
+        if (!isset($config['expr']) || (string) $config['expr'] === '') {
+            throw new RuntimeException("Template {$file}: behavior 'expr-eval' needs an 'expr' (the capture key holding the expression).");
+        }
+
+        $max = isset($config['max_operand']) ? (int) $config['max_operand'] : self::ARITH_MAX_OPERAND;
+        if ($max < 1) {
+            $max = 1;
+        }
+        if ($max > self::ARITH_MAX_OPERAND) {
+            $max = self::ARITH_MAX_OPERAND;
+        }
+
+        $maxLen = isset($config['max_len']) ? (int) $config['max_len'] : self::EXPR_MAX_LEN_DEFAULT;
+        if ($maxLen < 1) {
+            $maxLen = 1;
+        }
+        if ($maxLen > self::EXPR_MAX_LEN) {
+            $maxLen = self::EXPR_MAX_LEN;
+        }
+
+        return [
+            'response' => $this->normalizeBehaviorResponse((array) $config['response'], $file),
+            'expr' => (string) $config['expr'],
+            'bind' => isset($config['bind']) ? (string) $config['bind'] : 'result',
+            'max_operand' => $max,
+            'max_len' => $maxLen,
+        ];
     }
 
     /**

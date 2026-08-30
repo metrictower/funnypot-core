@@ -2,13 +2,39 @@ id: attack-ssti-numeric
 severity: high
 priority: 45
 tags: [attack, ssti]
-# SSTI probe {{7*7}} / ${7*7} / #{7*7} / <%= 7*7 %> evaluates to 49. Known probe -> known
-# result; the expression is never evaluated.
+# SSTI arithmetic decoy. A template-injection probe carries an arithmetic expression inside a
+# template marker ({{7*7}}, ${7*7}, #{7*7}, <%= 7*7 %>, {7*7}, ${{7*7}}); a real vulnerable engine
+# renders it, so echoing the LITERAL payload tells the hunter SSTI did not fire and they move on.
+# This computes the expression and reflects ONLY the integer result, so a randomized-operand probe
+# (e.g. {{1338-1}} -> 1337) gets its expected value — a canned 49 could never fake that.
+#
+# The expression is evaluated by a hand-written integer parser (Support\SafeArithmetic) — NEVER
+# eval / a template engine / a callback. The capture is whitelisted to digits, + - * / % ( ) and
+# spaces, length-capped, and integer-only, so the output is always pure digits. A non-arithmetic
+# marker ({{config}}, {{''.__class__}}) does not match the operand grammar; division/modulo by
+# zero, overflow, or an oversized expression decline to the base page below — never a 500. Only the
+# safe integer is emitted (never the raw capture), so there is no attacker-byte reflection and the
+# rule needs no isolated origin.
+#
+# Sorts after 44-ssti-twig so the quoted string-multiply variant (7*'7' -> 7777777) wins first; the
+# quote is outside this rule's arithmetic grammar, so the two never contend.
 match:
   - in: request
-    regex: '(?:\{\{|\$\{|\#\{|<%=?)\s*7\s*\*\s*7'
+    regex: '(?:\$\{\{|\{\{|\$\{|#\{|<%=?|\{)\s*(?P<expr>(?=[0-9() \t]{0,31}[-+*/%])[0-9(][0-9+\-*/%() \t]{0,30}[0-9)])\s*(?:\}\}|%>|\})'
+status: 200
+behavior: expr-eval
+expr-eval:
+  expr: expr
+  bind: result
+  max_len: 32
+  max_operand: 2147483647
+  response:
+    headers:
+      Content-Type: "text/html; charset=utf-8"
+    body: "{{match.result}}\n"
+# Base response: served when the expression declines (non-arithmetic marker, div/mod by zero,
+# overflow, or oversized). A plausible inert page with no reflected input — never a 500.
 response:
   headers:
     Content-Type: "text/html; charset=utf-8"
-  body: "49\n"
-expect: ["49"]
+  body: "<!doctype html><html><head><title>Home</title></head><body>\n<p>Welcome.</p>\n</body></html>\n"

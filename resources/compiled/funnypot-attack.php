@@ -2880,7 +2880,7 @@ input, select { font-family: inherit; font-size: 12px; }
       0 => 
       array (
         'in' => 'request',
-        'regex' => '(?:\\{\\{|\\$\\{|\\#\\{|<%=?)\\s*7\\s*\\*\\s*7',
+        'regex' => '(?:\\$\\{\\{|\\{\\{|\\$\\{|#\\{|<%=?|\\{)\\s*(?P<expr>(?=[0-9() \\t]{0,31}[-+*/%])[0-9(][0-9+\\-*/%() \\t]{0,30}[0-9)])\\s*(?:\\}\\}|%>|\\})',
       ),
     ),
     'response' => 
@@ -2889,8 +2889,27 @@ input, select { font-family: inherit; font-size: 12px; }
       array (
         'Content-Type' => 'text/html; charset=utf-8',
       ),
-      'body' => '49
+      'body' => '<!doctype html><html><head><title>Home</title></head><body>
+<p>Welcome.</p>
+</body></html>
 ',
+    ),
+    'behavior' => 'expr-eval',
+    'expr-eval' => 
+    array (
+      'response' => 
+      array (
+        'headers' => 
+        array (
+          'Content-Type' => 'text/html; charset=utf-8',
+        ),
+        'body' => '{{match.result}}
+',
+      ),
+      'expr' => 'expr',
+      'bind' => 'result',
+      'max_operand' => 2147483647,
+      'max_len' => 32,
     ),
   ),
   39 => 

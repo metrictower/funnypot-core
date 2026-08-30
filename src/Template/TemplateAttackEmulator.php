@@ -19,6 +19,7 @@ use Funnypot\Core\Support\Chrome\PageSlots;
 use Funnypot\Core\Support\Chrome\PhpMyAdminSkin;
 use Funnypot\Core\Support\Fake\FakeRecords;
 use Funnypot\Core\Support\PathNormalizer;
+use Funnypot\Core\Support\SafeArithmetic;
 use Funnypot\Core\Support\VisualPersona;
 use Funnypot\Core\SynthesizedResponse;
 use Funnypot\Core\TemplateMatch;
@@ -99,8 +100,8 @@ final class TemplateAttackEmulator
      * Named behavior primitives, keyed by the rule's `behavior` value. Each is a closure over
      * $this that turns a behavior config + captures into an EmulatedContent (or null to fall back
      * to the rule's base response). `default` is not a name here — an absent/unknown behavior is
-     * simply the plain render. `branch`, `traversal-read`, `arith-eval`, `iterate`, and
-     * `decoy-session` exist; other primitives are deferred.
+     * simply the plain render. `branch`, `traversal-read`, `arith-eval`, `expr-eval`, `iterate`,
+     * and `decoy-session` exist; other primitives are deferred.
      *
      * @var array<string,callable>
      */
@@ -149,6 +150,12 @@ final class TemplateAttackEmulator
             // never eval), so it renders identically on the facade and the port — $r/clock/store unused.
             'arith-eval' => function (array $config, array $captures, ?RequestContext $r, int $seed, Clock $clock, EphemeralStore $store): ?EmulatedContent {
                 return $this->handleArithEval($config, $captures, $seed);
+            },
+            // Position-blind SSTI decoy: evaluates a full arithmetic expression from a reflected
+            // capture via Support\SafeArithmetic (recursive descent, never eval), so it renders
+            // identically on the facade and the port — $r/clock/store unused.
+            'expr-eval' => function (array $config, array $captures, ?RequestContext $r, int $seed, Clock $clock, EphemeralStore $store): ?EmulatedContent {
+                return $this->handleExprEval($config, $captures, $seed);
             },
             // Parses the request body into a bounded sub-call list and fans out one item per sub-call.
             // Needs $r->rawBody, so it degrades to its request-free fallback on the position-blind port.
@@ -469,6 +476,46 @@ final class TemplateAttackEmulator
             return null;
         }
         // Pure digits (XML/HTML-inert) bound into the authored capture key, reflected via {{match.KEY}}.
+        $bind = (string) (isset($config['bind']) ? $config['bind'] : 'result');
+        $captures[$bind] = (string) $value;
+
+        $response = (array) (isset($config['response']) ? $config['response'] : []);
+        $status = isset($response['status']) ? (int) $response['status'] : null;
+
+        return $this->renderResponse($response, $captures, $seed, $status);
+    }
+
+    /**
+     * The `expr-eval` behavior primitive: the SSTI decoy. Evaluate a full arithmetic expression
+     * held in a reflected capture and render the rule's `response` with the integer result bound
+     * into a capture key. The computation is Support\SafeArithmetic — a hand-written recursive-
+     * descent parser (NEVER eval / a template engine / a callback): the expression is whitelisted
+     * to digits + - * / % ( ) and spaces, length-capped, integer-only, and every unsafe case
+     * (division/modulo by zero, overflow, an oversized or non-arithmetic payload) returns null so
+     * renderRule falls back to the rule's base response — the only-upgrade invariant, never a 500.
+     *
+     * Only the safe integer is bound (never the raw capture), so this rule emits no attacker bytes
+     * and needs no isolated origin. Captures-only, so it renders identically on the facade and the
+     * position-blind port.
+     *
+     * @param array<string,mixed>      $config   the rule's `expr-eval` config
+     * @param array<int|string,string> $captures reflected capture groups from the top-level match
+     */
+    private function handleExprEval(array $config, array $captures, int $seed): ?EmulatedContent
+    {
+        $exprKey = (string) (isset($config['expr']) ? $config['expr'] : '');
+        $expr = (string) (isset($captures[$exprKey]) ? $captures[$exprKey] : '');
+        if ($expr === '') {
+            return null;
+        }
+        $max = isset($config['max_operand']) ? (int) $config['max_operand'] : self::ARITH_MAX_OPERAND;
+        $maxLen = isset($config['max_len']) ? (int) $config['max_len'] : 32;
+
+        $value = SafeArithmetic::evaluate($expr, $max, $maxLen);
+        if ($value === null) {
+            return null;
+        }
+        // Pure digits (HTML/XML-inert) bound into the authored capture key, reflected via {{match.KEY}}.
         $bind = (string) (isset($config['bind']) ? $config['bind'] : 'result');
         $captures[$bind] = (string) $value;
 
