@@ -75,7 +75,7 @@ final class ZapCoverageTest extends TestCase
     public function test_route_rule_count_is_128_plus_the_new_rules(): void
     {
         $rules = require __DIR__ . '/../resources/compiled/funnypot-routes.php';
-        self::assertCount(153, $rules, 'route rule count must be 128 (baseline) + 4 (css, listing, credentials, config) + 6 (.env family: development/staging/test/bak/php/laravel-subdir) + 12 (VCS-exposure pack: 3 enrich .git-logs/.bzr/.hg-hgrc + 9 new .git/.svn/.hg pages) + 3 (CVS/Entries + TYPO3 typo3conf listing + localconf.php)');
+        self::assertCount(163, $rules, 'route rule count must be 128 (baseline) + 4 (css, listing, credentials, config) + 6 (.env family: development/staging/test/bak/php/laravel-subdir) + 12 (VCS-exposure pack: 3 enrich .git-logs/.bzr/.hg-hgrc + 9 new .git/.svn/.hg pages) + 3 (CVS/Entries + TYPO3 typo3conf listing + localconf.php) + 10 (WordPress REST wp/v2: users/posts/pages/comments/media/categories/tags/types/statuses/settings)');
 
         $ids = array_map(static function (array $r): string { return (string) $r['id']; }, $rules);
         self::assertContains('route-phpmyadmin-css', $ids);
@@ -108,6 +108,17 @@ final class ZapCoverageTest extends TestCase
         self::assertContains('route-vcs-cvs-entries', $ids);
         self::assertContains('route-typo3conf-listing', $ids);
         self::assertContains('route-typo3conf-localconf', $ids);
+        // WordPress REST API wp/v2 collection bodies (one per endpoint).
+        self::assertContains('route-wp-json-v2-users', $ids);
+        self::assertContains('route-wp-json-v2-posts', $ids);
+        self::assertContains('route-wp-json-v2-pages', $ids);
+        self::assertContains('route-wp-json-v2-comments', $ids);
+        self::assertContains('route-wp-json-v2-media', $ids);
+        self::assertContains('route-wp-json-v2-categories', $ids);
+        self::assertContains('route-wp-json-v2-tags', $ids);
+        self::assertContains('route-wp-json-v2-types', $ids);
+        self::assertContains('route-wp-json-v2-statuses', $ids);
+        self::assertContains('route-wp-json-v2-settings', $ids);
     }
 
     // --- IMDS base listing (attack/91-imds-base.yaml) -----------------------------------------

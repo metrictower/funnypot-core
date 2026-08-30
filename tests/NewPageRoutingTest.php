@@ -11,6 +11,7 @@ use Funnypot\Core\Honeypot;
 use Funnypot\Core\RequestContext;
 use Funnypot\Core\Store\PhpArrayStore;
 use Funnypot\Core\Support\PersonaIdentity;
+use Funnypot\Core\SynthesizedResponse;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\Yaml\Yaml;
 
@@ -250,6 +251,24 @@ final class NewPageRoutingTest extends TestCase
             'openapi yaml'          => ['/openapi.yaml', 200, 'bearerFormat: JWT', 'text/yaml; charset=utf-8'],
             'swagger-ui html'       => ['/swagger-ui.html', 200, 'deepLinking', 'text/html; charset=utf-8'],
             'wp-json rest index'    => ['/wp-json', 200, 'wp-site-health', 'application/json'],
+
+            // WordPress REST API wp/v2 collection bodies (FP-0033). Each marker is a distinctive
+            // authored string that only the full endpoint body carries (a slug, a type, a term name),
+            // so its presence proves the authored JSON served — not a minimal synth of a competing
+            // corpus detection bundle. /users and /posts each have a bundled corpus detection on the
+            // same key; the authored body carries a heavy weight so it wins the persona pick. settings
+            // is unauthenticated → 401 rest_forbidden, never a settings body. Content-Type is
+            // application/json on every one (a mismatch is a honeypot tell).
+            'wp/v2 users'      => ['/wp-json/wp/v2/users', 200, '"avatar_urls"', 'application/json'],
+            'wp/v2 posts'      => ['/wp-json/wp/v2/posts', 200, 'hello-world', 'application/json'],
+            'wp/v2 pages'      => ['/wp-json/wp/v2/pages', 200, '"slug":"sample-page"', 'application/json'],
+            'wp/v2 comments'   => ['/wp-json/wp/v2/comments', 200, '"type":"comment"', 'application/json'],
+            'wp/v2 media'      => ['/wp-json/wp/v2/media', 200, '"media_type":"image"', 'application/json'],
+            'wp/v2 categories' => ['/wp-json/wp/v2/categories', 200, '"slug":"news"', 'application/json'],
+            'wp/v2 tags'       => ['/wp-json/wp/v2/tags', 200, '"slug":"featured"', 'application/json'],
+            'wp/v2 types'      => ['/wp-json/wp/v2/types', 200, '"rest_base":"posts"', 'application/json'],
+            'wp/v2 statuses'   => ['/wp-json/wp/v2/statuses', 200, '"slug":"publish"', 'application/json'],
+            'wp/v2 settings 401' => ['/wp-json/wp/v2/settings', 401, '"rest_forbidden"', 'application/json'],
             'api/v2 rest index'     => ['/api/v2', 200, '"documentation"', 'application/json'],
             'security.txt'          => ['/.well-known/security.txt', 200, 'Preferred-Languages', 'text/plain; charset=utf-8'],
             'ai-plugin manifest'    => ['/.well-known/ai-plugin.json', 200, 'legal_info_url', 'application/json'],
@@ -646,6 +665,110 @@ final class NewPageRoutingTest extends TestCase
             self::assertSame(1, preg_match("/Table '([A-Za-z0-9_]+)\\.wp_options'/", $wp->body, $wn), "seed {$seed}: wp debug.log must leak a db name");
             self::assertSame(1, preg_match('/DB_DATABASE=([A-Za-z0-9_]+)/', $env->body, $en), "seed {$seed}: .env.production must leak DB_DATABASE");
             self::assertNotSame($en[1], $wn[1], "seed {$seed}: the WordPress db name must differ from the pgsql app db name");
+        }
+    }
+
+    public function test_wp_json_rest_api_is_coherent_and_leaks_no_secrets(): void
+    {
+        // The wp/v2 REST surface (FP-0033) presents ONE coherent WordPress site per deploy: a single
+        // author set that every collection references, no author or term that exists on one endpoint
+        // and not another, and NO secret or PII a real anonymous WP response withholds. Vary the
+        // persona via seedSalt (the identity driver — NOT the render seed) so each iteration is a
+        // different site.
+        $endpoints = [
+            '/wp-json/wp/v2/users', '/wp-json/wp/v2/posts', '/wp-json/wp/v2/pages',
+            '/wp-json/wp/v2/comments', '/wp-json/wp/v2/media', '/wp-json/wp/v2/categories',
+            '/wp-json/wp/v2/tags', '/wp-json/wp/v2/types', '/wp-json/wp/v2/statuses',
+        ];
+        for ($s = 0; $s <= 25; $s++) {
+            $salt = 'wp-persona-' . $s;
+            $inv = $this->saltedInverter($salt);
+            $persona = PersonaIdentity::fromSeed(PersonaIdentity::seedFromMaterial($salt));
+
+            $get = static function (string $path) use ($inv): SynthesizedResponse {
+                $r = $inv->respond(new RequestContext('GET', $path));
+                self::assertNotNull($r, "{$path} must serve a fake");
+
+                return $r;
+            };
+
+            // Every 200 collection is valid JSON, application/json, and carries no unrendered directive.
+            foreach ($endpoints as $path) {
+                $resp = $get($path);
+                self::assertSame(200, $resp->status, "seed {$s}: {$path} status");
+                self::assertSame('application/json', $resp->headers['Content-Type'] ?? null, "seed {$s}: {$path} Content-Type");
+                self::assertNotNull(json_decode($resp->body, true), "seed {$s}: {$path} must be parseable JSON: {$resp->body}");
+                self::assertStringNotContainsString('{{', $resp->body, "seed {$s}: {$path} carries an unrendered directive");
+            }
+
+            // The users endpoint is the canonical author set: 5 users, each id/name/slug/link/
+            // avatar_urls, and — matching a real anonymous WP response — NO email and NO login field.
+            $users = json_decode($get('/wp-json/wp/v2/users')->body, true);
+            self::assertCount(5, $users, "seed {$s}: users must be the fixed set of 5");
+            $slugById = [];
+            foreach ($users as $u) {
+                self::assertArrayHasKey('slug', $u, "seed {$s}: user needs a slug");
+                self::assertArrayHasKey('avatar_urls', $u, "seed {$s}: user needs avatar_urls");
+                self::assertArrayNotHasKey('email', $u, "seed {$s}: anon users endpoint must NOT expose email");
+                self::assertArrayNotHasKey('username', $u, "seed {$s}: anon users endpoint must NOT expose a login");
+                self::assertSame('https://' . $persona->field('company.domain') . '/author/' . $u['slug'] . '/', $u['link'], "seed {$s}: author link must use the persona domain + slug");
+                $slugById[$u['id']] = $u['slug'];
+            }
+            // User 1 IS the persona admin (its nicename is the admin login slug) — the coherence link
+            // to FP-0012's persona and any future ?author enum.
+            self::assertSame(strtolower($persona->field('user.admin.username')), $slugById[1] ?? null, "seed {$s}: user 1 slug must be the admin nicename");
+            for ($n = 1; $n <= 5; $n++) {
+                self::assertSame($persona->field('wordpress.user.' . $n . '.slug'), $slugById[$n] ?? null, "seed {$s}: user {$n} slug must be the persona value");
+            }
+
+            // Every author a post/comment references must exist in that one user set (id 0 = anon).
+            foreach (json_decode($get('/wp-json/wp/v2/posts')->body, true) as $post) {
+                self::assertArrayHasKey($post['author'], $slugById, "seed {$s}: post {$post['id']} author {$post['author']} is not in the user set");
+            }
+            foreach (json_decode($get('/wp-json/wp/v2/comments')->body, true) as $c) {
+                self::assertTrue($c['author'] === 0 || isset($slugById[$c['author']]), "seed {$s}: comment {$c['id']} author is not in the user set");
+            }
+
+            // settings is auth-gated: an anonymous GET is 401 rest_forbidden, never a settings body.
+            $settings = $inv->respond(new RequestContext('GET', '/wp-json/wp/v2/settings'));
+            self::assertNotNull($settings, "seed {$s}: settings must serve");
+            self::assertSame(401, $settings->status, "seed {$s}: settings must be 401 for an anonymous caller");
+            self::assertStringContainsString('rest_forbidden', $settings->body, "seed {$s}: settings must be the rest_forbidden error");
+            self::assertStringNotContainsString('siteurl', $settings->body, "seed {$s}: settings must not leak a settings body");
+
+            // No secret or credential a real anonymous response withholds may appear on ANY endpoint.
+            $secrets = array_filter([
+                $persona->field('user.admin.password'),
+                $persona->field('user.admin.email'),
+                $persona->field('user.admin.passwordHash'),
+                $persona->field('db.password'),
+            ]);
+            foreach (array_merge($endpoints, ['/wp-json/wp/v2/settings']) as $path) {
+                $body = $get($path)->body;
+                foreach ($secrets as $secret) {
+                    self::assertStringNotContainsString($secret, $body, "seed {$s}: {$path} leaked a persona secret");
+                }
+            }
+
+            // Deploy-stable: a re-scan by the same attacker sees the byte-identical author set (the
+            // avatar hashes and names come from the persona seed, not the per-request render seed).
+            self::assertSame($get('/wp-json/wp/v2/users')->body, $get('/wp-json/wp/v2/users')->body, "seed {$s}: users body must be stable across requests");
+        }
+    }
+
+    public function test_wp_json_endpoints_serve_on_both_slash_variants(): void
+    {
+        // WPScan hits the no-slash form; a browser or a different scanner may add the trailing slash.
+        // Both must serve the SAME authored body (the no-slash key resolves directly; the slash key is
+        // authored too so the bundled corpus detection on /users/ never wins it).
+        $inv = $this->inverter();
+        foreach (['users', 'posts', 'pages', 'comments', 'media', 'categories', 'tags', 'types', 'statuses'] as $ep) {
+            $bare = $inv->respond(new RequestContext('GET', '/wp-json/wp/v2/' . $ep));
+            $slash = $inv->respond(new RequestContext('GET', '/wp-json/wp/v2/' . $ep . '/'));
+            self::assertNotNull($bare, "/wp-json/wp/v2/{$ep} must serve");
+            self::assertNotNull($slash, "/wp-json/wp/v2/{$ep}/ must serve");
+            self::assertSame(200, $bare->status, "{$ep} status");
+            self::assertSame($bare->body, $slash->body, "/wp-json/wp/v2/{$ep} and its trailing-slash variant must serve the identical body");
         }
     }
 

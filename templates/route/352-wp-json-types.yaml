@@ -1,0 +1,23 @@
+id: route-wp-json-v2-types
+priority: 352
+# WordPress REST API post-type index: GET /wp-json/wp/v2/types. A public, unauthenticated endpoint in
+# real WordPress. Object keyed by type; rest_base values match the collections this pack serves, and
+# the taxonomies match the category/post_tag collections. No competing bundle on this path.
+new_page:
+  method: GET
+  paths: ['/wp-json/wp/v2/types', '/wp-json/wp/v2/types/']
+  sig: 0
+  status: 200
+  severity: info
+  tags: [exposure, api, wordpress, discovery]
+  name: 'Exposed WordPress REST API types'
+  body_words: ['"rest_base":"posts"', '"slug":"post"']
+  weight: 1000
+response:
+  headers:
+    Content-Type: "application/json"
+  body: |
+    {"post":{"description":"","hierarchical":false,"has_archive":false,"name":"Posts","slug":"post","icon":"dashicons-admin-post","taxonomies":["category","post_tag"],"rest_base":"posts","rest_namespace":"wp/v2","_links":{"collection":[{"href":"https://{{persona.company.domain}}/wp-json/wp/v2/types"}],"wp:items":[{"href":"https://{{persona.company.domain}}/wp-json/wp/v2/posts"}],"curies":[{"name":"wp","href":"https://api.w.org/{rel}","templated":true}]}},"page":{"description":"","hierarchical":true,"has_archive":false,"name":"Pages","slug":"page","icon":"dashicons-admin-page","taxonomies":[],"rest_base":"pages","rest_namespace":"wp/v2","_links":{"collection":[{"href":"https://{{persona.company.domain}}/wp-json/wp/v2/types"}],"wp:items":[{"href":"https://{{persona.company.domain}}/wp-json/wp/v2/pages"}],"curies":[{"name":"wp","href":"https://api.w.org/{rel}","templated":true}]}},"attachment":{"description":"","hierarchical":false,"has_archive":false,"name":"Media","slug":"attachment","icon":"dashicons-admin-media","taxonomies":[],"rest_base":"media","rest_namespace":"wp/v2","_links":{"collection":[{"href":"https://{{persona.company.domain}}/wp-json/wp/v2/types"}],"wp:items":[{"href":"https://{{persona.company.domain}}/wp-json/wp/v2/media"}],"curies":[{"name":"wp","href":"https://api.w.org/{rel}","templated":true}]}}}
+expect:
+  - '"rest_base":"posts"'
+  - '"slug":"page"'

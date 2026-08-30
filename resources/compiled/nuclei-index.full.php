@@ -84658,6 +84658,126 @@ return array (
       ),
       'name' => 'Exposed TYPO3 localconf.php',
     ),
+    'route-wp-json-v2-users' => 
+    array (
+      'sev' => 'info',
+      'tags' => 
+      array (
+        0 => 'exposure',
+        1 => 'api',
+        2 => 'wordpress',
+        3 => 'discovery',
+      ),
+      'name' => 'Exposed WordPress REST API users',
+    ),
+    'route-wp-json-v2-posts' => 
+    array (
+      'sev' => 'info',
+      'tags' => 
+      array (
+        0 => 'exposure',
+        1 => 'api',
+        2 => 'wordpress',
+        3 => 'discovery',
+      ),
+      'name' => 'Exposed WordPress REST API posts',
+    ),
+    'route-wp-json-v2-pages' => 
+    array (
+      'sev' => 'info',
+      'tags' => 
+      array (
+        0 => 'exposure',
+        1 => 'api',
+        2 => 'wordpress',
+        3 => 'discovery',
+      ),
+      'name' => 'Exposed WordPress REST API pages',
+    ),
+    'route-wp-json-v2-comments' => 
+    array (
+      'sev' => 'info',
+      'tags' => 
+      array (
+        0 => 'exposure',
+        1 => 'api',
+        2 => 'wordpress',
+        3 => 'discovery',
+      ),
+      'name' => 'Exposed WordPress REST API comments',
+    ),
+    'route-wp-json-v2-media' => 
+    array (
+      'sev' => 'info',
+      'tags' => 
+      array (
+        0 => 'exposure',
+        1 => 'api',
+        2 => 'wordpress',
+        3 => 'discovery',
+      ),
+      'name' => 'Exposed WordPress REST API media',
+    ),
+    'route-wp-json-v2-categories' => 
+    array (
+      'sev' => 'info',
+      'tags' => 
+      array (
+        0 => 'exposure',
+        1 => 'api',
+        2 => 'wordpress',
+        3 => 'discovery',
+      ),
+      'name' => 'Exposed WordPress REST API categories',
+    ),
+    'route-wp-json-v2-tags' => 
+    array (
+      'sev' => 'info',
+      'tags' => 
+      array (
+        0 => 'exposure',
+        1 => 'api',
+        2 => 'wordpress',
+        3 => 'discovery',
+      ),
+      'name' => 'Exposed WordPress REST API tags',
+    ),
+    'route-wp-json-v2-types' => 
+    array (
+      'sev' => 'info',
+      'tags' => 
+      array (
+        0 => 'exposure',
+        1 => 'api',
+        2 => 'wordpress',
+        3 => 'discovery',
+      ),
+      'name' => 'Exposed WordPress REST API types',
+    ),
+    'route-wp-json-v2-statuses' => 
+    array (
+      'sev' => 'info',
+      'tags' => 
+      array (
+        0 => 'exposure',
+        1 => 'api',
+        2 => 'wordpress',
+        3 => 'discovery',
+      ),
+      'name' => 'Exposed WordPress REST API statuses',
+    ),
+    'route-wp-json-v2-settings' => 
+    array (
+      'sev' => 'info',
+      'tags' => 
+      array (
+        0 => 'exposure',
+        1 => 'api',
+        2 => 'wordpress',
+        3 => 'discovery',
+      ),
+      'name' => 'WordPress REST API settings (auth required)',
+    ),
   ),
   'routes' => 
   array (
@@ -271315,6 +271435,26 @@ a</title>',
             0 => 'CVE-2021-25118',
           ),
         ),
+        1 => 
+        array (
+          's' => 200,
+          'bw' => 
+          array (
+            0 => '"type":"post"',
+            1 => '"rendered"',
+          ),
+          'nf' => 
+          array (
+          ),
+          'pid' => 'route-wp-json-v2-posts',
+          'sev' => 'info',
+          'sig' => 0,
+          't' => 
+          array (
+            0 => 'route-wp-json-v2-posts',
+          ),
+          'w' => 1000,
+        ),
       ),
     ),
     'GET /wp-json/wp/v2/sfwd-assignment' => 
@@ -271425,6 +271565,26 @@ a</title>',
           array (
             0 => 'wp-user-enum',
           ),
+        ),
+        1 => 
+        array (
+          's' => 200,
+          'bw' => 
+          array (
+            0 => '"slug"',
+            1 => '"avatar_urls"',
+          ),
+          'nf' => 
+          array (
+          ),
+          'pid' => 'route-wp-json-v2-users',
+          'sev' => 'info',
+          'sig' => 0,
+          't' => 
+          array (
+            0 => 'route-wp-json-v2-users',
+          ),
+          'w' => 1000,
         ),
       ),
     ),
@@ -300997,6 +301157,472 @@ a</title>',
           array (
             0 => 'route-typo3conf-localconf',
           ),
+        ),
+      ),
+    ),
+    'GET /wp-json/wp/v2/users' => 
+    array (
+      'b' => 
+      array (
+        0 => 
+        array (
+          's' => 200,
+          'bw' => 
+          array (
+            0 => '"slug"',
+            1 => '"avatar_urls"',
+          ),
+          'nf' => 
+          array (
+          ),
+          'pid' => 'route-wp-json-v2-users',
+          'sev' => 'info',
+          'sig' => 0,
+          't' => 
+          array (
+            0 => 'route-wp-json-v2-users',
+          ),
+          'w' => 1000,
+        ),
+      ),
+    ),
+    'GET /wp-json/wp/v2/posts/' => 
+    array (
+      'b' => 
+      array (
+        0 => 
+        array (
+          's' => 200,
+          'bw' => 
+          array (
+            0 => '"type":"post"',
+            1 => '"rendered"',
+          ),
+          'nf' => 
+          array (
+          ),
+          'pid' => 'route-wp-json-v2-posts',
+          'sev' => 'info',
+          'sig' => 0,
+          't' => 
+          array (
+            0 => 'route-wp-json-v2-posts',
+          ),
+          'w' => 1000,
+        ),
+      ),
+    ),
+    'GET /wp-json/wp/v2/pages' => 
+    array (
+      'b' => 
+      array (
+        0 => 
+        array (
+          's' => 200,
+          'bw' => 
+          array (
+            0 => '"type":"page"',
+            1 => '"rendered"',
+          ),
+          'nf' => 
+          array (
+          ),
+          'pid' => 'route-wp-json-v2-pages',
+          'sev' => 'info',
+          'sig' => 0,
+          't' => 
+          array (
+            0 => 'route-wp-json-v2-pages',
+          ),
+          'w' => 1000,
+        ),
+      ),
+    ),
+    'GET /wp-json/wp/v2/pages/' => 
+    array (
+      'b' => 
+      array (
+        0 => 
+        array (
+          's' => 200,
+          'bw' => 
+          array (
+            0 => '"type":"page"',
+            1 => '"rendered"',
+          ),
+          'nf' => 
+          array (
+          ),
+          'pid' => 'route-wp-json-v2-pages',
+          'sev' => 'info',
+          'sig' => 0,
+          't' => 
+          array (
+            0 => 'route-wp-json-v2-pages',
+          ),
+          'w' => 1000,
+        ),
+      ),
+    ),
+    'GET /wp-json/wp/v2/comments' => 
+    array (
+      'b' => 
+      array (
+        0 => 
+        array (
+          's' => 200,
+          'bw' => 
+          array (
+            0 => '"type":"comment"',
+            1 => '"author_name"',
+          ),
+          'nf' => 
+          array (
+          ),
+          'pid' => 'route-wp-json-v2-comments',
+          'sev' => 'info',
+          'sig' => 0,
+          't' => 
+          array (
+            0 => 'route-wp-json-v2-comments',
+          ),
+          'w' => 1000,
+        ),
+      ),
+    ),
+    'GET /wp-json/wp/v2/comments/' => 
+    array (
+      'b' => 
+      array (
+        0 => 
+        array (
+          's' => 200,
+          'bw' => 
+          array (
+            0 => '"type":"comment"',
+            1 => '"author_name"',
+          ),
+          'nf' => 
+          array (
+          ),
+          'pid' => 'route-wp-json-v2-comments',
+          'sev' => 'info',
+          'sig' => 0,
+          't' => 
+          array (
+            0 => 'route-wp-json-v2-comments',
+          ),
+          'w' => 1000,
+        ),
+      ),
+    ),
+    'GET /wp-json/wp/v2/media' => 
+    array (
+      'b' => 
+      array (
+        0 => 
+        array (
+          's' => 200,
+          'bw' => 
+          array (
+            0 => '"type":"attachment"',
+            1 => '"media_type":"image"',
+          ),
+          'nf' => 
+          array (
+          ),
+          'pid' => 'route-wp-json-v2-media',
+          'sev' => 'info',
+          'sig' => 0,
+          't' => 
+          array (
+            0 => 'route-wp-json-v2-media',
+          ),
+          'w' => 1000,
+        ),
+      ),
+    ),
+    'GET /wp-json/wp/v2/media/' => 
+    array (
+      'b' => 
+      array (
+        0 => 
+        array (
+          's' => 200,
+          'bw' => 
+          array (
+            0 => '"type":"attachment"',
+            1 => '"media_type":"image"',
+          ),
+          'nf' => 
+          array (
+          ),
+          'pid' => 'route-wp-json-v2-media',
+          'sev' => 'info',
+          'sig' => 0,
+          't' => 
+          array (
+            0 => 'route-wp-json-v2-media',
+          ),
+          'w' => 1000,
+        ),
+      ),
+    ),
+    'GET /wp-json/wp/v2/categories' => 
+    array (
+      'b' => 
+      array (
+        0 => 
+        array (
+          's' => 200,
+          'bw' => 
+          array (
+            0 => '"taxonomy":"category"',
+            1 => '"slug"',
+          ),
+          'nf' => 
+          array (
+          ),
+          'pid' => 'route-wp-json-v2-categories',
+          'sev' => 'info',
+          'sig' => 0,
+          't' => 
+          array (
+            0 => 'route-wp-json-v2-categories',
+          ),
+          'w' => 1000,
+        ),
+      ),
+    ),
+    'GET /wp-json/wp/v2/categories/' => 
+    array (
+      'b' => 
+      array (
+        0 => 
+        array (
+          's' => 200,
+          'bw' => 
+          array (
+            0 => '"taxonomy":"category"',
+            1 => '"slug"',
+          ),
+          'nf' => 
+          array (
+          ),
+          'pid' => 'route-wp-json-v2-categories',
+          'sev' => 'info',
+          'sig' => 0,
+          't' => 
+          array (
+            0 => 'route-wp-json-v2-categories',
+          ),
+          'w' => 1000,
+        ),
+      ),
+    ),
+    'GET /wp-json/wp/v2/tags' => 
+    array (
+      'b' => 
+      array (
+        0 => 
+        array (
+          's' => 200,
+          'bw' => 
+          array (
+            0 => '"taxonomy":"post_tag"',
+            1 => '"slug"',
+          ),
+          'nf' => 
+          array (
+          ),
+          'pid' => 'route-wp-json-v2-tags',
+          'sev' => 'info',
+          'sig' => 0,
+          't' => 
+          array (
+            0 => 'route-wp-json-v2-tags',
+          ),
+          'w' => 1000,
+        ),
+      ),
+    ),
+    'GET /wp-json/wp/v2/tags/' => 
+    array (
+      'b' => 
+      array (
+        0 => 
+        array (
+          's' => 200,
+          'bw' => 
+          array (
+            0 => '"taxonomy":"post_tag"',
+            1 => '"slug"',
+          ),
+          'nf' => 
+          array (
+          ),
+          'pid' => 'route-wp-json-v2-tags',
+          'sev' => 'info',
+          'sig' => 0,
+          't' => 
+          array (
+            0 => 'route-wp-json-v2-tags',
+          ),
+          'w' => 1000,
+        ),
+      ),
+    ),
+    'GET /wp-json/wp/v2/types' => 
+    array (
+      'b' => 
+      array (
+        0 => 
+        array (
+          's' => 200,
+          'bw' => 
+          array (
+            0 => '"rest_base":"posts"',
+            1 => '"slug":"post"',
+          ),
+          'nf' => 
+          array (
+          ),
+          'pid' => 'route-wp-json-v2-types',
+          'sev' => 'info',
+          'sig' => 0,
+          't' => 
+          array (
+            0 => 'route-wp-json-v2-types',
+          ),
+          'w' => 1000,
+        ),
+      ),
+    ),
+    'GET /wp-json/wp/v2/types/' => 
+    array (
+      'b' => 
+      array (
+        0 => 
+        array (
+          's' => 200,
+          'bw' => 
+          array (
+            0 => '"rest_base":"posts"',
+            1 => '"slug":"post"',
+          ),
+          'nf' => 
+          array (
+          ),
+          'pid' => 'route-wp-json-v2-types',
+          'sev' => 'info',
+          'sig' => 0,
+          't' => 
+          array (
+            0 => 'route-wp-json-v2-types',
+          ),
+          'w' => 1000,
+        ),
+      ),
+    ),
+    'GET /wp-json/wp/v2/statuses' => 
+    array (
+      'b' => 
+      array (
+        0 => 
+        array (
+          's' => 200,
+          'bw' => 
+          array (
+            0 => '"slug":"publish"',
+            1 => '"queryable"',
+          ),
+          'nf' => 
+          array (
+          ),
+          'pid' => 'route-wp-json-v2-statuses',
+          'sev' => 'info',
+          'sig' => 0,
+          't' => 
+          array (
+            0 => 'route-wp-json-v2-statuses',
+          ),
+          'w' => 1000,
+        ),
+      ),
+    ),
+    'GET /wp-json/wp/v2/statuses/' => 
+    array (
+      'b' => 
+      array (
+        0 => 
+        array (
+          's' => 200,
+          'bw' => 
+          array (
+            0 => '"slug":"publish"',
+            1 => '"queryable"',
+          ),
+          'nf' => 
+          array (
+          ),
+          'pid' => 'route-wp-json-v2-statuses',
+          'sev' => 'info',
+          'sig' => 0,
+          't' => 
+          array (
+            0 => 'route-wp-json-v2-statuses',
+          ),
+          'w' => 1000,
+        ),
+      ),
+    ),
+    'GET /wp-json/wp/v2/settings' => 
+    array (
+      'b' => 
+      array (
+        0 => 
+        array (
+          's' => 401,
+          'bw' => 
+          array (
+            0 => '"rest_forbidden"',
+          ),
+          'nf' => 
+          array (
+          ),
+          'pid' => 'route-wp-json-v2-settings',
+          'sev' => 'info',
+          'sig' => 0,
+          't' => 
+          array (
+            0 => 'route-wp-json-v2-settings',
+          ),
+          'w' => 1000,
+        ),
+      ),
+    ),
+    'GET /wp-json/wp/v2/settings/' => 
+    array (
+      'b' => 
+      array (
+        0 => 
+        array (
+          's' => 401,
+          'bw' => 
+          array (
+            0 => '"rest_forbidden"',
+          ),
+          'nf' => 
+          array (
+          ),
+          'pid' => 'route-wp-json-v2-settings',
+          'sev' => 'info',
+          'sig' => 0,
+          't' => 
+          array (
+            0 => 'route-wp-json-v2-settings',
+          ),
+          'w' => 1000,
         ),
       ),
     ),

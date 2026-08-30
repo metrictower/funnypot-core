@@ -1,0 +1,23 @@
+id: route-wp-json-v2-statuses
+priority: 353
+# WordPress REST API post-status index: GET /wp-json/wp/v2/statuses. Real WordPress returns ONLY the
+# publicly-queryable "publish" status to an anonymous caller (draft/pending/private require auth), so
+# the honeypot returns the same single entry — returning the private statuses would be the tell.
+new_page:
+  method: GET
+  paths: ['/wp-json/wp/v2/statuses', '/wp-json/wp/v2/statuses/']
+  sig: 0
+  status: 200
+  severity: info
+  tags: [exposure, api, wordpress, discovery]
+  name: 'Exposed WordPress REST API statuses'
+  body_words: ['"slug":"publish"', '"queryable"']
+  weight: 1000
+response:
+  headers:
+    Content-Type: "application/json"
+  body: |
+    {"publish":{"name":"Published","public":true,"queryable":true,"slug":"publish","date_floating":false,"_links":{"archives":[{"href":"https://{{persona.company.domain}}/wp-json/wp/v2/posts"}]}}}
+expect:
+  - '"slug":"publish"'
+  - '"queryable":true'

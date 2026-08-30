@@ -1,0 +1,28 @@
+id: route-wp-json-v2-posts
+priority: 346
+# WordPress REST API posts collection: GET /wp-json/wp/v2/posts. Three published posts whose `author`
+# ids (1/2/3) and `categories`/`tags` term ids resolve to the same persona author set and the term
+# collections this pack also serves — one coherent site, no author or term that exists on one surface
+# and not another. Dates are fixed ISO-8601 (deploy-stable, no wall-clock tell). weight wins the
+# persona lottery over the bundled SEO detection bundle that also lands on this exact path.
+new_page:
+  method: GET
+  paths: ['/wp-json/wp/v2/posts', '/wp-json/wp/v2/posts/']
+  sig: 0
+  status: 200
+  severity: info
+  tags: [exposure, api, wordpress, discovery]
+  name: 'Exposed WordPress REST API posts'
+  body_words: ['"type":"post"', '"rendered"']
+  weight: 1000
+response:
+  headers:
+    Content-Type: "application/json"
+  body: |
+    [{"id":1,"date":"2024-11-12T09:14:22","date_gmt":"2024-11-12T09:14:22","guid":{"rendered":"https://{{persona.company.domain}}/?p=1"},"modified":"2024-11-12T09:14:22","modified_gmt":"2024-11-12T09:14:22","slug":"hello-world","status":"publish","type":"post","link":"https://{{persona.company.domain}}/hello-world/","title":{"rendered":"Hello world!"},"content":{"rendered":"<p>Welcome to WordPress. This is your first post. Edit or delete it, then start writing!</p>","protected":false},"excerpt":{"rendered":"<p>Welcome to WordPress. This is your first post.</p>","protected":false},"author":1,"featured_media":0,"comment_status":"open","ping_status":"open","sticky":false,"template":"","format":"standard","meta":[],"categories":[1],"tags":[],"_links":{"self":[{"href":"https://{{persona.company.domain}}/wp-json/wp/v2/posts/1"}],"collection":[{"href":"https://{{persona.company.domain}}/wp-json/wp/v2/posts"}],"author":[{"href":"https://{{persona.company.domain}}/wp-json/wp/v2/users/1"}],"replies":[{"href":"https://{{persona.company.domain}}/wp-json/wp/v2/comments?post=1"}]}},
+    {"id":8,"date":"2025-01-20T15:31:08","date_gmt":"2025-01-20T15:31:08","guid":{"rendered":"https://{{persona.company.domain}}/?p=8"},"modified":"2025-01-21T10:02:45","modified_gmt":"2025-01-21T10:02:45","slug":"getting-started","status":"publish","type":"post","link":"https://{{persona.company.domain}}/getting-started/","title":{"rendered":"Getting started with our platform"},"content":{"rendered":"<p>A short guide to help you get up and running quickly.</p>","protected":false},"excerpt":{"rendered":"<p>A short guide to help you get up and running quickly.</p>","protected":false},"author":2,"featured_media":20,"comment_status":"open","ping_status":"open","sticky":false,"template":"","format":"standard","meta":[],"categories":[5],"tags":[11],"_links":{"self":[{"href":"https://{{persona.company.domain}}/wp-json/wp/v2/posts/8"}],"collection":[{"href":"https://{{persona.company.domain}}/wp-json/wp/v2/posts"}],"author":[{"href":"https://{{persona.company.domain}}/wp-json/wp/v2/users/2"}],"replies":[{"href":"https://{{persona.company.domain}}/wp-json/wp/v2/comments?post=8"}]}},
+    {"id":15,"date":"2025-03-04T08:47:53","date_gmt":"2025-03-04T08:47:53","guid":{"rendered":"https://{{persona.company.domain}}/?p=15"},"modified":"2025-03-04T08:47:53","modified_gmt":"2025-03-04T08:47:53","slug":"product-update","status":"publish","type":"post","link":"https://{{persona.company.domain}}/product-update/","title":{"rendered":"Spring product update"},"content":{"rendered":"<p>Here is what changed in this release, and what is coming next.</p>","protected":false},"excerpt":{"rendered":"<p>Here is what changed in this release.</p>","protected":false},"author":3,"featured_media":24,"comment_status":"open","ping_status":"open","sticky":false,"template":"","format":"standard","meta":[],"categories":[5],"tags":[11,14],"_links":{"self":[{"href":"https://{{persona.company.domain}}/wp-json/wp/v2/posts/15"}],"collection":[{"href":"https://{{persona.company.domain}}/wp-json/wp/v2/posts"}],"author":[{"href":"https://{{persona.company.domain}}/wp-json/wp/v2/users/3"}],"replies":[{"href":"https://{{persona.company.domain}}/wp-json/wp/v2/comments?post=15"}]}}]
+expect:
+  - '"type":"post"'
+  - '"author":1'
+  - '"categories":[5]'

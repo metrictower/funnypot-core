@@ -1,0 +1,23 @@
+id: route-wp-json-v2-tags
+priority: 351
+# WordPress REST API post-tag terms: GET /wp-json/wp/v2/tags. The two tags the posts collection uses
+# (id 11 featured on posts 8 and 15; id 14 updates on post 15); counts match the served posts.
+new_page:
+  method: GET
+  paths: ['/wp-json/wp/v2/tags', '/wp-json/wp/v2/tags/']
+  sig: 0
+  status: 200
+  severity: info
+  tags: [exposure, api, wordpress, discovery]
+  name: 'Exposed WordPress REST API tags'
+  body_words: ['"taxonomy":"post_tag"', '"slug"']
+  weight: 1000
+response:
+  headers:
+    Content-Type: "application/json"
+  body: |
+    [{"id":11,"count":2,"description":"","link":"https://{{persona.company.domain}}/tag/featured/","name":"Featured","slug":"featured","taxonomy":"post_tag","meta":[],"_links":{"self":[{"href":"https://{{persona.company.domain}}/wp-json/wp/v2/tags/11"}],"collection":[{"href":"https://{{persona.company.domain}}/wp-json/wp/v2/tags"}],"about":[{"href":"https://{{persona.company.domain}}/wp-json/wp/v2/taxonomies/post_tag"}]}},
+    {"id":14,"count":1,"description":"","link":"https://{{persona.company.domain}}/tag/updates/","name":"Updates","slug":"updates","taxonomy":"post_tag","meta":[],"_links":{"self":[{"href":"https://{{persona.company.domain}}/wp-json/wp/v2/tags/14"}],"collection":[{"href":"https://{{persona.company.domain}}/wp-json/wp/v2/tags"}],"about":[{"href":"https://{{persona.company.domain}}/wp-json/wp/v2/taxonomies/post_tag"}]}}]
+expect:
+  - '"taxonomy":"post_tag"'
+  - '"slug":"featured"'

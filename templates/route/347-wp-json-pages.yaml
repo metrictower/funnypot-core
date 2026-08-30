@@ -1,0 +1,24 @@
+id: route-wp-json-v2-pages
+priority: 347
+# WordPress REST API pages collection: GET /wp-json/wp/v2/pages. Two published pages authored by the
+# persona admin (author 1). type:"page", so a scanner that separates posts from pages sees the real
+# split. No competing bundle lands on this path, so the authored body is the sole candidate.
+new_page:
+  method: GET
+  paths: ['/wp-json/wp/v2/pages', '/wp-json/wp/v2/pages/']
+  sig: 0
+  status: 200
+  severity: info
+  tags: [exposure, api, wordpress, discovery]
+  name: 'Exposed WordPress REST API pages'
+  body_words: ['"type":"page"', '"rendered"']
+  weight: 1000
+response:
+  headers:
+    Content-Type: "application/json"
+  body: |
+    [{"id":2,"date":"2024-11-12T09:14:22","date_gmt":"2024-11-12T09:14:22","guid":{"rendered":"https://{{persona.company.domain}}/?page_id=2"},"modified":"2024-11-12T09:14:22","modified_gmt":"2024-11-12T09:14:22","slug":"sample-page","status":"publish","type":"page","link":"https://{{persona.company.domain}}/sample-page/","title":{"rendered":"About"},"content":{"rendered":"<p>This is an example page. It differs from a blog post because it stays in one place.</p>","protected":false},"excerpt":{"rendered":"<p>This is an example page.</p>","protected":false},"author":1,"featured_media":0,"parent":0,"menu_order":0,"comment_status":"closed","ping_status":"closed","template":"","meta":[],"_links":{"self":[{"href":"https://{{persona.company.domain}}/wp-json/wp/v2/pages/2"}],"collection":[{"href":"https://{{persona.company.domain}}/wp-json/wp/v2/pages"}],"author":[{"href":"https://{{persona.company.domain}}/wp-json/wp/v2/users/1"}]}},
+    {"id":3,"date":"2024-11-12T09:20:41","date_gmt":"2024-11-12T09:20:41","guid":{"rendered":"https://{{persona.company.domain}}/?page_id=3"},"modified":"2024-11-12T09:20:41","modified_gmt":"2024-11-12T09:20:41","slug":"privacy-policy","status":"publish","type":"page","link":"https://{{persona.company.domain}}/privacy-policy/","title":{"rendered":"Privacy Policy"},"content":{"rendered":"<p>This is the privacy policy for our website.</p>","protected":false},"excerpt":{"rendered":"<p>This is the privacy policy for our website.</p>","protected":false},"author":1,"featured_media":0,"parent":0,"menu_order":0,"comment_status":"closed","ping_status":"closed","template":"","meta":[],"_links":{"self":[{"href":"https://{{persona.company.domain}}/wp-json/wp/v2/pages/3"}],"collection":[{"href":"https://{{persona.company.domain}}/wp-json/wp/v2/pages"}],"author":[{"href":"https://{{persona.company.domain}}/wp-json/wp/v2/users/1"}]}}]
+expect:
+  - '"type":"page"'
+  - '"slug":"sample-page"'

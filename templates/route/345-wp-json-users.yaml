@@ -1,0 +1,33 @@
+id: route-wp-json-v2-users
+priority: 345
+# WordPress REST API user enumeration: GET /wp-json/wp/v2/users — the single most-probed WP
+# author-enum surface. Serves the ONE canonical persona author set (5 users, index 1 = the admin),
+# byte-shaped like a real anonymous WP response: id / name / slug / link / avatar_urls only. NO
+# `email` and NO `username`/login — real WordPress exposes neither to an unauthenticated caller, and
+# leaking them here would be a tell (and a credential leak). The slug IS the enumerable nicename; the
+# author-archive link and every future author surface reuse the same persona.wordpress.user.N.*.
+# weight makes this authored body win the persona lottery over the bundled wordpress detection bundle
+# that also lands on this path.
+new_page:
+  method: GET
+  paths: ['/wp-json/wp/v2/users', '/wp-json/wp/v2/users/']
+  sig: 0
+  status: 200
+  severity: info
+  tags: [exposure, api, wordpress, discovery]
+  name: 'Exposed WordPress REST API users'
+  body_words: ['"slug"', '"avatar_urls"']
+  weight: 1000
+response:
+  headers:
+    Content-Type: "application/json"
+  body: |
+    [{"id":1,"name":"{{persona.wordpress.user.1.name}}","url":"","description":"","link":"https://{{persona.company.domain}}/author/{{persona.wordpress.user.1.slug}}/","slug":"{{persona.wordpress.user.1.slug}}","avatar_urls":{"24":"https://secure.gravatar.com/avatar/{{persona.wordpress.user.1.avatar}}?s=24&d=mm&r=g","48":"https://secure.gravatar.com/avatar/{{persona.wordpress.user.1.avatar}}?s=48&d=mm&r=g","96":"https://secure.gravatar.com/avatar/{{persona.wordpress.user.1.avatar}}?s=96&d=mm&r=g"},"meta":[],"_links":{"self":[{"href":"https://{{persona.company.domain}}/wp-json/wp/v2/users/1"}],"collection":[{"href":"https://{{persona.company.domain}}/wp-json/wp/v2/users"}]}},
+    {"id":2,"name":"{{persona.wordpress.user.2.name}}","url":"","description":"","link":"https://{{persona.company.domain}}/author/{{persona.wordpress.user.2.slug}}/","slug":"{{persona.wordpress.user.2.slug}}","avatar_urls":{"24":"https://secure.gravatar.com/avatar/{{persona.wordpress.user.2.avatar}}?s=24&d=mm&r=g","48":"https://secure.gravatar.com/avatar/{{persona.wordpress.user.2.avatar}}?s=48&d=mm&r=g","96":"https://secure.gravatar.com/avatar/{{persona.wordpress.user.2.avatar}}?s=96&d=mm&r=g"},"meta":[],"_links":{"self":[{"href":"https://{{persona.company.domain}}/wp-json/wp/v2/users/2"}],"collection":[{"href":"https://{{persona.company.domain}}/wp-json/wp/v2/users"}]}},
+    {"id":3,"name":"{{persona.wordpress.user.3.name}}","url":"","description":"","link":"https://{{persona.company.domain}}/author/{{persona.wordpress.user.3.slug}}/","slug":"{{persona.wordpress.user.3.slug}}","avatar_urls":{"24":"https://secure.gravatar.com/avatar/{{persona.wordpress.user.3.avatar}}?s=24&d=mm&r=g","48":"https://secure.gravatar.com/avatar/{{persona.wordpress.user.3.avatar}}?s=48&d=mm&r=g","96":"https://secure.gravatar.com/avatar/{{persona.wordpress.user.3.avatar}}?s=96&d=mm&r=g"},"meta":[],"_links":{"self":[{"href":"https://{{persona.company.domain}}/wp-json/wp/v2/users/3"}],"collection":[{"href":"https://{{persona.company.domain}}/wp-json/wp/v2/users"}]}},
+    {"id":4,"name":"{{persona.wordpress.user.4.name}}","url":"","description":"","link":"https://{{persona.company.domain}}/author/{{persona.wordpress.user.4.slug}}/","slug":"{{persona.wordpress.user.4.slug}}","avatar_urls":{"24":"https://secure.gravatar.com/avatar/{{persona.wordpress.user.4.avatar}}?s=24&d=mm&r=g","48":"https://secure.gravatar.com/avatar/{{persona.wordpress.user.4.avatar}}?s=48&d=mm&r=g","96":"https://secure.gravatar.com/avatar/{{persona.wordpress.user.4.avatar}}?s=96&d=mm&r=g"},"meta":[],"_links":{"self":[{"href":"https://{{persona.company.domain}}/wp-json/wp/v2/users/4"}],"collection":[{"href":"https://{{persona.company.domain}}/wp-json/wp/v2/users"}]}},
+    {"id":5,"name":"{{persona.wordpress.user.5.name}}","url":"","description":"","link":"https://{{persona.company.domain}}/author/{{persona.wordpress.user.5.slug}}/","slug":"{{persona.wordpress.user.5.slug}}","avatar_urls":{"24":"https://secure.gravatar.com/avatar/{{persona.wordpress.user.5.avatar}}?s=24&d=mm&r=g","48":"https://secure.gravatar.com/avatar/{{persona.wordpress.user.5.avatar}}?s=48&d=mm&r=g","96":"https://secure.gravatar.com/avatar/{{persona.wordpress.user.5.avatar}}?s=96&d=mm&r=g"},"meta":[],"_links":{"self":[{"href":"https://{{persona.company.domain}}/wp-json/wp/v2/users/5"}],"collection":[{"href":"https://{{persona.company.domain}}/wp-json/wp/v2/users"}]}}]
+expect:
+  - '"slug":'
+  - '"avatar_urls":'
+  - '/author/'

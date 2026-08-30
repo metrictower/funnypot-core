@@ -1,0 +1,25 @@
+id: route-wp-json-v2-comments
+priority: 348
+# WordPress REST API comments collection: GET /wp-json/wp/v2/comments. Two approved comments on posts
+# this pack serves (1 and 8), written by persona users (author 2 and 3) so the byline name and gravatar
+# match those users everywhere else. Anonymous shape: no email, no author IP — real WordPress hides
+# both from an unauthenticated caller.
+new_page:
+  method: GET
+  paths: ['/wp-json/wp/v2/comments', '/wp-json/wp/v2/comments/']
+  sig: 0
+  status: 200
+  severity: info
+  tags: [exposure, api, wordpress, discovery]
+  name: 'Exposed WordPress REST API comments'
+  body_words: ['"type":"comment"', '"author_name"']
+  weight: 1000
+response:
+  headers:
+    Content-Type: "application/json"
+  body: |
+    [{"id":1,"post":1,"parent":0,"author":2,"author_name":"{{persona.wordpress.user.2.name}}","author_url":"","date":"2024-11-13T11:02:19","date_gmt":"2024-11-13T11:02:19","content":{"rendered":"<p>Great to see the site up and running.</p>"},"link":"https://{{persona.company.domain}}/hello-world/#comment-1","type":"comment","author_avatar_urls":{"24":"https://secure.gravatar.com/avatar/{{persona.wordpress.user.2.avatar}}?s=24&d=mm&r=g","48":"https://secure.gravatar.com/avatar/{{persona.wordpress.user.2.avatar}}?s=48&d=mm&r=g","96":"https://secure.gravatar.com/avatar/{{persona.wordpress.user.2.avatar}}?s=96&d=mm&r=g"},"meta":[],"_links":{"self":[{"href":"https://{{persona.company.domain}}/wp-json/wp/v2/comments/1"}],"collection":[{"href":"https://{{persona.company.domain}}/wp-json/wp/v2/comments"}],"author":[{"href":"https://{{persona.company.domain}}/wp-json/wp/v2/users/2"}],"up":[{"href":"https://{{persona.company.domain}}/wp-json/wp/v2/posts/1"}]}},
+    {"id":3,"post":8,"parent":0,"author":3,"author_name":"{{persona.wordpress.user.3.name}}","author_url":"","date":"2025-01-22T08:41:05","date_gmt":"2025-01-22T08:41:05","content":{"rendered":"<p>Thanks for the walkthrough, this was helpful.</p>"},"link":"https://{{persona.company.domain}}/getting-started/#comment-3","type":"comment","author_avatar_urls":{"24":"https://secure.gravatar.com/avatar/{{persona.wordpress.user.3.avatar}}?s=24&d=mm&r=g","48":"https://secure.gravatar.com/avatar/{{persona.wordpress.user.3.avatar}}?s=48&d=mm&r=g","96":"https://secure.gravatar.com/avatar/{{persona.wordpress.user.3.avatar}}?s=96&d=mm&r=g"},"meta":[],"_links":{"self":[{"href":"https://{{persona.company.domain}}/wp-json/wp/v2/comments/3"}],"collection":[{"href":"https://{{persona.company.domain}}/wp-json/wp/v2/comments"}],"author":[{"href":"https://{{persona.company.domain}}/wp-json/wp/v2/users/3"}],"up":[{"href":"https://{{persona.company.domain}}/wp-json/wp/v2/posts/8"}]}}]
+expect:
+  - '"type":"comment"'
+  - '"author_name":'

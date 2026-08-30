@@ -4001,6 +4001,11 @@ components:
   "/wp/v2/comments": { "namespace": "wp/v2", "methods": [ "GET", "POST" ], "endpoints": [ { "methods": [ "GET" ], "args": {} }, { "methods": [ "POST" ], "args": {} } ], "_links": { "self": [ { "href": "https://{{persona.company.domain}}/wp-json/wp/v2/comments" } ] } },
   "/wp/v2/media": { "namespace": "wp/v2", "methods": [ "GET", "POST" ], "endpoints": [ { "methods": [ "GET" ], "args": {} }, { "methods": [ "POST" ], "args": {} } ], "_links": { "self": [ { "href": "https://{{persona.company.domain}}/wp-json/wp/v2/media" } ] } },
   "/wp/v2/users": { "namespace": "wp/v2", "methods": [ "GET", "POST" ], "endpoints": [ { "methods": [ "GET" ], "args": {} }, { "methods": [ "POST" ], "args": {} } ], "_links": { "self": [ { "href": "https://{{persona.company.domain}}/wp-json/wp/v2/users" } ] } },
+  "/wp/v2/categories": { "namespace": "wp/v2", "methods": [ "GET", "POST" ], "endpoints": [ { "methods": [ "GET" ], "args": {} }, { "methods": [ "POST" ], "args": {} } ], "_links": { "self": [ { "href": "https://{{persona.company.domain}}/wp-json/wp/v2/categories" } ] } },
+  "/wp/v2/tags": { "namespace": "wp/v2", "methods": [ "GET", "POST" ], "endpoints": [ { "methods": [ "GET" ], "args": {} }, { "methods": [ "POST" ], "args": {} } ], "_links": { "self": [ { "href": "https://{{persona.company.domain}}/wp-json/wp/v2/tags" } ] } },
+  "/wp/v2/types": { "namespace": "wp/v2", "methods": [ "GET" ], "endpoints": [ { "methods": [ "GET" ], "args": {} } ], "_links": { "self": [ { "href": "https://{{persona.company.domain}}/wp-json/wp/v2/types" } ] } },
+  "/wp/v2/statuses": { "namespace": "wp/v2", "methods": [ "GET" ], "endpoints": [ { "methods": [ "GET" ], "args": {} } ], "_links": { "self": [ { "href": "https://{{persona.company.domain}}/wp-json/wp/v2/statuses" } ] } },
+  "/wp/v2/settings": { "namespace": "wp/v2", "methods": [ "GET", "POST", "PUT", "PATCH" ], "endpoints": [ { "methods": [ "GET" ], "args": {} }, { "methods": [ "POST", "PUT", "PATCH" ], "args": {} } ], "_links": { "self": [ { "href": "https://{{persona.company.domain}}/wp-json/wp/v2/settings" } ] } },
   "/wp-site-health/v1": { "namespace": "wp-site-health/v1", "methods": [ "GET" ], "endpoints": [ { "methods": [ "GET" ], "args": {} } ], "_links": { "self": [ { "href": "https://{{persona.company.domain}}/wp-json/wp-site-health/v1" } ] } }
 },
 "_links": {
@@ -4053,6 +4058,100 @@ components:
   ),
   117 => 
   array (
+    'id' => 'route-wp-json-v2-users',
+    'match' => 
+    array (
+      'pid' => 
+      array (
+        0 => 'route-wp-json-v2-users',
+      ),
+    ),
+    'body' => '[{"id":1,"name":"{{persona.wordpress.user.1.name}}","url":"","description":"","link":"https://{{persona.company.domain}}/author/{{persona.wordpress.user.1.slug}}/","slug":"{{persona.wordpress.user.1.slug}}","avatar_urls":{"24":"https://secure.gravatar.com/avatar/{{persona.wordpress.user.1.avatar}}?s=24&d=mm&r=g","48":"https://secure.gravatar.com/avatar/{{persona.wordpress.user.1.avatar}}?s=48&d=mm&r=g","96":"https://secure.gravatar.com/avatar/{{persona.wordpress.user.1.avatar}}?s=96&d=mm&r=g"},"meta":[],"_links":{"self":[{"href":"https://{{persona.company.domain}}/wp-json/wp/v2/users/1"}],"collection":[{"href":"https://{{persona.company.domain}}/wp-json/wp/v2/users"}]}},
+{"id":2,"name":"{{persona.wordpress.user.2.name}}","url":"","description":"","link":"https://{{persona.company.domain}}/author/{{persona.wordpress.user.2.slug}}/","slug":"{{persona.wordpress.user.2.slug}}","avatar_urls":{"24":"https://secure.gravatar.com/avatar/{{persona.wordpress.user.2.avatar}}?s=24&d=mm&r=g","48":"https://secure.gravatar.com/avatar/{{persona.wordpress.user.2.avatar}}?s=48&d=mm&r=g","96":"https://secure.gravatar.com/avatar/{{persona.wordpress.user.2.avatar}}?s=96&d=mm&r=g"},"meta":[],"_links":{"self":[{"href":"https://{{persona.company.domain}}/wp-json/wp/v2/users/2"}],"collection":[{"href":"https://{{persona.company.domain}}/wp-json/wp/v2/users"}]}},
+{"id":3,"name":"{{persona.wordpress.user.3.name}}","url":"","description":"","link":"https://{{persona.company.domain}}/author/{{persona.wordpress.user.3.slug}}/","slug":"{{persona.wordpress.user.3.slug}}","avatar_urls":{"24":"https://secure.gravatar.com/avatar/{{persona.wordpress.user.3.avatar}}?s=24&d=mm&r=g","48":"https://secure.gravatar.com/avatar/{{persona.wordpress.user.3.avatar}}?s=48&d=mm&r=g","96":"https://secure.gravatar.com/avatar/{{persona.wordpress.user.3.avatar}}?s=96&d=mm&r=g"},"meta":[],"_links":{"self":[{"href":"https://{{persona.company.domain}}/wp-json/wp/v2/users/3"}],"collection":[{"href":"https://{{persona.company.domain}}/wp-json/wp/v2/users"}]}},
+{"id":4,"name":"{{persona.wordpress.user.4.name}}","url":"","description":"","link":"https://{{persona.company.domain}}/author/{{persona.wordpress.user.4.slug}}/","slug":"{{persona.wordpress.user.4.slug}}","avatar_urls":{"24":"https://secure.gravatar.com/avatar/{{persona.wordpress.user.4.avatar}}?s=24&d=mm&r=g","48":"https://secure.gravatar.com/avatar/{{persona.wordpress.user.4.avatar}}?s=48&d=mm&r=g","96":"https://secure.gravatar.com/avatar/{{persona.wordpress.user.4.avatar}}?s=96&d=mm&r=g"},"meta":[],"_links":{"self":[{"href":"https://{{persona.company.domain}}/wp-json/wp/v2/users/4"}],"collection":[{"href":"https://{{persona.company.domain}}/wp-json/wp/v2/users"}]}},
+{"id":5,"name":"{{persona.wordpress.user.5.name}}","url":"","description":"","link":"https://{{persona.company.domain}}/author/{{persona.wordpress.user.5.slug}}/","slug":"{{persona.wordpress.user.5.slug}}","avatar_urls":{"24":"https://secure.gravatar.com/avatar/{{persona.wordpress.user.5.avatar}}?s=24&d=mm&r=g","48":"https://secure.gravatar.com/avatar/{{persona.wordpress.user.5.avatar}}?s=48&d=mm&r=g","96":"https://secure.gravatar.com/avatar/{{persona.wordpress.user.5.avatar}}?s=96&d=mm&r=g"},"meta":[],"_links":{"self":[{"href":"https://{{persona.company.domain}}/wp-json/wp/v2/users/5"}],"collection":[{"href":"https://{{persona.company.domain}}/wp-json/wp/v2/users"}]}}]
+',
+    'headers' => 
+    array (
+      'Content-Type' => 'application/json',
+    ),
+  ),
+  118 => 
+  array (
+    'id' => 'route-wp-json-v2-posts',
+    'match' => 
+    array (
+      'pid' => 
+      array (
+        0 => 'route-wp-json-v2-posts',
+      ),
+    ),
+    'body' => '[{"id":1,"date":"2024-11-12T09:14:22","date_gmt":"2024-11-12T09:14:22","guid":{"rendered":"https://{{persona.company.domain}}/?p=1"},"modified":"2024-11-12T09:14:22","modified_gmt":"2024-11-12T09:14:22","slug":"hello-world","status":"publish","type":"post","link":"https://{{persona.company.domain}}/hello-world/","title":{"rendered":"Hello world!"},"content":{"rendered":"<p>Welcome to WordPress. This is your first post. Edit or delete it, then start writing!</p>","protected":false},"excerpt":{"rendered":"<p>Welcome to WordPress. This is your first post.</p>","protected":false},"author":1,"featured_media":0,"comment_status":"open","ping_status":"open","sticky":false,"template":"","format":"standard","meta":[],"categories":[1],"tags":[],"_links":{"self":[{"href":"https://{{persona.company.domain}}/wp-json/wp/v2/posts/1"}],"collection":[{"href":"https://{{persona.company.domain}}/wp-json/wp/v2/posts"}],"author":[{"href":"https://{{persona.company.domain}}/wp-json/wp/v2/users/1"}],"replies":[{"href":"https://{{persona.company.domain}}/wp-json/wp/v2/comments?post=1"}]}},
+{"id":8,"date":"2025-01-20T15:31:08","date_gmt":"2025-01-20T15:31:08","guid":{"rendered":"https://{{persona.company.domain}}/?p=8"},"modified":"2025-01-21T10:02:45","modified_gmt":"2025-01-21T10:02:45","slug":"getting-started","status":"publish","type":"post","link":"https://{{persona.company.domain}}/getting-started/","title":{"rendered":"Getting started with our platform"},"content":{"rendered":"<p>A short guide to help you get up and running quickly.</p>","protected":false},"excerpt":{"rendered":"<p>A short guide to help you get up and running quickly.</p>","protected":false},"author":2,"featured_media":20,"comment_status":"open","ping_status":"open","sticky":false,"template":"","format":"standard","meta":[],"categories":[5],"tags":[11],"_links":{"self":[{"href":"https://{{persona.company.domain}}/wp-json/wp/v2/posts/8"}],"collection":[{"href":"https://{{persona.company.domain}}/wp-json/wp/v2/posts"}],"author":[{"href":"https://{{persona.company.domain}}/wp-json/wp/v2/users/2"}],"replies":[{"href":"https://{{persona.company.domain}}/wp-json/wp/v2/comments?post=8"}]}},
+{"id":15,"date":"2025-03-04T08:47:53","date_gmt":"2025-03-04T08:47:53","guid":{"rendered":"https://{{persona.company.domain}}/?p=15"},"modified":"2025-03-04T08:47:53","modified_gmt":"2025-03-04T08:47:53","slug":"product-update","status":"publish","type":"post","link":"https://{{persona.company.domain}}/product-update/","title":{"rendered":"Spring product update"},"content":{"rendered":"<p>Here is what changed in this release, and what is coming next.</p>","protected":false},"excerpt":{"rendered":"<p>Here is what changed in this release.</p>","protected":false},"author":3,"featured_media":24,"comment_status":"open","ping_status":"open","sticky":false,"template":"","format":"standard","meta":[],"categories":[5],"tags":[11,14],"_links":{"self":[{"href":"https://{{persona.company.domain}}/wp-json/wp/v2/posts/15"}],"collection":[{"href":"https://{{persona.company.domain}}/wp-json/wp/v2/posts"}],"author":[{"href":"https://{{persona.company.domain}}/wp-json/wp/v2/users/3"}],"replies":[{"href":"https://{{persona.company.domain}}/wp-json/wp/v2/comments?post=15"}]}}]
+',
+    'headers' => 
+    array (
+      'Content-Type' => 'application/json',
+    ),
+  ),
+  119 => 
+  array (
+    'id' => 'route-wp-json-v2-pages',
+    'match' => 
+    array (
+      'pid' => 
+      array (
+        0 => 'route-wp-json-v2-pages',
+      ),
+    ),
+    'body' => '[{"id":2,"date":"2024-11-12T09:14:22","date_gmt":"2024-11-12T09:14:22","guid":{"rendered":"https://{{persona.company.domain}}/?page_id=2"},"modified":"2024-11-12T09:14:22","modified_gmt":"2024-11-12T09:14:22","slug":"sample-page","status":"publish","type":"page","link":"https://{{persona.company.domain}}/sample-page/","title":{"rendered":"About"},"content":{"rendered":"<p>This is an example page. It differs from a blog post because it stays in one place.</p>","protected":false},"excerpt":{"rendered":"<p>This is an example page.</p>","protected":false},"author":1,"featured_media":0,"parent":0,"menu_order":0,"comment_status":"closed","ping_status":"closed","template":"","meta":[],"_links":{"self":[{"href":"https://{{persona.company.domain}}/wp-json/wp/v2/pages/2"}],"collection":[{"href":"https://{{persona.company.domain}}/wp-json/wp/v2/pages"}],"author":[{"href":"https://{{persona.company.domain}}/wp-json/wp/v2/users/1"}]}},
+{"id":3,"date":"2024-11-12T09:20:41","date_gmt":"2024-11-12T09:20:41","guid":{"rendered":"https://{{persona.company.domain}}/?page_id=3"},"modified":"2024-11-12T09:20:41","modified_gmt":"2024-11-12T09:20:41","slug":"privacy-policy","status":"publish","type":"page","link":"https://{{persona.company.domain}}/privacy-policy/","title":{"rendered":"Privacy Policy"},"content":{"rendered":"<p>This is the privacy policy for our website.</p>","protected":false},"excerpt":{"rendered":"<p>This is the privacy policy for our website.</p>","protected":false},"author":1,"featured_media":0,"parent":0,"menu_order":0,"comment_status":"closed","ping_status":"closed","template":"","meta":[],"_links":{"self":[{"href":"https://{{persona.company.domain}}/wp-json/wp/v2/pages/3"}],"collection":[{"href":"https://{{persona.company.domain}}/wp-json/wp/v2/pages"}],"author":[{"href":"https://{{persona.company.domain}}/wp-json/wp/v2/users/1"}]}}]
+',
+    'headers' => 
+    array (
+      'Content-Type' => 'application/json',
+    ),
+  ),
+  120 => 
+  array (
+    'id' => 'route-wp-json-v2-comments',
+    'match' => 
+    array (
+      'pid' => 
+      array (
+        0 => 'route-wp-json-v2-comments',
+      ),
+    ),
+    'body' => '[{"id":1,"post":1,"parent":0,"author":2,"author_name":"{{persona.wordpress.user.2.name}}","author_url":"","date":"2024-11-13T11:02:19","date_gmt":"2024-11-13T11:02:19","content":{"rendered":"<p>Great to see the site up and running.</p>"},"link":"https://{{persona.company.domain}}/hello-world/#comment-1","type":"comment","author_avatar_urls":{"24":"https://secure.gravatar.com/avatar/{{persona.wordpress.user.2.avatar}}?s=24&d=mm&r=g","48":"https://secure.gravatar.com/avatar/{{persona.wordpress.user.2.avatar}}?s=48&d=mm&r=g","96":"https://secure.gravatar.com/avatar/{{persona.wordpress.user.2.avatar}}?s=96&d=mm&r=g"},"meta":[],"_links":{"self":[{"href":"https://{{persona.company.domain}}/wp-json/wp/v2/comments/1"}],"collection":[{"href":"https://{{persona.company.domain}}/wp-json/wp/v2/comments"}],"author":[{"href":"https://{{persona.company.domain}}/wp-json/wp/v2/users/2"}],"up":[{"href":"https://{{persona.company.domain}}/wp-json/wp/v2/posts/1"}]}},
+{"id":3,"post":8,"parent":0,"author":3,"author_name":"{{persona.wordpress.user.3.name}}","author_url":"","date":"2025-01-22T08:41:05","date_gmt":"2025-01-22T08:41:05","content":{"rendered":"<p>Thanks for the walkthrough, this was helpful.</p>"},"link":"https://{{persona.company.domain}}/getting-started/#comment-3","type":"comment","author_avatar_urls":{"24":"https://secure.gravatar.com/avatar/{{persona.wordpress.user.3.avatar}}?s=24&d=mm&r=g","48":"https://secure.gravatar.com/avatar/{{persona.wordpress.user.3.avatar}}?s=48&d=mm&r=g","96":"https://secure.gravatar.com/avatar/{{persona.wordpress.user.3.avatar}}?s=96&d=mm&r=g"},"meta":[],"_links":{"self":[{"href":"https://{{persona.company.domain}}/wp-json/wp/v2/comments/3"}],"collection":[{"href":"https://{{persona.company.domain}}/wp-json/wp/v2/comments"}],"author":[{"href":"https://{{persona.company.domain}}/wp-json/wp/v2/users/3"}],"up":[{"href":"https://{{persona.company.domain}}/wp-json/wp/v2/posts/8"}]}}]
+',
+    'headers' => 
+    array (
+      'Content-Type' => 'application/json',
+    ),
+  ),
+  121 => 
+  array (
+    'id' => 'route-wp-json-v2-media',
+    'match' => 
+    array (
+      'pid' => 
+      array (
+        0 => 'route-wp-json-v2-media',
+      ),
+    ),
+    'body' => '[{"id":20,"date":"2025-01-20T15:28:33","slug":"getting-started-cover","type":"attachment","link":"https://{{persona.company.domain}}/getting-started-cover/","title":{"rendered":"getting-started-cover"},"author":2,"comment_status":"open","ping_status":"closed","template":"","meta":[],"description":{"rendered":""},"caption":{"rendered":""},"alt_text":"","media_type":"image","mime_type":"image/jpeg","media_details":{"width":1200,"height":800,"file":"2025/01/getting-started-cover.jpg","filesize":184213,"sizes":{"thumbnail":{"file":"getting-started-cover-150x150.jpg","width":150,"height":150,"mime_type":"image/jpeg","source_url":"https://{{persona.company.domain}}/wp-content/uploads/2025/01/getting-started-cover-150x150.jpg"},"medium":{"file":"getting-started-cover-300x200.jpg","width":300,"height":200,"mime_type":"image/jpeg","source_url":"https://{{persona.company.domain}}/wp-content/uploads/2025/01/getting-started-cover-300x200.jpg"},"full":{"file":"getting-started-cover.jpg","width":1200,"height":800,"mime_type":"image/jpeg","source_url":"https://{{persona.company.domain}}/wp-content/uploads/2025/01/getting-started-cover.jpg"}}},"post":8,"source_url":"https://{{persona.company.domain}}/wp-content/uploads/2025/01/getting-started-cover.jpg","_links":{"self":[{"href":"https://{{persona.company.domain}}/wp-json/wp/v2/media/20"}],"collection":[{"href":"https://{{persona.company.domain}}/wp-json/wp/v2/media"}],"author":[{"href":"https://{{persona.company.domain}}/wp-json/wp/v2/users/2"}]}},
+{"id":24,"date":"2025-03-04T08:45:10","slug":"spring-update-hero","type":"attachment","link":"https://{{persona.company.domain}}/spring-update-hero/","title":{"rendered":"spring-update-hero"},"author":3,"comment_status":"open","ping_status":"closed","template":"","meta":[],"description":{"rendered":""},"caption":{"rendered":""},"alt_text":"","media_type":"image","mime_type":"image/png","media_details":{"width":1024,"height":576,"file":"2025/03/spring-update-hero.png","filesize":211804,"sizes":{"thumbnail":{"file":"spring-update-hero-150x150.png","width":150,"height":150,"mime_type":"image/png","source_url":"https://{{persona.company.domain}}/wp-content/uploads/2025/03/spring-update-hero-150x150.png"},"full":{"file":"spring-update-hero.png","width":1024,"height":576,"mime_type":"image/png","source_url":"https://{{persona.company.domain}}/wp-content/uploads/2025/03/spring-update-hero.png"}}},"post":15,"source_url":"https://{{persona.company.domain}}/wp-content/uploads/2025/03/spring-update-hero.png","_links":{"self":[{"href":"https://{{persona.company.domain}}/wp-json/wp/v2/media/24"}],"collection":[{"href":"https://{{persona.company.domain}}/wp-json/wp/v2/media"}],"author":[{"href":"https://{{persona.company.domain}}/wp-json/wp/v2/users/3"}]}}]
+',
+    'headers' => 
+    array (
+      'Content-Type' => 'application/json',
+    ),
+  ),
+  122 => 
+  array (
     'id' => 'route-hikvision-deviceinfo',
     'match' => 
     array (
@@ -4096,7 +4195,25 @@ components:
       'close' => '-->',
     ),
   ),
-  118 => 
+  123 => 
+  array (
+    'id' => 'route-wp-json-v2-categories',
+    'match' => 
+    array (
+      'pid' => 
+      array (
+        0 => 'route-wp-json-v2-categories',
+      ),
+    ),
+    'body' => '[{"id":1,"count":1,"description":"","link":"https://{{persona.company.domain}}/category/uncategorized/","name":"Uncategorized","slug":"uncategorized","taxonomy":"category","parent":0,"meta":[],"_links":{"self":[{"href":"https://{{persona.company.domain}}/wp-json/wp/v2/categories/1"}],"collection":[{"href":"https://{{persona.company.domain}}/wp-json/wp/v2/categories"}],"about":[{"href":"https://{{persona.company.domain}}/wp-json/wp/v2/taxonomies/category"}]}},
+{"id":5,"count":2,"description":"Company news and announcements","link":"https://{{persona.company.domain}}/category/news/","name":"News","slug":"news","taxonomy":"category","parent":0,"meta":[],"_links":{"self":[{"href":"https://{{persona.company.domain}}/wp-json/wp/v2/categories/5"}],"collection":[{"href":"https://{{persona.company.domain}}/wp-json/wp/v2/categories"}],"about":[{"href":"https://{{persona.company.domain}}/wp-json/wp/v2/taxonomies/category"}]}}]
+',
+    'headers' => 
+    array (
+      'Content-Type' => 'application/json',
+    ),
+  ),
+  124 => 
   array (
     'id' => 'route-hikvision-users',
     'match' => 
@@ -4140,7 +4257,25 @@ components:
       'close' => '-->',
     ),
   ),
-  119 => 
+  125 => 
+  array (
+    'id' => 'route-wp-json-v2-tags',
+    'match' => 
+    array (
+      'pid' => 
+      array (
+        0 => 'route-wp-json-v2-tags',
+      ),
+    ),
+    'body' => '[{"id":11,"count":2,"description":"","link":"https://{{persona.company.domain}}/tag/featured/","name":"Featured","slug":"featured","taxonomy":"post_tag","meta":[],"_links":{"self":[{"href":"https://{{persona.company.domain}}/wp-json/wp/v2/tags/11"}],"collection":[{"href":"https://{{persona.company.domain}}/wp-json/wp/v2/tags"}],"about":[{"href":"https://{{persona.company.domain}}/wp-json/wp/v2/taxonomies/post_tag"}]}},
+{"id":14,"count":1,"description":"","link":"https://{{persona.company.domain}}/tag/updates/","name":"Updates","slug":"updates","taxonomy":"post_tag","meta":[],"_links":{"self":[{"href":"https://{{persona.company.domain}}/wp-json/wp/v2/tags/14"}],"collection":[{"href":"https://{{persona.company.domain}}/wp-json/wp/v2/tags"}],"about":[{"href":"https://{{persona.company.domain}}/wp-json/wp/v2/taxonomies/post_tag"}]}}]
+',
+    'headers' => 
+    array (
+      'Content-Type' => 'application/json',
+    ),
+  ),
+  126 => 
   array (
     'id' => 'route-netgear-currentsetting',
     'match' => 
@@ -4172,7 +4307,24 @@ DeviceMode=0
       'open' => '#',
     ),
   ),
-  120 => 
+  127 => 
+  array (
+    'id' => 'route-wp-json-v2-types',
+    'match' => 
+    array (
+      'pid' => 
+      array (
+        0 => 'route-wp-json-v2-types',
+      ),
+    ),
+    'body' => '{"post":{"description":"","hierarchical":false,"has_archive":false,"name":"Posts","slug":"post","icon":"dashicons-admin-post","taxonomies":["category","post_tag"],"rest_base":"posts","rest_namespace":"wp/v2","_links":{"collection":[{"href":"https://{{persona.company.domain}}/wp-json/wp/v2/types"}],"wp:items":[{"href":"https://{{persona.company.domain}}/wp-json/wp/v2/posts"}],"curies":[{"name":"wp","href":"https://api.w.org/{rel}","templated":true}]}},"page":{"description":"","hierarchical":true,"has_archive":false,"name":"Pages","slug":"page","icon":"dashicons-admin-page","taxonomies":[],"rest_base":"pages","rest_namespace":"wp/v2","_links":{"collection":[{"href":"https://{{persona.company.domain}}/wp-json/wp/v2/types"}],"wp:items":[{"href":"https://{{persona.company.domain}}/wp-json/wp/v2/pages"}],"curies":[{"name":"wp","href":"https://api.w.org/{rel}","templated":true}]}},"attachment":{"description":"","hierarchical":false,"has_archive":false,"name":"Media","slug":"attachment","icon":"dashicons-admin-media","taxonomies":[],"rest_base":"media","rest_namespace":"wp/v2","_links":{"collection":[{"href":"https://{{persona.company.domain}}/wp-json/wp/v2/types"}],"wp:items":[{"href":"https://{{persona.company.domain}}/wp-json/wp/v2/media"}],"curies":[{"name":"wp","href":"https://api.w.org/{rel}","templated":true}]}}}
+',
+    'headers' => 
+    array (
+      'Content-Type' => 'application/json',
+    ),
+  ),
+  128 => 
   array (
     'id' => 'route-synology-dsm',
     'match' => 
@@ -4219,7 +4371,24 @@ DeviceMode=0
       'key' => '_comment',
     ),
   ),
-  121 => 
+  129 => 
+  array (
+    'id' => 'route-wp-json-v2-statuses',
+    'match' => 
+    array (
+      'pid' => 
+      array (
+        0 => 'route-wp-json-v2-statuses',
+      ),
+    ),
+    'body' => '{"publish":{"name":"Published","public":true,"queryable":true,"slug":"publish","date_floating":false,"_links":{"archives":[{"href":"https://{{persona.company.domain}}/wp-json/wp/v2/posts"}]}}}
+',
+    'headers' => 
+    array (
+      'Content-Type' => 'application/json',
+    ),
+  ),
+  130 => 
   array (
     'id' => 'route-avtech-machine',
     'match' => 
@@ -4249,7 +4418,24 @@ HTTP.Port=80
       'open' => '#',
     ),
   ),
-  122 => 
+  131 => 
+  array (
+    'id' => 'route-wp-json-v2-settings',
+    'match' => 
+    array (
+      'pid' => 
+      array (
+        0 => 'route-wp-json-v2-settings',
+      ),
+    ),
+    'body' => '{"code":"rest_forbidden","message":"Sorry, you are not allowed to do that.","data":{"status":401}}
+',
+    'headers' => 
+    array (
+      'Content-Type' => 'application/json',
+    ),
+  ),
+  132 => 
   array (
     'id' => 'route-tbk-dvr-devicersp',
     'match' => 
@@ -4293,7 +4479,7 @@ HTTP.Port=80
       'key' => '_comment',
     ),
   ),
-  123 => 
+  133 => 
   array (
     'id' => 'route-huawei-deviceinfo',
     'match' => 
@@ -4326,7 +4512,7 @@ HTTP.Port=80
       'close' => '-->',
     ),
   ),
-  124 => 
+  134 => 
   array (
     'id' => 'route-dlink-info-cgi',
     'match' => 
@@ -4354,7 +4540,7 @@ Temperature=41
       'open' => '#',
     ),
   ),
-  125 => 
+  135 => 
   array (
     'id' => 'route-dahua-sha1account',
     'match' => 
@@ -4388,7 +4574,7 @@ table.Account1.Sharable=true
       'open' => '#',
     ),
   ),
-  126 => 
+  136 => 
   array (
     'id' => 'route-apollo-device-config',
     'match' => 
@@ -4419,7 +4605,7 @@ table.Account1.Sharable=true
       'key' => '_comment',
     ),
   ),
-  127 => 
+  137 => 
   array (
     'id' => 'route-dahua-passwd',
     'match' => 
@@ -4446,7 +4632,7 @@ table.Account1.Sharable=true
       'open' => '#',
     ),
   ),
-  128 => 
+  138 => 
   array (
     'id' => 'route-qnap-qts',
     'match' => 
@@ -4487,7 +4673,7 @@ table.Account1.Sharable=true
       'close' => '-->',
     ),
   ),
-  129 => 
+  139 => 
   array (
     'id' => 'route-hp-device-info',
     'match' => 
@@ -4524,7 +4710,7 @@ table.Account1.Sharable=true
       'close' => '-->',
     ),
   ),
-  130 => 
+  140 => 
   array (
     'id' => 'route-openwrt-luci',
     'match' => 
@@ -4570,7 +4756,7 @@ table.Account1.Sharable=true
       'close' => '-->',
     ),
   ),
-  131 => 
+  141 => 
   array (
     'id' => 'route-dlink-getcfg',
     'match' => 
@@ -4612,7 +4798,7 @@ table.Account1.Sharable=true
       'close' => '-->',
     ),
   ),
-  132 => 
+  142 => 
   array (
     'id' => 'route-wavlink-exportsettings',
     'match' => 
@@ -4642,7 +4828,7 @@ RemoteManage=0
       'open' => '#',
     ),
   ),
-  133 => 
+  143 => 
   array (
     'id' => 'route-epson-prtinfo',
     'match' => 
@@ -4678,7 +4864,7 @@ RemoteManage=0
       'close' => '-->',
     ),
   ),
-  134 => 
+  144 => 
   array (
     'id' => 'route-hp-color-laserjet',
     'match' => 
@@ -4714,7 +4900,7 @@ RemoteManage=0
       'close' => '-->',
     ),
   ),
-  135 => 
+  145 => 
   array (
     'id' => 'route-webmin',
     'match' => 
@@ -4759,7 +4945,7 @@ RemoteManage=0
       'close' => '-->',
     ),
   ),
-  136 => 
+  146 => 
   array (
     'id' => 'route-phppgadmin',
     'match' => 
@@ -4796,7 +4982,7 @@ RemoteManage=0
       'close' => '-->',
     ),
   ),
-  137 => 
+  147 => 
   array (
     'id' => 'route-kibana',
     'match' => 
@@ -4839,7 +5025,7 @@ RemoteManage=0
       'close' => '-->',
     ),
   ),
-  138 => 
+  148 => 
   array (
     'id' => 'route-jenkins',
     'match' => 
@@ -4891,7 +5077,7 @@ RemoteManage=0
       'close' => '-->',
     ),
   ),
-  139 => 
+  149 => 
   array (
     'id' => 'route-grafana-settings',
     'match' => 
@@ -4928,7 +5114,7 @@ RemoteManage=0
       'key' => '_comment',
     ),
   ),
-  140 => 
+  150 => 
   array (
     'id' => 'route-phpmyadmin-changelog',
     'match' => 
@@ -4972,7 +5158,7 @@ For older entries see https://www.phpmyadmin.net/old-stable/
       'open' => '#',
     ),
   ),
-  141 => 
+  151 => 
   array (
     'id' => 'route-phpmyadmin-readme',
     'match' => 
@@ -5020,7 +5206,7 @@ See the LICENSE file for a copy of the license.
       'open' => '#',
     ),
   ),
-  142 => 
+  152 => 
   array (
     'id' => 'route-phpmyadmin-doc',
     'match' => 
@@ -5075,7 +5261,7 @@ of MySQL and MariaDB over the web.</p>
       'close' => '-->',
     ),
   ),
-  143 => 
+  153 => 
   array (
     'id' => 'route-grafana-health',
     'match' => 
@@ -5101,7 +5287,7 @@ of MySQL and MariaDB over the web.</p>
       'key' => '_comment',
     ),
   ),
-  144 => 
+  154 => 
   array (
     'id' => 'route-grafana-login',
     'match' => 
@@ -5151,7 +5337,7 @@ window.grafanaBootData = {
     ),
     'set_cookie' => 'grafana_session',
   ),
-  145 => 
+  155 => 
   array (
     'id' => 'route-jenkins-apijson',
     'match' => 
@@ -5198,7 +5384,7 @@ window.grafanaBootData = {
       'key' => '_comment',
     ),
   ),
-  146 => 
+  156 => 
   array (
     'id' => 'route-pgadmin-login',
     'match' => 
@@ -5253,7 +5439,7 @@ window.grafanaBootData = {
     ),
     'set_cookie' => 'pga4_session',
   ),
-  147 => 
+  157 => 
   array (
     'id' => 'route-cpanel-login',
     'match' => 
@@ -5304,7 +5490,7 @@ window.grafanaBootData = {
       'close' => '-->',
     ),
   ),
-  148 => 
+  158 => 
   array (
     'id' => 'route-whm-login',
     'match' => 
@@ -5355,7 +5541,7 @@ window.grafanaBootData = {
       'close' => '-->',
     ),
   ),
-  149 => 
+  159 => 
   array (
     'id' => 'route-phppgadmin-intro',
     'match' => 
@@ -5396,7 +5582,7 @@ window.grafanaBootData = {
       'close' => '-->',
     ),
   ),
-  150 => 
+  160 => 
   array (
     'id' => 'route-vcs-cvs-entries',
     'match' => 
@@ -5419,7 +5605,7 @@ D/admin////
       'Content-Type' => 'text/plain; charset=utf-8',
     ),
   ),
-  151 => 
+  161 => 
   array (
     'id' => 'route-typo3conf-listing',
     'match' => 
@@ -5452,7 +5638,7 @@ D/admin////
       'close' => '-->',
     ),
   ),
-  152 => 
+  162 => 
   array (
     'id' => 'route-typo3conf-localconf',
     'match' => 

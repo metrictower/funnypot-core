@@ -1,0 +1,25 @@
+id: route-wp-json-v2-media
+priority: 349
+# WordPress REST API media library: GET /wp-json/wp/v2/media. Two image attachments (ids 20 and 24)
+# that the posts collection references as featured_media, uploaded by the same persona users. Numbers
+# are image dimensions/filesizes only — kept clear of any bare denied digit run. No competing bundle
+# on this path.
+new_page:
+  method: GET
+  paths: ['/wp-json/wp/v2/media', '/wp-json/wp/v2/media/']
+  sig: 0
+  status: 200
+  severity: info
+  tags: [exposure, api, wordpress, discovery]
+  name: 'Exposed WordPress REST API media'
+  body_words: ['"type":"attachment"', '"media_type":"image"']
+  weight: 1000
+response:
+  headers:
+    Content-Type: "application/json"
+  body: |
+    [{"id":20,"date":"2025-01-20T15:28:33","slug":"getting-started-cover","type":"attachment","link":"https://{{persona.company.domain}}/getting-started-cover/","title":{"rendered":"getting-started-cover"},"author":2,"comment_status":"open","ping_status":"closed","template":"","meta":[],"description":{"rendered":""},"caption":{"rendered":""},"alt_text":"","media_type":"image","mime_type":"image/jpeg","media_details":{"width":1200,"height":800,"file":"2025/01/getting-started-cover.jpg","filesize":184213,"sizes":{"thumbnail":{"file":"getting-started-cover-150x150.jpg","width":150,"height":150,"mime_type":"image/jpeg","source_url":"https://{{persona.company.domain}}/wp-content/uploads/2025/01/getting-started-cover-150x150.jpg"},"medium":{"file":"getting-started-cover-300x200.jpg","width":300,"height":200,"mime_type":"image/jpeg","source_url":"https://{{persona.company.domain}}/wp-content/uploads/2025/01/getting-started-cover-300x200.jpg"},"full":{"file":"getting-started-cover.jpg","width":1200,"height":800,"mime_type":"image/jpeg","source_url":"https://{{persona.company.domain}}/wp-content/uploads/2025/01/getting-started-cover.jpg"}}},"post":8,"source_url":"https://{{persona.company.domain}}/wp-content/uploads/2025/01/getting-started-cover.jpg","_links":{"self":[{"href":"https://{{persona.company.domain}}/wp-json/wp/v2/media/20"}],"collection":[{"href":"https://{{persona.company.domain}}/wp-json/wp/v2/media"}],"author":[{"href":"https://{{persona.company.domain}}/wp-json/wp/v2/users/2"}]}},
+    {"id":24,"date":"2025-03-04T08:45:10","slug":"spring-update-hero","type":"attachment","link":"https://{{persona.company.domain}}/spring-update-hero/","title":{"rendered":"spring-update-hero"},"author":3,"comment_status":"open","ping_status":"closed","template":"","meta":[],"description":{"rendered":""},"caption":{"rendered":""},"alt_text":"","media_type":"image","mime_type":"image/png","media_details":{"width":1024,"height":576,"file":"2025/03/spring-update-hero.png","filesize":211804,"sizes":{"thumbnail":{"file":"spring-update-hero-150x150.png","width":150,"height":150,"mime_type":"image/png","source_url":"https://{{persona.company.domain}}/wp-content/uploads/2025/03/spring-update-hero-150x150.png"},"full":{"file":"spring-update-hero.png","width":1024,"height":576,"mime_type":"image/png","source_url":"https://{{persona.company.domain}}/wp-content/uploads/2025/03/spring-update-hero.png"}}},"post":15,"source_url":"https://{{persona.company.domain}}/wp-content/uploads/2025/03/spring-update-hero.png","_links":{"self":[{"href":"https://{{persona.company.domain}}/wp-json/wp/v2/media/24"}],"collection":[{"href":"https://{{persona.company.domain}}/wp-json/wp/v2/media"}],"author":[{"href":"https://{{persona.company.domain}}/wp-json/wp/v2/users/3"}]}}]
+expect:
+  - '"type":"attachment"'
+  - '"media_type":"image"'

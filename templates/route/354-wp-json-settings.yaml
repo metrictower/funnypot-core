@@ -1,0 +1,24 @@
+id: route-wp-json-v2-settings
+priority: 354
+# WordPress REST API site settings: GET /wp-json/wp/v2/settings. Real WordPress requires authentication
+# here, so an anonymous GET must return HTTP 401 with the standard rest_forbidden error — NOT a settings
+# body. Serving the real settings object anonymously would both leak fabricated config and be a tell
+# (a real WP never exposes it unauthenticated).
+new_page:
+  method: GET
+  paths: ['/wp-json/wp/v2/settings', '/wp-json/wp/v2/settings/']
+  sig: 0
+  status: 401
+  severity: info
+  tags: [exposure, api, wordpress, discovery]
+  name: 'WordPress REST API settings (auth required)'
+  body_words: ['"rest_forbidden"']
+  weight: 1000
+response:
+  headers:
+    Content-Type: "application/json"
+  body: |
+    {"code":"rest_forbidden","message":"Sorry, you are not allowed to do that.","data":{"status":401}}
+expect:
+  - '"rest_forbidden"'
+  - '"status":401'

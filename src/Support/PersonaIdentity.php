@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Funnypot\Core\Support;
 
+use Funnypot\Core\Support\Fake\FakePeople;
+
 /**
  * A single coherent fake identity for one persona seed — the company, its database, an
  * admin account, and cloud credentials that all agree with each other. Dependent fields are
@@ -29,6 +31,16 @@ final class PersonaIdentity
         'secret.jwt',
         'php.version',
         'wordpress.version', 'wordpress.theme', 'wordpress.themeVersion',
+        // The one canonical WordPress author set for this deploy — five users, index 1 = the admin
+        // account (its nicename derives from user.admin.username). Every WP author-enumeration surface
+        // (REST /wp/v2/users, author archives, sitemaps, feed bylines) reads THESE, so no two surfaces
+        // disagree on who exists. Never carries an email or a login: the REST users endpoint exposes
+        // neither to anonymous callers, and neither may leak here.
+        'wordpress.user.1.slug', 'wordpress.user.1.name', 'wordpress.user.1.avatar',
+        'wordpress.user.2.slug', 'wordpress.user.2.name', 'wordpress.user.2.avatar',
+        'wordpress.user.3.slug', 'wordpress.user.3.name', 'wordpress.user.3.avatar',
+        'wordpress.user.4.slug', 'wordpress.user.4.name', 'wordpress.user.4.avatar',
+        'wordpress.user.5.slug', 'wordpress.user.5.name', 'wordpress.user.5.avatar',
     ];
 
     /**
@@ -172,7 +184,59 @@ final class PersonaIdentity
             'wordpress.themeVersion' => self::pickProductVersion($slug, $domain, 'wp-theme'),
         ];
 
+        // The canonical WP author set, flattened onto $fields as wordpress.user.N.{slug,name,avatar}.
+        foreach (self::wpUsers($seed, $adminUser) as $i => $u) {
+            $n = (string) ($i + 1);
+            $fields['wordpress.user.' . $n . '.slug'] = $u['slug'];
+            $fields['wordpress.user.' . $n . '.name'] = $u['name'];
+            $fields['wordpress.user.' . $n . '.avatar'] = $u['avatar'];
+        }
+
         return new self($fields);
+    }
+
+    /**
+     * The five deploy-stable WordPress users, keyed 0-4 (id N+1). User 1 IS the admin: its nicename
+     * (slug) is derived from user.admin.username so the author set agrees with the admin identity, and
+     * WordPress's own default (nicename == login for the first account) is what a real install shows.
+     * Display names are seed-derived people (a real site rarely leaves the byline equal to the login).
+     * Nicenames are unique per host, as WordPress enforces — a collision gets a numeric suffix.
+     *
+     * @return array<int,array{slug:string,name:string,avatar:string}>
+     */
+    private static function wpUsers(int $seed, string $adminUser): array
+    {
+        $users = [];
+        $seen = [];
+        for ($i = 1; $i <= 5; $i++) {
+            $person = FakePeople::person($seed, 'wp_user_' . $i);
+            $slug = $i === 1 ? self::slug($adminUser) : self::slug($person['first'] . '-' . $person['last']);
+            $base = $slug;
+            $suffix = 2;
+            while (isset($seen[$slug])) {
+                $slug = $base . '-' . $suffix;
+                $suffix++;
+            }
+            $seen[$slug] = true;
+            $users[] = [
+                'slug' => $slug,
+                'name' => $person['full'],
+                'avatar' => self::gravatarHash($seed, 'wp_user_' . $i),
+            ];
+        }
+
+        return $users;
+    }
+
+    /**
+     * A gravatar-shaped 32-hex avatar hash, deploy-stable per user. Real WordPress derives it from the
+     * MD5 of the user's email; the honeypot exposes no email, so this is a seed-derived stand-in of the
+     * same shape. A bare denied digit run cannot occur inside a pure-hex string (no interior word
+     * boundary), so no re-roll guard is needed.
+     */
+    private static function gravatarHash(int $seed, string $field): string
+    {
+        return md5(self::h($seed, $field . '|avatar'));
     }
 
     public function field(string $path): ?string
