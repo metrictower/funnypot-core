@@ -153,6 +153,17 @@ final class Config
      */
     public $beaconUrl;
 
+    /**
+     * @var bool opt-in confirmation-resistant proof mutation (FP-0232). false (default) ⇒ every
+     * {{volatile.*}} proof token renders its stable seeded value (delegating to the {{fake.*}} path),
+     * so served output is byte-identical to today. true ⇒ armed decoy templates mint a fresh,
+     * non-reproducible proof token from CSPRNG entropy per request, defeating the Tier-H
+     * reproducible-proof retest gate while persona identity and page structure stay byte-stable. Off by
+     * default — the mutation is a deliberate tarpit and a default install never mutates anything;
+     * mirrors the $isolatedOrigin / $promptInjectionSeeding opt-in gating precedent.
+     */
+    public $volatileProof;
+
     public function __construct(
         string $mode = 'detect',
         ?Closure $gate = null,
@@ -179,7 +190,8 @@ final class Config
         array $ignoreTemplates = [],
         bool $isolatedOrigin = false,
         bool $promptInjectionSeeding = false,
-        ?string $beaconUrl = null
+        ?string $beaconUrl = null,
+        bool $volatileProof = false
     ) {
         $this->mode = $mode;
         $this->gate = $gate;
@@ -207,6 +219,7 @@ final class Config
         $this->isolatedOrigin = $isolatedOrigin;
         $this->promptInjectionSeeding = $promptInjectionSeeding;
         $this->beaconUrl = $beaconUrl;
+        $this->volatileProof = $volatileProof;
     }
 
     public function respondEnabled(): bool

@@ -30,16 +30,21 @@ final class EmulatorRegistry
      *                              byte-identical to today's. Threaded from Config via Honeypot.
      * @param array<string,string> $beaconCanary operator canary map (e.g. ['beacon' => '<self-beacon url>'])
      *                              wired onto the route tier as the 4th render arg; empty ⇒ no beacon URL.
+     * @param bool     $volatileProof opt-in confirmation-resistant proof mutation (FP-0232); off ⇒
+     *                              {{volatile.*}} tokens render their stable seeded value, output
+     *                              byte-identical to today's. Threaded from Config via Honeypot into the
+     *                              renderer ctor (the real consumer), one hop past $promptInjectionSeeding.
      */
     public static function default(
         ?int $personaSeed = null,
         bool $promptInjectionSeeding = false,
-        array $beaconCanary = []
+        array $beaconCanary = [],
+        bool $volatileProof = false
     ): self {
         return new self([
             new RouteTemplateEmulator(
                 RouteTemplateSet::fromPackage(),
-                new DirectiveRenderer($personaSeed),
+                new DirectiveRenderer($personaSeed, $volatileProof),
                 $promptInjectionSeeding,
                 $beaconCanary
             ),

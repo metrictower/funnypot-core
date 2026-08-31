@@ -56,7 +56,7 @@ final class DirectiveRenderer
     ];
 
     /** The closed directive prefixes — used by the compile-time lint. */
-    public const KNOWN_PREFIXES = ['canned.', 'fake.', 'fakeHex:', 'hex:', 'match.', 'urldecode:match.', 'xml:match.', 'compute.md5:', 'compute.crc32:', 'pick:', 'canary.', 'persona.'];
+    public const KNOWN_PREFIXES = ['canned.', 'fake.', 'volatile.', 'fakeHex:', 'hex:', 'match.', 'urldecode:match.', 'xml:match.', 'compute.md5:', 'compute.crc32:', 'pick:', 'canary.', 'persona.'];
 
     /** The closed set of valid fake.person.* sub-fields — used by the compile-time lint (mirrors
      *  PersonaIdentity::FIELDS' role for persona.*; unlike a plain fake.NAME, this sub-field is
@@ -83,9 +83,23 @@ final class DirectiveRenderer
      */
     private $personaSeed;
 
-    public function __construct(?int $personaSeed = null)
+    /**
+     * Master arm for the {{volatile.*}} proof-token directive (FP-0232). false (default) ⇒ a
+     * {{volatile.NAME:ENC:N}} directive delegates to the stable seeded {{fake.NAME:ENC:N}} path, so a
+     * default build is byte-identical to today and every compile-time render check stays deterministic.
+     * true ⇒ the directive mints a fresh, non-reproducible token from CSPRNG entropy (random_bytes) on
+     * every render, so an identical probe never reproduces the same proof (the confirmation-resistant
+     * tarpit). Off by default and fail-safe — an un-wired construction site degrades to the stable path.
+     * Persona identity ({{persona.*}}) and every other {{fake.*}} cell are untouched by this arm.
+     *
+     * @var bool
+     */
+    private $volatileProof;
+
+    public function __construct(?int $personaSeed = null, bool $volatileProof = false)
     {
         $this->personaSeed = $personaSeed;
+        $this->volatileProof = $volatileProof;
     }
 
     /**
@@ -159,6 +173,20 @@ final class DirectiveRenderer
             $domain = $this->personaField($seed, 'company.domain');
 
             return FakePeople::email($person, $domain !== '' ? $domain : 'internal');
+        }
+        if (strpos($part, 'volatile.') === 0) {
+            // volatile.NAME:ENC:N — a proof-token carrier sharing the fake.NAME:ENC:N grammar (FP-0232).
+            // OFF (the default arm): delegate to the stable seeded fake.NAME path so a default build is
+            // LITERALLY the fake.NAME bytes (one source of truth) — byte-identical to today, and the
+            // compile-time render checks (assertMarkers, run with the arm off at seed 0) stay
+            // deterministic. ON: draw the SAME encoding from fresh CSPRNG entropy so the token is
+            // non-reproducible per request — the confirmation-resistant tarpit — O(1), no state.
+            $spec = substr($part, 9); // "NAME:ENC:N"
+            if (!$this->volatileProof) {
+                return $this->resolveOne('fake.' . $spec, $captures, $seed, $canary);
+            }
+
+            return $this->volatileToken($spec);
         }
         if (strpos($part, 'fake.') === 0) {
             // fake.NAME:ENC:N — ENC in {hex (default), hexupper, b64, b64url, dec}. Seed+name derived,
@@ -255,6 +283,39 @@ final class DirectiveRenderer
 
         // Unknown directive -> literal (fail safe; never execute). Compile-time lint catches typos.
         return $part;
+    }
+
+    /**
+     * The ARMED volatile-proof path (FP-0232): parse the fake.NAME:ENC:N grammar identically, but draw
+     * the material from a fresh CSPRNG read (random_bytes) instead of the seeded sha256 digest, so the
+     * token is non-reproducible per render — a Tier-H retester can never re-quote it. NAME is ignored on
+     * this path (entropy is name-independent); it is kept in the grammar only so one authored directive
+     * serves both the ON and OFF (seeded fake) paths. O(1), no state. Supported encodings are the
+     * proof-shaped hex / hexupper / b64 / b64url — all inherently CR/LF/NUL-free; length is capped
+     * exactly as fake.NAME caps it. The all-digit `dec` encoding is deferred (spec Open Q 4): an armed
+     * `dec` falls through to hex here, so no proof token is authored against it yet.
+     */
+    private function volatileToken(string $spec): string
+    {
+        $bits = explode(':', $spec);
+        $enc = $bits[1] ?? 'hex';
+        $len = max(1, (int) ($bits[2] ?? 16));
+        // 32 fresh bytes → a 64-hex-char digest, the SAME width as the seeded fake digest, so the
+        // length caps below behave identically to fake.NAME.
+        $raw = random_bytes(32);
+        $digest = bin2hex($raw);
+        if ($enc === 'hexupper') {
+            return strtoupper(substr($digest, 0, $len));
+        }
+        if ($enc === 'b64') {
+            return substr(base64_encode($raw), 0, $len);
+        }
+        if ($enc === 'b64url') {
+            // URL-safe base64, unpadded — same alphabet as fake.NAME's b64url ([A-Za-z0-9_-]).
+            return substr(rtrim(strtr(base64_encode($raw), '+/', '-_'), '='), 0, $len);
+        }
+
+        return substr($digest, 0, $len);
     }
 
     /**

@@ -119,7 +119,8 @@ final class TemplateAttackEmulator
         ?EphemeralStore $store = null,
         array $paramBuckets = [],
         ?int $personaSeed = null,
-        ?string $decoySessionKey = null
+        ?string $decoySessionKey = null,
+        bool $volatileProof = false
     ) {
         $this->rules = $rules;
         foreach ($rules as $rule) {
@@ -132,7 +133,7 @@ final class TemplateAttackEmulator
         }
         $this->canary = $canary;
         $this->paramBuckets = $paramBuckets;
-        $this->renderer = new DirectiveRenderer($personaSeed);
+        $this->renderer = new DirectiveRenderer($personaSeed, $volatileProof);
         $this->clock = $clock ?? new SystemClock();
         $this->store = $store ?? new NullEphemeralStore();
         $this->personaSeed = $personaSeed;
@@ -172,11 +173,11 @@ final class TemplateAttackEmulator
     }
 
     /** @param array<string,string> $canary */
-    public static function fromFile(string $path, array $canary = [], ?int $personaSeed = null, ?string $decoySessionKey = null): self
+    public static function fromFile(string $path, array $canary = [], ?int $personaSeed = null, ?string $decoySessionKey = null, bool $volatileProof = false): self
     {
         $rules = is_file($path) ? require $path : [];
 
-        return new self(is_array($rules) ? $rules : [], $canary, null, null, self::loadParamBuckets(), $personaSeed, $decoySessionKey);
+        return new self(is_array($rules) ? $rules : [], $canary, null, null, self::loadParamBuckets(), $personaSeed, $decoySessionKey, $volatileProof);
     }
 
     /**
@@ -201,9 +202,9 @@ final class TemplateAttackEmulator
      * Build against the attack rules — a RulesUpdater-managed copy under the configured data
      * dir when present, else the copy compiled into the package (RulesLocator decides).
      */
-    public static function fromPackage(array $canary = [], ?int $personaSeed = null, ?string $decoySessionKey = null): self
+    public static function fromPackage(array $canary = [], ?int $personaSeed = null, ?string $decoySessionKey = null, bool $volatileProof = false): self
     {
-        return self::fromFile(RulesLocator::resolve('funnypot-attack.php'), $canary, $personaSeed, $decoySessionKey);
+        return self::fromFile(RulesLocator::resolve('funnypot-attack.php'), $canary, $personaSeed, $decoySessionKey, $volatileProof);
     }
 
     /**

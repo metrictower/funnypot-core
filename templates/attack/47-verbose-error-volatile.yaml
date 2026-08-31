@@ -1,0 +1,43 @@
+id: attack-verbose-error-volatile
+severity: medium
+priority: 47
+tags: [attack, error-oracle, volatile-proof]
+# FP-0232 demonstrator — a confirmation-resistant "volatile proof" decoy. A hex-formatted value where a
+# framework expects a plain integer (offset/page/limit=0x…) trips a verbose application-error surface: a
+# real strict parser throws (NumberFormatException / ArgumentError) and the app renders a 500 whose
+# distinguishing artifact is an *error-reference id*. That id is the natural thing a Tier-H validator
+# quotes and re-tests — so it is the {{volatile.errref}} proof token: with Config::$volatileProof ARMED it
+# is minted from fresh CSPRNG entropy per request, so an identical re-probe NEVER reproduces the same id →
+# no verbatim evidence_excerpt, no CONFIRMED, the retest budget burns. OFF (the default), the directive
+# delegates to the stable seeded {{fake.*}} path, so a default build is byte-identical to today.
+#
+# What STAYS stable either way: the persona identity ({{persona.company.name}}) and the whole static page
+# skeleton. Only the error-reference id mutates — exactly the per-request-varying trace/request id a real
+# error page carries, never an identity field a coherence fingerprinter keys on. hex:16 (64 bits) so two
+# requests colliding by chance is ~2^-64. No attacker bytes are reflected (the match is not echoed), so
+# this needs no isolated origin.
+#
+# `expect:` pins only the STATIC prose (never the token value): assertMarkers renders with the arm OFF at
+# seed 0, where the directive resolves to a stable seeded value — an expect on the token would be a
+# meaningless moving target, an expect on the label is safe.
+match:
+  - in: query
+    regex: '(?:offset|page|limit)=0x[0-9a-fA-F]+'
+status: 500
+response:
+  headers:
+    Content-Type: "text/html; charset=utf-8"
+  body: |
+    <!doctype html>
+    <html lang="en">
+    <head><title>Application error</title></head>
+    <body>
+    <h1>Application error</h1>
+    <p>The server encountered an internal error and was unable to complete your request.</p>
+    <p>If the problem persists, contact the {{persona.company.name}} operations team and quote the
+    reference below.</p>
+    <hr>
+    <p>Error reference: {{volatile.errref:hex:16}}</p>
+    </body>
+    </html>
+expect: ["Application error", "Error reference:"]

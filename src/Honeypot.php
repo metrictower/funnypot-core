@@ -89,7 +89,7 @@ final class Honeypot implements Engine
         }
 
         $this->synthesizer = new ResponseSynthesizer(
-            EmulatorRegistry::default($personaSeed, $this->config->promptInjectionSeeding, $beaconCanary),
+            EmulatorRegistry::default($personaSeed, $this->config->promptInjectionSeeding, $beaconCanary, $this->config->volatileProof),
             $this->config->responseStyle,
             $this->config->serverHeader,
             $this->config->poweredBy
@@ -107,7 +107,7 @@ final class Honeypot implements Engine
         $this->ignoreTemplates = array_flip($this->config->ignoreTemplates);
 
         $this->attackEmulator = $this->config->attackEmulation
-            ? TemplateAttackEmulator::fromPackage([], $personaSeed, $this->config->decoySessionKey)->disable($this->config->exclude)
+            ? TemplateAttackEmulator::fromPackage([], $personaSeed, $this->config->decoySessionKey, $this->config->volatileProof)->disable($this->config->exclude)
             : null;
     }
 
