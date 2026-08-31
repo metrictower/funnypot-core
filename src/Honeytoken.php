@@ -71,6 +71,20 @@ final class Honeytoken
         return hash_equals($this->sign($payload), $sig) ? $payload : null;
     }
 
+    /**
+     * A base64url-encoded, HMAC-signed reference token for the FP-0239 prompt-injection self-beacon:
+     * `base64url( ref . '.' . sign(ref) )`. The ref is a SERVER-derived render-seed reference (never
+     * attacker input), so the token cannot reflect attacker bytes; a beacon hit decodes back to which
+     * deploy seeded the page (the app follow-up verifies it with hash_equals against the same key).
+     * Reuses the exact sign() HMAC — no new crypto scheme.
+     */
+    public function beaconToken(string $ref): string
+    {
+        $raw = $ref . '.' . $this->sign($ref);
+
+        return rtrim(strtr(base64_encode($raw), '+/', '-_'), '=');
+    }
+
     private function sign(string $payload): string
     {
         return substr(hash_hmac('sha256', $payload, $this->key), 0, 16);

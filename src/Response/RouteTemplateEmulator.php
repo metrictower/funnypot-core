@@ -26,12 +26,25 @@ final class RouteTemplateEmulator extends AbstractEmulator
     /** @var DirectiveRenderer */
     private $renderer;
 
+    /** @var bool opt-in LLM prompt-injection seeding gate (FP-0239); false ⇒ no injection block. */
+    private $promptInjectionSeeding;
+
+    /** @var array<string,string> operator canary map (e.g. ['beacon' => '<self-beacon url>']); empty ⇒ no URL. */
+    private $beaconCanary;
+
+    /**
+     * @param array<string,string> $beaconCanary
+     */
     public function __construct(
         RouteTemplateSet $set,
-        ?DirectiveRenderer $renderer = null
+        ?DirectiveRenderer $renderer = null,
+        bool $promptInjectionSeeding = false,
+        array $beaconCanary = []
     ) {
         $this->set = $set;
         $this->renderer = $renderer ?? new DirectiveRenderer();
+        $this->promptInjectionSeeding = $promptInjectionSeeding;
+        $this->beaconCanary = $beaconCanary;
     }
 
     public function supports(array $bundle): bool
@@ -46,8 +59,10 @@ final class RouteTemplateEmulator extends AbstractEmulator
             return null;
         }
 
-        // Routes have no attacker payload, so captures are empty (seed-only directives).
-        $body = $this->renderer->render((string) ($rule['body'] ?? ''), [], $seed);
+        // Routes have no attacker payload, so captures are empty (seed-only directives). The 4th arg
+        // is the operator canary map — empty on the default path (byte-identical to pre-FP-0239), and
+        // carries the self-beacon URL only when prompt-injection seeding is configured on.
+        $body = $this->renderer->render((string) ($rule['body'] ?? ''), [], $seed, $this->beaconCanary);
 
         $headers = [];
         foreach ((array) ($rule['headers'] ?? []) as $name => $value) {
@@ -63,6 +78,15 @@ final class RouteTemplateEmulator extends AbstractEmulator
 
         if ($style === Style::TAUNT && isset($rule['taunt'])) {
             $body = $this->applyTaunt($body, (array) $rule['taunt']);
+        }
+
+        // FP-0239: inert prompt-injection + self-beacon seeding, gated ORTHOGONALLY to Style::TAUNT
+        // (so a deploy can beacon without the visible troll-face). It reuses the rule's taunt carrier
+        // metadata (mode/open/close) but fires under its own opt-in config gate — the flag is consulted
+        // HERE, inside the emulator, only because it was threaded Config → Honeypot →
+        // EmulatorRegistry::default() → this ctor.
+        if ($this->promptInjectionSeeding && isset($rule['taunt'])) {
+            $body = $this->applyInjection($body, (array) $rule['taunt'], $seed);
         }
 
         // Guarantee every required token survives, whatever the author (or the banner) did.
@@ -109,6 +133,64 @@ final class RouteTemplateEmulator extends AbstractEmulator
         }
 
         // line mode: prefix each taunt line with the file's comment token so the doc still parses.
+        $open = (string) ($taunt['open'] ?? '#');
+        $commented = array_map(
+            static function (string $l) use ($open): string {
+                return $l === '' ? $open : $open . ' ' . $l;
+            },
+            $lines
+        );
+
+        return $body . "\n" . implode("\n", $commented) . "\n";
+    }
+
+    /**
+     * Append the INERT prompt-injection block (FP-0239) after the body, in the file's own comment
+     * syntax — modelled on applyTaunt(), same three modes (line / block / inline_field). The payload
+     * is authored plain-text constants (InjectionPayloads); the ONLY dynamic value is the self-beacon
+     * URL, substituted from the server-signed operator canary map via {{canary.beacon}} — and the
+     * beacon line is included ONLY when a beacon is configured, so no URL ever appears otherwise.
+     *
+     * There is no attacker-byte reflection here: the route render passes empty captures and the block
+     * is built from constants + a server-derived canary, so an attacker request byte can never land in
+     * it. The block stays well under the 2 KB budget; ResponseSynthesizer's size/validator gate is the
+     * downstream backstop regardless.
+     *
+     * @param array<string,mixed> $taunt the rule's taunt carrier metadata (mode/open/close), reused
+     */
+    private function applyInjection(string $body, array $taunt, int $seed): string
+    {
+        $lines = InjectionPayloads::MISDIRECTION;
+        // Only emit the self-beacon line when an operator beacon URL is actually configured (invariant:
+        // rendering with no beacon config emits no URL). {{canary.beacon}} resolves from the map.
+        if (($this->beaconCanary['beacon'] ?? '') !== '') {
+            $lines[] = $this->renderer->render(InjectionPayloads::BEACON_TEMPLATE, [], $seed, $this->beaconCanary);
+        }
+
+        $mode = (string) ($taunt['mode'] ?? 'line');
+
+        if ($mode === 'block') {
+            $open = (string) ($taunt['open'] ?? '<!--');
+            $close = (string) ($taunt['close'] ?? '-->');
+
+            return $body . "\n" . $open . "\n" . implode("\n", $lines) . "\n" . $close . "\n";
+        }
+
+        if ($mode === 'inline_field') {
+            // JSON: ride the block in as one string field so the document still parses. A DISTINCT key
+            // from the taunt's (fixed '_assessment') so a rule that also emits a taunt _comment (both
+            // features on at once) does not produce a duplicate key.
+            $value = (string) json_encode(implode(' ', $lines), JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+            $field = '  ' . (string) json_encode('_assessment') . ': ' . $value . ',';
+            $nl = strpos($body, "\n");
+            if ($nl === false) {
+                return $body;
+            }
+
+            return substr($body, 0, $nl + 1) . $field . "\n" . substr($body, $nl + 1);
+        }
+
+        // line mode: prefix each line with the file's comment token so the doc still parses.
         $open = (string) ($taunt['open'] ?? '#');
         $commented = array_map(
             static function (string $l) use ($open): string {

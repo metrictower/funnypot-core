@@ -61,8 +61,26 @@ final class Honeypot implements Engine
         // secrets stay per-request (per-attacker) — only the identity is deploy-stable.
         $personaSeed = $this->config->deploySeed();
 
+        // FP-0239: opt-in prompt-injection seeding. Read the gate + build the per-deploy self-beacon
+        // canary off Config, then hand both DISCRETE values down the real render path
+        // (EmulatorRegistry::default → RouteTemplateEmulator). No SynthesisConfig — it is dead on this
+        // path. The beacon canary is built only when the gate is on AND a beacon URL + a signing key
+        // are configured; the URL carries a server-signed token (Honeytoken::beaconToken, same HMAC as
+        // the bait cookie — no new crypto), never any attacker input.
+        $beaconCanary = [];
+        $beaconKey = $this->config->decoySessionKey ?? $this->config->honeytokenKey;
+        if (
+            $this->config->promptInjectionSeeding
+            && $this->config->beaconUrl !== null && $this->config->beaconUrl !== ''
+            && $beaconKey !== null && $beaconKey !== ''
+        ) {
+            $token = (new Honeytoken($beaconKey))->beaconToken((string) $personaSeed);
+            $sep = strpos($this->config->beaconUrl, '?') === false ? '?' : '&';
+            $beaconCanary['beacon'] = $this->config->beaconUrl . $sep . 't=' . $token;
+        }
+
         $this->synthesizer = new ResponseSynthesizer(
-            EmulatorRegistry::default($personaSeed),
+            EmulatorRegistry::default($personaSeed, $this->config->promptInjectionSeeding, $beaconCanary),
             $this->config->responseStyle,
             $this->config->serverHeader,
             $this->config->poweredBy

@@ -134,6 +134,25 @@ final class Config
      */
     public $isolatedOrigin;
 
+    /**
+     * @var bool opt-in LLM prompt-injection seeding. false (default) ⇒ no injection block is ever
+     * appended and served bodies are byte-identical to today's output. true ⇒ decoy rules that carry
+     * a `taunt:` carrier also get an INERT, DEFENSIVE-ONLY misdirection block (+ a self-beacon URL when
+     * $beaconUrl is set) appended in the file's own comment syntax. Off by default because seeding this
+     * technique is itself a deception-tell to hidden-comment scanners (readme_prompt_injection-class) —
+     * mirrors the $isolatedOrigin / $nucleiReflection opt-in gating precedent.
+     */
+    public $promptInjectionSeeding;
+
+    /**
+     * @var string|null operator-owned public HTTPS beacon base URL for the prompt-injection self-beacon.
+     * A fetch of the seeded URL is the "an autonomous LLM agent, not a plain scanner, processed our
+     * content" signal (the app follow-up owns the endpoint + logging). MUST be a normal public host —
+     * never loopback/RFC1918/169.254.169.254 (harmful AND refused by hardened agents' fetch_url).
+     * null ⇒ no beacon URL is emitted (the misdirection block still appears when seeding is on).
+     */
+    public $beaconUrl;
+
     public function __construct(
         string $mode = 'detect',
         ?Closure $gate = null,
@@ -158,7 +177,9 @@ final class Config
         ?string $deploySeed = null,
         ?string $decoySessionKey = null,
         array $ignoreTemplates = [],
-        bool $isolatedOrigin = false
+        bool $isolatedOrigin = false,
+        bool $promptInjectionSeeding = false,
+        ?string $beaconUrl = null
     ) {
         $this->mode = $mode;
         $this->gate = $gate;
@@ -184,6 +205,8 @@ final class Config
         $this->decoySessionKey = $decoySessionKey;
         $this->ignoreTemplates = $ignoreTemplates;
         $this->isolatedOrigin = $isolatedOrigin;
+        $this->promptInjectionSeeding = $promptInjectionSeeding;
+        $this->beaconUrl = $beaconUrl;
     }
 
     public function respondEnabled(): bool
