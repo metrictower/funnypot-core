@@ -68,11 +68,20 @@ final class Honeypot implements Engine
         // are configured; the URL carries a server-signed token (Honeytoken::beaconToken, same HMAC as
         // the bait cookie — no new crypto), never any attacker input.
         $beaconCanary = [];
-        $beaconKey = $this->config->decoySessionKey ?? $this->config->honeytokenKey;
+        // `?:` not `??` (FP-0244): an operator who sets decoySessionKey to '' means "no dedicated
+        // beacon key", so it must fall through to honeytokenKey — `??` only skips null and would sign
+        // the beacon with an empty key. `?:` treats '' (and null) as absent; the guard below still
+        // rejects a null/empty result, so a truly unset key fails closed (no beacon).
+        $beaconKey = ($this->config->decoySessionKey ?? '') !== '' ? $this->config->decoySessionKey : $this->config->honeytokenKey;
         if (
             $this->config->promptInjectionSeeding
             && $this->config->beaconUrl !== null && $this->config->beaconUrl !== ''
             && $beaconKey !== null && $beaconKey !== ''
+            // FP-0244 defense-in-depth: a misconfigured beacon URL pointed at a private/reserved/
+            // loopback host or the cloud metadata endpoint is an operator footgun (a seeded agent GET
+            // could probe the operator's own internal network). It is operator-owned config, outside
+            // the attacker threat model, but this cheap guard fails CLOSED — no beacon — on rejection.
+            && self::beaconUrlIsSafe($this->config->beaconUrl)
         ) {
             $token = (new Honeytoken($beaconKey))->beaconToken((string) $personaSeed);
             $sep = strpos($this->config->beaconUrl, '?') === false ? '?' : '&';
@@ -100,6 +109,51 @@ final class Honeypot implements Engine
         $this->attackEmulator = $this->config->attackEmulation
             ? TemplateAttackEmulator::fromPackage([], $personaSeed, $this->config->decoySessionKey)->disable($this->config->exclude)
             : null;
+    }
+
+    /**
+     * FP-0244 — defense-in-depth validation of the operator-configured self-beacon URL. True only when
+     * the URL is a syntactically valid http(s) URL whose host is NOT a loopback/private/reserved IP,
+     * the cloud metadata endpoint (169.254.169.254 / fd00:ec2::254), or an obviously-internal name.
+     * A rejected URL disables the beacon (fail closed). This is not a full SSRF defence (a public name
+     * can still resolve to a private A record) — it is a cheap footgun guard for the common misconfig.
+     */
+    private static function beaconUrlIsSafe(string $url): bool
+    {
+        if (filter_var($url, FILTER_VALIDATE_URL) === false) {
+            return false;
+        }
+        $parts = parse_url($url);
+        if ($parts === false) {
+            return false;
+        }
+        $scheme = strtolower((string) ($parts['scheme'] ?? ''));
+        if ($scheme !== 'http' && $scheme !== 'https') {
+            return false;
+        }
+        $host = strtolower(trim((string) ($parts['host'] ?? ''), '[]'));   // strip IPv6 literal brackets
+        if ($host === '') {
+            return false;
+        }
+        // Explicit metadata / loopback hostnames (169.254.169.254 is also caught by NO_RES_RANGE below,
+        // but name it here per the ticket so intent is unmistakable).
+        if (in_array($host, [
+            'localhost', 'ip6-localhost', 'metadata', 'metadata.google.internal',
+            '169.254.169.254', 'fd00:ec2::254',
+        ], true)) {
+            return false;
+        }
+        // A literal IP must be a public, non-reserved, non-private address.
+        if (filter_var($host, FILTER_VALIDATE_IP) !== false) {
+            return filter_var($host, FILTER_VALIDATE_IP, FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE) !== false;
+        }
+        // A DNS name ending in an internal-only suffix, or a dotless single-label host, is rejected as
+        // internal. A normal public FQDN passes (its runtime resolution is outside this static guard).
+        if (preg_match('/(^|\.)(internal|intranet|local|localhost|lan|home|corp)$/', $host) === 1) {
+            return false;
+        }
+
+        return strpos($host, '.') !== false;
     }
 
     /**

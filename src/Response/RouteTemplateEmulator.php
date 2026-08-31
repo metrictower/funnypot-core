@@ -80,6 +80,12 @@ final class RouteTemplateEmulator extends AbstractEmulator
         // Routes have no attacker payload, so captures are empty (seed-only directives). The 4th arg
         // is the operator canary map — empty on the default path (byte-identical to pre-FP-0239), and
         // carries the self-beacon URL only when prompt-injection seeding is configured on.
+        //
+        // FP-0244 note: the canary map is passed to this WHOLE-BODY render, not only to the injection
+        // block below. No shipped template body contains {{canary.beacon}} today; if a future compiled
+        // template did, the URL would resolve here, outside the injection block. That is harmless — it
+        // is the operator's own signed URL, never attacker input — but the intended single consumer is
+        // applyInjection(); a body-level {{canary.beacon}} would be an authoring mistake, not a leak.
         $body = $this->renderer->render((string) ($rule['body'] ?? ''), [], $seed, $this->beaconCanary);
 
         $headers = [];
@@ -142,6 +148,9 @@ final class RouteTemplateEmulator extends AbstractEmulator
             $key = (string) ($taunt['key'] ?? '_comment');
             $value = (string) json_encode(implode("\n", $lines), JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
             $field = '  ' . (string) json_encode($key) . ': ' . $value . ',';
+            // FP-0244: inject the field right after the first line (the opening `{`). A single-line JSON
+            // body has no newline, so we cannot place the field without a byte-level JSON parse — we
+            // SKIP injection and return the body untouched (fail-safe: never risk corrupting valid JSON).
             $nl = strpos($body, "\n");
             if ($nl === false) {
                 return $body;
@@ -200,6 +209,9 @@ final class RouteTemplateEmulator extends AbstractEmulator
             // features on at once) does not produce a duplicate key.
             $value = (string) json_encode(implode(' ', $lines), JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
             $field = '  ' . (string) json_encode('_assessment') . ': ' . $value . ',';
+            // FP-0244 (same fail-safe as applyTaunt): a single-line JSON body has no newline to anchor
+            // the field after the opening `{`, so injection is SKIPPED and the body returned untouched
+            // rather than risk corrupting valid JSON.
             $nl = strpos($body, "\n");
             if ($nl === false) {
                 return $body;

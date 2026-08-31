@@ -71,6 +71,7 @@ final class PromptInjectionFingerprintTest extends TestCase
         $forbidden = '~\b('
             . 'rm\s+-rf|DROP\s+TABLE|TRUNCATE|DELETE\s+FROM|shutdown|reboot|mkfs|'
             . 'curl|wget|fetch\(|nc\s|netcat|bash|/bin/sh|powershell|'
+            . 'ssh|scp|sftp|ftp|telnet|rsync|'   // FP-0244: remote-shell / file-transfer verbs
             . 'exec|eval|system|passthru|shell_exec|base64_decode|'
             . 'POST|PUT|DELETE\s|'
             . 'exfiltrate|env|/etc/passwd|id_rsa|AKIA|BEGIN\s+PRIVATE|'
@@ -80,6 +81,15 @@ final class PromptInjectionFingerprintTest extends TestCase
 
         foreach ($this->allPayloadLines() as $line) {
             self::assertSame(0, preg_match($forbidden, $line), "payload line contains a forbidden directive: {$line}");
+        }
+
+        // FP-0244: a bare-domain tripwire — no literal third-party host may be authored into the
+        // constants (the only host is the injected {{canary.beacon}}, whose `.beacon` is not a TLD, so
+        // it never trips this). Anchored to real TLDs so a sentence-ending period never false-positives.
+        $bareDomain = '~\b[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\.'
+            . '(?:com|net|org|io|co|ru|cn|xyz|top|info|biz|dev|app|sh|gg|me|tk|pw|onion)\b~i';
+        foreach ($this->allPayloadLines() as $line) {
+            self::assertSame(0, preg_match($bareDomain, $line), "payload line contains a bare third-party domain: {$line}");
         }
 
         // The constants carry NO literal URL — the only URL is the injected self-beacon (via canary).

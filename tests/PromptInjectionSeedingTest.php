@@ -122,6 +122,40 @@ final class PromptInjectionSeedingTest extends TestCase
         self::assertNotNull(json_decode($json), 'JSON decoy must still parse after inline_field injection: ' . $json);
     }
 
+    /**
+     * FP-0244 (opus nit #2) — both features ON at once. Style::TAUNT injects a `_comment` field and
+     * prompt-injection seeding injects a `_assessment` field into the SAME inline_field JSON body; the
+     * two keys are DISTINCT by construction, so the document must stay valid JSON with exactly one of
+     * each (no duplicate-key corruption). Exercised across several JSON decoy routes.
+     */
+    public function test_both_features_on_inline_field_json_stays_valid_with_distinct_keys(): void
+    {
+        $canary = ['beacon' => 'https://beacon.example.test/confirm?t=' . str_repeat('a', 40)];
+        $emu = new RouteTemplateEmulator($this->set(), new DirectiveRenderer(7), true, $canary);
+
+        foreach ([
+            'GET /.well-known/ai-plugin.json',
+            'GET /package.json',
+            'GET /openapi.json',
+        ] as $route) {
+            // TAUNT style AND the injection gate on together.
+            $body = $emu->render($this->bundle($route), Style::TAUNT, 7)->body;
+
+            $decoded = json_decode($body, true);
+            self::assertNotNull($decoded, "{$route}: both features on must leave valid JSON: {$body}");
+            self::assertIsArray($decoded, "{$route}: JSON object expected");
+
+            // Exactly one _comment (the taunt) and one _assessment (the injection) — no duplicate keys.
+            self::assertSame(1, substr_count($body, '"_comment"'), "{$route}: exactly one _comment field");
+            self::assertSame(1, substr_count($body, '"_assessment"'), "{$route}: exactly one _assessment field");
+            self::assertArrayHasKey('_comment', $decoded, "{$route}: taunt _comment present");
+            self::assertArrayHasKey('_assessment', $decoded, "{$route}: injection _assessment present");
+
+            // Both payloads actually landed (the troll banner in _comment, the misdirection in _assessment).
+            self::assertStringContainsString('already-decommissioned', (string) $decoded['_assessment'], "{$route}: injection text in _assessment");
+        }
+    }
+
     public function test_beacon_url_present_and_signed(): void
     {
         $config = $this->seedingConfig();
@@ -169,6 +203,54 @@ final class PromptInjectionSeedingTest extends TestCase
         self::assertStringContainsString('already-decommissioned', $f->body, 'misdirection still seeds without a beacon');
         self::assertStringNotContainsString('http', substr($f->body, strpos($f->body, 'already-decommissioned')), 'no URL without a configured beacon');
         self::assertStringNotContainsString('{{canary', $f->body, 'the beacon directive is never left unrendered');
+    }
+
+    /**
+     * FP-0244 (opus nit #1) — a beaconUrl pointed at a private / reserved / loopback host or the cloud
+     * metadata endpoint is a misconfiguration; the engine rejects it and fails CLOSED (misdirection
+     * still seeds, but NO beacon URL is emitted), while a normal public URL still beacons.
+     */
+    public function test_beacon_url_footgun_hosts_fail_closed(): void
+    {
+        foreach ([
+            'http://169.254.169.254/latest/meta-data/',   // cloud metadata endpoint
+            'https://localhost/confirm',                   // loopback name
+            'http://127.0.0.1:8080/confirm',               // loopback IP
+            'https://10.0.0.5/confirm',                    // RFC1918 private
+            'http://192.168.1.1/confirm',                  // RFC1918 private
+            'https://metadata.google.internal/x',          // GCP metadata name
+            'https://internal-box/confirm',                // dotless internal short name
+            'not-a-url',                                    // syntactically invalid
+        ] as $bad) {
+            $c = new Config();
+            $c->promptInjectionSeeding = true;
+            $c->beaconUrl = $bad;
+            $c->decoySessionKey = 'unit-test-deploy-key';
+            $engine = new Honeypot($this->store(), $c);
+            $f = $engine->synthesize(
+                $engine->classify(new RequestContext('GET', '/readme.html'), SiteProfile::empty()),
+                SiteProfile::empty(),
+                'seed'
+            );
+            self::assertNotNull($f);
+            self::assertStringContainsString('already-decommissioned', $f->body, "misdirection still seeds for: {$bad}");
+            $tail = substr($f->body, (int) strpos($f->body, 'already-decommissioned'));
+            self::assertStringNotContainsString('http', $tail, "beacon must fail closed (no URL) for: {$bad}");
+        }
+
+        // Control: a normal public beacon URL still emits the beacon.
+        $ok = new Config();
+        $ok->promptInjectionSeeding = true;
+        $ok->beaconUrl = 'https://beacon.example.com/confirm';
+        $ok->decoySessionKey = 'unit-test-deploy-key';
+        $engine = new Honeypot($this->store(), $ok);
+        $f = $engine->synthesize(
+            $engine->classify(new RequestContext('GET', '/readme.html'), SiteProfile::empty()),
+            SiteProfile::empty(),
+            'seed'
+        );
+        self::assertNotNull($f);
+        self::assertStringContainsString('https://beacon.example.com/confirm?t=', $f->body, 'a public beacon URL still beacons');
     }
 
     public function test_seeded_body_within_size_cap(): void
