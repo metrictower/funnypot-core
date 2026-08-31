@@ -38,8 +38,14 @@ final class CappedArtifactTest extends TestCase
         self::assertNotNull($entry);
         self::assertArrayHasKey('d', $entry, 'a capped key carries the full detect id-list');
 
-        // Served set is capped at N=40.
-        self::assertLessThanOrEqual(40, count($entry['b']));
+        // The corpus-derived served set is capped at N=40. Folded product-decoy bundles (new_page
+        // routes, pid `route-*`, e.g. FP-0229's route-nextjs App-Router shell) are appended beyond
+        // the cap by merge-routes — the cap governs the nuclei corpus, not the folded decoys — so the
+        // invariant is scoped to the corpus slice.
+        $corpus = array_filter($entry['b'], static function (array $b): bool {
+            return strncmp((string) ($b['pid'] ?? ''), 'route-', 6) !== 0;
+        });
+        self::assertLessThanOrEqual(40, count($corpus), 'the corpus served set is capped at N=40');
 
         // Detect covers strictly more templates than the served set.
         $served = [];

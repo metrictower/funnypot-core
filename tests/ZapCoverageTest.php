@@ -57,7 +57,7 @@ final class ZapCoverageTest extends TestCase
     public function test_attack_rule_count_is_59_plus_the_two_new_rules(): void
     {
         $rules = require self::ATTACK_COMPILED;
-        self::assertCount(64, $rules, 'attack rule count must be 59 (baseline) + 2 (imds-base, wp-admin-redirect) + 2 (lfi-sshkey, lfi-hostname) + 1 (imds-identity-doc)');
+        self::assertCount(65, $rules, 'attack rule count must be 59 (baseline) + 2 (imds-base, wp-admin-redirect) + 2 (lfi-sshkey, lfi-hostname) + 1 (imds-identity-doc) + 1 (FP-0229 nextjs-rsc)');
 
         $ids = array_map(static function (array $r): string { return (string) $r['id']; }, $rules);
         self::assertContains('attack-imds-base', $ids);
@@ -75,7 +75,7 @@ final class ZapCoverageTest extends TestCase
     public function test_route_rule_count_is_128_plus_the_new_rules(): void
     {
         $rules = require __DIR__ . '/../resources/compiled/funnypot-routes.php';
-        self::assertCount(163, $rules, 'route rule count must be 128 (baseline) + 4 (css, listing, credentials, config) + 6 (.env family: development/staging/test/bak/php/laravel-subdir) + 12 (VCS-exposure pack: 3 enrich .git-logs/.bzr/.hg-hgrc + 9 new .git/.svn/.hg pages) + 3 (CVS/Entries + TYPO3 typo3conf listing + localconf.php) + 10 (WordPress REST wp/v2: users/posts/pages/comments/media/categories/tags/types/statuses/settings)');
+        self::assertCount(164, $rules, 'route rule count must be 128 (baseline) + 4 (css, listing, credentials, config) + 6 (.env family: development/staging/test/bak/php/laravel-subdir) + 12 (VCS-exposure pack: 3 enrich .git-logs/.bzr/.hg-hgrc + 9 new .git/.svn/.hg pages) + 3 (CVS/Entries + TYPO3 typo3conf listing + localconf.php) + 10 (WordPress REST wp/v2: users/posts/pages/comments/media/categories/tags/types/statuses/settings) + 1 (FP-0229 nextjs app-shell)');
 
         $ids = array_map(static function (array $r): string { return (string) $r['id']; }, $rules);
         self::assertContains('route-phpmyadmin-css', $ids);
