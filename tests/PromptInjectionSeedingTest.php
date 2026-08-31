@@ -221,6 +221,9 @@ final class PromptInjectionSeedingTest extends TestCase
             'https://metadata.google.internal/x',          // GCP metadata name
             'https://internal-box/confirm',                // dotless internal short name
             'not-a-url',                                    // syntactically invalid
+            'http://169.254.169.254./latest/meta-data/',   // trailing-dot FQDN-root bypass of the metadata IP
+            'https://metadata.google.internal./x',         // trailing-dot bypass of the metadata name
+            'http://foo.internal./confirm',                // trailing-dot bypass of the internal-suffix check
         ] as $bad) {
             $c = new Config();
             $c->promptInjectionSeeding = true;

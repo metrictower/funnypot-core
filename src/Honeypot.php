@@ -131,7 +131,10 @@ final class Honeypot implements Engine
         if ($scheme !== 'http' && $scheme !== 'https') {
             return false;
         }
-        $host = strtolower(trim((string) ($parts['host'] ?? ''), '[]'));   // strip IPv6 literal brackets
+        // strip IPv6 literal brackets, then the FQDN-root trailing dot (a trailing dot is a valid,
+        // resolvable host form; without this it would defeat the metadata-name and internal-suffix
+        // checks below — flagged by both FP-0244 reviewers).
+        $host = rtrim(strtolower(trim((string) ($parts['host'] ?? ''), '[]')), '.');
         if ($host === '') {
             return false;
         }
