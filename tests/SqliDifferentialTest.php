@@ -1,0 +1,179 @@
+<?php
+
+declare(strict_types=1);
+
+namespace Funnypot\Core\Tests;
+
+use Funnypot\Core\RequestContext;
+use Funnypot\Core\SynthesizedResponse;
+use Funnypot\Core\Template\TemplateAttackEmulator;
+use PHPUnit\Framework\TestCase;
+
+/**
+ * FP-0227 — the behavioral / differential SQLi decoy (param route `param-sqli-differential`,
+ * bucket `catalog`). A boolean-blind scanner (sqlmap --technique=B, Arachni, lonkero) confirms
+ * SQLi by a three-request differential: a benign baseline P, a TRUE payload that must ≈ P, and a
+ * FALSE payload that must materially ≠ P. This pins that directional relationship, plus the
+ * numerical (`N-0`/`N-1`) and breaker/fixer (`'`/`''`) channels, determinism, and no-reflection.
+ *
+ * The decoy is a PARAM route, so it OWNS its baseline path: a benign `GET /catalog/x?id=1` renders
+ * the same page P a TRUE probe does — which is the whole point (an attack-tier-only decoy would
+ * 404 the benign baseline and fail the differential). Exercises matchParamRoute + renderRule
+ * directly against the freshly compiled artifact — the tightest, gate-free path.
+ */
+final class SqliDifferentialTest extends TestCase
+{
+    private const COMPILED = __DIR__ . '/../resources/compiled/funnypot-param.php';
+    private const PATH = '/catalog/electronics';
+
+    private function emulator(): TemplateAttackEmulator
+    {
+        /** @var array<string,mixed> $buckets */
+        $buckets = require self::COMPILED;
+
+        return new TemplateAttackEmulator([], [], null, null, $buckets);
+    }
+
+    /** Serve one query string against the decoy path; null if the param route did not match. */
+    private function serve(string $query, int $seed = 0): ?SynthesizedResponse
+    {
+        $emu = $this->emulator();
+        $r = new RequestContext('GET', self::PATH, $query, [], null);
+        $match = $emu->matchParamRoute($r);
+        if ($match === null) {
+            return null;
+        }
+
+        return $emu->renderRule($match['rule'], $match['captures'], $seed, $r);
+    }
+
+    /** The benign baseline page P (seed 0). */
+    private function baseline(): string
+    {
+        $p = $this->serve('id=10');
+        self::assertNotNull($p, 'benign baseline must match the param route');
+        self::assertSame(200, $p->status, 'benign baseline is a 200');
+
+        return $p->body;
+    }
+
+    public function testBaselineIsServedForBenignRequest(): void
+    {
+        $p = $this->serve('id=10');
+        self::assertNotNull($p);
+        self::assertSame(200, $p->status);
+        self::assertNotSame('', $p->body);
+        self::assertArrayHasKey('Content-Type', $p->headers);
+        self::assertStringContainsString('Product catalog', $p->body);
+    }
+
+    public function testNoQueryStillServesTheBaselinePage(): void
+    {
+        // A bare `GET /catalog/electronics` (no query) matches on path and falls to the default => P.
+        $none = $this->serve('');
+        self::assertNotNull($none);
+        self::assertSame(200, $none->status);
+        self::assertSame($this->baseline(), $none->body, 'no-query request must render the baseline P');
+    }
+
+    /**
+     * Boolean TRUE must ≈ baseline. Byte-identical by construction (same authored body + same seed).
+     * The randomized-constant variant proves the match is a PCRE backreference, not a literal 1=1.
+     */
+    public function testBooleanTrueEqualsBaseline(): void
+    {
+        $p = $this->baseline();
+        self::assertSame($p, $this->serve('id=10 AND 1=1')->body, 'TRUE AND 1=1 must equal baseline');
+        self::assertSame($p, $this->serve('id=10 AND 1234=1234')->body, 'randomized TRUE must equal baseline');
+        // URL-encoded TRUE (%20 space, %3D `=`) — proves the in:request double-urldecode path resolves.
+        self::assertSame($p, $this->serve('id=10%20AND%201%3D1')->body, 'URL-encoded TRUE must equal baseline');
+        self::assertSame(200, $this->serve('id=10 AND 1=1')->status);
+    }
+
+    /** The acceptance-required quoted tautology `' OR '1'='1`, and the value-prefixed `1' OR '1'='1`. */
+    public function testQuotedTautologyEqualsBaseline(): void
+    {
+        $p = $this->baseline();
+        self::assertSame($p, $this->serve("id=' OR '1'='1")->body, "' OR '1'='1 must equal baseline");
+        self::assertSame($p, $this->serve("id=1' OR '1'='1")->body, "1' OR '1'='1 must equal baseline");
+    }
+
+    /** Boolean FALSE must be materially different (empty result set): > 20% shorter, still 200. */
+    public function testBooleanFalseDiffersFromBaseline(): void
+    {
+        $p = $this->baseline();
+        $false = $this->serve('id=10 AND 1=2');
+        self::assertNotNull($false);
+        self::assertSame(200, $false->status, 'FALSE stays a 200 (a changed page, not an error)');
+        self::assertNotSame($p, $false->body, 'FALSE must differ from baseline');
+        self::assertLessThan(strlen($p) * 0.8, strlen($false->body), 'FALSE must be > 20% shorter than baseline');
+        // Randomized FALSE constants must also read as FALSE.
+        self::assertNotSame($p, $this->serve('id=10 AND 1234=5678')->body, 'randomized FALSE must differ from baseline');
+    }
+
+    /** Numerical channel: `id=10-0` (== baseline) vs `id=10-1` (changed). */
+    public function testNumericalChannelSplitsLikeBoolean(): void
+    {
+        $p = $this->baseline();
+        self::assertSame($p, $this->serve('id=10-0')->body, 'N-0 must equal baseline');
+        self::assertSame($p, $this->serve('id=10+0')->body, 'N+0 must equal baseline');
+        self::assertNotSame($p, $this->serve('id=10-1')->body, 'N-1 must differ from baseline');
+        self::assertLessThan(strlen($p) * 0.8, strlen($this->serve('id=10-1')->body), 'N-1 must be materially shorter');
+    }
+
+    /** Breaker/fixer (Backslash-powered): a lone `'` breaks (500), a balanced `''` restores (200 == P). */
+    public function testBreakerFixerChannel(): void
+    {
+        $p = $this->baseline();
+
+        $breaker = $this->serve("id=10'");
+        self::assertNotNull($breaker);
+        self::assertSame(500, $breaker->status, "a lone quote id=10' must yield a 500 syntax error");
+        self::assertNotSame($p, $breaker->body, 'the 500 body is not the baseline page');
+
+        $fixer = $this->serve("id=10''");
+        self::assertNotNull($fixer);
+        self::assertSame(200, $fixer->status, "a balanced quote id=10'' must restore a 200");
+        self::assertSame($p, $fixer->body, "id=10'' must render the baseline page");
+
+        // Encoded lone quote (%27) resolves through the double-urldecode surface to the same 500.
+        self::assertSame(500, $this->serve('id=10%27')->status, 'encoded lone quote must also break');
+    }
+
+    /** The injected bytes are NEVER reflected into any served body (branch dispatches on structure). */
+    public function testNeverReflectsAttackerBytes(): void
+    {
+        $canary = 'ZZMARKERZZ';
+        foreach ([
+            "id=10 AND '$canary'='$canary'",   // tautology carrying the canary       -> TRUE page P
+            "id=10' AND $canary",               // lone-quote breaker carrying the canary -> 500
+            "id=10 AND $canary=1",              // FALSE comparison carrying the canary -> empty page
+        ] as $query) {
+            $resp = $this->serve($query);
+            self::assertNotNull($resp, "served for: $query");
+            self::assertStringNotContainsString($canary, $resp->body, "must not reflect the canary for: $query");
+            foreach ($resp->headers as $value) {
+                self::assertStringNotContainsString($canary, $value, "must not reflect the canary in a header for: $query");
+            }
+        }
+    }
+
+    /** Deterministic per deploy: the same seed renders byte-identical bodies across calls. */
+    public function testDeterministicAcrossCallsWithTheSameSeed(): void
+    {
+        self::assertSame($this->serve('id=10', 42)->body, $this->serve('id=10', 42)->body, 'same seed => identical body');
+        self::assertSame(
+            $this->serve('id=10 AND 1=1', 7)->body,
+            $this->serve('id=10', 7)->body,
+            'TRUE and baseline render identically under the same seed'
+        );
+    }
+
+    /** The core regression invariant: TRUE == baseline AND FALSE != baseline, in one assertion pair. */
+    public function testTrueEqualsBaselineAndFalseDiffersInvariant(): void
+    {
+        $p = $this->baseline();
+        self::assertSame($p, $this->serve('id=10 AND 1=1')->body);
+        self::assertNotSame($p, $this->serve('id=10 AND 1=2')->body);
+    }
+}

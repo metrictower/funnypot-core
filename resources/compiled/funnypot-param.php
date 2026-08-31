@@ -203,5 +203,155 @@ define(\'WP_DEBUG\', false);
         ),
       ),
     ),
+    'catalog' => 
+    array (
+      0 => 
+      array (
+        'id' => 'param-sqli-differential',
+        'severity' => 'high',
+        'tags' => 
+        array (
+          0 => 'param',
+          1 => 'sqli',
+          2 => 'behavioral',
+        ),
+        'status' => 200,
+        'method' => 'GET',
+        'regex' => '^/catalog/(?P<slug>[^/]+)$',
+        'captures' => 
+        array (
+          0 => 'slug',
+        ),
+        'response' => 
+        array (
+          'headers' => 
+          array (
+            'Content-Type' => 'text/html; charset=utf-8',
+          ),
+          'body' => '<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8"><title>{{persona.company.name}} — Product catalog</title></head>
+<body>
+<h1>Product catalog</h1>
+<p>Showing in-stock products for {{persona.company.name}}.</p>
+<table>
+<tr><th>SKU</th><th>Product</th><th>Seller</th><th>Availability</th></tr>
+<tr><td>SKU-{{fake.sku1:hex:8}}</td><td>{{pick:Wireless Keyboard,USB-C Charger,Laptop Stand,Desk Lamp,Webcam 1080p}}</td><td>{{fake.person.full}}</td><td>In stock</td></tr>
+<tr><td>SKU-{{fake.sku2:hex:8}}</td><td>{{pick:Mechanical Mouse,HDMI Cable,Monitor Arm,Cable Organizer,Bluetooth Speaker}}</td><td>{{fake.person.full}}</td><td>In stock</td></tr>
+<tr><td>SKU-{{fake.sku3:hex:8}}</td><td>{{pick:Noise Headset,Portable SSD,Phone Mount,Laptop Sleeve,Ring Light}}</td><td>{{fake.person.full}}</td><td>In stock</td></tr>
+</table>
+<p>3 products in this category.</p>
+</body>
+</html>
+',
+        ),
+        'behavior' => 'branch',
+        'branch' => 
+        array (
+          'cases' => 
+          array (
+            0 => 
+            array (
+              'when' => 
+              array (
+                'in' => 'request',
+                'regex' => '\'\'|\\\\\\\\|[-+]\\s*0\\b|\\b(?:and|or)\\s+\'?(\\w+)\'?\\s*=\\s*\'?\\1\\b',
+              ),
+              'response' => 
+              array (
+                'headers' => 
+                array (
+                  'Content-Type' => 'text/html; charset=utf-8',
+                ),
+                'body' => '<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8"><title>{{persona.company.name}} — Product catalog</title></head>
+<body>
+<h1>Product catalog</h1>
+<p>Showing in-stock products for {{persona.company.name}}.</p>
+<table>
+<tr><th>SKU</th><th>Product</th><th>Seller</th><th>Availability</th></tr>
+<tr><td>SKU-{{fake.sku1:hex:8}}</td><td>{{pick:Wireless Keyboard,USB-C Charger,Laptop Stand,Desk Lamp,Webcam 1080p}}</td><td>{{fake.person.full}}</td><td>In stock</td></tr>
+<tr><td>SKU-{{fake.sku2:hex:8}}</td><td>{{pick:Mechanical Mouse,HDMI Cable,Monitor Arm,Cable Organizer,Bluetooth Speaker}}</td><td>{{fake.person.full}}</td><td>In stock</td></tr>
+<tr><td>SKU-{{fake.sku3:hex:8}}</td><td>{{pick:Noise Headset,Portable SSD,Phone Mount,Laptop Sleeve,Ring Light}}</td><td>{{fake.person.full}}</td><td>In stock</td></tr>
+</table>
+<p>3 products in this category.</p>
+</body>
+</html>
+',
+              ),
+            ),
+            1 => 
+            array (
+              'when' => 
+              array (
+                'in' => 'request',
+                'regex' => '\\b(?:and|or)\\s+\'?\\w+\'?\\s*=\\s*\'?\\w+|\\d\\s*-\\s*[1-9]',
+              ),
+              'response' => 
+              array (
+                'headers' => 
+                array (
+                  'Content-Type' => 'text/html; charset=utf-8',
+                ),
+                'body' => '<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8"><title>{{persona.company.name}} — Product catalog</title></head>
+<body>
+<h1>Product catalog</h1>
+<p>No products found in this category.</p>
+</body>
+</html>
+',
+              ),
+            ),
+            2 => 
+            array (
+              'when' => 
+              array (
+                'in' => 'request',
+                'regex' => '\\w[\'\\\\](?=\\s|$)',
+              ),
+              'response' => 
+              array (
+                'headers' => 
+                array (
+                  'Content-Type' => 'text/html; charset=utf-8',
+                ),
+                'body' => 'You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near \'\' at line 1
+',
+                'status' => 500,
+              ),
+            ),
+          ),
+          'default' => 
+          array (
+            'response' => 
+            array (
+              'headers' => 
+              array (
+                'Content-Type' => 'text/html; charset=utf-8',
+              ),
+              'body' => '<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8"><title>{{persona.company.name}} — Product catalog</title></head>
+<body>
+<h1>Product catalog</h1>
+<p>Showing in-stock products for {{persona.company.name}}.</p>
+<table>
+<tr><th>SKU</th><th>Product</th><th>Seller</th><th>Availability</th></tr>
+<tr><td>SKU-{{fake.sku1:hex:8}}</td><td>{{pick:Wireless Keyboard,USB-C Charger,Laptop Stand,Desk Lamp,Webcam 1080p}}</td><td>{{fake.person.full}}</td><td>In stock</td></tr>
+<tr><td>SKU-{{fake.sku2:hex:8}}</td><td>{{pick:Mechanical Mouse,HDMI Cable,Monitor Arm,Cable Organizer,Bluetooth Speaker}}</td><td>{{fake.person.full}}</td><td>In stock</td></tr>
+<tr><td>SKU-{{fake.sku3:hex:8}}</td><td>{{pick:Noise Headset,Portable SSD,Phone Mount,Laptop Sleeve,Ring Light}}</td><td>{{fake.person.full}}</td><td>In stock</td></tr>
+</table>
+<p>3 products in this category.</p>
+</body>
+</html>
+',
+            ),
+          ),
+        ),
+      ),
+    ),
   ),
 );

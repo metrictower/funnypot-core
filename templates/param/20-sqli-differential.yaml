@@ -1,0 +1,130 @@
+id: param-sqli-differential
+severity: high
+priority: 20
+tags: [param, sqli, behavioral]
+# FP-0227 — Behavioral / differential SQLi decoy (content differential; no time-based channel).
+#
+# WHY A PARAM ROUTE, NOT AN ATTACK RULE. A behavioral scanner (sqlmap --technique=B, Arachni,
+# lonkero) confirms boolean-blind SQLi by a THREE-request differential: benign baseline P, a TRUE
+# payload that must ≈ P, and a FALSE payload that must materially ≠ P. The benign baseline request
+# carries NO SQLi marker, so it never reaches the attack tier (50-sqli) — it would 404, giving
+# baseline(404) ≠ TRUE(200) and FAILING the confirm test (worse: emitting the no-differential
+# "not vulnerable" signal). So the decoy must OWN its baseline route. The param tier is the only
+# request-aware tier that serves a page for a benign, unmarked request, and it is dispatched BEFORE
+# the attack scan (Honeypot::classify: matchParamRoute before matchRule). 50-sqli.yaml is left
+# untouched as the generic error-based path for unrouted SQLi payloads.
+#
+# ZERO EXECUTION. `branch` selects a CANNED response by matching the request STRUCTURE with a
+# regex — no query is run, no arithmetic is evaluated, nothing is eval'd. The numerical channel is
+# shape-matching (`N-0` vs `N-1`), not an evaluator. Bodies use ONLY closed persona/fake directives
+# and NEVER `{{match.*}}` — attacker bytes are never reflected, so no `reflects_input` is set and
+# the decoy serves inline. The slug is captured by the path but never echoed.
+#
+# CASE ORDER (load-bearing). handleBranch is first-match-wins. The ONE hard invariant (spec §3) is
+# TRUE-before-FALSE: `1=1` matches both the tautology and the general comparison, so the TRUE case
+# must be evaluated first or a real TRUE probe would be mis-served as FALSE. Cases are ordered
+# TRUE, FALSE, BREAKER: the breaker (a LONE unbalanced quote/backslash) is LAST so that a quote
+# which is actually part of a tautology (e.g. the canonical `1' OR '1'='1`) or a fixer (`''`) is
+# consumed by the TRUE case first, and only a truly lone quote falls through to the 500 breaker.
+# (This is a deliberate, documented refinement of the ticket's C1/C2/C3 label order — putting the
+# breaker first mis-classifies `1' OR '1'='1` as a 500; TRUE-first is strictly more correct and
+# keeps the breaker/fixer differential intact. See tests/SqliDifferentialTest.php.)
+param: { method: GET, path: '/catalog/{slug}' }
+status: 200
+behavior: branch
+branch:
+  cases:
+    # C2 TRUE / FIXER / ARITH-IDENTITY  ->  serves P (byte-identical to the benign baseline).
+    #   Alternatives, in order inside the one pattern:
+    #     ''            balanced empty-string quote (the Backslash-powered FIXER, `id=10''`)
+    #     \\\\          balanced escaped backslash (the fixer, `id=10\\`)
+    #     [-+]\s*0\b    numerical identity: `id=10-0` / `id=10+0` == baseline row
+    #     (?:and|or) '?(\w+)'? = '?\1  tautology with a PCRE BACKREFERENCE, so it survives sqlmap's
+    #                   randomized constants (`AND 1234=1234`) and the quoted `' OR '1'='1` form —
+    #                   NOT a hardcoded `1=1`.
+    - when: { in: request, regex: "''|\\\\\\\\|[-+]\\s*0\\b|\\b(?:and|or)\\s+'?(\\w+)'?\\s*=\\s*'?\\1\\b" }
+      response:
+        headers: { Content-Type: "text/html; charset=utf-8" }
+        body: |
+          <!doctype html>
+          <html lang="en">
+          <head><meta charset="utf-8"><title>{{persona.company.name}} — Product catalog</title></head>
+          <body>
+          <h1>Product catalog</h1>
+          <p>Showing in-stock products for {{persona.company.name}}.</p>
+          <table>
+          <tr><th>SKU</th><th>Product</th><th>Seller</th><th>Availability</th></tr>
+          <tr><td>SKU-{{fake.sku1:hex:8}}</td><td>{{pick:Wireless Keyboard,USB-C Charger,Laptop Stand,Desk Lamp,Webcam 1080p}}</td><td>{{fake.person.full}}</td><td>In stock</td></tr>
+          <tr><td>SKU-{{fake.sku2:hex:8}}</td><td>{{pick:Mechanical Mouse,HDMI Cable,Monitor Arm,Cable Organizer,Bluetooth Speaker}}</td><td>{{fake.person.full}}</td><td>In stock</td></tr>
+          <tr><td>SKU-{{fake.sku3:hex:8}}</td><td>{{pick:Noise Headset,Portable SSD,Phone Mount,Laptop Sleeve,Ring Light}}</td><td>{{fake.person.full}}</td><td>In stock</td></tr>
+          </table>
+          <p>3 products in this category.</p>
+          </body>
+          </html>
+    # C3 FALSE / CHANGED  ->  serves P_empty (materially shorter: no result rows). Any remaining
+    #   and/or comparison (unequal ones only — equal ones were caught by C2) or a nonzero decrement
+    #   `id=10-1`.
+    - when: { in: request, regex: "\\b(?:and|or)\\s+'?\\w+'?\\s*=\\s*'?\\w+|\\d\\s*-\\s*[1-9]" }
+      response:
+        headers: { Content-Type: "text/html; charset=utf-8" }
+        body: |
+          <!doctype html>
+          <html lang="en">
+          <head><meta charset="utf-8"><title>{{persona.company.name}} — Product catalog</title></head>
+          <body>
+          <h1>Product catalog</h1>
+          <p>No products found in this category.</p>
+          </body>
+          </html>
+    # C1 BREAKER (LAST)  ->  a LONE unbalanced quote/backslash breaks the (fake) string literal: a
+    #   500 dialect syntax error. `\w['\\](?=\s|$)` = a word char then a single quote or backslash
+    #   at a token boundary; a balanced `''`/`\\` never matches (the second char fails the boundary),
+    #   and a tautology's quotes were already consumed by C2. The MySQL-shaped error text mirrors the
+    #   retained 50-sqli.yaml body, which passes the fingerprint-safety gate today.
+    - when: { in: request, regex: "\\w['\\\\](?=\\s|$)" }
+      response:
+        status: 500
+        headers: { Content-Type: "text/html; charset=utf-8" }
+        body: "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '' at line 1\n"
+  # Benign baseline (and anything unmatched): P. Byte-identical to the C2 TRUE body by construction.
+  default:
+    response:
+      headers: { Content-Type: "text/html; charset=utf-8" }
+      body: |
+        <!doctype html>
+        <html lang="en">
+        <head><meta charset="utf-8"><title>{{persona.company.name}} — Product catalog</title></head>
+        <body>
+        <h1>Product catalog</h1>
+        <p>Showing in-stock products for {{persona.company.name}}.</p>
+        <table>
+        <tr><th>SKU</th><th>Product</th><th>Seller</th><th>Availability</th></tr>
+        <tr><td>SKU-{{fake.sku1:hex:8}}</td><td>{{pick:Wireless Keyboard,USB-C Charger,Laptop Stand,Desk Lamp,Webcam 1080p}}</td><td>{{fake.person.full}}</td><td>In stock</td></tr>
+        <tr><td>SKU-{{fake.sku2:hex:8}}</td><td>{{pick:Mechanical Mouse,HDMI Cable,Monitor Arm,Cable Organizer,Bluetooth Speaker}}</td><td>{{fake.person.full}}</td><td>In stock</td></tr>
+        <tr><td>SKU-{{fake.sku3:hex:8}}</td><td>{{pick:Noise Headset,Portable SSD,Phone Mount,Laptop Sleeve,Ring Light}}</td><td>{{fake.person.full}}</td><td>In stock</td></tr>
+        </table>
+        <p>3 products in this category.</p>
+        </body>
+        </html>
+# Ultimate fallback (behavior declined) — identical to the default/C2 baseline P. `expect:` markers
+# are asserted against THIS base body only (rendered with empty captures + seed 0), so they target
+# static text present here, never the 500/empty case bodies (which the PHPUnit test covers instead).
+response:
+  headers: { Content-Type: "text/html; charset=utf-8" }
+  body: |
+    <!doctype html>
+    <html lang="en">
+    <head><meta charset="utf-8"><title>{{persona.company.name}} — Product catalog</title></head>
+    <body>
+    <h1>Product catalog</h1>
+    <p>Showing in-stock products for {{persona.company.name}}.</p>
+    <table>
+    <tr><th>SKU</th><th>Product</th><th>Seller</th><th>Availability</th></tr>
+    <tr><td>SKU-{{fake.sku1:hex:8}}</td><td>{{pick:Wireless Keyboard,USB-C Charger,Laptop Stand,Desk Lamp,Webcam 1080p}}</td><td>{{fake.person.full}}</td><td>In stock</td></tr>
+    <tr><td>SKU-{{fake.sku2:hex:8}}</td><td>{{pick:Mechanical Mouse,HDMI Cable,Monitor Arm,Cable Organizer,Bluetooth Speaker}}</td><td>{{fake.person.full}}</td><td>In stock</td></tr>
+    <tr><td>SKU-{{fake.sku3:hex:8}}</td><td>{{pick:Noise Headset,Portable SSD,Phone Mount,Laptop Sleeve,Ring Light}}</td><td>{{fake.person.full}}</td><td>In stock</td></tr>
+    </table>
+    <p>3 products in this category.</p>
+    </body>
+    </html>
+expect: ['Product catalog', 'In stock', '3 products in this category.']
