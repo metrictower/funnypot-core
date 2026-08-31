@@ -5304,13 +5304,38 @@ of MySQL and MariaDB over the web.</p>
 <meta name="viewport" content="width=device-width"/>
 <title>Grafana</title>
 <base href="/grafana/"/>
-<link rel="icon" type="image/png" href="public/img/fav32.png"/>
-<link rel="stylesheet" href="public/build/grafana.dark.css"/>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' viewBox=\'0 0 32 32\'%3E%3Ccircle cx=\'16\' cy=\'16\' r=\'16\' fill=\'%23181b1f\'/%3E%3Cpath d=\'M16 6l9 5v10l-9 5-9-5V11z\' fill=\'none\' stroke=\'%23f46800\' stroke-width=\'2\'/%3E%3C/svg%3E"/>
+<style>
+*{box-sizing:border-box}
+html,body{margin:0;height:100%}
+body{font-family:Roboto,Helvetica,Arial,sans-serif;color:#d8d9da;background:#0b0c0e;background:radial-gradient(circle at 50% -20%,#1a1c20 0%,#0b0c0e 60%)}
+.login{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px}
+.login-box{width:100%;max-width:415px;background:#161719;border:1px solid #26282b;border-radius:3px;padding:40px 40px 32px;box-shadow:0 1px 4px rgba(0,0,0,.35)}
+.logo{display:flex;justify-content:center;margin-bottom:28px}
+.logo svg{width:60px;height:60px}
+h1{font-size:1.3rem;font-weight:500;text-align:center;margin:0 0 28px;color:#fff}
+label{display:block;font-size:.82rem;margin:0 0 6px;color:#9fa7b3}
+.field{margin-bottom:18px}
+input{width:100%;height:40px;padding:0 12px;font-size:.95rem;color:#d8d9da;background:#0b0c0e;border:1px solid #2c3235;border-radius:2px}
+input:focus{outline:none;border-color:#f46800}
+.btn{width:100%;height:40px;margin-top:6px;font-size:.95rem;font-weight:500;color:#fff;background:#f46800;border:none;border-radius:2px;cursor:pointer}
+.btn:hover{background:#e35f00}
+.foot{margin-top:24px;text-align:center;font-size:.78rem;color:#6a6f75}
+</style>
 </head>
 <body class="theme-dark app-grafana">
 <grafana-app class="grafana-app">
-<div class="preloader">
-<div class="preloader__enter"><div class="preloader__bounce"><div class="preloader__logo"></div></div></div>
+<div class="login">
+<div class="login-box">
+<div class="logo"><svg viewBox="0 0 32 32"><circle cx="16" cy="16" r="16" fill="#181b1f"/><path d="M16 6l9 5v10l-9 5-9-5V11z" fill="none" stroke="#f46800" stroke-width="2"/></svg></div>
+<h1>Welcome to Grafana</h1>
+<form method="POST" action="login">
+<div class="field"><label for="user">Email or username</label><input id="user" name="user" type="text" autocomplete="username" placeholder="email or username"/></div>
+<div class="field"><label for="password">Password</label><input id="password" name="password" type="password" autocomplete="current-password" placeholder="password"/></div>
+<button class="btn" type="submit">Log in</button>
+</form>
+<div class="foot">Grafana v10.4.2 (Open Source)</div>
+</div>
 </div>
 </grafana-app>
 <div id="reactRoot"></div>
@@ -5320,8 +5345,6 @@ window.grafanaBootData = {
 "settings":{"appSubUrl":"/grafana","appUrl":"https://{{persona.company.domain}}/grafana/","disableLoginForm":false,"buildInfo":{"version":"10.4.2","edition":"Open Source","env":"production"}}
 };
 </script>
-<script src="public/build/runtime.js" type="text/javascript"></script>
-<script src="public/build/app.js" type="text/javascript"></script>
 </body>
 </html>
 ',
