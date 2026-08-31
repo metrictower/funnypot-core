@@ -75,7 +75,7 @@ final class ZapCoverageTest extends TestCase
     public function test_route_rule_count_is_128_plus_the_new_rules(): void
     {
         $rules = require __DIR__ . '/../resources/compiled/funnypot-routes.php';
-        self::assertCount(164, $rules, 'route rule count must be 128 (baseline) + 4 (css, listing, credentials, config) + 6 (.env family: development/staging/test/bak/php/laravel-subdir) + 12 (VCS-exposure pack: 3 enrich .git-logs/.bzr/.hg-hgrc + 9 new .git/.svn/.hg pages) + 3 (CVS/Entries + TYPO3 typo3conf listing + localconf.php) + 10 (WordPress REST wp/v2: users/posts/pages/comments/media/categories/tags/types/statuses/settings) + 1 (FP-0229 nextjs app-shell)');
+        self::assertCount(169, $rules, 'route rule count must be 128 (baseline) + 4 (css, listing, credentials, config) + 6 (.env family: development/staging/test/bak/php/laravel-subdir) + 12 (VCS-exposure pack: 3 enrich .git-logs/.bzr/.hg-hgrc + 9 new .git/.svn/.hg pages) + 3 (CVS/Entries + TYPO3 typo3conf listing + localconf.php) + 10 (WordPress REST wp/v2: users/posts/pages/comments/media/categories/tags/types/statuses/settings) + 1 (FP-0229 nextjs app-shell) + 5 (FP-0230 persona-coherent favicons: grafana/phpmyadmin/jenkins/catalina + neutral)');
 
         $ids = array_map(static function (array $r): string { return (string) $r['id']; }, $rules);
         self::assertContains('route-phpmyadmin-css', $ids);
@@ -119,6 +119,14 @@ final class ZapCoverageTest extends TestCase
         self::assertContains('route-wp-json-v2-types', $ids);
         self::assertContains('route-wp-json-v2-statuses', $ids);
         self::assertContains('route-wp-json-v2-settings', $ids);
+        // FP-0230 persona-coherent favicons (bin/body_b64). The Tomcat favicon id is
+        // route-catalina-favicon (never carrying `tomcat`), so the tomcat-manager enrich's broad
+        // `tomcat` template_needle cannot hijack it.
+        self::assertContains('route-grafana-favicon', $ids);
+        self::assertContains('route-phpmyadmin-favicon', $ids);
+        self::assertContains('route-jenkins-favicon', $ids);
+        self::assertContains('route-catalina-favicon', $ids);
+        self::assertContains('route-neutral-favicon', $ids);
     }
 
     // --- IMDS base listing (attack/91-imds-base.yaml) -----------------------------------------
