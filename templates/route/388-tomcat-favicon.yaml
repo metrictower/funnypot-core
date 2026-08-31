@@ -1,4 +1,4 @@
-id: route-tomcat-favicon
+id: route-catalina-favicon
 priority: 388
 # FP-0230 persona-coherent favicon. Self-generated collision blob (a generic self-drawn ring
 # mark, NO vendor artwork) whose Shodan favicon hash == 116323821. Provenance + forge:

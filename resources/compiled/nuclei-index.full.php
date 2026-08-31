@@ -84824,7 +84824,7 @@ return array (
       ),
       'name' => 'Jenkins favicon',
     ),
-    'route-tomcat-favicon' => 
+    'route-catalina-favicon' => 
     array (
       'sev' => 'info',
       'tags' => 
@@ -301819,12 +301819,12 @@ a</title>',
           'nf' => 
           array (
           ),
-          'pid' => 'route-tomcat-favicon',
+          'pid' => 'route-catalina-favicon',
           'sev' => 'info',
           'sig' => 0,
           't' => 
           array (
-            0 => 'route-tomcat-favicon',
+            0 => 'route-catalina-favicon',
           ),
           'bin' => 1,
         ),
