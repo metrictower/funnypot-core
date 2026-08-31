@@ -177,6 +177,16 @@ final class EmulatorCompiler
             }
         }
 
+        // Optional persona gate: the compiled pid a rule's owning deploy-persona must resolve to for
+        // this rule to fire. Threaded explicitly because $rule is built from a whitelist (unknown
+        // top-level doc keys are dropped). A plain pid string, never a signature (fingerprint-safe);
+        // Honeypot::personaGateAllows() compares it to the served `/` persona pick so an owns_path
+        // rule that presents a specific stack (e.g. the Next.js RSC responder) fires ONLY where that
+        // stack is the deploy's actual homepage persona — never fleet-wide.
+        if (isset($doc['persona_gate'])) {
+            $rule['persona_gate'] = (string) $doc['persona_gate'];
+        }
+
         // An optional named behavior primitive. The base `response` above stays the ultimate
         // fallback; the behavior only picks the content when it fires. Unknown names are a build
         // failure — this build knows branch, arith-eval, expr-eval, iterate, and decoy-session

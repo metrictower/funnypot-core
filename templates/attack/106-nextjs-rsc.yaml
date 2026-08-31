@@ -1,0 +1,54 @@
+id: attack-nextjs-rsc
+severity: high
+# Priority 19: a free low slot (15..20 band; 20/21/22 are the phpMyAdmin/login oracles). Sorts ahead of
+# the broad `in: request` archetypes (44-65) so the RSC responder is reached first — though its match is
+# specific enough (path ^/$ + an `_rsc=` query + GET) that none of those match an `_rsc=` probe anyway.
+priority: 19
+tags: [nextjs, rsc, cve-2025, exposure]
+# Next.js React Server Components (Flight) responder — the RSC channel of the App-Router persona
+# (route-nextjs). Claims `/` via owns_path so classify() runs the attack tier ahead of the static `GET /`
+# lottery; PERSONA-GATED (persona_gate: route-nextjs) so it fires ONLY where the deploy's SERVED `/`
+# persona is route-nextjs. Honeypot::personaGateAllows() reproduces the serve-path persona pick exactly
+# (same candidates(), same seedFor), so gate-open ⟺ served-`/`-is-Next.js, by construction — never a
+# fleet-wide text/x-component leak on a WordPress/nginx deploy (spec §4c). A plain `GET /` (no `_rsc=`)
+# does NOT match ⇒ matchRule returns null ⇒ classify falls through to the `GET /` persona lottery (the
+# HTML shell or another persona), untouched.
+#
+# Inert: emits a hand-authored React Flight document (line-delimited rows, row 0 is the root). No RSC
+# execution, no server-function handling, no deserialization of the request, and — critically — the
+# captured `_rsc` value / any request byte is NEVER reflected into the body or a header (the DoS/RCE are
+# emulated as a believable target, never implemented). Every dynamic byte is a seeded {{persona.*}}.
+#
+# owns_path claims `/` (a store HIT), so the gate lives at classify()'s owns_path override site; a bare
+# `/_rsc` (store MISS) is deliberately NOT owned — it would reach the linear scan; that site is gated
+# too, but keeping to `/` mirrors real Next.js (an RSC navigation hits the route path with `RSC: 1` +
+# `?_rsc=<hash>`, not a bare endpoint).
+#
+# match is the gate that declines a plain `GET /`: it requires the RSC request shape. The single-AND
+# match cannot express "header RSC OR query _rsc" AND still decline a plain GET (a branch fallback can't
+# decline — classify commits ATTACK_CLASS at matchRule before render), so the gate keys on the `_rsc=`
+# cache-buster query the Next.js router ALWAYS appends to an RSC navigation. `in: path ^/$` keeps the
+# rule bound to `/` on a store-miss linear scan (so `GET /foo?_rsc=1` never serves Flight at /foo).
+owns_path: ['/']
+persona_gate: route-nextjs
+match:
+  - in: path
+    regex: '^/$'
+    ci: false
+  - in: query
+    regex: '(^|&)_rsc='
+    ci: false
+  - in: method
+    regex: '^GET$'
+    ci: false
+status: 200
+response:
+  headers:
+    Content-Type: "text/x-component"
+  body: |
+    0:["$","html",null,{"lang":"en","children":["$","body",null,{"children":["$","main",null,{"children":["$","h1",null,{"children":"{{persona.company.name}}"}]}]}]}]
+    1:I["/_next/static/chunks/main-app-1a2b3c4d5e6f7081.js",["app-page"],"default"]
+    2:"$Sreact.suspense"
+expect:
+  - '0:'
+  - 'text/x-component'

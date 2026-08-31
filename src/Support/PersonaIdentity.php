@@ -31,6 +31,10 @@ final class PersonaIdentity
         'secret.jwt',
         'php.version',
         'phpmyadmin.version',
+        // The Next.js framework version this host claims — placed in the App-Router shell + the RSC
+        // flight as the affected-side version for the React2Shell RSC family (CVE-2025-55182/-55183/
+        // -55184). Derived like php.version so every Next.js surface on the deploy agrees.
+        'nextjs.version',
         // The deploy-stable presentation class prefix. Derived from the SAME `|visual|prefix` hash
         // material VisualPersona uses, so the phpMyAdmin login/gate templates ({{persona.classPrefix}})
         // and the authed dashboard skin (VisualPersona::classPrefix()) resolve to one identical prefix.
@@ -185,6 +189,13 @@ final class PersonaIdentity
             // are two different products and a real phpMyAdmin shows both, so they need not be equal.
             'phpmyadmin.version' => self::pickProductVersion($slug, $domain, 'phpmyadmin'),
 
+            // The Next.js version this host claims — the single source of truth for the version shown
+            // in the App-Router shell + the RSC flight. Derived like phpmyadmin.version so field() and
+            // productVersion('nextjs') never drift. Every entry in the pool is strictly BELOW its
+            // release line's patched version (CVE-2025-55182/-55183/-55184), so any deploy lands on
+            // the affected side while still varying per deploy (the anti-fingerprint property).
+            'nextjs.version' => self::pickProductVersion($slug, $domain, 'nextjs'),
+
             // The deploy-stable class prefix, identical to VisualPersona's, so the phpMyAdmin login
             // page and the authed dashboard render one coherent class vocabulary. See classPrefix().
             'classPrefix' => self::classPrefix($seed),
@@ -285,6 +296,19 @@ final class PersonaIdentity
             '5.2.0',
             '5.1.4',
             '5.1.3',
+        ],
+        // Next.js releases for the App-Router "React2Shell" RSC CVE family — CVE-2025-55182 (RCE,
+        // CVSS 10.0), -55184 (DoS), -55183 (Server-Function source exposure). Each entry is strictly
+        // below its line's PATCHED release (15.2.6 / 15.3.6 / 15.4.8 / 15.5.7 / 16.0.7 per
+        // GHSA-9qr9-h5gf-34mp and vercel.com/changelog/cve-2025-55182), so every deploy renders an
+        // affected-side version. A real semver is not a detector signature; per-deploy variation is
+        // the anti-fingerprint property (same posture as the php/mysql/wordpress pools).
+        'nextjs' => [
+            '15.5.4',
+            '15.4.6',
+            '15.3.4',
+            '15.2.3',
+            '16.0.5',
         ],
         // Plausible recent WordPress core releases — the version advertised on the front-door
         // markers (generator meta + versioned wp-includes asset links). One per deploy.

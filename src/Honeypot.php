@@ -130,7 +130,11 @@ final class Honeypot implements Engine
             // static bundle below — zero coverage loss, no new throw path.
             if ($this->attackEmulator !== null && $this->attackEmulator->ownsPath($r->path)) {
                 $ov = $this->attackEmulator->matchRule($r);
-                if ($ov !== null) {
+                // A persona-gated rule (e.g. the Next.js RSC responder) fires ONLY where the served
+                // `/` persona is the gate's pid — personaGateAllows() reproduces the serve-path pick
+                // byte-for-byte, so gate-open ⟺ this deploy actually presents that stack. A closed
+                // gate is treated as a decline (fall through below), never a fleet-wide override.
+                if ($ov !== null && $this->personaGateAllows($ov['rule'], $r)) {
                     $rule = $ov['rule'];
                     $detection = TemplateAttackEmulator::detectionForRule($rule);
                     $handle = FakeHandle::attack((string) ($rule['id'] ?? 'attack'), $ov['captures']);
@@ -146,13 +150,16 @@ final class Honeypot implements Engine
                 }
 
                 // Owned path, but the request-aware rule declined (a rare path/method variant the
-                // rule's stricter match missed while ownsPath/resolveEntry canonicalized more
-                // broadly). The static store bundle at an owned login path may be the exact
-                // login-SUCCESS decoy owns_path exists to shadow — never re-expose an authenticated
-                // success on a decline. Degrade to CLEAN (the app serves its own 404) when the
-                // fallthrough entry carries an auth-success witness; a benign entry (a login page,
-                // no such witness) still falls through to the static route verdict below.
-                if ($this->hasAuthSuccessWitness($bundles)) {
+                // rule's stricter match missed, or a closed persona gate). The static store bundle at
+                // an owned login path may be the exact login-SUCCESS decoy owns_path exists to shadow
+                // — never re-expose an authenticated success on a decline. Degrade to CLEAN when the
+                // fallthrough entry carries an auth-success witness. A ROOT/homepage entry (all sig=1)
+                // is by definition an ordinary-visitor path, never a login-success decoy, so it is
+                // exempt: it must fall through to the persona lottery below (a gated owns_path rule
+                // that claims `/`, like the RSC responder, would otherwise 404 the homepage on every
+                // deploy whose `/` set happens to carry a session-cookie persona). A benign non-root
+                // entry (a login page, no witness) still falls through to the static route verdict.
+                if (!$this->isRootEntry($bundles) && $this->hasAuthSuccessWitness($bundles)) {
                     return new Verdict(Verdict::CLEAN, Detection::none(), '', $anomaly, $signals, null);
                 }
             }
@@ -199,7 +206,12 @@ final class Honeypot implements Engine
             }
 
             $matched = $this->attackEmulator->matchRule($r);
-            if ($matched !== null) {
+            // A persona-gated rule reached on a store MISS (the linear scan) is gated the same way as
+            // on the owns_path override path, so a future gated rule on a store-miss path can't bypass
+            // the gate via this branch. A closed gate falls through to the CLEAN verdict below (the app
+            // serves its own 404). Ungated rules hit the isset() early-out in personaGateAllows() and
+            // are unaffected — behaviour for every existing rule is byte-identical.
+            if ($matched !== null && $this->personaGateAllows($matched['rule'], $r)) {
                 $rule = $matched['rule'];
                 $detection = TemplateAttackEmulator::detectionForRule($rule);
                 $handle = FakeHandle::attack((string) ($rule['id'] ?? 'attack'), $matched['captures']);
@@ -255,6 +267,45 @@ final class Honeypot implements Engine
         }
 
         return false;
+    }
+
+    /**
+     * The persona gate for a request-aware owns_path rule that presents a specific stack (the
+     * Next.js RSC responder, FP-0229). An UNGATED rule (no `persona_gate`) is always allowed — the
+     * isset() early-out keeps every existing rule byte-identical and pays only an array-key check.
+     *
+     * A gated rule fires ONLY where the deploy's served `/` persona IS the gate's pid. The gate
+     * REPRODUCES the serve-path pick exactly: it resolves the homepage entry, filters to servable
+     * candidates with the SAME candidates() the serve path uses (buildRouteFake, so any exclude /
+     * severityCeiling / nucleiReflection:false is honoured identically), and picks with the SAME
+     * seedFor($r). Because seedFor is host+salt only — never path or query — the RSC request
+     * (`GET /?_rsc=1`) yields the same seed as that attacker's homepage `GET /`, so the gate's pick
+     * is byte-for-byte the persona that attacker is served at `/`. Therefore
+     * gate-open ⟺ served-`/`-persona-is-<pid>, by construction, under any config — no raw-vs-filtered
+     * divergence, no fleet-wide leak. Fail-closed on a missing entry / empty candidate set (never a
+     * throw): a rule that cannot prove its stack is present simply declines.
+     *
+     * @param array<string,mixed> $rule
+     */
+    private function personaGateAllows(array $rule, RequestContext $r): bool
+    {
+        if (!isset($rule['persona_gate'])) {
+            return true;
+        }
+
+        $resolved = $this->resolveEntry('GET', '/');
+        if ($resolved === null) {
+            return false;
+        }
+
+        $candidates = $this->candidates($resolved[1]['b'] ?? []);
+        if ($candidates === []) {
+            return false;
+        }
+
+        $picked = PersonaSelector::pick($candidates, $this->config->seedFor($r));
+
+        return $picked !== null && ($picked['pid'] ?? null) === $rule['persona_gate'];
     }
 
     /**

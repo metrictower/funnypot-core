@@ -84778,6 +84778,19 @@ return array (
       ),
       'name' => 'WordPress REST API settings (auth required)',
     ),
+    'route-nextjs' => 
+    array (
+      'sev' => 'info',
+      'tags' => 
+      array (
+        0 => 'nextjs',
+        1 => 'react',
+        2 => 'rsc',
+        3 => 'framework',
+        4 => 'discovery',
+      ),
+      'name' => 'Next.js App Router site',
+    ),
   ),
   'routes' => 
   array (
@@ -86411,6 +86424,7 @@ return array (
         1587 => 'wordpress-user-enum',
         1588 => 'yii-error-page',
         1589 => 'switch-protocol',
+        1590 => 'route-nextjs',
       ),
       'b' => 
       array (
@@ -87984,6 +87998,26 @@ return array (
           array (
             0 => 'CVE-2022-33891',
             1 => 'spark-panel',
+          ),
+          'w' => 8,
+        ),
+        40 => 
+        array (
+          's' => 200,
+          'bw' => 
+          array (
+            0 => 'self.__next_f',
+            1 => '_next/static',
+          ),
+          'nf' => 
+          array (
+          ),
+          'pid' => 'route-nextjs',
+          'sev' => 'info',
+          'sig' => 1,
+          't' => 
+          array (
+            0 => 'route-nextjs',
           ),
           'w' => 8,
         ),

@@ -4634,6 +4634,46 @@ table.Account1.Sharable=true
   ),
   138 => 
   array (
+    'id' => 'route-nextjs',
+    'match' => 
+    array (
+      'pid' => 
+      array (
+        0 => 'route-nextjs',
+      ),
+    ),
+    'body' => '<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>{{persona.company.name}}</title>
+<meta name="description" content="{{persona.company.name}} — welcome."/>
+<link rel="icon" href="/favicon.ico"/>
+<link rel="preload" href="/_next/static/bx7k2mn4pq8rt1vy6wz0a/_buildManifest.js" as="script"/>
+<link rel="preload" href="/_next/static/bx7k2mn4pq8rt1vy6wz0a/_ssgManifest.js" as="script"/>
+<link rel="stylesheet" href="/_next/static/css/8c5f1a2b3d4e6f70.css" data-precedence="next"/>
+<script src="/_next/static/chunks/webpack-8c5f1a2b3d4e6f70.js" defer=""></script>
+<script src="/_next/static/chunks/main-app-1a2b3c4d5e6f7081.js" defer=""></script>
+</head>
+<body>
+<div id="__next">
+<main><h1>{{persona.company.name}}</h1><p>Welcome to {{persona.company.domain}}.</p></main>
+</div>
+<script>self.__next_f=self.__next_f||[];self.__next_f.push([0]);</script>
+<script>self.__next_f.push([1,"1:HL[\\"/_next/static/css/8c5f1a2b3d4e6f70.css\\",\\"style\\"]\\n0:[\\"$\\",\\"html\\",null,{\\"lang\\":\\"en\\",\\"children\\":[\\"$\\",\\"body\\",null,{\\"children\\":[\\"$\\",\\"main\\",null,{\\"children\\":[\\"$\\",\\"h1\\",null,{\\"children\\":\\"{{persona.company.name}}\\"}]}]}]}]\\n"])</script>
+<script>self.__next_f.push([2,"{\\"buildId\\":\\"bx7k2mn4pq8rt1vy6wz0a\\",\\"nextVersion\\":\\"{{persona.nextjs.version}}\\",\\"assetPrefix\\":\\"\\",\\"appDir\\":true}\\n"])</script>
+</body>
+</html>
+',
+    'headers' => 
+    array (
+      'Content-Type' => 'text/html; charset=utf-8',
+      'X-Powered-By' => 'Next.js',
+    ),
+  ),
+  139 => 
+  array (
     'id' => 'route-qnap-qts',
     'match' => 
     array (
@@ -4673,7 +4713,7 @@ table.Account1.Sharable=true
       'close' => '-->',
     ),
   ),
-  139 => 
+  140 => 
   array (
     'id' => 'route-hp-device-info',
     'match' => 
@@ -4710,7 +4750,7 @@ table.Account1.Sharable=true
       'close' => '-->',
     ),
   ),
-  140 => 
+  141 => 
   array (
     'id' => 'route-openwrt-luci',
     'match' => 
@@ -4756,7 +4796,7 @@ table.Account1.Sharable=true
       'close' => '-->',
     ),
   ),
-  141 => 
+  142 => 
   array (
     'id' => 'route-dlink-getcfg',
     'match' => 
@@ -4798,7 +4838,7 @@ table.Account1.Sharable=true
       'close' => '-->',
     ),
   ),
-  142 => 
+  143 => 
   array (
     'id' => 'route-wavlink-exportsettings',
     'match' => 
@@ -4828,7 +4868,7 @@ RemoteManage=0
       'open' => '#',
     ),
   ),
-  143 => 
+  144 => 
   array (
     'id' => 'route-epson-prtinfo',
     'match' => 
@@ -4864,7 +4904,7 @@ RemoteManage=0
       'close' => '-->',
     ),
   ),
-  144 => 
+  145 => 
   array (
     'id' => 'route-hp-color-laserjet',
     'match' => 
@@ -4900,7 +4940,7 @@ RemoteManage=0
       'close' => '-->',
     ),
   ),
-  145 => 
+  146 => 
   array (
     'id' => 'route-webmin',
     'match' => 
@@ -4945,7 +4985,7 @@ RemoteManage=0
       'close' => '-->',
     ),
   ),
-  146 => 
+  147 => 
   array (
     'id' => 'route-phppgadmin',
     'match' => 
@@ -4982,7 +5022,7 @@ RemoteManage=0
       'close' => '-->',
     ),
   ),
-  147 => 
+  148 => 
   array (
     'id' => 'route-kibana',
     'match' => 
@@ -5025,7 +5065,7 @@ RemoteManage=0
       'close' => '-->',
     ),
   ),
-  148 => 
+  149 => 
   array (
     'id' => 'route-jenkins',
     'match' => 
@@ -5077,7 +5117,7 @@ RemoteManage=0
       'close' => '-->',
     ),
   ),
-  149 => 
+  150 => 
   array (
     'id' => 'route-grafana-settings',
     'match' => 
@@ -5114,7 +5154,7 @@ RemoteManage=0
       'key' => '_comment',
     ),
   ),
-  150 => 
+  151 => 
   array (
     'id' => 'route-phpmyadmin-changelog',
     'match' => 
@@ -5158,7 +5198,7 @@ For older entries see https://www.phpmyadmin.net/old-stable/
       'open' => '#',
     ),
   ),
-  151 => 
+  152 => 
   array (
     'id' => 'route-phpmyadmin-readme',
     'match' => 
@@ -5206,7 +5246,7 @@ See the LICENSE file for a copy of the license.
       'open' => '#',
     ),
   ),
-  152 => 
+  153 => 
   array (
     'id' => 'route-phpmyadmin-doc',
     'match' => 
@@ -5261,7 +5301,7 @@ of MySQL and MariaDB over the web.</p>
       'close' => '-->',
     ),
   ),
-  153 => 
+  154 => 
   array (
     'id' => 'route-grafana-health',
     'match' => 
@@ -5287,7 +5327,7 @@ of MySQL and MariaDB over the web.</p>
       'key' => '_comment',
     ),
   ),
-  154 => 
+  155 => 
   array (
     'id' => 'route-grafana-login',
     'match' => 
@@ -5360,7 +5400,7 @@ window.grafanaBootData = {
     ),
     'set_cookie' => 'grafana_session',
   ),
-  155 => 
+  156 => 
   array (
     'id' => 'route-jenkins-apijson',
     'match' => 
@@ -5407,7 +5447,7 @@ window.grafanaBootData = {
       'key' => '_comment',
     ),
   ),
-  156 => 
+  157 => 
   array (
     'id' => 'route-pgadmin-login',
     'match' => 
@@ -5462,7 +5502,7 @@ window.grafanaBootData = {
     ),
     'set_cookie' => 'pga4_session',
   ),
-  157 => 
+  158 => 
   array (
     'id' => 'route-cpanel-login',
     'match' => 
@@ -5513,7 +5553,7 @@ window.grafanaBootData = {
       'close' => '-->',
     ),
   ),
-  158 => 
+  159 => 
   array (
     'id' => 'route-whm-login',
     'match' => 
@@ -5564,7 +5604,7 @@ window.grafanaBootData = {
       'close' => '-->',
     ),
   ),
-  159 => 
+  160 => 
   array (
     'id' => 'route-phppgadmin-intro',
     'match' => 
@@ -5605,7 +5645,7 @@ window.grafanaBootData = {
       'close' => '-->',
     ),
   ),
-  160 => 
+  161 => 
   array (
     'id' => 'route-vcs-cvs-entries',
     'match' => 
@@ -5628,7 +5668,7 @@ D/admin////
       'Content-Type' => 'text/plain; charset=utf-8',
     ),
   ),
-  161 => 
+  162 => 
   array (
     'id' => 'route-typo3conf-listing',
     'match' => 
@@ -5661,7 +5701,7 @@ D/admin////
       'close' => '-->',
     ),
   ),
-  162 => 
+  163 => 
   array (
     'id' => 'route-typo3conf-localconf',
     'match' => 

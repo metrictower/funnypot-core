@@ -1,0 +1,66 @@
+id: route-nextjs
+priority: 360
+# Next.js App-Router homepage shell — the persona-selectable root for the 2025 "React2Shell" RSC CVE
+# family (CVE-2025-55182 RCE / CVSS 10.0, -55184 DoS, -55183 Server-Function source exposure). Lonkero
+# confirms these BY FRAMEWORK FINGERPRINT, not by a payload (docs/research/lonkero-deep-dive.md), so a
+# coherent App-Router surface is the whole job. Sources for the affected-version pool (rendered from the
+# persona field, single source of truth): GHSA-9qr9-h5gf-34mp,
+# https://vercel.com/changelog/cve-2025-55182 , react.dev/blog/2025/12/03 & 2025/12/11.
+#
+# App Router, NOT Pages Router: App-Router pages bootstrap with `self.__next_f` and carry NO
+# `__NEXT_DATA__` (that is the Pages-Router marker, and CVE-2025-55182 requires the App Router — see
+# spec §2). `self.__next_f` satisfies the acceptance OR-marker (`__NEXT_DATA__`/`self.__next_f`/
+# `__next_f`) and is the only choice coherent with the CVE. No reflected input; every dynamic byte is a
+# seeded {{persona.*}} value.
+#
+# id MUST be `route-nextjs` (the `route-*` convention): RouteBundleSynth sets pid=id verbatim, and BOTH
+# candidates() (keeps only route-* pids when nucleiReflection is off) and the persona gate on the RSC
+# responder (persona_gate: route-nextjs) key on this exact pid. sig: 1 keeps `GET /` an all-sig=1
+# root/homepage entry (an ordinary-visitor path), so folding this bundle never flips the homepage's
+# classification. NO `weight:` — `GET /` is a PersonaCap-capped key, so merge-routes overwrites any
+# weight with the fleet-fixed fold tier (w=8, bin/funnypot). A weight here would be dead YAML.
+new_page:
+  method: GET
+  paths: ['/']
+  sig: 1
+  status: 200
+  severity: info
+  tags: [nextjs, react, rsc, framework, discovery]
+  name: 'Next.js App Router site'
+  body_words: ['self.__next_f', '_next/static']
+response:
+  headers:
+    Content-Type: "text/html; charset=utf-8"
+    # Per-bundle header (NOT Config::$poweredBy, which is fleet-wide and would show on every deploy,
+    # incoherent). Real Next.js emits it unless poweredByHeader:false.
+    X-Powered-By: "Next.js"
+  body: |
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+    <meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1"/>
+    <title>{{persona.company.name}}</title>
+    <meta name="description" content="{{persona.company.name}} — welcome."/>
+    <link rel="icon" href="/favicon.ico"/>
+    <link rel="preload" href="/_next/static/bx7k2mn4pq8rt1vy6wz0a/_buildManifest.js" as="script"/>
+    <link rel="preload" href="/_next/static/bx7k2mn4pq8rt1vy6wz0a/_ssgManifest.js" as="script"/>
+    <link rel="stylesheet" href="/_next/static/css/8c5f1a2b3d4e6f70.css" data-precedence="next"/>
+    <script src="/_next/static/chunks/webpack-8c5f1a2b3d4e6f70.js" defer=""></script>
+    <script src="/_next/static/chunks/main-app-1a2b3c4d5e6f7081.js" defer=""></script>
+    </head>
+    <body>
+    <div id="__next">
+    <main><h1>{{persona.company.name}}</h1><p>Welcome to {{persona.company.domain}}.</p></main>
+    </div>
+    <script>self.__next_f=self.__next_f||[];self.__next_f.push([0]);</script>
+    <script>self.__next_f.push([1,"1:HL[\"/_next/static/css/8c5f1a2b3d4e6f70.css\",\"style\"]\n0:[\"$\",\"html\",null,{\"lang\":\"en\",\"children\":[\"$\",\"body\",null,{\"children\":[\"$\",\"main\",null,{\"children\":[\"$\",\"h1\",null,{\"children\":\"{{persona.company.name}}\"}]}]}]}]\n"])</script>
+    <script>self.__next_f.push([2,"{\"buildId\":\"bx7k2mn4pq8rt1vy6wz0a\",\"nextVersion\":\"{{persona.nextjs.version}}\",\"assetPrefix\":\"\",\"appDir\":true}\n"])</script>
+    </body>
+    </html>
+expect:
+  - 'self.__next_f'
+  - '__next_f'
+  - '_next/static'
+  - 'X-Powered-By'
+  - 'Next.js'

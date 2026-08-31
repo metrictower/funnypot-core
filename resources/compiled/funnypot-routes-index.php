@@ -792,6 +792,19 @@ return array (
       ),
       'name' => 'WordPress REST API settings (auth required)',
     ),
+    'route-nextjs' => 
+    array (
+      'sev' => 'info',
+      'tags' => 
+      array (
+        0 => 'nextjs',
+        1 => 'react',
+        2 => 'rsc',
+        3 => 'framework',
+        4 => 'discovery',
+      ),
+      'name' => 'Next.js App Router site',
+    ),
     'route-phpmyadmin-changelog' => 
     array (
       'sev' => 'info',
@@ -3452,6 +3465,28 @@ return array (
           0 => 'route-wp-json-v2-settings',
         ),
         'w' => 1000,
+      ),
+    ),
+    'GET /' => 
+    array (
+      0 => 
+      array (
+        's' => 200,
+        'bw' => 
+        array (
+          0 => 'self.__next_f',
+          1 => '_next/static',
+        ),
+        'nf' => 
+        array (
+        ),
+        'pid' => 'route-nextjs',
+        'sev' => 'info',
+        'sig' => 1,
+        't' => 
+        array (
+          0 => 'route-nextjs',
+        ),
       ),
     ),
     'GET /phpmyadmin/ChangeLog' => 
