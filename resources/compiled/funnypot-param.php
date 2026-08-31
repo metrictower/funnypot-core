@@ -286,7 +286,7 @@ define(\'WP_DEBUG\', false);
               'when' => 
               array (
                 'in' => 'request',
-                'regex' => '\\b(?:and|or)\\s+\'?\\w+\'?\\s*=\\s*\'?\\w+|\\d\\s*-\\s*[1-9]',
+                'regex' => '\\b(?:and|or)\\s+\'?\\w+\'?\\s*=\\s*\'?\\w+|=\\s*\\d+\\s*-\\s*[1-9]',
               ),
               'response' => 
               array (

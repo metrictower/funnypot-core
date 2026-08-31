@@ -64,7 +64,14 @@ branch:
     # C3 FALSE / CHANGED  ->  serves P_empty (materially shorter: no result rows). Any remaining
     #   and/or comparison (unequal ones only — equal ones were caught by C2) or a nonzero decrement
     #   `id=10-1`.
-    - when: { in: request, regex: "\\b(?:and|or)\\s+'?\\w+'?\\s*=\\s*'?\\w+|\\d\\s*-\\s*[1-9]" }
+    #   NUMERIC ANCHOR (FP-0240). The decrement alternative is anchored to a `=<value>` position
+    #   (`=\s*\d+\s*-\s*[1-9]`), NOT a bare `\d-\d`, so it fires only in the injected PARAM-VALUE
+    #   context. The param-tier surface is `path+query+body` (double-urldecoded), so an un-anchored
+    #   `\d-\d` also matched a benign PATH slug like `/catalog/item-3-2` and mis-served the empty
+    #   page as that slug's baseline — inverting the differential for a scanner that crawled there.
+    #   A slug has no `=<digits>-` before the dash, so it now serves the baseline P. (The and/or
+    #   alternative already required an `=`, so it was never path-reachable.)
+    - when: { in: request, regex: "\\b(?:and|or)\\s+'?\\w+'?\\s*=\\s*'?\\w+|=\\s*\\d+\\s*-\\s*[1-9]" }
       response:
         headers: { Content-Type: "text/html; charset=utf-8" }
         body: |

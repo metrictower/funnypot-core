@@ -37,8 +37,17 @@ final class SqliDifferentialTest extends TestCase
     /** Serve one query string against the decoy path; null if the param route did not match. */
     private function serve(string $query, int $seed = 0): ?SynthesizedResponse
     {
+        return $this->serveOn(self::PATH, $query, $seed);
+    }
+
+    /**
+     * Serve one request against an arbitrary catalog path + query; null if the param route did not
+     * match. Used by the FP-0240 path-slug regression, which must key on the path segment.
+     */
+    private function serveOn(string $path, string $query, int $seed = 0): ?SynthesizedResponse
+    {
         $emu = $this->emulator();
-        $r = new RequestContext('GET', self::PATH, $query, [], null);
+        $r = new RequestContext('GET', $path, $query, [], null);
         $match = $emu->matchParamRoute($r);
         if ($match === null) {
             return null;
@@ -119,6 +128,38 @@ final class SqliDifferentialTest extends TestCase
         self::assertSame($p, $this->serve('id=10+0')->body, 'N+0 must equal baseline');
         self::assertNotSame($p, $this->serve('id=10-1')->body, 'N-1 must differ from baseline');
         self::assertLessThan(strlen($p) * 0.8, strlen($this->serve('id=10-1')->body), 'N-1 must be materially shorter');
+
+        // Discriminating N-0 (FP-0240 opus nit). A bare `id=10-0` reaches the baseline P via BOTH the
+        // C2 arithmetic-identity alternative AND — if that alternative broke — the default fallthrough,
+        // so `10-0 == P` alone doesn't actually prove the `[-+]0` channel fires. Prefix the identity to
+        // a boolean-FALSE clause: TRUE-first case ordering means the C2 `[-+]\s*0\b` alternative must
+        // claim `10-0` and serve P; remove that alternative and the payload falls to C3 and serves the
+        // materially shorter empty page instead. So this assertion is sensitive to the identity channel.
+        self::assertSame($p, $this->serve('id=10-0 AND 1=2')->body, 'arithmetic identity is TRUE even ahead of a FALSE clause (guards the [-+]0 channel)');
+    }
+
+    /**
+     * FP-0240 — the numeric FALSE channel is anchored to the injected PARAM-VALUE context, not the
+     * whole request surface. A benign digit-dash PATH slug must serve the baseline P (a scanner
+     * crawling there gets a coherent baseline), while the same decrement in the `id=` value still
+     * serves the empty page. Proves the channel moved off the path.
+     */
+    public function testNumericChannelDoesNotFireOnBenignPathSlug(): void
+    {
+        $p = $this->baseline();
+
+        // Benign `\d-\d` slug with a plain param -> baseline P (200), NOT the empty page.
+        $slug = $this->serveOn('/catalog/item-3-2', 'id=10');
+        self::assertNotNull($slug, 'the digit-dash slug still matches the catalog param route');
+        self::assertSame(200, $slug->status);
+        self::assertSame($p, $slug->body, 'a benign \\d-\\d path slug must serve the baseline P, not the empty page');
+
+        // Same slug, but the decrement is now in the param value -> empty page (channel unchanged).
+        $inject = $this->serveOn('/catalog/item-3-2', 'id=10-1');
+        self::assertNotNull($inject);
+        self::assertSame(200, $inject->status);
+        self::assertNotSame($p, $inject->body, '?id=10-1 must still serve the empty page even under a digit-dash slug');
+        self::assertLessThan(strlen($p) * 0.8, strlen($inject->body), 'the injected decrement page stays materially shorter');
     }
 
     /** Breaker/fixer (Backslash-powered): a lone `'` breaks (500), a balanced `''` restores (200 == P). */
