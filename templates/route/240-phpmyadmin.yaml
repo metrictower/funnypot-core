@@ -17,6 +17,7 @@ response:
   body: |
     <!DOCTYPE HTML>
     <html lang="en"><head><title>phpMyAdmin</title>
+    <link rel="icon" href="/phpmyadmin/favicon.ico" />
     <link rel="stylesheet" type="text/css" href="phpmyadmin.css.php" />
     </head>
     <body class="loginform">

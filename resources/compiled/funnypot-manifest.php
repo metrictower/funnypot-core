@@ -9,10 +9,10 @@ return array (
   'generated_by' => 'funnypot build-manifest',
   'counts' => 
   array (
-    'band_a' => 157,
+    'band_a' => 210,
     'corpus_families' => 2605,
     'corpus_keys' => 5107,
-    'enrichers' => 132,
+    'enrichers' => 169,
   ),
   'bandA' => 
   array (
@@ -59,7 +59,7 @@ return array (
         3 => 'cve-2012-1823',
       ),
       'priority' => NULL,
-      'unanchored' => true,
+      'unanchored' => false,
     ),
     2 => 
     array (
@@ -152,6 +152,34 @@ return array (
     ),
     6 => 
     array (
+      'id' => 'attack-nextjs-rsc',
+      'tier' => 'attack',
+      'family' => 'nextjs',
+      'owned_routes' => 
+      array (
+        0 => 
+        array (
+          'method' => 'GET',
+          'path' => '/',
+          'via' => 'owns_path',
+        ),
+      ),
+      'outbound_links' => 
+      array (
+      ),
+      'severity' => 'high',
+      'tags' => 
+      array (
+        0 => 'nextjs',
+        1 => 'rsc',
+        2 => 'cve-2025',
+        3 => 'exposure',
+      ),
+      'priority' => NULL,
+      'unanchored' => false,
+    ),
+    7 => 
+    array (
       'id' => 'attack-xxe',
       'tier' => 'attack',
       'family' => 'xxe',
@@ -171,7 +199,29 @@ return array (
       'priority' => NULL,
       'unanchored' => true,
     ),
-    7 => 
+    8 => 
+    array (
+      'id' => 'attack-lfi-sshkey',
+      'tier' => 'attack',
+      'family' => 'ssh',
+      'owned_routes' => 
+      array (
+      ),
+      'outbound_links' => 
+      array (
+      ),
+      'severity' => 'high',
+      'tags' => 
+      array (
+        0 => 'attack',
+        1 => 'lfi',
+        2 => 'traversal',
+        3 => 'ssh',
+      ),
+      'priority' => NULL,
+      'unanchored' => true,
+    ),
+    9 => 
     array (
       'id' => 'attack-phpmyadmin-gate',
       'tier' => 'attack',
@@ -237,7 +287,28 @@ return array (
       'priority' => NULL,
       'unanchored' => false,
     ),
-    8 => 
+    10 => 
+    array (
+      'id' => 'attack-lfi-hostname',
+      'tier' => 'attack',
+      'family' => 'lfi',
+      'owned_routes' => 
+      array (
+      ),
+      'outbound_links' => 
+      array (
+      ),
+      'severity' => 'high',
+      'tags' => 
+      array (
+        0 => 'attack',
+        1 => 'lfi',
+        2 => 'traversal',
+      ),
+      'priority' => NULL,
+      'unanchored' => true,
+    ),
+    11 => 
     array (
       'id' => 'attack-phpmyadmin-login',
       'tier' => 'attack',
@@ -292,7 +363,7 @@ return array (
       'priority' => NULL,
       'unanchored' => false,
     ),
-    9 => 
+    12 => 
     array (
       'id' => 'attack-wp-xmlrpc-addtwo',
       'tier' => 'attack',
@@ -319,7 +390,7 @@ return array (
       'priority' => NULL,
       'unanchored' => false,
     ),
-    10 => 
+    13 => 
     array (
       'id' => 'attack-wp-xmlrpc-multicall',
       'tier' => 'attack',
@@ -346,7 +417,7 @@ return array (
       'priority' => NULL,
       'unanchored' => false,
     ),
-    11 => 
+    14 => 
     array (
       'id' => 'attack-lfi-smbconf',
       'tier' => 'attack',
@@ -369,7 +440,7 @@ return array (
       'priority' => NULL,
       'unanchored' => true,
     ),
-    12 => 
+    15 => 
     array (
       'id' => 'attack-lfi-environ',
       'tier' => 'attack',
@@ -391,7 +462,7 @@ return array (
       'priority' => NULL,
       'unanchored' => true,
     ),
-    13 => 
+    16 => 
     array (
       'id' => 'attack-wp-xmlrpc',
       'tier' => 'attack',
@@ -418,7 +489,7 @@ return array (
       'priority' => NULL,
       'unanchored' => false,
     ),
-    14 => 
+    17 => 
     array (
       'id' => 'attack-wp-xmlrpc-get',
       'tier' => 'attack',
@@ -445,7 +516,7 @@ return array (
       'priority' => NULL,
       'unanchored' => false,
     ),
-    15 => 
+    18 => 
     array (
       'id' => 'attack-lfi-shadow',
       'tier' => 'attack',
@@ -466,7 +537,7 @@ return array (
       'priority' => NULL,
       'unanchored' => true,
     ),
-    16 => 
+    19 => 
     array (
       'id' => 'attack-lfi-group',
       'tier' => 'attack',
@@ -487,7 +558,7 @@ return array (
       'priority' => NULL,
       'unanchored' => true,
     ),
-    17 => 
+    20 => 
     array (
       'id' => 'attack-lfi-windows',
       'tier' => 'attack',
@@ -509,7 +580,7 @@ return array (
       'priority' => NULL,
       'unanchored' => true,
     ),
-    18 => 
+    21 => 
     array (
       'id' => 'attack-lfi-unix',
       'tier' => 'attack',
@@ -530,7 +601,7 @@ return array (
       'priority' => NULL,
       'unanchored' => true,
     ),
-    19 => 
+    22 => 
     array (
       'id' => 'attack-ai-ollama-version',
       'tier' => 'attack-ai',
@@ -557,7 +628,7 @@ return array (
       'priority' => NULL,
       'unanchored' => false,
     ),
-    20 => 
+    23 => 
     array (
       'id' => 'attack-ai-ollama-tags',
       'tier' => 'attack-ai',
@@ -584,7 +655,7 @@ return array (
       'priority' => NULL,
       'unanchored' => false,
     ),
-    21 => 
+    24 => 
     array (
       'id' => 'attack-ai-ollama-ps',
       'tier' => 'attack-ai',
@@ -611,7 +682,7 @@ return array (
       'priority' => NULL,
       'unanchored' => false,
     ),
-    22 => 
+    25 => 
     array (
       'id' => 'attack-ai-ollama-show',
       'tier' => 'attack-ai',
@@ -638,7 +709,7 @@ return array (
       'priority' => NULL,
       'unanchored' => false,
     ),
-    23 => 
+    26 => 
     array (
       'id' => 'attack-ai-ollama-chat',
       'tier' => 'attack-ai',
@@ -665,7 +736,7 @@ return array (
       'priority' => NULL,
       'unanchored' => false,
     ),
-    24 => 
+    27 => 
     array (
       'id' => 'attack-ai-ollama-generate',
       'tier' => 'attack-ai',
@@ -692,7 +763,7 @@ return array (
       'priority' => NULL,
       'unanchored' => false,
     ),
-    25 => 
+    28 => 
     array (
       'id' => 'attack-kibana-login',
       'tier' => 'attack',
@@ -722,7 +793,7 @@ return array (
       'priority' => NULL,
       'unanchored' => false,
     ),
-    26 => 
+    29 => 
     array (
       'id' => 'attack-ai-openai-chat',
       'tier' => 'attack-ai',
@@ -749,7 +820,7 @@ return array (
       'priority' => NULL,
       'unanchored' => false,
     ),
-    27 => 
+    30 => 
     array (
       'id' => 'attack-grafana-login',
       'tier' => 'attack',
@@ -778,7 +849,7 @@ return array (
       'priority' => NULL,
       'unanchored' => false,
     ),
-    28 => 
+    31 => 
     array (
       'id' => 'attack-wp-login',
       'tier' => 'attack',
@@ -806,7 +877,7 @@ return array (
       'priority' => NULL,
       'unanchored' => false,
     ),
-    29 => 
+    32 => 
     array (
       'id' => 'attack-cmdi-windows',
       'tier' => 'attack',
@@ -828,7 +899,7 @@ return array (
       'priority' => NULL,
       'unanchored' => true,
     ),
-    30 => 
+    33 => 
     array (
       'id' => 'attack-cmdi-unix',
       'tier' => 'attack',
@@ -849,7 +920,7 @@ return array (
       'priority' => NULL,
       'unanchored' => true,
     ),
-    31 => 
+    34 => 
     array (
       'id' => 'attack-ai-anthropic-messages',
       'tier' => 'attack-ai',
@@ -876,7 +947,7 @@ return array (
       'priority' => NULL,
       'unanchored' => false,
     ),
-    32 => 
+    35 => 
     array (
       'id' => 'attack-cpsrvd-login',
       'tier' => 'attack',
@@ -919,7 +990,7 @@ return array (
       'priority' => NULL,
       'unanchored' => false,
     ),
-    33 => 
+    36 => 
     array (
       'id' => 'attack-ai-v1-models',
       'tier' => 'attack-ai',
@@ -946,7 +1017,7 @@ return array (
       'priority' => NULL,
       'unanchored' => false,
     ),
-    34 => 
+    37 => 
     array (
       'id' => 'attack-phppgadmin-login',
       'tier' => 'attack',
@@ -964,15 +1035,9 @@ return array (
       array (
         0 => 
         array (
-          'path' => 'redirect.php',
+          'path' => '/redirect.php',
           'source' => 'form-action',
-          'relative' => true,
-        ),
-        1 => 
-        array (
-          'path' => 'themes/default/global.css',
-          'source' => 'href',
-          'relative' => true,
+          'relative' => false,
         ),
       ),
       'severity' => 'high',
@@ -988,7 +1053,7 @@ return array (
       'priority' => NULL,
       'unanchored' => false,
     ),
-    35 => 
+    38 => 
     array (
       'id' => 'attack-ssti-twig',
       'tier' => 'attack',
@@ -1009,7 +1074,7 @@ return array (
       'priority' => NULL,
       'unanchored' => true,
     ),
-    36 => 
+    39 => 
     array (
       'id' => 'attack-ssti-numeric',
       'tier' => 'attack',
@@ -1029,7 +1094,7 @@ return array (
       'priority' => NULL,
       'unanchored' => true,
     ),
-    37 => 
+    40 => 
     array (
       'id' => 'attack-php-glastopf',
       'tier' => 'attack',
@@ -1051,7 +1116,7 @@ return array (
       'priority' => NULL,
       'unanchored' => true,
     ),
-    38 => 
+    41 => 
     array (
       'id' => 'attack-sqli',
       'tier' => 'attack',
@@ -1071,7 +1136,7 @@ return array (
       'priority' => NULL,
       'unanchored' => true,
     ),
-    39 => 
+    42 => 
     array (
       'id' => 'attack-open-redirect',
       'tier' => 'attack',
@@ -1092,7 +1157,7 @@ return array (
       'priority' => NULL,
       'unanchored' => true,
     ),
-    40 => 
+    43 => 
     array (
       'id' => 'attack-xss',
       'tier' => 'attack',
@@ -1112,7 +1177,7 @@ return array (
       'priority' => NULL,
       'unanchored' => true,
     ),
-    41 => 
+    44 => 
     array (
       'id' => 'attack-thinkphp-rce',
       'tier' => 'attack',
@@ -1133,7 +1198,7 @@ return array (
       'priority' => NULL,
       'unanchored' => true,
     ),
-    42 => 
+    45 => 
     array (
       'id' => 'attack-owncloud-49103',
       'tier' => 'attack',
@@ -1155,7 +1220,7 @@ return array (
       'priority' => NULL,
       'unanchored' => true,
     ),
-    43 => 
+    46 => 
     array (
       'id' => 'attack-f5-1388',
       'tier' => 'attack',
@@ -1178,7 +1243,7 @@ return array (
       'priority' => NULL,
       'unanchored' => true,
     ),
-    44 => 
+    47 => 
     array (
       'id' => 'attack-geoserver-36401',
       'tier' => 'attack',
@@ -1200,7 +1265,7 @@ return array (
       'priority' => NULL,
       'unanchored' => true,
     ),
-    45 => 
+    48 => 
     array (
       'id' => 'attack-fortios-40684',
       'tier' => 'attack',
@@ -1223,7 +1288,7 @@ return array (
       'priority' => NULL,
       'unanchored' => true,
     ),
-    46 => 
+    49 => 
     array (
       'id' => 'attack-ivanti-21887',
       'tier' => 'attack',
@@ -1247,7 +1312,7 @@ return array (
       'priority' => NULL,
       'unanchored' => true,
     ),
-    47 => 
+    50 => 
     array (
       'id' => 'attack-citrix-bleed-4966',
       'tier' => 'attack',
@@ -1270,7 +1335,7 @@ return array (
       'priority' => NULL,
       'unanchored' => true,
     ),
-    48 => 
+    51 => 
     array (
       'id' => 'attack-webshell-panel',
       'tier' => 'attack',
@@ -1291,7 +1356,7 @@ return array (
       'priority' => NULL,
       'unanchored' => true,
     ),
-    49 => 
+    52 => 
     array (
       'id' => 'attack-spring-actuator',
       'tier' => 'attack',
@@ -1313,7 +1378,61 @@ return array (
       'priority' => NULL,
       'unanchored' => false,
     ),
-    50 => 
+    53 => 
+    array (
+      'id' => 'attack-imds-base',
+      'tier' => 'attack',
+      'family' => 'cloud-metadata',
+      'owned_routes' => 
+      array (
+      ),
+      'outbound_links' => 
+      array (
+      ),
+      'severity' => 'high',
+      'tags' => 
+      array (
+        0 => 'attack',
+        1 => 'ssrf',
+        2 => 'cloud-metadata',
+        3 => 'imds',
+        4 => 'aws',
+        5 => 'ec2',
+      ),
+      'priority' => NULL,
+      'unanchored' => false,
+    ),
+    54 => 
+    array (
+      'id' => 'attack-imds-identity-doc',
+      'tier' => 'attack',
+      'family' => 'cloud-metadata',
+      'owned_routes' => 
+      array (
+        0 => 
+        array (
+          'method' => '*',
+          'path' => '/latest/dynamic/instance-identity/document',
+          'via' => 'match-regex',
+        ),
+      ),
+      'outbound_links' => 
+      array (
+      ),
+      'severity' => 'high',
+      'tags' => 
+      array (
+        0 => 'attack',
+        1 => 'ssrf',
+        2 => 'cloud-metadata',
+        3 => 'imds',
+        4 => 'aws',
+        5 => 'ec2',
+      ),
+      'priority' => NULL,
+      'unanchored' => false,
+    ),
+    55 => 
     array (
       'id' => 'attack-cloud-imds',
       'tier' => 'attack',
@@ -1335,36 +1454,7 @@ return array (
       'priority' => NULL,
       'unanchored' => false,
     ),
-    51 => 
-    array (
-      'id' => 'attack-imds-base',
-      'tier' => 'attack',
-      'family' => 'cloud-metadata',
-      'owned_routes' => 
-      array (
-        0 => 
-        array (
-          'method' => '*',
-          'path' => '/latest/meta-data',
-          'via' => 'match-regex',
-        ),
-      ),
-      'outbound_links' => 
-      array (
-      ),
-      'severity' => 'high',
-      'tags' => 
-      array (
-        0 => 'attack',
-        1 => 'ssrf',
-        2 => 'cloud-metadata',
-        3 => 'imds',
-        4 => 'aws',
-      ),
-      'priority' => NULL,
-      'unanchored' => false,
-    ),
-    52 => 
+    56 => 
     array (
       'id' => 'attack-ignition-execute-solution',
       'tier' => 'attack',
@@ -1392,7 +1482,7 @@ return array (
       'priority' => NULL,
       'unanchored' => false,
     ),
-    53 => 
+    57 => 
     array (
       'id' => 'attack-webmin-session-login',
       'tier' => 'attack',
@@ -1433,7 +1523,7 @@ return array (
       'priority' => NULL,
       'unanchored' => false,
     ),
-    54 => 
+    58 => 
     array (
       'id' => 'attack-jenkins-acegi-login',
       'tier' => 'attack',
@@ -1468,7 +1558,7 @@ return array (
       'priority' => NULL,
       'unanchored' => false,
     ),
-    55 => 
+    59 => 
     array (
       'id' => 'attack-hnap-login',
       'tier' => 'attack',
@@ -1498,7 +1588,7 @@ return array (
       'priority' => NULL,
       'unanchored' => false,
     ),
-    56 => 
+    60 => 
     array (
       'id' => 'attack-wp-admin-redirect',
       'tier' => 'attack',
@@ -1538,7 +1628,7 @@ return array (
       'priority' => NULL,
       'unanchored' => false,
     ),
-    57 => 
+    61 => 
     array (
       'id' => 'attack-crs-sqli',
       'tier' => 'attack-crs',
@@ -1560,7 +1650,7 @@ return array (
       'priority' => NULL,
       'unanchored' => true,
     ),
-    58 => 
+    62 => 
     array (
       'id' => 'attack-crs-xss',
       'tier' => 'attack-crs',
@@ -1582,7 +1672,7 @@ return array (
       'priority' => NULL,
       'unanchored' => true,
     ),
-    59 => 
+    63 => 
     array (
       'id' => 'attack-crs-lfi',
       'tier' => 'attack-crs',
@@ -1604,7 +1694,7 @@ return array (
       'priority' => NULL,
       'unanchored' => true,
     ),
-    60 => 
+    64 => 
     array (
       'id' => 'attack-crs-rce',
       'tier' => 'attack-crs',
@@ -1626,7 +1716,7 @@ return array (
       'priority' => NULL,
       'unanchored' => true,
     ),
-    61 => 
+    65 => 
     array (
       'id' => 'param-vite-fs',
       'tier' => 'param',
@@ -1653,7 +1743,63 @@ return array (
       'priority' => NULL,
       'unanchored' => false,
     ),
-    62 => 
+    66 => 
+    array (
+      'id' => 'param-sqli-differential',
+      'tier' => 'param',
+      'family' => 'behavioral',
+      'owned_routes' => 
+      array (
+        0 => 
+        array (
+          'method' => 'GET',
+          'path' => '/catalog/',
+          'via' => 'param-bucket',
+        ),
+      ),
+      'outbound_links' => 
+      array (
+      ),
+      'severity' => 'high',
+      'tags' => 
+      array (
+        0 => 'param',
+        1 => 'sqli',
+        2 => 'behavioral',
+      ),
+      'priority' => NULL,
+      'unanchored' => false,
+    ),
+    67 => 
+    array (
+      'id' => 'GET /',
+      'tier' => 'new-page',
+      'family' => 'nextjs',
+      'owned_routes' => 
+      array (
+        0 => 
+        array (
+          'method' => 'GET',
+          'path' => '/',
+          'via' => 'route-key',
+        ),
+      ),
+      'outbound_links' => 
+      array (
+      ),
+      'severity' => 'info',
+      'tags' => 
+      array (
+        0 => 'nextjs',
+        1 => 'react',
+        2 => 'rsc',
+        3 => 'framework',
+        4 => 'discovery',
+      ),
+      'priority' => NULL,
+      'unanchored' => false,
+    ),
+    68 => 
     array (
       'id' => 'GET /.aws/config',
       'tier' => 'new-page',
@@ -1681,7 +1827,7 @@ return array (
       'priority' => NULL,
       'unanchored' => false,
     ),
-    63 => 
+    69 => 
     array (
       'id' => 'GET /.aws/credentials',
       'tier' => 'new-page',
@@ -1709,7 +1855,7 @@ return array (
       'priority' => NULL,
       'unanchored' => false,
     ),
-    64 => 
+    70 => 
     array (
       'id' => 'GET /.npmrc',
       'tier' => 'new-page',
@@ -1736,7 +1882,7 @@ return array (
       'priority' => NULL,
       'unanchored' => false,
     ),
-    65 => 
+    71 => 
     array (
       'id' => 'GET /api/tags',
       'tier' => 'new-page',
@@ -1763,7 +1909,7 @@ return array (
       'priority' => NULL,
       'unanchored' => false,
     ),
-    66 => 
+    72 => 
     array (
       'id' => 'GET /api/version',
       'tier' => 'new-page',
@@ -1790,7 +1936,61 @@ return array (
       'priority' => NULL,
       'unanchored' => false,
     ),
-    67 => 
+    73 => 
+    array (
+      'id' => 'GET /favicon.ico',
+      'tier' => 'new-page',
+      'family' => 'favicon',
+      'owned_routes' => 
+      array (
+        0 => 
+        array (
+          'method' => 'GET',
+          'path' => '/favicon.ico',
+          'via' => 'route-key',
+        ),
+      ),
+      'outbound_links' => 
+      array (
+      ),
+      'severity' => 'info',
+      'tags' => 
+      array (
+        0 => 'favicon',
+        1 => 'favicon',
+        2 => 'exposure',
+      ),
+      'priority' => NULL,
+      'unanchored' => false,
+    ),
+    74 => 
+    array (
+      'id' => 'GET /info.php',
+      'tier' => 'new-page',
+      'family' => 'recon',
+      'owned_routes' => 
+      array (
+        0 => 
+        array (
+          'method' => 'GET',
+          'path' => '/info.php',
+          'via' => 'route-key',
+        ),
+      ),
+      'outbound_links' => 
+      array (
+      ),
+      'severity' => 'medium',
+      'tags' => 
+      array (
+        0 => 'recon',
+        1 => 'phpinfo',
+        2 => 'exposure',
+      ),
+      'priority' => NULL,
+      'unanchored' => false,
+    ),
+    75 => 
     array (
       'id' => 'GET /phppgadmin/intro.php',
       'tier' => 'new-page',
@@ -1819,7 +2019,63 @@ return array (
       'priority' => NULL,
       'unanchored' => false,
     ),
-    68 => 
+    76 => 
+    array (
+      'id' => 'GET /wp-json/wp/v2/posts',
+      'tier' => 'new-page',
+      'family' => 'api',
+      'owned_routes' => 
+      array (
+        0 => 
+        array (
+          'method' => 'GET',
+          'path' => '/wp-json/wp/v2/posts',
+          'via' => 'route-key',
+        ),
+      ),
+      'outbound_links' => 
+      array (
+      ),
+      'severity' => 'info',
+      'tags' => 
+      array (
+        0 => 'exposure',
+        1 => 'api',
+        2 => 'wordpress',
+        3 => 'discovery',
+      ),
+      'priority' => NULL,
+      'unanchored' => false,
+    ),
+    77 => 
+    array (
+      'id' => 'GET /wp-json/wp/v2/users/',
+      'tier' => 'new-page',
+      'family' => 'api',
+      'owned_routes' => 
+      array (
+        0 => 
+        array (
+          'method' => 'GET',
+          'path' => '/wp-json/wp/v2/users/',
+          'via' => 'route-key',
+        ),
+      ),
+      'outbound_links' => 
+      array (
+      ),
+      'severity' => 'info',
+      'tags' => 
+      array (
+        0 => 'exposure',
+        1 => 'api',
+        2 => 'wordpress',
+        3 => 'discovery',
+      ),
+      'priority' => NULL,
+      'unanchored' => false,
+    ),
+    78 => 
     array (
       'id' => 'GET /private/',
       'tier' => 'new-page',
@@ -1846,7 +2102,7 @@ return array (
       'priority' => NULL,
       'unanchored' => false,
     ),
-    69 => 
+    79 => 
     array (
       'id' => 'GET /credentials.txt',
       'tier' => 'new-page',
@@ -1873,7 +2129,7 @@ return array (
       'priority' => NULL,
       'unanchored' => false,
     ),
-    70 => 
+    80 => 
     array (
       'id' => 'GET /creds.txt',
       'tier' => 'new-page',
@@ -1900,7 +2156,7 @@ return array (
       'priority' => NULL,
       'unanchored' => false,
     ),
-    71 => 
+    81 => 
     array (
       'id' => 'GET /backup/credentials.txt',
       'tier' => 'new-page',
@@ -1927,7 +2183,7 @@ return array (
       'priority' => NULL,
       'unanchored' => false,
     ),
-    72 => 
+    82 => 
     array (
       'id' => 'GET /terraform.tfstate',
       'tier' => 'new-page',
@@ -1954,7 +2210,7 @@ return array (
       'priority' => NULL,
       'unanchored' => false,
     ),
-    73 => 
+    83 => 
     array (
       'id' => 'GET /.terraform/terraform.tfstate',
       'tier' => 'new-page',
@@ -1981,7 +2237,7 @@ return array (
       'priority' => NULL,
       'unanchored' => false,
     ),
-    74 => 
+    84 => 
     array (
       'id' => 'GET /infra/terraform.tfstate',
       'tier' => 'new-page',
@@ -2008,7 +2264,7 @@ return array (
       'priority' => NULL,
       'unanchored' => false,
     ),
-    75 => 
+    85 => 
     array (
       'id' => 'GET /users.csv',
       'tier' => 'new-page',
@@ -2035,7 +2291,7 @@ return array (
       'priority' => NULL,
       'unanchored' => false,
     ),
-    76 => 
+    86 => 
     array (
       'id' => 'GET /export/users.csv',
       'tier' => 'new-page',
@@ -2062,7 +2318,7 @@ return array (
       'priority' => NULL,
       'unanchored' => false,
     ),
-    77 => 
+    87 => 
     array (
       'id' => 'GET /backup/users.csv',
       'tier' => 'new-page',
@@ -2089,7 +2345,7 @@ return array (
       'priority' => NULL,
       'unanchored' => false,
     ),
-    78 => 
+    88 => 
     array (
       'id' => 'GET /backup.sql',
       'tier' => 'new-page',
@@ -2116,7 +2372,7 @@ return array (
       'priority' => NULL,
       'unanchored' => false,
     ),
-    79 => 
+    89 => 
     array (
       'id' => 'GET /database.sql',
       'tier' => 'new-page',
@@ -2143,7 +2399,7 @@ return array (
       'priority' => NULL,
       'unanchored' => false,
     ),
-    80 => 
+    90 => 
     array (
       'id' => 'GET /dump.sql',
       'tier' => 'new-page',
@@ -2170,7 +2426,7 @@ return array (
       'priority' => NULL,
       'unanchored' => false,
     ),
-    81 => 
+    91 => 
     array (
       'id' => 'GET /db_backup.sql',
       'tier' => 'new-page',
@@ -2197,7 +2453,7 @@ return array (
       'priority' => NULL,
       'unanchored' => false,
     ),
-    82 => 
+    92 => 
     array (
       'id' => 'GET /phpmyadmin/',
       'tier' => 'new-page',
@@ -2224,7 +2480,7 @@ return array (
       'priority' => NULL,
       'unanchored' => false,
     ),
-    83 => 
+    93 => 
     array (
       'id' => 'GET /phpMyAdmin/',
       'tier' => 'new-page',
@@ -2251,7 +2507,7 @@ return array (
       'priority' => NULL,
       'unanchored' => false,
     ),
-    84 => 
+    94 => 
     array (
       'id' => 'GET /pma/',
       'tier' => 'new-page',
@@ -2278,7 +2534,7 @@ return array (
       'priority' => NULL,
       'unanchored' => false,
     ),
-    85 => 
+    95 => 
     array (
       'id' => 'GET /phpmyadmin/index.php',
       'tier' => 'new-page',
@@ -2305,7 +2561,7 @@ return array (
       'priority' => NULL,
       'unanchored' => false,
     ),
-    86 => 
+    96 => 
     array (
       'id' => 'GET /npmrc',
       'tier' => 'new-page',
@@ -2332,7 +2588,7 @@ return array (
       'priority' => NULL,
       'unanchored' => false,
     ),
-    87 => 
+    97 => 
     array (
       'id' => 'GET /backup/.npmrc',
       'tier' => 'new-page',
@@ -2359,7 +2615,7 @@ return array (
       'priority' => NULL,
       'unanchored' => false,
     ),
-    88 => 
+    98 => 
     array (
       'id' => 'GET /.claude.json',
       'tier' => 'new-page',
@@ -2387,7 +2643,7 @@ return array (
       'priority' => NULL,
       'unanchored' => false,
     ),
-    89 => 
+    99 => 
     array (
       'id' => 'GET /claude_desktop_config.json',
       'tier' => 'new-page',
@@ -2415,7 +2671,7 @@ return array (
       'priority' => NULL,
       'unanchored' => false,
     ),
-    90 => 
+    100 => 
     array (
       'id' => 'GET /.cursor/mcp.json',
       'tier' => 'new-page',
@@ -2443,7 +2699,7 @@ return array (
       'priority' => NULL,
       'unanchored' => false,
     ),
-    91 => 
+    101 => 
     array (
       'id' => 'GET /.vscode/mcp.json',
       'tier' => 'new-page',
@@ -2471,7 +2727,7 @@ return array (
       'priority' => NULL,
       'unanchored' => false,
     ),
-    92 => 
+    102 => 
     array (
       'id' => 'GET /.continue/config.json',
       'tier' => 'new-page',
@@ -2499,7 +2755,7 @@ return array (
       'priority' => NULL,
       'unanchored' => false,
     ),
-    93 => 
+    103 => 
     array (
       'id' => 'GET /.aider.conf.yml',
       'tier' => 'new-page',
@@ -2527,7 +2783,7 @@ return array (
       'priority' => NULL,
       'unanchored' => false,
     ),
-    94 => 
+    104 => 
     array (
       'id' => 'GET /copilot_internal/v2/token',
       'tier' => 'new-page',
@@ -2555,7 +2811,7 @@ return array (
       'priority' => NULL,
       'unanchored' => false,
     ),
-    95 => 
+    105 => 
     array (
       'id' => 'GET /openai/models',
       'tier' => 'new-page',
@@ -2583,7 +2839,7 @@ return array (
       'priority' => NULL,
       'unanchored' => false,
     ),
-    96 => 
+    106 => 
     array (
       'id' => 'GET /mcp',
       'tier' => 'new-page',
@@ -2611,7 +2867,7 @@ return array (
       'priority' => NULL,
       'unanchored' => false,
     ),
-    97 => 
+    107 => 
     array (
       'id' => 'GET /api/mcp',
       'tier' => 'new-page',
@@ -2639,7 +2895,7 @@ return array (
       'priority' => NULL,
       'unanchored' => false,
     ),
-    98 => 
+    108 => 
     array (
       'id' => 'GET /v1/chat',
       'tier' => 'new-page',
@@ -2667,7 +2923,7 @@ return array (
       'priority' => NULL,
       'unanchored' => false,
     ),
-    99 => 
+    109 => 
     array (
       'id' => 'GET /v1/completions',
       'tier' => 'new-page',
@@ -2695,7 +2951,7 @@ return array (
       'priority' => NULL,
       'unanchored' => false,
     ),
-    100 => 
+    110 => 
     array (
       'id' => 'GET /config.php',
       'tier' => 'new-page',
@@ -2722,7 +2978,7 @@ return array (
       'priority' => NULL,
       'unanchored' => false,
     ),
-    101 => 
+    111 => 
     array (
       'id' => 'GET /.env.production',
       'tier' => 'new-page',
@@ -2749,7 +3005,7 @@ return array (
       'priority' => NULL,
       'unanchored' => false,
     ),
-    102 => 
+    112 => 
     array (
       'id' => 'GET /secrets.json',
       'tier' => 'new-page',
@@ -2776,7 +3032,7 @@ return array (
       'priority' => NULL,
       'unanchored' => false,
     ),
-    103 => 
+    113 => 
     array (
       'id' => 'GET /docker-compose.yml',
       'tier' => 'new-page',
@@ -2803,7 +3059,7 @@ return array (
       'priority' => NULL,
       'unanchored' => false,
     ),
-    104 => 
+    114 => 
     array (
       'id' => 'GET /application.properties',
       'tier' => 'new-page',
@@ -2830,7 +3086,7 @@ return array (
       'priority' => NULL,
       'unanchored' => false,
     ),
-    105 => 
+    115 => 
     array (
       'id' => 'GET /.env.local',
       'tier' => 'new-page',
@@ -2857,7 +3113,7 @@ return array (
       'priority' => NULL,
       'unanchored' => false,
     ),
-    106 => 
+    116 => 
     array (
       'id' => 'GET /wp-content/debug.log',
       'tier' => 'new-page',
@@ -2884,7 +3140,7 @@ return array (
       'priority' => NULL,
       'unanchored' => false,
     ),
-    107 => 
+    117 => 
     array (
       'id' => 'GET /wp-content/uploads/debug.log',
       'tier' => 'new-page',
@@ -2911,7 +3167,7 @@ return array (
       'priority' => NULL,
       'unanchored' => false,
     ),
-    108 => 
+    118 => 
     array (
       'id' => 'GET /debug.log',
       'tier' => 'new-page',
@@ -2938,7 +3194,7 @@ return array (
       'priority' => NULL,
       'unanchored' => false,
     ),
-    109 => 
+    119 => 
     array (
       'id' => 'GET /error_log',
       'tier' => 'new-page',
@@ -2965,7 +3221,7 @@ return array (
       'priority' => NULL,
       'unanchored' => false,
     ),
-    110 => 
+    120 => 
     array (
       'id' => 'GET /php_errors.log',
       'tier' => 'new-page',
@@ -2992,7 +3248,7 @@ return array (
       'priority' => NULL,
       'unanchored' => false,
     ),
-    111 => 
+    121 => 
     array (
       'id' => 'GET /php_error.log',
       'tier' => 'new-page',
@@ -3019,7 +3275,7 @@ return array (
       'priority' => NULL,
       'unanchored' => false,
     ),
-    112 => 
+    122 => 
     array (
       'id' => 'GET /logs/error.log',
       'tier' => 'new-page',
@@ -3046,7 +3302,7 @@ return array (
       'priority' => NULL,
       'unanchored' => false,
     ),
-    113 => 
+    123 => 
     array (
       'id' => 'GET /laravel.log',
       'tier' => 'new-page',
@@ -3073,7 +3329,7 @@ return array (
       'priority' => NULL,
       'unanchored' => false,
     ),
-    114 => 
+    124 => 
     array (
       'id' => 'GET /logs/laravel.log',
       'tier' => 'new-page',
@@ -3100,7 +3356,7 @@ return array (
       'priority' => NULL,
       'unanchored' => false,
     ),
-    115 => 
+    125 => 
     array (
       'id' => 'GET /var/log/nginx/error.log',
       'tier' => 'new-page',
@@ -3127,7 +3383,7 @@ return array (
       'priority' => NULL,
       'unanchored' => false,
     ),
-    116 => 
+    126 => 
     array (
       'id' => 'GET /nginx_error.log',
       'tier' => 'new-page',
@@ -3154,7 +3410,7 @@ return array (
       'priority' => NULL,
       'unanchored' => false,
     ),
-    117 => 
+    127 => 
     array (
       'id' => 'GET /var/log/nginx/access.log',
       'tier' => 'new-page',
@@ -3181,7 +3437,7 @@ return array (
       'priority' => NULL,
       'unanchored' => false,
     ),
-    118 => 
+    128 => 
     array (
       'id' => 'GET /var/log/apache2/error.log',
       'tier' => 'new-page',
@@ -3208,7 +3464,7 @@ return array (
       'priority' => NULL,
       'unanchored' => false,
     ),
-    119 => 
+    129 => 
     array (
       'id' => 'GET /var/log/httpd/error_log',
       'tier' => 'new-page',
@@ -3235,7 +3491,7 @@ return array (
       'priority' => NULL,
       'unanchored' => false,
     ),
-    120 => 
+    130 => 
     array (
       'id' => 'GET /var/log/apache2/access.log',
       'tier' => 'new-page',
@@ -3262,7 +3518,7 @@ return array (
       'priority' => NULL,
       'unanchored' => false,
     ),
-    121 => 
+    131 => 
     array (
       'id' => 'GET /app.log',
       'tier' => 'new-page',
@@ -3289,7 +3545,7 @@ return array (
       'priority' => NULL,
       'unanchored' => false,
     ),
-    122 => 
+    132 => 
     array (
       'id' => 'GET /logs/app.log',
       'tier' => 'new-page',
@@ -3316,7 +3572,7 @@ return array (
       'priority' => NULL,
       'unanchored' => false,
     ),
-    123 => 
+    133 => 
     array (
       'id' => 'GET /server.log',
       'tier' => 'new-page',
@@ -3343,7 +3599,7 @@ return array (
       'priority' => NULL,
       'unanchored' => false,
     ),
-    124 => 
+    134 => 
     array (
       'id' => 'GET /logs/debug.log',
       'tier' => 'new-page',
@@ -3370,7 +3626,7 @@ return array (
       'priority' => NULL,
       'unanchored' => false,
     ),
-    125 => 
+    135 => 
     array (
       'id' => 'GET /catalina.out',
       'tier' => 'new-page',
@@ -3397,7 +3653,7 @@ return array (
       'priority' => NULL,
       'unanchored' => false,
     ),
-    126 => 
+    136 => 
     array (
       'id' => 'GET /swagger.json',
       'tier' => 'new-page',
@@ -3425,7 +3681,7 @@ return array (
       'priority' => NULL,
       'unanchored' => false,
     ),
-    127 => 
+    137 => 
     array (
       'id' => 'GET /api/swagger.json',
       'tier' => 'new-page',
@@ -3453,7 +3709,7 @@ return array (
       'priority' => NULL,
       'unanchored' => false,
     ),
-    128 => 
+    138 => 
     array (
       'id' => 'GET /v3/api-docs',
       'tier' => 'new-page',
@@ -3481,7 +3737,7 @@ return array (
       'priority' => NULL,
       'unanchored' => false,
     ),
-    129 => 
+    139 => 
     array (
       'id' => 'GET /api-docs',
       'tier' => 'new-page',
@@ -3509,7 +3765,7 @@ return array (
       'priority' => NULL,
       'unanchored' => false,
     ),
-    130 => 
+    140 => 
     array (
       'id' => 'GET /.well-known/openapi.json',
       'tier' => 'new-page',
@@ -3537,7 +3793,7 @@ return array (
       'priority' => NULL,
       'unanchored' => false,
     ),
-    131 => 
+    141 => 
     array (
       'id' => 'GET /v2/api-docs',
       'tier' => 'new-page',
@@ -3565,7 +3821,7 @@ return array (
       'priority' => NULL,
       'unanchored' => false,
     ),
-    132 => 
+    142 => 
     array (
       'id' => 'GET /openapi.yaml',
       'tier' => 'new-page',
@@ -3593,7 +3849,7 @@ return array (
       'priority' => NULL,
       'unanchored' => false,
     ),
-    133 => 
+    143 => 
     array (
       'id' => 'GET /swagger-ui.html',
       'tier' => 'new-page',
@@ -3621,7 +3877,7 @@ return array (
       'priority' => NULL,
       'unanchored' => false,
     ),
-    134 => 
+    144 => 
     array (
       'id' => 'GET /swagger-ui/index.html',
       'tier' => 'new-page',
@@ -3649,7 +3905,7 @@ return array (
       'priority' => NULL,
       'unanchored' => false,
     ),
-    135 => 
+    145 => 
     array (
       'id' => 'GET /swagger',
       'tier' => 'new-page',
@@ -3677,7 +3933,7 @@ return array (
       'priority' => NULL,
       'unanchored' => false,
     ),
-    136 => 
+    146 => 
     array (
       'id' => 'GET /api/__swagger__/',
       'tier' => 'new-page',
@@ -3705,7 +3961,7 @@ return array (
       'priority' => NULL,
       'unanchored' => false,
     ),
-    137 => 
+    147 => 
     array (
       'id' => 'GET /wp-json',
       'tier' => 'new-page',
@@ -3733,7 +3989,7 @@ return array (
       'priority' => NULL,
       'unanchored' => false,
     ),
-    138 => 
+    148 => 
     array (
       'id' => 'GET /api/v2',
       'tier' => 'new-page',
@@ -3760,7 +4016,7 @@ return array (
       'priority' => NULL,
       'unanchored' => false,
     ),
-    139 => 
+    149 => 
     array (
       'id' => 'GET /phpmyadmin/ChangeLog',
       'tier' => 'new-page',
@@ -3787,7 +4043,7 @@ return array (
       'priority' => NULL,
       'unanchored' => false,
     ),
-    140 => 
+    150 => 
     array (
       'id' => 'GET /phpmyadmin/README',
       'tier' => 'new-page',
@@ -3814,7 +4070,7 @@ return array (
       'priority' => NULL,
       'unanchored' => false,
     ),
-    141 => 
+    151 => 
     array (
       'id' => 'GET /phpmyadmin/doc/html/index.html',
       'tier' => 'new-page',
@@ -3841,7 +4097,7 @@ return array (
       'priority' => NULL,
       'unanchored' => false,
     ),
-    142 => 
+    152 => 
     array (
       'id' => 'GET /api/health',
       'tier' => 'new-page',
@@ -3869,7 +4125,7 @@ return array (
       'priority' => NULL,
       'unanchored' => false,
     ),
-    143 => 
+    153 => 
     array (
       'id' => 'GET /grafana/',
       'tier' => 'new-page',
@@ -3897,7 +4153,7 @@ return array (
       'priority' => NULL,
       'unanchored' => false,
     ),
-    144 => 
+    154 => 
     array (
       'id' => 'GET /grafana/login',
       'tier' => 'new-page',
@@ -3925,7 +4181,7 @@ return array (
       'priority' => NULL,
       'unanchored' => false,
     ),
-    145 => 
+    155 => 
     array (
       'id' => 'GET /api/json',
       'tier' => 'new-page',
@@ -3953,7 +4209,7 @@ return array (
       'priority' => NULL,
       'unanchored' => false,
     ),
-    146 => 
+    156 => 
     array (
       'id' => 'GET /pgadmin4/',
       'tier' => 'new-page',
@@ -3981,7 +4237,7 @@ return array (
       'priority' => NULL,
       'unanchored' => false,
     ),
-    147 => 
+    157 => 
     array (
       'id' => 'GET /pgadmin4/login',
       'tier' => 'new-page',
@@ -4009,7 +4265,7 @@ return array (
       'priority' => NULL,
       'unanchored' => false,
     ),
-    148 => 
+    158 => 
     array (
       'id' => 'GET /cpanel',
       'tier' => 'new-page',
@@ -4037,7 +4293,7 @@ return array (
       'priority' => NULL,
       'unanchored' => false,
     ),
-    149 => 
+    159 => 
     array (
       'id' => 'GET /whm',
       'tier' => 'new-page',
@@ -4066,7 +4322,7 @@ return array (
       'priority' => NULL,
       'unanchored' => false,
     ),
-    150 => 
+    160 => 
     array (
       'id' => 'GET /api/ps',
       'tier' => 'new-page',
@@ -4093,7 +4349,7 @@ return array (
       'priority' => NULL,
       'unanchored' => false,
     ),
-    151 => 
+    161 => 
     array (
       'id' => 'GET /.aws',
       'tier' => 'new-page',
@@ -4121,7 +4377,7 @@ return array (
       'priority' => NULL,
       'unanchored' => false,
     ),
-    152 => 
+    162 => 
     array (
       'id' => 'GET /.aws/',
       'tier' => 'new-page',
@@ -4149,7 +4405,7 @@ return array (
       'priority' => NULL,
       'unanchored' => false,
     ),
-    153 => 
+    163 => 
     array (
       'id' => 'GET /phpmyadmin/phpmyadmin.css.php',
       'tier' => 'new-page',
@@ -4176,7 +4432,7 @@ return array (
       'priority' => NULL,
       'unanchored' => false,
     ),
-    154 => 
+    164 => 
     array (
       'id' => 'GET /phpMyAdmin/phpmyadmin.css.php',
       'tier' => 'new-page',
@@ -4203,7 +4459,7 @@ return array (
       'priority' => NULL,
       'unanchored' => false,
     ),
-    155 => 
+    165 => 
     array (
       'id' => 'GET /pma/phpmyadmin.css.php',
       'tier' => 'new-page',
@@ -4230,7 +4486,7 @@ return array (
       'priority' => NULL,
       'unanchored' => false,
     ),
-    156 => 
+    166 => 
     array (
       'id' => 'GET /phpmyadmin.css.php',
       'tier' => 'new-page',
@@ -4253,6 +4509,1200 @@ return array (
         0 => 'phpmyadmin',
         1 => 'panel',
         2 => 'asset',
+      ),
+      'priority' => NULL,
+      'unanchored' => false,
+    ),
+    167 => 
+    array (
+      'id' => 'GET /phpinfo.php',
+      'tier' => 'new-page',
+      'family' => 'recon',
+      'owned_routes' => 
+      array (
+        0 => 
+        array (
+          'method' => 'GET',
+          'path' => '/phpinfo.php',
+          'via' => 'route-key',
+        ),
+      ),
+      'outbound_links' => 
+      array (
+      ),
+      'severity' => 'medium',
+      'tags' => 
+      array (
+        0 => 'recon',
+        1 => 'phpinfo',
+        2 => 'exposure',
+      ),
+      'priority' => NULL,
+      'unanchored' => false,
+    ),
+    168 => 
+    array (
+      'id' => 'GET /phpinfo',
+      'tier' => 'new-page',
+      'family' => 'recon',
+      'owned_routes' => 
+      array (
+        0 => 
+        array (
+          'method' => 'GET',
+          'path' => '/phpinfo',
+          'via' => 'route-key',
+        ),
+      ),
+      'outbound_links' => 
+      array (
+      ),
+      'severity' => 'medium',
+      'tags' => 
+      array (
+        0 => 'recon',
+        1 => 'phpinfo',
+        2 => 'exposure',
+      ),
+      'priority' => NULL,
+      'unanchored' => false,
+    ),
+    169 => 
+    array (
+      'id' => 'GET /.env.development',
+      'tier' => 'new-page',
+      'family' => 'config-disclosure',
+      'owned_routes' => 
+      array (
+        0 => 
+        array (
+          'method' => 'GET',
+          'path' => '/.env.development',
+          'via' => 'route-key',
+        ),
+      ),
+      'outbound_links' => 
+      array (
+      ),
+      'severity' => 'high',
+      'tags' => 
+      array (
+        0 => 'exposure',
+        1 => 'config-disclosure',
+        2 => 'secrets',
+      ),
+      'priority' => NULL,
+      'unanchored' => false,
+    ),
+    170 => 
+    array (
+      'id' => 'GET /.env.staging',
+      'tier' => 'new-page',
+      'family' => 'config-disclosure',
+      'owned_routes' => 
+      array (
+        0 => 
+        array (
+          'method' => 'GET',
+          'path' => '/.env.staging',
+          'via' => 'route-key',
+        ),
+      ),
+      'outbound_links' => 
+      array (
+      ),
+      'severity' => 'high',
+      'tags' => 
+      array (
+        0 => 'exposure',
+        1 => 'config-disclosure',
+        2 => 'secrets',
+      ),
+      'priority' => NULL,
+      'unanchored' => false,
+    ),
+    171 => 
+    array (
+      'id' => 'GET /.env.test',
+      'tier' => 'new-page',
+      'family' => 'config-disclosure',
+      'owned_routes' => 
+      array (
+        0 => 
+        array (
+          'method' => 'GET',
+          'path' => '/.env.test',
+          'via' => 'route-key',
+        ),
+      ),
+      'outbound_links' => 
+      array (
+      ),
+      'severity' => 'high',
+      'tags' => 
+      array (
+        0 => 'exposure',
+        1 => 'config-disclosure',
+        2 => 'secrets',
+      ),
+      'priority' => NULL,
+      'unanchored' => false,
+    ),
+    172 => 
+    array (
+      'id' => 'GET /.env.bak',
+      'tier' => 'new-page',
+      'family' => 'config-disclosure',
+      'owned_routes' => 
+      array (
+        0 => 
+        array (
+          'method' => 'GET',
+          'path' => '/.env.bak',
+          'via' => 'route-key',
+        ),
+      ),
+      'outbound_links' => 
+      array (
+      ),
+      'severity' => 'high',
+      'tags' => 
+      array (
+        0 => 'exposure',
+        1 => 'config-disclosure',
+        2 => 'secrets',
+      ),
+      'priority' => NULL,
+      'unanchored' => false,
+    ),
+    173 => 
+    array (
+      'id' => 'GET /.env.php',
+      'tier' => 'new-page',
+      'family' => 'config-disclosure',
+      'owned_routes' => 
+      array (
+        0 => 
+        array (
+          'method' => 'GET',
+          'path' => '/.env.php',
+          'via' => 'route-key',
+        ),
+      ),
+      'outbound_links' => 
+      array (
+      ),
+      'severity' => 'high',
+      'tags' => 
+      array (
+        0 => 'exposure',
+        1 => 'config-disclosure',
+        2 => 'secrets',
+        3 => 'source-leak',
+      ),
+      'priority' => NULL,
+      'unanchored' => false,
+    ),
+    174 => 
+    array (
+      'id' => 'GET /laravel/.env',
+      'tier' => 'new-page',
+      'family' => 'config-disclosure',
+      'owned_routes' => 
+      array (
+        0 => 
+        array (
+          'method' => 'GET',
+          'path' => '/laravel/.env',
+          'via' => 'route-key',
+        ),
+      ),
+      'outbound_links' => 
+      array (
+      ),
+      'severity' => 'high',
+      'tags' => 
+      array (
+        0 => 'exposure',
+        1 => 'config-disclosure',
+        2 => 'secrets',
+      ),
+      'priority' => NULL,
+      'unanchored' => false,
+    ),
+    175 => 
+    array (
+      'id' => 'GET /.git/HEAD',
+      'tier' => 'new-page',
+      'family' => 'vcs',
+      'owned_routes' => 
+      array (
+        0 => 
+        array (
+          'method' => 'GET',
+          'path' => '/.git/HEAD',
+          'via' => 'route-key',
+        ),
+      ),
+      'outbound_links' => 
+      array (
+      ),
+      'severity' => 'medium',
+      'tags' => 
+      array (
+        0 => 'exposure',
+        1 => 'vcs',
+        2 => 'git',
+        3 => 'source-disclosure',
+      ),
+      'priority' => NULL,
+      'unanchored' => false,
+    ),
+    176 => 
+    array (
+      'id' => 'GET /.git/packed-refs',
+      'tier' => 'new-page',
+      'family' => 'vcs',
+      'owned_routes' => 
+      array (
+        0 => 
+        array (
+          'method' => 'GET',
+          'path' => '/.git/packed-refs',
+          'via' => 'route-key',
+        ),
+      ),
+      'outbound_links' => 
+      array (
+      ),
+      'severity' => 'medium',
+      'tags' => 
+      array (
+        0 => 'exposure',
+        1 => 'vcs',
+        2 => 'git',
+        3 => 'source-disclosure',
+      ),
+      'priority' => NULL,
+      'unanchored' => false,
+    ),
+    177 => 
+    array (
+      'id' => 'GET /.git/refs/heads/main',
+      'tier' => 'new-page',
+      'family' => 'vcs',
+      'owned_routes' => 
+      array (
+        0 => 
+        array (
+          'method' => 'GET',
+          'path' => '/.git/refs/heads/main',
+          'via' => 'route-key',
+        ),
+      ),
+      'outbound_links' => 
+      array (
+      ),
+      'severity' => 'medium',
+      'tags' => 
+      array (
+        0 => 'exposure',
+        1 => 'vcs',
+        2 => 'git',
+        3 => 'source-disclosure',
+      ),
+      'priority' => NULL,
+      'unanchored' => false,
+    ),
+    178 => 
+    array (
+      'id' => 'GET /.git/description',
+      'tier' => 'new-page',
+      'family' => 'vcs',
+      'owned_routes' => 
+      array (
+        0 => 
+        array (
+          'method' => 'GET',
+          'path' => '/.git/description',
+          'via' => 'route-key',
+        ),
+      ),
+      'outbound_links' => 
+      array (
+      ),
+      'severity' => 'medium',
+      'tags' => 
+      array (
+        0 => 'exposure',
+        1 => 'vcs',
+        2 => 'git',
+        3 => 'source-disclosure',
+      ),
+      'priority' => NULL,
+      'unanchored' => false,
+    ),
+    179 => 
+    array (
+      'id' => 'GET /.git/COMMIT_EDITMSG',
+      'tier' => 'new-page',
+      'family' => 'vcs',
+      'owned_routes' => 
+      array (
+        0 => 
+        array (
+          'method' => 'GET',
+          'path' => '/.git/COMMIT_EDITMSG',
+          'via' => 'route-key',
+        ),
+      ),
+      'outbound_links' => 
+      array (
+      ),
+      'severity' => 'medium',
+      'tags' => 
+      array (
+        0 => 'exposure',
+        1 => 'vcs',
+        2 => 'git',
+        3 => 'source-disclosure',
+      ),
+      'priority' => NULL,
+      'unanchored' => false,
+    ),
+    180 => 
+    array (
+      'id' => 'GET /.git/info/exclude',
+      'tier' => 'new-page',
+      'family' => 'vcs',
+      'owned_routes' => 
+      array (
+        0 => 
+        array (
+          'method' => 'GET',
+          'path' => '/.git/info/exclude',
+          'via' => 'route-key',
+        ),
+      ),
+      'outbound_links' => 
+      array (
+      ),
+      'severity' => 'medium',
+      'tags' => 
+      array (
+        0 => 'exposure',
+        1 => 'vcs',
+        2 => 'git',
+        3 => 'source-disclosure',
+      ),
+      'priority' => NULL,
+      'unanchored' => false,
+    ),
+    181 => 
+    array (
+      'id' => 'GET /.git/info/refs',
+      'tier' => 'new-page',
+      'family' => 'vcs',
+      'owned_routes' => 
+      array (
+        0 => 
+        array (
+          'method' => 'GET',
+          'path' => '/.git/info/refs',
+          'via' => 'route-key',
+        ),
+      ),
+      'outbound_links' => 
+      array (
+      ),
+      'severity' => 'medium',
+      'tags' => 
+      array (
+        0 => 'exposure',
+        1 => 'vcs',
+        2 => 'git',
+        3 => 'source-disclosure',
+      ),
+      'priority' => NULL,
+      'unanchored' => false,
+    ),
+    182 => 
+    array (
+      'id' => 'GET /.svn/entries',
+      'tier' => 'new-page',
+      'family' => 'vcs',
+      'owned_routes' => 
+      array (
+        0 => 
+        array (
+          'method' => 'GET',
+          'path' => '/.svn/entries',
+          'via' => 'route-key',
+        ),
+      ),
+      'outbound_links' => 
+      array (
+      ),
+      'severity' => 'medium',
+      'tags' => 
+      array (
+        0 => 'exposure',
+        1 => 'vcs',
+        2 => 'subversion',
+        3 => 'source-disclosure',
+      ),
+      'priority' => NULL,
+      'unanchored' => false,
+    ),
+    183 => 
+    array (
+      'id' => 'GET /.hg/requires',
+      'tier' => 'new-page',
+      'family' => 'vcs',
+      'owned_routes' => 
+      array (
+        0 => 
+        array (
+          'method' => 'GET',
+          'path' => '/.hg/requires',
+          'via' => 'route-key',
+        ),
+      ),
+      'outbound_links' => 
+      array (
+      ),
+      'severity' => 'medium',
+      'tags' => 
+      array (
+        0 => 'exposure',
+        1 => 'vcs',
+        2 => 'mercurial',
+        3 => 'source-disclosure',
+      ),
+      'priority' => NULL,
+      'unanchored' => false,
+    ),
+    184 => 
+    array (
+      'id' => 'GET /CVS/Entries',
+      'tier' => 'new-page',
+      'family' => 'vcs',
+      'owned_routes' => 
+      array (
+        0 => 
+        array (
+          'method' => 'GET',
+          'path' => '/CVS/Entries',
+          'via' => 'route-key',
+        ),
+      ),
+      'outbound_links' => 
+      array (
+      ),
+      'severity' => 'medium',
+      'tags' => 
+      array (
+        0 => 'exposure',
+        1 => 'vcs',
+        2 => 'cvs',
+        3 => 'source-disclosure',
+      ),
+      'priority' => NULL,
+      'unanchored' => false,
+    ),
+    185 => 
+    array (
+      'id' => 'GET /typo3conf/',
+      'tier' => 'new-page',
+      'family' => 'cms',
+      'owned_routes' => 
+      array (
+        0 => 
+        array (
+          'method' => 'GET',
+          'path' => '/typo3conf/',
+          'via' => 'route-key',
+        ),
+      ),
+      'outbound_links' => 
+      array (
+      ),
+      'severity' => 'medium',
+      'tags' => 
+      array (
+        0 => 'exposure',
+        1 => 'cms',
+        2 => 'typo3',
+        3 => 'directory-listing',
+      ),
+      'priority' => NULL,
+      'unanchored' => false,
+    ),
+    186 => 
+    array (
+      'id' => 'GET /typo3conf',
+      'tier' => 'new-page',
+      'family' => 'cms',
+      'owned_routes' => 
+      array (
+        0 => 
+        array (
+          'method' => 'GET',
+          'path' => '/typo3conf',
+          'via' => 'route-key',
+        ),
+      ),
+      'outbound_links' => 
+      array (
+      ),
+      'severity' => 'medium',
+      'tags' => 
+      array (
+        0 => 'exposure',
+        1 => 'cms',
+        2 => 'typo3',
+        3 => 'directory-listing',
+      ),
+      'priority' => NULL,
+      'unanchored' => false,
+    ),
+    187 => 
+    array (
+      'id' => 'GET /typo3conf/localconf.php',
+      'tier' => 'new-page',
+      'family' => 'cms',
+      'owned_routes' => 
+      array (
+        0 => 
+        array (
+          'method' => 'GET',
+          'path' => '/typo3conf/localconf.php',
+          'via' => 'route-key',
+        ),
+      ),
+      'outbound_links' => 
+      array (
+      ),
+      'severity' => 'high',
+      'tags' => 
+      array (
+        0 => 'exposure',
+        1 => 'cms',
+        2 => 'typo3',
+        3 => 'config-disclosure',
+        4 => 'secrets',
+      ),
+      'priority' => NULL,
+      'unanchored' => false,
+    ),
+    188 => 
+    array (
+      'id' => 'GET /wp-json/wp/v2/users',
+      'tier' => 'new-page',
+      'family' => 'api',
+      'owned_routes' => 
+      array (
+        0 => 
+        array (
+          'method' => 'GET',
+          'path' => '/wp-json/wp/v2/users',
+          'via' => 'route-key',
+        ),
+      ),
+      'outbound_links' => 
+      array (
+      ),
+      'severity' => 'info',
+      'tags' => 
+      array (
+        0 => 'exposure',
+        1 => 'api',
+        2 => 'wordpress',
+        3 => 'discovery',
+      ),
+      'priority' => NULL,
+      'unanchored' => false,
+    ),
+    189 => 
+    array (
+      'id' => 'GET /wp-json/wp/v2/posts/',
+      'tier' => 'new-page',
+      'family' => 'api',
+      'owned_routes' => 
+      array (
+        0 => 
+        array (
+          'method' => 'GET',
+          'path' => '/wp-json/wp/v2/posts/',
+          'via' => 'route-key',
+        ),
+      ),
+      'outbound_links' => 
+      array (
+      ),
+      'severity' => 'info',
+      'tags' => 
+      array (
+        0 => 'exposure',
+        1 => 'api',
+        2 => 'wordpress',
+        3 => 'discovery',
+      ),
+      'priority' => NULL,
+      'unanchored' => false,
+    ),
+    190 => 
+    array (
+      'id' => 'GET /wp-json/wp/v2/pages',
+      'tier' => 'new-page',
+      'family' => 'api',
+      'owned_routes' => 
+      array (
+        0 => 
+        array (
+          'method' => 'GET',
+          'path' => '/wp-json/wp/v2/pages',
+          'via' => 'route-key',
+        ),
+      ),
+      'outbound_links' => 
+      array (
+      ),
+      'severity' => 'info',
+      'tags' => 
+      array (
+        0 => 'exposure',
+        1 => 'api',
+        2 => 'wordpress',
+        3 => 'discovery',
+      ),
+      'priority' => NULL,
+      'unanchored' => false,
+    ),
+    191 => 
+    array (
+      'id' => 'GET /wp-json/wp/v2/pages/',
+      'tier' => 'new-page',
+      'family' => 'api',
+      'owned_routes' => 
+      array (
+        0 => 
+        array (
+          'method' => 'GET',
+          'path' => '/wp-json/wp/v2/pages/',
+          'via' => 'route-key',
+        ),
+      ),
+      'outbound_links' => 
+      array (
+      ),
+      'severity' => 'info',
+      'tags' => 
+      array (
+        0 => 'exposure',
+        1 => 'api',
+        2 => 'wordpress',
+        3 => 'discovery',
+      ),
+      'priority' => NULL,
+      'unanchored' => false,
+    ),
+    192 => 
+    array (
+      'id' => 'GET /wp-json/wp/v2/comments',
+      'tier' => 'new-page',
+      'family' => 'api',
+      'owned_routes' => 
+      array (
+        0 => 
+        array (
+          'method' => 'GET',
+          'path' => '/wp-json/wp/v2/comments',
+          'via' => 'route-key',
+        ),
+      ),
+      'outbound_links' => 
+      array (
+      ),
+      'severity' => 'info',
+      'tags' => 
+      array (
+        0 => 'exposure',
+        1 => 'api',
+        2 => 'wordpress',
+        3 => 'discovery',
+      ),
+      'priority' => NULL,
+      'unanchored' => false,
+    ),
+    193 => 
+    array (
+      'id' => 'GET /wp-json/wp/v2/comments/',
+      'tier' => 'new-page',
+      'family' => 'api',
+      'owned_routes' => 
+      array (
+        0 => 
+        array (
+          'method' => 'GET',
+          'path' => '/wp-json/wp/v2/comments/',
+          'via' => 'route-key',
+        ),
+      ),
+      'outbound_links' => 
+      array (
+      ),
+      'severity' => 'info',
+      'tags' => 
+      array (
+        0 => 'exposure',
+        1 => 'api',
+        2 => 'wordpress',
+        3 => 'discovery',
+      ),
+      'priority' => NULL,
+      'unanchored' => false,
+    ),
+    194 => 
+    array (
+      'id' => 'GET /wp-json/wp/v2/media',
+      'tier' => 'new-page',
+      'family' => 'api',
+      'owned_routes' => 
+      array (
+        0 => 
+        array (
+          'method' => 'GET',
+          'path' => '/wp-json/wp/v2/media',
+          'via' => 'route-key',
+        ),
+      ),
+      'outbound_links' => 
+      array (
+      ),
+      'severity' => 'info',
+      'tags' => 
+      array (
+        0 => 'exposure',
+        1 => 'api',
+        2 => 'wordpress',
+        3 => 'discovery',
+      ),
+      'priority' => NULL,
+      'unanchored' => false,
+    ),
+    195 => 
+    array (
+      'id' => 'GET /wp-json/wp/v2/media/',
+      'tier' => 'new-page',
+      'family' => 'api',
+      'owned_routes' => 
+      array (
+        0 => 
+        array (
+          'method' => 'GET',
+          'path' => '/wp-json/wp/v2/media/',
+          'via' => 'route-key',
+        ),
+      ),
+      'outbound_links' => 
+      array (
+      ),
+      'severity' => 'info',
+      'tags' => 
+      array (
+        0 => 'exposure',
+        1 => 'api',
+        2 => 'wordpress',
+        3 => 'discovery',
+      ),
+      'priority' => NULL,
+      'unanchored' => false,
+    ),
+    196 => 
+    array (
+      'id' => 'GET /wp-json/wp/v2/categories',
+      'tier' => 'new-page',
+      'family' => 'api',
+      'owned_routes' => 
+      array (
+        0 => 
+        array (
+          'method' => 'GET',
+          'path' => '/wp-json/wp/v2/categories',
+          'via' => 'route-key',
+        ),
+      ),
+      'outbound_links' => 
+      array (
+      ),
+      'severity' => 'info',
+      'tags' => 
+      array (
+        0 => 'exposure',
+        1 => 'api',
+        2 => 'wordpress',
+        3 => 'discovery',
+      ),
+      'priority' => NULL,
+      'unanchored' => false,
+    ),
+    197 => 
+    array (
+      'id' => 'GET /wp-json/wp/v2/categories/',
+      'tier' => 'new-page',
+      'family' => 'api',
+      'owned_routes' => 
+      array (
+        0 => 
+        array (
+          'method' => 'GET',
+          'path' => '/wp-json/wp/v2/categories/',
+          'via' => 'route-key',
+        ),
+      ),
+      'outbound_links' => 
+      array (
+      ),
+      'severity' => 'info',
+      'tags' => 
+      array (
+        0 => 'exposure',
+        1 => 'api',
+        2 => 'wordpress',
+        3 => 'discovery',
+      ),
+      'priority' => NULL,
+      'unanchored' => false,
+    ),
+    198 => 
+    array (
+      'id' => 'GET /wp-json/wp/v2/tags',
+      'tier' => 'new-page',
+      'family' => 'api',
+      'owned_routes' => 
+      array (
+        0 => 
+        array (
+          'method' => 'GET',
+          'path' => '/wp-json/wp/v2/tags',
+          'via' => 'route-key',
+        ),
+      ),
+      'outbound_links' => 
+      array (
+      ),
+      'severity' => 'info',
+      'tags' => 
+      array (
+        0 => 'exposure',
+        1 => 'api',
+        2 => 'wordpress',
+        3 => 'discovery',
+      ),
+      'priority' => NULL,
+      'unanchored' => false,
+    ),
+    199 => 
+    array (
+      'id' => 'GET /wp-json/wp/v2/tags/',
+      'tier' => 'new-page',
+      'family' => 'api',
+      'owned_routes' => 
+      array (
+        0 => 
+        array (
+          'method' => 'GET',
+          'path' => '/wp-json/wp/v2/tags/',
+          'via' => 'route-key',
+        ),
+      ),
+      'outbound_links' => 
+      array (
+      ),
+      'severity' => 'info',
+      'tags' => 
+      array (
+        0 => 'exposure',
+        1 => 'api',
+        2 => 'wordpress',
+        3 => 'discovery',
+      ),
+      'priority' => NULL,
+      'unanchored' => false,
+    ),
+    200 => 
+    array (
+      'id' => 'GET /wp-json/wp/v2/types',
+      'tier' => 'new-page',
+      'family' => 'api',
+      'owned_routes' => 
+      array (
+        0 => 
+        array (
+          'method' => 'GET',
+          'path' => '/wp-json/wp/v2/types',
+          'via' => 'route-key',
+        ),
+      ),
+      'outbound_links' => 
+      array (
+      ),
+      'severity' => 'info',
+      'tags' => 
+      array (
+        0 => 'exposure',
+        1 => 'api',
+        2 => 'wordpress',
+        3 => 'discovery',
+      ),
+      'priority' => NULL,
+      'unanchored' => false,
+    ),
+    201 => 
+    array (
+      'id' => 'GET /wp-json/wp/v2/types/',
+      'tier' => 'new-page',
+      'family' => 'api',
+      'owned_routes' => 
+      array (
+        0 => 
+        array (
+          'method' => 'GET',
+          'path' => '/wp-json/wp/v2/types/',
+          'via' => 'route-key',
+        ),
+      ),
+      'outbound_links' => 
+      array (
+      ),
+      'severity' => 'info',
+      'tags' => 
+      array (
+        0 => 'exposure',
+        1 => 'api',
+        2 => 'wordpress',
+        3 => 'discovery',
+      ),
+      'priority' => NULL,
+      'unanchored' => false,
+    ),
+    202 => 
+    array (
+      'id' => 'GET /wp-json/wp/v2/statuses',
+      'tier' => 'new-page',
+      'family' => 'api',
+      'owned_routes' => 
+      array (
+        0 => 
+        array (
+          'method' => 'GET',
+          'path' => '/wp-json/wp/v2/statuses',
+          'via' => 'route-key',
+        ),
+      ),
+      'outbound_links' => 
+      array (
+      ),
+      'severity' => 'info',
+      'tags' => 
+      array (
+        0 => 'exposure',
+        1 => 'api',
+        2 => 'wordpress',
+        3 => 'discovery',
+      ),
+      'priority' => NULL,
+      'unanchored' => false,
+    ),
+    203 => 
+    array (
+      'id' => 'GET /wp-json/wp/v2/statuses/',
+      'tier' => 'new-page',
+      'family' => 'api',
+      'owned_routes' => 
+      array (
+        0 => 
+        array (
+          'method' => 'GET',
+          'path' => '/wp-json/wp/v2/statuses/',
+          'via' => 'route-key',
+        ),
+      ),
+      'outbound_links' => 
+      array (
+      ),
+      'severity' => 'info',
+      'tags' => 
+      array (
+        0 => 'exposure',
+        1 => 'api',
+        2 => 'wordpress',
+        3 => 'discovery',
+      ),
+      'priority' => NULL,
+      'unanchored' => false,
+    ),
+    204 => 
+    array (
+      'id' => 'GET /wp-json/wp/v2/settings',
+      'tier' => 'new-page',
+      'family' => 'api',
+      'owned_routes' => 
+      array (
+        0 => 
+        array (
+          'method' => 'GET',
+          'path' => '/wp-json/wp/v2/settings',
+          'via' => 'route-key',
+        ),
+      ),
+      'outbound_links' => 
+      array (
+      ),
+      'severity' => 'info',
+      'tags' => 
+      array (
+        0 => 'exposure',
+        1 => 'api',
+        2 => 'wordpress',
+        3 => 'discovery',
+      ),
+      'priority' => NULL,
+      'unanchored' => false,
+    ),
+    205 => 
+    array (
+      'id' => 'GET /wp-json/wp/v2/settings/',
+      'tier' => 'new-page',
+      'family' => 'api',
+      'owned_routes' => 
+      array (
+        0 => 
+        array (
+          'method' => 'GET',
+          'path' => '/wp-json/wp/v2/settings/',
+          'via' => 'route-key',
+        ),
+      ),
+      'outbound_links' => 
+      array (
+      ),
+      'severity' => 'info',
+      'tags' => 
+      array (
+        0 => 'exposure',
+        1 => 'api',
+        2 => 'wordpress',
+        3 => 'discovery',
+      ),
+      'priority' => NULL,
+      'unanchored' => false,
+    ),
+    206 => 
+    array (
+      'id' => 'GET /grafana/favicon.ico',
+      'tier' => 'new-page',
+      'family' => 'grafana',
+      'owned_routes' => 
+      array (
+        0 => 
+        array (
+          'method' => 'GET',
+          'path' => '/grafana/favicon.ico',
+          'via' => 'route-key',
+        ),
+      ),
+      'outbound_links' => 
+      array (
+      ),
+      'severity' => 'info',
+      'tags' => 
+      array (
+        0 => 'grafana',
+        1 => 'favicon',
+        2 => 'exposure',
+      ),
+      'priority' => NULL,
+      'unanchored' => false,
+    ),
+    207 => 
+    array (
+      'id' => 'GET /phpmyadmin/favicon.ico',
+      'tier' => 'new-page',
+      'family' => 'phpmyadmin',
+      'owned_routes' => 
+      array (
+        0 => 
+        array (
+          'method' => 'GET',
+          'path' => '/phpmyadmin/favicon.ico',
+          'via' => 'route-key',
+        ),
+      ),
+      'outbound_links' => 
+      array (
+      ),
+      'severity' => 'info',
+      'tags' => 
+      array (
+        0 => 'phpmyadmin',
+        1 => 'favicon',
+        2 => 'exposure',
+      ),
+      'priority' => NULL,
+      'unanchored' => false,
+    ),
+    208 => 
+    array (
+      'id' => 'GET /jenkins/favicon.ico',
+      'tier' => 'new-page',
+      'family' => 'jenkins',
+      'owned_routes' => 
+      array (
+        0 => 
+        array (
+          'method' => 'GET',
+          'path' => '/jenkins/favicon.ico',
+          'via' => 'route-key',
+        ),
+      ),
+      'outbound_links' => 
+      array (
+      ),
+      'severity' => 'info',
+      'tags' => 
+      array (
+        0 => 'jenkins',
+        1 => 'favicon',
+        2 => 'exposure',
+      ),
+      'priority' => NULL,
+      'unanchored' => false,
+    ),
+    209 => 
+    array (
+      'id' => 'GET /manager/favicon.ico',
+      'tier' => 'new-page',
+      'family' => 'tomcat',
+      'owned_routes' => 
+      array (
+        0 => 
+        array (
+          'method' => 'GET',
+          'path' => '/manager/favicon.ico',
+          'via' => 'route-key',
+        ),
+      ),
+      'outbound_links' => 
+      array (
+      ),
+      'severity' => 'info',
+      'tags' => 
+      array (
+        0 => 'tomcat',
+        1 => 'favicon',
+        2 => 'exposure',
       ),
       'priority' => NULL,
       'unanchored' => false,
@@ -88483,6 +89933,30 @@ return array (
   array (
     0 => 
     array (
+      'id' => 'route-git-logs-head',
+      'needle' => 
+      array (
+        0 => 'git-logs-exposure',
+      ),
+    ),
+    1 => 
+    array (
+      'id' => 'route-bzr-branch-conf',
+      'needle' => 
+      array (
+        0 => 'exposed-bzr',
+      ),
+    ),
+    2 => 
+    array (
+      'id' => 'route-hg-hgrc',
+      'needle' => 
+      array (
+        0 => 'exposed-hg',
+      ),
+    ),
+    3 => 
+    array (
       'id' => 'route-git-config',
       'needle' => 
       array (
@@ -88490,7 +89964,70 @@ return array (
         1 => 'git',
       ),
     ),
-    1 => 
+    4 => 
+    array (
+      'id' => 'route-vcs-head',
+      'needle' => 
+      array (
+      ),
+    ),
+    5 => 
+    array (
+      'id' => 'route-vcs-packed-refs',
+      'needle' => 
+      array (
+      ),
+    ),
+    6 => 
+    array (
+      'id' => 'route-vcs-refs-main',
+      'needle' => 
+      array (
+      ),
+    ),
+    7 => 
+    array (
+      'id' => 'route-vcs-description',
+      'needle' => 
+      array (
+      ),
+    ),
+    8 => 
+    array (
+      'id' => 'route-vcs-commit-msg',
+      'needle' => 
+      array (
+      ),
+    ),
+    9 => 
+    array (
+      'id' => 'route-vcs-exclude',
+      'needle' => 
+      array (
+      ),
+    ),
+    10 => 
+    array (
+      'id' => 'route-vcs-info-refs',
+      'needle' => 
+      array (
+      ),
+    ),
+    11 => 
+    array (
+      'id' => 'route-vcs-svn-entries',
+      'needle' => 
+      array (
+      ),
+    ),
+    12 => 
+    array (
+      'id' => 'route-vcs-hg-requires',
+      'needle' => 
+      array (
+      ),
+    ),
+    13 => 
     array (
       'id' => 'route-dotenv',
       'needle' => 
@@ -88500,7 +90037,7 @@ return array (
         2 => 'environment',
       ),
     ),
-    2 => 
+    14 => 
     array (
       'id' => 'route-xmlrpc',
       'needle' => 
@@ -88509,7 +90046,7 @@ return array (
         1 => 'xml-rpc',
       ),
     ),
-    3 => 
+    15 => 
     array (
       'id' => 'route-wp-config',
       'needle' => 
@@ -88519,7 +90056,7 @@ return array (
         2 => 'wp-config',
       ),
     ),
-    4 => 
+    16 => 
     array (
       'id' => 'route-wp-login',
       'needle' => 
@@ -88529,7 +90066,7 @@ return array (
         2 => 'wp-registration-enabled',
       ),
     ),
-    5 => 
+    17 => 
     array (
       'id' => 'route-phpinfo',
       'needle' => 
@@ -88538,7 +90075,7 @@ return array (
         1 => 'php-info',
       ),
     ),
-    6 => 
+    18 => 
     array (
       'id' => 'route-htpasswd',
       'needle' => 
@@ -88546,7 +90083,7 @@ return array (
         0 => 'htpasswd',
       ),
     ),
-    7 => 
+    19 => 
     array (
       'id' => 'route-apache-server-status',
       'needle' => 
@@ -88556,7 +90093,7 @@ return array (
         2 => 'server-info',
       ),
     ),
-    8 => 
+    20 => 
     array (
       'id' => 'route-package-json',
       'needle' => 
@@ -88564,7 +90101,7 @@ return array (
         0 => 'package-json',
       ),
     ),
-    9 => 
+    21 => 
     array (
       'id' => 'route-npm-debug-log',
       'needle' => 
@@ -88572,7 +90109,7 @@ return array (
         0 => 'npm-debug-log',
       ),
     ),
-    10 => 
+    22 => 
     array (
       'id' => 'route-npmrc',
       'needle' => 
@@ -88582,14 +90119,14 @@ return array (
         2 => 'npm-registry',
       ),
     ),
-    11 => 
+    23 => 
     array (
       'id' => 'route-ssh-private-key',
       'needle' => 
       array (
       ),
     ),
-    12 => 
+    24 => 
     array (
       'id' => 'route-sql-dump',
       'needle' => 
@@ -88601,7 +90138,7 @@ return array (
         4 => 'db-dump',
       ),
     ),
-    13 => 
+    25 => 
     array (
       'id' => 'route-weblogic',
       'needle' => 
@@ -88610,7 +90147,7 @@ return array (
         1 => 'weblogic',
       ),
     ),
-    14 => 
+    26 => 
     array (
       'id' => 'route-exchange-owa',
       'needle' => 
@@ -88619,7 +90156,7 @@ return array (
         1 => 'exchange-admin',
       ),
     ),
-    15 => 
+    27 => 
     array (
       'id' => 'route-adminer',
       'needle' => 
@@ -88627,7 +90164,7 @@ return array (
         0 => 'adminer-panel',
       ),
     ),
-    16 => 
+    28 => 
     array (
       'id' => 'route-joomla',
       'needle' => 
@@ -88635,7 +90172,7 @@ return array (
         0 => 'joomla-panel',
       ),
     ),
-    17 => 
+    29 => 
     array (
       'id' => 'route-wp-readme',
       'needle' => 
@@ -88643,7 +90180,7 @@ return array (
         0 => 'wordpress-readme-file',
       ),
     ),
-    18 => 
+    30 => 
     array (
       'id' => 'route-citrix',
       'needle' => 
@@ -88651,7 +90188,7 @@ return array (
         0 => 'citrix-adc-gateway-panel',
       ),
     ),
-    19 => 
+    31 => 
     array (
       'id' => 'route-directory-listing',
       'needle' => 
@@ -88659,7 +90196,7 @@ return array (
         0 => 'directory-listing',
       ),
     ),
-    20 => 
+    32 => 
     array (
       'id' => 'route-django-admin',
       'needle' => 
@@ -88668,7 +90205,7 @@ return array (
         1 => 'default-django-page',
       ),
     ),
-    21 => 
+    33 => 
     array (
       'id' => 'route-tomcat-manager',
       'needle' => 
@@ -88678,84 +90215,84 @@ return array (
         2 => 'tomcat',
       ),
     ),
-    22 => 
+    34 => 
     array (
       'id' => 'route-basic-auth',
       'needle' => 
       array (
       ),
     ),
-    23 => 
+    35 => 
     array (
       'id' => 'route-credentials-txt',
       'needle' => 
       array (
       ),
     ),
-    24 => 
+    36 => 
     array (
       'id' => 'route-terraform-tfstate',
       'needle' => 
       array (
       ),
     ),
-    25 => 
+    37 => 
     array (
       'id' => 'route-users-csv',
       'needle' => 
       array (
       ),
     ),
-    26 => 
+    38 => 
     array (
       'id' => 'route-sql-backup',
       'needle' => 
       array (
       ),
     ),
-    27 => 
+    39 => 
     array (
       'id' => 'route-dotaws-listing',
       'needle' => 
       array (
       ),
     ),
-    28 => 
+    40 => 
     array (
       'id' => 'route-aws-cli-credentials',
       'needle' => 
       array (
       ),
     ),
-    29 => 
+    41 => 
     array (
       'id' => 'route-aws-cli-config',
       'needle' => 
       array (
       ),
     ),
-    30 => 
+    42 => 
     array (
       'id' => 'route-phpmyadmin',
       'needle' => 
       array (
       ),
     ),
-    31 => 
+    43 => 
     array (
       'id' => 'route-phpmyadmin-css',
       'needle' => 
       array (
       ),
     ),
-    32 => 
+    44 => 
     array (
       'id' => 'route-ai-claude-json',
       'needle' => 
       array (
       ),
     ),
-    33 => 
+    45 => 
     array (
       'id' => 'route-ai-claude-settings',
       'needle' => 
@@ -88763,63 +90300,63 @@ return array (
         0 => 'claude-settings-exposure',
       ),
     ),
-    34 => 
+    46 => 
     array (
       'id' => 'route-ai-claude-desktop',
       'needle' => 
       array (
       ),
     ),
-    35 => 
+    47 => 
     array (
       'id' => 'route-ai-mcp-json',
       'needle' => 
       array (
       ),
     ),
-    36 => 
+    48 => 
     array (
       'id' => 'route-ai-continue',
       'needle' => 
       array (
       ),
     ),
-    37 => 
+    49 => 
     array (
       'id' => 'route-ai-aider',
       'needle' => 
       array (
       ),
     ),
-    38 => 
+    50 => 
     array (
       'id' => 'route-ai-copilot-token',
       'needle' => 
       array (
       ),
     ),
-    39 => 
+    51 => 
     array (
       'id' => 'route-ai-openai-models',
       'needle' => 
       array (
       ),
     ),
-    40 => 
+    52 => 
     array (
       'id' => 'route-mcp-endpoint',
       'needle' => 
       array (
       ),
     ),
-    41 => 
+    53 => 
     array (
       'id' => 'route-llm-auth',
       'needle' => 
       array (
       ),
     ),
-    42 => 
+    54 => 
     array (
       'id' => 'route-v1-models-enrich',
       'needle' => 
@@ -88828,7 +90365,7 @@ return array (
         1 => 'jan-detect',
       ),
     ),
-    43 => 
+    55 => 
     array (
       'id' => 'route-v1-models-vllm',
       'needle' => 
@@ -88836,63 +90373,63 @@ return array (
         0 => 'vllm-openai-api-exposed',
       ),
     ),
-    44 => 
+    56 => 
     array (
       'id' => 'route-ai-ollama-version',
       'needle' => 
       array (
       ),
     ),
-    45 => 
+    57 => 
     array (
       'id' => 'route-config-php',
       'needle' => 
       array (
       ),
     ),
-    46 => 
+    58 => 
     array (
       'id' => 'route-ai-ollama-tags',
       'needle' => 
       array (
       ),
     ),
-    47 => 
+    59 => 
     array (
       'id' => 'route-envfile-prod',
       'needle' => 
       array (
       ),
     ),
-    48 => 
+    60 => 
     array (
       'id' => 'route-ai-ollama-ps',
       'needle' => 
       array (
       ),
     ),
-    49 => 
+    61 => 
     array (
       'id' => 'route-secrets-json',
       'needle' => 
       array (
       ),
     ),
-    50 => 
+    62 => 
     array (
       'id' => 'route-docker-compose',
       'needle' => 
       array (
       ),
     ),
-    51 => 
+    63 => 
     array (
       'id' => 'route-application-properties',
       'needle' => 
       array (
       ),
     ),
-    52 => 
+    64 => 
     array (
       'id' => 'route-application-yml',
       'needle' => 
@@ -88900,7 +90437,7 @@ return array (
         0 => 'application-yaml',
       ),
     ),
-    53 => 
+    65 => 
     array (
       'id' => 'route-settings-json',
       'needle' => 
@@ -88908,7 +90445,7 @@ return array (
         0 => 'vscode-settings',
       ),
     ),
-    54 => 
+    66 => 
     array (
       'id' => 'route-web-config',
       'needle' => 
@@ -88916,7 +90453,7 @@ return array (
         0 => 'web-config',
       ),
     ),
-    55 => 
+    67 => 
     array (
       'id' => 'route-config-js-firebase',
       'needle' => 
@@ -88924,14 +90461,14 @@ return array (
         0 => 'firebase-config-exposure',
       ),
     ),
-    56 => 
+    68 => 
     array (
       'id' => 'route-envfile-local',
       'needle' => 
       array (
       ),
     ),
-    57 => 
+    69 => 
     array (
       'id' => 'route-react-runtime-env',
       'needle' => 
@@ -88939,7 +90476,49 @@ return array (
         0 => 'reactapp-env-js',
       ),
     ),
-    58 => 
+    70 => 
+    array (
+      'id' => 'route-envfile-dev',
+      'needle' => 
+      array (
+      ),
+    ),
+    71 => 
+    array (
+      'id' => 'route-envfile-staging',
+      'needle' => 
+      array (
+      ),
+    ),
+    72 => 
+    array (
+      'id' => 'route-envfile-test',
+      'needle' => 
+      array (
+      ),
+    ),
+    73 => 
+    array (
+      'id' => 'route-envfile-bak',
+      'needle' => 
+      array (
+      ),
+    ),
+    74 => 
+    array (
+      'id' => 'route-envfile-php-src',
+      'needle' => 
+      array (
+      ),
+    ),
+    75 => 
+    array (
+      'id' => 'route-envfile-laravel',
+      'needle' => 
+      array (
+      ),
+    ),
+    76 => 
     array (
       'id' => 'route-iceflow-vpn-log',
       'needle' => 
@@ -88947,7 +90526,7 @@ return array (
         0 => 'iceflow-vpn-disclosure',
       ),
     ),
-    59 => 
+    77 => 
     array (
       'id' => 'route-laravel-log-file',
       'needle' => 
@@ -88955,7 +90534,7 @@ return array (
         0 => 'laravel-log-file',
       ),
     ),
-    60 => 
+    78 => 
     array (
       'id' => 'route-firebase-debug-log',
       'needle' => 
@@ -88963,7 +90542,7 @@ return array (
         0 => 'firebase-debug-log',
       ),
     ),
-    61 => 
+    79 => 
     array (
       'id' => 'route-magento-debug-log',
       'needle' => 
@@ -88971,7 +90550,7 @@ return array (
         0 => 'magento-debug-log-exposure',
       ),
     ),
-    62 => 
+    80 => 
     array (
       'id' => 'route-rails-development-log',
       'needle' => 
@@ -88979,7 +90558,7 @@ return array (
         0 => 'development-logs',
       ),
     ),
-    63 => 
+    81 => 
     array (
       'id' => 'route-rails-production-log',
       'needle' => 
@@ -88987,7 +90566,7 @@ return array (
         0 => 'production-log',
       ),
     ),
-    64 => 
+    82 => 
     array (
       'id' => 'route-access-log',
       'needle' => 
@@ -88995,70 +90574,70 @@ return array (
         0 => 'access-log-file',
       ),
     ),
-    65 => 
+    83 => 
     array (
       'id' => 'route-wp-debug-log',
       'needle' => 
       array (
       ),
     ),
-    66 => 
+    84 => 
     array (
       'id' => 'route-php-error-log',
       'needle' => 
       array (
       ),
     ),
-    67 => 
+    85 => 
     array (
       'id' => 'route-laravel-log-alt',
       'needle' => 
       array (
       ),
     ),
-    68 => 
+    86 => 
     array (
       'id' => 'route-nginx-error-log',
       'needle' => 
       array (
       ),
     ),
-    69 => 
+    87 => 
     array (
       'id' => 'route-nginx-access-log',
       'needle' => 
       array (
       ),
     ),
-    70 => 
+    88 => 
     array (
       'id' => 'route-apache-error-log',
       'needle' => 
       array (
       ),
     ),
-    71 => 
+    89 => 
     array (
       'id' => 'route-apache-access-log',
       'needle' => 
       array (
       ),
     ),
-    72 => 
+    90 => 
     array (
       'id' => 'route-app-log',
       'needle' => 
       array (
       ),
     ),
-    73 => 
+    91 => 
     array (
       'id' => 'route-catalina-out',
       'needle' => 
       array (
       ),
     ),
-    74 => 
+    92 => 
     array (
       'id' => 'route-ignition-health-check',
       'needle' => 
@@ -89066,7 +90645,7 @@ return array (
         0 => 'laravel-debug-enabled',
       ),
     ),
-    75 => 
+    93 => 
     array (
       'id' => 'route-ignition-logs',
       'needle' => 
@@ -89074,7 +90653,7 @@ return array (
         0 => 'laravel-ignition-log-viewer',
       ),
     ),
-    76 => 
+    94 => 
     array (
       'id' => 'route-symfony-profiler',
       'needle' => 
@@ -89082,7 +90661,7 @@ return array (
         0 => 'symfony-profiler',
       ),
     ),
-    77 => 
+    95 => 
     array (
       'id' => 'route-werkzeug-console',
       'needle' => 
@@ -89090,7 +90669,7 @@ return array (
         0 => 'werkzeug-debugger-detect',
       ),
     ),
-    78 => 
+    96 => 
     array (
       'id' => 'route-telescope',
       'needle' => 
@@ -89098,7 +90677,7 @@ return array (
         0 => 'laravel-telescope',
       ),
     ),
-    79 => 
+    97 => 
     array (
       'id' => 'route-actuator-env',
       'needle' => 
@@ -89106,7 +90685,7 @@ return array (
         0 => 'springboot-env',
       ),
     ),
-    80 => 
+    98 => 
     array (
       'id' => 'route-actuator-health',
       'needle' => 
@@ -89114,7 +90693,7 @@ return array (
         0 => 'springboot-health',
       ),
     ),
-    81 => 
+    99 => 
     array (
       'id' => 'route-actuator-mappings',
       'needle' => 
@@ -89122,7 +90701,7 @@ return array (
         0 => 'springboot-mappings',
       ),
     ),
-    82 => 
+    100 => 
     array (
       'id' => 'route-actuator-info',
       'needle' => 
@@ -89130,7 +90709,7 @@ return array (
         0 => 'springboot-info',
       ),
     ),
-    83 => 
+    101 => 
     array (
       'id' => 'route-actuator-beans',
       'needle' => 
@@ -89138,7 +90717,7 @@ return array (
         0 => 'springboot-beans',
       ),
     ),
-    84 => 
+    102 => 
     array (
       'id' => 'route-actuator-loggers',
       'needle' => 
@@ -89146,7 +90725,7 @@ return array (
         0 => 'springboot-loggers',
       ),
     ),
-    85 => 
+    103 => 
     array (
       'id' => 'route-actuator-threaddump',
       'needle' => 
@@ -89154,7 +90733,7 @@ return array (
         0 => 'springboot-threaddump',
       ),
     ),
-    86 => 
+    104 => 
     array (
       'id' => 'route-actuator-configprops',
       'needle' => 
@@ -89162,7 +90741,7 @@ return array (
         0 => 'springboot-configprops',
       ),
     ),
-    87 => 
+    105 => 
     array (
       'id' => 'route-openapi-json',
       'needle' => 
@@ -89170,7 +90749,7 @@ return array (
         0 => 'openapi',
       ),
     ),
-    88 => 
+    106 => 
     array (
       'id' => 'route-openapi-json-swaggerui',
       'needle' => 
@@ -89178,7 +90757,7 @@ return array (
         0 => 'fastapi-docs',
       ),
     ),
-    89 => 
+    107 => 
     array (
       'id' => 'route-openapi-redoc',
       'needle' => 
@@ -89186,7 +90765,7 @@ return array (
         0 => 'redoc-api-docs',
       ),
     ),
-    90 => 
+    108 => 
     array (
       'id' => 'route-security-txt',
       'needle' => 
@@ -89194,7 +90773,7 @@ return array (
         0 => 'security-txt',
       ),
     ),
-    91 => 
+    109 => 
     array (
       'id' => 'route-ai-plugin',
       'needle' => 
@@ -89202,7 +90781,7 @@ return array (
         0 => 'openai-plugin',
       ),
     ),
-    92 => 
+    110 => 
     array (
       'id' => 'route-graphql-introspection',
       'needle' => 
@@ -89210,49 +90789,84 @@ return array (
         0 => 'CVE-2019-9880',
       ),
     ),
-    93 => 
+    111 => 
     array (
       'id' => 'route-swagger-json-doc',
       'needle' => 
       array (
       ),
     ),
-    94 => 
+    112 => 
     array (
       'id' => 'route-swagger2-apidocs',
       'needle' => 
       array (
       ),
     ),
-    95 => 
+    113 => 
     array (
       'id' => 'route-swagger-yaml-doc',
       'needle' => 
       array (
       ),
     ),
-    96 => 
+    114 => 
     array (
       'id' => 'route-swagger-ui-html',
       'needle' => 
       array (
       ),
     ),
-    97 => 
+    115 => 
     array (
       'id' => 'route-wp-json',
       'needle' => 
       array (
       ),
     ),
-    98 => 
+    116 => 
     array (
       'id' => 'route-api-v2',
       'needle' => 
       array (
       ),
     ),
-    99 => 
+    117 => 
+    array (
+      'id' => 'route-wp-json-v2-users',
+      'needle' => 
+      array (
+      ),
+    ),
+    118 => 
+    array (
+      'id' => 'route-wp-json-v2-posts',
+      'needle' => 
+      array (
+      ),
+    ),
+    119 => 
+    array (
+      'id' => 'route-wp-json-v2-pages',
+      'needle' => 
+      array (
+      ),
+    ),
+    120 => 
+    array (
+      'id' => 'route-wp-json-v2-comments',
+      'needle' => 
+      array (
+      ),
+    ),
+    121 => 
+    array (
+      'id' => 'route-wp-json-v2-media',
+      'needle' => 
+      array (
+      ),
+    ),
+    122 => 
     array (
       'id' => 'route-hikvision-deviceinfo',
       'needle' => 
@@ -89260,7 +90874,14 @@ return array (
         0 => 'CVE-2017-7921',
       ),
     ),
-    100 => 
+    123 => 
+    array (
+      'id' => 'route-wp-json-v2-categories',
+      'needle' => 
+      array (
+      ),
+    ),
+    124 => 
     array (
       'id' => 'route-hikvision-users',
       'needle' => 
@@ -89268,7 +90889,14 @@ return array (
         0 => 'hikvision-cam-info-exposure',
       ),
     ),
-    101 => 
+    125 => 
+    array (
+      'id' => 'route-wp-json-v2-tags',
+      'needle' => 
+      array (
+      ),
+    ),
+    126 => 
     array (
       'id' => 'route-netgear-currentsetting',
       'needle' => 
@@ -89276,7 +90904,14 @@ return array (
         0 => 'CVE-2024-30569',
       ),
     ),
-    102 => 
+    127 => 
+    array (
+      'id' => 'route-wp-json-v2-types',
+      'needle' => 
+      array (
+      ),
+    ),
+    128 => 
     array (
       'id' => 'route-synology-dsm',
       'needle' => 
@@ -89284,7 +90919,14 @@ return array (
         0 => 'synology-dsm-system-info',
       ),
     ),
-    103 => 
+    129 => 
+    array (
+      'id' => 'route-wp-json-v2-statuses',
+      'needle' => 
+      array (
+      ),
+    ),
+    130 => 
     array (
       'id' => 'route-avtech-machine',
       'needle' => 
@@ -89292,7 +90934,14 @@ return array (
         0 => 'avtech-dvr-exposure',
       ),
     ),
-    104 => 
+    131 => 
+    array (
+      'id' => 'route-wp-json-v2-settings',
+      'needle' => 
+      array (
+      ),
+    ),
+    132 => 
     array (
       'id' => 'route-tbk-dvr-devicersp',
       'needle' => 
@@ -89300,7 +90949,7 @@ return array (
         0 => 'CVE-2018-9995',
       ),
     ),
-    105 => 
+    133 => 
     array (
       'id' => 'route-huawei-deviceinfo',
       'needle' => 
@@ -89308,7 +90957,7 @@ return array (
         0 => 'huawei-router-auth-bypass',
       ),
     ),
-    106 => 
+    134 => 
     array (
       'id' => 'route-dlink-info-cgi',
       'needle' => 
@@ -89316,7 +90965,7 @@ return array (
         0 => 'CVE-2024-3274',
       ),
     ),
-    107 => 
+    135 => 
     array (
       'id' => 'route-dahua-sha1account',
       'needle' => 
@@ -89324,7 +90973,7 @@ return array (
         0 => 'CVE-2017-8229',
       ),
     ),
-    108 => 
+    136 => 
     array (
       'id' => 'route-apollo-device-config',
       'needle' => 
@@ -89332,7 +90981,7 @@ return array (
         0 => 'CVE-2024-25735',
       ),
     ),
-    109 => 
+    137 => 
     array (
       'id' => 'route-dahua-passwd',
       'needle' => 
@@ -89340,7 +90989,14 @@ return array (
         0 => 'CVE-2017-7925',
       ),
     ),
-    110 => 
+    138 => 
+    array (
+      'id' => 'route-nextjs',
+      'needle' => 
+      array (
+      ),
+    ),
+    139 => 
     array (
       'id' => 'route-qnap-qts',
       'needle' => 
@@ -89348,7 +91004,7 @@ return array (
         0 => 'qnap-qts-panel',
       ),
     ),
-    111 => 
+    140 => 
     array (
       'id' => 'route-hp-device-info',
       'needle' => 
@@ -89356,7 +91012,7 @@ return array (
         0 => 'hp-device-info-detect',
       ),
     ),
-    112 => 
+    141 => 
     array (
       'id' => 'route-openwrt-luci',
       'needle' => 
@@ -89364,7 +91020,7 @@ return array (
         0 => 'openwrt-luci-panel',
       ),
     ),
-    113 => 
+    142 => 
     array (
       'id' => 'route-dlink-getcfg',
       'needle' => 
@@ -89372,7 +91028,7 @@ return array (
         0 => 'CVE-2025-14528',
       ),
     ),
-    114 => 
+    143 => 
     array (
       'id' => 'route-wavlink-exportsettings',
       'needle' => 
@@ -89380,7 +91036,7 @@ return array (
         0 => 'CVE-2020-12127',
       ),
     ),
-    115 => 
+    144 => 
     array (
       'id' => 'route-epson-prtinfo',
       'needle' => 
@@ -89388,7 +91044,7 @@ return array (
         0 => 'epson-wf-series',
       ),
     ),
-    116 => 
+    145 => 
     array (
       'id' => 'route-hp-color-laserjet',
       'needle' => 
@@ -89396,7 +91052,7 @@ return array (
         0 => 'hp-color-laserjet-detect',
       ),
     ),
-    117 => 
+    146 => 
     array (
       'id' => 'route-webmin',
       'needle' => 
@@ -89404,7 +91060,7 @@ return array (
         0 => 'webmin-panel',
       ),
     ),
-    118 => 
+    147 => 
     array (
       'id' => 'route-phppgadmin',
       'needle' => 
@@ -89412,7 +91068,7 @@ return array (
         0 => 'phppgadmin-panel',
       ),
     ),
-    119 => 
+    148 => 
     array (
       'id' => 'route-kibana',
       'needle' => 
@@ -89420,7 +91076,7 @@ return array (
         0 => 'exposed-kibana',
       ),
     ),
-    120 => 
+    149 => 
     array (
       'id' => 'route-jenkins',
       'needle' => 
@@ -89428,7 +91084,7 @@ return array (
         0 => 'unauthenticated-jenkins',
       ),
     ),
-    121 => 
+    150 => 
     array (
       'id' => 'route-grafana-settings',
       'needle' => 
@@ -89436,72 +91092,128 @@ return array (
         0 => 'grafana-unauth-access',
       ),
     ),
-    122 => 
+    151 => 
     array (
       'id' => 'route-phpmyadmin-changelog',
       'needle' => 
       array (
       ),
     ),
-    123 => 
+    152 => 
     array (
       'id' => 'route-phpmyadmin-readme',
       'needle' => 
       array (
       ),
     ),
-    124 => 
+    153 => 
     array (
       'id' => 'route-phpmyadmin-doc',
       'needle' => 
       array (
       ),
     ),
-    125 => 
+    154 => 
     array (
       'id' => 'route-grafana-health',
       'needle' => 
       array (
       ),
     ),
-    126 => 
+    155 => 
     array (
       'id' => 'route-grafana-login',
       'needle' => 
       array (
       ),
     ),
-    127 => 
+    156 => 
     array (
       'id' => 'route-jenkins-apijson',
       'needle' => 
       array (
       ),
     ),
-    128 => 
+    157 => 
     array (
       'id' => 'route-pgadmin-login',
       'needle' => 
       array (
       ),
     ),
-    129 => 
+    158 => 
     array (
       'id' => 'route-cpanel-login',
       'needle' => 
       array (
       ),
     ),
-    130 => 
+    159 => 
     array (
       'id' => 'route-whm-login',
       'needle' => 
       array (
       ),
     ),
-    131 => 
+    160 => 
     array (
       'id' => 'route-phppgadmin-intro',
+      'needle' => 
+      array (
+      ),
+    ),
+    161 => 
+    array (
+      'id' => 'route-grafana-favicon',
+      'needle' => 
+      array (
+      ),
+    ),
+    162 => 
+    array (
+      'id' => 'route-phpmyadmin-favicon',
+      'needle' => 
+      array (
+      ),
+    ),
+    163 => 
+    array (
+      'id' => 'route-jenkins-favicon',
+      'needle' => 
+      array (
+      ),
+    ),
+    164 => 
+    array (
+      'id' => 'route-tomcat-favicon',
+      'needle' => 
+      array (
+      ),
+    ),
+    165 => 
+    array (
+      'id' => 'route-neutral-favicon',
+      'needle' => 
+      array (
+      ),
+    ),
+    166 => 
+    array (
+      'id' => 'route-vcs-cvs-entries',
+      'needle' => 
+      array (
+      ),
+    ),
+    167 => 
+    array (
+      'id' => 'route-typo3conf-listing',
+      'needle' => 
+      array (
+      ),
+    ),
+    168 => 
+    array (
+      'id' => 'route-typo3conf-localconf',
       'needle' => 
       array (
       ),

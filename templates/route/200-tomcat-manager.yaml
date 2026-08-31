@@ -9,7 +9,7 @@ response:
     Content-Type: "text/html;charset=utf-8"
   body: |
     <!DOCTYPE html>
-    <html><head><title>/manager</title></head>
+    <html><head><title>/manager</title><link rel="icon" href="/manager/favicon.ico"></head>
     <body>
     <h1>Tomcat Web Application Manager</h1>
     <table>

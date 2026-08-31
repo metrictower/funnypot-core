@@ -27,6 +27,7 @@ response:
     <title>Dashboard [Jenkins]</title>
     <meta name="ROBOTS" content="NOFOLLOW">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <link rel="icon" href="/jenkins/favicon.ico">
     <link rel="stylesheet" href="/static/{{fake.jenkinsres:hex:8}}/css/style.css" type="text/css">
     </head>
     <body>

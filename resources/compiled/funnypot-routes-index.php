@@ -924,6 +924,61 @@ return array (
       ),
       'name' => 'phpPgAdmin intro (version disclosure)',
     ),
+    'route-grafana-favicon' => 
+    array (
+      'sev' => 'info',
+      'tags' => 
+      array (
+        0 => 'grafana',
+        1 => 'favicon',
+        2 => 'exposure',
+      ),
+      'name' => 'Grafana favicon',
+    ),
+    'route-phpmyadmin-favicon' => 
+    array (
+      'sev' => 'info',
+      'tags' => 
+      array (
+        0 => 'phpmyadmin',
+        1 => 'favicon',
+        2 => 'exposure',
+      ),
+      'name' => 'phpMyAdmin favicon',
+    ),
+    'route-jenkins-favicon' => 
+    array (
+      'sev' => 'info',
+      'tags' => 
+      array (
+        0 => 'jenkins',
+        1 => 'favicon',
+        2 => 'exposure',
+      ),
+      'name' => 'Jenkins favicon',
+    ),
+    'route-tomcat-favicon' => 
+    array (
+      'sev' => 'info',
+      'tags' => 
+      array (
+        0 => 'tomcat',
+        1 => 'favicon',
+        2 => 'exposure',
+      ),
+      'name' => 'Tomcat favicon',
+    ),
+    'route-neutral-favicon' => 
+    array (
+      'sev' => 'info',
+      'tags' => 
+      array (
+        0 => 'favicon',
+        1 => 'favicon',
+        2 => 'exposure',
+      ),
+      'name' => 'Neutral favicon',
+    ),
     'route-vcs-cvs-entries' => 
     array (
       'sev' => 'medium',
@@ -3742,6 +3797,112 @@ return array (
         array (
           0 => 'route-phppgadmin-intro',
         ),
+      ),
+    ),
+    'GET /grafana/favicon.ico' => 
+    array (
+      0 => 
+      array (
+        's' => 200,
+        'bw' => 
+        array (
+        ),
+        'nf' => 
+        array (
+        ),
+        'pid' => 'route-grafana-favicon',
+        'sev' => 'info',
+        'sig' => 0,
+        't' => 
+        array (
+          0 => 'route-grafana-favicon',
+        ),
+        'bin' => 1,
+      ),
+    ),
+    'GET /phpmyadmin/favicon.ico' => 
+    array (
+      0 => 
+      array (
+        's' => 200,
+        'bw' => 
+        array (
+        ),
+        'nf' => 
+        array (
+        ),
+        'pid' => 'route-phpmyadmin-favicon',
+        'sev' => 'info',
+        'sig' => 0,
+        't' => 
+        array (
+          0 => 'route-phpmyadmin-favicon',
+        ),
+        'bin' => 1,
+      ),
+    ),
+    'GET /jenkins/favicon.ico' => 
+    array (
+      0 => 
+      array (
+        's' => 200,
+        'bw' => 
+        array (
+        ),
+        'nf' => 
+        array (
+        ),
+        'pid' => 'route-jenkins-favicon',
+        'sev' => 'info',
+        'sig' => 0,
+        't' => 
+        array (
+          0 => 'route-jenkins-favicon',
+        ),
+        'bin' => 1,
+      ),
+    ),
+    'GET /manager/favicon.ico' => 
+    array (
+      0 => 
+      array (
+        's' => 200,
+        'bw' => 
+        array (
+        ),
+        'nf' => 
+        array (
+        ),
+        'pid' => 'route-tomcat-favicon',
+        'sev' => 'info',
+        'sig' => 0,
+        't' => 
+        array (
+          0 => 'route-tomcat-favicon',
+        ),
+        'bin' => 1,
+      ),
+    ),
+    'GET /favicon.ico' => 
+    array (
+      0 => 
+      array (
+        's' => 200,
+        'bw' => 
+        array (
+        ),
+        'nf' => 
+        array (
+        ),
+        'pid' => 'route-neutral-favicon',
+        'sev' => 'info',
+        'sig' => 0,
+        't' => 
+        array (
+          0 => 'route-neutral-favicon',
+        ),
+        'w' => 25,
+        'bin' => 1,
       ),
     ),
     'GET /CVS/Entries' => 
