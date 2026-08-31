@@ -59,6 +59,24 @@ final class RouteTemplateEmulator extends AbstractEmulator
             return null;
         }
 
+        // Binary rule (FP-0230): the body is base64-at-rest — decode and serve VERBATIM. No
+        // DirectiveRenderer (icon bytes are not directive text), no taunt, no injection, no
+        // appendMissingTokens (a bin bundle carries no body words). Headers are still authored text
+        // (Content-Type: image/x-icon | image/png, no charset) and render normally. Headers are not
+        // part of the favicon hash, so this is free. A corrupt asset declines (app serves its 404).
+        if (!empty($rule['bin'])) {
+            $decoded = base64_decode((string) ($rule['body'] ?? ''), true);
+            if ($decoded === false) {
+                return null;
+            }
+            $binHeaders = [];
+            foreach ((array) ($rule['headers'] ?? []) as $name => $value) {
+                $binHeaders[(string) $name] = $this->renderer->render((string) $value, [], $seed);
+            }
+
+            return new EmulatedContent($decoded, $binHeaders);
+        }
+
         // Routes have no attacker payload, so captures are empty (seed-only directives). The 4th arg
         // is the operator canary map — empty on the default path (byte-identical to pre-FP-0239), and
         // carries the self-beacon URL only when prompt-injection seeding is configured on.

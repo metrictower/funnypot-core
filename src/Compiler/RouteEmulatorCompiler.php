@@ -107,18 +107,39 @@ final class RouteEmulatorCompiler
 
         $response = (array) $doc['response'];
         $headers = array_map('strval', (array) ($response['headers'] ?? []));
-        $body = (string) ($response['body'] ?? '');
-        if ($body === '') {
-            throw new RuntimeException("Route template {$file}: response.body is required.");
+
+        // Binary rule (FP-0230): an image/favicon body is stored base64-at-rest as
+        // `response.body_b64` (a `binary: true` marker forces it too) and decoded at serve. It is
+        // detected as the FIRST thing after reading $response — BEFORE the empty-`response.body`
+        // throw below — because a binary rule legitimately has no `response.body`. base64 is opaque
+        // ASCII, not directive text, so the directive/marker body guards are skipped for it; header
+        // text is still guarded exactly as for a text rule. Storing base64 (never raw bytes) keeps
+        // every compiled artifact ASCII-clean under var_export.
+        $isBinary = isset($response['body_b64']) || !empty($response['binary']);
+        if ($isBinary) {
+            if (isset($response['body'])) {
+                throw new RuntimeException("Route template {$file}: a binary rule carries response.body_b64, not response.body (both present).");
+            }
+            $body = (string) ($response['body_b64'] ?? '');
+            if ($body === '' || base64_decode($body, true) === false) {
+                throw new RuntimeException("Route template {$file}: response.body_b64 must be non-empty, strict base64.");
+            }
+        } else {
+            $body = (string) ($response['body'] ?? '');
+            if ($body === '') {
+                throw new RuntimeException("Route template {$file}: response.body is required.");
+            }
+            $this->assertKnownDirectives($body, $file);
         }
 
-        $this->assertKnownDirectives($body, $file);
         foreach ($headers as $name => $value) {
             $this->assertKnownDirectives((string) $name, $file);
             $this->assertKnownDirectives($value, $file);
             $this->assertStaticHeaderClean((string) $name, $value, $file);
         }
-        $this->assertMarkers($doc, $body, $headers, $file);
+        if (!$isBinary) {
+            $this->assertMarkers($doc, $body, $headers, $file);
+        }
 
         $rule = [
             'id' => (string) $doc['id'],
@@ -127,6 +148,10 @@ final class RouteEmulatorCompiler
             'headers' => $headers,
             '_priority' => (int) ($doc['priority'] ?? 100),
         ];
+        if ($isBinary) {
+            // Stamp the runtime marker: RouteTemplateEmulator base64-decodes and serves verbatim.
+            $rule['bin'] = 1;
+        }
         if (isset($doc['taunt'])) {
             $rule['taunt'] = $this->normalizeTaunt((array) $doc['taunt'], $file);
         }

@@ -103,6 +103,12 @@ foreach ($indexes as $index) {
         if (!is_array($rule)) {
             continue;
         }
+        // Binary rule (FP-0230): a `bin` route rule's `body` is base64 (opaque ASCII image bytes),
+        // not a textual matcher surface, so it has nothing for the denylist to legitimately hit —
+        // skip it to avoid scanning opaque bytes and any false-positive substring inside base64.
+        if (!empty($rule['bin'])) {
+            continue;
+        }
         $scanned++;
         $id = (string) ($rule['id'] ?? '?');
         // Two compiled shapes: attack rules nest served content under `response`; route rules carry

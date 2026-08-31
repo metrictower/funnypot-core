@@ -78,6 +78,22 @@ final class ResponseSynthesizer
     {
         $this->lastSkipReason = '';
 
+        // Binary rule (FP-0230): a `bin` bundle (favicon/image) carries empty bw/nf/rx/hw/sz, so
+        // minimal-synth would emit an EMPTY body. Route it to the rich emulator (which base64-decodes
+        // the bytes) REGARDLESS of style, so the icon serves even under MINIMAL. Favicon serving thus
+        // requires a registered RouteTemplateEmulator: a no-registry host ($this->emulators === null,
+        // e.g. a bare MINIMAL deploy) serves no favicon (returns null → app 404) rather than fatalling
+        // in tryEmulator (which dereferences $this->emulators->find()). tryEmulator re-validates via
+        // BundleValidator + richBodyFitsExtras, both trivially true on empty constraints, so the raw
+        // bytes are returned intact.
+        if (!empty($bundle['bin'])) {
+            if ($this->emulators === null) {
+                return null;
+            }
+
+            return $this->tryEmulator($bundle, $satisfies, $seed);
+        }
+
         // Rich emulator layer (validated; falls through to minimal on any mismatch).
         if ($this->style !== Style::MINIMAL && $this->emulators !== null) {
             $rich = $this->tryEmulator($bundle, $satisfies, $seed);
