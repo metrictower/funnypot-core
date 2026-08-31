@@ -35,6 +35,13 @@ final class PersonaIdentity
         // flight as the affected-side version for the React2Shell RSC family (CVE-2025-55182/-55183/
         // -55184). Derived like php.version so every Next.js surface on the deploy agrees.
         'nextjs.version',
+        // The Next.js build artifacts this host claims. Real Next.js derives the buildId and the
+        // `_next/static` asset content-hashes AT BUILD TIME, so they vary per deployment; hardcoding
+        // them fleet-wide (as the shipped shell first did) was a cross-deploy correlation signature.
+        // Seeded here so two funnypot Next.js hosts never share an identical buildId/asset hash, while
+        // staying denylist-safe (no bare `\b9\d{5}\b`) and inert. buildId is the 21-char nanoid shape;
+        // assetHash/appHash are the 16-hex content-hash shape (css+webpack chunk / main-app chunk).
+        'nextjs.buildId', 'nextjs.assetHash', 'nextjs.appHash',
         // The deploy-stable presentation class prefix. Derived from the SAME `|visual|prefix` hash
         // material VisualPersona uses, so the phpMyAdmin login/gate templates ({{persona.classPrefix}})
         // and the authed dashboard skin (VisualPersona::classPrefix()) resolve to one identical prefix.
@@ -195,6 +202,12 @@ final class PersonaIdentity
             // release line's patched version (CVE-2025-55182/-55183/-55184), so any deploy lands on
             // the affected side while still varying per deploy (the anti-fingerprint property).
             'nextjs.version' => self::pickProductVersion($slug, $domain, 'nextjs'),
+
+            // Per-deploy Next.js build artifacts (see FIELDS note). Seeded so the buildId + asset
+            // hashes decorrelate across funnypot Next.js deploys instead of being fleet-wide constants.
+            'nextjs.buildId' => self::nextBuildId($seed),
+            'nextjs.assetHash' => self::nextAssetHash($seed, 'nextjs_asset'),
+            'nextjs.appHash' => self::nextAssetHash($seed, 'nextjs_app'),
 
             // The deploy-stable class prefix, identical to VisualPersona's, so the phpMyAdmin login
             // page and the authed dashboard render one coherent class vocabulary. See classPrefix().
@@ -506,6 +519,47 @@ final class PersonaIdentity
     private static function hitsDeniedDigits(string $value): bool
     {
         return preg_match('/\b9\d{5}\b/', $value) === 1;
+    }
+
+    /**
+     * A Next.js buildId — 21 chars of a lowercase-alnum nanoid alphabet, the shape real Next.js emits
+     * for `NEXT_BUILD_ID` and the `/_next/static/<buildId>/` asset path. Kept lowercase-alnum (no `-`/
+     * `_`) to match the shipped representative and to keep the string free of interior word boundaries,
+     * so the only `\b`s are the token's own edges. Seeded per deploy so two funnypot Next.js hosts never
+     * share a buildId (the cross-deploy correlation tell this fixes). Re-rolls on the denied digit run.
+     */
+    private static function nextBuildId(int $seed): string
+    {
+        $alphabet = 'abcdefghijklmnopqrstuvwxyz0123456789';
+        $n = strlen($alphabet);
+        for ($round = 0; ; $round++) {
+            // One 64-hex digest covers 21 chars (needs 42 hex); the round tag re-derives on a re-roll.
+            $h = self::h($seed, $round === 0 ? 'nextjs_build' : 'nextjs_build|r' . $round);
+            $out = '';
+            for ($i = 0; $i < 21; $i++) {
+                $out .= $alphabet[(int) hexdec(substr($h, $i * 2, 2)) % $n];
+            }
+            if (!self::hitsDeniedDigits($out)) {
+                return $out;
+            }
+        }
+    }
+
+    /**
+     * A 16-hex Next.js `_next/static` asset content-hash (css / webpack / main-app chunk fingerprint),
+     * seeded per deploy — hardcoding it fleet-wide was a cross-deploy correlation signature. The hash
+     * sits between `-`/`/` and `.`/`/` in the asset path, so its edges are the same word boundaries the
+     * bare value has; re-roll on the denied digit run (`\b9\d{5}\b`) guards the edge case where the
+     * value itself is `9` + five digits, and hitsDeniedDigits over the bare token is therefore exact.
+     */
+    private static function nextAssetHash(int $seed, string $field): string
+    {
+        for ($round = 0; ; $round++) {
+            $value = substr(self::h($seed, $round === 0 ? $field : $field . '|r' . $round), 0, 16);
+            if (!self::hitsDeniedDigits($value)) {
+                return $value;
+            }
+        }
     }
 
     /** 'AKIA' + 16 chars from the base32 alphabet [A-Z2-7], matching a real access-key-id shape. */

@@ -264,7 +264,7 @@ return array (
         'Content-Type' => 'text/x-component',
       ),
       'body' => '0:["$","html",null,{"lang":"en","children":["$","body",null,{"children":["$","main",null,{"children":["$","h1",null,{"children":"{{persona.company.name}}"}]}]}]}]
-1:I["/_next/static/chunks/main-app-1a2b3c4d5e6f7081.js",["app-page"],"default"]
+1:I["/_next/static/chunks/main-app-{{persona.nextjs.appHash}}.js",["app-page"],"default"]
 2:"$Sreact.suspense"
 ',
     ),

@@ -251,6 +251,12 @@ final class Honeypot implements Engine
     /**
      * True when every servable bundle for an entry is a root/homepage class (sig=1).
      *
+     * INVARIANT (load-bearing for the witness exemption above): sig=1 means "ordinary-visitor entry,
+     * never a login-success decoy". The exemption trusts that equivalence to skip the auth-success
+     * suppression at `/`, so a login-SUCCESS page (one carrying a Set-Cookie/session witness) must
+     * NEVER be authored as sig=1 — do that and it would be silently exempted from the suppression and
+     * re-exposed on a decline. Success decoys are sig=0 (attacker-reached), keeping this safe.
+     *
      * @param array<int,array<string,mixed>> $bundles
      */
     private function isRootEntry(array $bundles): bool

@@ -287,6 +287,83 @@ final class NextjsRscPersonaTest extends TestCase
         return self::PATCHED[$line];
     }
 
+    // --- FP-0241 buildId + asset-hash decorrelation ------------------------------------------------
+
+    /** The fleet-wide constants the shell first shipped — must never appear again on any deploy. */
+    private const OLD_BUILD_ID = 'bx7k2mn4pq8rt1vy6wz0a';
+    private const OLD_ASSET_HASH = '8c5f1a2b3d4e6f70';
+    private const OLD_APP_HASH = '1a2b3c4d5e6f7081';
+
+    /**
+     * FP-0241 — buildId + `_next/static` asset hashes are persona-seeded (per deploy), denylist-safe,
+     * and vary across deploys instead of being fleet-wide constants (the cross-deploy correlation tell).
+     */
+    public function test_buildid_and_asset_hashes_are_seeded_and_denylist_clean(): void
+    {
+        $denied = '/\b9\d{5}\b/';   // the fingerprint denylist's bare-6-digit CRS-rule-id pattern
+        $buildIds = [];
+        $assetHashes = [];
+        for ($s = 0; $s <= 600; $s++) {
+            $p = PersonaIdentity::fromSeed($s);
+            $buildId = (string) $p->field('nextjs.buildId');
+            $assetHash = (string) $p->field('nextjs.assetHash');
+            $appHash = (string) $p->field('nextjs.appHash');
+
+            // Shape: buildId is the 21-char lowercase-alnum nanoid; the asset hashes are 16-hex.
+            self::assertMatchesRegularExpression('/^[a-z0-9]{21}$/', $buildId, "seed {$s}: buildId shape");
+            self::assertMatchesRegularExpression('/^[0-9a-f]{16}$/', $assetHash, "seed {$s}: assetHash shape");
+            self::assertMatchesRegularExpression('/^[0-9a-f]{16}$/', $appHash, "seed {$s}: appHash shape");
+
+            // Denylist-clean across seeds (the acceptance-required assertion).
+            foreach (['buildId' => $buildId, 'assetHash' => $assetHash, 'appHash' => $appHash] as $name => $v) {
+                self::assertDoesNotMatchRegularExpression($denied, $v, "seed {$s}: {$name} '{$v}' trips \\b9\\d{5}\\b");
+            }
+
+            // The old fleet-wide constants are gone.
+            self::assertNotSame(self::OLD_BUILD_ID, $buildId, "seed {$s}: buildId must not be the old constant");
+            self::assertNotSame(self::OLD_ASSET_HASH, $assetHash, "seed {$s}: assetHash must not be the old constant");
+
+            // Stable within a seed (a re-scan by the same attacker sees one host).
+            self::assertSame($buildId, (string) PersonaIdentity::fromSeed($s)->field('nextjs.buildId'), "seed {$s}: buildId unstable");
+
+            $buildIds[] = $buildId;
+            $assetHashes[] = $assetHash;
+        }
+
+        // Decorrelation: neither is a fleet-wide constant — many distinct values across the seed space.
+        self::assertGreaterThan(100, count(array_unique($buildIds)), 'buildId must vary per deploy');
+        self::assertGreaterThan(100, count(array_unique($assetHashes)), 'assetHash must vary per deploy');
+    }
+
+    /**
+     * FP-0241 — the SERVED shell renders the seeded buildId consistently everywhere (asset paths and the
+     * flight `buildId`) and carries none of the old fleet-wide constants. (End-to-end decorrelation is a
+     * per-deploy property driven by deploySeed(), not the per-request seed, so it is pinned above against
+     * PersonaIdentity directly; here we prove the wiring resolves and the constants are gone.)
+     */
+    public function test_served_shell_renders_the_seeded_buildid_not_the_old_constant(): void
+    {
+        $seed = $this->firstNextjsSeed();
+        $body = $this->engine($seed)->respond(new RequestContext('GET', '/'))->body;
+
+        self::assertStringNotContainsString(self::OLD_BUILD_ID, $body, 'old fleet-wide buildId must be gone');
+        self::assertStringNotContainsString(self::OLD_ASSET_HASH, $body, 'old fleet-wide asset hash must be gone');
+        self::assertStringNotContainsString(self::OLD_APP_HASH, $body, 'old fleet-wide app hash must be gone');
+
+        // Extract the buildId from the asset path and prove the flight JSON carries the same value.
+        self::assertSame(1, preg_match('~/_next/static/([a-z0-9]{21})/_buildManifest\.js~', $body, $m), 'seeded buildId asset path');
+        $buildId = $m[1];
+        self::assertNotSame(self::OLD_BUILD_ID, $buildId);
+        // The flight is a JSON string in a <script>, so its quotes are backslash-escaped in the body.
+        self::assertStringContainsString('\\"buildId\\":\\"' . $buildId . '\\"', $body, 'flight buildId matches the asset-path buildId');
+        // buildId appears in both preload asset paths and the flight (>= 3 uses), all the same value.
+        self::assertGreaterThanOrEqual(3, substr_count($body, $buildId), 'the one seeded buildId is used consistently across the shell');
+
+        // The css hash on the <link> and in the flight HL row must be one consistent value too.
+        self::assertSame(1, preg_match('~/_next/static/css/([0-9a-f]{16})\.css~', $body, $c), 'seeded css asset hash');
+        self::assertSame(2, substr_count($body, $c[1] . '.css'), 'css hash consistent across the <link> and the flight HL row');
+    }
+
     // --- (f) [B1][B2] compiled-artifact falsifier --------------------------------------------------
 
     public function test_f_compiled_index_and_rule_are_wired(): void

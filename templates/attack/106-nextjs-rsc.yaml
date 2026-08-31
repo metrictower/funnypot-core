@@ -29,6 +29,12 @@ tags: [nextjs, rsc, cve-2025, exposure]
 # decline — classify commits ATTACK_CLASS at matchRule before render), so the gate keys on the `_rsc=`
 # cache-buster query the Next.js router ALWAYS appends to an RSC navigation. `in: path ^/$` keeps the
 # rule bound to `/` on a store-miss linear scan (so `GET /foo?_rsc=1` never serves Flight at /foo).
+# FP-0241 (opus nit, optional): also matching the `RSC: 1` request HEADER was considered and declined
+# as an ACCEPTED COVERAGE RESIDUAL — the AND-list would then no longer decline a plain `GET /` (which
+# carries neither), and the OR needed to keep that decline can't be expressed here (see above). A real
+# RSC navigation always carries `?_rsc=`, so the query key covers the navigation path; a synthetic
+# header-only `RSC: 1` probe with no `?_rsc=` is the only uncovered shape and simply falls through to
+# the persona lottery (never a leak). Not worth breaking the classify-time decline the gate depends on.
 owns_path: ['/']
 persona_gate: route-nextjs
 match:
@@ -47,7 +53,7 @@ response:
     Content-Type: "text/x-component"
   body: |
     0:["$","html",null,{"lang":"en","children":["$","body",null,{"children":["$","main",null,{"children":["$","h1",null,{"children":"{{persona.company.name}}"}]}]}]}]
-    1:I["/_next/static/chunks/main-app-1a2b3c4d5e6f7081.js",["app-page"],"default"]
+    1:I["/_next/static/chunks/main-app-{{persona.nextjs.appHash}}.js",["app-page"],"default"]
     2:"$Sreact.suspense"
 expect:
   - '0:'
