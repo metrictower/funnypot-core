@@ -6,3 +6,6 @@ scripts/deploy.env
 .claude/
 demo/storage/*.sqlite*
 .DS_Store
+
+# FP-0230 favicon forge: compiled binary is a build artifact (source forge.c is tracked)
+scripts/dev/favicon/forge
