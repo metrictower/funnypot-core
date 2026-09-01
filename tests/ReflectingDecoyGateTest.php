@@ -343,8 +343,16 @@ final class ReflectingDecoyGateTest extends TestCase
         // as a reflect-everything origin and dodges dalfox's EWMA collapse. Isolated origin so the
         // gate itself is open; selectivity, not the gate, is what withholds the echo.
         $hp = $this->honeypot(true);
-        $resp = $hp->respond(new RequestContext('GET', '/nope', 'q=dlfx_sentinel_q_8a3f'));
 
+        // Positive control on the SAME path/harness: a markup-shaped payload IS reflected under the
+        // open gate, proving the reflect path is live here — so the sentinel's non-reflection below is
+        // selectivity, not a dead/non-matching path (guards against this test passing vacuously).
+        $live = $hp->respond(self::xssRequest());
+        self::assertNotNull($live, 'markup payload must reflect under isolated origin (reflect path live)');
+        self::assertStringContainsString('<script>alert(document.domain)</script>', $live->body);
+
+        // The plain sentinel does not match the markup-shaped XSS regex, so it is never echoed.
+        $resp = $hp->respond(new RequestContext('GET', '/nope', 'q=dlfx_sentinel_q_8a3f'));
         if ($resp !== null) {
             self::assertStringNotContainsString('dlfx_sentinel_q_8a3f', $resp->body);
         } else {

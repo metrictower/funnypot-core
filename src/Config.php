@@ -171,7 +171,9 @@ final class Config
      * false to WITHHOLD that class even from an isolated origin. This map can ONLY subtract: it is
      * AND-ed with isolatedOrigin (see serveReflector()), so it can never re-enable reflection in an
      * embedded host — isolatedOrigin=false ⇒ every class stays suppressed regardless of this map.
-     * Fail-safe.
+     * Fail-safe. A reflects_input rule that carries no reflect_class keys off the sentinel class
+     * 'default' (so set reflectClasses['default']=false to disable any untagged reflector). Values
+     * are read as booleans; a non-bool is coerced (only false-y disables), never widening the gate.
      */
     public $reflectClasses;
 
