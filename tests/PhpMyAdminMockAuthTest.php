@@ -95,7 +95,7 @@ final class PhpMyAdminMockAuthTest extends TestCase
         // count has since grown further with unrelated rules (see ZapCoverageTest for that delta);
         // this assertion just needs to track the current total so it keeps proving THIS pair is
         // still exactly 2 of them, not a stale absolute pin.
-        self::assertCount(67, $rules, 'compiled corpus must be 57 (original baseline) + 2 (this pair) + 8 (unrelated, since: imds-base, wp-admin-redirect, lfi-sshkey, lfi-hostname, imds-identity-doc, FP-0229 nextjs-rsc, FP-0232 verbose-error-volatile, FP-0234 ssti-multifence)');
+        self::assertCount(68, $rules, 'compiled corpus must be 57 (original baseline) + 2 (this pair) + 9 (unrelated, since: imds-base, wp-admin-redirect, lfi-sshkey, lfi-hostname, imds-identity-doc, FP-0229 nextjs-rsc, FP-0232 verbose-error-volatile, FP-0234 ssti-multifence, FP-0235 crlfuzz-echo)');
         $ollama = array_filter($ids, static function (string $id): bool {
             return strpos($id, 'ai-ollama') !== false;
         });

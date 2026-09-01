@@ -57,10 +57,11 @@ final class ZapCoverageTest extends TestCase
     public function test_attack_rule_count_is_59_plus_the_two_new_rules(): void
     {
         $rules = require self::ATTACK_COMPILED;
-        self::assertCount(67, $rules, 'attack rule count must be 59 (baseline) + 2 (imds-base, wp-admin-redirect) + 2 (lfi-sshkey, lfi-hostname) + 1 (imds-identity-doc) + 1 (FP-0229 nextjs-rsc) + 1 (FP-0232 verbose-error-volatile) + 1 (FP-0234 ssti-multifence)');
+        self::assertCount(68, $rules, 'attack rule count must be 59 (baseline) + 2 (imds-base, wp-admin-redirect) + 2 (lfi-sshkey, lfi-hostname) + 1 (imds-identity-doc) + 1 (FP-0229 nextjs-rsc) + 1 (FP-0232 verbose-error-volatile) + 1 (FP-0234 ssti-multifence) + 1 (FP-0235 crlfuzz-echo)');
 
         $ids = array_map(static function (array $r): string { return (string) $r['id']; }, $rules);
         self::assertContains('attack-verbose-error-volatile', $ids, 'the FP-0232 volatile-proof demonstrator');
+        self::assertContains('attack-crlfuzz-echo', $ids, 'the FP-0235 crlfuzz canary-echo decoy');
         self::assertContains('attack-imds-base', $ids);
         self::assertContains('attack-imds-identity-doc', $ids, 'the coherent instance-identity document rule');
         self::assertContains('attack-wp-admin-redirect', $ids);

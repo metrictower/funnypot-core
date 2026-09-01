@@ -1,0 +1,29 @@
+id: attack-crlfuzz-echo
+severity: low
+priority: 48
+status: 200
+tags: [attack, crlf, crlfuzz]
+# crlfuzz canary-echo decoy (FP-0235). crlfuzz (dwisiswant0/crlfuzz) confirms a CRLF-injection vuln ONLY
+# by finding a fixed marker header `X-Injected-Header-By: CRLFuzz` in the RESPONSE — its isVuln() just
+# substring-checks the header value for `CRLFuzz`; it NEVER verifies the marker came from its own injected
+# bytes (pkg/crlfuzz/{const.go,crlfuzz.go}). Its probe URL is `<base><append><escape>X-Injected-Header-By
+# %3a%20CRLFuzz` (generator.go), so both literal tokens appear raw in 100% of probes. We recognise those
+# tokens in the request and emit that EXACT hardcoded header — a canned CONSTANT, never assembled from
+# attacker bytes and never a reflection. So crlfuzz "confirms" and is logged, while the honeypot has NO
+# real response-splitting: the emitted header is byte-identical for every probe, and the runtime C8
+# CR/LF/NUL guard (renderRule) + the compile-time static-header guard forbid any CR/LF ever reaching a
+# header value.
+# NON-GOAL (DO NOT GENERALIZE): echoing an ARBITRARY injected `Header: value`, or raw-reflecting any
+# attacker-supplied / random canary bytes, stays FORBIDDEN — that would be a genuine response-splitting
+# hole. Only this one tool-specific FIXED canary is safe. Generic CRLF reflection remains a non-goal.
+match:
+  - in: request
+    contains: "X-Injected-Header-By"      # the crlfuzz canary header NAME (100% of probes)
+  - in: request
+    contains: "CRLFuzz"                    # the crlfuzz canary value (100% of probes)
+response:
+  headers:
+    Content-Type: "text/html; charset=utf-8"
+    X-Injected-Header-By: "CRLFuzz"        # authored CONSTANT crlfuzz greps for; never assembled from input
+  body: "<!doctype html><html><head><title>OK</title></head><body>OK</body></html>"
+expect: ["X-Injected-Header-By: CRLFuzz"]  # compile-time proof the confirming header renders
