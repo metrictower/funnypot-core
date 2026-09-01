@@ -21,6 +21,10 @@ tags: [attack, error-oracle, volatile-proof]
 # seed 0, where the directive resolves to a stable seeded value — an expect on the token would be a
 # meaningless moving target, an expect on the label is safe.
 match:
+  # The gate is deliberately narrow — the literal `0x` prefix, not a bare `[0-9a-fA-F]+`. A hex-prefixed
+  # value where a framework expects a plain integer is the specific "wrong numeric literal" this decoy
+  # answers; requiring `0x` keeps it from over-claiming ordinary SQLi probes (e.g. offset=1 UNION ...),
+  # which must reach `attack-sqli` rather than be shadowed by this priority-47 rule's first-match win.
   - in: query
     regex: '(?:offset|page|limit)=0x[0-9a-fA-F]+'
 status: 500

@@ -146,7 +146,9 @@ final class BehaviorVolatileProofTest extends TestCase
         foreach ([
             '{{volatile.errref:hex:16}}' => '/^[0-9a-f]{16}$/',
             '{{volatile.errref:hexupper:16}}' => '/^[0-9A-F]{16}$/',
+            '{{volatile.errref:b64:22}}' => '#^[A-Za-z0-9+/]{22}$#',
             '{{volatile.errref:b64url:22}}' => '/^[A-Za-z0-9_-]{22}$/',
+            '{{volatile.errref:dec:16}}' => '/^[1-9][0-9]{15}$/',
         ] as $directive => $shape) {
             $em = $this->emulator($this->rule($directive), true);
             $body = $em->emulate($r, 7)->body;
@@ -154,6 +156,77 @@ final class BehaviorVolatileProofTest extends TestCase
             self::assertSame(1, preg_match('#Error reference: ([^<]*)<#', $body, $m));
             self::assertSame(1, preg_match($shape, $m[1]), "token '{$m[1]}' violates shape/length for {$directive}");
         }
+    }
+
+    /** The raw token span (between "Error reference: " and the following '<') from a rendered body. */
+    private function tokenSpan(string $body): string
+    {
+        self::assertSame(1, preg_match('#Error reference: ([^<]*)<#', $body, $m), "no token span in: {$body}");
+
+        return $m[1];
+    }
+
+    /**
+     * ARMED `dec` (opus N1): the token must be all-digits (leading digit non-zero), the requested width,
+     * and non-reproducing across two requests. A `dec` token that regressed to the pre-fix hex fall-through
+     * would fail the all-digits assertion here (0x`-hex` includes a-f). N=16 → ~53 bits (dec ≈ 3.3 bits/
+     * char), so A != B cannot flake.
+     */
+    public function test_armed_dec_token_is_digits_correct_length_and_non_reproducing(): void
+    {
+        $r = new RequestContext('GET', '/x', 'probe=1');
+        $em = $this->emulator($this->rule('{{volatile.errref:dec:16}}'), true);
+
+        $a = $this->tokenSpan($em->emulate($r, 7)->body);
+        $b = $this->tokenSpan($em->emulate($r, 7)->body);
+
+        // All-digits, leading digit non-zero, exactly 16 chars — the fake `dec` character class/shape.
+        self::assertSame(1, preg_match('/^[1-9][0-9]{15}$/', $a), "armed dec token '{$a}' is not a 16-digit field");
+        self::assertSame(1, preg_match('/^[1-9][0-9]{15}$/', $b), "armed dec token '{$b}' is not a 16-digit field");
+        // Non-reproducing (16 dec digits ≈ 53 bits; flake ~2^-53).
+        self::assertNotSame($a, $b, 'armed dec proof token must not reproduce');
+    }
+
+    /**
+     * ARMED == OFF character class for `dec`: the OFF path delegates to {{fake.errref:dec}} (all-digits),
+     * so an armed `dec` token must sit in the SAME character class as the off one — the fix closes the
+     * latent trap where armed `dec` served hex (a-f) while off served digits. (Values differ — armed is
+     * fresh entropy, off is the seeded fake — only the char class is asserted equal.)
+     */
+    public function test_armed_dec_matches_off_character_class(): void
+    {
+        $r = new RequestContext('GET', '/x', 'probe=1');
+
+        $off = $this->tokenSpan($this->emulator($this->rule('{{volatile.errref:dec:16}}'), false)->emulate($r, 7)->body);
+        $armed = $this->tokenSpan($this->emulator($this->rule('{{volatile.errref:dec:16}}'), true)->emulate($r, 7)->body);
+
+        // OFF path (fake delegate) is all-digits...
+        self::assertSame(1, preg_match('/^[1-9][0-9]{15}$/', $off), "off dec token '{$off}' is not a 16-digit field");
+        // ...and ARMED is the SAME character class (not hex).
+        self::assertSame(1, preg_match('/^[1-9][0-9]{15}$/', $armed), "armed dec token '{$armed}' must share the off char class");
+    }
+
+    /**
+     * ARMED `b64` (fable nit #1): the b64 branch had no direct armed-path test. Assert the shape is the
+     * b64 alphabet ([A-Za-z0-9+/], no CR/LF/NUL), the requested width, and non-reproducing with large N.
+     */
+    public function test_armed_b64_token_is_shape_safe_and_non_reproducing(): void
+    {
+        $r = new RequestContext('GET', '/x', 'probe=1');
+        $em = $this->emulator($this->rule('{{volatile.errref:b64:22}}'), true);
+
+        $bodyA = $em->emulate($r, 7)->body;
+        $bodyB = $em->emulate($r, 7)->body;
+        $a = $this->tokenSpan($bodyA);
+        $b = $this->tokenSpan($bodyB);
+
+        // No control bytes anywhere in the served body.
+        self::assertSame(0, preg_match('/[\r\n\x00]/', $bodyA), 'control byte in armed b64 body');
+        // b64 alphabet, exactly 22 chars.
+        self::assertSame(1, preg_match('#^[A-Za-z0-9+/]{22}$#', $a), "armed b64 token '{$a}' violates shape/length");
+        self::assertSame(1, preg_match('#^[A-Za-z0-9+/]{22}$#', $b), "armed b64 token '{$b}' violates shape/length");
+        // Non-reproducing (22 b64 chars ≈ 132 bits).
+        self::assertNotSame($a, $b, 'armed b64 proof token must not reproduce');
     }
 
     // --- position-blind: the volatile path ignores $r ----------------------------------------------

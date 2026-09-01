@@ -292,8 +292,9 @@ final class DirectiveRenderer
      * this path (entropy is name-independent); it is kept in the grammar only so one authored directive
      * serves both the ON and OFF (seeded fake) paths. O(1), no state. Supported encodings are the
      * proof-shaped hex / hexupper / b64 / b64url — all inherently CR/LF/NUL-free; length is capped
-     * exactly as fake.NAME caps it. The all-digit `dec` encoding is deferred (spec Open Q 4): an armed
-     * `dec` falls through to hex here, so no proof token is authored against it yet.
+     * exactly as fake.NAME caps it. The all-digit `dec` encoding matches the fake.NAME `dec` character
+     * class (armed == off shape): digits only, leading digit non-zero, width N — drawn from fresh CSPRNG
+     * bytes here instead of the seeded digest so the token is non-reproducible while staying all-digits.
      */
     private function volatileToken(string $spec): string
     {
@@ -313,6 +314,35 @@ final class DirectiveRenderer
         if ($enc === 'b64url') {
             // URL-safe base64, unpadded — same alphabet as fake.NAME's b64url ([A-Za-z0-9_-]).
             return substr(rtrim(strtr(base64_encode($raw), '+/', '-_'), '='), 0, $len);
+        }
+        if ($enc === 'dec') {
+            // All-digit field, EXACTLY the fake.NAME `dec` shape (so armed and off share a character
+            // class, not just differ in bytes): rejection-sample fresh CSPRNG bytes — a byte >= 250 is
+            // discarded so the accepted range 0..249 is an exact multiple of 10 and byte % 10 carries no
+            // low-digit skew; the leading digit rejects 0. Uniform enough for a decoy token, not crypto.
+            // Entropy is drawn fresh each render (a new random_bytes read to extend past 32 bytes), so
+            // the token is non-reproducible — the confirmation-resistant tarpit — while staying digits.
+            $digits = '';
+            $material = $raw;
+            $pos = 0;
+            while (strlen($digits) < $len) {
+                if ($pos >= strlen($material)) {
+                    $material = random_bytes(32);
+                    $pos = 0;
+                }
+                $byte = ord($material[$pos]);
+                $pos++;
+                if ($byte >= 250) {
+                    continue;
+                }
+                $digit = $byte % 10;
+                if ($digits === '' && $digit === 0) {
+                    continue;
+                }
+                $digits .= (string) $digit;
+            }
+
+            return $digits;
         }
 
         return substr($digest, 0, $len);
