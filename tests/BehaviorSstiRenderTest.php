@@ -209,6 +209,17 @@ final class BehaviorSstiRenderTest extends TestCase
         }
     }
 
+    public function test_negative_arithmetic_result_declines(): void
+    {
+        // A fence that computes NEGATIVE would stringify a '-', breaking the digit-only output
+        // invariant (FP-0234 re-review N1). sstiEvalArith declines a negative result, so such a probe
+        // renders NOTHING (the whole render falls to the inert base page) — the '-' never appears.
+        // Inert either way (a hyphen can't inject) and tplmap never sends negative-producing arithmetic.
+        foreach (['{{1-2}}{{3}}', '{{(1-9)}}{{3}}', '${2-9}${7*7}'] as $q) {
+            self::assertSame('BASE FALLBACK', $this->serve($this->sstiRule(), $q)->body, $q);
+        }
+    }
+
     public function test_facade_equals_port_render(): void
     {
         // Captures-only: renderRule with vs without $r must be byte-identical (position-blind).

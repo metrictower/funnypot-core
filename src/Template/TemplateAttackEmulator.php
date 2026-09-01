@@ -744,8 +744,11 @@ final class TemplateAttackEmulator
             return $m[1];
         }
         $v = SafeArithmetic::evaluate($expr, $max, $maxLen);
-
-        return $v === null ? null : (string) $v;
+        // Decline a NEGATIVE result too: stringifying it would emit a '-', breaking the
+        // digit-only output invariant this decoy's safety rests on (FP-0234 re-review N1). Inert
+        // regardless (a hyphen cannot inject), and tplmap never sends negative-producing arithmetic,
+        // so efficacy is unaffected — a negative fence simply declines to the inert base page.
+        return ($v === null || $v < 0) ? null : (string) $v;
     }
 
     /**
