@@ -182,8 +182,31 @@ final class Honeypot implements Engine
      * attack-payload matcher, consulting the SiteProfile real-route oracle. Always safe to call:
      * no gates, no I/O, no side effects. Answers "what is this request, as content?" — never
      * "should we act?". The request-shape bot signals ride on the Verdict (Phase 1b).
+     *
+     * A thin decorator over classifyContent(): the content verdict is produced first (byte-identical
+     * to the pre-OAST classifier), then — iff a known OAST/OOB collaborator zone or cloud-metadata
+     * SSRF endpoint appears verbatim in the request — one high-signal, SIGNAL-ONLY match is folded in
+     * via foldOast(). Detect-only: OastProbe::detect() is pure string matching (no DNS, no fetch) and
+     * the fold never touches fakeHandle, so no callback is ever made and no served byte changes.
      */
     public function classify(RequestContext $r, SiteProfile $profile): Verdict
+    {
+        $verdict = $this->classifyContent($r, $profile);
+
+        $family = OastProbe::detect($r);
+        if ($family === null) {
+            return $verdict; // byte-identical to the pre-OAST classifier when no OAST zone is present
+        }
+
+        return $this->foldOast($verdict, $family);
+    }
+
+    /**
+     * The content classifier proper — the pre-OAST body of classify(), moved verbatim (no logic
+     * change). classify() is the public seam and folds the OAST signal on top of this; every return
+     * path below is unchanged.
+     */
+    private function classifyContent(RequestContext $r, SiteProfile $profile): Verdict
     {
         $signals = $this->botSignals($r);
         $anomaly = $signals->weight;
@@ -303,6 +326,39 @@ final class Honeypot implements Engine
         }
 
         return new Verdict(Verdict::CLEAN, Detection::none(), '', $anomaly, $signals, null);
+    }
+
+    /**
+     * Fold a detected OAST/OOB collaborator callback into a content Verdict as a high-signal,
+     * SIGNAL-ONLY match. Decorator invariants (all falsifiable in OastSeamTest):
+     *  - NEVER touches fakeHandle: an OAST-only CLEAN request keeps fakeHandle === null, so respond()
+     *    serves nothing at its early guard — no serve, therefore nothing that could be a callback. A
+     *    routed/attack request keeps its existing handle, so its served bytes are unchanged.
+     *  - Bumps CLEAN -> SCANNER_PROBE only when fakeHandle === null (the pure OAST-only case). A
+     *    CLEAN-with-route-handle root entry stays CLEAN so its serve-gating is untouched;
+     *    SCANNER_PROBE / ATTACK_CLASS are left as-is (never downgrades an attack coincidence).
+     *  - Adds no I/O. The synthetic match lives only inside the Detection (a logging/telemetry
+     *    projection); it is never written into a served body or header, so the served response is
+     *    byte-identical whether or not the probe fires.
+     */
+    private function foldOast(Verdict $v, string $family): Verdict
+    {
+        $match = new TemplateMatch(
+            'oast-callback',
+            'high',
+            ['oast-callback', $family, 'ssrf', 'oob'],
+            'OAST/OOB collaborator callback'
+        );
+
+        $matches = array_merge($v->detection->matches, [$match]);
+        $ceiling = Detection::ceilingSeverity($v->detection->highestSeverity ?: 'unknown', 'high');
+        $detection = new Detection(true, $matches, $v->detection->clusterKey, $ceiling);
+
+        $classification = ($v->classification === Verdict::CLEAN && $v->fakeHandle === null)
+            ? Verdict::SCANNER_PROBE
+            : $v->classification;
+
+        return new Verdict($classification, $detection, $ceiling, $v->anomaly, $v->signals, $v->fakeHandle);
     }
 
     /**
@@ -790,7 +846,14 @@ final class Honeypot implements Engine
 
         $handle = $verdict->fakeHandle;
         if ($handle === null || $handle->kind !== FakeHandle::KIND_ROUTE) {
-            // A genuine miss / real route / empty entry: the app serves its own 404 (no observer).
+            // A genuine miss / real route / empty entry: the app serves its own 404. Exception: an
+            // OAST-only probe folds a signal-only detection onto a null-handle verdict (SCANNER_PROBE,
+            // nothing to serve). Surface it so the app can score the spray. Pre-OAST this branch was
+            // reached only with an empty detection, so this fires ONLY for the new OAST-only case — no
+            // double-fire (routed/attack coincidences already fire onDetection below / in respondAttack).
+            if (!$verdict->detection->isEmpty()) {
+                $this->observer->onDetection($r, $verdict->detection);
+            }
             return null;
         }
 
