@@ -61,8 +61,28 @@ final class OastProbeTest extends TestCase
         // A legit OWASP link (no long numeric label) must not match zap-oast.
         self::assertNull(OastProbe::detect(new RequestContext('GET', '/', '', ['Referer' => 'https://owasp.org/www-project-zap/'])));
         self::assertNull(OastProbe::detect(new RequestContext('GET', '/', '', ['User-Agent' => 'links (www.owasp.org)'])));
-        // The dot-prefix guard: a domain that merely ends in the zone word must not match.
+        // The dot-prefix (left-edge) guard: a domain that merely ends in the zone word must not match.
         self::assertNull(OastProbe::detect(new RequestContext('GET', '/', 'q=http://x.roast.fun/')));
+        // The right-edge guard: a live gTLD that merely STARTS with a collaborator zone must not
+        // match (`.oast.fund`, `.interact.shop`, `.interact.show`, `.oast.melbourne` are real,
+        // plausible legit domains — not interactsh hosts).
+        self::assertNull(OastProbe::detect(new RequestContext('GET', '/', 'u=https://x.oast.fund/')));
+        self::assertNull(OastProbe::detect(new RequestContext('GET', '/', '', ['Referer' => 'https://www.interact.shop/checkout'])));
+        self::assertNull(OastProbe::detect(new RequestContext('GET', '/', 'u=https://app.interact.show/')));
+        self::assertNull(OastProbe::detect(new RequestContext('GET', '/', 'ref=https://my.oast.melbourne.example/')));
+    }
+
+    public function test_boundary_clean_hit_beside_a_benign_superset_still_fires(): void
+    {
+        // A right-edge-guarded superset (`.oast.fund`) earlier in the haystack must NOT mask a real
+        // boundary-clean collaborator hit (`.oast.fun/`) later — the matcher scans every occurrence.
+        self::assertSame('interactsh', OastProbe::detect(
+            new RequestContext('GET', '/', 'a=https://x.oast.fund/&b=https://real.oast.fun/')
+        ));
+        // Zone at end-of-haystack (no trailing char) is still a clean boundary.
+        self::assertSame('interactsh', OastProbe::detect(
+            new RequestContext('GET', '/', 'u=abc.oast.fun')
+        ));
     }
 
     public function test_payload_past_the_cap_is_not_scanned(): void

@@ -19,10 +19,12 @@ namespace Funnypot\Core;
 final class OastProbe
 {
     /**
-     * Dot-prefixed zone substrings. The leading dot is the false-positive guard: a real collaborator
-     * hit always carries a random subdomain label (`abc123.oastify.com`), so `roast.fun` never matches
-     * `.oast.fun` and a bare vendor link in a Referer never matches. Most-specific ordering is moot for
-     * substrings (each is unique); first hit wins.
+     * Dot-prefixed zone substrings. The leading dot is the left-edge false-positive guard: a real
+     * collaborator hit always carries a random subdomain label (`abc123.oastify.com`), so `roast.fun`
+     * never matches `.oast.fun` and a bare vendor link in a Referer never matches. The matcher in
+     * detect() adds the symmetric right-edge guard (the label must END after the zone, not continue
+     * into another gTLD like `.oast.fund` / `.interact.shop`). Most-specific ordering is moot for
+     * substrings (each is unique); first boundary-clean hit wins.
      * @var array<string,string>
      */
     private const ZONES = [
@@ -85,8 +87,20 @@ final class OastProbe
             }
         }
         foreach (self::ZONES as $needle => $label) {
-            if (strpos($hay, $needle) !== false) {
-                return $label;
+            // Right-edge guard, mirroring the leading-dot left-edge guard: a real collaborator host
+            // ends the zone label (`.oast.fun/…`, `.oast.fun:1337`, or end-of-string), whereas a
+            // legitimate domain that merely STARTS with the zone word continues the label with another
+            // domain char (`.oast.fund`, `.interact.shop`, `.interact.show` — all live gTLDs). Require
+            // the char after the needle to not be a domain-label char (alnum or `-`). Scan every
+            // occurrence, not just the first, so a benign superset earlier in the haystack cannot mask
+            // a real collaborator hit later.
+            $off = 0;
+            while (($p = strpos($hay, $needle, $off)) !== false) {
+                $next = $hay[$p + strlen($needle)] ?? ' ';
+                if (!ctype_alnum($next) && $next !== '-') {
+                    return $label;
+                }
+                $off = $p + 1;
             }
         }
         foreach (self::METADATA as $needle => $label) {

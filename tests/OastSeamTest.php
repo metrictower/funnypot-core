@@ -138,6 +138,7 @@ final class OastSeamTest extends TestCase
         $start = strpos($honeypot, 'private function foldOast');
         self::assertNotFalse($start);
         $end = strpos($honeypot, 'private function', $start + 1);
+        self::assertNotFalse($end, 'foldOast must not be the last private method (else the slice guard is vacuous)');
         $body = substr($honeypot, $start, $end - $start);
         foreach ($needles as $needle) {
             self::assertStringNotContainsString($needle, $body, "foldOast must not reference {$needle}");
@@ -172,8 +173,49 @@ final class OastSeamTest extends TestCase
         self::assertSame($this->headersSansRequestId($plain), $this->headersSansRequestId($oast));
 
         // ...yet the signal differs: the OAST run carries the tag, the plain run does not.
+        self::assertCount(1, $plainSpy->detections, 'the routed serve fires onDetection exactly once');
+        self::assertCount(1, $oastSpy->detections, 'no double-fire on the routed+OAST path');
         self::assertNotContains('oast-callback', $plainSpy->detections[0]->tags());
         self::assertContains('oast-callback', $oastSpy->detections[0]->tags());
+    }
+
+    /**
+     * Test #4b (served-byte invariant, the CLEAN-with-route-handle seam): a root/homepage-class
+     * (sig=1) entry classifies CLEAN and declines to serve (NO_SIGNATURE) an ordinary visitor.
+     * Appending an OAST param must fold the signal WITHOUT bumping the verdict to SCANNER_PROBE
+     * (fakeHandle is non-null, so the bump is gated off) — otherwise respond()'s line-870
+     * CLEAN+no-signature decline would be skipped and a root decoy served off an OAST param.
+     * Guards against a future foldOast() that bumps all CLEAN verdicts.
+     */
+    public function test_oast_on_clean_root_handle_stays_clean_and_still_declines(): void
+    {
+        $store = $this->rootHandleStore();
+
+        // classify(): the OAST param folds the tag but the verdict stays CLEAN with its route handle.
+        $engine = new Honeypot($store, $this->engineConfig());
+        $plain = $engine->classify(new RequestContext('GET', '/home', 'a=1'), SiteProfile::empty());
+        self::assertSame(Verdict::CLEAN, $plain->classification);
+        self::assertNotNull($plain->fakeHandle, 'the sig=1 root entry must resolve to a route handle');
+        self::assertNotContains('oast-callback', $plain->detection->tags());
+
+        $oast = $engine->classify(new RequestContext('GET', '/home', 'a=1&x=http://y.oast.fun/'), SiteProfile::empty());
+        self::assertSame(Verdict::CLEAN, $oast->classification, 'a CLEAN entry WITH a handle must NOT bump to SCANNER_PROBE');
+        self::assertNotNull($oast->fakeHandle, 'the handle must ride through untouched');
+        self::assertContains('oast-callback', $oast->detection->tags());
+
+        // respond(): both decline with NO_SIGNATURE (nothing served) — the OAST param does not flip
+        // the serve-gating at Honeypot.php:870.
+        $plainSpy = $this->spy();
+        $plainResp = (new Honeypot($store, $this->respondConfig(), $plainSpy))
+            ->respond(new RequestContext('GET', '/home', 'a=1'));
+        $oastSpy = $this->spy();
+        $oastResp = (new Honeypot($store, $this->respondConfig(), $oastSpy))
+            ->respond(new RequestContext('GET', '/home', 'a=1&x=http://y.oast.fun/'));
+
+        self::assertNull($plainResp);
+        self::assertNull($oastResp, 'an OAST param on a CLEAN root handle must not cause a decoy serve');
+        self::assertContains(Outcome::NO_SIGNATURE, $oastSpy->outcomes, 'the OAST run must still decline NO_SIGNATURE');
+        self::assertNotContains(Outcome::SERVED, $oastSpy->outcomes);
     }
 
     /**
@@ -228,6 +270,33 @@ final class OastSeamTest extends TestCase
             'severity' => $v->severity,
             'fakeHandle' => $v->fakeHandle === null ? null : $v->fakeHandle->key,
         ];
+    }
+
+    /** The classify-mode Config used by engine(), for pairing with a custom store. */
+    private function engineConfig(): Config
+    {
+        return new Config(
+            'detect', null, 'matched-only', null, 'coherent',
+            \Funnypot\Core\Response\Style::MINIMAL, 'high', 65536, 0, 0,
+            false
+        );
+    }
+
+    /** A single-bundle root/homepage-class (sig=1) route: classifies CLEAN with a KIND_ROUTE handle. */
+    private function rootHandleStore(): PhpArrayStore
+    {
+        return new PhpArrayStore([
+            'schema' => 1,
+            'manifest' => [],
+            'templates' => [
+                't-root' => ['sev' => 'info', 'tags' => [], 'name' => 'Home'],
+            ],
+            'routes' => [
+                'GET /home' => ['b' => [
+                    ['s' => 200, 'bw' => ['HELLO'], 'nf' => [], 'h' => [], 'pid' => 'ph', 'sev' => 'info', 'sig' => 1, 't' => ['t-root']],
+                ]],
+            ],
+        ]);
     }
 
     /** A multi-bundle route that reliably serves in respond mode (per GatingTest). */
