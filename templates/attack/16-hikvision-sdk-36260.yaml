@@ -1,0 +1,27 @@
+id: attack-hikvision-sdk-36260
+severity: critical
+priority: 16
+tags: [attack, rce, hikvision, iot, ipcam, cve-2021-36260, knock-knock, kk-purpose-rce]
+# Hikvision IP-camera unauthenticated command injection (one of the highest-volume IoT probes).
+# The exploit PUT/POSTs to /SDK/webLanguage with a shell metacharacter or $(...) inside the
+# <language> XML leaf. We return a canned ISAPI ResponseStatus OK page. The command is NEVER
+# executed and the attacker payload is NEVER reflected — the <language> value is only read to
+# GATE the match, never copied into the body. Priority 16 so it wins over the generic cmdi rule.
+match:
+  - in: path
+    regex: '/SDK/webLanguage'
+    ci: false
+  - in: request
+    regex: '<language>\s*(?:\$\(|[;`|&]|%24%28|%0a|%60)'
+response:
+  headers:
+    Content-Type: "application/xml; charset=UTF-8"
+  body: |
+    <?xml version="1.0" encoding="UTF-8"?>
+    <ResponseStatus version="2.0" xmlns="http://www.hikvision.com/ver20/XMLSchema">
+      <requestURL>/SDK/webLanguage</requestURL>
+      <statusCode>1</statusCode>
+      <statusString>OK</statusString>
+      <subStatusCode>ok</subStatusCode>
+    </ResponseStatus>
+expect: ['ResponseStatus', 'statusString']

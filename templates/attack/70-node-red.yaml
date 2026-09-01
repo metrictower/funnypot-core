@@ -1,0 +1,33 @@
+id: attack-node-red
+severity: critical
+priority: 70
+tags: [attack, rce, node-red, knock-knock, kk-purpose-rce]
+# Node-RED admin-API exploitation. Node-RED's flow editor lets a function node run arbitrary
+# JS (require('child_process')), so an unauthenticated deploy is RCE. We branch on the HTTP verb
+# only (never on payload bytes): a POST deploy to /red/flows gets a canned deploy-accepted
+# revision, and a GET recon of /nodes gets a small canned installed-modules listing. Both bodies
+# are static literals — nothing is executed and no request byte is reflected. The method is read
+# as a `branch` dispatch key only, exactly like the HNAP oracle's bounded capture.
+match:
+  - in: path
+    regex: '(?:/red/flows|/admin/nodes|/nodes)'
+    ci: false
+status: 200
+behavior: branch
+branch:
+  cases:
+    # POST = a flow deploy / node install. Node-RED answers a deploy with a new revision hash.
+    - when: { in: method, regex: '^POST$', ci: false }
+      response:
+        headers: { Content-Type: "application/json; charset=utf-8" }
+        body: |
+          {"rev":"a1c0f5e2b3d47e8f"}
+# Base = the GET recon listing of installed node modules.
+response:
+  headers:
+    Content-Type: "application/json; charset=utf-8"
+  body: |
+    [{"id":"node-red/inject","name":"inject","types":["inject"],"enabled":true},
+     {"id":"node-red/function","name":"function","types":["function"],"enabled":true},
+     {"id":"node-red/debug","name":"debug","types":["debug"],"enabled":true}]
+expect: ['node-red/inject', 'function']

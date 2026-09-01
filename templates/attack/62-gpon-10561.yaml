@@ -1,0 +1,29 @@
+id: attack-gpon-10561
+severity: critical
+priority: 62
+tags: [attack, rce, gpon, iot, cve-2018-10561, knock-knock, kk-purpose-rce]
+# GPON home-router auth-bypass + command injection (Dasan/Nokia GPON, one of the highest-volume
+# IoT worm probes). The worm POSTs to /GponForm/diag_Form with a shell metacharacter in
+# dest_host; we return a canned diagnostic ping page. The command is NEVER executed and the
+# attacker payload is NEVER reflected — dest_host is only read to GATE the match, never copied
+# into the body.
+match:
+  - in: path
+    regex: '/GponForm/diag_Form'
+    ci: false
+  - in: request
+    regex: 'dest_host=[^&\s]*(?:[;`]|\$\(|\|\||&&|%0a|%60)'
+response:
+  headers:
+    Content-Type: "text/html; charset=utf-8"
+  body: |
+    <html><head><title>Diagnostic</title></head><body>
+    <textarea rows="12" cols="60">
+    PING 127.0.0.1 (127.0.0.1): 56 data bytes
+    64 bytes from 127.0.0.1: seq=0 ttl=64 time=0.04 ms
+    64 bytes from 127.0.0.1: seq=1 ttl=64 time=0.05 ms
+    --- 127.0.0.1 ping statistics ---
+    2 packets transmitted, 2 packets received, 0% packet loss
+    </textarea>
+    </body></html>
+expect: ['ping statistics', 'packets transmitted']

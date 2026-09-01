@@ -1,0 +1,25 @@
+id: attack-netgear-6277
+severity: critical
+priority: 64
+tags: [attack, rce, netgear, iot, cve-2016-6277, knock-knock, kk-purpose-rce]
+# Netgear router setup.cgi command injection (the classic ?todo=syscmd&cmd=... unauth RCE). We
+# return a small canned embedded-device diagnostics page. The command is NEVER executed and the
+# attacker payload is NEVER reflected — the query is only read to GATE the match, never emitted.
+match:
+  - in: path
+    regex: '/setup\.cgi'
+    ci: false
+  - in: query
+    regex: 'todo=[^&]*(?:syscmd|[;`]|\$\()'
+response:
+  headers:
+    Content-Type: "text/html; charset=utf-8"
+  body: |
+    <html><head><title>Setup</title></head><body>
+    <h2>Diagnostics</h2>
+    <pre>
+    BusyBox v1.7 built-in shell (ash)
+    router uptime: up 3 days
+    </pre>
+    </body></html>
+expect: ['Diagnostics', 'BusyBox']

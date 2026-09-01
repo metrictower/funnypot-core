@@ -1,0 +1,27 @@
+id: attack-fiberhome-27973
+severity: critical
+priority: 63
+tags: [attack, rce, fiberhome, iot, cve-2021-27973, knock-knock, kk-purpose-rce]
+# Fiberhome router unauthenticated exploitation of the boa web UI login endpoint. Probes POST
+# to /boaform/admin/formLogin carrying a login field plus a shell metacharacter (telnet-enable
+# / command injection). We return a canned boa login page reporting a failed authentication.
+# Nothing is executed; the request fields are only read to GATE the match, never reflected.
+match:
+  - in: path
+    regex: '/boaform/admin/formLogin'
+    ci: false
+  - in: request
+    regex: '(?:username=|formLogin).{0,80}(?:[;`]|\$\(|%0a|%60)'
+response:
+  headers:
+    Content-Type: "text/html; charset=utf-8"
+  body: |
+    <html><head><title>Web User Login</title></head><body>
+    <form method="post" action="/boaform/admin/formLogin">
+    <input type="text" name="username">
+    <input type="password" name="psd">
+    <input type="submit" value="Login">
+    </form>
+    <p>Authentication failed. Please try again.</p>
+    </body></html>
+expect: ['Web User Login', 'Authentication failed']

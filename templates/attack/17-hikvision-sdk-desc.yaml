@@ -1,0 +1,23 @@
+id: attack-hikvision-sdk-desc
+severity: medium
+priority: 17
+tags: [attack, recon, hikvision, iot, ipcam, cve-2021-36260, knock-knock, kk-purpose-recon]
+# Hikvision /SDK/DeviceDescription recon probe — the fingerprinting GET that precedes the
+# /SDK/webLanguage RCE. Purpose is recon (kk 600), so severity is medium, not critical. We
+# return a small, believable device-description XML. Path-only gate; nothing is executed and
+# nothing from the request is reflected.
+match:
+  - in: path
+    regex: '/SDK/DeviceDescription'
+    ci: false
+response:
+  headers:
+    Content-Type: "application/xml; charset=UTF-8"
+  body: |
+    <?xml version="1.0" encoding="UTF-8"?>
+    <DeviceDescription version="2.0" xmlns="http://www.hikvision.com/ver20/XMLSchema">
+      <deviceName>IP CAMERA</deviceName>
+      <deviceType>IPCamera</deviceType>
+      <model>DS-2CD2042</model>
+    </DeviceDescription>
+expect: ['DeviceDescription', 'IPCamera']

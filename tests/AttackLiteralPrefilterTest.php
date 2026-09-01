@@ -131,6 +131,13 @@ final class AttackLiteralPrefilterTest extends TestCase
             // URL-encoded traversal — the required literal must be found on the rawurldecode()
             // half of the `request` surface, exactly as the regex matches it.
             'lfi-environ-enc'  => ['attack-lfi-environ', $g('/download', 'file=%2Fproc%2Fself%2Fenviron')],
+            // FP-0143 knock-knock IoT/edge rules that compiled with a `lit` pre-filter hint.
+            'hikvision-sdk'    => ['attack-hikvision-sdk-36260', $g('/SDK/webLanguage', '', '<language>$(id)</language>')],
+            'hikvision-desc'   => ['attack-hikvision-sdk-desc', $g('/SDK/DeviceDescription')],
+            'gpon-10561'       => ['attack-gpon-10561', $g('/GponForm/diag_Form', '', 'dest_host=`busybox`;')],
+            'fiberhome-27973'  => ['attack-fiberhome-27973', $g('/boaform/admin/formLogin', '', 'username=admin;telnetd')],
+            'netgear-6277'     => ['attack-netgear-6277', $g('/setup.cgi', 'todo=syscmd&cmd=id')],
+            'xdebug'           => ['attack-xdebug', $g('/index.php', 'XDEBUG_SESSION_START=phpstorm')],
         ];
     }
 
@@ -179,6 +186,11 @@ final class AttackLiteralPrefilterTest extends TestCase
             // near-misses: surface carries part of a literal but not the whole required run.
             'near-actuator'  => ['actuators plural is not /actuator$', $g('/actuators-dashboard')],
             'near-api-v2'    => ['api/v2 is not ivanti /api/v1/', $g('/api/v2/status')],
+            // FP-0143: node-red carries no lit (path regex starts with a group) — evaluated both
+            // passes; plus a couple of near-misses on the new IoT literals.
+            'node-red-recon' => ['node-red /nodes recon listing', $g('/nodes')],
+            'near-hik-sdk'   => ['SDK/DeviceInfo is not the webLanguage RCE path', $g('/SDK/DeviceInfo')],
+            'near-setup-cgi' => ['setup.cgi without a todo= injection is not netgear', $g('/setup.cgi', 'page=basic')],
             // empty / minimal.
             'empty'          => ['empty request', $g('/')],
         ];
