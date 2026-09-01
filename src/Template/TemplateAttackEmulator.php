@@ -537,6 +537,16 @@ final class TemplateAttackEmulator
     /** Hard cap on the fence count in one ssti-render surface — no amplification. */
     private const SSTI_MAX_FENCES = 64;
 
+    /** Hard cap on the ssti-render surface length; mirrors the compiler's EXPR_MAX_LEN ceiling. */
+    private const SSTI_MAX_LEN = 256;
+
+    /**
+     * Hard cap on a bare-integer echo (digits). tplmap's header/trailer randoms are 10 digits; 32
+     * leaves generous headroom while keeping a fence's echoed digit run bounded. A longer run
+     * declines (falls through to SafeArithmetic, which then rejects it as past int32).
+     */
+    private const SSTI_MAX_DIGITS = 32;
+
     /**
      * Code-authored fence-delimiter recognisers (a CLOSED table, never built from attacker input).
      * Each row is [anchored regex with ONE inner capture, engines that enable it]. Ordered so a more
@@ -561,11 +571,14 @@ final class TemplateAttackEmulator
      * using engine-specific render shapes (`|nl2br`, `print()`, `typeof(x)+y`). This handler walks the
      * reflected `surface` capture left→right; every segment must be either an enabled engine's fence
      * or a `[ \t]` gap, else the walk FAILS CLOSED (returns null → renderRule serves the inert base
-     * page — never a 500, never a reflection). Each fence's inner is reduced to arithmetic and passed
-     * to Support\SafeArithmetic::evaluate() (byte-whitelisted to digits + - * / % ( ) space tab,
-     * integer-only, length/overflow-capped) — NEVER eval / a template engine / a callback. The fence
-     * and shape recognisers are CODE-authored regexes over a closed engine enum, so no attacker byte
-     * ever becomes a regex or an eval input.
+     * page — never a 500, never a reflection). Each fence's inner is reduced to a rendered digit run:
+     * a BARE INTEGER is echoed verbatim (strictly `[0-9]`-only, length-capped — this is how tplmap's
+     * 10-digit header/trailer randoms render, which SafeArithmetic's int32 operand cap would reject);
+     * anything with an operator goes through Support\SafeArithmetic::evaluate() (byte-whitelisted to
+     * digits + - * / % ( ) space tab, integer-only, length/overflow-capped) — NEVER eval / a template
+     * engine / a callback. The fence and shape recognisers are CODE-authored regexes over a closed
+     * engine enum, so no attacker byte ever becomes a regex or an eval input, and both reduction paths
+     * admit ONLY digits, so no non-digit byte can ever reach the output.
      *
      * Output is ALWAYS pure digits (+ the fixed word `number` from the JS `typeof` shape + preserved
      * `[ \t]` gaps): the concatenated per-fence renders are bound into `$config['bind']` and reflected
@@ -583,9 +596,9 @@ final class TemplateAttackEmulator
         $surface = (string) (isset($captures[$surfaceKey]) ? $captures[$surfaceKey] : '');
 
         $max = isset($config['max_operand']) ? (int) $config['max_operand'] : self::ARITH_MAX_OPERAND;
-        $maxLen = isset($config['max_len']) ? (int) $config['max_len'] : 256;
-        if ($maxLen < 1 || $maxLen > 256) {
-            $maxLen = 256;
+        $maxLen = isset($config['max_len']) ? (int) $config['max_len'] : self::SSTI_MAX_LEN;
+        if ($maxLen < 1 || $maxLen > self::SSTI_MAX_LEN) {
+            $maxLen = self::SSTI_MAX_LEN;
         }
         // The surface holds the whole fence run; anything over the length cap declines outright.
         if ($surface === '' || strlen($surface) > $maxLen) {
@@ -593,7 +606,9 @@ final class TemplateAttackEmulator
         }
 
         // Enabled engines drive BOTH the fence-delimiter set and the inner-shape transforms — a
-        // closed enum, code-authored, never derived from a capture.
+        // closed enum, code-authored, never derived from a capture. The compiler always supplies a
+        // non-empty `engines` (it defaults to the full set), so the fallback below is a defensive
+        // no-op for a hand-built rule / a legacy compiled artifact.
         $engines = [];
         foreach ((array) (isset($config['engines']) ? $config['engines'] : []) as $e) {
             $engines[(string) $e] = true;
@@ -616,6 +631,8 @@ final class TemplateAttackEmulator
             'typeof' => isset($engines['javascript']),
             'print' => isset($engines['mako']),
             'nl2br' => isset($engines['twig']),
+            // FreeMarker's `?c` (computer-format) builtin — tplmap's FreeMarker header is `${<rand>?c}`.
+            'qc' => isset($engines['freemarker']),
         ];
 
         $pieces = [];
@@ -673,40 +690,60 @@ final class TemplateAttackEmulator
 
     /**
      * Reduce one fence's inner to its rendered string, or null if it is not a recognised shape.
-     * Every branch ends in a SafeArithmetic::evaluate() on a byte-restricted arithmetic fragment, so
-     * the output is always pure digits (the JS `typeof` shape prepends the CONSTANT word `number`,
-     * which is code-authored, never an attacker byte). The shape regexes are fixed and code-authored.
+     * Every branch ends in sstiEvalArith() — either a strict bare-integer echo or a SafeArithmetic
+     * evaluation — so the output is always pure digits (the JS `typeof` shape prepends the CONSTANT
+     * word `number`, which is code-authored, never an attacker byte). The shape regexes are fixed and
+     * code-authored; no attacker byte becomes a regex.
      *
      * @param array<string,bool> $shapes which inner transforms are enabled (per the engine enum)
      */
     private function sstiRenderInner(string $inner, array $shapes, int $max, int $maxLen): ?string
     {
         // JS `typeof(<int>)+<int>` → invariant literal `number` + str(int2). Both integers are
-        // validated through SafeArithmetic, so no attacker byte transits this shape.
+        // digit-validated (typeof's arg is discarded to the constant `number`); the trailer echoes.
         if ($shapes['typeof'] && preg_match('~^[ \t]*typeof\(([0-9 \t]{1,32})\)[ \t]*\+[ \t]*([0-9 \t]{1,32})[ \t]*$~', $inner, $m) === 1) {
-            $a = SafeArithmetic::evaluate($m[1], $max, $maxLen);
-            $b = SafeArithmetic::evaluate($m[2], $max, $maxLen);
+            $a = $this->sstiEvalArith($m[1], $max, $maxLen);
+            $b = $this->sstiEvalArith($m[2], $max, $maxLen);
             if ($a === null || $b === null) {
                 return null;
             }
 
-            return 'number' . (string) $b;
+            return 'number' . $b;
         }
-        // Mako `print(<arith>)` → unwrap to the arithmetic argument, then evaluate.
+        // FreeMarker `${<digits>?c}` computer-format builtin → echo the (digit-only) argument.
+        if ($shapes['qc'] && preg_match('~^[ \t]*([0-9]{1,' . self::SSTI_MAX_DIGITS . '})[ \t]*\?c[ \t]*$~', $inner, $m) === 1) {
+            return $m[1];
+        }
+        // Mako `print(<arith>)` → unwrap to the arithmetic argument, then reduce.
         if ($shapes['print'] && preg_match('~^[ \t]*print\(([0-9+\-*/%() \t]{1,64})\)[ \t]*$~', $inner, $m) === 1) {
-            $v = SafeArithmetic::evaluate($m[1], $max, $maxLen);
-
-            return $v === null ? null : (string) $v;
+            return $this->sstiEvalArith($m[1], $max, $maxLen);
         }
-        // Twig `<arith>|nl2br` → strip the filter, then evaluate the arithmetic prefix.
+        // Twig `<arith>|nl2br` → strip the filter, then reduce the arithmetic prefix.
         if ($shapes['nl2br'] && preg_match('~^([0-9+\-*/%() \t]{1,64})\|nl2br[ \t]*$~', $inner, $m) === 1) {
-            $v = SafeArithmetic::evaluate($m[1], $max, $maxLen);
-
-            return $v === null ? null : (string) $v;
+            return $this->sstiEvalArith($m[1], $max, $maxLen);
         }
-        // Bare arithmetic (all engines) — including a lone integer, which is how tplmap's random
-        // header/trailer confirms the delimiters were stripped.
-        $v = SafeArithmetic::evaluate($inner, $max, $maxLen);
+        // Bare integer (tplmap's random header/trailer) or bare arithmetic (all engines).
+        return $this->sstiEvalArith($inner, $max, $maxLen);
+    }
+
+    /**
+     * Reduce one arithmetic fragment to its rendered digit string, or null.
+     *
+     * A BARE INTEGER (optionally `[ \t]`-padded) is echoed VERBATIM — strictly `[0-9]`-only and
+     * length-capped to SSTI_MAX_DIGITS. This is the ONLY path that reflects an attacker-supplied
+     * number (inherent to tplmap confirmation, whose 10-digit header/trailer randoms exceed
+     * SafeArithmetic's int32 operand cap and so cannot flow through the evaluator). The `^[0-9]+$`
+     * gate admits no other byte, so the echo is provably digit-only — no markup, CRLF, or injection
+     * can transit it. Anything containing an operator/paren goes to SafeArithmetic (int32-bounded,
+     * integer-only), whose output is likewise pure computed digits. A run longer than the digit cap
+     * falls through to SafeArithmetic and is rejected there (past int32) → null → decline.
+     */
+    private function sstiEvalArith(string $expr, int $max, int $maxLen): ?string
+    {
+        if (preg_match('~^[ \t]*([0-9]{1,' . self::SSTI_MAX_DIGITS . '})[ \t]*$~', $expr, $m) === 1) {
+            return $m[1];
+        }
+        $v = SafeArithmetic::evaluate($expr, $max, $maxLen);
 
         return $v === null ? null : (string) $v;
     }

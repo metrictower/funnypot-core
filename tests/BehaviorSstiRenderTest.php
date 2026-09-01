@@ -61,18 +61,28 @@ final class BehaviorSstiRenderTest extends TestCase
 
     // --- handler behavior -------------------------------------------------------------------
 
-    public function test_jinja_multi_fence_stitched(): void
+    public function test_jinja_multi_fence_stitched_real_tplmap_randoms(): void
     {
-        // Catches the shipped-45 bug of emitting only the first fence, and any echo-the-payload path.
-        // (operands < int32 — the reused SafeArithmetic bounds every operand to 2147483647.)
-        $r = $this->serve($this->sstiRule(), '{{123456789}}{{7*7}}{{987654321}}');
+        // A REALISTIC tplmap probe: 10-digit header/trailer randoms (in [1e9,1e10), past int32) +
+        // an arithmetic payload. The randoms echo via the bare-integer path; the payload computes.
+        // Catches the shipped-45 bug of emitting only the first fence, any echo-the-payload path, AND
+        // the int32 regression where a 10-digit random would null the whole render.
+        $r = $this->serve($this->sstiRule(), '{{9876543210}}{{17*42}}{{1234567890}}');
         self::assertNotNull($r);
-        self::assertSame('R=12345678949987654321', $r->body);
+        self::assertSame('R=98765432107141234567890', $r->body); // 9876543210 . 714 . 1234567890
     }
 
-    public function test_freemarker_fence_per_engine(): void
+    public function test_freemarker_fence_per_engine_with_c_builtin(): void
     {
-        // Catches a hard-coded {{-only recogniser that ignores ${...}.
+        // tplmap's FreeMarker header/trailer is `${<10-digit>?c}` (the computer-format builtin).
+        // Catches a hard-coded {{-only recogniser that ignores ${...}, and a missing `?c` shape.
+        $r = $this->serve($this->sstiRule(), '${9876543210?c}${7*7}${1234567890?c}');
+        self::assertNotNull($r);
+        self::assertSame('R=9876543210491234567890', $r->body);
+    }
+
+    public function test_freemarker_bare_ten_digit_fence(): void
+    {
         $r = $this->serve($this->sstiRule(), '${111111111}${7*7}${222222222}');
         self::assertNotNull($r);
         self::assertSame('R=11111111149222222222', $r->body);
@@ -139,6 +149,17 @@ final class BehaviorSstiRenderTest extends TestCase
         self::assertSame('BASE FALLBACK', $this->serve($this->sstiRule(), '{{7*7}},{{8}}')->body);
     }
 
+    public function test_digit_echo_admits_no_non_digit_byte(): void
+    {
+        // The bare-integer echo path is strictly [0-9]-only: a non-digit glued to a random makes the
+        // inner neither a bare integer nor arithmetic -> null -> whole render declines. No leak.
+        self::assertSame('BASE FALLBACK', $this->serve($this->sstiRule(), '{{9876543210x}}{{7*7}}')->body);
+        self::assertSame('BASE FALLBACK', $this->serve($this->sstiRule(), '{{9876543210<b>}}{{7}}')->body);
+        // A run longer than the 32-digit echo cap falls through to SafeArithmetic and is rejected
+        // there (past int32) -> decline.
+        self::assertSame('BASE FALLBACK', $this->serve($this->sstiRule(), '{{999999999999999999999999999999999}}{{7}}')->body);
+    }
+
     public function test_div_zero_and_overflow_degrade_without_500(): void
     {
         $r = $this->serve($this->sstiRule(), '{{1/0}}{{1}}');
@@ -177,8 +198,8 @@ final class BehaviorSstiRenderTest extends TestCase
     {
         // No raw {, <, ., quote can survive: every rendered body is digits + optional `number` tokens.
         foreach ([
-            '{{123456789}}{{7*7}}{{987654321}}',
-            '${111111111}${7*7}${222222222}',
+            '{{9876543210}}{{17*42}}{{1234567890}}',
+            '${9876543210?c}${7*7}${1234567890?c}',
             '{{10}}{{6*7}}{{20}}',
             '{{100}}{{7*7|nl2br}}{{200}}',
             '${1}${typeof(7)+7}${2}',
@@ -215,13 +236,22 @@ final class BehaviorSstiRenderTest extends TestCase
         self::assertSame("49\n", $r->body);
     }
 
-    public function test_multi_fence_routes_to_43(): void
+    public function test_multi_fence_routes_to_43_with_real_tplmap_randoms(): void
     {
         $em = TemplateAttackEmulator::fromFile(__DIR__ . '/../resources/compiled/funnypot-attack.php');
-        $r = $em->emulate(new RequestContext('GET', '/hello', 'x={{123456789}}{{7*7}}{{987654321}}'));
+        $r = $em->emulate(new RequestContext('GET', '/hello', 'x={{9876543210}}{{17*42}}{{1234567890}}'));
         self::assertNotNull($r);
         self::assertSame(['attack-ssti-multifence'], $r->satisfies->templateIds());
-        self::assertSame("12345678949987654321\n", $r->body);
+        self::assertSame("98765432107141234567890\n", $r->body);
+    }
+
+    public function test_freemarker_c_builtin_routes_to_43(): void
+    {
+        $em = TemplateAttackEmulator::fromFile(__DIR__ . '/../resources/compiled/funnypot-attack.php');
+        $r = $em->emulate(new RequestContext('GET', '/hello', 'x=${9876543210?c}${7*7}${1234567890?c}'));
+        self::assertNotNull($r);
+        self::assertSame(['attack-ssti-multifence'], $r->satisfies->templateIds());
+        self::assertSame("9876543210491234567890\n", $r->body);
     }
 
     // --- compiler ---------------------------------------------------------------------------
