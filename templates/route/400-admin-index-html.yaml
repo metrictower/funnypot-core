@@ -1,0 +1,50 @@
+id: route-surface-admin
+priority: 400
+# Brand-new page (FP-0233): the admin dashboard index archetype — an HTML shell (a structurally
+# distinct crawl node from the JSON archetypes). CRITICAL for the route-integrity dangling-link
+# gate: every href here is a ROOT-ABSOLUTE path (never relative — the phpMyAdmin failure mode) and
+# resolves to a COMPILED in-family decoy (all surface-graph bundles share the `api` family via
+# their first non-generic tag), so the linter sees no dangling / cross-family / unanchored link.
+# No stylesheet/script/img asset link (that would dangle) — anchors only, all to compiled paths.
+# Inert: GET, 200, no request byte reflected, fully persona-seeded. Served text/html. Block HTML
+# comment taunt after the body. No numbers on the page (no digit-run risk).
+new_page:
+  method: GET
+  paths: ['/admin', '/admin/']
+  sig: 0
+  status: 200
+  severity: info
+  weight: 100000
+  tags: [exposure, api, discovery]
+  name: 'Exposed admin dashboard index'
+  body_words: ['<title>', 'Dashboard']
+response:
+  headers:
+    Content-Type: "text/html; charset=utf-8"
+  body: |
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+      <meta charset="utf-8">
+      <title>{{persona.company.name}} Admin</title>
+    </head>
+    <body>
+      <h1>{{persona.company.name}} Dashboard</h1>
+      <nav>
+        <ul>
+          <li><a href="/admin/users">Users</a></li>
+          <li><a href="/api/v1/users">API: users</a></li>
+          <li><a href="/api/v1/orders">API: orders</a></li>
+          <li><a href="/webhooks">Webhooks</a></li>
+          <li><a href="/status">Status</a></li>
+          <li><a href="/metrics">Metrics</a></li>
+        </ul>
+      </nav>
+      <p>Signed in as {{persona.user.admin.email}}.</p>
+    </body>
+    </html>
+taunt: { mode: block, open: '<!--', close: '-->' }
+expect:
+  - '<title>'
+  - 'Dashboard</h1>'
+  - 'href="/admin/users"'

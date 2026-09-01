@@ -3532,12 +3532,42 @@ Stack trace:
   "contact": { "email": "{{persona.user.admin.email}}" }
 },
 "servers": [
-  { "url": "https://api.{{persona.company.domain}}/v2", "description": "Production" }
+  { "url": "https://{{persona.company.domain}}", "description": "Production" }
 ],
 "paths": {
-  "/users": {
+  "/api/v1/users": {
     "get": {
       "summary": "List users",
+      "responses": { "200": { "description": "OK" }, "401": { "description": "Unauthorized" } }
+    }
+  },
+  "/api/v1/orders": {
+    "get": {
+      "summary": "List orders",
+      "responses": { "200": { "description": "OK" }, "401": { "description": "Unauthorized" } }
+    }
+  },
+  "/api/v1/status": {
+    "get": {
+      "summary": "Service status",
+      "responses": { "200": { "description": "OK" } }
+    }
+  },
+  "/api/v1/config": {
+    "get": {
+      "summary": "Service configuration",
+      "responses": { "200": { "description": "OK" }, "401": { "description": "Unauthorized" } }
+    }
+  },
+  "/metrics": {
+    "get": {
+      "summary": "Prometheus metrics",
+      "responses": { "200": { "description": "OK" } }
+    }
+  },
+  "/webhooks": {
+    "get": {
+      "summary": "List webhook subscriptions",
       "responses": { "200": { "description": "OK" }, "401": { "description": "Unauthorized" } }
     }
   },
@@ -3547,11 +3577,10 @@ Stack trace:
       "responses": { "200": { "description": "OK" }, "400": { "description": "Bad Request" } }
     }
   },
-  "/orders/{id}": {
-    "get": {
-      "summary": "Fetch an order",
-      "parameters": [ { "name": "id", "in": "path", "required": true, "schema": { "type": "integer", "example": {{fake.orderid:dec:5}} } } ],
-      "responses": { "200": { "description": "OK" }, "404": { "description": "Not Found" } }
+  "/auth/token": {
+    "post": {
+      "summary": "Exchange credentials for a bearer token",
+      "responses": { "200": { "description": "OK" }, "401": { "description": "Unauthorized" } }
     }
   }
 },
@@ -3699,7 +3728,7 @@ Policy: https://{{persona.company.domain}}/security-policy
 "description_for_model": "Query the {{persona.company.name}} internal API for users, orders and auth.",
 "description_for_human": "Access {{persona.company.name}} data.",
 "auth": { "type": "service_http", "authorization_type": "bearer" },
-"api": { "type": "openapi", "url": "https://api.{{persona.company.domain}}/openapi.json" },
+"api": { "type": "openapi", "url": "https://{{persona.company.domain}}/openapi.json" },
 "logo_url": "https://{{persona.company.domain}}/logo.png",
 "contact_email": "{{persona.user.admin.email}}",
 "legal_info_url": "https://{{persona.company.domain}}/legal"
@@ -3786,12 +3815,42 @@ Policy: https://{{persona.company.domain}}/security-policy
   "contact": { "email": "{{persona.user.admin.email}}" }
 },
 "servers": [
-  { "url": "https://api.{{persona.company.domain}}/v2", "description": "Production" }
+  { "url": "https://{{persona.company.domain}}", "description": "Production" }
 ],
 "paths": {
-  "/users": {
+  "/api/v1/users": {
     "get": {
       "summary": "List users",
+      "responses": { "200": { "description": "OK" }, "401": { "description": "Unauthorized" } }
+    }
+  },
+  "/api/v1/orders": {
+    "get": {
+      "summary": "List orders",
+      "responses": { "200": { "description": "OK" }, "401": { "description": "Unauthorized" } }
+    }
+  },
+  "/api/v1/status": {
+    "get": {
+      "summary": "Service status",
+      "responses": { "200": { "description": "OK" } }
+    }
+  },
+  "/api/v1/config": {
+    "get": {
+      "summary": "Service configuration",
+      "responses": { "200": { "description": "OK" }, "401": { "description": "Unauthorized" } }
+    }
+  },
+  "/metrics": {
+    "get": {
+      "summary": "Prometheus metrics",
+      "responses": { "200": { "description": "OK" } }
+    }
+  },
+  "/webhooks": {
+    "get": {
+      "summary": "List webhook subscriptions",
       "responses": { "200": { "description": "OK" }, "401": { "description": "Unauthorized" } }
     }
   },
@@ -3801,11 +3860,10 @@ Policy: https://{{persona.company.domain}}/security-policy
       "responses": { "200": { "description": "OK" }, "400": { "description": "Bad Request" } }
     }
   },
-  "/orders/{id}": {
-    "get": {
-      "summary": "Fetch an order",
-      "parameters": [ { "name": "id", "in": "path", "required": true, "schema": { "type": "integer", "example": {{fake.orderid:dec:5}} } } ],
-      "responses": { "200": { "description": "OK" }, "404": { "description": "Not Found" } }
+  "/auth/token": {
+    "post": {
+      "summary": "Exchange credentials for a bearer token",
+      "responses": { "200": { "description": "OK" }, "401": { "description": "Unauthorized" } }
     }
   }
 },
@@ -3847,15 +3905,17 @@ Policy: https://{{persona.company.domain}}/security-policy
   "version": "1.8.2",
   "contact": { "email": "{{persona.user.admin.email}}" }
 },
-"host": "api.{{persona.company.domain}}",
-"basePath": "/v2",
+"host": "{{persona.company.domain}}",
+"basePath": "/api/v1",
 "schemes": [ "https" ],
 "securityDefinitions": {
   "Bearer": { "type": "apiKey", "name": "Authorization", "in": "header" }
 },
 "paths": {
-  "/users": { "get": { "summary": "List users", "responses": { "200": { "description": "OK" } } } },
-  "/auth/login": { "post": { "summary": "Authenticate", "responses": { "200": { "description": "OK" }, "401": { "description": "Unauthorized" } } } }
+  "/users": { "get": { "summary": "List users", "responses": { "200": { "description": "OK" }, "401": { "description": "Unauthorized" } } } },
+  "/orders": { "get": { "summary": "List orders", "responses": { "200": { "description": "OK" }, "401": { "description": "Unauthorized" } } } },
+  "/status": { "get": { "summary": "Service status", "responses": { "200": { "description": "OK" } } } },
+  "/config": { "get": { "summary": "Service configuration", "responses": { "200": { "description": "OK" }, "401": { "description": "Unauthorized" } } } }
 },
 "definitions": {
   "User": { "type": "object", "properties": { "id": { "type": "integer", "example": {{fake.userid:dec:5}} }, "email": { "type": "string" } } }
@@ -3890,21 +3950,55 @@ info:
   contact:
     email: {{persona.user.admin.email}}
 servers:
-  - url: https://api.{{persona.company.domain}}/v2
+  - url: https://{{persona.company.domain}}
     description: Production
 paths:
-  /users:
+  /api/v1/users:
     get:
       summary: List users
       responses:
         "200": { description: OK }
         "401": { description: Unauthorized }
-  /orders/{id}:
+  /api/v1/orders:
     get:
-      summary: Fetch an order
+      summary: List orders
       responses:
         "200": { description: OK }
-        "404": { description: Not Found }
+        "401": { description: Unauthorized }
+  /api/v1/status:
+    get:
+      summary: Service status
+      responses:
+        "200": { description: OK }
+  /api/v1/config:
+    get:
+      summary: Service configuration
+      responses:
+        "200": { description: OK }
+        "401": { description: Unauthorized }
+  /metrics:
+    get:
+      summary: Prometheus metrics
+      responses:
+        "200": { description: OK }
+  /webhooks:
+    get:
+      summary: List webhook subscriptions
+      responses:
+        "200": { description: OK }
+        "401": { description: Unauthorized }
+  /auth/login:
+    post:
+      summary: Authenticate and receive a bearer token
+      responses:
+        "200": { description: OK }
+        "400": { description: Bad Request }
+  /auth/token:
+    post:
+      summary: Exchange credentials for a bearer token
+      responses:
+        "200": { description: OK }
+        "401": { description: Unauthorized }
 components:
   securitySchemes:
     bearerAuth:
@@ -4038,11 +4132,11 @@ components:
 "name": "{{persona.company.name}} API",
 "version": "2.4.0",
 "status": "ok",
-"documentation": "https://api.{{persona.company.domain}}/openapi.json",
+"documentation": "https://{{persona.company.domain}}/openapi.json",
 "endpoints": {
-  "users": "https://api.{{persona.company.domain}}/api/v2/users",
-  "orders": "https://api.{{persona.company.domain}}/api/v2/orders",
-  "auth": "https://api.{{persona.company.domain}}/api/v2/auth/login"
+  "users": "https://{{persona.company.domain}}/api/v2/users",
+  "orders": "https://{{persona.company.domain}}/api/v2/orders",
+  "auth": "https://{{persona.company.domain}}/api/v2/auth/login"
 },
 "authentication": { "type": "bearer", "header": "Authorization" }
 }
@@ -5818,6 +5912,458 @@ $TYPO3_CONF_VARS[\'BE\'][\'adminEmail\'] = \'{{persona.user.admin.email}}\';
     array (
       'mode' => 'line',
       'open' => '//',
+    ),
+  ),
+  169 => 
+  array (
+    'id' => 'route-surface-sitemap',
+    'match' => 
+    array (
+      'pid' => 
+      array (
+        0 => 'route-surface-sitemap',
+      ),
+    ),
+    'body' => '<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+<url><loc>https://{{persona.company.domain}}/openapi.json</loc></url>
+<url><loc>https://{{persona.company.domain}}/openapi.yaml</loc></url>
+<url><loc>https://{{persona.company.domain}}/swagger.json</loc></url>
+<url><loc>https://{{persona.company.domain}}/v3/api-docs</loc></url>
+<url><loc>https://{{persona.company.domain}}/v2/api-docs</loc></url>
+<url><loc>https://{{persona.company.domain}}/api-docs</loc></url>
+<url><loc>https://{{persona.company.domain}}/swagger-ui.html</loc></url>
+<url><loc>https://{{persona.company.domain}}/api/v2</loc></url>
+<url><loc>https://{{persona.company.domain}}/.well-known/security.txt</loc></url>
+<url><loc>https://{{persona.company.domain}}/.well-known/ai-plugin.json</loc></url>
+<url><loc>https://{{persona.company.domain}}/.well-known/openid-configuration</loc></url>
+<url><loc>https://{{persona.company.domain}}/.well-known/jwks.json</loc></url>
+<url><loc>https://{{persona.company.domain}}/api</loc></url>
+<url><loc>https://{{persona.company.domain}}/api/v1</loc></url>
+<url><loc>https://{{persona.company.domain}}/v1</loc></url>
+<url><loc>https://{{persona.company.domain}}/api/v1/users</loc></url>
+<url><loc>https://{{persona.company.domain}}/api/v1/orders</loc></url>
+<url><loc>https://{{persona.company.domain}}/api/v1/status</loc></url>
+<url><loc>https://{{persona.company.domain}}/api/v1/config</loc></url>
+<url><loc>https://{{persona.company.domain}}/api/v2/users</loc></url>
+<url><loc>https://{{persona.company.domain}}/api/v2/orders</loc></url>
+<url><loc>https://{{persona.company.domain}}/users</loc></url>
+<url><loc>https://{{persona.company.domain}}/admin</loc></url>
+<url><loc>https://{{persona.company.domain}}/admin/users</loc></url>
+<url><loc>https://{{persona.company.domain}}/metrics</loc></url>
+<url><loc>https://{{persona.company.domain}}/status</loc></url>
+<url><loc>https://{{persona.company.domain}}/debug</loc></url>
+<url><loc>https://{{persona.company.domain}}/webhooks</loc></url>
+<url><loc>https://{{persona.company.domain}}/webhooks/subscriptions</loc></url>
+<url><loc>https://{{persona.company.domain}}/graphql</loc></url>
+<url><loc>https://{{persona.company.domain}}/auth</loc></url>
+<url><loc>https://{{persona.company.domain}}/auth/login</loc></url>
+<url><loc>https://{{persona.company.domain}}/auth/token</loc></url>
+</urlset>
+',
+    'headers' => 
+    array (
+      'Content-Type' => 'application/xml; charset=utf-8',
+    ),
+    'taunt' => 
+    array (
+      'mode' => 'block',
+      'open' => '<!--',
+      'close' => '-->',
+    ),
+  ),
+  170 => 
+  array (
+    'id' => 'route-surface-robots',
+    'match' => 
+    array (
+      'pid' => 
+      array (
+        0 => 'route-surface-robots',
+      ),
+    ),
+    'body' => 'User-agent: *
+Disallow: /admin
+Disallow: /api
+Disallow: /auth
+Disallow: /graphql
+Disallow: /metrics
+Disallow: /status
+Disallow: /debug
+Disallow: /webhooks
+Sitemap: https://{{persona.company.domain}}/sitemap.xml
+',
+    'headers' => 
+    array (
+      'Content-Type' => 'text/plain; charset=utf-8',
+    ),
+    'taunt' => 
+    array (
+      'mode' => 'line',
+      'open' => '#',
+    ),
+  ),
+  171 => 
+  array (
+    'id' => 'route-surface-oidc',
+    'match' => 
+    array (
+      'pid' => 
+      array (
+        0 => 'route-surface-oidc',
+      ),
+    ),
+    'body' => '{
+"issuer": "https://{{persona.company.domain}}",
+"authorization_endpoint": "https://{{persona.company.domain}}/auth/login",
+"token_endpoint": "https://{{persona.company.domain}}/auth/token",
+"userinfo_endpoint": "https://{{persona.company.domain}}/auth",
+"jwks_uri": "https://{{persona.company.domain}}/.well-known/jwks.json",
+"response_types_supported": ["code", "token", "id_token"],
+"subject_types_supported": ["public"],
+"id_token_signing_alg_values_supported": ["RS256"],
+"scopes_supported": ["openid", "profile", "email"],
+"token_endpoint_auth_methods_supported": ["client_secret_basic", "client_secret_post"],
+"claims_supported": ["sub", "iss", "email", "name"]
+}
+',
+    'headers' => 
+    array (
+      'Content-Type' => 'application/json',
+    ),
+    'taunt' => 
+    array (
+      'mode' => 'inline_field',
+      'key' => '_comment',
+    ),
+  ),
+  172 => 
+  array (
+    'id' => 'route-surface-jwks',
+    'match' => 
+    array (
+      'pid' => 
+      array (
+        0 => 'route-surface-jwks',
+      ),
+    ),
+    'body' => '{
+"keys": [
+  {
+    "kty": "RSA",
+    "use": "sig",
+    "alg": "RS256",
+    "kid": "{{fake.jwks_kid:hex:16}}",
+    "n": "{{fake.jwks_n:b64url:342}}",
+    "e": "AQAB"
+  }
+]
+}
+',
+    'headers' => 
+    array (
+      'Content-Type' => 'application/json',
+    ),
+    'taunt' => 
+    array (
+      'mode' => 'inline_field',
+      'key' => '_comment',
+    ),
+  ),
+  173 => 
+  array (
+    'id' => 'route-surface-root',
+    'match' => 
+    array (
+      'pid' => 
+      array (
+        0 => 'route-surface-root',
+      ),
+    ),
+    'body' => '{
+"name": "{{persona.company.name}} API",
+"current_version": "v1",
+"versions": ["v1", "v2"],
+"documentation": "https://{{persona.company.domain}}/openapi.json",
+"_links": {
+  "self": "https://{{persona.company.domain}}/api/v1",
+  "users": "https://{{persona.company.domain}}/api/v1/users",
+  "orders": "https://{{persona.company.domain}}/api/v1/orders",
+  "status": "https://{{persona.company.domain}}/api/v1/status",
+  "config": "https://{{persona.company.domain}}/api/v1/config",
+  "webhooks": "https://{{persona.company.domain}}/webhooks",
+  "auth": "https://{{persona.company.domain}}/auth/login"
+}
+}
+',
+    'headers' => 
+    array (
+      'Content-Type' => 'application/json',
+    ),
+    'taunt' => 
+    array (
+      'mode' => 'inline_field',
+      'key' => '_comment',
+    ),
+  ),
+  174 => 
+  array (
+    'id' => 'route-surface-collection',
+    'match' => 
+    array (
+      'pid' => 
+      array (
+        0 => 'route-surface-collection',
+      ),
+    ),
+    'body' => '{
+"data": [
+  { "id": {{fake.rc_id1:dec:5}}, "ref": "{{fake.rc_ref1:hex:12}}", "name": "{{fake.person.full:rc1}}", "state": "active", "created_at": "2024-11-04T09:12:33Z" },
+  { "id": {{fake.rc_id2:dec:5}}, "ref": "{{fake.rc_ref2:hex:12}}", "name": "{{fake.person.full:rc2}}", "state": "active", "created_at": "2024-12-18T14:47:05Z" },
+  { "id": {{fake.rc_id3:dec:5}}, "ref": "{{fake.rc_ref3:hex:12}}", "name": "{{fake.person.full:rc3}}", "state": "disabled", "created_at": "2025-01-27T21:03:58Z" }
+],
+"page": 1,
+"per_page": 25,
+"total": 3,
+"_links": {
+  "self": "https://{{persona.company.domain}}/api/v1/users?page=1",
+  "next": "https://{{persona.company.domain}}/api/v1/users?page=2"
+}
+}
+',
+    'headers' => 
+    array (
+      'Content-Type' => 'application/json',
+    ),
+    'taunt' => 
+    array (
+      'mode' => 'inline_field',
+      'key' => '_comment',
+    ),
+  ),
+  175 => 
+  array (
+    'id' => 'route-surface-detail',
+    'match' => 
+    array (
+      'pid' => 
+      array (
+        0 => 'route-surface-detail',
+      ),
+    ),
+    'body' => '{
+"service": "{{persona.company.slug}}-api",
+"environment": "production",
+"region": "{{persona.cloud.aws.region}}",
+"release": "1.8.2",
+"commit": "{{fake.rd_commit:hex:40}}",
+"features": { "webhooks": true, "graphql": true, "beta": false },
+"limits": { "rate_per_minute": 600, "max_page_size": 100 },
+"maintainer": "{{persona.user.admin.email}}"
+}
+',
+    'headers' => 
+    array (
+      'Content-Type' => 'application/json',
+    ),
+    'taunt' => 
+    array (
+      'mode' => 'inline_field',
+      'key' => '_comment',
+    ),
+  ),
+  176 => 
+  array (
+    'id' => 'route-surface-admin',
+    'match' => 
+    array (
+      'pid' => 
+      array (
+        0 => 'route-surface-admin',
+      ),
+    ),
+    'body' => '<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>{{persona.company.name}} Admin</title>
+</head>
+<body>
+  <h1>{{persona.company.name}} Dashboard</h1>
+  <nav>
+    <ul>
+      <li><a href="/admin/users">Users</a></li>
+      <li><a href="/api/v1/users">API: users</a></li>
+      <li><a href="/api/v1/orders">API: orders</a></li>
+      <li><a href="/webhooks">Webhooks</a></li>
+      <li><a href="/status">Status</a></li>
+      <li><a href="/metrics">Metrics</a></li>
+    </ul>
+  </nav>
+  <p>Signed in as {{persona.user.admin.email}}.</p>
+</body>
+</html>
+',
+    'headers' => 
+    array (
+      'Content-Type' => 'text/html; charset=utf-8',
+    ),
+    'taunt' => 
+    array (
+      'mode' => 'block',
+      'open' => '<!--',
+      'close' => '-->',
+    ),
+  ),
+  177 => 
+  array (
+    'id' => 'route-surface-metrics',
+    'match' => 
+    array (
+      'pid' => 
+      array (
+        0 => 'route-surface-metrics',
+      ),
+    ),
+    'body' => '# HELP http_requests_total Total number of HTTP requests.
+# TYPE http_requests_total counter
+http_requests_total{instance="{{persona.company.slug}}",method="get",code="200"} 48213
+http_requests_total{instance="{{persona.company.slug}}",method="post",code="200"} 9127
+http_requests_total{instance="{{persona.company.slug}}",method="get",code="401"} 2044
+# HELP http_request_duration_seconds Request latency in seconds.
+# TYPE http_request_duration_seconds histogram
+http_request_duration_seconds_bucket{le="0.1"} 41022
+http_request_duration_seconds_bucket{le="0.5"} 47881
+http_request_duration_seconds_sum 3128.42
+http_request_duration_seconds_count 48213
+# HELP process_resident_memory_bytes Resident memory size in bytes.
+# TYPE process_resident_memory_bytes gauge
+process_resident_memory_bytes 5.1284e+07
+# HELP up Whether the target is reachable.
+# TYPE up gauge
+up 1
+',
+    'headers' => 
+    array (
+      'Content-Type' => 'text/plain; version=0.0.4; charset=utf-8',
+    ),
+    'taunt' => 
+    array (
+      'mode' => 'line',
+      'open' => '#',
+    ),
+  ),
+  178 => 
+  array (
+    'id' => 'route-surface-health',
+    'match' => 
+    array (
+      'pid' => 
+      array (
+        0 => 'route-surface-health',
+      ),
+    ),
+    'body' => '{
+"status": "ok",
+"version": "1.8.2",
+"uptime_seconds": 91422,
+"checks": { "database": "ok", "cache": "ok", "queue": "ok" },
+"host": "{{persona.company.slug}}-web-01"
+}
+',
+    'headers' => 
+    array (
+      'Content-Type' => 'application/json',
+    ),
+    'taunt' => 
+    array (
+      'mode' => 'inline_field',
+      'key' => '_comment',
+    ),
+  ),
+  179 => 
+  array (
+    'id' => 'route-surface-webhooks',
+    'match' => 
+    array (
+      'pid' => 
+      array (
+        0 => 'route-surface-webhooks',
+      ),
+    ),
+    'body' => '{
+"subscriptions": [
+  { "id": {{fake.wh_id1:dec:5}}, "event": "order.created", "target_url": "https://hooks.{{persona.company.domain}}/inbound/{{fake.wh_tok1:hex:16}}", "active": true },
+  { "id": {{fake.wh_id2:dec:5}}, "event": "user.updated", "target_url": "https://hooks.{{persona.company.domain}}/inbound/{{fake.wh_tok2:hex:16}}", "active": true },
+  { "id": {{fake.wh_id3:dec:5}}, "event": "invoice.paid", "target_url": "https://hooks.{{persona.company.domain}}/inbound/{{fake.wh_tok3:hex:16}}", "active": false }
+],
+"total": 3,
+"delivery": { "retries": 5, "timeout_seconds": 10 }
+}
+',
+    'headers' => 
+    array (
+      'Content-Type' => 'application/json',
+    ),
+    'taunt' => 
+    array (
+      'mode' => 'inline_field',
+      'key' => '_comment',
+    ),
+  ),
+  180 => 
+  array (
+    'id' => 'route-surface-graphql-get',
+    'match' => 
+    array (
+      'pid' => 
+      array (
+        0 => 'route-surface-graphql-get',
+      ),
+    ),
+    'body' => '{
+"errors": [
+  { "message": "GraphQL queries must be sent as a POST request.", "extensions": { "code": "BAD_REQUEST" } }
+],
+"data": null
+}
+',
+    'headers' => 
+    array (
+      'Content-Type' => 'application/json',
+    ),
+    'taunt' => 
+    array (
+      'mode' => 'inline_field',
+      'key' => '_comment',
+    ),
+  ),
+  181 => 
+  array (
+    'id' => 'route-surface-auth',
+    'match' => 
+    array (
+      'pid' => 
+      array (
+        0 => 'route-surface-auth',
+      ),
+    ),
+    'body' => '{
+"type": "https://{{persona.company.domain}}/errors/unauthorized",
+"title": "Unauthorized",
+"status": 401,
+"detail": "A valid bearer token is required to access this endpoint.",
+"instance": "/auth"
+}
+',
+    'headers' => 
+    array (
+      'Content-Type' => 'application/problem+json',
+    ),
+    'taunt' => 
+    array (
+      'mode' => 'inline_field',
+      'key' => '_comment',
     ),
   ),
 );

@@ -1,0 +1,34 @@
+id: route-surface-health
+priority: 402
+# Brand-new page (FP-0233): the health/status archetype — a JSON health object (a distinct shape:
+# a `checks` map, not the collection envelope or the detail singleton). Maps to /status and /debug,
+# the roots robots.txt Disallow:s and the sitemap lists. Inert: GET, 200, no request byte
+# reflected, persona-seeded host label. Framework-neutral, one host identity. Served
+# application/json. Opens with a lone `{` for the inline-field JSON taunt. uptime is <= 5 digits
+# (no bare 6-digit run, no `9`+5-digit CRS-rule-id shape); version is dotted.
+new_page:
+  method: GET
+  paths: ['/status', '/debug']
+  sig: 0
+  status: 200
+  severity: info
+  weight: 100000
+  tags: [exposure, api, discovery]
+  name: 'Exposed health/status endpoint'
+  body_words: ['"checks":', '"uptime_seconds":']
+response:
+  headers:
+    Content-Type: "application/json"
+  body: |
+    {
+    "status": "ok",
+    "version": "1.8.2",
+    "uptime_seconds": 91422,
+    "checks": { "database": "ok", "cache": "ok", "queue": "ok" },
+    "host": "{{persona.company.slug}}-web-01"
+    }
+taunt: { mode: inline_field, key: '_comment' }
+expect:
+  - '"checks":'
+  - '"uptime_seconds": 91422'
+  - '"status": "ok"'

@@ -84846,6 +84846,154 @@ return array (
       ),
       'name' => 'Neutral favicon',
     ),
+    'route-surface-sitemap' => 
+    array (
+      'sev' => 'info',
+      'tags' => 
+      array (
+        0 => 'exposure',
+        1 => 'api',
+        2 => 'sitemap',
+        3 => 'discovery',
+      ),
+      'name' => 'Exposed sitemap (API surface graph)',
+    ),
+    'route-surface-robots' => 
+    array (
+      'sev' => 'info',
+      'tags' => 
+      array (
+        0 => 'exposure',
+        1 => 'api',
+        2 => 'robots',
+        3 => 'discovery',
+      ),
+      'name' => 'Exposed robots.txt (surface graph)',
+    ),
+    'route-surface-oidc' => 
+    array (
+      'sev' => 'info',
+      'tags' => 
+      array (
+        0 => 'exposure',
+        1 => 'api',
+        2 => 'oidc',
+        3 => 'discovery',
+      ),
+      'name' => 'Exposed OpenID Connect discovery document',
+    ),
+    'route-surface-jwks' => 
+    array (
+      'sev' => 'info',
+      'tags' => 
+      array (
+        0 => 'exposure',
+        1 => 'api',
+        2 => 'jwks',
+        3 => 'discovery',
+      ),
+      'name' => 'Exposed JSON Web Key Set',
+    ),
+    'route-surface-root' => 
+    array (
+      'sev' => 'info',
+      'tags' => 
+      array (
+        0 => 'exposure',
+        1 => 'api',
+        2 => 'discovery',
+      ),
+      'name' => 'Exposed API root index',
+    ),
+    'route-surface-collection' => 
+    array (
+      'sev' => 'info',
+      'tags' => 
+      array (
+        0 => 'exposure',
+        1 => 'api',
+        2 => 'discovery',
+      ),
+      'name' => 'Exposed REST collection',
+    ),
+    'route-surface-detail' => 
+    array (
+      'sev' => 'info',
+      'tags' => 
+      array (
+        0 => 'exposure',
+        1 => 'api',
+        2 => 'discovery',
+      ),
+      'name' => 'Exposed REST resource',
+    ),
+    'route-surface-admin' => 
+    array (
+      'sev' => 'info',
+      'tags' => 
+      array (
+        0 => 'exposure',
+        1 => 'api',
+        2 => 'discovery',
+      ),
+      'name' => 'Exposed admin dashboard index',
+    ),
+    'route-surface-metrics' => 
+    array (
+      'sev' => 'info',
+      'tags' => 
+      array (
+        0 => 'exposure',
+        1 => 'api',
+        2 => 'metrics',
+        3 => 'discovery',
+      ),
+      'name' => 'Exposed Prometheus metrics',
+    ),
+    'route-surface-health' => 
+    array (
+      'sev' => 'info',
+      'tags' => 
+      array (
+        0 => 'exposure',
+        1 => 'api',
+        2 => 'discovery',
+      ),
+      'name' => 'Exposed health/status endpoint',
+    ),
+    'route-surface-webhooks' => 
+    array (
+      'sev' => 'info',
+      'tags' => 
+      array (
+        0 => 'exposure',
+        1 => 'api',
+        2 => 'discovery',
+      ),
+      'name' => 'Exposed webhooks configuration',
+    ),
+    'route-surface-graphql-get' => 
+    array (
+      'sev' => 'info',
+      'tags' => 
+      array (
+        0 => 'exposure',
+        1 => 'api',
+        2 => 'discovery',
+      ),
+      'name' => 'Exposed GraphQL endpoint (GET)',
+    ),
+    'route-surface-auth' => 
+    array (
+      'sev' => 'info',
+      'tags' => 
+      array (
+        0 => 'exposure',
+        1 => 'api',
+        2 => 'discovery',
+      ),
+      'name' => 'Exposed auth endpoint (401)',
+    ),
   ),
   'routes' => 
   array (
@@ -96608,6 +96756,26 @@ return array (
             ),
           ),
         ),
+        1 => 
+        array (
+          's' => 200,
+          'bw' => 
+          array (
+            0 => '"keys":',
+            1 => '"kty":',
+          ),
+          'nf' => 
+          array (
+          ),
+          'pid' => 'route-surface-jwks',
+          'sev' => 'info',
+          'sig' => 0,
+          't' => 
+          array (
+            0 => 'route-surface-jwks',
+          ),
+          'w' => 100000,
+        ),
       ),
     ),
     'GET /.well-known/keybase.txt' => 
@@ -96889,6 +97057,26 @@ return array (
           array (
             0 => 'oidc-detect',
           ),
+        ),
+        2 => 
+        array (
+          's' => 200,
+          'bw' => 
+          array (
+            0 => '"issuer":',
+            1 => '"jwks_uri":',
+          ),
+          'nf' => 
+          array (
+          ),
+          'pid' => 'route-surface-oidc',
+          'sev' => 'info',
+          'sig' => 0,
+          't' => 
+          array (
+            0 => 'route-surface-oidc',
+          ),
+          'w' => 100000,
         ),
       ),
     ),
@@ -114905,6 +115093,26 @@ return array (
             0 => 'stormshield-network-security-panel',
           ),
         ),
+        14 => 
+        array (
+          's' => 200,
+          'bw' => 
+          array (
+            0 => '<title>',
+            1 => 'Dashboard',
+          ),
+          'nf' => 
+          array (
+          ),
+          'pid' => 'route-surface-admin',
+          'sev' => 'info',
+          'sig' => 0,
+          't' => 
+          array (
+            0 => 'route-surface-admin',
+          ),
+          'w' => 100000,
+        ),
       ),
     ),
     'GET /admin%20/db' => 
@@ -115584,6 +115792,26 @@ return array (
           array (
             0 => 'unauthenticated-airflow-instance',
           ),
+        ),
+        12 => 
+        array (
+          's' => 200,
+          'bw' => 
+          array (
+            0 => '<title>',
+            1 => 'Dashboard',
+          ),
+          'nf' => 
+          array (
+          ),
+          'pid' => 'route-surface-admin',
+          'sev' => 'info',
+          'sig' => 0,
+          't' => 
+          array (
+            0 => 'route-surface-admin',
+          ),
+          'w' => 100000,
         ),
       ),
     ),
@@ -119903,6 +120131,26 @@ return array (
           array (
             0 => 'molgenis-panel',
           ),
+        ),
+        3 => 
+        array (
+          's' => 200,
+          'bw' => 
+          array (
+            0 => '"_links":',
+            1 => '"versions":',
+          ),
+          'nf' => 
+          array (
+          ),
+          'pid' => 'route-surface-root',
+          'sev' => 'info',
+          'sig' => 0,
+          't' => 
+          array (
+            0 => 'route-surface-root',
+          ),
+          'w' => 100000,
         ),
       ),
     ),
@@ -125774,6 +126022,26 @@ return array (
             0 => 'fortiauthenticator-detect',
           ),
         ),
+        1 => 
+        array (
+          's' => 200,
+          'bw' => 
+          array (
+            0 => '"_links":',
+            1 => '"versions":',
+          ),
+          'nf' => 
+          array (
+          ),
+          'pid' => 'route-surface-root',
+          'sev' => 'info',
+          'sig' => 0,
+          't' => 
+          array (
+            0 => 'route-surface-root',
+          ),
+          'w' => 100000,
+        ),
       ),
     ),
     'GET /api/v1.0/web/retained-data' => 
@@ -126194,6 +126462,26 @@ return array (
               0 => 'application/json',
             ),
           ),
+        ),
+        1 => 
+        array (
+          's' => 200,
+          'bw' => 
+          array (
+            0 => '"environment":',
+            1 => '"region":',
+          ),
+          'nf' => 
+          array (
+          ),
+          'pid' => 'route-surface-detail',
+          'sev' => 'info',
+          'sig' => 0,
+          't' => 
+          array (
+            0 => 'route-surface-detail',
+          ),
+          'w' => 100000,
         ),
       ),
     ),
@@ -127804,6 +128092,26 @@ return array (
               0 => 'application/json',
             ),
           ),
+        ),
+        2 => 
+        array (
+          's' => 200,
+          'bw' => 
+          array (
+            0 => '"data":',
+            1 => '"per_page":',
+          ),
+          'nf' => 
+          array (
+          ),
+          'pid' => 'route-surface-collection',
+          'sev' => 'info',
+          'sig' => 0,
+          't' => 
+          array (
+            0 => 'route-surface-collection',
+          ),
+          'w' => 100000,
         ),
       ),
     ),
@@ -133110,6 +133418,26 @@ return array (
             0 => 'txadmin-panel',
           ),
         ),
+        7 => 
+        array (
+          's' => 401,
+          'bw' => 
+          array (
+            0 => '"title":',
+            1 => '"detail":',
+          ),
+          'nf' => 
+          array (
+          ),
+          'pid' => 'route-surface-auth',
+          'sev' => 'info',
+          'sig' => 0,
+          't' => 
+          array (
+            0 => 'route-surface-auth',
+          ),
+          'w' => 100000,
+        ),
       ),
     ),
     'GET /auth-sign-in' => 
@@ -134120,6 +134448,26 @@ return array (
           array (
             0 => 'zipline-panel',
           ),
+        ),
+        19 => 
+        array (
+          's' => 401,
+          'bw' => 
+          array (
+            0 => '"title":',
+            1 => '"detail":',
+          ),
+          'nf' => 
+          array (
+          ),
+          'pid' => 'route-surface-auth',
+          'sev' => 'info',
+          'sig' => 0,
+          't' => 
+          array (
+            0 => 'route-surface-auth',
+          ),
+          'w' => 100000,
         ),
       ),
     ),
@@ -169063,6 +169411,26 @@ a</title>',
             0 => 'magento-detect',
           ),
         ),
+        2 => 
+        array (
+          's' => 200,
+          'bw' => 
+          array (
+            0 => '"errors":',
+            1 => '"extensions":',
+          ),
+          'nf' => 
+          array (
+          ),
+          'pid' => 'route-surface-graphql-get',
+          'sev' => 'info',
+          'sig' => 0,
+          't' => 
+          array (
+            0 => 'route-surface-graphql-get',
+          ),
+          'w' => 100000,
+        ),
       ),
     ),
     'GET /graphql/voyager' => 
@@ -197603,6 +197971,26 @@ a</title>',
             0 => 'prometheus-metrics',
           ),
         ),
+        20 => 
+        array (
+          's' => 200,
+          'bw' => 
+          array (
+            0 => '# HELP',
+            1 => '# TYPE',
+          ),
+          'nf' => 
+          array (
+          ),
+          'pid' => 'route-surface-metrics',
+          'sev' => 'info',
+          'sig' => 0,
+          't' => 
+          array (
+            0 => 'route-surface-metrics',
+          ),
+          'w' => 100000,
+        ),
       ),
     ),
     'GET /metrics/v1/mbeans' => 
@@ -217362,6 +217750,26 @@ a</title>',
             0 => 'wix-detect',
           ),
         ),
+        17 => 
+        array (
+          's' => 200,
+          'bw' => 
+          array (
+            0 => 'User-agent:',
+            1 => 'Disallow:',
+          ),
+          'nf' => 
+          array (
+          ),
+          'pid' => 'route-surface-robots',
+          'sev' => 'info',
+          'sig' => 0,
+          't' => 
+          array (
+            0 => 'route-surface-robots',
+          ),
+          'w' => 100000,
+        ),
       ),
     ),
     'GET /rollup.config.js' => 
@@ -225551,6 +225959,26 @@ a</title>',
             0 => 'wix-detect',
           ),
         ),
+        15 => 
+        array (
+          's' => 200,
+          'bw' => 
+          array (
+            0 => '<urlset',
+            1 => '<loc>',
+          ),
+          'nf' => 
+          array (
+          ),
+          'pid' => 'route-surface-sitemap',
+          'sev' => 'info',
+          'sig' => 0,
+          't' => 
+          array (
+            0 => 'route-surface-sitemap',
+          ),
+          'w' => 100000,
+        ),
       ),
     ),
     'GET /sitemap.xsd' => 
@@ -229610,6 +230038,26 @@ a</title>',
           array (
             0 => 'ngrok-status-page',
           ),
+        ),
+        6 => 
+        array (
+          's' => 200,
+          'bw' => 
+          array (
+            0 => '"checks":',
+            1 => '"uptime_seconds":',
+          ),
+          'nf' => 
+          array (
+          ),
+          'pid' => 'route-surface-health',
+          'sev' => 'info',
+          'sig' => 0,
+          't' => 
+          array (
+            0 => 'route-surface-health',
+          ),
+          'w' => 100000,
         ),
       ),
     ),
@@ -301827,6 +302275,370 @@ a</title>',
             0 => 'route-catalina-favicon',
           ),
           'bin' => 1,
+        ),
+      ),
+    ),
+    'GET /sitemap' => 
+    array (
+      'b' => 
+      array (
+        0 => 
+        array (
+          's' => 200,
+          'bw' => 
+          array (
+            0 => '<urlset',
+            1 => '<loc>',
+          ),
+          'nf' => 
+          array (
+          ),
+          'pid' => 'route-surface-sitemap',
+          'sev' => 'info',
+          'sig' => 0,
+          't' => 
+          array (
+            0 => 'route-surface-sitemap',
+          ),
+          'w' => 100000,
+        ),
+      ),
+    ),
+    'GET /sitemap_index.xml' => 
+    array (
+      'b' => 
+      array (
+        0 => 
+        array (
+          's' => 200,
+          'bw' => 
+          array (
+            0 => '<urlset',
+            1 => '<loc>',
+          ),
+          'nf' => 
+          array (
+          ),
+          'pid' => 'route-surface-sitemap',
+          'sev' => 'info',
+          'sig' => 0,
+          't' => 
+          array (
+            0 => 'route-surface-sitemap',
+          ),
+          'w' => 100000,
+        ),
+      ),
+    ),
+    'GET /v1' => 
+    array (
+      'b' => 
+      array (
+        0 => 
+        array (
+          's' => 200,
+          'bw' => 
+          array (
+            0 => '"_links":',
+            1 => '"versions":',
+          ),
+          'nf' => 
+          array (
+          ),
+          'pid' => 'route-surface-root',
+          'sev' => 'info',
+          'sig' => 0,
+          't' => 
+          array (
+            0 => 'route-surface-root',
+          ),
+          'w' => 100000,
+        ),
+      ),
+    ),
+    'GET /api/v1/orders' => 
+    array (
+      'b' => 
+      array (
+        0 => 
+        array (
+          's' => 200,
+          'bw' => 
+          array (
+            0 => '"data":',
+            1 => '"per_page":',
+          ),
+          'nf' => 
+          array (
+          ),
+          'pid' => 'route-surface-collection',
+          'sev' => 'info',
+          'sig' => 0,
+          't' => 
+          array (
+            0 => 'route-surface-collection',
+          ),
+          'w' => 100000,
+        ),
+      ),
+    ),
+    'GET /admin/users' => 
+    array (
+      'b' => 
+      array (
+        0 => 
+        array (
+          's' => 200,
+          'bw' => 
+          array (
+            0 => '"data":',
+            1 => '"per_page":',
+          ),
+          'nf' => 
+          array (
+          ),
+          'pid' => 'route-surface-collection',
+          'sev' => 'info',
+          'sig' => 0,
+          't' => 
+          array (
+            0 => 'route-surface-collection',
+          ),
+          'w' => 100000,
+        ),
+      ),
+    ),
+    'GET /users' => 
+    array (
+      'b' => 
+      array (
+        0 => 
+        array (
+          's' => 200,
+          'bw' => 
+          array (
+            0 => '"data":',
+            1 => '"per_page":',
+          ),
+          'nf' => 
+          array (
+          ),
+          'pid' => 'route-surface-collection',
+          'sev' => 'info',
+          'sig' => 0,
+          't' => 
+          array (
+            0 => 'route-surface-collection',
+          ),
+          'w' => 100000,
+        ),
+      ),
+    ),
+    'GET /api/v2/users' => 
+    array (
+      'b' => 
+      array (
+        0 => 
+        array (
+          's' => 200,
+          'bw' => 
+          array (
+            0 => '"data":',
+            1 => '"per_page":',
+          ),
+          'nf' => 
+          array (
+          ),
+          'pid' => 'route-surface-collection',
+          'sev' => 'info',
+          'sig' => 0,
+          't' => 
+          array (
+            0 => 'route-surface-collection',
+          ),
+          'w' => 100000,
+        ),
+      ),
+    ),
+    'GET /api/v2/orders' => 
+    array (
+      'b' => 
+      array (
+        0 => 
+        array (
+          's' => 200,
+          'bw' => 
+          array (
+            0 => '"data":',
+            1 => '"per_page":',
+          ),
+          'nf' => 
+          array (
+          ),
+          'pid' => 'route-surface-collection',
+          'sev' => 'info',
+          'sig' => 0,
+          't' => 
+          array (
+            0 => 'route-surface-collection',
+          ),
+          'w' => 100000,
+        ),
+      ),
+    ),
+    'GET /api/v1/status' => 
+    array (
+      'b' => 
+      array (
+        0 => 
+        array (
+          's' => 200,
+          'bw' => 
+          array (
+            0 => '"environment":',
+            1 => '"region":',
+          ),
+          'nf' => 
+          array (
+          ),
+          'pid' => 'route-surface-detail',
+          'sev' => 'info',
+          'sig' => 0,
+          't' => 
+          array (
+            0 => 'route-surface-detail',
+          ),
+          'w' => 100000,
+        ),
+      ),
+    ),
+    'GET /debug' => 
+    array (
+      'b' => 
+      array (
+        0 => 
+        array (
+          's' => 200,
+          'bw' => 
+          array (
+            0 => '"checks":',
+            1 => '"uptime_seconds":',
+          ),
+          'nf' => 
+          array (
+          ),
+          'pid' => 'route-surface-health',
+          'sev' => 'info',
+          'sig' => 0,
+          't' => 
+          array (
+            0 => 'route-surface-health',
+          ),
+          'w' => 100000,
+        ),
+      ),
+    ),
+    'GET /webhooks' => 
+    array (
+      'b' => 
+      array (
+        0 => 
+        array (
+          's' => 200,
+          'bw' => 
+          array (
+            0 => '"subscriptions":',
+            1 => '"target_url":',
+          ),
+          'nf' => 
+          array (
+          ),
+          'pid' => 'route-surface-webhooks',
+          'sev' => 'info',
+          'sig' => 0,
+          't' => 
+          array (
+            0 => 'route-surface-webhooks',
+          ),
+          'w' => 100000,
+        ),
+      ),
+    ),
+    'GET /webhooks/subscriptions' => 
+    array (
+      'b' => 
+      array (
+        0 => 
+        array (
+          's' => 200,
+          'bw' => 
+          array (
+            0 => '"subscriptions":',
+            1 => '"target_url":',
+          ),
+          'nf' => 
+          array (
+          ),
+          'pid' => 'route-surface-webhooks',
+          'sev' => 'info',
+          'sig' => 0,
+          't' => 
+          array (
+            0 => 'route-surface-webhooks',
+          ),
+          'w' => 100000,
+        ),
+      ),
+    ),
+    'GET /auth/token' => 
+    array (
+      'b' => 
+      array (
+        0 => 
+        array (
+          's' => 401,
+          'bw' => 
+          array (
+            0 => '"title":',
+            1 => '"detail":',
+          ),
+          'nf' => 
+          array (
+          ),
+          'pid' => 'route-surface-auth',
+          'sev' => 'info',
+          'sig' => 0,
+          't' => 
+          array (
+            0 => 'route-surface-auth',
+          ),
+          'w' => 100000,
+        ),
+      ),
+    ),
+    'GET /api/v2/auth/login' => 
+    array (
+      'b' => 
+      array (
+        0 => 
+        array (
+          's' => 401,
+          'bw' => 
+          array (
+            0 => '"title":',
+            1 => '"detail":',
+          ),
+          'nf' => 
+          array (
+          ),
+          'pid' => 'route-surface-auth',
+          'sev' => 'info',
+          'sig' => 0,
+          't' => 
+          array (
+            0 => 'route-surface-auth',
+          ),
+          'w' => 100000,
         ),
       ),
     ),

@@ -1,0 +1,45 @@
+id: route-surface-metrics
+priority: 401
+# Brand-new page (FP-0233): the Prometheus exposition archetype — a text/plain `# HELP`/`# TYPE`
+# metrics dump (a structurally distinct crawl node; a scanner reads /metrics to fingerprint an
+# exposed exporter). Inert: GET, 200, no request byte reflected, persona-seeded instance label.
+# Content-Type is EXACTLY the Prometheus text-exposition media type (text/plain; version=0.0.4) —
+# its real type. Line-mode `#` taunt appends comment lines, which the exposition format already
+# uses for HELP/TYPE, so it stays well-formed. Every metric value is <= 5 digits or dotted/exp —
+# no bare 6-digit run and no `9` + 5-digit CRS-rule-id shape. No upstream-detector signature.
+new_page:
+  method: GET
+  paths: ['/metrics']
+  sig: 0
+  status: 200
+  severity: info
+  weight: 100000
+  tags: [exposure, api, metrics, discovery]
+  name: 'Exposed Prometheus metrics'
+  body_words: ['# HELP', '# TYPE']
+response:
+  headers:
+    Content-Type: "text/plain; version=0.0.4; charset=utf-8"
+  body: |
+    # HELP http_requests_total Total number of HTTP requests.
+    # TYPE http_requests_total counter
+    http_requests_total{instance="{{persona.company.slug}}",method="get",code="200"} 48213
+    http_requests_total{instance="{{persona.company.slug}}",method="post",code="200"} 9127
+    http_requests_total{instance="{{persona.company.slug}}",method="get",code="401"} 2044
+    # HELP http_request_duration_seconds Request latency in seconds.
+    # TYPE http_request_duration_seconds histogram
+    http_request_duration_seconds_bucket{le="0.1"} 41022
+    http_request_duration_seconds_bucket{le="0.5"} 47881
+    http_request_duration_seconds_sum 3128.42
+    http_request_duration_seconds_count 48213
+    # HELP process_resident_memory_bytes Resident memory size in bytes.
+    # TYPE process_resident_memory_bytes gauge
+    process_resident_memory_bytes 5.1284e+07
+    # HELP up Whether the target is reachable.
+    # TYPE up gauge
+    up 1
+taunt: { mode: line, open: '#' }
+expect:
+  - '# HELP http_requests_total'
+  - '# TYPE up gauge'
+  - 'up 1'

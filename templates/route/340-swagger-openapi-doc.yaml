@@ -31,12 +31,42 @@ response:
       "contact": { "email": "{{persona.user.admin.email}}" }
     },
     "servers": [
-      { "url": "https://api.{{persona.company.domain}}/v2", "description": "Production" }
+      { "url": "https://{{persona.company.domain}}", "description": "Production" }
     ],
     "paths": {
-      "/users": {
+      "/api/v1/users": {
         "get": {
           "summary": "List users",
+          "responses": { "200": { "description": "OK" }, "401": { "description": "Unauthorized" } }
+        }
+      },
+      "/api/v1/orders": {
+        "get": {
+          "summary": "List orders",
+          "responses": { "200": { "description": "OK" }, "401": { "description": "Unauthorized" } }
+        }
+      },
+      "/api/v1/status": {
+        "get": {
+          "summary": "Service status",
+          "responses": { "200": { "description": "OK" } }
+        }
+      },
+      "/api/v1/config": {
+        "get": {
+          "summary": "Service configuration",
+          "responses": { "200": { "description": "OK" }, "401": { "description": "Unauthorized" } }
+        }
+      },
+      "/metrics": {
+        "get": {
+          "summary": "Prometheus metrics",
+          "responses": { "200": { "description": "OK" } }
+        }
+      },
+      "/webhooks": {
+        "get": {
+          "summary": "List webhook subscriptions",
           "responses": { "200": { "description": "OK" }, "401": { "description": "Unauthorized" } }
         }
       },
@@ -46,11 +76,10 @@ response:
           "responses": { "200": { "description": "OK" }, "400": { "description": "Bad Request" } }
         }
       },
-      "/orders/{id}": {
-        "get": {
-          "summary": "Fetch an order",
-          "parameters": [ { "name": "id", "in": "path", "required": true, "schema": { "type": "integer", "example": {{fake.orderid:dec:5}} } } ],
-          "responses": { "200": { "description": "OK" }, "404": { "description": "Not Found" } }
+      "/auth/token": {
+        "post": {
+          "summary": "Exchange credentials for a bearer token",
+          "responses": { "200": { "description": "OK" }, "401": { "description": "Unauthorized" } }
         }
       }
     },

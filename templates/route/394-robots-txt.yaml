@@ -1,0 +1,39 @@
+id: route-surface-robots
+priority: 394
+# Brand-new page (FP-0233): robots.txt — the classic recon magnet. A Disallow: line is an
+# advertisement to a scanner (and an AI agent's first enumeration read), and the Sitemap: line
+# hands the crawler the surface graph. Every Disallow: root here is a COMPILED literal endpoint
+# (the surface-graph new_page bundles) and the Sitemap: URL resolves to /sitemap.xml (393), so a
+# follow-up GET of anything named here lands on an inert decoy — no partial-tree tell. One host
+# identity: the Sitemap: URL is the apex {{persona.company.domain}} (matching the sitemap + the
+# OpenAPI servers[].url). Served text/plain (robots.txt's real type). Line-mode `#` taunt appends
+# comment lines (a real robots.txt allows `#` comments), so the file still parses. No digit runs.
+new_page:
+  method: GET
+  paths: ['/robots.txt']
+  sig: 0
+  status: 200
+  severity: info
+  weight: 100000
+  tags: [exposure, api, robots, discovery]
+  name: 'Exposed robots.txt (surface graph)'
+  body_words: ['User-agent:', 'Disallow:']
+response:
+  headers:
+    Content-Type: "text/plain; charset=utf-8"
+  body: |
+    User-agent: *
+    Disallow: /admin
+    Disallow: /api
+    Disallow: /auth
+    Disallow: /graphql
+    Disallow: /metrics
+    Disallow: /status
+    Disallow: /debug
+    Disallow: /webhooks
+    Sitemap: https://{{persona.company.domain}}/sitemap.xml
+taunt: { mode: line, open: '#' }
+expect:
+  - 'User-agent: *'
+  - 'Disallow: /admin'
+  - 'Sitemap: https://'

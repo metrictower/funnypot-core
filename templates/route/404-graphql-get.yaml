@@ -1,0 +1,34 @@
+id: route-surface-graphql-get
+priority: 404
+# Brand-new page (FP-0233): the GraphQL GET archetype — a JSON error envelope for a GET on
+# /graphql (real GraphQL servers accept queries over POST and answer a bare GET with a spec-shaped
+# error, and introspection is disabled in production). This is a distinct shape from the POST
+# /graphql introspection enrich (335, needle CVE-2019-9880, POST-only, above the default ceiling):
+# this GET decoy is inert 200 JSON, request-blind, no schema leak. The id carries no `graphql`
+# needle any enrich uses, so it is never hijacked. Served application/json. Opens with a lone `{`
+# for the inline-field JSON taunt. No digit run.
+new_page:
+  method: GET
+  paths: ['/graphql']
+  sig: 0
+  status: 200
+  severity: info
+  weight: 100000
+  tags: [exposure, api, discovery]
+  name: 'Exposed GraphQL endpoint (GET)'
+  body_words: ['"errors":', '"extensions":']
+response:
+  headers:
+    Content-Type: "application/json"
+  body: |
+    {
+    "errors": [
+      { "message": "GraphQL queries must be sent as a POST request.", "extensions": { "code": "BAD_REQUEST" } }
+    ],
+    "data": null
+    }
+taunt: { mode: inline_field, key: '_comment' }
+expect:
+  - '"errors":'
+  - '"extensions":'
+  - '"code": "BAD_REQUEST"'

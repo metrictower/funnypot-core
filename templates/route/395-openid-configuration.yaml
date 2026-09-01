@@ -1,0 +1,42 @@
+id: route-surface-oidc
+priority: 395
+# Brand-new page (FP-0233): the OpenID Connect discovery document. A scanner / AI agent reads
+# /.well-known/openid-configuration to map the auth surface, then follows the *_endpoint and
+# jwks_uri links. Every endpoint URL here resolves to a COMPILED literal: authorization_endpoint /
+# userinfo_endpoint / token_endpoint land on the /auth/* decoys (405, 401 problem+json) and
+# jwks_uri lands on /.well-known/jwks.json (396). One host identity: every URL is the apex
+# {{persona.company.domain}}. Framework-neutral (a generic OIDC provider, no product name), so it
+# never contradicts the OpenAPI docs. Served application/json (the endpoint's real type). Opens
+# with a lone `{` so the inline-field JSON taunt keeps the document parseable. No bare digit run.
+new_page:
+  method: GET
+  paths: ['/.well-known/openid-configuration']
+  sig: 0
+  status: 200
+  severity: info
+  weight: 100000
+  tags: [exposure, api, oidc, discovery]
+  name: 'Exposed OpenID Connect discovery document'
+  body_words: ['"issuer":', '"jwks_uri":']
+response:
+  headers:
+    Content-Type: "application/json"
+  body: |
+    {
+    "issuer": "https://{{persona.company.domain}}",
+    "authorization_endpoint": "https://{{persona.company.domain}}/auth/login",
+    "token_endpoint": "https://{{persona.company.domain}}/auth/token",
+    "userinfo_endpoint": "https://{{persona.company.domain}}/auth",
+    "jwks_uri": "https://{{persona.company.domain}}/.well-known/jwks.json",
+    "response_types_supported": ["code", "token", "id_token"],
+    "subject_types_supported": ["public"],
+    "id_token_signing_alg_values_supported": ["RS256"],
+    "scopes_supported": ["openid", "profile", "email"],
+    "token_endpoint_auth_methods_supported": ["client_secret_basic", "client_secret_post"],
+    "claims_supported": ["sub", "iss", "email", "name"]
+    }
+taunt: { mode: inline_field, key: '_comment' }
+expect:
+  - '"issuer": "https://'
+  - '"jwks_uri": "https://'
+  - '"RS256"'

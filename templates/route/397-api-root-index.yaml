@@ -1,0 +1,43 @@
+id: route-surface-root
+priority: 397
+# Brand-new page (FP-0233): the self-describing API root a scanner / AI agent reads first to
+# discover the versioned surface, then expands per link. Served at /api, /api/v1 and /v1. Every
+# _links URL is a COMPILED literal (the collection/detail/auth/webhooks decoys + the OpenAPI doc),
+# so a planner that walks the link map never bottoms out on a 404 — the connected-graph tarpit.
+# Absolute apex {{persona.company.domain}} URLs (one host identity; the linter ignores scheme URLs).
+# Framework-neutral. Served application/json. Opens with a lone `{` so the inline-field JSON taunt
+# keeps it parseable. Version strings are dotted (no bare digit run).
+new_page:
+  method: GET
+  paths: ['/api', '/api/v1', '/v1']
+  sig: 0
+  status: 200
+  severity: info
+  weight: 100000
+  tags: [exposure, api, discovery]
+  name: 'Exposed API root index'
+  body_words: ['"_links":', '"versions":']
+response:
+  headers:
+    Content-Type: "application/json"
+  body: |
+    {
+    "name": "{{persona.company.name}} API",
+    "current_version": "v1",
+    "versions": ["v1", "v2"],
+    "documentation": "https://{{persona.company.domain}}/openapi.json",
+    "_links": {
+      "self": "https://{{persona.company.domain}}/api/v1",
+      "users": "https://{{persona.company.domain}}/api/v1/users",
+      "orders": "https://{{persona.company.domain}}/api/v1/orders",
+      "status": "https://{{persona.company.domain}}/api/v1/status",
+      "config": "https://{{persona.company.domain}}/api/v1/config",
+      "webhooks": "https://{{persona.company.domain}}/webhooks",
+      "auth": "https://{{persona.company.domain}}/auth/login"
+    }
+    }
+taunt: { mode: inline_field, key: '_comment' }
+expect:
+  - '"_links":'
+  - '"versions": ["v1", "v2"]'
+  - '"documentation":'

@@ -1,0 +1,37 @@
+id: route-surface-webhooks
+priority: 403
+# Brand-new page (FP-0233): the webhooks-config archetype — a JSON list of webhook subscriptions
+# (a distinct shape: a `subscriptions` array of {id,event,target_url,active}). Maps to /webhooks
+# and /webhooks/subscriptions, roots the sitemap + robots + API root index all reference. Inert:
+# GET, 200, no request byte reflected, persona-seeded. The target_url values are absolute (a
+# hooks. subdomain of the persona domain) so the linter ignores them and they carry no dangling
+# self-link. Served application/json. Opens with a lone `{` for the inline-field JSON taunt. Ids
+# are dec:5 (no bare 6-digit run).
+new_page:
+  method: GET
+  paths: ['/webhooks', '/webhooks/subscriptions']
+  sig: 0
+  status: 200
+  severity: info
+  weight: 100000
+  tags: [exposure, api, discovery]
+  name: 'Exposed webhooks configuration'
+  body_words: ['"subscriptions":', '"target_url":']
+response:
+  headers:
+    Content-Type: "application/json"
+  body: |
+    {
+    "subscriptions": [
+      { "id": {{fake.wh_id1:dec:5}}, "event": "order.created", "target_url": "https://hooks.{{persona.company.domain}}/inbound/{{fake.wh_tok1:hex:16}}", "active": true },
+      { "id": {{fake.wh_id2:dec:5}}, "event": "user.updated", "target_url": "https://hooks.{{persona.company.domain}}/inbound/{{fake.wh_tok2:hex:16}}", "active": true },
+      { "id": {{fake.wh_id3:dec:5}}, "event": "invoice.paid", "target_url": "https://hooks.{{persona.company.domain}}/inbound/{{fake.wh_tok3:hex:16}}", "active": false }
+    ],
+    "total": 3,
+    "delivery": { "retries": 5, "timeout_seconds": 10 }
+    }
+taunt: { mode: inline_field, key: '_comment' }
+expect:
+  - '"subscriptions":'
+  - '"target_url": "https://hooks.'
+  - '"event": "order.created"'

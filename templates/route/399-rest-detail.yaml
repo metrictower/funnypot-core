@@ -1,0 +1,37 @@
+id: route-surface-detail
+priority: 399
+# Brand-new page (FP-0233): the REST detail/singleton archetype — a flat JSON object (NOT the
+# collection envelope), a structurally distinct shape so katana does not dedup it against 398. Maps
+# to the singleton resource endpoints the docs advertise (/api/v1/status, /api/v1/config). Inert:
+# GET, 200, no request byte reflected, fully persona-seeded. Framework-neutral, one host identity.
+# Served application/json. Opens with a lone `{` for the inline-field JSON taunt. Version strings
+# dotted; the uptime/counter values carry no bare 6-digit run.
+new_page:
+  method: GET
+  paths: ['/api/v1/status', '/api/v1/config']
+  sig: 0
+  status: 200
+  severity: info
+  weight: 100000
+  tags: [exposure, api, discovery]
+  name: 'Exposed REST resource'
+  body_words: ['"environment":', '"region":']
+response:
+  headers:
+    Content-Type: "application/json"
+  body: |
+    {
+    "service": "{{persona.company.slug}}-api",
+    "environment": "production",
+    "region": "{{persona.cloud.aws.region}}",
+    "release": "1.8.2",
+    "commit": "{{fake.rd_commit:hex:40}}",
+    "features": { "webhooks": true, "graphql": true, "beta": false },
+    "limits": { "rate_per_minute": 600, "max_page_size": 100 },
+    "maintainer": "{{persona.user.admin.email}}"
+    }
+taunt: { mode: inline_field, key: '_comment' }
+expect:
+  - '"environment": "production"'
+  - '"region":'
+  - '"release": "1.8.2"'

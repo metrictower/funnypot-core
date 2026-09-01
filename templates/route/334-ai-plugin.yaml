@@ -18,7 +18,7 @@ response:
     "description_for_model": "Query the {{persona.company.name}} internal API for users, orders and auth.",
     "description_for_human": "Access {{persona.company.name}} data.",
     "auth": { "type": "service_http", "authorization_type": "bearer" },
-    "api": { "type": "openapi", "url": "https://api.{{persona.company.domain}}/openapi.json" },
+    "api": { "type": "openapi", "url": "https://{{persona.company.domain}}/openapi.json" },
     "logo_url": "https://{{persona.company.domain}}/logo.png",
     "contact_email": "{{persona.user.admin.email}}",
     "legal_info_url": "https://{{persona.company.domain}}/legal"

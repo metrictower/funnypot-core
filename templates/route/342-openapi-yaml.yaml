@@ -29,21 +29,55 @@ response:
       contact:
         email: {{persona.user.admin.email}}
     servers:
-      - url: https://api.{{persona.company.domain}}/v2
+      - url: https://{{persona.company.domain}}
         description: Production
     paths:
-      /users:
+      /api/v1/users:
         get:
           summary: List users
           responses:
             "200": { description: OK }
             "401": { description: Unauthorized }
-      /orders/{id}:
+      /api/v1/orders:
         get:
-          summary: Fetch an order
+          summary: List orders
           responses:
             "200": { description: OK }
-            "404": { description: Not Found }
+            "401": { description: Unauthorized }
+      /api/v1/status:
+        get:
+          summary: Service status
+          responses:
+            "200": { description: OK }
+      /api/v1/config:
+        get:
+          summary: Service configuration
+          responses:
+            "200": { description: OK }
+            "401": { description: Unauthorized }
+      /metrics:
+        get:
+          summary: Prometheus metrics
+          responses:
+            "200": { description: OK }
+      /webhooks:
+        get:
+          summary: List webhook subscriptions
+          responses:
+            "200": { description: OK }
+            "401": { description: Unauthorized }
+      /auth/login:
+        post:
+          summary: Authenticate and receive a bearer token
+          responses:
+            "200": { description: OK }
+            "400": { description: Bad Request }
+      /auth/token:
+        post:
+          summary: Exchange credentials for a bearer token
+          responses:
+            "200": { description: OK }
+            "401": { description: Unauthorized }
     components:
       securitySchemes:
         bearerAuth:

@@ -21,11 +21,11 @@ response:
     "name": "{{persona.company.name}} API",
     "version": "2.4.0",
     "status": "ok",
-    "documentation": "https://api.{{persona.company.domain}}/openapi.json",
+    "documentation": "https://{{persona.company.domain}}/openapi.json",
     "endpoints": {
-      "users": "https://api.{{persona.company.domain}}/api/v2/users",
-      "orders": "https://api.{{persona.company.domain}}/api/v2/orders",
-      "auth": "https://api.{{persona.company.domain}}/api/v2/auth/login"
+      "users": "https://{{persona.company.domain}}/api/v2/users",
+      "orders": "https://{{persona.company.domain}}/api/v2/orders",
+      "auth": "https://{{persona.company.domain}}/api/v2/auth/login"
     },
     "authentication": { "type": "bearer", "header": "Authorization" }
     }

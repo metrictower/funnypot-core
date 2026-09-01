@@ -278,6 +278,27 @@ final class NewPageRoutingTest extends TestCase
             'api/docs redoc'        => ['/api/docs', 200, 'Redoc.init', 'text/html; charset=utf-8'],
             'security.txt (root)'   => ['/security.txt', 200, 'Preferred-Languages', 'text/plain; charset=utf-8'],
 
+            // FP-0233 decoy surface graph — the finite, fully-enumerated literal endpoint tree the
+            // sitemap/robots/docs advertise. Each marker is a distinctive authored string only the
+            // full archetype body carries, so its presence proves the authored decoy served (not a
+            // minimal synth of a competing corpus bundle — the surface-graph bundles carry a heavy
+            // weight to win the persona pick). Content-Type is exactly the endpoint's real type; the
+            // auth endpoints answer 401 problem+json. The deeper resolution + no-partial-tree-tell
+            // sweep across the seed space lives in SurfaceGraphRoutingTest.
+            'sitemap.xml'           => ['/sitemap.xml', 200, '<loc>https://', 'application/xml; charset=utf-8'],
+            'robots.txt'            => ['/robots.txt', 200, 'Disallow: /admin', 'text/plain; charset=utf-8'],
+            'openid-configuration'  => ['/.well-known/openid-configuration', 200, '"jwks_uri"', 'application/json'],
+            'jwks.json'             => ['/.well-known/jwks.json', 200, '"kty": "RSA"', 'application/json'],
+            'api root index'        => ['/api', 200, '"_links"', 'application/json'],
+            'rest collection'       => ['/api/v1/users', 200, '"per_page"', 'application/json'],
+            'rest detail'           => ['/api/v1/status', 200, '"environment": "production"', 'application/json'],
+            'admin index html'      => ['/admin', 200, 'Dashboard</h1>', 'text/html; charset=utf-8'],
+            'prometheus metrics'    => ['/metrics', 200, '# TYPE up gauge', 'text/plain; version=0.0.4; charset=utf-8'],
+            'health status'         => ['/status', 200, '"checks"', 'application/json'],
+            'webhooks config'       => ['/webhooks', 200, '"subscriptions"', 'application/json'],
+            'graphql GET'           => ['/graphql', 200, 'must be sent as a POST', 'application/json'],
+            'auth endpoint 401'     => ['/auth', 401, '"title": "Unauthorized"', 'application/problem+json'],
+
             // Management / admin-panel disclosure pack — brand-new version/health/login pages (no nuclei
             // template at these paths). Each marker is a distinctive authored string that is NOT one of
             // the synth bundle's body words, so its presence proves the authored body served (not a
@@ -1501,8 +1522,11 @@ final class NewPageRoutingTest extends TestCase
             self::assertSame(1, preg_match('/"jwt.secret": \{"value": "([0-9a-f]{64})"\}/', $env->body, $ej), "seed {$seed}: /actuator/env must still disclose the 64-hex HS256 signing secret");
             self::assertNotSame($ej[1], $sj[1], "seed {$seed}: the JWT example token must not be the raw signing secret");
 
-            // Server URL domain == security.txt contact domain == ai-plugin contact domain.
-            self::assertSame(1, preg_match('#https://api\.([a-z0-9.-]+)/v2#', $swagger->body, $sh), "seed {$seed}: /swagger.json must carry an api.<domain> server URL");
+            // Server URL domain == security.txt contact domain == ai-plugin contact domain. FP-0233
+            // re-based the OpenAPI servers[].url from the api.<domain>/v2 gateway to the apex
+            // <domain> root so every advertised path key maps directly onto a compiled literal
+            // endpoint (the surface graph resolves with no partial-tree tell).
+            self::assertSame(1, preg_match('#"url": "https://([a-z0-9.-]+)"#', $swagger->body, $sh), "seed {$seed}: /swagger.json must carry an apex-domain server URL");
             self::assertSame(1, preg_match('/Contact: mailto:[^@\s]+@([^\s]+)/', $sec->body, $ch), "seed {$seed}: security.txt must carry a mailto contact");
             self::assertSame($sh[1], $ch[1], "seed {$seed}: the OpenAPI server domain must match the security.txt contact domain");
             self::assertSame(1, preg_match('/"contact_email": "[^@"]+@([^"]+)"/', $ai->body, $ah), "seed {$seed}: ai-plugin must carry a contact_email");
