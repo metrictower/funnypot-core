@@ -4,8 +4,10 @@ priority: 66
 tags: [attack, rce, xdebug, php, knock-knock, kk-purpose-rce]
 # Xdebug remote-execution trigger: a probe sets XDEBUG_SESSION_START to coax the target's PHP
 # step-debugger into dialing back to the attacker (dbgp), an out-of-band RCE path. The HTTP
-# observable is the trigger token itself. We return a plausible dev-mode page acknowledging the
-# debugger — the deception the attacker wants to see. Nothing is executed; nothing is reflected.
+# observable is the trigger token itself. The real exploit is a DBGp TCP callback, NOT any HTML
+# marker — so the decoy is just a plausible dev-mode page (the target the probe expects to reach),
+# with no honeypot-authored "Xdebug active" string that a fingerprint diff could latch onto.
+# Nothing is executed; nothing is reflected.
 match:
   - in: request
     contains: "XDEBUG_SESSION_START="
@@ -15,7 +17,6 @@ response:
   body: |
     <html><head><title>Home</title></head><body>
     <h1>Welcome</h1>
-    <!-- Xdebug 2.x active: step debugger listening -->
     <p>Application running in development mode.</p>
     </body></html>
-expect: ['development mode', 'Xdebug']
+expect: ['development mode']

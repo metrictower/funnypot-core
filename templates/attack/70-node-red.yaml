@@ -9,8 +9,10 @@ tags: [attack, rce, node-red, knock-knock, kk-purpose-rce]
 # are static literals — nothing is executed and no request byte is reflected. The method is read
 # as a `branch` dispatch key only, exactly like the HNAP oracle's bounded capture.
 match:
+  # Anchored to the admin-API root mount (default `/`, or `/red`/`/admin`) so a nested app path
+  # that merely ends in `/nodes` (e.g. `/api/v1/nodes`) does NOT false-positive as Node-RED RCE.
   - in: path
-    regex: '(?:/red/flows|/admin/nodes|/nodes)'
+    regex: '^/(?:red/|admin/)?(?:flows|nodes)(?:$|[/?])'
     ci: false
 status: 200
 behavior: branch
@@ -20,14 +22,15 @@ branch:
     - when: { in: method, regex: '^POST$', ci: false }
       response:
         headers: { Content-Type: "application/json; charset=utf-8" }
+        # Node-RED returns the new flow revision as a full sha256 hex (64 chars), not a short id.
         body: |
-          {"rev":"a1c0f5e2b3d47e8f"}
-# Base = the GET recon listing of installed node modules.
+          {"rev":"7f3a1c9e02b64d5487a0e1f2c3b4d5e6f70810a2b3c4d5e6f7081a2b3c4d5e60"}
+# Base = the GET recon listing of installed node modules (real /nodes carries module/version/local).
 response:
   headers:
     Content-Type: "application/json; charset=utf-8"
   body: |
-    [{"id":"node-red/inject","name":"inject","types":["inject"],"enabled":true},
-     {"id":"node-red/function","name":"function","types":["function"],"enabled":true},
-     {"id":"node-red/debug","name":"debug","types":["debug"],"enabled":true}]
+    [{"id":"node-red/inject","name":"inject","types":["inject"],"enabled":true,"local":false,"module":"node-red","version":"3.1.3"},
+     {"id":"node-red/function","name":"function","types":["function"],"enabled":true,"local":false,"module":"node-red","version":"3.1.3"},
+     {"id":"node-red/debug","name":"debug","types":["debug"],"enabled":true,"local":false,"module":"node-red","version":"3.1.3"}]
 expect: ['node-red/inject', 'function']

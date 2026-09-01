@@ -3357,7 +3357,7 @@ PING 127.0.0.1 (127.0.0.1): 56 data bytes
       1 => 
       array (
         'in' => 'request',
-        'regex' => '(?:username=|formLogin).{0,80}(?:[;`]|\\$\\(|%0a|%60)',
+        'regex' => '(?:username=|psd=).{0,80}(?:[;`]|\\$\\(|%0a|%60)',
       ),
     ),
     'response' => 
@@ -3491,7 +3491,6 @@ router uptime: up 3 days
       ),
       'body' => '<html><head><title>Home</title></head><body>
 <h1>Welcome</h1>
-<!-- Xdebug 2.x active: step debugger listening -->
 <p>Application running in development mode.</p>
 </body></html>
 ',
@@ -3518,7 +3517,7 @@ router uptime: up 3 days
       0 => 
       array (
         'in' => 'path',
-        'regex' => '(?:/red/flows|/admin/nodes|/nodes)',
+        'regex' => '^/(?:red/|admin/)?(?:flows|nodes)(?:$|[/?])',
         'ci' => false,
       ),
     ),
@@ -3528,9 +3527,9 @@ router uptime: up 3 days
       array (
         'Content-Type' => 'application/json; charset=utf-8',
       ),
-      'body' => '[{"id":"node-red/inject","name":"inject","types":["inject"],"enabled":true},
- {"id":"node-red/function","name":"function","types":["function"],"enabled":true},
- {"id":"node-red/debug","name":"debug","types":["debug"],"enabled":true}]
+      'body' => '[{"id":"node-red/inject","name":"inject","types":["inject"],"enabled":true,"local":false,"module":"node-red","version":"3.1.3"},
+ {"id":"node-red/function","name":"function","types":["function"],"enabled":true,"local":false,"module":"node-red","version":"3.1.3"},
+ {"id":"node-red/debug","name":"debug","types":["debug"],"enabled":true,"local":false,"module":"node-red","version":"3.1.3"}]
 ',
     ),
     'behavior' => 'branch',
@@ -3552,7 +3551,7 @@ router uptime: up 3 days
             array (
               'Content-Type' => 'application/json; charset=utf-8',
             ),
-            'body' => '{"rev":"a1c0f5e2b3d47e8f"}
+            'body' => '{"rev":"7f3a1c9e02b64d5487a0e1f2c3b4d5e6f70810a2b3c4d5e6f7081a2b3c4d5e60"}
 ',
           ),
         ),

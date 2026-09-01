@@ -2,7 +2,10 @@ id: attack-netgear-6277
 severity: critical
 priority: 64
 tags: [attack, rce, netgear, iot, cve-2016-6277, knock-knock, kk-purpose-rce]
-# Netgear router setup.cgi command injection (the classic ?todo=syscmd&cmd=... unauth RCE). We
+# Netgear router setup.cgi command injection (the classic ?todo=syscmd&cmd=... unauth RCE).
+# NOTE: CVE tag follows the knock-knock catalog; the setup.cgi?todo=syscmd RCE is the DGN1000/
+# DGN2200 device family — cve-2016-6277 more precisely names the R7000/R6400 cgi-bin bug, so treat
+# the CVE tag as catalog-provenance, not a definitive attribution. Matcher + decoy are correct either way. We
 # return a small canned embedded-device diagnostics page. The command is NEVER executed and the
 # attacker payload is NEVER reflected — the query is only read to GATE the match, never emitted.
 match:

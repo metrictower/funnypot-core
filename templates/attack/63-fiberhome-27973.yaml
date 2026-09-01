@@ -10,8 +10,11 @@ match:
   - in: path
     regex: '/boaform/admin/formLogin'
     ci: false
+  # Require an actual credential field before the shell metachar — the path already gates
+  # /boaform/admin/formLogin, so witnessing on the literal `formLogin` would be redundant and
+  # would fire on a benign login whose password merely contains `;`.
   - in: request
-    regex: '(?:username=|formLogin).{0,80}(?:[;`]|\$\(|%0a|%60)'
+    regex: '(?:username=|psd=).{0,80}(?:[;`]|\$\(|%0a|%60)'
 response:
   headers:
     Content-Type: "text/html; charset=utf-8"
