@@ -6,7 +6,9 @@ priority: 401
 # Content-Type is EXACTLY the Prometheus text-exposition media type (text/plain; version=0.0.4) —
 # its real type. Line-mode `#` taunt appends comment lines, which the exposition format already
 # uses for HELP/TYPE, so it stays well-formed. Every metric value is <= 5 digits or dotted/exp —
-# no bare 6-digit run and no `9` + 5-digit CRS-rule-id shape. No upstream-detector signature.
+# no bare 6-digit run and no `9` + 5-digit CRS-rule-id shape. No upstream-detector signature. The
+# histogram carries the mandatory `le="+Inf"` bucket (== `_count`) that OpenMetrics/Prometheus
+# parsers require (review fix); without it a strict parser rejects the histogram.
 new_page:
   method: GET
   paths: ['/metrics']
@@ -30,6 +32,7 @@ response:
     # TYPE http_request_duration_seconds histogram
     http_request_duration_seconds_bucket{le="0.1"} 41022
     http_request_duration_seconds_bucket{le="0.5"} 47881
+    http_request_duration_seconds_bucket{le="+Inf"} 48213
     http_request_duration_seconds_sum 3128.42
     http_request_duration_seconds_count 48213
     # HELP process_resident_memory_bytes Resident memory size in bytes.

@@ -3729,9 +3729,7 @@ Policy: https://{{persona.company.domain}}/security-policy
 "description_for_human": "Access {{persona.company.name}} data.",
 "auth": { "type": "service_http", "authorization_type": "bearer" },
 "api": { "type": "openapi", "url": "https://{{persona.company.domain}}/openapi.json" },
-"logo_url": "https://{{persona.company.domain}}/logo.png",
-"contact_email": "{{persona.user.admin.email}}",
-"legal_info_url": "https://{{persona.company.domain}}/legal"
+"contact_email": "{{persona.user.admin.email}}"
 }
 ',
     'headers' => 
@@ -6124,11 +6122,7 @@ Sitemap: https://{{persona.company.domain}}/sitemap.xml
 ],
 "page": 1,
 "per_page": 25,
-"total": 3,
-"_links": {
-  "self": "https://{{persona.company.domain}}/api/v1/users?page=1",
-  "next": "https://{{persona.company.domain}}/api/v1/users?page=2"
-}
+"total": 3
 }
 ',
     'headers' => 
@@ -6234,6 +6228,7 @@ http_requests_total{instance="{{persona.company.slug}}",method="get",code="401"}
 # TYPE http_request_duration_seconds histogram
 http_request_duration_seconds_bucket{le="0.1"} 41022
 http_request_duration_seconds_bucket{le="0.5"} 47881
+http_request_duration_seconds_bucket{le="+Inf"} 48213
 http_request_duration_seconds_sum 3128.42
 http_request_duration_seconds_count 48213
 # HELP process_resident_memory_bytes Resident memory size in bytes.
@@ -6349,11 +6344,37 @@ up 1
       ),
     ),
     'body' => '{
-"type": "https://{{persona.company.domain}}/errors/unauthorized",
+"type": "about:blank",
 "title": "Unauthorized",
 "status": 401,
-"detail": "A valid bearer token is required to access this endpoint.",
-"instance": "/auth"
+"detail": "A valid bearer token is required to access this endpoint."
+}
+',
+    'headers' => 
+    array (
+      'Content-Type' => 'application/problem+json',
+    ),
+    'taunt' => 
+    array (
+      'mode' => 'inline_field',
+      'key' => '_comment',
+    ),
+  ),
+  182 => 
+  array (
+    'id' => 'route-surface-auth-post',
+    'match' => 
+    array (
+      'pid' => 
+      array (
+        0 => 'route-surface-auth-post',
+      ),
+    ),
+    'body' => '{
+"type": "about:blank",
+"title": "Unauthorized",
+"status": 401,
+"detail": "A valid bearer token is required to access this endpoint."
 }
 ',
     'headers' => 

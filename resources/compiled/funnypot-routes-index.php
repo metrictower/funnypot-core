@@ -1164,6 +1164,17 @@ return array (
       ),
       'name' => 'Exposed auth endpoint (401)',
     ),
+    'route-surface-auth-post' => 
+    array (
+      'sev' => 'info',
+      'tags' => 
+      array (
+        0 => 'exposure',
+        1 => 'api',
+        2 => 'discovery',
+      ),
+      'name' => 'Exposed auth endpoint (401)',
+    ),
     'route-phpinfo' => 
     array (
       'sev' => 'medium',
@@ -4800,6 +4811,29 @@ return array (
         't' => 
         array (
           0 => 'route-surface-auth',
+        ),
+        'w' => 100000,
+      ),
+    ),
+    'POST /auth/token' => 
+    array (
+      0 => 
+      array (
+        's' => 401,
+        'bw' => 
+        array (
+          0 => '"title":',
+          1 => '"detail":',
+        ),
+        'nf' => 
+        array (
+        ),
+        'pid' => 'route-surface-auth-post',
+        'sev' => 'info',
+        'sig' => 0,
+        't' => 
+        array (
+          0 => 'route-surface-auth-post',
         ),
         'w' => 100000,
       ),

@@ -204,8 +204,16 @@ final class DirectiveRenderer
             }
             if ($enc === 'b64url') {
                 // URL-safe base64, unpadded — the alphabet a JWT/JWK segment must use ([A-Za-z0-9_-],
-                // no '+', '/', '='). 32 digest bytes give 43 chars; concatenate two names for more.
-                return substr(rtrim(strtr(base64_encode((string) hex2bin($digest)), '+/', '-_'), '='), 0, $len);
+                // no '+', '/', '='). One 32-byte digest gives 43 chars; for a length beyond that
+                // (e.g. :342 for a plausible RSA-2048 modulus `n`) chain raw sha256 to extend the byte
+                // material — exactly like the `dec` encoder below — so the cap is no longer a no-op.
+                // For any len <= 43 the loop never runs, so existing values stay byte-identical.
+                $material = (string) hex2bin($digest);
+                while (strlen(rtrim(strtr(base64_encode($material), '+/', '-_'), '=')) < $len) {
+                    $material .= hash('sha256', $material, true);
+                }
+
+                return substr(rtrim(strtr(base64_encode($material), '+/', '-_'), '='), 0, $len);
             }
             if ($enc === 'dec') {
                 // All-digit field (e.g. a Firebase sender id / GCP project number). Draw each digit

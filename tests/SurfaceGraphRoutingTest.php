@@ -124,6 +124,94 @@ final class SurfaceGraphRoutingTest extends TestCase
     }
 
     /**
+     * VERB-AWARE no-partial-tree-tell gate. The path sweep above probes GET only, so a documented
+     * operation on a non-GET verb (e.g. `POST /auth/token`) could 404 while `GET` of the same path
+     * resolves — a verb-scoped tell an agent replaying the doc's own method would hit. Harvest every
+     * (method, path) OPERATION the OpenAPI 3.0 / Swagger 2.0 docs declare and probe with that METHOD,
+     * asserting each resolves to a non-null inert decoy across the persona-rotation seed space.
+     */
+    public function test_every_advertised_operation_resolves_by_its_method(): void
+    {
+        $ops = $this->collectAdvertisedOperations();
+
+        // The docs declare a meaningful multi-verb surface: the GET collection/detail/service
+        // operations plus the two POST auth operations (the OpenAPI 3.0 JSON, the YAML mirror and the
+        // Swagger 2.0 doc dedup to the same (method, path) keys — one apex host, one operation set).
+        self::assertGreaterThan(6, count($ops), 'the docs must declare a multi-verb operation set (GET collections + POST auth)');
+        $labels = array_map(static fn (array $o): string => $o[0] . ' ' . $o[1], $ops);
+        self::assertContains('POST /auth/token', $labels, 'the OpenAPI docs declare POST /auth/token — it must be harvested and probed');
+        self::assertContains('POST /auth/login', $labels, 'the OpenAPI docs declare POST /auth/login — it must be harvested and probed');
+
+        for ($seed = 0; $seed <= 30; $seed++) {
+            $inv = $this->seededInverter((string) $seed);
+            foreach ($ops as [$method, $path]) {
+                $resp = $inv->respond(new RequestContext($method, $path));
+                self::assertNotNull($resp, "seed {$seed}: advertised operation {$method} {$path} must resolve to a decoy (no verb-scoped partial-tree tell)");
+                self::assertContains($resp->status, [200, 401], "seed {$seed}: {$method} {$path} must be an inert 200/401");
+                self::assertArrayHasKey('Content-Type', $resp->headers, "seed {$seed}: {$method} {$path} must carry a Content-Type");
+                self::assertStringNotContainsString('{{', $resp->body, "seed {$seed}: {$method} {$path} must be fully rendered (no residual directive)");
+            }
+        }
+    }
+
+    /**
+     * Harvest every (METHOD, path) operation the OpenAPI 3.0 / Swagger 2.0 / OpenAPI-YAML docs
+     * declare: for each `paths` entry, each HTTP-verb key under it is one operation, resolved against
+     * that doc's server base. Asserts no operation path carries a `{` placeholder (it could never be
+     * probed). Deduplicated on "METHOD path".
+     *
+     * @return array<int,array{0:string,1:string}>
+     */
+    private function collectAdvertisedOperations(): array
+    {
+        $verbs = ['get', 'post', 'put', 'patch', 'delete', 'head', 'options', 'trace'];
+        $ops = [];
+        $addOp = static function (string $method, string $base, string $path) use (&$ops): void {
+            $full = self::toPath($base . $path);
+            if ($full === '' || $full[0] !== '/') {
+                return;
+            }
+            self::assertStringNotContainsString('{', $full, "advertised operation path '{$full}' carries an unexpanded/parameterized placeholder and would never be probed");
+            $ops[strtoupper($method) . ' ' . $full] = [strtoupper($method), $full];
+        };
+
+        $harvest = static function (array $paths, string $base) use ($verbs, $addOp): void {
+            foreach ($paths as $path => $item) {
+                if (!is_array($item)) {
+                    continue;
+                }
+                foreach ($verbs as $verb) {
+                    if (isset($item[$verb])) {
+                        $addOp($verb, $base, (string) $path);
+                    }
+                }
+            }
+        };
+
+        // OpenAPI 3.0 (/swagger.json) — servers[0].url base.
+        $oas = json_decode($this->body('/swagger.json'), true);
+        self::assertIsArray($oas, 'OpenAPI 3.0 doc must be valid JSON');
+        $base3 = self::toPath((string) ($oas['servers'][0]['url'] ?? ''));
+        $base3 = $base3 === '/' ? '' : rtrim($base3, '/');
+        $harvest((array) ($oas['paths'] ?? []), $base3);
+
+        // OpenAPI YAML (/openapi.yaml) — servers[0].url base.
+        $yaml = Yaml::parse($this->body('/openapi.yaml'));
+        self::assertIsArray($yaml, 'OpenAPI YAML doc must parse');
+        $baseY = self::toPath((string) ($yaml['servers'][0]['url'] ?? ''));
+        $baseY = $baseY === '/' ? '' : rtrim($baseY, '/');
+        $harvest((array) ($yaml['paths'] ?? []), $baseY);
+
+        // Swagger 2.0 (/v2/api-docs) — basePath base.
+        $sw2 = json_decode($this->body('/v2/api-docs'), true);
+        self::assertIsArray($sw2, 'Swagger 2.0 doc must be valid JSON');
+        $base2 = rtrim((string) ($sw2['basePath'] ?? ''), '/');
+        $harvest((array) ($sw2['paths'] ?? []), $base2);
+
+        return array_values($ops);
+    }
+
+    /**
      * @return array<int,string> the deduplicated advertised path set drawn from every surface.
      */
     private function collectAdvertisedPaths(): array
@@ -131,9 +219,17 @@ final class SurfaceGraphRoutingTest extends TestCase
         $paths = [];
         $add = static function (string $p) use (&$paths): void {
             $p = self::toPath($p);
-            if ($p !== '' && $p[0] === '/' && strpos($p, '{') === false) {
-                $paths[$p] = true;
+            // A cross-scheme / non-path advertisement (about:blank, mailto:, a bare token) is not a
+            // same-host root-absolute path — it is not probed here.
+            if ($p === '' || $p[0] !== '/') {
+                return;
             }
+            // No advertised path may carry an unexpanded `{{…}}` directive or an OpenAPI `{param}`
+            // placeholder: such a path would be dropped from the probe set and slip through unchecked
+            // (the old harvest silently skipped `{`). This finite decoy surface is all literals, so a
+            // `{` here is a real defect — fail loudly rather than skip.
+            self::assertStringNotContainsString('{', $p, "advertised path '{$p}' carries an unexpanded/parameterized placeholder and would never be probed");
+            $paths[$p] = true;
         };
 
         // sitemap.xml — every <loc>.
@@ -195,6 +291,29 @@ final class SurfaceGraphRoutingTest extends TestCase
         }
         foreach ((array) ($v2['endpoints'] ?? []) as $u) {
             $add((string) $u);
+        }
+
+        // problem+json `type` URIs — a same-host `type` that 404s is a dangling advertisement. The
+        // RFC 7807 default `about:blank` is not a same-host path, so $add drops it (nothing to probe).
+        foreach (['/auth', '/auth/token'] as $authPath) {
+            $prob = json_decode($this->body($authPath), true);
+            if (is_array($prob) && isset($prob['type']) && is_string($prob['type'])) {
+                $add($prob['type']);
+            }
+        }
+
+        // .well-known/ai-plugin.json — the manifest URLs a crawler follows (the OpenAPI doc, and the
+        // optional logo/legal links). Every same-host one must resolve, or the manifest advertises a
+        // hole.
+        $plugin = json_decode($this->body('/.well-known/ai-plugin.json'), true);
+        self::assertIsArray($plugin, 'ai-plugin manifest must be valid JSON');
+        if (isset($plugin['api']['url']) && is_string($plugin['api']['url'])) {
+            $add($plugin['api']['url']);
+        }
+        foreach (['logo_url', 'legal_info_url'] as $optional) {
+            if (isset($plugin[$optional]) && is_string($plugin[$optional])) {
+                $add($plugin[$optional]);
+            }
         }
 
         return array_keys($paths);

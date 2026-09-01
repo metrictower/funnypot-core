@@ -271,7 +271,7 @@ final class NewPageRoutingTest extends TestCase
             'wp/v2 settings 401' => ['/wp-json/wp/v2/settings', 401, '"rest_forbidden"', 'application/json'],
             'api/v2 rest index'     => ['/api/v2', 200, '"documentation"', 'application/json'],
             'security.txt'          => ['/.well-known/security.txt', 200, 'Preferred-Languages', 'text/plain; charset=utf-8'],
-            'ai-plugin manifest'    => ['/.well-known/ai-plugin.json', 200, 'legal_info_url', 'application/json'],
+            'ai-plugin manifest'    => ['/.well-known/ai-plugin.json', 200, '"contact_email":', 'application/json'],
             'openapi redoc'         => ['/openapi', 200, 'Redoc.init', 'text/html; charset=utf-8'],
             // Sibling paths the path-blind findRule enriches to a single bundle: /api/docs always
             // serves the ReDoc shell; /security.txt mirrors the .well-known security.txt file.

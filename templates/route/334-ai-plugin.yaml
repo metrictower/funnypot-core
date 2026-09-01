@@ -5,6 +5,9 @@ priority: 334
 # a real ChatGPT-plugin manifest that points at this host's OpenAPI doc and leaks the admin contact,
 # persona-seeded to stay coherent. The body opens with a lone `{` so the JSON taunt (a `_comment`
 # field after the first newline) keeps the document parseable. Content-Type is application/json.
+# The optional `logo_url` (/logo.png) and `legal_info_url` (/legal) fields are omitted: now that the
+# sitemap spine (393) is in play they would be advertised same-host URLs that resolve to 404 — a
+# partial-tree tell. Dropping them keeps the manifest coherent and advertises nothing unresolvable.
 match:
   template_needle: [openai-plugin]
 response:
@@ -19,9 +22,7 @@ response:
     "description_for_human": "Access {{persona.company.name}} data.",
     "auth": { "type": "service_http", "authorization_type": "bearer" },
     "api": { "type": "openapi", "url": "https://{{persona.company.domain}}/openapi.json" },
-    "logo_url": "https://{{persona.company.domain}}/logo.png",
-    "contact_email": "{{persona.user.admin.email}}",
-    "legal_info_url": "https://{{persona.company.domain}}/legal"
+    "contact_email": "{{persona.user.admin.email}}"
     }
 taunt: { mode: inline_field, key: '_comment' }
 expect:

@@ -1,14 +1,17 @@
 id: route-surface-collection
 priority: 398
 # Brand-new page (FP-0233): the REST collection archetype — a paginated JSON envelope
-# ({"data":[...],"page":,"per_page":,"total":,"_links":}) shared by the collection endpoints the
-# docs + sitemap advertise (/api/v1/users, /api/v1/orders, /admin/users, /users, /api/v2/*). One
+# ({"data":[...],"page":,"per_page":,"total":}) shared by the collection endpoints the docs +
+# sitemap advertise (/api/v1/users, /api/v1/orders, /admin/users, /users, /api/v2/*). One
 # structurally distinct SHAPE mapped to several literal paths: the render is persona-seeded (not
 # path-seeded), so these paths serve byte-identically — that is fine for resolution (every path is
 # a real inert decoy) and the archetype's job is to be one distinct crawl node, not many (FP-0174).
 # Inert: GET, 200, no request byte reflected, fully persona-seeded (serves from any origin). The
-# _links pager URLs are absolute apex (one host identity; linter ignores scheme URLs). Opens with a
-# lone `{` for the inline-field JSON taunt. Row ids are dec:5 (no bare 6-digit run).
+# envelope carries NO pager `_links` (review fix): a `next` link with total:3 + per_page:25 is a
+# self-contradiction (page 1 of 3 items has no next page), and a `self` pointer naming /api/v1/users
+# contradicts the same bytes served at /orders, /admin/users, … — total:3 with no next/self is
+# internally coherent for a small collection served at several paths. Opens with a lone `{` for the
+# inline-field JSON taunt. Row ids are dec:5 (no bare 6-digit run).
 new_page:
   method: GET
   paths: ['/api/v1/users', '/api/v1/orders', '/admin/users', '/users', '/api/v2/users', '/api/v2/orders']
@@ -31,14 +34,10 @@ response:
     ],
     "page": 1,
     "per_page": 25,
-    "total": 3,
-    "_links": {
-      "self": "https://{{persona.company.domain}}/api/v1/users?page=1",
-      "next": "https://{{persona.company.domain}}/api/v1/users?page=2"
-    }
+    "total": 3
     }
 taunt: { mode: inline_field, key: '_comment' }
 expect:
   - '"data":'
   - '"per_page": 25'
-  - '"_links":'
+  - '"total": 3'

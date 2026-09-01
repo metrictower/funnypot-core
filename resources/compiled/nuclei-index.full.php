@@ -84994,6 +84994,17 @@ return array (
       ),
       'name' => 'Exposed auth endpoint (401)',
     ),
+    'route-surface-auth-post' => 
+    array (
+      'sev' => 'info',
+      'tags' => 
+      array (
+        0 => 'exposure',
+        1 => 'api',
+        2 => 'discovery',
+      ),
+      'name' => 'Exposed auth endpoint (401)',
+    ),
   ),
   'routes' => 
   array (
@@ -282230,6 +282241,26 @@ a</title>',
           array (
             0 => 'nodered-default-login',
           ),
+        ),
+        1 => 
+        array (
+          's' => 401,
+          'bw' => 
+          array (
+            0 => '"title":',
+            1 => '"detail":',
+          ),
+          'nf' => 
+          array (
+          ),
+          'pid' => 'route-surface-auth-post',
+          'sev' => 'info',
+          'sig' => 0,
+          't' => 
+          array (
+            0 => 'route-surface-auth-post',
+          ),
+          'w' => 100000,
         ),
       ),
     ),

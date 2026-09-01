@@ -1,0 +1,42 @@
+id: route-surface-auth-post
+priority: 406
+# Brand-new page (FP-0233 review fix): the POST arm of the auth archetype. The OpenAPI 3.0 docs
+# (330/340/342) advertise `POST /auth/token` (and `POST /auth/login`). `POST /auth/login` already
+# resolves to a corpus login decoy, but `POST /auth/token` maps ONLY to a `critical` node-red bundle,
+# which the default severity ceiling (high) filters out — leaving no servable candidate, so a plain
+# POST 404s while GET /auth/token serves a 401. That is a verb-scoped partial-tree tell: the doc says
+# yes, the server says no. new_page CAN serve a method-specific key (RouteBundleSynth keys each route
+# as "METHOD path"), so this sibling registers `POST /auth/token` with the SAME inert 401 problem+json
+# decoy as the GET arm (405). It is APPENDED to the existing key: node-red detection is untouched
+# (detectIds still lists it) — this only adds a servable info-tier bundle so a POST that the ceiling
+# would otherwise 404 now lands on the same inert decoy every documented auth operation resolves to.
+# A 401 is the honest answer a POST to a token endpoint with no valid credentials gives. Inert: POST,
+# 401, no request byte reflected, fully persona-seeded (serves from any origin). Content-Type is the
+# problem+json media type. `type` is the RFC 7807 default `about:blank` (advertises nothing); no
+# `instance` (optional, and would mis-state the path across the shared decoy). Opens with a lone `{`
+# for the inline-field JSON taunt. The status value is a bare 3-digit code (no 6-digit run).
+new_page:
+  method: POST
+  paths: ['/auth/token']
+  sig: 0
+  status: 401
+  severity: info
+  weight: 100000
+  tags: [exposure, api, discovery]
+  name: 'Exposed auth endpoint (401)'
+  body_words: ['"title":', '"detail":']
+response:
+  headers:
+    Content-Type: "application/problem+json"
+  body: |
+    {
+    "type": "about:blank",
+    "title": "Unauthorized",
+    "status": 401,
+    "detail": "A valid bearer token is required to access this endpoint."
+    }
+taunt: { mode: inline_field, key: '_comment' }
+expect:
+  - '"title": "Unauthorized"'
+  - '"status": 401'
+  - '"detail":'
