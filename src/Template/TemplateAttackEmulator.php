@@ -158,6 +158,14 @@ final class TemplateAttackEmulator
             'expr-eval' => function (array $config, array $captures, ?RequestContext $r, int $seed, Clock $clock, EphemeralStore $store): ?EmulatedContent {
                 return $this->handleExprEval($config, $captures, $seed);
             },
+            // Position-blind multi-fence SSTI decoy (tplmap-class confirmation): walks the reflected
+            // `surface` capture as a run of engine template fences, evaluates each fence's inner
+            // ARITHMETIC via Support\SafeArithmetic (recursive descent, never eval) and concatenates
+            // the computed integers + fixed transforms. Reads only captures ($r/clock/store unused),
+            // so it renders identically on the facade and the port.
+            'ssti-render' => function (array $config, array $captures, ?RequestContext $r, int $seed, Clock $clock, EphemeralStore $store): ?EmulatedContent {
+                return $this->handleSstiRender($config, $captures, $seed);
+            },
             // Parses the request body into a bounded sub-call list and fans out one item per sub-call.
             // Needs $r->rawBody, so it degrades to its request-free fallback on the position-blind port.
             'iterate' => function (array $config, array $captures, ?RequestContext $r, int $seed, Clock $clock, EphemeralStore $store): ?EmulatedContent {
@@ -524,6 +532,183 @@ final class TemplateAttackEmulator
         $status = isset($response['status']) ? (int) $response['status'] : null;
 
         return $this->renderResponse($response, $captures, $seed, $status);
+    }
+
+    /** Hard cap on the fence count in one ssti-render surface — no amplification. */
+    private const SSTI_MAX_FENCES = 64;
+
+    /**
+     * Code-authored fence-delimiter recognisers (a CLOSED table, never built from attacker input).
+     * Each row is [anchored regex with ONE inner capture, engines that enable it]. Ordered so a more
+     * specific open delimiter (`${{`) is tried before a prefix of it (`${`). The inner capture is a
+     * bounded tempered class ([ \t]-safe, no CR/LF, ≤254 bytes) — ReDoS-safe and never widened by any
+     * attacker byte; the captured inner is only ever validated by SafeArithmetic / the fixed shape
+     * regexes below, never evaluated or reflected raw.
+     */
+    private const SSTI_FENCES = [
+        ['~\G\$\{\{((?:(?!\}\})[^\r\n]){0,254})\}\}~', ['freemarker']],
+        ['~\G\{\{((?:(?!\}\})[^\r\n]){0,254})\}\}~', ['jinja2', 'twig']],
+        ['~\G\$\{((?:(?!\})[^\r\n]){0,254})\}~', ['freemarker', 'javascript', 'mako']],
+        ['~\G<%=((?:(?!%>)[^\r\n]){0,254})%>~', ['erb', 'javascript']],
+        ['~\G#\{((?:(?!\})[^\r\n]){0,254})\}~', ['erb']],
+    ];
+
+    /**
+     * The `ssti-render` behavior primitive: the multi-fence SSTI decoy for tplmap-class confirmation.
+     *
+     * tplmap does not send a lone `{{7*7}}`; it injects a fence RUN (`{{r1}}payload{{r2}}`) and
+     * confirms only if the engine stripped the delimiters around r1/r2 AND rendered the payload,
+     * using engine-specific render shapes (`|nl2br`, `print()`, `typeof(x)+y`). This handler walks the
+     * reflected `surface` capture left→right; every segment must be either an enabled engine's fence
+     * or a `[ \t]` gap, else the walk FAILS CLOSED (returns null → renderRule serves the inert base
+     * page — never a 500, never a reflection). Each fence's inner is reduced to arithmetic and passed
+     * to Support\SafeArithmetic::evaluate() (byte-whitelisted to digits + - * / % ( ) space tab,
+     * integer-only, length/overflow-capped) — NEVER eval / a template engine / a callback. The fence
+     * and shape recognisers are CODE-authored regexes over a closed engine enum, so no attacker byte
+     * ever becomes a regex or an eval input.
+     *
+     * Output is ALWAYS pure digits (+ the fixed word `number` from the JS `typeof` shape + preserved
+     * `[ \t]` gaps): the concatenated per-fence renders are bound into `$config['bind']` and reflected
+     * via `{{match.<bind>}}` — the raw `surface` is NEVER reflected. Any out-of-grammar payload
+     * (`{{config.items()}}`, `{{''.__class__}}`, `${T(java.lang.Runtime)}`, a `<script>` between
+     * fences) → some fence/byte fails → whole render declines → inert base page. So the rule emits no
+     * attacker bytes, is not a live XSS even inline, and (like the sibling 45) needs no isolated origin.
+     *
+     * @param array<string,mixed>      $config   the rule's `ssti-render` config
+     * @param array<int|string,string> $captures reflected capture groups from the top-level match
+     */
+    private function handleSstiRender(array $config, array $captures, int $seed): ?EmulatedContent
+    {
+        $surfaceKey = (string) (isset($config['surface']) ? $config['surface'] : '');
+        $surface = (string) (isset($captures[$surfaceKey]) ? $captures[$surfaceKey] : '');
+
+        $max = isset($config['max_operand']) ? (int) $config['max_operand'] : self::ARITH_MAX_OPERAND;
+        $maxLen = isset($config['max_len']) ? (int) $config['max_len'] : 256;
+        if ($maxLen < 1 || $maxLen > 256) {
+            $maxLen = 256;
+        }
+        // The surface holds the whole fence run; anything over the length cap declines outright.
+        if ($surface === '' || strlen($surface) > $maxLen) {
+            return null;
+        }
+
+        // Enabled engines drive BOTH the fence-delimiter set and the inner-shape transforms — a
+        // closed enum, code-authored, never derived from a capture.
+        $engines = [];
+        foreach ((array) (isset($config['engines']) ? $config['engines'] : []) as $e) {
+            $engines[(string) $e] = true;
+        }
+        if ($engines === []) {
+            foreach (self::SSTI_ENGINES_ALL as $e) {
+                $engines[$e] = true;
+            }
+        }
+        $fences = [];
+        foreach (self::SSTI_FENCES as $row) {
+            foreach ($row[1] as $engine) {
+                if (isset($engines[$engine])) {
+                    $fences[] = $row[0];
+                    break;
+                }
+            }
+        }
+        $shapes = [
+            'typeof' => isset($engines['javascript']),
+            'print' => isset($engines['mako']),
+            'nl2br' => isset($engines['twig']),
+        ];
+
+        $pieces = [];
+        $fenceCount = 0;
+        $pos = 0;
+        $len = strlen($surface);
+        while ($pos < $len) {
+            $ch = $surface[$pos];
+            // Inter-fence gap: only space/tab (no CR/LF) — preserved verbatim in the render.
+            if ($ch === ' ' || $ch === "\t") {
+                $pieces[] = $ch;
+                $pos++;
+                continue;
+            }
+            $matched = false;
+            foreach ($fences as $fenceRe) {
+                if (preg_match($fenceRe, $surface, $m, PREG_OFFSET_CAPTURE, $pos) === 1 && $m[0][1] === $pos) {
+                    $rendered = $this->sstiRenderInner($m[1][0], $shapes, $max, $maxLen);
+                    if ($rendered === null) {
+                        return null; // a fence whose inner is not renderable → decline the whole run
+                    }
+                    $pieces[] = $rendered;
+                    $fenceCount++;
+                    if ($fenceCount > self::SSTI_MAX_FENCES) {
+                        return null;
+                    }
+                    $pos += strlen($m[0][0]);
+                    $matched = true;
+                    break;
+                }
+            }
+            // Fail closed: any byte that is neither a recognised fence nor a [ \t] gap declines,
+            // so no raw attacker byte can ever pass through to the render.
+            if (!$matched) {
+                return null;
+            }
+        }
+
+        // tplmap shape: require ≥2 fences so a lone {{7*7}} falls through to the single-fence rules.
+        if ($fenceCount < 2) {
+            return null;
+        }
+
+        $bind = (string) (isset($config['bind']) ? $config['bind'] : 'rendered');
+        $captures[$bind] = implode('', $pieces);
+
+        $response = (array) (isset($config['response']) ? $config['response'] : []);
+        $status = isset($response['status']) ? (int) $response['status'] : null;
+
+        return $this->renderResponse($response, $captures, $seed, $status);
+    }
+
+    /** The closed engine enum, mirrored from the compiler; drives the fence + shape selection. */
+    private const SSTI_ENGINES_ALL = ['jinja2', 'twig', 'freemarker', 'erb', 'javascript', 'mako'];
+
+    /**
+     * Reduce one fence's inner to its rendered string, or null if it is not a recognised shape.
+     * Every branch ends in a SafeArithmetic::evaluate() on a byte-restricted arithmetic fragment, so
+     * the output is always pure digits (the JS `typeof` shape prepends the CONSTANT word `number`,
+     * which is code-authored, never an attacker byte). The shape regexes are fixed and code-authored.
+     *
+     * @param array<string,bool> $shapes which inner transforms are enabled (per the engine enum)
+     */
+    private function sstiRenderInner(string $inner, array $shapes, int $max, int $maxLen): ?string
+    {
+        // JS `typeof(<int>)+<int>` → invariant literal `number` + str(int2). Both integers are
+        // validated through SafeArithmetic, so no attacker byte transits this shape.
+        if ($shapes['typeof'] && preg_match('~^[ \t]*typeof\(([0-9 \t]{1,32})\)[ \t]*\+[ \t]*([0-9 \t]{1,32})[ \t]*$~', $inner, $m) === 1) {
+            $a = SafeArithmetic::evaluate($m[1], $max, $maxLen);
+            $b = SafeArithmetic::evaluate($m[2], $max, $maxLen);
+            if ($a === null || $b === null) {
+                return null;
+            }
+
+            return 'number' . (string) $b;
+        }
+        // Mako `print(<arith>)` → unwrap to the arithmetic argument, then evaluate.
+        if ($shapes['print'] && preg_match('~^[ \t]*print\(([0-9+\-*/%() \t]{1,64})\)[ \t]*$~', $inner, $m) === 1) {
+            $v = SafeArithmetic::evaluate($m[1], $max, $maxLen);
+
+            return $v === null ? null : (string) $v;
+        }
+        // Twig `<arith>|nl2br` → strip the filter, then evaluate the arithmetic prefix.
+        if ($shapes['nl2br'] && preg_match('~^([0-9+\-*/%() \t]{1,64})\|nl2br[ \t]*$~', $inner, $m) === 1) {
+            $v = SafeArithmetic::evaluate($m[1], $max, $maxLen);
+
+            return $v === null ? null : (string) $v;
+        }
+        // Bare arithmetic (all engines) — including a lone integer, which is how tplmap's random
+        // header/trailer confirms the delimiters were stripped.
+        $v = SafeArithmetic::evaluate($inner, $max, $maxLen);
+
+        return $v === null ? null : (string) $v;
     }
 
     /**

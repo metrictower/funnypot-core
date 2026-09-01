@@ -2891,6 +2891,62 @@ input, select { font-family: inherit; font-size: 12px; }
   ),
   38 => 
   array (
+    'id' => 'attack-ssti-multifence',
+    'severity' => 'high',
+    'tags' => 
+    array (
+      0 => 'attack',
+      1 => 'ssti',
+    ),
+    'status' => 200,
+    'match' => 
+    array (
+      0 => 
+      array (
+        'in' => 'request',
+        'regex' => '(?P<surface>(?:\\$\\{\\{|\\{\\{|\\$\\{|<%=|\\#\\{)[0-9A-Za-z_.+\\-*/%()|\'" \\t]{0,80}(?:\\}\\}|%>|\\})(?:[ \\t]{0,8}(?:\\$\\{\\{|\\{\\{|\\$\\{|<%=|\\#\\{)[0-9A-Za-z_.+\\-*/%()|\'" \\t]{0,80}(?:\\}\\}|%>|\\})){1,31})',
+      ),
+    ),
+    'response' => 
+    array (
+      'headers' => 
+      array (
+        'Content-Type' => 'text/html; charset=utf-8',
+      ),
+      'body' => '<!doctype html><html><head><title>Home</title></head><body>
+<p>Welcome.</p>
+</body></html>
+',
+    ),
+    'behavior' => 'ssti-render',
+    'ssti-render' => 
+    array (
+      'response' => 
+      array (
+        'headers' => 
+        array (
+          'Content-Type' => 'text/html; charset=utf-8',
+        ),
+        'body' => '{{match.rendered}}
+',
+      ),
+      'surface' => 'surface',
+      'bind' => 'rendered',
+      'engines' => 
+      array (
+        0 => 'jinja2',
+        1 => 'twig',
+        2 => 'freemarker',
+        3 => 'erb',
+        4 => 'javascript',
+        5 => 'mako',
+      ),
+      'max_operand' => 2147483647,
+      'max_len' => 256,
+    ),
+  ),
+  39 => 
+  array (
     'id' => 'attack-ssti-twig',
     'severity' => 'high',
     'tags' => 
@@ -2918,7 +2974,7 @@ input, select { font-family: inherit; font-size: 12px; }
 ',
     ),
   ),
-  39 => 
+  40 => 
   array (
     'id' => 'attack-ssti-numeric',
     'severity' => 'high',
@@ -2965,7 +3021,7 @@ input, select { font-family: inherit; font-size: 12px; }
       'max_len' => 32,
     ),
   ),
-  40 => 
+  41 => 
   array (
     'id' => 'attack-php-glastopf',
     'severity' => 'critical',
@@ -2997,7 +3053,7 @@ input, select { font-family: inherit; font-size: 12px; }
     'lit_in' => 'request',
     'lit_ci' => true,
   ),
-  41 => 
+  42 => 
   array (
     'id' => 'attack-verbose-error-volatile',
     'severity' => 'medium',
@@ -3037,7 +3093,7 @@ reference below.</p>
 ',
     ),
   ),
-  42 => 
+  43 => 
   array (
     'id' => 'attack-sqli',
     'severity' => 'high',
@@ -3065,7 +3121,7 @@ reference below.</p>
 ',
     ),
   ),
-  43 => 
+  44 => 
   array (
     'id' => 'attack-open-redirect',
     'severity' => 'medium',
@@ -3095,7 +3151,7 @@ reference below.</p>
     ),
     'reflects_input' => true,
   ),
-  44 => 
+  45 => 
   array (
     'id' => 'attack-xss',
     'severity' => 'medium',
@@ -3127,7 +3183,7 @@ reference below.</p>
     ),
     'reflects_input' => true,
   ),
-  45 => 
+  46 => 
   array (
     'id' => 'attack-thinkphp-rce',
     'severity' => 'critical',
@@ -3163,7 +3219,7 @@ reference below.</p>
 ',
     ),
   ),
-  46 => 
+  47 => 
   array (
     'id' => 'attack-owncloud-49103',
     'severity' => 'high',
@@ -3206,7 +3262,7 @@ reference below.</p>
     'lit_in' => 'path',
     'lit_ci' => true,
   ),
-  47 => 
+  48 => 
   array (
     'id' => 'attack-f5-1388',
     'severity' => 'critical',
@@ -3240,7 +3296,7 @@ reference below.</p>
     'lit_in' => 'path',
     'lit_ci' => true,
   ),
-  48 => 
+  49 => 
   array (
     'id' => 'attack-geoserver-36401',
     'severity' => 'critical',
@@ -3283,7 +3339,7 @@ reference below.</p>
     'lit_in' => 'path',
     'lit_ci' => true,
   ),
-  49 => 
+  50 => 
   array (
     'id' => 'attack-fortios-40684',
     'severity' => 'critical',
@@ -3322,7 +3378,7 @@ reference below.</p>
     'lit_in' => 'path',
     'lit_ci' => true,
   ),
-  50 => 
+  51 => 
   array (
     'id' => 'attack-ivanti-21887',
     'severity' => 'critical',
@@ -3357,7 +3413,7 @@ reference below.</p>
     'lit_in' => 'request',
     'lit_ci' => true,
   ),
-  51 => 
+  52 => 
   array (
     'id' => 'attack-citrix-bleed-4966',
     'severity' => 'critical',
@@ -3392,7 +3448,7 @@ reference below.</p>
     'lit_in' => 'path',
     'lit_ci' => true,
   ),
-  52 => 
+  53 => 
   array (
     'id' => 'attack-webshell-panel',
     'severity' => 'critical',
@@ -3427,7 +3483,7 @@ $ </pre>
 ',
     ),
   ),
-  53 => 
+  54 => 
   array (
     'id' => 'attack-spring-actuator',
     'severity' => 'high',
@@ -3460,7 +3516,7 @@ $ </pre>
     'lit_in' => 'path',
     'lit_ci' => true,
   ),
-  54 => 
+  55 => 
   array (
     'id' => 'attack-imds-base',
     'severity' => 'high',
@@ -4170,7 +4226,7 @@ vpc-ipv4-cidr-block
       ),
     ),
   ),
-  55 => 
+  56 => 
   array (
     'id' => 'attack-imds-identity-doc',
     'severity' => 'high',
@@ -4222,7 +4278,7 @@ vpc-ipv4-cidr-block
     'lit_in' => 'path',
     'lit_ci' => true,
   ),
-  56 => 
+  57 => 
   array (
     'id' => 'attack-cloud-imds',
     'severity' => 'high',
@@ -4260,7 +4316,7 @@ vpc-ipv4-cidr-block
 ',
     ),
   ),
-  57 => 
+  58 => 
   array (
     'id' => 'attack-ignition-execute-solution',
     'severity' => 'high',
@@ -4349,7 +4405,7 @@ vpc-ipv4-cidr-block
       ),
     ),
   ),
-  58 => 
+  59 => 
   array (
     'id' => 'attack-webmin-session-login',
     'severity' => 'high',
@@ -4419,7 +4475,7 @@ vpc-ipv4-cidr-block
     'lit_in' => 'method',
     'lit_ci' => false,
   ),
-  59 => 
+  60 => 
   array (
     'id' => 'attack-jenkins-acegi-login',
     'severity' => 'high',
@@ -4467,7 +4523,7 @@ vpc-ipv4-cidr-block
     'lit_in' => 'method',
     'lit_ci' => false,
   ),
-  60 => 
+  61 => 
   array (
     'id' => 'attack-hnap-login',
     'severity' => 'high',
@@ -4552,7 +4608,7 @@ vpc-ipv4-cidr-block
       ),
     ),
   ),
-  61 => 
+  62 => 
   array (
     'id' => 'attack-wp-admin-redirect',
     'severity' => 'low',
@@ -4595,7 +4651,7 @@ vpc-ipv4-cidr-block
       0 => '/wp-admin',
     ),
   ),
-  62 => 
+  63 => 
   array (
     'id' => 'attack-crs-sqli',
     'severity' => 'high',
@@ -4625,7 +4681,7 @@ vpc-ipv4-cidr-block
 ',
     ),
   ),
-  63 => 
+  64 => 
   array (
     'id' => 'attack-crs-xss',
     'severity' => 'high',
@@ -4657,7 +4713,7 @@ vpc-ipv4-cidr-block
 ',
     ),
   ),
-  64 => 
+  65 => 
   array (
     'id' => 'attack-crs-lfi',
     'severity' => 'high',
@@ -4686,7 +4742,7 @@ vpc-ipv4-cidr-block
       'body' => '{{canned.passwd}}',
     ),
   ),
-  65 => 
+  66 => 
   array (
     'id' => 'attack-crs-rce',
     'severity' => 'critical',

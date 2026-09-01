@@ -206,6 +206,10 @@ final class EmulatorCompiler
                     $rule['behavior'] = 'expr-eval';
                     $rule['expr-eval'] = $this->normalizeExprEval((array) ($doc['expr-eval'] ?? []), $file);
                     break;
+                case 'ssti-render':
+                    $rule['behavior'] = 'ssti-render';
+                    $rule['ssti-render'] = $this->normalizeSstiRender((array) ($doc['ssti-render'] ?? []), $file);
+                    break;
                 case 'iterate':
                     $rule['behavior'] = 'iterate';
                     $rule['iterate'] = $this->normalizeIterate((array) ($doc['iterate'] ?? []), $file);
@@ -215,7 +219,7 @@ final class EmulatorCompiler
                     $rule['decoy-session'] = $this->normalizeDecoySession((array) ($doc['decoy-session'] ?? []), $file);
                     break;
                 default:
-                    throw new RuntimeException("Template {$file}: unknown behavior '{$behavior}'. This build knows 'branch', 'arith-eval', 'expr-eval', 'iterate', 'decoy-session'.");
+                    throw new RuntimeException("Template {$file}: unknown behavior '{$behavior}'. This build knows 'branch', 'arith-eval', 'expr-eval', 'ssti-render', 'iterate', 'decoy-session'.");
             }
         }
 
@@ -544,6 +548,76 @@ final class EmulatorCompiler
             'response' => $this->normalizeBehaviorResponse((array) $config['response'], $file),
             'expr' => (string) $config['expr'],
             'bind' => isset($config['bind']) ? (string) $config['bind'] : 'result',
+            'max_operand' => $max,
+            'max_len' => $maxLen,
+        ];
+    }
+
+    /** The closed engine enum for `ssti-render`; an authored value outside it is a build failure. */
+    private const SSTI_ENGINES = ['jinja2', 'twig', 'freemarker', 'erb', 'javascript', 'mako'];
+
+    /**
+     * Normalize an `ssti-render` behavior config — the multi-fence SSTI decoy (tplmap-class
+     * confirmation). Captures a whole template-fence RUN into the `surface` capture and, at runtime,
+     * walks it fence-by-fence: each fence's inner is reduced to arithmetic and evaluated by
+     * Support\SafeArithmetic (the SAME safe engine as expr-eval — byte-whitelisted, integer-only,
+     * length/overflow-capped, NEVER eval/a template engine/a callback), the results concatenated and
+     * bound for reflection. Any out-of-grammar byte, any non-arithmetic fence, or a surface over
+     * `max_len` declines to null at runtime so the base response serves — never a 500, never a code
+     * path that executes or reflects attacker input.
+     *
+     * `engines` is a CLOSED enum (unknown entry → build failure) that selects which code-authored
+     * fence + shape recognisers fire; it is never turned into a regex at runtime. `max_operand` is
+     * clamped to [1, ARITH_MAX_OPERAND] and `max_len` to [1, EXPR_MAX_LEN]; `bind` defaults to
+     * 'rendered'. The `response` is directive- and static-header-checked like any base response.
+     *
+     * @param array<string,mixed> $config
+     * @return array<string,mixed>
+     */
+    private function normalizeSstiRender(array $config, string $file): array
+    {
+        if (!isset($config['response'])) {
+            throw new RuntimeException("Template {$file}: behavior 'ssti-render' must author a 'response'.");
+        }
+        if (!isset($config['surface']) || (string) $config['surface'] === '') {
+            throw new RuntimeException("Template {$file}: behavior 'ssti-render' needs a 'surface' (the capture key holding the fence run).");
+        }
+
+        $max = isset($config['max_operand']) ? (int) $config['max_operand'] : self::ARITH_MAX_OPERAND;
+        if ($max < 1) {
+            $max = 1;
+        }
+        if ($max > self::ARITH_MAX_OPERAND) {
+            $max = self::ARITH_MAX_OPERAND;
+        }
+
+        $maxLen = isset($config['max_len']) ? (int) $config['max_len'] : self::EXPR_MAX_LEN;
+        if ($maxLen < 1) {
+            $maxLen = 1;
+        }
+        if ($maxLen > self::EXPR_MAX_LEN) {
+            $maxLen = self::EXPR_MAX_LEN;
+        }
+
+        $engines = [];
+        foreach ((array) ($config['engines'] ?? []) as $engine) {
+            $engine = (string) $engine;
+            if (!in_array($engine, self::SSTI_ENGINES, true)) {
+                throw new RuntimeException("Template {$file}: behavior 'ssti-render' has an unknown engine '{$engine}' (known: " . implode('|', self::SSTI_ENGINES) . ').');
+            }
+            if (!in_array($engine, $engines, true)) {
+                $engines[] = $engine;
+            }
+        }
+        if ($engines === []) {
+            $engines = self::SSTI_ENGINES;
+        }
+
+        return [
+            'response' => $this->normalizeBehaviorResponse((array) $config['response'], $file),
+            'surface' => (string) $config['surface'],
+            'bind' => isset($config['bind']) ? (string) $config['bind'] : 'rendered',
+            'engines' => $engines,
             'max_operand' => $max,
             'max_len' => $maxLen,
         ];

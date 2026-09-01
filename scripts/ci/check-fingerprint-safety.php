@@ -144,6 +144,11 @@ foreach ($indexes as $index) {
         if (isset($rule['arith-eval']['response']) && is_array($rule['arith-eval']['response'])) {
             $texts = array_merge($texts, $collect($rule['arith-eval']['response']));
         }
+        // An `ssti-render` rule serves its nested `response` (the concatenated fence render) — a
+        // nested node that never reaches the top-level body, so descend into it for coverage parity.
+        if (isset($rule['ssti-render']['response']) && is_array($rule['ssti-render']['response'])) {
+            $texts = array_merge($texts, $collect($rule['ssti-render']['response']));
+        }
         // An `iterate` rule serves the wrap open/close body, the per-sub-call `item`, the
         // `response` headers on the multicall success path, and the `empty`/`fallback` responses —
         // all nested served shapes the top-level body never carries.

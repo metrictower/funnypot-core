@@ -397,6 +397,9 @@ final class ManifestBuilder
         if (isset($rule['arith-eval']['response']) && is_array($rule['arith-eval']['response'])) {
             $shapes[] = $rule['arith-eval']['response'];
         }
+        if (isset($rule['ssti-render']['response']) && is_array($rule['ssti-render']['response'])) {
+            $shapes[] = $rule['ssti-render']['response'];
+        }
         if (isset($rule['iterate']) && is_array($rule['iterate'])) {
             foreach (array('item', 'response') as $k) {
                 if (isset($rule['iterate'][$k]) && is_array($rule['iterate'][$k])) {

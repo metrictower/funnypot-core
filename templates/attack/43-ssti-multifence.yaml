@@ -1,0 +1,61 @@
+id: attack-ssti-multifence
+severity: high
+priority: 43
+tags: [attack, ssti]
+# Multi-fence SSTI decoy, for tplmap-class engine detection + render confirmation.
+#
+# tplmap does NOT confirm SSTI with a lone {{7*7}}. It injects a fence RUN — {{<r1>}}<payload>{{<r2>}}
+# — where r1/r2 are fresh random integers wrapped in the same engine's render tag, and confirms ONLY
+# if the engine stripped the delimiters around r1/r2 AND rendered the payload to the exact product,
+# using engine-specific render shapes (Twig `|nl2br`, Mako `print()`, JS `typeof(x)+y`) so it can tell
+# which engine fired. The shipped single-fence rule (45-ssti-numeric) matches only the FIRST fence of
+# such a probe and emits r1 alone, so tplmap's render check fails. This rule captures the whole run and
+# renders every fence, so the confirmation fires.
+#
+# INERT BY CONSTRUCTION. Each fence's inner is reduced to arithmetic and evaluated by the SAME safe
+# engine as 45 (Support\SafeArithmetic — a hand-written integer parser, NEVER eval / a template engine
+# / a callback; the inner is byte-whitelisted to digits + - * / % ( ) space tab, integer-only,
+# length/overflow-capped). The fence + shape recognisers are CODE-authored regexes over a closed engine
+# enum — no attacker byte ever becomes a regex or an eval input. The surface walker FAILS CLOSED: any
+# byte that is neither a recognised fence nor a [ \t] gap declines the whole render. Output is ALWAYS
+# pure digits (+ the fixed word `number` from the JS typeof shape); ONLY the computed render is
+# reflected ({{match.rendered}}), NEVER the raw capture. So an out-of-grammar payload
+# ({{config.items()}}, {{''.__class__}}, ${T(java.lang.Runtime)}, a <script> between fences), div/mod by
+# zero, overflow, or an oversized surface all decline to the inert base page below — never a 500, never
+# an attacker byte reflected. Same safety class as the ungated sibling 45: no reflects_input, no
+# isolated origin needed.
+#
+# Priority 43 sorts ahead of 44-ssti-twig / 45-ssti-numeric, but the match gate requires >= 2 fences
+# (the tplmap header/trailer shape), so a lone {{7*7}} does NOT match here and falls through to 44/45
+# exactly as before. Operators can opt out via Config::$exclude / $ignoreTemplates (no code cost).
+#
+# NON-goal (do not "harden" this into unconfirmability): the render MUST stay reproducible — tplmap
+# confirms only on a deterministic r1·product·r2. This is the opposite of the FP-0232 volatile-proof
+# (that mints a non-reproducible token to defeat a Tier-H reproducible-proof gate); that belongs on 47,
+# not here.
+#
+# NOTE (acceptance): SafeArithmetic bounds every operand to int32 (2147483647), so a fence whose random
+# header/trailer exceeds that declines. tplmap probes using >int32 randoms will not confirm — see the
+# implementation PR's Open Q #1 note.
+match:
+  - in: request
+    regex: '(?P<surface>(?:\$\{\{|\{\{|\$\{|<%=|\#\{)[0-9A-Za-z_.+\-*/%()|''" \t]{0,80}(?:\}\}|%>|\})(?:[ \t]{0,8}(?:\$\{\{|\{\{|\$\{|<%=|\#\{)[0-9A-Za-z_.+\-*/%()|''" \t]{0,80}(?:\}\}|%>|\})){1,31})'
+status: 200
+behavior: ssti-render
+ssti-render:
+  surface: surface
+  bind: rendered
+  engines: [jinja2, twig, freemarker, erb, javascript, mako]
+  max_len: 256
+  max_operand: 2147483647
+  response:
+    headers:
+      Content-Type: "text/html; charset=utf-8"
+    body: "{{match.rendered}}\n"
+# Base response: served on any decline (out-of-grammar fence, div/mod by zero, overflow, oversized, or a
+# byte that is neither a fence nor a [ \t] gap). A plausible inert page with no reflected input — never
+# a 500.
+response:
+  headers:
+    Content-Type: "text/html; charset=utf-8"
+  body: "<!doctype html><html><head><title>Home</title></head><body>\n<p>Welcome.</p>\n</body></html>\n"
