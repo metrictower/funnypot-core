@@ -48,6 +48,33 @@ final class ReflectingDecoyGateTest extends TestCase
         return Honeypot::default($config);
     }
 
+    /**
+     * As honeypot(), but also sets the per-class serve override map (Config::$reflectClasses).
+     * Set as the public property for the same positional-arg reason as $isolatedOrigin.
+     *
+     * @param array<string,bool> $reflectClasses
+     */
+    private function honeypotWithClasses(bool $isolatedOrigin, array $reflectClasses): Honeypot
+    {
+        $config = new Config(
+            'respond',                                                  // mode
+            static function (RequestContext $r): bool { return true; }, // gate
+            'matched-only',                                             // pathScope
+            null,                                                       // personaSeed
+            'coherent',                                                 // personaBreadth
+            Style::MINIMAL,                                             // responseStyle
+            'high',                                                     // severityCeiling
+            65536,                                                      // maxBodyBytes
+            0,                                                          // latencyMs
+            0,                                                          // latencyJitterMs
+            true                                                        // attackEmulation
+        );
+        $config->isolatedOrigin = $isolatedOrigin;
+        $config->reflectClasses = $reflectClasses;
+
+        return Honeypot::default($config);
+    }
+
     private static function xssRequest(): RequestContext
     {
         return new RequestContext('GET', '/nope', 'q=<script>alert(document.domain)</script>');
@@ -169,5 +196,159 @@ final class ReflectingDecoyGateTest extends TestCase
 
         self::assertSame(2, substr_count($attackSrc, 'reflects_input'));
         self::assertSame(1, substr_count($paramSrc, 'reflects_input'));
+
+        // The explicit reflect_class tag rides alongside reflects_input, one per reflector.
+        self::assertSame(2, substr_count($attackSrc, 'reflect_class'));
+        self::assertSame(1, substr_count($paramSrc, 'reflect_class'));
+    }
+
+    public function test_reflecting_rules_carry_the_reflect_class(): void
+    {
+        $attack = TemplateAttackEmulator::fromFile(__DIR__ . '/../resources/compiled/funnypot-attack.php');
+
+        self::assertSame('xss', $attack->ruleById('attack-xss')['reflect_class']);
+        self::assertSame('open-redirect', $attack->ruleById('attack-open-redirect')['reflect_class']);
+        // The param tier carries the class too (ruleById resolves param entries).
+        self::assertSame('fs-read', $attack->ruleById('param-vite-fs')['reflect_class']);
+    }
+
+    // --- the per-class knob (Config::$reflectClasses): AND-composes with isolatedOrigin, subtract-only ---
+
+    /**
+     * THE FAIL-SAFE PROOF (AC 4). An embedded host (isolatedOrigin=false) NEVER reflects, even when
+     * every reflect class is explicitly enabled in the map. The isolatedOrigin term dominates the
+     * AND — the knob can only ever subtract, never re-enable reflection in a response-owning host.
+     */
+    public function test_embedded_never_reflects_regardless_of_class_knob(): void
+    {
+        $hp = $this->honeypotWithClasses(false, [
+            'xss' => true,
+            'open-redirect' => true,
+            'fs-read' => true,
+            'default' => true,
+        ]);
+
+        self::assertNull($hp->respond(self::xssRequest()));
+        self::assertNull($hp->respond(self::redirectRequest()));
+        self::assertNull($hp->respond(self::viteFsRequest()));
+    }
+
+    public function test_isolated_default_map_still_serves_all_three(): void
+    {
+        // Empty map + missing-key-⇒-enabled ⇒ byte-behaviour unchanged from today.
+        $hp = $this->honeypotWithClasses(true, []);
+
+        $xss = $hp->respond(self::xssRequest());
+        self::assertNotNull($xss);
+        self::assertStringContainsString('<script>alert(document.domain)</script>', $xss->body);
+
+        $redirect = $hp->respond(self::redirectRequest());
+        self::assertNotNull($redirect);
+        self::assertSame(302, $redirect->status);
+
+        $vite = $hp->respond(self::viteFsRequest());
+        self::assertNotNull($vite);
+        self::assertStringContainsString('/@fs/attacker/marker-ABC123', $vite->body);
+    }
+
+    public function test_isolated_can_disable_only_the_xss_class(): void
+    {
+        $hp = $this->honeypotWithClasses(true, ['xss' => false]);
+
+        // XSS withheld ...
+        self::assertNull($hp->respond(self::xssRequest()));
+
+        // ... while the other two classes still reflect (independence).
+        $redirect = $hp->respond(self::redirectRequest());
+        self::assertNotNull($redirect);
+        self::assertSame(302, $redirect->status);
+
+        $vite = $hp->respond(self::viteFsRequest());
+        self::assertNotNull($vite);
+        self::assertStringContainsString('/@fs/attacker/marker-ABC123', $vite->body);
+    }
+
+    public function test_isolated_can_disable_only_the_open_redirect_class(): void
+    {
+        $hp = $this->honeypotWithClasses(true, ['open-redirect' => false]);
+
+        self::assertNull($hp->respond(self::redirectRequest()));
+
+        $xss = $hp->respond(self::xssRequest());
+        self::assertNotNull($xss);
+        self::assertStringContainsString('<script>alert(document.domain)</script>', $xss->body);
+
+        $vite = $hp->respond(self::viteFsRequest());
+        self::assertNotNull($vite);
+        self::assertStringContainsString('/@fs/attacker/marker-ABC123', $vite->body);
+    }
+
+    public function test_isolated_can_disable_only_the_fs_read_class(): void
+    {
+        $hp = $this->honeypotWithClasses(true, ['fs-read' => false]);
+
+        self::assertNull($hp->respond(self::viteFsRequest()));
+
+        $xss = $hp->respond(self::xssRequest());
+        self::assertNotNull($xss);
+        self::assertStringContainsString('<script>alert(document.domain)</script>', $xss->body);
+
+        $redirect = $hp->respond(self::redirectRequest());
+        self::assertNotNull($redirect);
+        self::assertSame(302, $redirect->status);
+    }
+
+    // --- Config::serveReflector() pure logic: the four-row truth table of §2b ---
+
+    public function test_serve_reflector_and_composes_with_isolated_origin(): void
+    {
+        // [isolatedOrigin, class map, class asked, expected serveReflector]
+        $cases = [
+            // embedded — withheld even when the class map says true (fail-safe, AC 4)
+            [false, ['xss' => true], 'xss', false],
+            [false, [], 'xss', false],
+            // isolated, class absent ⇒ enabled (unchanged from today)
+            [true, [], 'xss', true],
+            // isolated, class explicitly true ⇒ enabled
+            [true, ['xss' => true], 'xss', true],
+            // isolated, class explicitly false ⇒ withheld (per-class opt-out)
+            [true, ['xss' => false], 'xss', false],
+        ];
+
+        foreach ($cases as $i => [$isolated, $map, $class, $expected]) {
+            $config = new Config();
+            $config->isolatedOrigin = $isolated;
+            $config->reflectClasses = $map;
+            self::assertSame(
+                $expected,
+                $config->serveReflector($class),
+                "serveReflector row {$i}"
+            );
+        }
+
+        // reflectClassEnabled is missing-key-⇒-true, independent of isolatedOrigin.
+        $c = new Config();
+        self::assertTrue($c->reflectClassEnabled('anything-unset'));
+        $c->reflectClasses = ['open-redirect' => false];
+        self::assertFalse($c->reflectClassEnabled('open-redirect'));
+        self::assertTrue($c->reflectClassEnabled('xss'));
+    }
+
+    // --- dalfox selectivity (verify-only, §3): raw markup reflects, plain sentinels do not ---
+
+    public function test_dalfox_plain_sentinel_is_not_reflected(): void
+    {
+        // dalfox probes reflect-everything hosts with fixed plain-alphanumeric sentinels. Ours does
+        // NOT match the markup-shaped XSS regex, so it is never reflected — the host does not present
+        // as a reflect-everything origin and dodges dalfox's EWMA collapse. Isolated origin so the
+        // gate itself is open; selectivity, not the gate, is what withholds the echo.
+        $hp = $this->honeypot(true);
+        $resp = $hp->respond(new RequestContext('GET', '/nope', 'q=dlfx_sentinel_q_8a3f'));
+
+        if ($resp !== null) {
+            self::assertStringNotContainsString('dlfx_sentinel_q_8a3f', $resp->body);
+        } else {
+            self::assertNull($resp);
+        }
     }
 }

@@ -188,6 +188,7 @@ DTOs (standard constructors, PHP 7.3+ compatible):
 | `exclude` | `[]` | template-id/tag deny list — never **SERVE** (respond path); detection unaffected |
 | `ignoreTemplates` | `[]` | template-id/tag list — never let **DRIVE a detection** (classify path); serving unaffected |
 | `isolatedOrigin` | `false` | fail-safe origin posture. `false` = embedded/inline — decoys tagged `reflects_input` (echo attacker bytes into an HTML body or a redirect `Location`) are **withheld from serving** (detection unaffected); `true` = standalone origin, keep the reflect/redirect bait |
+| `reflectClasses` | `[]` | per-reflect-class serve override, keyed by a rule's `reflect_class` (`xss` / `open-redirect` / `fs-read`); missing key ⇒ enabled. **AND-composes** with `isolatedOrigin` (`serveReflector = isolatedOrigin && (reflectClasses[class] ?? true)`) so it can only **subtract** — an isolated origin can turn one class off, but no value re-enables reflection on an embedded host |
 
 **`exclude` vs `ignoreTemplates` — two axes, never overloaded.** `exclude` silences a template on the
 **serving** side only (it drops from `respond()`); `ignoreTemplates` silences it on the **detection**

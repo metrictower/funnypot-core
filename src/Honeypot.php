@@ -1068,8 +1068,13 @@ final class Honeypot implements Engine
         // host it would be a live XSS/open-redirect in that host's real origin. classify() already
         // ran, so the detection/intel is captured — this only withholds the reflection. Covers both
         // the attack tier and the param tier: a matched param route rides an attack handle and
-        // ruleById() resolves param entries here too.
-        if (!$this->config->isolatedOrigin && !empty($rule['reflects_input'])) {
+        // ruleById() resolves param entries here too. serveReflector() AND-composes the global
+        // isolatedOrigin posture with the per-class knob (Config::$reflectClasses): the isolatedOrigin
+        // term dominates, so the knob can only ever subtract — an embedded host never reflects. A rule
+        // with no reflect_class falls back to 'default' (absent from the map ⇒ enabled), keeping any
+        // untagged reflector fail-safe under isolatedOrigin exactly as today.
+        if (!empty($rule['reflects_input'])
+            && !$this->config->serveReflector((string) ($rule['reflect_class'] ?? 'default'))) {
             return ['r' => null, 'reason' => Outcome::REFLECTION_SUPPRESSED];
         }
 

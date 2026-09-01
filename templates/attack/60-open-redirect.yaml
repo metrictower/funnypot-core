@@ -4,6 +4,7 @@ status: 302
 priority: 60
 tags: [attack, redirect, open-redirect]
 reflects_input: true
+reflect_class: open-redirect
 # A redirect-style param carrying an external URL. Location bounded-reflects it (decoded,
 # so an encoded CRLF becomes real CR/LF and is declined by the header-safety guard).
 # reflects_input: serves ONLY from an isolated-origin honeypot (Config::$isolatedOrigin=true);

@@ -165,6 +165,26 @@ change. A template joins this class by declaring `reflects_input: true` at its t
 and param compilers carry the flag into the compiled rule; the runtime reads it as data), so covering
 a future reflector is a one-line template edit with no engine change.
 
+Each reflector also declares an explicit **reflect class** — `reflect_class: xss` (reflected-XSS),
+`open-redirect`, or `fs-read` (the Vite `/@fs/` path echo). `Config::$reflectClasses` is a per-class
+override map (`array<string, bool>`, default `[]`) that lets an **isolated-origin** honeypot turn a
+single class off without disabling the others:
+
+```php
+$funnypot = Honeypot::default(new Config(
+    mode: 'respond',
+    attackEmulation: true,
+    isolatedOrigin: true,                    // this box owns its origin
+    reflectClasses: ['xss' => false],        // ... but keep reflected-XSS bait off
+));
+```
+
+A **missing** key defaults to enabled, so the default `[]` reflects every class exactly as before.
+The map **AND-composes** with `isolatedOrigin` (`serveReflector(class) = isolatedOrigin && (reflectClasses[class] ?? true)`)
+and can therefore only ever **subtract**: setting a class to `true` on an embedded host
+(`isolatedOrigin=false`) does **not** re-enable it — the `isolatedOrigin` term dominates, so an
+embedded host never reflects, whatever the map says. The fail-safe default is preserved.
+
 ### Using Laravel?
 
 Use **[funnypot-laravel](https://github.com/metrictower/funnypot-laravel)**

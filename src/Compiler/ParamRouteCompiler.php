@@ -148,6 +148,12 @@ final class ParamRouteCompiler
             $entry['reflects_input'] = true;
         }
 
+        // The reflection class (Config::$reflectClasses knob key). Carried alongside reflects_input
+        // so the per-class serve gate (Config::serveReflector) can target this entry specifically.
+        if (isset($doc['reflect_class'])) {
+            $entry['reflect_class'] = (string) $doc['reflect_class'];
+        }
+
         // An optional named behavior primitive, same shape the attack tier renders. The base
         // `response` stays the ultimate fallback; this build knows `branch` and `traversal-read`.
         if (isset($doc['behavior'])) {

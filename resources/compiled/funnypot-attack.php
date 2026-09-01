@@ -3187,6 +3187,7 @@ reference below.</p>
       'body' => '<html><head><title>302 Found</title></head><body>Redirecting...</body></html>',
     ),
     'reflects_input' => true,
+    'reflect_class' => 'open-redirect',
   ),
   46 => 
   array (
@@ -3219,6 +3220,7 @@ reference below.</p>
 ',
     ),
     'reflects_input' => true,
+    'reflect_class' => 'xss',
   ),
   47 => 
   array (

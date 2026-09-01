@@ -3,6 +3,7 @@ severity: medium
 priority: 65
 tags: [attack, xss]
 reflects_input: true
+reflect_class: xss
 # Reflected XSS: the one rule that echoes attacker bytes — the bounded exception to
 # "never reflect input". ONLY the matched payload ({{match.0}}) is reflected, into a fixed
 # page; nothing else from the request, nothing stored. dotall so <script>.*?</script> spans

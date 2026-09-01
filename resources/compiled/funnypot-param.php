@@ -37,6 +37,7 @@ return array (
 ',
         ),
         'reflects_input' => true,
+        'reflect_class' => 'fs-read',
         'behavior' => 'traversal-read',
         'traversal-read' => 
         array (

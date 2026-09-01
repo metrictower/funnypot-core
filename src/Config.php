@@ -164,6 +164,17 @@ final class Config
      */
     public $volatileProof;
 
+    /**
+     * @var array<string,bool> per-reflect-class serve override. Keyed by a rule's reflect_class
+     * ('xss', 'open-redirect', 'fs-read'). A MISSING key defaults to ENABLED, so a standalone
+     * isolatedOrigin=true install reflects every class exactly as it does today. Set a class to
+     * false to WITHHOLD that class even from an isolated origin. This map can ONLY subtract: it is
+     * AND-ed with isolatedOrigin (see serveReflector()), so it can never re-enable reflection in an
+     * embedded host — isolatedOrigin=false ⇒ every class stays suppressed regardless of this map.
+     * Fail-safe.
+     */
+    public $reflectClasses;
+
     public function __construct(
         string $mode = 'detect',
         ?Closure $gate = null,
@@ -191,7 +202,8 @@ final class Config
         bool $isolatedOrigin = false,
         bool $promptInjectionSeeding = false,
         ?string $beaconUrl = null,
-        bool $volatileProof = false
+        bool $volatileProof = false,
+        array $reflectClasses = []
     ) {
         $this->mode = $mode;
         $this->gate = $gate;
@@ -220,6 +232,7 @@ final class Config
         $this->promptInjectionSeeding = $promptInjectionSeeding;
         $this->beaconUrl = $beaconUrl;
         $this->volatileProof = $volatileProof;
+        $this->reflectClasses = $reflectClasses;
     }
 
     public function respondEnabled(): bool
@@ -243,6 +256,22 @@ final class Config
     public function killSwitchTripped(): bool
     {
         return $this->killSwitch !== null && ($this->killSwitch)() === true;
+    }
+
+    /** Per-class enable flag. Missing key ⇒ enabled (preserves today's isolated-origin behavior). */
+    public function reflectClassEnabled(string $class): bool
+    {
+        return $this->reflectClasses[$class] ?? true;
+    }
+
+    /**
+     * The single reflection decision. Reflection serves ONLY from an isolated origin AND when the
+     * class is not disabled. The isolatedOrigin term is first and dominates: an embedded host
+     * (false) never reflects, whatever the class map says — the knob can only ever subtract.
+     */
+    public function serveReflector(string $class): bool
+    {
+        return $this->isolatedOrigin && $this->reflectClassEnabled($class);
     }
 
     public function isTrusted(RequestContext $r): bool

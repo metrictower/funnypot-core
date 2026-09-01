@@ -138,6 +138,12 @@ final class EmulatorCompiler
             $rule['reflects_input'] = true;
         }
 
+        // The reflection class (Config::$reflectClasses knob key). Carried alongside reflects_input
+        // so the per-class serve gate (Config::serveReflector) can target this rule specifically.
+        if (isset($doc['reflect_class'])) {
+            $rule['reflect_class'] = (string) $doc['reflect_class'];
+        }
+
         // Cheap literal pre-filter hint for the runtime: a substring that must be present in a
         // named surface for this rule to have any chance of matching. Only emitted when it is
         // provably required (see requiredLiteral); rules without one keep the always-evaluate

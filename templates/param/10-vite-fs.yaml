@@ -4,6 +4,7 @@ priority: 10
 status: 404
 tags: [param, vite, lfi]
 reflects_input: true
+reflect_class: fs-read
 # reflects_input: the base `response` echoes the raw attacker path ({{match.path}}) into the body;
 # its {path*} capture compiles to an unbounded `.+`, so the only inline guard is the text/plain
 # Content-Type, which a re-wrapping host can drop. Serves ONLY from an isolated-origin honeypot
