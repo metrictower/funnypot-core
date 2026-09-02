@@ -13,6 +13,14 @@ use Psr\Http\Message\ServerRequestInterface;
  */
 final class PsrRequestMapper
 {
+    /**
+     * Hard cap on the request body we buffer into RequestContext::$rawBody — the SAME value the
+     * plain-PHP path uses (RequestContext::fromGlobals, php://input read at 65536). An uncapped
+     * getContents() on a multi-GB POST would OOM the host worker; this bounds it and makes the two
+     * adapters agree byte-for-byte on rawBody for oversized bodies.
+     */
+    private const MAX_BODY_BYTES = 65536;
+
     public static function map(ServerRequestInterface $request): RequestContext
     {
         $uri = $request->getUri();
@@ -40,6 +48,12 @@ final class PsrRequestMapper
      * Peek at the body without disturbing it for the downstream handler: only
      * read a stream that can be rewound, and always leave it back at position 0
      * so a miss still lets $handler->handle($request) read the body itself.
+     *
+     * Capped at MAX_BODY_BYTES so a huge body can never OOM the host — the read loop stops at the
+     * cap, and PSR-7 read($n) may return short reads so a single read(65536) is not enough. The
+     * whole read is throw-safe: a stream that lies about isSeekable()/throws on rewind() degrades to
+     * "no body captured" (null) rather than escaping as a host 500 (same fail-safe family as Fix C).
+     * The rewind is best-effort in a finally so the downstream handler still sees the body at 0.
      */
     private static function readBody(ServerRequestInterface $request): ?string
     {
@@ -48,10 +62,29 @@ final class PsrRequestMapper
             return null;
         }
 
-        $stream->rewind();
-        $body = $stream->getContents();
-        $stream->rewind();
+        try {
+            $stream->rewind();
 
-        return $body;
+            $body = '';
+            while (strlen($body) < self::MAX_BODY_BYTES && !$stream->eof()) {
+                $chunk = $stream->read(self::MAX_BODY_BYTES - strlen($body));
+                if ($chunk === '') {
+                    // A stream that returns '' without flipping eof() — stop rather than spin.
+                    break;
+                }
+                $body .= $chunk;
+            }
+
+            return $body;
+        } catch (\Throwable $e) {
+            return null;
+        } finally {
+            try {
+                $stream->rewind();
+            } catch (\Throwable $e) {
+                // Best-effort: a stream that cannot rewind is the downstream handler's problem to
+                // detect, but the mapper must not throw on the way out.
+            }
+        }
     }
 }
