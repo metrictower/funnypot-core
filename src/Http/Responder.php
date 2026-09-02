@@ -15,6 +15,13 @@ use Funnypot\Core\SynthesizedResponse;
  */
 final class Responder
 {
+    /**
+     * FP-0252: the optional tarpit delay is carried on the returned SynthesizedResponse as
+     * $delayMicros (the core no longer sleeps). A caller with its own transport is responsible for
+     * applying it — sleep for $delayMicros before writing, or (for an async host) schedule a
+     * non-blocking timer. Ignoring it is fail-safe: it can only make the host respond FASTER, never
+     * block it. The shipped ResponseEmitter / HoneypotMiddleware apply it for you.
+     */
     public static function forRequest(Engine $inv, RequestContext $r): ?SynthesizedResponse
     {
         return $inv->respond($r);

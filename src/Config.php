@@ -27,7 +27,8 @@ final class Config
      * @param string        $responseStyle   minimal | realistic | taunt (see Response\Style)
      * @param string        $severityCeiling refuse to fabricate anything stronger than this
      * @param int           $maxBodyBytes    hard cap; a larger synthesized body is refused
-     * @param int           $latencyMs       optional tarpit delay applied by the emitter, never the core
+     * @param int           $latencyMs       optional tarpit delay carried as SynthesizedResponse::$delayMicros
+     *                                        and applied by the emitter/adapter, never by the core
      * @param Closure|null  $trustedBypass   fn(RequestContext):bool — own scanners; true ⇒ never serve fakes
      * @param Closure|null  $killSwitch      fn():bool — true ⇒ respond disabled (un-poison)
      * @param Closure|null  $probeSignature  fn(RequestContext):bool — root/homepage (sig=1) fires ONLY when true; null ⇒ never
@@ -73,7 +74,7 @@ final class Config
     /** @var int hard cap; a larger synthesized body is refused */
     public $maxBodyBytes;
 
-    /** @var int optional tarpit delay applied by the emitter, never the core */
+    /** @var int optional tarpit delay carried as SynthesizedResponse::$delayMicros and applied by the emitter/adapter, never the core */
     public $latencyMs;
 
     /** @var int random jitter (ms) added to the base delay so replies aren't uniform */
@@ -245,8 +246,11 @@ final class Config
     /**
      * Microseconds to pause before serving a fake — a base delay plus RANDOM jitter (not
      * seeded, so re-scans vary) so responses aren't the instant, uniform sub-millisecond
-     * replies that fingerprint a honeypot. 0 by default. Under php-fpm keep the worker
-     * pool sized for the delay; never large enough to exhaust it.
+     * replies that fingerprint a honeypot. 0 by default. The core never sleeps: this value is
+     * carried on the served SynthesizedResponse as $delayMicros and applied by the emitter/adapter
+     * at the transport edge (the shipped ResponseEmitter / HoneypotMiddleware; an async host can
+     * turn it into a non-blocking timer), so a configured latency can never block the host worker
+     * pool. The determinism invariant covers served bytes, not this timing.
      */
     public function serveDelayMicros(): int
     {

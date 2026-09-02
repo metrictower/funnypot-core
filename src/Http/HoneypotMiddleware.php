@@ -54,6 +54,13 @@ final class HoneypotMiddleware implements MiddlewareInterface
             return $handler->handle($request);
         }
 
+        // FP-0252: apply the tarpit delay at the transport edge (core no longer sleeps inside the
+        // host worker). PSR hosts that configured latencyMs keep their tarpit; an async host would
+        // write its own thin middleware turning delayMicros into a non-blocking timer instead.
+        if ($synthesized->delayMicros > 0) {
+            usleep($synthesized->delayMicros);
+        }
+
         return PsrResponseMapper::map($synthesized, $this->responseFactory, $this->streamFactory);
     }
 }

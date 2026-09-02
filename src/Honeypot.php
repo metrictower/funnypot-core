@@ -927,7 +927,10 @@ final class Honeypot implements Engine
         // SynthesizedResponse::$servedBy).
         $built['r']->servedBy = $handle;
 
-        $this->serveDelay();
+        // FP-0252: carry the tarpit delay as metadata for the emitter/adapter to apply at the
+        // transport edge — core no longer sleeps inside the host worker. Computed here so jitter is
+        // still drawn per served response; inert (never serialized into served bytes).
+        $built['r']->delayMicros = $this->config->serveDelayMicros();
         $this->safeOnOutcome($r, $built['r'], Outcome::SERVED);
 
         return $built['r'];
@@ -951,7 +954,8 @@ final class Honeypot implements Engine
         // SynthesizedResponse::$servedBy).
         $built['r']->servedBy = $verdict->fakeHandle;
 
-        $this->serveDelay();
+        // FP-0252: tarpit delay as metadata (see respond()); the in-core usleep is gone.
+        $built['r']->delayMicros = $this->config->serveDelayMicros();
         $this->safeOnOutcome($r, $built['r'], Outcome::SERVED);
 
         return $built['r'];
@@ -1014,15 +1018,6 @@ final class Honeypot implements Engine
             $this->observer->onOutcome($r, $response, $reason);
         } catch (\Throwable $e) {
             // Swallow: the outcome signal is best-effort; a throw here must not escape core.
-        }
-    }
-
-    /** Pause (base + random jitter) so replies aren't instant/uniform. No-op when latency is 0. */
-    private function serveDelay(): void
-    {
-        $delay = $this->config->serveDelayMicros();
-        if ($delay > 0) {
-            usleep($delay);
         }
     }
 

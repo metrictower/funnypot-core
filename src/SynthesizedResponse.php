@@ -33,6 +33,18 @@ final class SynthesizedResponse
      */
     public $servedBy;
 
+    /**
+     * Microseconds an emitter/adapter should pause before writing this response — the optional
+     * tarpit delay, carried as metadata so it is applied at the transport edge, never by the core
+     * (an in-core usleep blocks the host worker pool). INTERNAL ONLY, exactly like $servedBy: never
+     * serialized into served bytes (ResponseEmitter writes only $headers + $body), so it is
+     * fingerprint-inert by construction. 0 on the position-blind synthesize() port and by default;
+     * set only by the respond() facade from Config::serveDelayMicros().
+     *
+     * @var int
+     */
+    public $delayMicros = 0;
+
     /** @param array<string,string> $headers */
     public function __construct(
         int $status,

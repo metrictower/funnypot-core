@@ -15,6 +15,12 @@ final class ResponseEmitter
 {
     public static function emit(SynthesizedResponse $response): void
     {
+        // FP-0252: the tarpit delay now lives at the transport edge (it was an in-core usleep that
+        // blocked the host worker pool). The plain-PHP host path keeps today's wall-clock behavior.
+        if ($response->delayMicros > 0) {
+            usleep($response->delayMicros);
+        }
+
         http_response_code($response->status);
 
         foreach ($response->headers as $name => $value) {
