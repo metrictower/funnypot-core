@@ -16,6 +16,6 @@ match:
 response:
   headers:
     Content-Type: 'text/plain; charset=utf-8'
-  body: '{{canned.passwd}}'
+  body: "Warning: failed to open stream: No such file or directory\n"
 expect:
-  - 'root:x:0:0'
+  - 'No such file or directory'
