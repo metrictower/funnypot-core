@@ -136,7 +136,9 @@ final class PhpMyAdminAuthedDashboardTest extends TestCase
 
     public function test_secrets_table_renders_flag_tokens(): void
     {
-        $r = $this->authedGet($this->emulator([$this->gateRule()]), 'table=secrets');
+        // Drive the SHIPPED decoy row count (attack rule 102 authors rows: 8) so this fixture can no
+        // longer pass while production duplicates labels at 8 rows.
+        $r = $this->authedGet($this->emulator([$this->gateRule('example.test', 8)]), 'table=secrets');
 
         self::assertNotNull($r);
         // The secrets grid's own columns prove the selection took.
@@ -147,6 +149,12 @@ final class PhpMyAdminAuthedDashboardTest extends TestCase
         self::assertStringContainsString('FLAG.{', $r->body);
         self::assertStringContainsString('}.GALF', $r->body);
         self::assertMatchesRegularExpression('/FLAG\.\{[0-9a-f]{40}\}\.GALF/', $r->body);
+
+        // No label repeats in the rendered table — every `name` cell is distinct, so there is never
+        // a second, contradictory value for the same label (e.g. two different ctf_flag values).
+        foreach (['ctf_flag', 'root_flag', 'service_flag', 'admin_token', 'backup_token', 'db_password', 'signing_key', 'api_secret'] as $label) {
+            self::assertLessThanOrEqual(1, substr_count($r->body, '<td>' . $label . '</td>'), $label . ' must appear at most once');
+        }
     }
 
     public function test_flag_absent_pre_auth(): void

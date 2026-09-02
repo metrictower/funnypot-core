@@ -30,10 +30,15 @@ final class FakeRecords
     private const STATUSES = ['pending', 'paid', 'shipped', 'refunded', 'cancelled'];
 
     /** Plausible labels for the `secrets` table's `name` column — all pure letters/underscore, so
-     *  they can never contribute a digit run to the fingerprint denylist. A `*_flag` label carries a
-     *  CTF-sentinel flag value; a `*_token` label carries a plain 40-hex token, so the value column's
-     *  shape agrees with its own name (a flag row shows a flag, a token row shows a token). */
-    private const SECRET_LABELS = ['ctf_flag', 'root_flag', 'service_flag', 'admin_token', 'backup_token'];
+     *  they can never contribute a digit run to the fingerprint denylist. There are at least as many
+     *  DISTINCT labels here as the shipped decoy row count (attack rule 102 authors rows: 8), so an
+     *  8-row render never has to repeat a label. Each label's value shape agrees with its own name
+     *  (see secretValue): a `*_flag` row shows a flag, a password a bcrypt hash, an `api_*` an AWS-key
+     *  shape, and every other token/key a plain 40-hex token. */
+    private const SECRET_LABELS = [
+        'ctf_flag', 'root_flag', 'service_flag', 'admin_token', 'backup_token',
+        'db_password', 'signing_key', 'api_secret',
+    ];
 
     private function __construct()
     {
@@ -147,23 +152,43 @@ final class FakeRecords
     public static function secrets(int $seed, string $key, int $n): array
     {
         $labels = self::permutedLabels($seed, $key);
-        $count = count($labels);
+        // Clamp to the distinct-label count so `name` is UNIQUE for every rendered row regardless of
+        // the authored row count (production ships rows: 8): a secrets table never shows two rows with
+        // the same label, and so never two different values for one `ctf_flag`. Robust for any n.
+        $n = min($n, count($labels));
 
         $rows = [];
         for ($i = 0; $i < $n; $i++) {
             $rowKey = $key . '#' . $i;
-            $label = $labels[$i % $count];
-            $value = substr($label, -5) === '_flag'
-                ? FakeSecrets::flag($seed, $rowKey)
-                : FakeSecrets::resetToken($seed, $rowKey);
+            $label = $labels[$i];
             $rows[] = [
                 self::id($seed, $rowKey . '|id'),
                 $label,
-                $value,
+                self::secretValue($seed, $rowKey, $label),
             ];
         }
 
         return $rows;
+    }
+
+    /**
+     * The `value` cell shaped to agree with its own label — mirroring how apiKeys alternates its
+     * secret shape per row. Every branch returns a proven-inert FakeSecrets value that authenticates
+     * nowhere and carries no denylisted fingerprint token.
+     */
+    private static function secretValue(int $seed, string $rowKey, string $label): string
+    {
+        if (substr($label, -5) === '_flag') {
+            return FakeSecrets::flag($seed, $rowKey);
+        }
+        if (strpos($label, 'password') !== false) {
+            return FakeSecrets::bcryptHash($seed, $rowKey);
+        }
+        if (strpos($label, 'api') !== false) {
+            return FakeSecrets::apiKey($seed, $rowKey);
+        }
+
+        return FakeSecrets::resetToken($seed, $rowKey);
     }
 
     /**

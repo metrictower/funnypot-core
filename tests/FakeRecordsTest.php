@@ -117,30 +117,56 @@ final class FakeRecordsTest extends TestCase
         }
     }
 
-    public function test_secrets_is_deterministic_and_shaped(): void
+    /** Pinned at the SHIPPED decoy row count (attack rule 102 authors rows: 8), so the test can no
+     *  longer pass on a smaller fixture while production duplicates labels. */
+    public function test_secrets_is_deterministic_unique_and_shaped_at_shipped_row_count(): void
     {
-        $rows = FakeRecords::secrets(7, 'secrets', 5);
-        self::assertSame($rows, FakeRecords::secrets(7, 'secrets', 5));
-        self::assertCount(5, $rows);
+        $rows = FakeRecords::secrets(7, 'secrets', 8);
+        self::assertSame($rows, FakeRecords::secrets(7, 'secrets', 8));
+        self::assertCount(8, $rows);
 
-        $labels = ['ctf_flag', 'root_flag', 'service_flag', 'admin_token', 'backup_token'];
         $names = [];
         foreach ($rows as $row) {
             self::assertCount(3, $row);
             [$id, $name, $value] = $row;
             self::assertMatchesRegularExpression('/^\d{5}$/', $id);
-            self::assertContains($name, $labels);
             $names[] = $name;
-            // The value's shape agrees with its own label: a *_flag row carries a flag, a *_token
-            // row a plain 40-hex token.
-            if (substr($name, -5) === '_flag') {
-                self::assertMatchesRegularExpression('/^FLAG\.\{[0-9a-f]{40}\}\.GALF$/', $value);
-            } else {
-                self::assertMatchesRegularExpression('/^[0-9a-f]{40}$/', $value);
-            }
+            self::assertMatchesRegularExpression(self::secretValuePattern($name), $value, "value shape for {$name}");
         }
-        // Labels are unique across the table (a per-(seed,key) permutation, not independent draws).
-        self::assertSame($names, array_values(array_unique($names)), 'secret labels must be unique per render');
+        // Every label is distinct across the 8-row table — no two rows share a `name` (and so never
+        // two different values for one `ctf_flag`).
+        self::assertSame(count($names), count(array_unique($names)), 'secret labels must be unique per render');
+    }
+
+    /** The row count is clamped to the distinct-label count, so a render beyond it (or the shipped
+     *  rows: 8) never repeats a label — robust for any n >= count(labels). */
+    public function test_secrets_row_count_is_clamped_to_the_label_count(): void
+    {
+        $rows = FakeRecords::secrets(42, 'secrets', 25);
+        $names = array_map(static function (array $r): string {
+            return $r[1];
+        }, $rows);
+        self::assertSame(count($names), count(array_unique($names)), 'no duplicate label even when n exceeds the label count');
+        // Exactly one ctf_flag (the reviewer's seed-42 duplicate-flag regression).
+        self::assertLessThanOrEqual(1, count(array_filter($names, static function (string $n): bool {
+            return $n === 'ctf_flag';
+        })), 'a table must never carry two different ctf_flag values');
+    }
+
+    /** The regex a secrets `value` must match given its label — flag / bcrypt / AWS-key / 40-hex. */
+    private static function secretValuePattern(string $label): string
+    {
+        if (substr($label, -5) === '_flag') {
+            return '/^FLAG\.\{[0-9a-f]{40}\}\.GALF$/';
+        }
+        if (strpos($label, 'password') !== false) {
+            return '/^\$2y\$10\$[A-Za-z0-9]{53}$/';
+        }
+        if (strpos($label, 'api') !== false) {
+            return '/^AKIA[A-Z0-9]{16}$/';
+        }
+
+        return '/^[0-9a-f]{40}$/';
     }
 
     public function test_secrets_differs_across_seeds_and_keys(): void
