@@ -2,6 +2,11 @@ id: attack-phpcgi-1823
 severity: high
 priority: 8
 tags: [attack, php-cgi, source-disclosure, cve-2012-1823]
+# The one reflected capture ({{match.1}}) is the requested .php script name, whose capture class is
+# `[\w.-]{1,64}\.php` — it excludes <>&"', so reflecting it into this text/html body cannot inject
+# markup. Asserted (compile-time only) so the HTML-reflection lint passes without gating this
+# emulation off (which a retroactive `reflects_input: true` would do).
+html_safe_captures: true
 # php-cgi argument injection: GET /index.php?-s makes php-cgi print the highlighted source.
 # The query string is a bare option (-s source, -d define, -w strip). We return fake
 # highlighted PHP source carrying the tell-tale highlight spans + a juicy fake credential.

@@ -2,6 +2,11 @@ id: attack-ssti-multifence
 severity: high
 priority: 43
 tags: [attack, ssti]
+# The reflected value ({{match.rendered}}) is NOT a raw capture: ssti-render binds a render that is
+# ALWAYS pure digits (+ the fixed word `number` from the JS typeof shape + preserved [ \t] gaps) — no
+# non-digit byte can reach it — so it is provably free of <>&"'. Asserted (compile-time only) so the
+# HTML-reflection lint passes; `reflects_input: true` would wrongly isolated-origin-gate this off.
+html_safe_captures: true
 # Multi-fence SSTI decoy, for tplmap-class engine detection + render confirmation.
 #
 # tplmap does NOT confirm SSTI with a lone {{7*7}}. It injects a fence RUN — {{<r1>}}<payload>{{<r2>}}

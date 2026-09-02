@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Funnypot\Core\Response;
 
+use Funnypot\Core\Support\SeededIndex;
+
 /**
  * Shared helpers for endpoint emulators: matcher-token access, deterministic fake
  * values, the taunt banner, and a guarantee that every required token ends up in the
@@ -64,7 +66,7 @@ abstract class AbstractEmulator implements EndpointEmulator
             return '';
         }
 
-        return $options[crc32($seed . '|' . $salt) % count($options)];
+        return $options[SeededIndex::pick($seed . '|' . $salt, count($options))];
     }
 
     /**

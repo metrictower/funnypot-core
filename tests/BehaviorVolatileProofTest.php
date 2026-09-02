@@ -148,6 +148,10 @@ final class BehaviorVolatileProofTest extends TestCase
             '{{volatile.errref:hexupper:16}}' => '/^[0-9A-F]{16}$/',
             '{{volatile.errref:b64:22}}' => '#^[A-Za-z0-9+/]{22}$#',
             '{{volatile.errref:b64url:22}}' => '/^[A-Za-z0-9_-]{22}$/',
+            // Beyond one 32-byte read: the armed path must chain fresh entropy and honor N (parity
+            // with the fake.NAME b64/b64url cap), not silently truncate at 44/43.
+            '{{volatile.errref:b64:64}}' => '#^[A-Za-z0-9+/]{64}$#',
+            '{{volatile.errref:b64url:100}}' => '/^[A-Za-z0-9_-]{100}$/',
             '{{volatile.errref:dec:16}}' => '/^[1-9][0-9]{15}$/',
         ] as $directive => $shape) {
             $em = $this->emulator($this->rule($directive), true);

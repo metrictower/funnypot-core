@@ -2,6 +2,11 @@ id: attack-ssti-numeric
 severity: high
 priority: 45
 tags: [attack, ssti]
+# The reflected value ({{match.result}}) is NOT a raw capture: expr-eval binds the integer result of
+# a hand-written arithmetic parser (Support\SafeArithmetic), so the reflected bytes are always pure
+# digits — provably free of <>&"'. Asserted (compile-time only) so the HTML-reflection lint passes;
+# `reflects_input: true` would be wrong here (it would isolated-origin-gate this ungated decoy off).
+html_safe_captures: true
 # SSTI arithmetic decoy. A template-injection probe carries an arithmetic expression inside a
 # template marker ({{7*7}}, ${7*7}, #{7*7}, <%= 7*7 %>, {7*7}, ${{7*7}}); a real vulnerable engine
 # renders it, so echoing the LITERAL payload tells the hunter SSTI did not fire and they move on.

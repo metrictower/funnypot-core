@@ -9,6 +9,7 @@ use Funnypot\Core\Response\InjectionPayloads;
 use Funnypot\Core\Support\Fake\FakePeople;
 use Funnypot\Core\Support\Fake\FakeSecrets;
 use Funnypot\Core\Support\PersonaIdentity;
+use Funnypot\Core\Support\SeededIndex;
 
 /**
  * Fills the bounded `{{...}}` directives in a template body/header value. This is the ONLY
@@ -30,9 +31,18 @@ use Funnypot\Core\Support\PersonaIdentity;
  *   {{match.N}} / {{match.NAME}}     regex capture group (numeric or named) — BOUNDED reflection of the
  *                                    matched attacker bytes (header values are CR/LF-checked by callers)
  *   {{urldecode:match.N}}            percent-decoded capture
+ *   {{xml:match.N}}                  XML-escaped capture (ENT_XML1) — render-layer backstop for XML bodies
+ *   {{html:match.N}}                 HTML-escaped capture (ENT_HTML5) — render-layer backstop for HTML bodies;
+ *                                    both only ever NARROW reflected bytes, never a new sink
  *   {{compute.md5:OPERAND}}          md5/crc32 of an operand (a capture, urldecode:capture, or literal)
  *   {{compute.crc32:OPERAND}}
- *   {{pick:a,b,c}}                   seeded choice from a comma list
+ *   {{pick:a,b,c}}                   seeded choice from a comma list (keyed on the whole list, so two
+ *                                    picks over an identical list always agree)
+ *   {{pick:KEY:a,b,c}}               seeded choice keyed on KEY instead of the list — two picks with the
+ *                                    same KEY agree, different KEYs over one list de-correlate. KEY is the
+ *                                    text up to the first ':' that precedes the first ','; a list whose
+ *                                    first element carries no such ':' parses exactly as the un-keyed form
+ *                                    (byte-identical for every existing template).
  *   {{canary.KEY}}                   operator-supplied tripwire token
  *   {{persona.PATH}}                 one coherent fake identity for the seed (company, db, admin,
  *                                    cloud) — PATH is a CLOSED field set (Support\PersonaIdentity);
@@ -58,7 +68,7 @@ final class DirectiveRenderer
     ];
 
     /** The closed directive prefixes — used by the compile-time lint. */
-    public const KNOWN_PREFIXES = ['canned.', 'fake.', 'volatile.', 'misdirect', 'fakeHex:', 'hex:', 'match.', 'urldecode:match.', 'xml:match.', 'compute.md5:', 'compute.crc32:', 'pick:', 'canary.', 'persona.'];
+    public const KNOWN_PREFIXES = ['canned.', 'fake.', 'volatile.', 'misdirect', 'fakeHex:', 'hex:', 'match.', 'urldecode:match.', 'xml:match.', 'html:match.', 'compute.md5:', 'compute.crc32:', 'pick:', 'canary.', 'persona.'];
 
     /** The closed set of valid fake.person.* sub-fields — used by the compile-time lint (mirrors
      *  PersonaIdentity::FIELDS' role for persona.*; unlike a plain fake.NAME, this sub-field is
@@ -178,7 +188,7 @@ final class DirectiveRenderer
             }
             $corpus = InjectionPayloads::CHAT_MISDIRECTION;
 
-            return $corpus === [] ? '' : $corpus[crc32($seed . '|misdirect') % count($corpus)];
+            return $corpus === [] ? '' : $corpus[SeededIndex::pick($seed . '|misdirect', count($corpus))];
         }
         if (strpos($part, 'canned.') === 0) {
             return self::CANNED[substr($part, 7)] ?? null;
@@ -240,7 +250,24 @@ final class DirectiveRenderer
                 return strtoupper(substr($digest, 0, $len));
             }
             if ($enc === 'b64') {
-                return substr(base64_encode((string) hex2bin($digest)), 0, $len);
+                // Standard base64. One 32-byte digest encodes to 44 chars — the 44th being a single
+                // '=' pad — so any len <= 44 is served straight from that padded encode, byte-identical
+                // to before (this preserves the luckily-correct Laravel APP_KEY `b64:44` shape, which
+                // legitimately ends '='). For a LONGER request a single digest can't reach it, and
+                // simply extending the padded encode would leave a '=' stranded MID-STREAM every ~44
+                // chars — structurally impossible base64, a one-glance honeypot tell (this is what the
+                // 22 PEM body lines and the IMDS token hit today). So chain raw sha256 to extend the
+                // material — like the b64url/dec encoders — and serve from the '='-STRIPPED stream, a
+                // clean [A-Za-z0-9+/] run of exactly the requested width.
+                if ($len <= 44) {
+                    return substr(base64_encode((string) hex2bin($digest)), 0, $len);
+                }
+                $material = (string) hex2bin($digest);
+                while (strlen(rtrim(base64_encode($material), '=')) < $len) {
+                    $material .= hash('sha256', $material, true);
+                }
+
+                return substr(rtrim(base64_encode($material), '='), 0, $len);
             }
             if ($enc === 'b64url') {
                 // URL-safe base64, unpadded — the alphabet a JWT/JWK segment must use ([A-Za-z0-9_-],
@@ -308,6 +335,12 @@ final class DirectiveRenderer
             // so a widened capture class can never inject markup into the fault XML.
             return htmlspecialchars($this->capture($captures, substr($part, 10)), ENT_QUOTES | ENT_XML1, 'UTF-8');
         }
+        if (strpos($part, 'html:match.') === 0) {
+            // HTML-escape a reflected capture before it lands in a text/html body — the render-layer
+            // backstop for HTML the way xml:match. is for XML (HTML5 entity semantics; escapes
+            // <>&"'). A pure narrowing of what reflected bytes can do, never a new reflection sink.
+            return htmlspecialchars($this->capture($captures, substr($part, 11)), ENT_QUOTES | ENT_HTML5, 'UTF-8');
+        }
         if (strpos($part, 'match.') === 0) {
             return $this->capture($captures, substr($part, 6));
         }
@@ -318,9 +351,25 @@ final class DirectiveRenderer
             return dechex(crc32($this->operand(substr($part, 14), $captures)));
         }
         if (strpos($part, 'pick:') === 0) {
-            $opts = array_map('trim', explode(',', substr($part, 5)));
+            // {{pick:a,b,c}} — seeded choice, keyed by default on the WHOLE directive text (so two
+            // picks over an identical list always agree). Optional {{pick:KEY:a,b,c}}: if a ':' occurs
+            // BEFORE the first ',', the text up to it is KEY and the seed material keys on KEY instead,
+            // so two picks with the same KEY agree while different KEYs over one list de-correlate. A
+            // list whose first element carries no early ':' keeps today's material EXACTLY (the pick
+            // stays byte-identical for every shipped template — none carries a ':' before its comma).
+            $rest = substr($part, 5);
+            $colon = strpos($rest, ':');
+            $comma = strpos($rest, ',');
+            if ($colon !== false && ($comma === false || $colon < $comma)) {
+                $key = substr($rest, 0, $colon);
+                $opts = array_map('trim', explode(',', substr($rest, $colon + 1)));
+                $material = $seed . '|pick|' . $key;
+            } else {
+                $opts = array_map('trim', explode(',', $rest));
+                $material = $seed . '|pick|' . $part;
+            }
 
-            return $opts === [] ? '' : $opts[crc32($seed . '|pick|' . $part) % count($opts)];
+            return $opts === [] ? '' : $opts[SeededIndex::pick($material, count($opts))];
         }
         if (strpos($part, 'canary.') === 0) {
             return $canary[substr($part, 7)] ?? null;
@@ -329,8 +378,13 @@ final class DirectiveRenderer
             return $this->personaField($seed, substr($part, 8));
         }
 
-        // Unknown directive -> literal (fail safe; never execute). Compile-time lint catches typos.
-        return $part;
+        // Unknown directive -> '' (via null so resolve()'s '|'-alternatives still cascade), aligning
+        // with every other fail-safe here (an unknown persona subfield / fake.person field already
+        // renders ''). Serving the literal directive text would be both a honeypot tell and the lone
+        // fail-open path. The compile-time assertKnownDirectives lint guarantees no shipped or compiled
+        // template reaches this — it only fires for a hand-crafted/out-of-band artifact, where '' is
+        // the safer failure.
+        return null;
     }
 
     /**
@@ -357,11 +411,30 @@ final class DirectiveRenderer
             return strtoupper(substr($digest, 0, $len));
         }
         if ($enc === 'b64') {
-            return substr(base64_encode($raw), 0, $len);
+            // Mirror the fake.NAME b64 cap exactly (the documented "capped exactly as fake.NAME"
+            // contract): len <= 44 straight from the 44-char padded encode, a longer request chains
+            // fresh CSPRNG reads and serves from the '='-STRIPPED stream so no '=' is ever stranded
+            // mid-stream (an impossible-base64 tell). Entropy is fresh each read — non-reproducible.
+            if ($len <= 44) {
+                return substr(base64_encode($raw), 0, $len);
+            }
+            $material = $raw;
+            while (strlen(rtrim(base64_encode($material), '=')) < $len) {
+                $material .= random_bytes(32);
+            }
+
+            return substr(rtrim(base64_encode($material), '='), 0, $len);
         }
         if ($enc === 'b64url') {
-            // URL-safe base64, unpadded — same alphabet as fake.NAME's b64url ([A-Za-z0-9_-]).
-            return substr(rtrim(strtr(base64_encode($raw), '+/', '-_'), '='), 0, $len);
+            // URL-safe base64, unpadded — same alphabet as fake.NAME's b64url ([A-Za-z0-9_-]). A single
+            // 32-byte read gives 43 chars; a longer request chains fresh CSPRNG reads to honor N, so the
+            // cap matches fake.NAME's b64url instead of silently truncating at 43.
+            $material = $raw;
+            while (strlen(rtrim(strtr(base64_encode($material), '+/', '-_'), '=')) < $len) {
+                $material .= random_bytes(32);
+            }
+
+            return substr(rtrim(strtr(base64_encode($material), '+/', '-_'), '='), 0, $len);
         }
         if ($enc === 'dec') {
             // All-digit field, EXACTLY the fake.NAME `dec` shape (so armed and off share a character

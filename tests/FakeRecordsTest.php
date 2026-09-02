@@ -66,7 +66,7 @@ final class FakeRecordsTest extends TestCase
             self::assertMatchesRegularExpression('/^\d{5}$/', $id);
             self::assertNotSame('', $owner);
             self::assertTrue(
-                (bool) preg_match('/^AKIA[A-Z0-9]{16}$/', $secret)
+                (bool) preg_match('/^AKIA[A-Z2-7]{16}$/', $secret)
                 || (bool) preg_match('/^sk_test_[A-Za-z0-9]{24}$/', $secret),
                 "unexpected secret shape: {$secret}"
             );
@@ -160,10 +160,13 @@ final class FakeRecordsTest extends TestCase
             return '/^FLAG\.\{[0-9a-f]{40}\}\.GALF$/';
         }
         if (strpos($label, 'password') !== false) {
-            return '/^\$2y\$10\$[A-Za-z0-9]{53}$/';
+            // Legal bcrypt alphabet: `./A-Za-z0-9` (the FP-0260 fix adds `.`/`/`, which the old
+            // `[A-Za-z0-9]` regex would hard-fail on the moment they appear).
+            return '#^\$2y\$10\$[./A-Za-z0-9]{53}$#';
         }
         if (strpos($label, 'api') !== false) {
-            return '/^AKIA[A-Z0-9]{16}$/';
+            // Base32 body `[A-Z2-7]` — a real AWS access-key-id never carries 0/1/8/9.
+            return '/^AKIA[A-Z2-7]{16}$/';
         }
 
         return '/^[0-9a-f]{40}$/';

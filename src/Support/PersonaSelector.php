@@ -45,9 +45,11 @@ final class PersonaSelector
             $sum += $w;
         }
 
-        // crc32 is a stable, dependency-free hash; modulo maps it into the weight range.
+        // A stable, dependency-free hash mapped into the weight range via SeededIndex (unsigned on
+        // 32-bit, where a raw crc32() would wrap negative and always select bundle 0 — a silent
+        // persona-selection bias). Byte-identical to crc32($seed) % $sum on 64-bit.
         // Walk the cumulative weights so a heavier bundle owns a wider slice.
-        $target = crc32($seed) % $sum;
+        $target = SeededIndex::pick($seed, $sum);
         $acc = 0;
         foreach ($bundles as $i => $bundle) {
             $acc += $weights[$i];

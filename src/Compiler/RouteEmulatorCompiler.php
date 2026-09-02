@@ -140,6 +140,7 @@ final class RouteEmulatorCompiler
         if (!$isBinary) {
             $this->assertMarkers($doc, $body, $headers, $file);
         }
+        $this->assertHtmlReflectionSafe($doc, $file);
 
         $rule = [
             'id' => (string) $doc['id'],
@@ -244,6 +245,70 @@ final class RouteEmulatorCompiler
         if (preg_match('/[\r\n\x00]/', $name) === 1 || preg_match('/[\r\n\x00]/', (string) $staticValue) === 1) {
             throw new RuntimeException("Route template {$file}: header '{$name}' has a CR/LF/NUL in its static text.");
         }
+    }
+
+    /**
+     * A text/html response body reflecting a RAW request capture ({{match.*}} / {{urldecode:match.*}})
+     * with no render-layer escape is a reflected-XSS-shaped surface — refused unless the template
+     * declares `reflects_input: true` or asserts `html_safe_captures: true`. Escaped {{html:match.*}} /
+     * {{xml:match.*}} are fine. Mirrors EmulatorCompiler::assertHtmlReflectionSafe (same closed lint on
+     * the route tier); compile-time only, never copied into the compiled rule.
+     *
+     * @param array<string,mixed> $doc
+     */
+    private function assertHtmlReflectionSafe(array $doc, string $file): void
+    {
+        if (!empty($doc['reflects_input']) || !empty($doc['html_safe_captures'])) {
+            return;
+        }
+        if ($this->htmlBodyReflectsRawCapture($doc)) {
+            throw new RuntimeException("Route template {$file}: a text/html response body reflects a raw request capture ({{match.*}}) with no render-layer escape. Use {{html:match.N}}, or declare 'reflects_input: true' or 'html_safe_captures: true'.");
+        }
+    }
+
+    /** @param array<int|string,mixed> $node */
+    private function htmlBodyReflectsRawCapture(array $node): bool
+    {
+        if (isset($node['body']) && (is_string($node['body']) || is_numeric($node['body']))) {
+            $ctype = '';
+            if (isset($node['headers']) && is_array($node['headers'])) {
+                foreach ($node['headers'] as $hn => $hv) {
+                    if (strcasecmp((string) $hn, 'Content-Type') === 0) {
+                        $ctype = (string) $hv;
+                    }
+                }
+            }
+            if (stripos($ctype, 'text/html') === 0 && $this->bodyHasRawCapture((string) $node['body'])) {
+                return true;
+            }
+        }
+        foreach ($node as $child) {
+            if (is_array($child) && $this->htmlBodyReflectsRawCapture($child)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private function bodyHasRawCapture(string $body): bool
+    {
+        if (strpos($body, '{{') === false) {
+            return false;
+        }
+        $body = strtr($body, ['{{{{' => '', '}}}}' => '']);
+        if (!preg_match_all('/\{\{\s*([^}]+?)\s*\}\}/', $body, $all)) {
+            return false;
+        }
+        foreach ($all[1] as $expr) {
+            foreach (array_map('trim', explode('|', $expr)) as $part) {
+                if (strpos($part, 'match.') === 0 || strpos($part, 'urldecode:match.') === 0) {
+                    return true;
+                }
+            }
+        }
+
+        return false;
     }
 
     /**

@@ -249,6 +249,92 @@ final class TemplateEngineTest extends TestCase
         self::assertSame('method system.listMethods', $rr->render('method {{xml:match.1}}', ['1' => 'system.listMethods']));
     }
 
+    public function test_html_match_escapes_the_reflected_capture(): void
+    {
+        // Render-layer backstop for HTML bodies, mirroring xml:match. — escapes <>&"' so a widened
+        // capture class can never inject markup. A plain token passes through untouched.
+        $rr = new DirectiveRenderer();
+        self::assertSame(
+            'for: &lt;b&gt;x&lt;/b&gt;&amp;&quot;&apos;',
+            $rr->render('for: {{html:match.1}}', ['1' => '<b>x</b>&"\''])
+        );
+        self::assertSame('for: report.php', $rr->render('for: {{html:match.1}}', ['1' => 'report.php']));
+        // The never-rescan invariant still holds for the escaped insertion: a reflected directive is
+        // inserted ONCE and never re-parsed. The braces are not HTML-special so they survive as
+        // literal text, but the directive is NOT expanded (no /etc/passwd content is produced).
+        $out = $rr->render('{{html:match.1}}', ['1' => '{{canned.passwd}}']);
+        self::assertSame('{{canned.passwd}}', $out);
+        self::assertStringNotContainsString('root:x:0:0', $out);
+    }
+
+    public function test_b64_encoder_honors_length_beyond_44(): void
+    {
+        $rr = new DirectiveRenderer();
+        // The bug: a single 32-byte digest base64s to 44 chars ending '=', so any N>44 used to
+        // truncate to that impossible-base64 44-char '='-ending string (the PEM/IMDS fingerprint).
+        // Now N>44 chains material and serves a clean [A-Za-z0-9+/] run of exactly N with no '='.
+        $pem = $rr->render('{{fake.pem01:b64:64}}', [], 0);
+        self::assertSame(64, strlen($pem));
+        self::assertMatchesRegularExpression('#^[A-Za-z0-9+/]{64}$#', $pem);
+        $imds = $rr->render('{{fake.imdstoken:b64:100}}', [], 0);
+        self::assertSame(100, strlen($imds));
+        self::assertMatchesRegularExpression('#^[A-Za-z0-9+/]{100}$#', $imds);
+        // Nit B edge: at N in {87,88,172} padding used to recur mid-stream; the '='-stripped stream
+        // fix must give a clean run with no interior '=' at exactly those lengths.
+        foreach ([87, 88, 172] as $n) {
+            $v = $rr->render('{{fake.pem01:b64:' . $n . '}}', [], 0);
+            self::assertSame($n, strlen($v), "length for N={$n}");
+            self::assertStringNotContainsString('=', $v, "stranded '=' at N={$n}");
+        }
+    }
+
+    public function test_b64_encoder_is_byte_identical_at_and_below_44(): void
+    {
+        $rr = new DirectiveRenderer();
+        // N<=44 is served from the padded encode UNCHANGED — the determinism net. app_key:b64:44 is
+        // the Laravel APP_KEY shape that legitimately ends '='; pem01:b64:44 is the pre-fix value.
+        self::assertSame('G3dRuPkIC3ARl1k5BZCybJEu839L6xGkY4ld/XOioOc=', $rr->render('{{fake.app_key:b64:44}}', [], 0));
+        self::assertSame('hLZNY5Xnf53lv2RzDT8C2TrRpch0GU/tRszruXPPrek=', $rr->render('{{fake.pem01:b64:44}}', [], 0));
+        // pem01:b64:64 shares the first 40 chars (the 10 complete 3-byte base64 groups of the same
+        // 32-byte digest); the 11th group's boundary byte comes from the chained material, so the
+        // streams legitimately diverge past there. Full value byte-pinned (verified via the generator).
+        self::assertStringStartsWith('hLZNY5Xnf53lv2RzDT8C2TrRpch0GU/tRszruXPP', $rr->render('{{fake.pem01:b64:64}}', [], 0));
+        self::assertSame('hLZNY5Xnf53lv2RzDT8C2TrRpch0GU/tRszruXPPremmAVt96cW68j6SZMMqkEE5', $rr->render('{{fake.pem01:b64:64}}', [], 0));
+    }
+
+    public function test_keyed_pick_de_correlates_and_stays_backward_compatible(): void
+    {
+        $rr = new DirectiveRenderer();
+        // Un-keyed pick is byte-identical to before: keyed on the whole directive text.
+        self::assertSame($rr->render('{{pick:red,green,blue}}', [], 3), $rr->render('{{pick:red,green,blue}}', [], 3));
+        // Keyed pick is deterministic and repeatable for one KEY.
+        $a = $rr->render('{{pick:k1:red,green,blue}}', [], 3);
+        self::assertContains($a, ['red', 'green', 'blue']);
+        self::assertSame($a, $rr->render('{{pick:k1:red,green,blue}}', [], 3));
+        // Same KEY over one list correlates; different KEYs over the SAME list de-correlate for some seed.
+        $differ = false;
+        for ($seed = 0; $seed < 32; $seed++) {
+            $x = $rr->render('{{pick:k1:red,green,blue}}', [], $seed);
+            $y = $rr->render('{{pick:k2:red,green,blue}}', [], $seed);
+            self::assertSame($x, $rr->render('{{pick:k1:red,green,blue}}', [], $seed));
+            if ($x !== $y) {
+                $differ = true;
+            }
+        }
+        self::assertTrue($differ, 'k1 and k2 must diverge over an identical list for at least one seed');
+    }
+
+    public function test_unknown_directive_renders_empty_and_cascades(): void
+    {
+        $rr = new DirectiveRenderer();
+        // Fallthrough is now '' (was the literal directive text — a honeypot tell + the lone
+        // fail-open path). Compile-time lint keeps shipped templates from ever reaching it.
+        self::assertSame('', $rr->render('{{fkae.oops:hex:8}}', [], 7));
+        // An unknown first alternative cascades to the next (resolve()'s '|' fallthrough still works).
+        $out = $rr->render('{{fkae.x | pick:only}}', [], 7);
+        self::assertSame('only', $out);
+    }
+
     public function test_named_fake_is_reusable_and_independent(): void
     {
         $rr = new DirectiveRenderer();

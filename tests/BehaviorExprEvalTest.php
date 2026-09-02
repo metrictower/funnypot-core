@@ -140,6 +140,7 @@ id: expr-compile
 severity: high
 tags: [test]
 status: 200
+html_safe_captures: true
 match:
   - in: query
     regex: 'e=(?P<e>[^&]+)'

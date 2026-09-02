@@ -274,6 +274,7 @@ id: ssti-compile
 severity: high
 tags: [test]
 status: 200
+html_safe_captures: true
 match:
   - in: request
     regex: '(?P<surface>[^&]+)'

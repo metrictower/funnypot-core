@@ -117,6 +117,7 @@ final class EmulatorCompiler
             $this->assertStaticHeaderClean((string) $name, $value, $file);
         }
         $this->assertMarkers($doc, $body, $headers, $file);
+        $this->assertHtmlReflectionSafe($doc, $file);
 
         $rule = [
             'id' => (string) $doc['id'],
@@ -939,6 +940,81 @@ final class EmulatorCompiler
                 }
             }
         }
+    }
+
+    /**
+     * A text/html response body that reflects a RAW request capture ({{match.N}} or
+     * {{urldecode:match.N}}) with no render-layer escape is a reflected-XSS-shaped surface. This build
+     * refuses it unless the template either declares `reflects_input: true` (the deliberate reflector
+     * marker — served only from an isolated origin) OR asserts `html_safe_captures: true` (every
+     * capture class that can reach such a body provably excludes <>&"' — e.g. a `[\w.-]` filename, or a
+     * behavior that reduces the capture to pure digits before binding it, as 43/45-ssti do). An escaped
+     * reflection ({{html:match.N}} / {{xml:match.N}}) is always allowed. The walk covers the base
+     * response AND every behavior's nested response body, so a behavior-bound reflection is caught too.
+     * Compile-time only: `html_safe_captures` is never copied into the compiled rule (no artifact drift).
+     *
+     * @param array<string,mixed> $doc
+     */
+    private function assertHtmlReflectionSafe(array $doc, string $file): void
+    {
+        if (!empty($doc['reflects_input']) || !empty($doc['html_safe_captures'])) {
+            return;
+        }
+        if ($this->htmlBodyReflectsRawCapture($doc)) {
+            throw new RuntimeException("Template {$file}: a text/html response body reflects a raw request capture ({{match.*}}) with no render-layer escape. Use {{html:match.N}}, or declare 'reflects_input: true' (isolated-origin reflector) or 'html_safe_captures: true' (every capture class that reaches it provably excludes <>&\"').");
+        }
+    }
+
+    /**
+     * True if any response-shaped node in $node (recursively — base and behavior-nested responses) is
+     * a text/html body carrying a raw {{match.*}} / {{urldecode:match.*}} reflection. Escaped
+     * {{html:match.*}} / {{xml:match.*}} do not count.
+     *
+     * @param array<int|string,mixed> $node
+     */
+    private function htmlBodyReflectsRawCapture(array $node): bool
+    {
+        if (isset($node['body']) && (is_string($node['body']) || is_numeric($node['body']))) {
+            $ctype = '';
+            if (isset($node['headers']) && is_array($node['headers'])) {
+                foreach ($node['headers'] as $hn => $hv) {
+                    if (strcasecmp((string) $hn, 'Content-Type') === 0) {
+                        $ctype = (string) $hv;
+                    }
+                }
+            }
+            if (stripos($ctype, 'text/html') === 0 && $this->bodyHasRawCapture((string) $node['body'])) {
+                return true;
+            }
+        }
+        foreach ($node as $child) {
+            if (is_array($child) && $this->htmlBodyReflectsRawCapture($child)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /** True if a body carries a raw (unescaped) {{match.*}} or {{urldecode:match.*}} directive. */
+    private function bodyHasRawCapture(string $body): bool
+    {
+        if (strpos($body, '{{') === false) {
+            return false;
+        }
+        $body = strtr($body, ['{{{{' => '', '}}}}' => '']);
+        if (!preg_match_all('/\{\{\s*([^}]+?)\s*\}\}/', $body, $all)) {
+            return false;
+        }
+        foreach ($all[1] as $expr) {
+            foreach (array_map('trim', explode('|', $expr)) as $part) {
+                if (strpos($part, 'match.') === 0 || strpos($part, 'urldecode:match.') === 0) {
+                    return true;
+                }
+            }
+        }
+
+        return false;
     }
 
     /** A static (non-directive) header must never carry CR/LF/NUL — that would be header splitting at author time. */
