@@ -79,7 +79,11 @@ final class TemplateEngineTest extends TestCase
     {
         $r = $this->probe('GET', '/wiki/%24%7B(%23a%3D%40java.lang.Runtime%40getRuntime().exec(%22id%22))%7D');
         self::assertNotNull($r);
-        self::assertSame('uid=0(root) gid=0(root) groups=0(root)', $r->headers['X-Cmd-Response']);
+        // The uid marker now per-deploy seeds a supplementary-group tail (FP-0277); the `uid=0(root)
+        // gid=0(root) groups=0(root)` head — the exploit-confirmation marker — stays verbatim, and the
+        // header value stays CR/LF/NUL-free.
+        self::assertStringStartsWith('uid=0(root) gid=0(root) groups=0(root)', $r->headers['X-Cmd-Response']);
+        self::assertSame(0, preg_match('/[\r\n\x00]/', $r->headers['X-Cmd-Response']));
         self::assertSame(['attack-confluence-26134'], $r->satisfies->templateIds());
     }
 

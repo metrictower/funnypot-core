@@ -26,4 +26,17 @@ return [
     'route:route-phpinfo' => 'FP-0276 persona-derived phpinfo identity',
     // The phpMyAdmin login shell renders {{persona.classPrefix}} + {{persona.phpmyadmin.version}}.
     'attack:attack-phpmyadmin-login' => 'FP-0276 persona-derived phpMyAdmin login identity',
+    // --- FP-0277: canned fleet-constant surfaces converted to per-deploy seeded ---
+    // {{canned.passwd}} — the service-account tail (set/order/shells) varies; root:x:0:0 head verbatim.
+    'attack:attack-lfi-unix' => 'FP-0277 seed-varied /etc/passwd service-account tail',
+    // {{canned.shadow}} — the $6$ salt/hash body + account subset vary; :0:99999:7::: aging verbatim.
+    'attack:attack-lfi-shadow' => 'FP-0277 seed-varied /etc/shadow salt/hash body',
+    // {{canned.ssh_private_key}} — the 12-line base64 key body varies; OpenSSH envelope verbatim.
+    'attack:attack-lfi-sshkey' => 'FP-0277 seed-varied inert SSH key body',
+    // {{canned.hostname}} — the whole role-env-NN hostname varies (no cross-fleet marker to pin).
+    'attack:attack-lfi-hostname' => 'FP-0277 seed-varied /etc/hostname',
+    // {{canned.environ}} — the var order + PWD leaf vary; PATH= / USER= markers verbatim.
+    'attack:attack-lfi-environ' => 'FP-0277 seed-varied /proc/self/environ order + PWD',
+    // {{canned.group}} — the member subset (coherent with passwd) varies; root:x:0: head verbatim.
+    'attack:attack-lfi-group' => 'FP-0277 seed-varied /etc/group member set',
 ];

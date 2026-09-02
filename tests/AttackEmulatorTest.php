@@ -45,7 +45,9 @@ final class AttackEmulatorTest extends TestCase
         $r = $this->emulate('/download', 'file=../../../../etc/hostname');
         self::assertNotNull($r);
         self::assertSame(['attack-lfi-hostname'], $r->satisfies->templateIds());
-        self::assertStringContainsString('web-prod-01', $r->body);
+        // The hostname is now per-deploy seeded (FP-0277): assert the single-line shape, not a fixed
+        // literal (`web-prod-01` was the fleet-constant tell and is not a cross-fleet scanner marker).
+        self::assertSame(1, preg_match('/^[a-z0-9][a-z0-9.-]{1,62}$/', trim($r->body)), $r->body);
         self::assertStringNotContainsString('root:x:0:0', $r->body);
     }
 

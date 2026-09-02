@@ -19,7 +19,9 @@ use Funnypot\Core\Support\SubSeed;
  * values are inserted once and never re-scanned (an attacker-reflected `{{...}}` stays inert
  * literal text).
  *
- *   {{canned.passwd|uid|winini}}     shared fake markers (fake /etc/passwd, uid=0(root), win.ini)
+ *   {{canned.passwd|uid|winini}}     shared fake markers (fake /etc/passwd, uid=0(root), win.ini) —
+ *                                    per-deploy seeded via CannedData::render (the deploy identity seed
+ *                                    through identitySeed()); exploit-confirmation markers stay verbatim
  *   {{fake.NAME:hex:N}}              N hex chars, seeded by (persona, NAME) — same NAME ⇒ same value,
  *                                    so one fake secret can appear twice; different NAME ⇒ independent
  *   {{fake.person.full:KEY}}         one coherent fake person via Support\Fake\FakePeople, keyed by
@@ -56,18 +58,6 @@ use Funnypot\Core\Support\SubSeed;
  */
 final class DirectiveRenderer
 {
-    private const CANNED = [
-        'passwd' => CannedData::PASSWD,
-        'uid' => CannedData::UID,
-        'winini' => CannedData::WININI,
-        'shadow' => CannedData::SHADOW,
-        'group' => CannedData::GROUP,
-        'hostname' => CannedData::HOSTNAME,
-        'ssh_private_key' => CannedData::SSH_PRIVATE_KEY,
-        'environ' => CannedData::ENVIRON,
-        'k8s_sa_unsigned' => CannedData::K8S_SA_UNSIGNED,
-    ];
-
     /** The closed directive prefixes — used by the compile-time lint. */
     public const KNOWN_PREFIXES = ['canned.', 'fake.', 'volatile.', 'misdirect', 'fakeHex:', 'hex:', 'match.', 'urldecode:match.', 'xml:match.', 'html:match.', 'compute.md5:', 'compute.crc32:', 'pick:', 'canary.', 'persona.'];
 
@@ -192,7 +182,10 @@ final class DirectiveRenderer
             return $corpus === [] ? '' : $corpus[SeededIndex::pick($seed . '|misdirect', count($corpus))];
         }
         if (strpos($part, 'canned.') === 0) {
-            return self::CANNED[substr($part, 7)] ?? null;
+            // Per-deploy seeded canned surface (FP-0277). identitySeed() folds to the injected deploy
+            // persona seed when wired (so canned identity tracks persona identity), else the per-request
+            // render seed — the SAME fold {{persona.*}} uses. render() returns null for an unknown key.
+            return CannedData::render(substr($part, 7), $this->identitySeed($seed));
         }
         if (strpos($part, 'fake.person.') === 0) {
             // fake.person.{full,username,email}:KEY — a coherent fake person from the shared

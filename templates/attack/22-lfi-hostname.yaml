@@ -11,4 +11,6 @@ response:
   headers:
     Content-Type: "text/plain; charset=utf-8"
   body: "{{canned.hostname}}"
-expect: ["web-prod-01"]
+# No expect: — the hostname is now per-deploy seeded (FP-0277) and there is no cross-fleet hostname
+# marker to pin; `web-prod-01` was absent from the nuclei index / CRS corpus, so pinning any fixed
+# literal would only re-introduce a (smaller) fleet-correlation tell.
