@@ -29,6 +29,10 @@ final class FakeRecords
 {
     private const STATUSES = ['pending', 'paid', 'shipped', 'refunded', 'cancelled'];
 
+    /** Plausible labels for the `secrets` table's `name` column — all pure letters/underscore, so
+     *  they can never contribute a digit run to the fingerprint denylist. */
+    private const SECRET_LABELS = ['ctf_flag', 'root_flag', 'admin_token', 'service_flag', 'backup_token'];
+
     private function __construct()
     {
     }
@@ -125,6 +129,25 @@ final class FakeRecords
                 self::amount($seed, $rowKey),
                 self::STATUSES[self::index($seed, $rowKey . '|status', count(self::STATUSES))],
                 FakePeople::date($seed, $rowKey . '|created'),
+            ];
+        }
+
+        return $rows;
+    }
+
+    /** Rows [id, name, value]. The `value` column is an inert CTF-sentinel flag honeytoken
+     *  (FakeSecrets::flag) — an obviously-fake `FLAG.{…}.GALF` token that authenticates/validates
+     *  nowhere; `name` is a plausible label from a seeded small set. This is the marquee lure the
+     *  authed phpMyAdmin decoy plants behind its mock login. */
+    public static function secrets(int $seed, string $key, int $n): array
+    {
+        $rows = [];
+        for ($i = 0; $i < $n; $i++) {
+            $rowKey = $key . '#' . $i;
+            $rows[] = [
+                self::id($seed, $rowKey . '|id'),
+                self::SECRET_LABELS[self::index($seed, $rowKey . '|label', count(self::SECRET_LABELS))],
+                FakeSecrets::flag($seed, $rowKey),
             ];
         }
 

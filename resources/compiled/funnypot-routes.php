@@ -351,6 +351,9 @@ SENDGRID_API_KEY=SG.{{fake.sg1:hex:22}}.{{fake.sg2:hex:43}}
 
 JWT_SECRET={{fake.jwtsecret:hex:64}}
 SLACK_WEBHOOK_URL=https://hooks.slack.com/services/T{{fake.slackt:hex:8}}/B{{fake.slackb:hex:8}}/{{fake.slacktok:hex:24}}
+
+# internal CTF sentinel — do not remove
+CTF_FLAG={{fake.flag:env}}
 ',
     'headers' => 
     array (
@@ -831,6 +834,8 @@ INSERT INTO `api_credentials` VALUES (1,\'AWS_ACCESS_KEY_ID\',\'{{persona.cloud.
 INSERT INTO `api_credentials` VALUES (2,\'AWS_SECRET_ACCESS_KEY\',\'{{persona.cloud.aws.secretKey}}\');
 INSERT INTO `api_credentials` VALUES (3,\'STRIPE_SECRET_KEY\',\'{{persona.cloud.stripe.secretKey}}\');
 INSERT INTO `api_credentials` VALUES (4,\'SENDGRID_API_KEY\',\'{{persona.cloud.sendgrid.apiKey}}\');
+
+-- ctf: {{fake.flag:sqldump}}
 ',
     'headers' => 
     array (
@@ -2508,6 +2513,7 @@ JWT_SECRET={{persona.secret.jwt}}
     ),
     'body' => '<?php
 // Environment configuration — production.
+// ctf: {{fake.flag:envphp}}
 
 return [
     \'APP_ENV\' => \'production\',

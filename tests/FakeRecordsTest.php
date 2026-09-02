@@ -117,6 +117,28 @@ final class FakeRecordsTest extends TestCase
         }
     }
 
+    public function test_secrets_is_deterministic_and_shaped(): void
+    {
+        $rows = FakeRecords::secrets(7, 'secrets', 5);
+        self::assertSame($rows, FakeRecords::secrets(7, 'secrets', 5));
+        self::assertCount(5, $rows);
+
+        $labels = ['ctf_flag', 'root_flag', 'admin_token', 'service_flag', 'backup_token'];
+        foreach ($rows as $row) {
+            self::assertCount(3, $row);
+            [$id, $name, $value] = $row;
+            self::assertMatchesRegularExpression('/^\d{5}$/', $id);
+            self::assertContains($name, $labels);
+            self::assertMatchesRegularExpression('/^FLAG\.\{[0-9a-f]{40}\}\.GALF$/', $value);
+        }
+    }
+
+    public function test_secrets_differs_across_seeds_and_keys(): void
+    {
+        self::assertNotSame(FakeRecords::secrets(7, 'secrets', 3), FakeRecords::secrets(8, 'secrets', 3));
+        self::assertNotSame(FakeRecords::secrets(7, 'secrets-a', 3), FakeRecords::secrets(7, 'secrets-b', 3));
+    }
+
     public function test_different_keys_yield_different_rows_for_same_row_index(): void
     {
         $a = FakeRecords::orders(6, 'orders-a', 1);
@@ -140,6 +162,7 @@ final class FakeRecordsTest extends TestCase
                 FakeRecords::apiKeys($seed, 'keys', 3),
                 FakeRecords::sessions($seed, 'acme.test', 'sessions', 3),
                 FakeRecords::orders($seed, 'orders', 3),
+                FakeRecords::secrets($seed, 'secrets', 3),
             ];
 
             foreach ($rowSets as $rows) {

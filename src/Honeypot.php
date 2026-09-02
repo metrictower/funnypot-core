@@ -194,11 +194,21 @@ final class Honeypot implements Engine
         $verdict = $this->classifyContent($r, $profile);
 
         $family = OastProbe::detect($r);
-        if ($family === null) {
-            return $verdict; // byte-identical to the pre-OAST classifier when no OAST zone is present
+        if ($family !== null) {
+            $verdict = $this->foldOast($verdict, $family);
         }
 
-        return $this->foldOast($verdict, $family);
+        // Honeytoken-retrieval fold (built exactly like foldOast): iff a decoy-session key is
+        // configured AND the request presents a valid minted `s=1` cookie, the attacker walked the
+        // mock-auth trap and is pulling loot — fold one high-signal, SIGNAL-ONLY match. An unset key
+        // makes this a no-op, so a build that never enabled the decoy session is byte- and
+        // signal-identical to before this seam existed.
+        $decoyKey = (string) ($this->config->decoySessionKey ?? '');
+        if ($decoyKey !== '' && DecoySessionProbe::authenticated($r, $decoyKey)) {
+            $verdict = $this->foldHoneytoken($verdict);
+        }
+
+        return $verdict;
     }
 
     /**
@@ -348,6 +358,39 @@ final class Honeypot implements Engine
             'high',
             ['oast-callback', $family, 'ssrf', 'oob'],
             'OAST/OOB collaborator callback'
+        );
+
+        $matches = array_merge($v->detection->matches, [$match]);
+        $ceiling = Detection::ceilingSeverity($v->detection->highestSeverity ?: 'unknown', 'high');
+        $detection = new Detection(true, $matches, $v->detection->clusterKey, $ceiling);
+
+        $classification = ($v->classification === Verdict::CLEAN && $v->fakeHandle === null)
+            ? Verdict::SCANNER_PROBE
+            : $v->classification;
+
+        return new Verdict($classification, $detection, $ceiling, $v->anomaly, $v->signals, $v->fakeHandle);
+    }
+
+    /**
+     * Fold a decoy-session honeytoken RETRIEVAL into a content Verdict as a high-signal, SIGNAL-ONLY
+     * match — the attacker presented a minted `s=1` cookie and walked the mock-auth breached-DB trap.
+     * Built exactly like foldOast(), with the same decorator invariants (all falsifiable in
+     * HoneytokenRetrievalSeamTest):
+     *  - NEVER touches fakeHandle: the gate still renders the authed body via emulate() unchanged, so
+     *    the served bytes are byte-identical whether or not this fires. The synthetic match lives only
+     *    inside the Detection (a logging/telemetry projection), never in a served body or header.
+     *  - Bumps CLEAN -> SCANNER_PROBE only when fakeHandle === null (a decoy-cookie request that
+     *    resolved to no route handle); a CLEAN-with-route-handle verdict keeps its serve-gating, and
+     *    SCANNER_PROBE / ATTACK_CLASS are left as-is (never downgrades an attack coincidence).
+     *  - Adds no I/O (DecoySessionProbe is pure string work over the Cookie header).
+     */
+    private function foldHoneytoken(Verdict $v): Verdict
+    {
+        $match = new TemplateMatch(
+            'honeytoken-retrieval',
+            'high',
+            ['honeytoken-retrieval', 'decoy-session', 'breached-db', 'high-confidence'],
+            'decoy mock-auth breached-DB retrieval'
         );
 
         $matches = array_merge($v->detection->matches, [$match]);

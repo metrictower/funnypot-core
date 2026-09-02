@@ -83,7 +83,7 @@ final class PhpMyAdminAuthedDashboardTest extends TestCase
         self::assertNotNull($r);
         self::assertSame(200, $r->status);
         // Every mock table appears in the left tree.
-        foreach (['users', 'password_resets', 'api_keys', 'sessions', 'orders'] as $t) {
+        foreach (['users', 'password_resets', 'api_keys', 'sessions', 'orders', 'secrets'] as $t) {
             self::assertStringContainsString('>' . $t . '</li>', $r->body, $t . ' in tree');
         }
         // The users grid is the default main view: its column headers are present.
@@ -124,6 +124,7 @@ final class PhpMyAdminAuthedDashboardTest extends TestCase
             'api_keys' => 'api_key',
             'sessions' => 'last_activity',
             'orders' => 'amount',
+            'secrets' => 'value',
         ];
         $em = $this->emulator([$this->gateRule()]);
         foreach ($expected as $table => $signatureCol) {
@@ -131,6 +132,34 @@ final class PhpMyAdminAuthedDashboardTest extends TestCase
             self::assertNotNull($r, $table);
             self::assertStringContainsString('<th>' . $signatureCol . '</th>', $r->body, $table . ' signature column');
         }
+    }
+
+    public function test_secrets_table_renders_flag_tokens(): void
+    {
+        $r = $this->authedGet($this->emulator([$this->gateRule()]), 'table=secrets');
+
+        self::assertNotNull($r);
+        // The secrets grid's own columns prove the selection took.
+        foreach (['id', 'name', 'value'] as $col) {
+            self::assertStringContainsString('<th>' . $col . '</th>', $r->body);
+        }
+        // The marquee lure: inert CTF-sentinel flag tokens sit in the value column, behind the login.
+        self::assertStringContainsString('FLAG.{', $r->body);
+        self::assertStringContainsString('}.GALF', $r->body);
+        self::assertMatchesRegularExpression('/FLAG\.\{[0-9a-f]{40}\}\.GALF/', $r->body);
+    }
+
+    public function test_flag_absent_pre_auth(): void
+    {
+        // No cookie -> the login stub renders, never the authed breached-DB body, so no flag leaks
+        // before the attacker walks the mock login.
+        $r = $this->emulator([$this->gateRule()])->emulate(
+            new RequestContext('GET', '/phpmyadmin/index.php', 'table=secrets')
+        );
+
+        self::assertNotNull($r);
+        self::assertSame(self::LOGIN_STUB, $r->body);
+        self::assertStringNotContainsString('FLAG.{', $r->body);
     }
 
     // --- persona coherence ------------------------------------------------------------------

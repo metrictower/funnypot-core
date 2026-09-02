@@ -6,6 +6,7 @@ namespace Funnypot\Core\Template;
 
 use Funnypot\Core\Attack\CannedData;
 use Funnypot\Core\Support\Fake\FakePeople;
+use Funnypot\Core\Support\Fake\FakeSecrets;
 use Funnypot\Core\Support\PersonaIdentity;
 
 /**
@@ -187,6 +188,13 @@ final class DirectiveRenderer
             }
 
             return $this->volatileToken($spec);
+        }
+        if (strpos($part, 'fake.flag:') === 0) {
+            // fake.flag:KEY — an inert CTF-sentinel honeytoken `FLAG.{<40-hex>}.GALF` (one source of
+            // truth: FakeSecrets::flag). Placed BEFORE the generic fake. branch so the `flag` NAME is
+            // routed here, not treated as a fake.NAME:ENC:N (which would render a bare hex run without
+            // the fingerprint-safe wrapper). KEY reused across a template renders the same token twice.
+            return FakeSecrets::flag($seed, substr($part, 10));
         }
         if (strpos($part, 'fake.') === 0) {
             // fake.NAME:ENC:N — ENC in {hex (default), hexupper, b64, b64url, dec}. Seed+name derived,

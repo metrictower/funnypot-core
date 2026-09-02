@@ -198,6 +198,26 @@ final class PhpMyAdminMockAuthTest extends TestCase
         self::assertStringNotContainsString('id="login_form"', $r->body, 'an authed session must never re-show the login form');
     }
 
+    public function test_gated_secrets_table_shows_the_flag_only_with_a_valid_cookie(): void
+    {
+        // End-to-end from the COMPILED rules: login page -> POST mint (s=1) -> gated GET the secrets
+        // table shows the inert CTF-sentinel flag; an absent cookie shows the login page and no flag.
+        $mint = $this->mintValidLogin();
+        $cookieHeader = $this->cookieHeaderFrom($mint->headers['Set-Cookie']);
+
+        $authed = $this->serve('GET', '/phpmyadmin/index.php', 'table=secrets', ['Cookie' => $cookieHeader]);
+        self::assertNotNull($authed);
+        self::assertSame(200, $authed->status);
+        self::assertStringContainsString('Showing rows', $authed->body);
+        self::assertMatchesRegularExpression('/FLAG\.\{[0-9a-f]{40}\}\.GALF/', $authed->body, 'the flag must render behind the login');
+
+        // No cookie: the login page, and the flag never leaks pre-auth.
+        $preAuth = $this->serve('GET', '/phpmyadmin/index.php', 'table=secrets');
+        self::assertNotNull($preAuth);
+        self::assertStringContainsString('id="login_form"', $preAuth->body);
+        self::assertStringNotContainsString('FLAG.{', $preAuth->body);
+    }
+
     // --- GET with a garbage cookie: fail closed ----------------------------------------------
 
     public function test_get_with_garbage_cookie_falls_back_to_the_login_page(): void

@@ -74,6 +74,19 @@ final class FakeSecretsTest extends TestCase
         self::assertNotSame(FakeSecrets::bcryptHash(7, 'row-0'), FakeSecrets::bcryptHash(7, 'row-1'));
     }
 
+    public function test_flag_is_deterministic_and_shaped(): void
+    {
+        $f = FakeSecrets::flag(9, 'row-0');
+        self::assertSame($f, FakeSecrets::flag(9, 'row-0'));
+        self::assertMatchesRegularExpression('/^FLAG\.\{[0-9a-f]{40}\}\.GALF$/', $f);
+    }
+
+    public function test_flag_differs_across_seeds_and_keys(): void
+    {
+        self::assertNotSame(FakeSecrets::flag(9, 'row-0'), FakeSecrets::flag(10, 'row-0'));
+        self::assertNotSame(FakeSecrets::flag(9, 'row-0'), FakeSecrets::flag(9, 'row-1'));
+    }
+
     /**
      * The runtime fingerprint scan denylists a bare CRS rule id: six digits starting with 9,
      * bounded by non-word characters (resources/fingerprint-denylist.php). None of these dead
@@ -91,6 +104,7 @@ final class FakeSecretsTest extends TestCase
                     FakeSecrets::stripeKey($seed, $key),
                     FakeSecrets::resetToken($seed, $key),
                     FakeSecrets::bcryptHash($seed, $key),
+                    FakeSecrets::flag($seed, $key),
                 ];
                 foreach ($values as $value) {
                     self::assertDoesNotMatchRegularExpression(
@@ -99,6 +113,24 @@ final class FakeSecretsTest extends TestCase
                         "seed={$seed} key={$key} value={$value}"
                     );
                 }
+            }
+        }
+    }
+
+    /**
+     * Belt-and-braces over the whole runtime denylist (not just the bare-CRS-rule-id pattern): the
+     * FLAG.{…}.GALF shape must never trip FingerprintGuard across a wide seed spread — the wrapper
+     * bounds the 40-hex run so no isolated 6-digit run can form, and it carries no CRS string.
+     */
+    public function test_flag_never_matches_the_fingerprint_denylist_across_many_seeds(): void
+    {
+        $guard = \Funnypot\Core\Compiler\Crs\FingerprintGuard::fromPackage();
+        $keys = ['row-0', 'row-1', 'admin', 'k#7'];
+
+        for ($seed = 0; $seed < 256; $seed++) {
+            foreach ($keys as $key) {
+                $flag = FakeSecrets::flag($seed, $key);
+                self::assertSame([], $guard->scan($flag), "seed={$seed} key={$key} flag={$flag}");
             }
         }
     }

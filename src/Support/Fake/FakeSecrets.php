@@ -56,6 +56,24 @@ final class FakeSecrets
         return '$2y$10$' . self::chars($seed, $key . '|bcryptHash', self::ALNUM, 53);
     }
 
+    /**
+     * A CTF-sentinel flag SHAPE — `FLAG.{<40 lowercase-hex>}.GALF` — an obviously-inert honeytoken
+     * meant to be auto-submitted by flag-hunting agents (it authenticates/validates nowhere). The
+     * inner 40-hex run is drawn per-(seed,key) via the same chars() path as resetToken, so it is
+     * per-deploy stable and never a world-known literal.
+     *
+     * Fingerprint-safety: the `FLAG`/`GALF` wrappers are pure letters and the `.`/`{`/`}` delimiters
+     * are non-word chars, so the only word-boundaries sit at the two brace edges of the length-40 hex
+     * run — there is no `\b` INSIDE the run. A bare `\b9\d{5}\b` match needs word-boundaries on both
+     * sides of an isolated 6-digit run, which can only sit at the two ends of a run of total length
+     * exactly 6; the 40-run is far longer, so no value can ever trip the denylist's bare-CRS-rule-id
+     * pattern regardless of which digits land where — the same proof the other shapes above make.
+     */
+    public static function flag(int $seed, string $key): string
+    {
+        return 'FLAG.{' . self::chars($seed, $key . '|flag', self::HEX, 40) . '}.GALF';
+    }
+
     /** A deterministic run of $length chars from $alphabet: each 32-char block is drawn from
      *  one sha256 (2 hex chars per output char), chained by block index for runs longer than
      *  one block yields, so any length can be produced from hash()/hexdec()/substr() alone. */

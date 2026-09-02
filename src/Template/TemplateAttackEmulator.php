@@ -80,7 +80,7 @@ final class TemplateAttackEmulator
     private $fingerprintGuardLoaded = false;
 
     /** The mock tables the authed phpMyAdmin decoy lists in its left tree, in display order. */
-    private const DECOY_TABLE_NAMES = ['users', 'password_resets', 'api_keys', 'sessions', 'orders'];
+    private const DECOY_TABLE_NAMES = ['users', 'password_resets', 'api_keys', 'sessions', 'orders', 'secrets'];
 
     /**
      * Column headers per mock table, matching FakeRecords' documented row shapes. Doubles as the
@@ -94,6 +94,7 @@ final class TemplateAttackEmulator
         'api_keys' => ['id', 'owner_name', 'api_key', 'created_at', 'last_used_at'],
         'sessions' => ['id', 'username', 'ip', 'last_activity'],
         'orders' => ['order_id', 'customer', 'amount', 'status', 'created_at'],
+        'secrets' => ['id', 'name', 'value'],
     ];
 
     /**
@@ -1281,6 +1282,8 @@ final class TemplateAttackEmulator
                 return FakeRecords::sessions($seed, $domain, $key, $n);
             case 'orders':
                 return FakeRecords::orders($seed, $key, $n);
+            case 'secrets':
+                return FakeRecords::secrets($seed, $key, $n);
             case 'users':
             default:
                 return FakeRecords::users($seed, $domain, $key, $n);
