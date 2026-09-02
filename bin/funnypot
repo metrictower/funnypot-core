@@ -642,8 +642,40 @@ if ($command === 'doctor') {
     exit($d['shared'] ? 0 : 1);
 }
 
+if ($command === 'coverage') {
+    // FP-0261: a compile-time report ranking which upstream rules we CAN vs CANNOT confirm, by reason,
+    // so the next fold-reason bucket to tackle is obvious. Reads the sidecars `compile` already writes.
+    $skPath = $root . '/resources/compiled/skipped.json';
+    $mfPath = $root . '/resources/compiled/manifest.json';
+    if (!is_file($skPath)) {
+        fwrite(STDERR, "error: {$skPath} not found — run `funnypot compile <templates>/http` first\n");
+        exit(2);
+    }
+    $skipped = json_decode((string) file_get_contents($skPath), true) ?: [];
+    $manifest = is_file($mfPath) ? (json_decode((string) file_get_contents($mfPath), true) ?: []) : [];
+    $byReason = [];                       // skipped.json is id => reason; rank reasons by count.
+    foreach ($skipped as $reason) {
+        $key = (string) $reason;
+        $byReason[$key] = ($byReason[$key] ?? 0) + 1;
+    }
+    arsort($byReason);
+    $seen = (int) ($manifest['templates_seen'] ?? 0);
+    $in = (int) ($manifest['templates_in'] ?? 0);
+    printf("funnypot confirm-coverage (%s @ %s)\n", $manifest['source'] ?? '?', $manifest['upstream_tag'] ?? '?');
+    printf("  seen=%d  confirmable=%d  skipped=%d", $seen, $in, count($skipped));
+    if ($seen > 0) {
+        printf("  (%.1f%% confirmable)", 100.0 * $in / $seen);
+    }
+    fwrite(STDOUT, "\n\n  cannot-confirm, ranked by reason:\n");
+    foreach ($byReason as $reason => $count) {
+        printf("  %6d  %s\n", $count, $reason);
+    }
+    exit(0);
+}
+
 if ($command !== 'compile') {
     fwrite(STDERR, "usage: funnypot compile <templates-dir> [--out=PATH]\n");
+    fwrite(STDERR, "       funnypot coverage  (rank upstream rules we can/can't confirm, by reason)\n");
     fwrite(STDERR, "       funnypot compile-emulators [<attack-template-dir>] [--out=PATH]\n");
     fwrite(STDERR, "       funnypot compile-routes [<route-template-dir>] [--out=PATH]\n");
     fwrite(STDERR, "       funnypot compile-ai [--out=<generated-dir>]  (route + owns_path attack templates)\n");
