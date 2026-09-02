@@ -91,4 +91,15 @@ final class OastProbeTest extends TestCase
         $body = str_repeat('A', 16400) . 'http://late.oastify.com/';
         self::assertNull(OastProbe::detect(new RequestContext('POST', '/', '', [], $body)));
     }
+
+    public function test_zone_in_header_detected_despite_16kb_junk_body(): void
+    {
+        // The FP-0256 cap-ordering fix: a >=16KB junk body must NOT push a header-borne OAST zone
+        // past the scan cap. Header-first ordering scans the Referer before the body, so the zone
+        // survives. (Fails on the pre-FP-0256 body-first builder, where the header was truncated.)
+        $body = str_repeat('A', 16400);
+        self::assertSame('burp-collab', OastProbe::detect(
+            new RequestContext('POST', '/', '', ['Referer' => 'http://abc.oastify.com/'], $body)
+        ));
+    }
 }

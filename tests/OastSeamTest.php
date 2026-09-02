@@ -119,7 +119,7 @@ final class OastSeamTest extends TestCase
 
     /**
      * Test #3b: prove the no-callback invariant structurally — the detect path contains no
-     * socket/DNS/fetch primitive. (OastProbe::detect + classify()'s foldOast are pure string work.)
+     * socket/DNS/fetch primitive. (OastProbe::detect + classify()'s foldOob are pure string work.)
      */
     public function test_detect_path_source_has_no_network_primitive(): void
     {
@@ -132,16 +132,16 @@ final class OastSeamTest extends TestCase
         foreach ($needles as $needle) {
             self::assertStringNotContainsString($needle, $oast, "OastProbe must not reference {$needle}");
         }
-        // The fold itself (classify/foldOast) does only array/string work — assert the fold body.
+        // The fold itself (classify/foldOob) does only array/string work — assert the fold body.
         $honeypot = file_get_contents(__DIR__ . '/../src/Honeypot.php');
         self::assertNotFalse($honeypot);
-        $start = strpos($honeypot, 'private function foldOast');
+        $start = strpos($honeypot, 'private function foldOob');
         self::assertNotFalse($start);
         $end = strpos($honeypot, 'private function', $start + 1);
-        self::assertNotFalse($end, 'foldOast must not be the last private method (else the slice guard is vacuous)');
+        self::assertNotFalse($end, 'foldOob must not be the last private method (else the slice guard is vacuous)');
         $body = substr($honeypot, $start, $end - $start);
         foreach ($needles as $needle) {
-            self::assertStringNotContainsString($needle, $body, "foldOast must not reference {$needle}");
+            self::assertStringNotContainsString($needle, $body, "foldOob must not reference {$needle}");
         }
     }
 
@@ -185,7 +185,7 @@ final class OastSeamTest extends TestCase
      * Appending an OAST param must fold the signal WITHOUT bumping the verdict to SCANNER_PROBE
      * (fakeHandle is non-null, so the bump is gated off) — otherwise respond()'s line-870
      * CLEAN+no-signature decline would be skipped and a root decoy served off an OAST param.
-     * Guards against a future foldOast() that bumps all CLEAN verdicts.
+     * Guards against a future foldOob() that bumps all CLEAN verdicts.
      */
     public function test_oast_on_clean_root_handle_stays_clean_and_still_declines(): void
     {
