@@ -1,14 +1,30 @@
 id: attack-wp-admin-redirect
 severity: low
 priority: 104
-tags: [attack, wordpress, redirect, panel]
+tags: [attack, wordpress, redirect, panel, mock-auth, decoy-session]
 owns_path: [/wp-admin, /wp-admin/]
-# Unauthenticated /wp-admin(/) redirect. A real WordPress admin.php calls auth_redirect(), which
-# 302s to wp-login.php?redirect_to=<self>&reauth=1 — it never 404s its own admin entry point and
-# never renders a dashboard without a session. 97-wp-login.yaml's login form links exactly this
-# redirect_to target (its `redirect_to` hidden field points at /wp-admin/), so leaving /wp-admin
-# unhandled turned our own login page's link into a dead-link tell. No authenticated surface
-# anywhere here — consistent with the project's never-authenticate convention for login oracles.
+# /wp-admin(/) handler with a MOCK-AUTH gate. A real WordPress admin.php calls auth_redirect(), which
+# 302s an unauthenticated request to wp-login.php?redirect_to=<self>&reauth=1 — it never 404s its own
+# admin entry point. 97-wp-login.yaml's mint 302s to exactly /wp-admin/, so the two are a linked pair.
+#
+# `behavior: decoy-session` mode `gate`, panel `wordpress`: a request carrying a verified `s=1` decoy
+# cookie (the one rule 97's mint set) renders the authed WordPress admin dashboard via
+# WordpressSkin::renderAdmin (fabricated Users loot + planted API-key honeytoken). ANYTHING ELSE — no
+# cookie, a garbage value, a validly-signed but wrong-class s=0, a forged/wrong-key/truncated tag, the
+# signing key disabled, or a path/method variant this rule itself declines — falls back to the base
+# `response` below. Fail-closed by construction: the ONLY path to the authed body is a verified s=1
+# (DecoySession::isAuthenticated; see TemplateAttackEmulator::handleDecoySession's docblock).
+#
+# AC3 / DECLINE SHAPE (record so a reviewer doesn't "fix" it into a byte-drift): the gate's decline for
+# /wp-admin is this 302 TO wp-login — WP-faithful auth_redirect parity, byte-identical to today — NOT a
+# 200 login body. That IS "shows the login page / no authed content" in the WP sense. KEY-OFF DEPLOYS
+# and every pinned unkeyed test stay byte-identical to today (the key is a hard kill switch checked
+# before any DecoySession is built).
+#
+# NO canonical_slash here: it fires BEFORE the auth check, so a bare `GET /wp-admin` would 301 instead of
+# the pinned 302, breaking today's unauth bytes (ZapCoverageTest). Authed bare `/wp-admin` just renders
+# the dashboard directly (a minor realism delta vs Apache DirectorySlash, accepted). owns_path is NOT
+# widened to /wp-admin/index.php — that has a live corpus entry and widening it is its own follow-up.
 #
 # The Location is a RELATIVE static literal built from nothing attacker-controlled (never a
 # reflected capture): wp-login.php lives at the bare root here (see 97-wp-login.yaml), not under
@@ -32,4 +48,14 @@ response:
   headers:
     Location: "/wp-login.php?redirect_to=%2Fwp-admin%2F&reauth=1"
   body: ""
+behavior: decoy-session
+decoy-session:
+  mode: gate
+  panel: wordpress
+  # SAME per-deploy name rule 97's mint sets, so a browser's cookie round-trips to this gate. Deploy-
+  # stable via the persona seed; DecoySessionProbe is name-agnostic regardless.
+  cookie_name: 'wordpress_logged_in_{{persona.wordpress.cookieHash}}'
+  cookie_path: /
+  # Fabricated user emails share the SAME company identity the dashboard renders (never example.com).
+  domain: '{{persona.company.domain}}'
 expect: ['/wp-login.php?redirect_to=%2Fwp-admin%2F&reauth=1']

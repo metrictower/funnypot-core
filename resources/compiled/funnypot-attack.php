@@ -539,6 +539,7 @@ body{margin:0;font-family:-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-s
       'mode' => 'gate',
       'cookie_name' => 'phpMyAdmin',
       'cookie_path' => '/phpmyadmin',
+      'panel' => 'phpmyadmin',
       'domain' => '{{persona.company.domain}}',
       'table_key' => 'users',
       'rows' => 8,
@@ -698,6 +699,7 @@ body{margin:0;font-family:-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-s
       'mode' => 'mint',
       'cookie_name' => 'phpMyAdmin',
       'cookie_path' => '/phpmyadmin',
+      'redirect' => '/phpmyadmin/index.php',
     ),
   ),
   14 => 
@@ -2468,7 +2470,7 @@ body{margin:0;font-family:-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-s
       2 => 
       array (
         'in' => 'body',
-        'regex' => '(?:(?:^|&)log=([^&]{0,64}))?',
+        'regex' => '^(?:(?=(?:.*&)?log=(?P<user>[^&]{0,64})))?(?:(?=(?:.*&)?pwd=(?P<pass>[^&]{0,64})))?',
         'ci' => false,
         'capture' => true,
       ),
@@ -2486,12 +2488,12 @@ body{margin:0;font-family:-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-s
 <html lang="en-US">
 <head>
 <meta charset="UTF-8" />
-<title>Log In &lsaquo; {{pick:Example Site,Acme Blog,Company News,The Portal}} &#8212; WordPress</title>
+<title>Log In &lsaquo; {{persona.company.name}} &#8212; WordPress</title>
 <link rel=\'stylesheet\' href=\'https://blog.{{persona.company.domain}}/wp-includes/css/dist/block-library/style.min.css\' />
 </head>
 <body class="login no-js login-action-login wp-core-ui">
 <div id="login">
-<h1><a href="https://blog.{{persona.company.domain}}/">{{pick:Example Site,Acme Blog,Company News,The Portal}}</a></h1>
+<h1><a href="https://blog.{{persona.company.domain}}/">{{persona.company.name}}</a></h1>
 <p class="message register">Register For This Site</p>
 <div id="login_error" class="notice notice-error"><p><strong>Error:</strong> The password you entered for the username <strong>admin</strong> is incorrect. <a href="https://blog.{{persona.company.domain}}/wp-login.php?action=lostpassword">Lost your password?</a></p></div>
 <form name="loginform" id="loginform" action="https://blog.{{persona.company.domain}}/wp-login.php" method="post">
@@ -2526,6 +2528,14 @@ body{margin:0;font-family:-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-s
     'owns_path' => 
     array (
       0 => '/wp-login.php',
+    ),
+    'behavior' => 'decoy-session',
+    'decoy-session' => 
+    array (
+      'mode' => 'mint',
+      'cookie_name' => 'wordpress_logged_in_{{persona.wordpress.cookieHash}}',
+      'cookie_path' => '/',
+      'redirect' => '/wp-admin/',
     ),
   ),
   34 => 
@@ -4993,6 +5003,8 @@ vpc-ipv4-cidr-block
       1 => 'wordpress',
       2 => 'redirect',
       3 => 'panel',
+      4 => 'mock-auth',
+      5 => 'decoy-session',
     ),
     'status' => 302,
     'match' => 
@@ -5024,6 +5036,16 @@ vpc-ipv4-cidr-block
     'owns_path' => 
     array (
       0 => '/wp-admin',
+    ),
+    'behavior' => 'decoy-session',
+    'decoy-session' => 
+    array (
+      'mode' => 'gate',
+      'cookie_name' => 'wordpress_logged_in_{{persona.wordpress.cookieHash}}',
+      'cookie_path' => '/',
+      'panel' => 'wordpress',
+      'domain' => '{{persona.company.domain}}',
+      'table_key' => 'users',
     ),
   ),
   71 => 

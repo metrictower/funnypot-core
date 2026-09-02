@@ -13,6 +13,14 @@ use Funnypot\Core\Support\VisualPersona;
  */
 final class WordpressSkin extends AbstractSkin
 {
+    /** The real wp-admin left-menu vocabulary, used only when the caller supplies no navItems. Fixed
+     *  literals on purpose — blending into the WP install-base fleet-wide is this skin's anti-fingerprint
+     *  property (same reasoning as the fixed login-card class names). */
+    private const DEFAULT_MENU = [
+        'Dashboard', 'Posts', 'Media', 'Pages', 'Comments',
+        'Appearance', 'Plugins', 'Users', 'Tools', 'Settings',
+    ];
+
     public function matches(string $path): bool
     {
         // "wp-" is a segment PREFIX, not a whole segment on its own — the real files it needs to
@@ -78,6 +86,96 @@ final class WordpressSkin extends AbstractSkin
                 . $this->wpMarkers($persona),
             ' class="login no-js"'
         );
+    }
+
+    /**
+     * The authed wp-admin dashboard shell — a NEW public method, deliberately NOT a branch inside
+     * render(): the LLM-tier skin router (app-side) calls render() for every wp-* path, so changing
+     * render()'s semantics would silently move LLM-tier output. The decoy-session gate news up this
+     * concrete class and calls renderAdmin() directly (mirroring how the gate news up PhpMyAdminSkin),
+     * so this admin shell adds zero drift for the login-card consumer.
+     *
+     * Mirrors PhpMyAdminSkin::render(): a `#wpadminbar` top bar, an `#adminmenu` left column carrying
+     * the real wp-admin menu vocabulary (slot-driven, else DEFAULT_MENU), an At-a-Glance card naming the
+     * SAME wordpress.version/theme identity wpMarkers() emits, and the loot table via the inherited
+     * tableHtml(). Every dynamic string routes through esc() (escape-by-construction). Menu links point
+     * only at '#' (never an un-owned /wp-admin/*.php path that would fall through to unrelated corpus
+     * bundles and break the story). Class names/menu labels are fixed WP literals — the intended blending
+     * posture, verified fingerprint-safe by the gate's runtime FingerprintGuard verify-before-serve tail.
+     */
+    public function renderAdmin(PageSlots $slots, VisualPersona $persona, string $escapedPath, string $path = ''): string
+    {
+        $id = $persona->identity();
+        $siteRaw = $slots->appName() !== '' ? $slots->appName() : $persona->company();
+        $site = $this->esc($siteRaw);
+        $adminUser = $this->esc($id->field('user.admin.username') ?? 'admin');
+        $core = $this->esc($id->field('wordpress.version') ?? '6.4.3');
+        $theme = $this->esc($id->field('wordpress.theme') ?? 'twentytwentyfour');
+
+        $bar = '<div id="wpadminbar"><div class="ab-top">'
+            . '<span class="ab-item ab-site">' . $site . '</span>'
+            . '<span class="ab-item ab-howdy">Howdy, ' . $adminUser . '</span>'
+            . '</div></div>';
+
+        $menuItems = $slots->navItems() !== [] ? $slots->navItems() : self::DEFAULT_MENU;
+        $menu = '<div id="adminmenuwrap"><ul id="adminmenu">';
+        foreach ($menuItems as $item) {
+            $menu .= '<li class="menu-top"><a class="menu-top" href="#">' . $this->esc($item) . '</a></li>';
+        }
+        $menu .= '</ul></div>';
+
+        $main = '<div id="wpbody"><div id="wpbody-content">';
+        $main .= '<h1 class="wp-heading-inline">Dashboard</h1>';
+        $main .= '<div class="postbox" id="dashboard_right_now">'
+            . '<h2 class="hndle">At a Glance</h2>'
+            . '<div class="inside"><p>WordPress ' . $core . ' running the ' . $theme . ' theme.</p></div>'
+            . '</div>';
+
+        $table = $this->tableHtml($slots->tableCols(), $slots->tableRows(), ' class="wp-list-table widefat fixed striped users"');
+        if ($table !== '') {
+            $main .= '<div class="postbox" id="users_list">'
+                . '<h2 class="hndle">Users</h2>'
+                . '<div class="inside">' . $table . '</div>'
+                . '</div>';
+        }
+        $main .= '</div></div>';
+
+        $body = $bar . '<div id="wpwrap">' . $menu . $main . '</div>';
+
+        return $this->document(
+            "Dashboard \u{2039} " . $siteRaw . " \u{2014} WordPress",
+            $this->adminCss(),
+            $body,
+            ' lang="en-US"',
+            '<meta charset="utf-8"><meta name="viewport" content="width=device-width">'
+                . $this->wpMarkers($persona),
+            ' class="wp-admin wp-core-ui"'
+        );
+    }
+
+    /** wp-admin-flavoured chrome CSS: a top admin bar, a dark left menu column, and card `postbox`
+     *  panels — resemblance to the real admin scheme, every hex nudged off WordPress's exact tokens. */
+    private function adminCss(): string
+    {
+        return 'body{margin:0;font-family:-apple-system,"Segoe UI",Roboto,sans-serif;background:#f0f0f1;color:#3c434a}'
+            . '#wpadminbar{height:32px;background:#1d2429;color:#f0f0f1;font-size:13px}'
+            . '#wpadminbar .ab-top{display:flex;align-items:center;justify-content:space-between;height:32px;padding:0 12px}'
+            . '#wpadminbar .ab-item{line-height:32px}'
+            . '#wpwrap{display:flex;min-height:calc(100vh - 32px)}'
+            . '#adminmenuwrap{width:160px;background:#1d2429;flex:0 0 160px}'
+            . '#adminmenu{list-style:none;margin:0;padding:0}'
+            . '#adminmenu .menu-top{display:block}'
+            . '#adminmenu a.menu-top{display:block;padding:8px 12px;color:#c3c4c7;text-decoration:none;font-size:14px}'
+            . '#adminmenu a.menu-top:hover{background:#2c3338;color:#72aee6}'
+            . '#wpbody{flex:1;min-width:0}'
+            . '#wpbody-content{padding:16px 22px}'
+            . '.wp-heading-inline{font-size:23px;font-weight:400;margin:6px 0 16px;color:#1d2327}'
+            . '.postbox{background:#fff;border:1px solid #c3c4c7;border-radius:3px;margin-bottom:18px}'
+            . '.postbox .hndle{margin:0;padding:8px 12px;border-bottom:1px solid #c3c4c7;font-size:14px;font-weight:600}'
+            . '.postbox .inside{padding:10px 12px}'
+            . '.wp-list-table{border-collapse:collapse;width:100%}'
+            . '.wp-list-table th{background:#f6f7f7;text-align:left;padding:8px 10px;border-bottom:1px solid #c3c4c7;font-weight:600}'
+            . '.wp-list-table td{padding:8px 10px;border-bottom:1px solid #f0f0f1}';
     }
 
     /**

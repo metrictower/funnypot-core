@@ -12,14 +12,27 @@ owns_path: [/wp-login.php]
 # static GET page (open-registration persona); this rule claims the same path via owns_path so a
 # POST reaches the attack tier ahead of the static stub — a GET still misses the POST condition below
 # and falls through unchanged to route 50's page (classify() re-serves the static bundle on decline).
-# ZERO EXECUTION: the ONLY body read is the bounded `log` field, captured purely to gate the match —
-# it is NEVER reflected. The error always names the FIXED persona username `admin`, never the
-# submitted one, so a crafted username can never surface in the response. There is NO success path:
-# real WordPress answers bad credentials by re-serving the login page (HTTP 200, not a redirect) with
-# the login_error notice — no wordpress_logged_in_*/wordpress_sec_* cookie is ever set here, only the
-# inert wordpress_test_cookie a real server also sets pre-auth. Gated to POST: any other verb misses
-# this rule (no owns_path match) → the static route above. Chrome/site-name/domain mirror route 50
-# (blog.{{persona.company.domain}}, no WP version disclosed) so the two responses stay one coherent host.
+# ZERO EXECUTION: the only body reads are the bounded `log`/`pwd` fields, captured purely as match-gates
+# for the decoy-session mint — NEVER reflected. The login-error page always names the FIXED persona
+# username `admin`, never the submitted one, so a crafted username can never surface in the response.
+#
+# MOCK-AUTH MINT (behavior: decoy-session, mode: mint) — the phpMyAdmin pair's exact pattern applied to
+# wp-login. A plausible non-empty log/pwd mints the signed `s=1` decoy cookie and 302s to the FIXED
+# literal /wp-admin/ (the authored `redirect`; never a submitted value, so no open redirect). An
+# empty/whitespace/implausible credential DECLINES to the base `response` below — this SAME login-error
+# page, HTTP 200, byte-identical to today (no 302, no session cookie). The mint is scoped to PARITY with
+# phpMyAdmin: the FIRST plausible POST "logs in" (the any-credential-acceptance tell is a separate
+# follow-up — FP-0286-adjacent — that needs credential-pinning, out of scope here).
+#
+# KEY-OFF DEFAULT = byte-identical to today: the signing key is a hard kill switch checked FIRST
+# (handleDecoySession), so an unkeyed deploy declines before a DecoySession is ever built and serves this
+# base page exactly as before. The only deliberate rollout-wide byte change is the site-name literal: the
+# two `{{pick:...}}` site names became `{{persona.company.name}}` so this page names the SAME deploy-stable
+# company the /wp-admin dashboard shows (the envelope/behavior is otherwise identical; no test pins the
+# names). The mint sets ONLY the signed decoy cookie — never an unsigned wordpress_logged_in-style value —
+# and its cookie NAME is `wordpress_logged_in_{{persona.wordpress.cookieHash}}`, per-deploy (not a
+# fleet-wide literal) and matched by rule 104's gate. Chrome/domain mirror route 50 (the GET login page,
+# also persona-named) so GET and POST stay one coherent host.
 #
 # PATH/METHOD MATCH MUST STAY AS PERMISSIVE AS owns_path: ownsPath() claims any case/trailing-slash
 # variant of /wp-login.php (PathNormalizer::ownershipKey lower-cases + strips ALL trailing slashes,
@@ -30,9 +43,10 @@ owns_path: [/wp-login.php]
 # linear scan, not scoped to this rule) before falling back to the exact-store `POST /wp-login.php`
 # entry — the real compiled corpus keys that exact path with a `wordpress`-tagged
 # wordpress-weak-credentials bundle (302, `wordpress_logged_in` — a fake login SUCCESS) alongside
-# white-label-cms, and a `pwd`-shaped body can also trip rule 41 (attack-cmdi-unix) before either. The
-# `log` capture is likewise optional (matches even with no `log=` field) so a POST with any body still
-# reaches this oracle first.
+# white-label-cms, and a `pwd`-shaped body can also trip rule 41 (attack-cmdi-unix) before either. Both
+# `user`/`pass` captures are OPTIONAL lookaheads (each `(?=...)?`) so the rule still matches EVERY POST —
+# even an empty body, or one missing a field — preserving the never-fall-through property above; the mint
+# reads the captures purely to decide mint-vs-decline (a missing/empty field simply declines).
 match:
   - in: path
     regex: '(?:^|/)wp-login\.php/*$'
@@ -41,7 +55,10 @@ match:
     regex: '^POST$'
     ci: true
   - in: body
-    regex: '(?:(?:^|&)log=([^&]{0,64}))?'   # optional: capture-gate only when present, never reflected
+    # Two independent OPTIONAL lookaheads (mirrors rule 103, but optional so an absent field still
+    # matches): find log/pwd wherever they sit in the body, in any field order. Match-gates only — the
+    # captures are NEVER reflected.
+    regex: '^(?:(?=(?:.*&)?log=(?P<user>[^&]{0,64})))?(?:(?=(?:.*&)?pwd=(?P<pass>[^&]{0,64})))?'
     capture: true
     ci: false
 status: 200
@@ -56,12 +73,12 @@ response:
     <html lang="en-US">
     <head>
     <meta charset="UTF-8" />
-    <title>Log In &lsaquo; {{pick:Example Site,Acme Blog,Company News,The Portal}} &#8212; WordPress</title>
+    <title>Log In &lsaquo; {{persona.company.name}} &#8212; WordPress</title>
     <link rel='stylesheet' href='https://blog.{{persona.company.domain}}/wp-includes/css/dist/block-library/style.min.css' />
     </head>
     <body class="login no-js login-action-login wp-core-ui">
     <div id="login">
-    <h1><a href="https://blog.{{persona.company.domain}}/">{{pick:Example Site,Acme Blog,Company News,The Portal}}</a></h1>
+    <h1><a href="https://blog.{{persona.company.domain}}/">{{persona.company.name}}</a></h1>
     <p class="message register">Register For This Site</p>
     <div id="login_error" class="notice notice-error"><p><strong>Error:</strong> The password you entered for the username <strong>admin</strong> is incorrect. <a href="https://blog.{{persona.company.domain}}/wp-login.php?action=lostpassword">Lost your password?</a></p></div>
     <form name="loginform" id="loginform" action="https://blog.{{persona.company.domain}}/wp-login.php" method="post">
@@ -88,4 +105,14 @@ response:
     </div>
     </body>
     </html>
+behavior: decoy-session
+decoy-session:
+  mode: mint
+  # Per-deploy cookie name (real WP appends a 32-hex COOKIEHASH to `wordpress_logged_in_`), so the fleet
+  # never shares one fixed auth-cookie name. Deploy-stable via the persona seed, so rule 104's gate reads
+  # the identical name; DecoySessionProbe is name-agnostic regardless.
+  cookie_name: 'wordpress_logged_in_{{persona.wordpress.cookieHash}}'
+  cookie_path: /
+  # FIXED literal redirect target — the wp-admin dashboard rule 104 gates. Never a submitted value.
+  redirect: /wp-admin/
 expect: ['login_error', 'wp-login.php']

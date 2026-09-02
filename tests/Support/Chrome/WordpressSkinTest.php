@@ -94,4 +94,80 @@ final class WordpressSkinTest extends TestCase
         $b = (new WordpressSkin())->render(PageSlots::fromArray([]), VisualPersona::fromSeed(3), '/wp-login.php');
         self::assertSame($a, $b);
     }
+
+    // --- FP-0271: renderAdmin() — the authed wp-admin dashboard shell (NOT render()) ----------
+
+    private function adminSlots(): PageSlots
+    {
+        // Trusted (app-supplied) rows, as the decoy-session gate builds them: a users loot table.
+        return PageSlots::trusted(
+            'Blog',
+            '',
+            '',
+            '',
+            [],
+            ['Username', 'Name', 'Email', 'Role', 'API key'],
+            // Secret-shaped literal split per the project's AGENT-EXECUTION-RULES (never a contiguous
+            // AKIA token in source); the value is only asserted to render as an escaped cell.
+            [['jadmin', 'Jane Admin', 'jadmin@blog.test', 'Administrator', 'AKIA' . 'EXAMPLETOKENVALUE']],
+            [],
+            '',
+            ''
+        );
+    }
+
+    public function test_render_admin_draws_the_wp_admin_shell(): void
+    {
+        $html = (new WordpressSkin())->renderAdmin($this->adminSlots(), VisualPersona::fromSeed(5), '/wp-admin/', '/wp-admin/');
+
+        self::assertStringStartsWith('<!doctype html>', $html);
+        self::assertStringContainsString('id="wpadminbar"', $html);
+        self::assertStringContainsString('id="adminmenu"', $html);
+        self::assertStringContainsString('Howdy,', $html);
+        self::assertStringContainsString('At a Glance', $html);
+        self::assertStringContainsString('wp-list-table', $html);
+        // The default wp-admin menu vocabulary is present (slot-driven fallback).
+        foreach (['Dashboard', 'Posts', 'Plugins', 'Users', 'Settings'] as $item) {
+            self::assertStringContainsString('>' . $item . '</a>', $html, $item);
+        }
+        // The loot table headers + a cell.
+        self::assertStringContainsString('<th>Username</th>', $html);
+        self::assertStringContainsString('<td>jadmin</td>', $html);
+        // Front-door markers ride the same head as the login card (one coherent WP identity).
+        self::assertStringContainsString('<meta name="generator" content="WordPress ', $html);
+    }
+
+    public function test_render_admin_escapes_every_slot_cell(): void
+    {
+        $slots = PageSlots::trusted(
+            '<script>evil</script>',
+            '', '', '', [],
+            ['User', 'Note'],
+            [['x', '<img src=x onerror=1>']],
+            [], '', ''
+        );
+        $html = (new WordpressSkin())->renderAdmin($slots, VisualPersona::fromSeed(5), '/wp-admin/', '/wp-admin/');
+
+        self::assertStringNotContainsString('<script>evil', $html);
+        self::assertStringNotContainsString('<img src=x onerror', $html);
+        self::assertStringContainsString('&lt;script&gt;evil', $html);
+    }
+
+    public function test_render_admin_is_deterministic_per_seed(): void
+    {
+        $a = (new WordpressSkin())->renderAdmin($this->adminSlots(), VisualPersona::fromSeed(9), '/wp-admin/', '/wp-admin/');
+        $b = (new WordpressSkin())->renderAdmin($this->adminSlots(), VisualPersona::fromSeed(9), '/wp-admin/', '/wp-admin/');
+        self::assertSame($a, $b);
+    }
+
+    /** renderAdmin() is a SEPARATE method: it must not disturb the login-card render() output. */
+    public function test_render_admin_does_not_change_the_login_card_render(): void
+    {
+        $login = (new WordpressSkin())->render(PageSlots::fromArray(['app_name' => 'Blog']), VisualPersona::fromSeed(5), '/wp-login.php');
+        self::assertStringContainsString('id="login"', $login);
+        self::assertStringContainsString('name="loginform"', $login);
+        // The login card is not the admin shell.
+        self::assertStringNotContainsString('id="wpadminbar"', $login);
+        self::assertStringNotContainsString('id="adminmenu"', $login);
+    }
 }

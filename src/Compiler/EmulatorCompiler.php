@@ -395,11 +395,21 @@ final class EmulatorCompiler
     /** The closed decoy-session mode set: mint (the login POST) or gate (the authed GET/HEAD). */
     private const DECOY_SESSION_MODES = ['mint', 'gate'];
 
+    /** The closed authed-panel set a gate rule may render: the phpMyAdmin breached-DB browser (default,
+     *  legacy) or the WordPress admin dashboard. An unknown value is a build failure. */
+    private const DECOY_SESSION_PANELS = ['phpmyadmin', 'wordpress'];
+
+    /** The default mint redirect Location — the phpMyAdmin panel, so an artifact authored before the
+     *  `redirect` key (and any hand-built legacy rule) mints byte-identically to before. */
+    private const DECOY_MINT_REDIRECT_DEFAULT = '/phpmyadmin/index.php';
+
     /**
      * Normalize a `decoy-session` behavior config: a closed `mode` (mint|gate) plus the
-     * `cookie_name`/`cookie_path` the mint/gate pair must agree on. Gate mode additionally carries
-     * the FakeRecords inputs the Phase-A authed placeholder needs (`domain`, `table_key`, `rows`) —
-     * mint never reads them, so they're only normalized for a gate rule. `domain` may carry a
+     * `cookie_name`/`cookie_path` the mint/gate pair must agree on. Mint mode carries an optional
+     * `redirect` (a static rooted-relative 302 Location literal, default the phpMyAdmin panel). Gate
+     * mode carries a closed `panel` (which authed shell to render, default phpmyadmin) plus the
+     * FakeRecords inputs the authed body needs (`domain`, `table_key`, `rows`) — the gate keys are only
+     * normalized for a gate rule, and `redirect` only for a mint rule. `domain` may carry a
      * directive (e.g. `{{persona.company.domain}}`, rendered at request time by
      * TemplateAttackEmulator::decoySessionAuthedBody), so it gets the same directive-vocabulary
      * lint as a response body/header — a typo'd persona field would otherwise render '' silently.
@@ -420,6 +430,12 @@ final class EmulatorCompiler
         if ($cookieName === '' || $cookiePath === '') {
             throw new RuntimeException("Template {$file}: behavior 'decoy-session' needs a non-empty 'cookie_name' and 'cookie_path'.");
         }
+        // cookie_name may now carry a directive (e.g. wordpress_logged_in_{{persona.wordpress.cookieHash}})
+        // so the minted cookie's NAME is per-deploy rather than a fleet-wide literal; it is rendered at
+        // request time (handleDecoySession threads it through DirectiveRenderer). Directive-vocabulary
+        // lint it like a response header so a typo'd persona field can't render '' silently. A plain
+        // literal (the phpMyAdmin pair's `phpMyAdmin`) carries no directive and round-trips unchanged.
+        $this->assertKnownDirectives($cookieName, $file);
 
         $out = [
             'mode' => $mode,
@@ -427,7 +443,30 @@ final class EmulatorCompiler
             'cookie_path' => $cookiePath,
         ];
 
+        if ($mode === 'mint') {
+            // The 302 Location the mint sends. A STATIC rooted-relative literal only — never attacker-
+            // or directive-shaped (the no-open-redirect invariant): non-empty, starts with a single '/'
+            // (not protocol-relative '//'), no backslash, no CR/LF/NUL, no '{{' directive. Absent ⇒ the
+            // phpMyAdmin default, so the shipped pma mint and any legacy artifact are byte-identical.
+            $redirect = isset($config['redirect']) ? (string) $config['redirect'] : self::DECOY_MINT_REDIRECT_DEFAULT;
+            if ($redirect === ''
+                || $redirect[0] !== '/'
+                || strpos($redirect, '//') === 0
+                || strpos($redirect, '\\') !== false
+                || strpos($redirect, '{{') !== false
+                || preg_match('/[\r\n\x00]/', $redirect) === 1
+            ) {
+                throw new RuntimeException("Template {$file}: behavior 'decoy-session' mint 'redirect' must be a static rooted-relative literal (leading '/', no '//', no backslash, no directive, no CR/LF/NUL).");
+            }
+            $out['redirect'] = $redirect;
+        }
+
         if ($mode === 'gate') {
+            $panel = (string) ($config['panel'] ?? 'phpmyadmin');
+            if (!in_array($panel, self::DECOY_SESSION_PANELS, true)) {
+                throw new RuntimeException("Template {$file}: behavior 'decoy-session' gate 'panel' must be one of " . implode('|', self::DECOY_SESSION_PANELS) . '.');
+            }
+            $out['panel'] = $panel;
             $domain = (string) ($config['domain'] ?? '');
             $this->assertKnownDirectives($domain, $file);
             $out['domain'] = $domain;

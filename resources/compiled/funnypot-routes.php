@@ -477,14 +477,14 @@ define(\'WP_DEBUG\', false);
 <html lang="en-US">
 <head>
 <meta charset="UTF-8" />
-<title>Log In &lsaquo; {{pick:Example Site,Acme Blog,Company News,The Portal}} &#8212; WordPress</title>
-<link rel=\'stylesheet\' href=\'https://blog.example.com/wp-includes/css/dist/block-library/style.min.css\' />
+<title>Log In &lsaquo; {{persona.company.name}} &#8212; WordPress</title>
+<link rel=\'stylesheet\' href=\'https://blog.{{persona.company.domain}}/wp-includes/css/dist/block-library/style.min.css\' />
 </head>
 <body class="login no-js login-action-login wp-core-ui">
 <div id="login">
-<h1><a href="https://blog.example.com/">Example Site</a></h1>
+<h1><a href="https://blog.{{persona.company.domain}}/">{{persona.company.name}}</a></h1>
 <p class="message register">Register For This Site</p>
-<form name="loginform" id="loginform" action="https://blog.example.com/wp-login.php" method="post">
+<form name="loginform" id="loginform" action="https://blog.{{persona.company.domain}}/wp-login.php" method="post">
 <p><label>Username or Email Address<br />
 <input type="text" name="log" class="input" /></label></p>
 <p><label>Password<br />
@@ -492,8 +492,8 @@ define(\'WP_DEBUG\', false);
 <p class="submit"><input type="submit" name="wp-submit" value="Log In" /></p>
 </form>
 <p id="nav">
-<a href="https://blog.example.com/wp-login.php?action=register">Register</a> |
-<a href="https://blog.example.com/wp-login.php?action=lostpassword">Lost your password?</a>
+<a href="https://blog.{{persona.company.domain}}/wp-login.php?action=register">Register</a> |
+<a href="https://blog.{{persona.company.domain}}/wp-login.php?action=lostpassword">Lost your password?</a>
 </p>
 </div>
 </body>

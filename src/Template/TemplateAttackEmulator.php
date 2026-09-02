@@ -17,7 +17,9 @@ use Funnypot\Core\Rules\RulesLocator;
 use Funnypot\Core\Support\Chrome\Esc;
 use Funnypot\Core\Support\Chrome\PageSlots;
 use Funnypot\Core\Support\Chrome\PhpMyAdminSkin;
+use Funnypot\Core\Support\Chrome\WordpressSkin;
 use Funnypot\Core\Support\Fake\FakeRecords;
+use Funnypot\Core\Support\Fake\FakeSecrets;
 use Funnypot\Core\Support\PathNormalizer;
 use Funnypot\Core\Support\SafeArithmetic;
 use Funnypot\Core\Support\VisualPersona;
@@ -1061,7 +1063,19 @@ final class TemplateAttackEmulator
         }
 
         $mode = (string) ($config['mode'] ?? '');
-        $name = (string) ($config['cookie_name'] ?? 'phpMyAdmin');
+        // The cookie NAME may carry a directive (e.g. wordpress_logged_in_{{persona.wordpress.cookieHash}})
+        // so it is per-deploy, not a fleet-wide literal. Rendered through the SAME DirectiveRenderer used
+        // for bodies: with personaSeed wired the {{persona.*}} fields are deploy-stable, so mint and gate
+        // resolve the identical name and the cookie round-trips. Unwired (personaSeed null), the name
+        // follows the per-request render seed — the same attacker still round-trips within a deploy, and
+        // any name mismatch simply fails the gate's isAuthenticated() closed (no leak). A plain literal
+        // (the phpMyAdmin pair's `phpMyAdmin`) round-trips through render() unchanged. Never nameless: an
+        // empty render (a mis-authored name) falls back to the authored text so the cookie always has one.
+        $nameAuthored = (string) ($config['cookie_name'] ?? 'phpMyAdmin');
+        $name = $this->renderer->render($nameAuthored, [], $seed, $this->canary);
+        if ($name === '') {
+            $name = $nameAuthored;
+        }
         $path = (string) ($config['cookie_path'] ?? '/');
         $session = new DecoySession($this->decoySessionKey);
 
@@ -1098,7 +1112,14 @@ final class TemplateAttackEmulator
 
         $cookie = $session->mintCookie($name, $path);
 
-        return new EmulatedContent('', ['Set-Cookie' => $cookie, 'Location' => '/phpmyadmin/index.php'], 302);
+        // The redirect target is an authored STATIC literal (compiler-validated rooted-relative, never a
+        // directive), defaulting to the phpMyAdmin panel so a legacy artifact mints byte-identically. It
+        // is NEVER derived from a capture, so a crafted redirect_to/servername field in the POST body can
+        // never steer the client (the no-open-redirect invariant holds); renderRule's C8 header guard is
+        // the backstop.
+        $location = (string) ($config['redirect'] ?? '/phpmyadmin/index.php');
+
+        return new EmulatedContent('', ['Set-Cookie' => $cookie, 'Location' => $location], 302);
     }
 
     /**
@@ -1174,40 +1195,52 @@ final class TemplateAttackEmulator
     }
 
     /**
-     * The authed decoy body: a hand-authored phpMyAdmin browse screen showing a fabricated "breached
-     * database" — the left tree lists the mock tables (DECOY_TABLE_NAMES) and the grid shows the
-     * selected one's rows, all seeded from FakeRecords. Renders through the shared core PhpMyAdminSkin
-     * so this tier and any template tier show ONE coherent product identity (class prefix + MySQL
-     * version banner are both seed-derived by the skin, never a fleet-wide literal).
+     * The authed decoy body: dispatch on the gate's `panel` to the matching authed shell builder, then
+     * run ONE shared verify-before-serve tail so every panel is fingerprint-checked by construction.
      *
-     * The rendered body is scanned by the runtime FingerprintGuard BEFORE it is served: a fabricated
-     * cell that happened to spell an upstream detector's signature (a bare CRS rule id, a matcher word)
-     * would let an attacker classify the reply as canned. Any hit — or a guard that could not load —
-     * fails CLOSED (return null → the gate declines → the base login page renders): never serve an
-     * unverified body, and never throw (a 500 is itself a tell), so this returns null rather than
-     * raising. The local guard-load try/catch is that fail-closed conversion, not error-swallowing.
-     *
-     * The deploy seed prefers $this->personaSeed (per-deploy coherence across the persona/template
-     * tiers) and falls back to the per-render $seed. Row count is re-clamped to MAX_DECOY_ROWS
-     * regardless of the authored value (mirrors handleIterate's fan-out cap) — no amplification via a
-     * hand-crafted rules artifact.
+     * Each builder returns the rendered HTML (a pure function of the deploy seed + request). The shared
+     * tail scans it with the runtime FingerprintGuard BEFORE it is served: a fabricated cell that happened
+     * to spell an upstream detector's signature (a bare CRS rule id, a matcher word) would let an attacker
+     * classify the reply as canned. Any hit — or a guard that could not load — fails CLOSED (return null →
+     * the gate declines → the base login page renders): never serve an unverified body, and never throw
+     * (a 500 is itself a tell). `panel` is a compiler-closed enum defaulting to phpmyadmin, so an artifact
+     * authored before this key renders the phpMyAdmin body byte-identically.
      *
      * @param array<string,mixed> $config
      */
     private function decoySessionAuthedBody(array $config, int $seed, ?RequestContext $r): ?EmulatedContent
     {
+        $panel = (string) ($config['panel'] ?? 'phpmyadmin');
+        $html = $panel === 'wordpress'
+            ? $this->decoyWordpressAdminHtml($config, $seed, $r)
+            : $this->decoyPhpMyAdminHtml($config, $seed, $r);
+
+        // Verify-before-serve: a fabricated body carrying an upstream-detector signature, or a guard we
+        // could not load, fails closed to the login page rather than serving it or 500-ing.
+        $guard = $this->fingerprintGuard();
+        if ($guard === null || $guard->scan($html) !== []) {
+            return null;
+        }
+
+        return new EmulatedContent($html, ['Content-Type' => 'text/html; charset=utf-8'], 200);
+    }
+
+    /**
+     * The authed phpMyAdmin browse screen: a fabricated "breached database" — the left tree lists the
+     * mock tables (DECOY_TABLE_NAMES) and the grid shows the selected one's rows, all seeded from
+     * FakeRecords. Renders through the shared core PhpMyAdminSkin so this tier and any template tier show
+     * ONE coherent product identity (class prefix + MySQL version banner are both seed-derived by the
+     * skin, never a fleet-wide literal). Row count is re-clamped to MAX_DECOY_ROWS regardless of the
+     * authored value (mirrors handleIterate's fan-out cap) — no amplification via a hand-crafted artifact.
+     * Byte-identical to the pre-panel-dispatch code; the FingerprintGuard tail now lives in the caller.
+     *
+     * @param array<string,mixed> $config
+     */
+    private function decoyPhpMyAdminHtml(array $config, int $seed, ?RequestContext $r): string
+    {
         $deploySeed = $this->personaSeed ?? $seed;
         $persona = VisualPersona::fromSeed($deploySeed);
-        // The fake rows' email/account host tracks the SAME persona the skin renders (topbar server, db
-        // slug, MySQL version), so a fabricated user never disagrees with the site identity around it. An
-        // authored `domain` still wins — typically the `{{persona.company.domain}}` directive, which a
-        // plain literal round-trips through render() unchanged (DirectiveRenderer's fast path). The
-        // fallback is the coherent persona domain: the compiler normalizes an OMITTED `domain` to '', and
-        // an empty host would render bare `user@` cells, so an empty render resolves to the persona domain
-        // rather than a giveaway literal like `example.com`.
-        $authoredDomain = (string) ($config['domain'] ?? '');
-        $rendered = $authoredDomain !== '' ? $this->renderer->render($authoredDomain, [], $seed, $this->canary) : '';
-        $domain = $rendered !== '' ? $rendered : $persona->domain();
+        $domain = $this->decoySessionDomain($config, $seed, $persona);
         $panelKey = (string) ($config['table_key'] ?? 'users');
 
         $rows = isset($config['rows']) ? (int) $config['rows'] : 10;
@@ -1231,21 +1264,87 @@ final class TemplateAttackEmulator
         );
 
         $displayPath = $r !== null ? $r->path : '/phpmyadmin/index.php';
-        $html = (new PhpMyAdminSkin())->render(
-            $slots,
-            $persona,
-            Esc::text($displayPath),
-            $displayPath
-        );
 
-        // Verify-before-serve: a fabricated body carrying an upstream-detector signature, or a guard we
-        // could not load, fails closed to the login page rather than serving it or 500-ing.
-        $guard = $this->fingerprintGuard();
-        if ($guard === null || $guard->scan($html) !== []) {
-            return null;
+        return (new PhpMyAdminSkin())->render($slots, $persona, Esc::text($displayPath), $displayPath);
+    }
+
+    /**
+     * The authed WordPress admin dashboard: a wp-admin shell whose loot is the Users list — the five
+     * canonical WordPress authors this deploy claims (the SAME wordpress.user.N.{slug,name} identity
+     * `/wp-json/wp/v2/users` and author archives read, so the dashboard agrees with the front-door
+     * markers), each with an "API key" honeytoken cell. That cell uses the FP-0260 guard-scanned
+     * FakeSecrets path (per-(seed,key) unique, denied-digit re-roll guarded) so a planted token can never
+     * carry a denylisted run; it is labelled generically as an API key rather than claiming the exact
+     * WordPress Application-Password shape (24 lowercase in groups of 4), which would need a dedicated
+     * FakeSecrets generator (a deliberate follow-up — no new secret generator is introduced here). The
+     * honeytoken-RETRIEVAL signal itself is independent of this cell: it fires in Honeypot::classify() the
+     * moment the valid s=1 cookie is replayed (DecoySessionProbe), with no served-byte change. Content is
+     * a pure function of the deploy seed (deploy-stable); rendered through the new WordpressSkin::
+     * renderAdmin(), NOT its login-card render(), so the LLM-tier login shell is untouched.
+     *
+     * @param array<string,mixed> $config
+     */
+    private function decoyWordpressAdminHtml(array $config, int $seed, ?RequestContext $r): string
+    {
+        $deploySeed = $this->personaSeed ?? $seed;
+        $persona = VisualPersona::fromSeed($deploySeed);
+        $domain = $this->decoySessionDomain($config, $seed, $persona);
+        $id = $persona->identity();
+
+        // The canonical WP role ladder, index 1 = the admin account (user 1). A real multi-author site
+        // shows exactly this spread; fixed literals are protocol vocabulary, not a fleet tell.
+        $roles = ['Administrator', 'Editor', 'Author', 'Contributor', 'Subscriber'];
+        $cols = ['Username', 'Name', 'Email', 'Role', 'API key'];
+        $rows = [];
+        for ($i = 1; $i <= 5; $i++) {
+            $slug = (string) ($id->field('wordpress.user.' . $i . '.slug') ?? '');
+            $name = (string) ($id->field('wordpress.user.' . $i . '.name') ?? '');
+            if ($slug === '' && $name === '') {
+                continue;
+            }
+            $rows[] = [
+                $slug,
+                $name,
+                $slug . '@' . $domain,
+                $roles[$i - 1] ?? 'Subscriber',
+                FakeSecrets::apiKey($deploySeed, 'wp_apppw#' . $i),
+            ];
         }
 
-        return new EmulatedContent($html, ['Content-Type' => 'text/html; charset=utf-8'], 200);
+        // navItems left empty: renderAdmin falls back to WordpressSkin's own fixed wp-admin menu
+        // vocabulary (its DEFAULT_MENU), the single source of truth for that label set — the same way
+        // the phpMyAdmin body lets PhpMyAdminSkin own its DEFAULT_TABLES fallback.
+        $slots = PageSlots::trusted(
+            $persona->company(),
+            '',
+            '',
+            '',
+            [],
+            $cols,
+            $rows,
+            [],
+            '',
+            ''
+        );
+
+        $displayPath = $r !== null ? $r->path : '/wp-admin/';
+
+        return (new WordpressSkin())->renderAdmin($slots, $persona, Esc::text($displayPath), $displayPath);
+    }
+
+    /**
+     * The fabricated-row email/account host for an authed decoy body. An authored `domain` wins —
+     * typically `{{persona.company.domain}}`, which a plain literal round-trips through render()
+     * unchanged; the compiler normalizes an OMITTED domain to '', so an empty render resolves to the
+     * coherent persona domain rather than a giveaway literal like example.com. Shared by every panel so
+     * fabricated accounts always agree with the site identity the skin renders around them.
+     */
+    private function decoySessionDomain(array $config, int $seed, VisualPersona $persona): string
+    {
+        $authoredDomain = (string) ($config['domain'] ?? '');
+        $rendered = $authoredDomain !== '' ? $this->renderer->render($authoredDomain, [], $seed, $this->canary) : '';
+
+        return $rendered !== '' ? $rendered : $persona->domain();
     }
 
     /**

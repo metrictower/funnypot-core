@@ -47,6 +47,13 @@ final class PersonaIdentity
         // and the authed dashboard skin (VisualPersona::classPrefix()) resolve to one identical prefix.
         'classPrefix',
         'wordpress.version', 'wordpress.theme', 'wordpress.themeVersion',
+        // The 32-hex COOKIEHASH real WordPress derives from the site URL and appends to its auth
+        // cookie names (`wordpress_logged_in_<hash>`, `wordpress_sec_<hash>`). Seeded here so the
+        // decoy-session cookie the wp-login mint sets carries a per-deploy name instead of a fleet-wide
+        // fixed literal (the correlation tell a shared cookie name would be). Pure hex has no interior
+        // word boundary, so it can never carry the denylist's bare `\b9\d{5}\b` run — no re-roll guard
+        // needed (same reasoning as gravatarHash).
+        'wordpress.cookieHash',
         // The one canonical WordPress author set for this deploy — five users, index 1 = the admin
         // account (its nicename derives from user.admin.username). Every WP author-enumeration surface
         // (REST /wp/v2/users, author archives, sitemaps, feed bylines) reads THESE, so no two surfaces
@@ -221,6 +228,10 @@ final class PersonaIdentity
             'wordpress.version' => self::pickProductVersion($slug, $domain, 'wordpress'),
             'wordpress.theme' => self::pick(self::WP_THEMES, $seed, 'wp_theme'),
             'wordpress.themeVersion' => self::pickProductVersion($slug, $domain, 'wp-theme'),
+            // WordPress's COOKIEHASH is md5(site_url); the honeypot has no real site URL, so this is a
+            // seed-derived 32-hex stand-in of the same shape, deploy-stable so the wp-login mint and the
+            // /wp-admin gate resolve one identical cookie name for a deployment.
+            'wordpress.cookieHash' => md5(self::h($seed, 'wp_cookiehash')),
         ];
 
         // The canonical WP author set, flattened onto $fields as wordpress.user.N.{slug,name,avatar}.
