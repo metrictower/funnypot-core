@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Funnypot\Core\Template;
 
+use Funnypot\Core\Attack\AttackBodies;
 use Funnypot\Core\Attack\CannedData;
 use Funnypot\Core\Response\InjectionPayloads;
 use Funnypot\Core\Support\Fake\FakePeople;
@@ -59,6 +60,17 @@ use Funnypot\Core\Support\SurfaceGraph;
  *   {{surface.sitemap}}              the deploy's whole seeded `<url><loc>…</loc></url>` sitemap block
  *   {{surface.disallow}}             the deploy's whole seeded `Disallow: …` robots block
  *                                    (both CLOSED forms; an unknown surface form fails the lint)
+ *   {{attack.sqli.prefix}}            the per-deploy incidental content of the TIER-2 static
+ *   {{attack.sqli.near}}              attack-class bodies (FP-0279): the SQLi error frame's PHP
+ *   {{attack.sqli.suffix}}            warning wrapper / offending-token fragment / docroot path+line,
+ *   {{attack.page.title:KIND}}        and the SSTI/CRS-xss decline pages' title + copy. KIND is a
+ *   {{attack.page.body:KIND}}         CLOSED set (Attack\AttackBodies::PAGE_KINDS = home,search); the
+ *                                    whole form after `attack.` is closed. Off the deploy identity
+ *                                    seed (identitySeed()), like {{persona.*}}. The exploit-confirmation
+ *                                    markers (the MySQL 1064 sentence, `SQL syntax`, `' at line 1`) are
+ *                                    LITERAL template text OUTSIDE these directives — never emitted here,
+ *                                    so no seed can drop them. BODY-ONLY: a warning frame carries a
+ *                                    newline, so `attack.*` is rejected in a header value at compile time.
  *   {{hex:AABBCC}}                   raw bytes hex2bin(AABBCC) — embed exact bytes (incl. >= 0x80)
  *                                    that the YAML \xNN transport can't carry byte-exact; non-hex
  *                                    chars are stripped, an odd digit count renders '' (never a
@@ -68,7 +80,7 @@ use Funnypot\Core\Support\SurfaceGraph;
 final class DirectiveRenderer
 {
     /** The closed directive prefixes — used by the compile-time lint. */
-    public const KNOWN_PREFIXES = ['canned.', 'fake.', 'volatile.', 'misdirect', 'fakeHex:', 'hex:', 'match.', 'urldecode:match.', 'xml:match.', 'html:match.', 'compute.md5:', 'compute.crc32:', 'pick:', 'canary.', 'persona.', 'surface.'];
+    public const KNOWN_PREFIXES = ['canned.', 'fake.', 'volatile.', 'misdirect', 'fakeHex:', 'hex:', 'match.', 'urldecode:match.', 'xml:match.', 'html:match.', 'compute.md5:', 'compute.crc32:', 'pick:', 'canary.', 'persona.', 'surface.', 'attack.'];
 
     /** The closed set of valid fake.person.* sub-fields — used by the compile-time lint (mirrors
      *  PersonaIdentity::FIELDS' role for persona.*; unlike a plain fake.NAME, this sub-field is
@@ -379,6 +391,26 @@ final class DirectiveRenderer
         }
         if (strpos($part, 'canary.') === 0) {
             return $canary[substr($part, 7)] ?? null;
+        }
+        if (strpos($part, 'attack.') === 0) {
+            // Per-deploy seeded TIER-2 static attack-class bodies (FP-0279). Off identitySeed() — the
+            // injected deploy persona seed when wired, else the per-request render seed — the SAME fold
+            // {{persona.*}}/{{surface.*}}/{{canned.*}} use, so the error frame, the decline pages and the
+            // persona all track ONE identity. The persona company name (page titles) and company slug
+            // (the /var/www/<slug>/ docroot) come from the SAME memoised PersonaIdentity every other
+            // directive reads, so the frame's docroot is byte-identical to phpinfo's. AttackBodies never
+            // sees $captures — no attacker byte can enter (non-reflection by construction). An unknown
+            // form -> null so the compile-time closed-set lint (which rejects it first) is the real guard
+            // and '' is the safe runtime fallback. The exploit-confirmation markers are LITERAL template
+            // text outside these directives, so they survive every seed including the seed-0 assertMarkers.
+            $ident = $this->identitySeed($seed);
+
+            return AttackBodies::resolve(
+                substr($part, 7),
+                $ident,
+                $this->personaField($seed, 'company.name'),
+                $this->personaField($seed, 'company.slug')
+            );
         }
         if (strpos($part, 'persona.') === 0) {
             return $this->personaField($seed, substr($part, 8));

@@ -16,6 +16,6 @@ match:
 response:
   headers:
     Content-Type: 'text/html; charset=utf-8'
-  body: "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '' at line 1\n"
+  body: "{{attack.sqli.prefix}}You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '{{attack.sqli.near}}' at line 1{{attack.sqli.suffix}}\n"
 expect:
   - 'SQL syntax'

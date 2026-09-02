@@ -17,7 +17,10 @@ use Symfony\Component\Yaml\Yaml;
  * human-reviewed exception in the hand-authored template — never a codegen default).
  *
  * Any `{{match.*}}` / `capture` in an archetype is stripped here, so a generated CRS template
- * can never echo attacker input by accident.
+ * can never echo attacker input by accident. An archetype body may otherwise carry
+ * `{{attack.*}}` / `{{persona.*}}` directives (FP-0279): they are copied as authored text into the
+ * generated CRS template and resolve per deploy at render, so the CRS twin varies exactly as its
+ * hand-authored source does; `sanitize()` strips ONLY reflection directives, never these.
  *
  * `severity` is the per-class FLOOR that preserves funnypot's existing gating posture (fake
  * RCE stays `critical` = gated by default); the final template severity is the higher of this
@@ -109,11 +112,15 @@ final class CrsArchetypes
     private function inline(string $class): array
     {
         if ($class === 'xss') {
+            // FP-0279: the search decline page's title + copy are per-deploy seeded via
+            // {{attack.page.*:search}} so the body stops being a fleet constant. There is no scanner
+            // marker on this class (no expect:), so the whole page is incidental. The directives are
+            // copied as authored text into 951-crs-xss.yaml and resolve per deploy at render.
             return [
                 [
                     'headers' => ['Content-Type' => 'text/html; charset=utf-8'],
-                    'body' => "<!doctype html><html><head><title>Search</title></head><body>\n"
-                        . "<h1>Search results</h1><p>No results found for your query.</p>\n"
+                    'body' => "<!doctype html><html lang=\"en\"><head><meta charset=\"utf-8\"><title>{{attack.page.title:search}}</title></head><body>\n"
+                        . "{{attack.page.body:search}}\n"
                         . "</body></html>\n",
                 ],
                 [],

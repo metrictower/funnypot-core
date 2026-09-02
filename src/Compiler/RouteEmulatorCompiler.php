@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Funnypot\Core\Compiler;
 
+use Funnypot\Core\Attack\AttackBodies;
 use Funnypot\Core\SchemaVersion;
 use Funnypot\Core\Support\PersonaIdentity;
 use Funnypot\Core\Support\SurfaceGraph;
@@ -128,8 +129,8 @@ final class RouteEmulatorCompiler
         }
 
         foreach ($headers as $name => $value) {
-            $this->assertKnownDirectives((string) $name, $file);
-            $this->assertKnownDirectives($value, $file);
+            $this->assertKnownDirectives((string) $name, $file, true);
+            $this->assertKnownDirectives($value, $file, true);
             $this->assertStaticHeaderClean((string) $name, $value, $file);
         }
         if (!$isBinary) {
@@ -202,7 +203,7 @@ final class RouteEmulatorCompiler
     }
 
     /** Closed directive vocabulary — a `{{...}}` that isn't known is a typo that would render as dead literal text. */
-    private function assertKnownDirectives(string $text, string $file): void
+    private function assertKnownDirectives(string $text, string $file, bool $inHeader = false): void
     {
         $text = strtr($text, ['{{{{' => '', '}}}}' => '']);
         if (!preg_match_all('/\{\{\s*([^}]+?)\s*\}\}/', $text, $all)) {
@@ -235,6 +236,15 @@ final class RouteEmulatorCompiler
                 // surface graph — same reasoning as persona.* / fake.person.* above.
                 if (strpos($part, 'surface.') === 0 && !self::isKnownSurfaceForm(substr($part, 8))) {
                     throw new RuntimeException("Route template {$file}: unknown surface form '{{{$part}}}'. Forms are sitemap | disallow | noun:{c1,c2,d1,d2}.");
+                }
+                // attack.* is a CLOSED form set (FP-0279): sqli.{prefix,near,suffix} | page.{title,body}:{home,search}.
+                if (strpos($part, 'attack.') === 0) {
+                    if ($inHeader) {
+                        throw new RuntimeException("Route template {$file}: '{{{$part}}}' is body-only — the {{attack.*}} frames carry a newline and must not appear in a header value.");
+                    }
+                    if (!AttackBodies::isKnownForm(substr($part, 7))) {
+                        throw new RuntimeException("Route template {$file}: unknown attack form '{{{$part}}}'. Form set is closed — check for a typo.");
+                    }
                 }
             }
         }

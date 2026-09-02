@@ -38,8 +38,10 @@ expr-eval:
       Content-Type: "text/html; charset=utf-8"
     body: "{{match.result}}\n"
 # Base response: served when the expression declines (non-arithmetic marker, div/mod by zero,
-# overflow, or oversized). A plausible inert page with no reflected input — never a 500.
+# overflow, or oversized). A plausible inert page with no reflected input — never a 500. FP-0279: the
+# title + body copy are per-deploy seeded (identical to 43-ssti-multifence's base page per deploy —
+# one host, one home page) via {{attack.page.*:home}}; no scanner marker lives here (no expect:).
 response:
   headers:
     Content-Type: "text/html; charset=utf-8"
-  body: "<!doctype html><html><head><title>Home</title></head><body>\n<p>Welcome.</p>\n</body></html>\n"
+  body: "<!doctype html><html lang=\"en\"><head><meta charset=\"utf-8\"><title>{{attack.page.title:home}}</title></head><body>\n{{attack.page.body:home}}\n</body></html>\n"

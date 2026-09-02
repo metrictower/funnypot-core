@@ -16,4 +16,4 @@ match:
 response:
   headers:
     Content-Type: 'text/html; charset=utf-8'
-  body: "<!doctype html><html><head><title>Search</title></head><body>\n<h1>Search results</h1><p>No results found for your query.</p>\n</body></html>\n"
+  body: "<!doctype html><html lang=\"en\"><head><meta charset=\"utf-8\"><title>{{attack.page.title:search}}</title></head><body>\n{{attack.page.body:search}}\n</body></html>\n"

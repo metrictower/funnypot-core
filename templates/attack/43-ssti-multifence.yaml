@@ -68,8 +68,10 @@ ssti-render:
     body: "{{match.rendered}}\n"
 # Base response: served on any decline (out-of-grammar fence, div/mod by zero, overflow, oversized, or a
 # byte that is neither a fence nor a [ \t] gap). A plausible inert page with no reflected input — never
-# a 500.
+# a 500. FP-0279: the title + body copy are per-deploy seeded (identical to 45-ssti-numeric's base page
+# per deploy — one host, one home page) via {{attack.page.*:home}}; no scanner marker lives here (no
+# expect:), so the whole page is incidental. See src/Attack/AttackBodies.php.
 response:
   headers:
     Content-Type: "text/html; charset=utf-8"
-  body: "<!doctype html><html><head><title>Home</title></head><body>\n<p>Welcome.</p>\n</body></html>\n"
+  body: "<!doctype html><html lang=\"en\"><head><meta charset=\"utf-8\"><title>{{attack.page.title:home}}</title></head><body>\n{{attack.page.body:home}}\n</body></html>\n"

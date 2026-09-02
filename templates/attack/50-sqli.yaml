@@ -2,11 +2,19 @@ id: attack-sqli
 severity: high
 priority: 50
 tags: [attack, sqli]
+# FP-0279 — the incidental content of this MySQL 1064 error is per-deploy seeded so the body stops
+# being a cross-deploy fleet constant, WITHOUT touching the exploit-confirmation markers. The whole
+# 1064 sentence, the `SQL syntax` expect: pin, the `' at line 1` tail and the trailing \n are LITERAL
+# authored bytes OUTSIDE any directive, so they survive at every seed (including the seed-0
+# assertMarkers render). The {{attack.sqli.*}} directives only ADD an optional PHP warning frame
+# (prefix+suffix) and a plausible offending-token fragment (near) around them — see src/Attack/
+# AttackBodies.php. 950-crs-sqli.yaml is a compile-time COPY of this body string (CrsArchetypes),
+# so the CRS twin renders the identical error per deploy for free.
 match:
   - in: request
     regex: '(?:''\s*or\s*''?1''?\s*=\s*''?1|"\s*or\s*"?1"?\s*=|\bunion\s+(?:all\s+)?select\b|\bor\s+1\s*=\s*1\b|information_schema|sleep\(\d|''\s*--|\bwaitfor\s+delay\b)'
 response:
   headers:
     Content-Type: "text/html; charset=utf-8"
-  body: "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '' at line 1\n"
+  body: "{{attack.sqli.prefix}}You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '{{attack.sqli.near}}' at line 1{{attack.sqli.suffix}}\n"
 expect: ["SQL syntax"]

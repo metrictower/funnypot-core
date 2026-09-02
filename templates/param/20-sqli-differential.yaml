@@ -86,13 +86,15 @@ branch:
     # C1 BREAKER (LAST)  ->  a LONE unbalanced quote/backslash breaks the (fake) string literal: a
     #   500 dialect syntax error. `\w['\\](?=\s|$)` = a word char then a single quote or backslash
     #   at a token boundary; a balanced `''`/`\\` never matches (the second char fails the boundary),
-    #   and a tautology's quotes were already consumed by C2. The MySQL-shaped error text mirrors the
-    #   retained 50-sqli.yaml body, which passes the fingerprint-safety gate today.
+    #   and a tautology's quotes were already consumed by C2. The MySQL-shaped error text mirrors
+    #   50-sqli.yaml via the SAME {{attack.sqli.*}} directives (FP-0279) — one MySQL error story per
+    #   deploy across attack-sqli, attack-crs-sqli and this breaker — and passes the fingerprint gate.
+    #   The 1064 sentence + `' at line 1` tail are literal authored bytes; only the frame/near vary.
     - when: { in: request, regex: "\\w['\\\\](?=\\s|$)" }
       response:
         status: 500
         headers: { Content-Type: "text/html; charset=utf-8" }
-        body: "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '' at line 1\n"
+        body: "{{attack.sqli.prefix}}You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '{{attack.sqli.near}}' at line 1{{attack.sqli.suffix}}\n"
   # Benign baseline (and anything unmatched): P. Byte-identical to the C2 TRUE body by construction.
   default:
     response:

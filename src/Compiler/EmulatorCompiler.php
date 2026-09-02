@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Funnypot\Core\Compiler;
 
+use Funnypot\Core\Attack\AttackBodies;
 use Funnypot\Core\SchemaVersion;
 use Funnypot\Core\Support\PathNormalizer;
 use Funnypot\Core\Support\PersonaIdentity;
@@ -107,8 +108,8 @@ final class EmulatorCompiler
 
         $this->assertKnownDirectives($body, $file);
         foreach ($headers as $name => $value) {
-            $this->assertKnownDirectives((string) $name, $file);
-            $this->assertKnownDirectives($value, $file);
+            $this->assertKnownDirectives((string) $name, $file, true);
+            $this->assertKnownDirectives($value, $file, true);
             $this->assertStaticHeaderClean((string) $name, $value, $file);
         }
         $this->assertMarkers($doc, $body, $headers, $file);
@@ -430,7 +431,7 @@ final class EmulatorCompiler
         // request time (handleDecoySession threads it through DirectiveRenderer). Directive-vocabulary
         // lint it like a response header so a typo'd persona field can't render '' silently. A plain
         // literal (the phpMyAdmin pair's `phpMyAdmin`) carries no directive and round-trips unchanged.
-        $this->assertKnownDirectives($cookieName, $file);
+        $this->assertKnownDirectives($cookieName, $file, true);
 
         $out = [
             'mode' => $mode,
@@ -463,7 +464,7 @@ final class EmulatorCompiler
             }
             $out['panel'] = $panel;
             $domain = (string) ($config['domain'] ?? '');
-            $this->assertKnownDirectives($domain, $file);
+            $this->assertKnownDirectives($domain, $file, true);
             $out['domain'] = $domain;
             $out['table_key'] = (string) ($config['table_key'] ?? 'users');
             if (isset($config['rows'])) {
@@ -735,8 +736,8 @@ final class EmulatorCompiler
 
         $this->assertKnownDirectives($body, $file);
         foreach ($headers as $name => $value) {
-            $this->assertKnownDirectives((string) $name, $file);
-            $this->assertKnownDirectives($value, $file);
+            $this->assertKnownDirectives((string) $name, $file, true);
+            $this->assertKnownDirectives($value, $file, true);
             $this->assertStaticHeaderClean((string) $name, $value, $file);
         }
 
@@ -944,7 +945,7 @@ final class EmulatorCompiler
      * always a typo (`{{cannd.passwd}}`) which the runtime would emit as literal text — a
      * silently dead emulation. Reject it at build. (Escaped `{{{{ }}}}` is not a directive.)
      */
-    private function assertKnownDirectives(string $text, string $file): void
+    private function assertKnownDirectives(string $text, string $file, bool $inHeader = false): void
     {
         $text = strtr($text, ['{{{{' => '', '}}}}' => '']);
         if (!preg_match_all('/\{\{\s*([^}]+?)\s*\}\}/', $text, $all)) {
@@ -976,6 +977,18 @@ final class EmulatorCompiler
                 // SurfaceGraph::SLOTS — same reasoning as persona.* / fake.person.* above.
                 if (strpos($part, 'surface.') === 0 && !self::isKnownSurfaceForm(substr($part, 8))) {
                     throw new RuntimeException("Template {$file}: unknown surface form '{{{$part}}}'. Forms are sitemap | disallow | noun:{c1,c2,d1,d2}.");
+                }
+                // attack.* is a CLOSED form set (FP-0279): sqli.{prefix,near,suffix} | page.{title,body}:{home,search}.
+                if (strpos($part, 'attack.') === 0) {
+                    if ($inHeader) {
+                        // A warning frame carries a newline, so an attack.* body directive can never be a
+                        // valid header value — reject it at compile time (belt-and-braces over the runtime
+                        // fail-safe), so no artifact can smuggle a CR/LF into a header via this family.
+                        throw new RuntimeException("Template {$file}: '{{{$part}}}' is body-only — the {{attack.*}} frames carry a newline and must not appear in a header value.");
+                    }
+                    if (!AttackBodies::isKnownForm(substr($part, 7))) {
+                        throw new RuntimeException("Template {$file}: unknown attack form '{{{$part}}}'. Form set is closed — check for a typo.");
+                    }
                 }
             }
         }

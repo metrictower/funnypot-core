@@ -58,4 +58,17 @@ return [
     'route:route-swagger2-apidocs' => 'FP-0278 seeded surface graph (Swagger 2.0 nouns)',
     // 342 OpenAPI 3.0 (/openapi.yaml) paths carry the four seeded nouns.
     'route:route-swagger-yaml-doc' => 'FP-0278 seeded surface graph (OpenAPI YAML nouns)',
+    // --- FP-0279: the TIER-2 static attack-class bodies persona-seeded ---
+    // {{attack.sqli.*}} — the PHP error frame / offending-token fragment / docroot path+line vary; the
+    // 1064 sentence, `SQL syntax` and `' at line 1` markers stay verbatim.
+    'attack:attack-sqli' => 'FP-0279 seeded attack-class body (SQLi error frame/near/path)',
+    // attack-crs-sqli is a compile-time copy of 50-sqli — the same seeded MySQL error per deploy.
+    'attack:attack-crs-sqli' => 'FP-0279 seeded attack-class body (CRS SQLi error frame/near/path)',
+    // {{attack.page.*:search}} — the CRS-xss decline page title + copy vary (no scanner marker here).
+    'attack:attack-crs-xss' => 'FP-0279 seeded attack-class body (CRS-xss decline page copy)',
+    // {{attack.page.*:home}} — the SSTI decline page title + copy vary; 43/45 render one page per deploy.
+    'attack:attack-ssti-numeric' => 'FP-0279 seeded attack-class body (SSTI decline page copy)',
+    'attack:attack-ssti-multifence' => 'FP-0279 seeded attack-class body (SSTI decline page copy)',
+    // (param:param-sqli-differential is NOT registered: the gate renders its persona-varying BASE body
+    //  at $r = null, so the breaker variance is proven by the unit test instead — FP-0279 plan §3.)
 ];

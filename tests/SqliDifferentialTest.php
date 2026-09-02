@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Funnypot\Core\Tests;
 
+use Funnypot\Core\Attack\AttackBodies;
 use Funnypot\Core\RequestContext;
 use Funnypot\Core\SynthesizedResponse;
 use Funnypot\Core\Template\TemplateAttackEmulator;
@@ -171,6 +172,11 @@ final class SqliDifferentialTest extends TestCase
         self::assertNotNull($breaker);
         self::assertSame(500, $breaker->status, "a lone quote id=10' must yield a 500 syntax error");
         self::assertNotSame($p, $breaker->body, 'the 500 body is not the baseline page');
+        // FP-0279: the breaker mirrors 50-sqli via the same {{attack.sqli.*}} directives — the
+        // exploit-confirmation markers must survive the per-deploy seeding at every deploy.
+        self::assertStringContainsString('SQL syntax', $breaker->body, 'the breaker keeps the SQL syntax marker');
+        self::assertStringContainsString(AttackBodies::MYSQL_1064, $breaker->body, 'the breaker keeps the full 1064 sentence');
+        self::assertStringContainsString("' at line 1", $breaker->body, "the breaker keeps the ' at line 1 tail");
 
         $fixer = $this->serve("id=10''");
         self::assertNotNull($fixer);
