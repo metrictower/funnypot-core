@@ -137,6 +137,39 @@ if ($response !== null) {
 // nothing matched: serve your normal 404
 ```
 
+### Per-deploy persona seed (avoid a fleet-constant identity)
+
+Every fabricated identity — the company name, domain, admin credentials, fake secrets, visual skin — is
+a pure function of a per-deploy seed. **If you leave both `deploySeed` and `seedSalt` unset, every
+unconfigured install shares one identity**, so a scanner can correlate two of your deploys as "both
+funnypot". Set a per-install secret so each site presents a distinct, self-coherent identity:
+
+```php
+$secret = /* a per-install secret, generated once and persisted by your app */;
+$funnypot = Honeypot::default(new Config(
+    mode: 'respond',
+    gate: fn ($r) => isSuspicious($r),
+    deploySeed: $secret,   // drives the persona IDENTITY ({{persona.*}}, visual skin, decoy session)
+    seedSalt: $secret,     // drives the per-request RENDER seed ({{fake.*}}, {{pick:*}} choices)
+));
+```
+
+Two independent conditions matter: `deploySeed` (identity material) and `seedSalt` (render salt).
+Setting one persisted secret for both is the simplest safe configuration. **The core never generates
+or persists the secret** — it does no I/O; provisioning a per-install secret is the host app's job.
+
+Ask the engine what it sees, without changing a single served byte:
+
+```php
+$health = $funnypot->seedHealth();
+// ['identity' => 'set'|'empty'|'placeholder', 'render_salt' => 'set'|'empty', 'ok' => bool, 'warnings' => [...]]
+```
+
+`seedHealth()` classifies **by the material string only** — it never inspects the derived seed and never
+re-derives, so an unconfigured deploy keeps serving byte-for-byte what it served before; the report is a
+non-served diagnostic. An Observer that also implements `HealthObserver` receives the same report once at
+construction (push); most hosts read `seedHealth()` on a status page (pull).
+
 ### Embedded vs. isolated origin (reflecting decoys)
 
 A few decoys are believable only if they **reflect the attacker's own request bytes** into an active
