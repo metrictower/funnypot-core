@@ -13,11 +13,11 @@ return array (
     'license' => 'MIT (c) 2025 ProjectDiscovery, Inc.',
     'upstream_tag' => '2ec9141',
     'upstream_sha' => '2ec914123864439c3618e7e9ae72d32d0eb56df7',
-    'source_tree' => '9bca1a8f34afce98b86eb4ceee080e3ddd40b29c94e27ac39f48a8a559ee13de',
+    'source_tree' => 'efb03ed6c92e2d09469dabe7d1643f8c5a43401ede44ab17880392e2d2222d88',
     'templates_seen' => 11196,
     'templates_in' => 6343,
     'templates_indexed' => 6446,
-    'route_keys' => 5253,
+    'route_keys' => 5301,
     'multi_bundle_keys' => 276,
     'largest_bundle_count' => 1325,
     'persona_cap' => 
@@ -302668,6 +302668,1254 @@ a</title>',
           't' => 
           array (
             0 => 'route-surface-auth',
+          ),
+          'w' => 100000,
+        ),
+      ),
+    ),
+    'GET /orders' => 
+    array (
+      'b' => 
+      array (
+        0 => 
+        array (
+          's' => 200,
+          'bw' => 
+          array (
+            0 => '"data":',
+            1 => '"per_page":',
+          ),
+          'nf' => 
+          array (
+          ),
+          'pid' => 'route-surface-collection',
+          'sev' => 'info',
+          'sig' => 0,
+          't' => 
+          array (
+            0 => 'route-surface-collection',
+          ),
+          'w' => 100000,
+        ),
+      ),
+    ),
+    'GET /admin/orders' => 
+    array (
+      'b' => 
+      array (
+        0 => 
+        array (
+          's' => 200,
+          'bw' => 
+          array (
+            0 => '"data":',
+            1 => '"per_page":',
+          ),
+          'nf' => 
+          array (
+          ),
+          'pid' => 'route-surface-collection',
+          'sev' => 'info',
+          'sig' => 0,
+          't' => 
+          array (
+            0 => 'route-surface-collection',
+          ),
+          'w' => 100000,
+        ),
+      ),
+    ),
+    'GET /api/v1/customers' => 
+    array (
+      'b' => 
+      array (
+        0 => 
+        array (
+          's' => 200,
+          'bw' => 
+          array (
+            0 => '"data":',
+            1 => '"per_page":',
+          ),
+          'nf' => 
+          array (
+          ),
+          'pid' => 'route-surface-collection',
+          'sev' => 'info',
+          'sig' => 0,
+          't' => 
+          array (
+            0 => 'route-surface-collection',
+          ),
+          'w' => 100000,
+        ),
+      ),
+    ),
+    'GET /api/v2/customers' => 
+    array (
+      'b' => 
+      array (
+        0 => 
+        array (
+          's' => 200,
+          'bw' => 
+          array (
+            0 => '"data":',
+            1 => '"per_page":',
+          ),
+          'nf' => 
+          array (
+          ),
+          'pid' => 'route-surface-collection',
+          'sev' => 'info',
+          'sig' => 0,
+          't' => 
+          array (
+            0 => 'route-surface-collection',
+          ),
+          'w' => 100000,
+        ),
+      ),
+    ),
+    'GET /customers' => 
+    array (
+      'b' => 
+      array (
+        0 => 
+        array (
+          's' => 200,
+          'bw' => 
+          array (
+            0 => '"data":',
+            1 => '"per_page":',
+          ),
+          'nf' => 
+          array (
+          ),
+          'pid' => 'route-surface-collection',
+          'sev' => 'info',
+          'sig' => 0,
+          't' => 
+          array (
+            0 => 'route-surface-collection',
+          ),
+          'w' => 100000,
+        ),
+      ),
+    ),
+    'GET /admin/customers' => 
+    array (
+      'b' => 
+      array (
+        0 => 
+        array (
+          's' => 200,
+          'bw' => 
+          array (
+            0 => '"data":',
+            1 => '"per_page":',
+          ),
+          'nf' => 
+          array (
+          ),
+          'pid' => 'route-surface-collection',
+          'sev' => 'info',
+          'sig' => 0,
+          't' => 
+          array (
+            0 => 'route-surface-collection',
+          ),
+          'w' => 100000,
+        ),
+      ),
+    ),
+    'GET /api/v1/accounts' => 
+    array (
+      'b' => 
+      array (
+        0 => 
+        array (
+          's' => 200,
+          'bw' => 
+          array (
+            0 => '"data":',
+            1 => '"per_page":',
+          ),
+          'nf' => 
+          array (
+          ),
+          'pid' => 'route-surface-collection',
+          'sev' => 'info',
+          'sig' => 0,
+          't' => 
+          array (
+            0 => 'route-surface-collection',
+          ),
+          'w' => 100000,
+        ),
+      ),
+    ),
+    'GET /api/v2/accounts' => 
+    array (
+      'b' => 
+      array (
+        0 => 
+        array (
+          's' => 200,
+          'bw' => 
+          array (
+            0 => '"data":',
+            1 => '"per_page":',
+          ),
+          'nf' => 
+          array (
+          ),
+          'pid' => 'route-surface-collection',
+          'sev' => 'info',
+          'sig' => 0,
+          't' => 
+          array (
+            0 => 'route-surface-collection',
+          ),
+          'w' => 100000,
+        ),
+      ),
+    ),
+    'GET /accounts' => 
+    array (
+      'b' => 
+      array (
+        0 => 
+        array (
+          's' => 200,
+          'bw' => 
+          array (
+            0 => '"data":',
+            1 => '"per_page":',
+          ),
+          'nf' => 
+          array (
+          ),
+          'pid' => 'route-surface-collection',
+          'sev' => 'info',
+          'sig' => 0,
+          't' => 
+          array (
+            0 => 'route-surface-collection',
+          ),
+          'w' => 100000,
+        ),
+      ),
+    ),
+    'GET /admin/accounts' => 
+    array (
+      'b' => 
+      array (
+        0 => 
+        array (
+          's' => 200,
+          'bw' => 
+          array (
+            0 => '"data":',
+            1 => '"per_page":',
+          ),
+          'nf' => 
+          array (
+          ),
+          'pid' => 'route-surface-collection',
+          'sev' => 'info',
+          'sig' => 0,
+          't' => 
+          array (
+            0 => 'route-surface-collection',
+          ),
+          'w' => 100000,
+        ),
+      ),
+    ),
+    'GET /api/v1/invoices' => 
+    array (
+      'b' => 
+      array (
+        0 => 
+        array (
+          's' => 200,
+          'bw' => 
+          array (
+            0 => '"data":',
+            1 => '"per_page":',
+          ),
+          'nf' => 
+          array (
+          ),
+          'pid' => 'route-surface-collection',
+          'sev' => 'info',
+          'sig' => 0,
+          't' => 
+          array (
+            0 => 'route-surface-collection',
+          ),
+          'w' => 100000,
+        ),
+      ),
+    ),
+    'GET /api/v2/invoices' => 
+    array (
+      'b' => 
+      array (
+        0 => 
+        array (
+          's' => 200,
+          'bw' => 
+          array (
+            0 => '"data":',
+            1 => '"per_page":',
+          ),
+          'nf' => 
+          array (
+          ),
+          'pid' => 'route-surface-collection',
+          'sev' => 'info',
+          'sig' => 0,
+          't' => 
+          array (
+            0 => 'route-surface-collection',
+          ),
+          'w' => 100000,
+        ),
+      ),
+    ),
+    'GET /invoices' => 
+    array (
+      'b' => 
+      array (
+        0 => 
+        array (
+          's' => 200,
+          'bw' => 
+          array (
+            0 => '"data":',
+            1 => '"per_page":',
+          ),
+          'nf' => 
+          array (
+          ),
+          'pid' => 'route-surface-collection',
+          'sev' => 'info',
+          'sig' => 0,
+          't' => 
+          array (
+            0 => 'route-surface-collection',
+          ),
+          'w' => 100000,
+        ),
+      ),
+    ),
+    'GET /admin/invoices' => 
+    array (
+      'b' => 
+      array (
+        0 => 
+        array (
+          's' => 200,
+          'bw' => 
+          array (
+            0 => '"data":',
+            1 => '"per_page":',
+          ),
+          'nf' => 
+          array (
+          ),
+          'pid' => 'route-surface-collection',
+          'sev' => 'info',
+          'sig' => 0,
+          't' => 
+          array (
+            0 => 'route-surface-collection',
+          ),
+          'w' => 100000,
+        ),
+      ),
+    ),
+    'GET /api/v1/products' => 
+    array (
+      'b' => 
+      array (
+        0 => 
+        array (
+          's' => 200,
+          'bw' => 
+          array (
+            0 => '"data":',
+            1 => '"per_page":',
+          ),
+          'nf' => 
+          array (
+          ),
+          'pid' => 'route-surface-collection',
+          'sev' => 'info',
+          'sig' => 0,
+          't' => 
+          array (
+            0 => 'route-surface-collection',
+          ),
+          'w' => 100000,
+        ),
+      ),
+    ),
+    'GET /api/v2/products' => 
+    array (
+      'b' => 
+      array (
+        0 => 
+        array (
+          's' => 200,
+          'bw' => 
+          array (
+            0 => '"data":',
+            1 => '"per_page":',
+          ),
+          'nf' => 
+          array (
+          ),
+          'pid' => 'route-surface-collection',
+          'sev' => 'info',
+          'sig' => 0,
+          't' => 
+          array (
+            0 => 'route-surface-collection',
+          ),
+          'w' => 100000,
+        ),
+      ),
+    ),
+    'GET /products' => 
+    array (
+      'b' => 
+      array (
+        0 => 
+        array (
+          's' => 200,
+          'bw' => 
+          array (
+            0 => '"data":',
+            1 => '"per_page":',
+          ),
+          'nf' => 
+          array (
+          ),
+          'pid' => 'route-surface-collection',
+          'sev' => 'info',
+          'sig' => 0,
+          't' => 
+          array (
+            0 => 'route-surface-collection',
+          ),
+          'w' => 100000,
+        ),
+      ),
+    ),
+    'GET /admin/products' => 
+    array (
+      'b' => 
+      array (
+        0 => 
+        array (
+          's' => 200,
+          'bw' => 
+          array (
+            0 => '"data":',
+            1 => '"per_page":',
+          ),
+          'nf' => 
+          array (
+          ),
+          'pid' => 'route-surface-collection',
+          'sev' => 'info',
+          'sig' => 0,
+          't' => 
+          array (
+            0 => 'route-surface-collection',
+          ),
+          'w' => 100000,
+        ),
+      ),
+    ),
+    'GET /api/v1/members' => 
+    array (
+      'b' => 
+      array (
+        0 => 
+        array (
+          's' => 200,
+          'bw' => 
+          array (
+            0 => '"data":',
+            1 => '"per_page":',
+          ),
+          'nf' => 
+          array (
+          ),
+          'pid' => 'route-surface-collection',
+          'sev' => 'info',
+          'sig' => 0,
+          't' => 
+          array (
+            0 => 'route-surface-collection',
+          ),
+          'w' => 100000,
+        ),
+      ),
+    ),
+    'GET /api/v2/members' => 
+    array (
+      'b' => 
+      array (
+        0 => 
+        array (
+          's' => 200,
+          'bw' => 
+          array (
+            0 => '"data":',
+            1 => '"per_page":',
+          ),
+          'nf' => 
+          array (
+          ),
+          'pid' => 'route-surface-collection',
+          'sev' => 'info',
+          'sig' => 0,
+          't' => 
+          array (
+            0 => 'route-surface-collection',
+          ),
+          'w' => 100000,
+        ),
+      ),
+    ),
+    'GET /members' => 
+    array (
+      'b' => 
+      array (
+        0 => 
+        array (
+          's' => 200,
+          'bw' => 
+          array (
+            0 => '"data":',
+            1 => '"per_page":',
+          ),
+          'nf' => 
+          array (
+          ),
+          'pid' => 'route-surface-collection',
+          'sev' => 'info',
+          'sig' => 0,
+          't' => 
+          array (
+            0 => 'route-surface-collection',
+          ),
+          'w' => 100000,
+        ),
+      ),
+    ),
+    'GET /admin/members' => 
+    array (
+      'b' => 
+      array (
+        0 => 
+        array (
+          's' => 200,
+          'bw' => 
+          array (
+            0 => '"data":',
+            1 => '"per_page":',
+          ),
+          'nf' => 
+          array (
+          ),
+          'pid' => 'route-surface-collection',
+          'sev' => 'info',
+          'sig' => 0,
+          't' => 
+          array (
+            0 => 'route-surface-collection',
+          ),
+          'w' => 100000,
+        ),
+      ),
+    ),
+    'GET /api/v1/clients' => 
+    array (
+      'b' => 
+      array (
+        0 => 
+        array (
+          's' => 200,
+          'bw' => 
+          array (
+            0 => '"data":',
+            1 => '"per_page":',
+          ),
+          'nf' => 
+          array (
+          ),
+          'pid' => 'route-surface-collection',
+          'sev' => 'info',
+          'sig' => 0,
+          't' => 
+          array (
+            0 => 'route-surface-collection',
+          ),
+          'w' => 100000,
+        ),
+      ),
+    ),
+    'GET /api/v2/clients' => 
+    array (
+      'b' => 
+      array (
+        0 => 
+        array (
+          's' => 200,
+          'bw' => 
+          array (
+            0 => '"data":',
+            1 => '"per_page":',
+          ),
+          'nf' => 
+          array (
+          ),
+          'pid' => 'route-surface-collection',
+          'sev' => 'info',
+          'sig' => 0,
+          't' => 
+          array (
+            0 => 'route-surface-collection',
+          ),
+          'w' => 100000,
+        ),
+      ),
+    ),
+    'GET /clients' => 
+    array (
+      'b' => 
+      array (
+        0 => 
+        array (
+          's' => 200,
+          'bw' => 
+          array (
+            0 => '"data":',
+            1 => '"per_page":',
+          ),
+          'nf' => 
+          array (
+          ),
+          'pid' => 'route-surface-collection',
+          'sev' => 'info',
+          'sig' => 0,
+          't' => 
+          array (
+            0 => 'route-surface-collection',
+          ),
+          'w' => 100000,
+        ),
+      ),
+    ),
+    'GET /admin/clients' => 
+    array (
+      'b' => 
+      array (
+        0 => 
+        array (
+          's' => 200,
+          'bw' => 
+          array (
+            0 => '"data":',
+            1 => '"per_page":',
+          ),
+          'nf' => 
+          array (
+          ),
+          'pid' => 'route-surface-collection',
+          'sev' => 'info',
+          'sig' => 0,
+          't' => 
+          array (
+            0 => 'route-surface-collection',
+          ),
+          'w' => 100000,
+        ),
+      ),
+    ),
+    'GET /api/v1/projects' => 
+    array (
+      'b' => 
+      array (
+        0 => 
+        array (
+          's' => 200,
+          'bw' => 
+          array (
+            0 => '"data":',
+            1 => '"per_page":',
+          ),
+          'nf' => 
+          array (
+          ),
+          'pid' => 'route-surface-collection',
+          'sev' => 'info',
+          'sig' => 0,
+          't' => 
+          array (
+            0 => 'route-surface-collection',
+          ),
+          'w' => 100000,
+        ),
+      ),
+    ),
+    'GET /api/v2/projects' => 
+    array (
+      'b' => 
+      array (
+        0 => 
+        array (
+          's' => 200,
+          'bw' => 
+          array (
+            0 => '"data":',
+            1 => '"per_page":',
+          ),
+          'nf' => 
+          array (
+          ),
+          'pid' => 'route-surface-collection',
+          'sev' => 'info',
+          'sig' => 0,
+          't' => 
+          array (
+            0 => 'route-surface-collection',
+          ),
+          'w' => 100000,
+        ),
+      ),
+    ),
+    'GET /projects' => 
+    array (
+      'b' => 
+      array (
+        0 => 
+        array (
+          's' => 200,
+          'bw' => 
+          array (
+            0 => '"data":',
+            1 => '"per_page":',
+          ),
+          'nf' => 
+          array (
+          ),
+          'pid' => 'route-surface-collection',
+          'sev' => 'info',
+          'sig' => 0,
+          't' => 
+          array (
+            0 => 'route-surface-collection',
+          ),
+          'w' => 100000,
+        ),
+      ),
+    ),
+    'GET /admin/projects' => 
+    array (
+      'b' => 
+      array (
+        0 => 
+        array (
+          's' => 200,
+          'bw' => 
+          array (
+            0 => '"data":',
+            1 => '"per_page":',
+          ),
+          'nf' => 
+          array (
+          ),
+          'pid' => 'route-surface-collection',
+          'sev' => 'info',
+          'sig' => 0,
+          't' => 
+          array (
+            0 => 'route-surface-collection',
+          ),
+          'w' => 100000,
+        ),
+      ),
+    ),
+    'GET /api/v1/subscriptions' => 
+    array (
+      'b' => 
+      array (
+        0 => 
+        array (
+          's' => 200,
+          'bw' => 
+          array (
+            0 => '"data":',
+            1 => '"per_page":',
+          ),
+          'nf' => 
+          array (
+          ),
+          'pid' => 'route-surface-collection',
+          'sev' => 'info',
+          'sig' => 0,
+          't' => 
+          array (
+            0 => 'route-surface-collection',
+          ),
+          'w' => 100000,
+        ),
+      ),
+    ),
+    'GET /api/v2/subscriptions' => 
+    array (
+      'b' => 
+      array (
+        0 => 
+        array (
+          's' => 200,
+          'bw' => 
+          array (
+            0 => '"data":',
+            1 => '"per_page":',
+          ),
+          'nf' => 
+          array (
+          ),
+          'pid' => 'route-surface-collection',
+          'sev' => 'info',
+          'sig' => 0,
+          't' => 
+          array (
+            0 => 'route-surface-collection',
+          ),
+          'w' => 100000,
+        ),
+      ),
+    ),
+    'GET /subscriptions' => 
+    array (
+      'b' => 
+      array (
+        0 => 
+        array (
+          's' => 200,
+          'bw' => 
+          array (
+            0 => '"data":',
+            1 => '"per_page":',
+          ),
+          'nf' => 
+          array (
+          ),
+          'pid' => 'route-surface-collection',
+          'sev' => 'info',
+          'sig' => 0,
+          't' => 
+          array (
+            0 => 'route-surface-collection',
+          ),
+          'w' => 100000,
+        ),
+      ),
+    ),
+    'GET /admin/subscriptions' => 
+    array (
+      'b' => 
+      array (
+        0 => 
+        array (
+          's' => 200,
+          'bw' => 
+          array (
+            0 => '"data":',
+            1 => '"per_page":',
+          ),
+          'nf' => 
+          array (
+          ),
+          'pid' => 'route-surface-collection',
+          'sev' => 'info',
+          'sig' => 0,
+          't' => 
+          array (
+            0 => 'route-surface-collection',
+          ),
+          'w' => 100000,
+        ),
+      ),
+    ),
+    'GET /api/v1/payments' => 
+    array (
+      'b' => 
+      array (
+        0 => 
+        array (
+          's' => 200,
+          'bw' => 
+          array (
+            0 => '"data":',
+            1 => '"per_page":',
+          ),
+          'nf' => 
+          array (
+          ),
+          'pid' => 'route-surface-collection',
+          'sev' => 'info',
+          'sig' => 0,
+          't' => 
+          array (
+            0 => 'route-surface-collection',
+          ),
+          'w' => 100000,
+        ),
+      ),
+    ),
+    'GET /api/v2/payments' => 
+    array (
+      'b' => 
+      array (
+        0 => 
+        array (
+          's' => 200,
+          'bw' => 
+          array (
+            0 => '"data":',
+            1 => '"per_page":',
+          ),
+          'nf' => 
+          array (
+          ),
+          'pid' => 'route-surface-collection',
+          'sev' => 'info',
+          'sig' => 0,
+          't' => 
+          array (
+            0 => 'route-surface-collection',
+          ),
+          'w' => 100000,
+        ),
+      ),
+    ),
+    'GET /payments' => 
+    array (
+      'b' => 
+      array (
+        0 => 
+        array (
+          's' => 200,
+          'bw' => 
+          array (
+            0 => '"data":',
+            1 => '"per_page":',
+          ),
+          'nf' => 
+          array (
+          ),
+          'pid' => 'route-surface-collection',
+          'sev' => 'info',
+          'sig' => 0,
+          't' => 
+          array (
+            0 => 'route-surface-collection',
+          ),
+          'w' => 100000,
+        ),
+      ),
+    ),
+    'GET /admin/payments' => 
+    array (
+      'b' => 
+      array (
+        0 => 
+        array (
+          's' => 200,
+          'bw' => 
+          array (
+            0 => '"data":',
+            1 => '"per_page":',
+          ),
+          'nf' => 
+          array (
+          ),
+          'pid' => 'route-surface-collection',
+          'sev' => 'info',
+          'sig' => 0,
+          't' => 
+          array (
+            0 => 'route-surface-collection',
+          ),
+          'w' => 100000,
+        ),
+      ),
+    ),
+    'GET /api/v1/tickets' => 
+    array (
+      'b' => 
+      array (
+        0 => 
+        array (
+          's' => 200,
+          'bw' => 
+          array (
+            0 => '"data":',
+            1 => '"per_page":',
+          ),
+          'nf' => 
+          array (
+          ),
+          'pid' => 'route-surface-collection',
+          'sev' => 'info',
+          'sig' => 0,
+          't' => 
+          array (
+            0 => 'route-surface-collection',
+          ),
+          'w' => 100000,
+        ),
+      ),
+    ),
+    'GET /api/v2/tickets' => 
+    array (
+      'b' => 
+      array (
+        0 => 
+        array (
+          's' => 200,
+          'bw' => 
+          array (
+            0 => '"data":',
+            1 => '"per_page":',
+          ),
+          'nf' => 
+          array (
+          ),
+          'pid' => 'route-surface-collection',
+          'sev' => 'info',
+          'sig' => 0,
+          't' => 
+          array (
+            0 => 'route-surface-collection',
+          ),
+          'w' => 100000,
+        ),
+      ),
+    ),
+    'GET /tickets' => 
+    array (
+      'b' => 
+      array (
+        0 => 
+        array (
+          's' => 200,
+          'bw' => 
+          array (
+            0 => '"data":',
+            1 => '"per_page":',
+          ),
+          'nf' => 
+          array (
+          ),
+          'pid' => 'route-surface-collection',
+          'sev' => 'info',
+          'sig' => 0,
+          't' => 
+          array (
+            0 => 'route-surface-collection',
+          ),
+          'w' => 100000,
+        ),
+      ),
+    ),
+    'GET /admin/tickets' => 
+    array (
+      'b' => 
+      array (
+        0 => 
+        array (
+          's' => 200,
+          'bw' => 
+          array (
+            0 => '"data":',
+            1 => '"per_page":',
+          ),
+          'nf' => 
+          array (
+          ),
+          'pid' => 'route-surface-collection',
+          'sev' => 'info',
+          'sig' => 0,
+          't' => 
+          array (
+            0 => 'route-surface-collection',
+          ),
+          'w' => 100000,
+        ),
+      ),
+    ),
+    'GET /api/v1/environment' => 
+    array (
+      'b' => 
+      array (
+        0 => 
+        array (
+          's' => 200,
+          'bw' => 
+          array (
+            0 => '"environment":',
+            1 => '"region":',
+          ),
+          'nf' => 
+          array (
+          ),
+          'pid' => 'route-surface-detail',
+          'sev' => 'info',
+          'sig' => 0,
+          't' => 
+          array (
+            0 => 'route-surface-detail',
+          ),
+          'w' => 100000,
+        ),
+      ),
+    ),
+    'GET /api/v1/runtime' => 
+    array (
+      'b' => 
+      array (
+        0 => 
+        array (
+          's' => 200,
+          'bw' => 
+          array (
+            0 => '"environment":',
+            1 => '"region":',
+          ),
+          'nf' => 
+          array (
+          ),
+          'pid' => 'route-surface-detail',
+          'sev' => 'info',
+          'sig' => 0,
+          't' => 
+          array (
+            0 => 'route-surface-detail',
+          ),
+          'w' => 100000,
+        ),
+      ),
+    ),
+    'GET /api/v1/release' => 
+    array (
+      'b' => 
+      array (
+        0 => 
+        array (
+          's' => 200,
+          'bw' => 
+          array (
+            0 => '"environment":',
+            1 => '"region":',
+          ),
+          'nf' => 
+          array (
+          ),
+          'pid' => 'route-surface-detail',
+          'sev' => 'info',
+          'sig' => 0,
+          't' => 
+          array (
+            0 => 'route-surface-detail',
+          ),
+          'w' => 100000,
+        ),
+      ),
+    ),
+    'GET /api/v1/build' => 
+    array (
+      'b' => 
+      array (
+        0 => 
+        array (
+          's' => 200,
+          'bw' => 
+          array (
+            0 => '"environment":',
+            1 => '"region":',
+          ),
+          'nf' => 
+          array (
+          ),
+          'pid' => 'route-surface-detail',
+          'sev' => 'info',
+          'sig' => 0,
+          't' => 
+          array (
+            0 => 'route-surface-detail',
+          ),
+          'w' => 100000,
+        ),
+      ),
+    ),
+    'GET /api/v1/capabilities' => 
+    array (
+      'b' => 
+      array (
+        0 => 
+        array (
+          's' => 200,
+          'bw' => 
+          array (
+            0 => '"environment":',
+            1 => '"region":',
+          ),
+          'nf' => 
+          array (
+          ),
+          'pid' => 'route-surface-detail',
+          'sev' => 'info',
+          'sig' => 0,
+          't' => 
+          array (
+            0 => 'route-surface-detail',
+          ),
+          'w' => 100000,
+        ),
+      ),
+    ),
+    'GET /api/v1/limits' => 
+    array (
+      'b' => 
+      array (
+        0 => 
+        array (
+          's' => 200,
+          'bw' => 
+          array (
+            0 => '"environment":',
+            1 => '"region":',
+          ),
+          'nf' => 
+          array (
+          ),
+          'pid' => 'route-surface-detail',
+          'sev' => 'info',
+          'sig' => 0,
+          't' => 
+          array (
+            0 => 'route-surface-detail',
           ),
           'w' => 100000,
         ),

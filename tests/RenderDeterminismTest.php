@@ -140,6 +140,64 @@ final class RenderDeterminismTest extends TestCase
         self::assertNotSame($ra->body, $rb->body, 'the persona-bearing RSD surface must differ across deploy seeds');
     }
 
+    /**
+     * A Honeypot over the FULL index (the surface-graph new_page bundles live there, not in the
+     * trimmed nuclei-index.php the probes above use).
+     */
+    private function fullInverter(string $deploySeed): Honeypot
+    {
+        ini_set('memory_limit', '512M');
+        $store = new PhpArrayStore(require __DIR__ . '/../resources/compiled/nuclei-index.full.php');
+        $config = new Config(
+            'respond',
+            static function (RequestContext $r): bool { return true; },
+            'matched-only',
+            null,
+            'coherent',
+            Style::REALISTIC,
+            'high',
+            65536,
+            0,
+            0,
+            true
+        );
+        $config->seedSalt = 'render-salt';
+        $config->deploySeed = $deploySeed;
+        $config->isolatedOrigin = true;
+
+        return new Honeypot($store, $config);
+    }
+
+    public function test_facade_surface_graph_is_byte_identical_on_rescan(): void
+    {
+        // FP-0278: the deploy-seeded surface graph is a pure function of the deploy seed, so a re-scan
+        // within one deploy is byte-identical (X-Request-Id masked); these routes set no cookie.
+        $h = $this->fullInverter('id-secret');
+        foreach (['/sitemap.xml', '/robots.txt', '/api', '/openapi.json'] as $path) {
+            $r1 = $h->respond(new RequestContext('GET', $path, '', [], null, 'vic.example'));
+            $r2 = $h->respond(new RequestContext('GET', $path, '', [], null, 'vic.example'));
+            self::assertNotNull($r1, "{$path} should serve");
+            self::assertNotNull($r2);
+            self::assertSame($this->canon($r1), $this->canon($r2), "re-scan of {$path} must be byte-identical (X-Request-Id masked)");
+        }
+    }
+
+    public function test_facade_surface_graph_differs_across_deploys(): void
+    {
+        // Across deploys the seeded set/order/nouns differ. robots is excluded: its 96-variant axis can
+        // collide on a specific pair (the sitemap carries the entropy) — the sweep in
+        // SurfaceGraphRoutingTest proves the robots axis is live.
+        $a = $this->fullInverter('deploy-a');
+        $b = $this->fullInverter('deploy-b');
+        foreach (['/sitemap.xml', '/api', '/openapi.json'] as $path) {
+            $ra = $a->respond(new RequestContext('GET', $path, '', [], null, 'vic.example'));
+            $rb = $b->respond(new RequestContext('GET', $path, '', [], null, 'vic.example'));
+            self::assertNotNull($ra, "{$path} should serve on deploy-a");
+            self::assertNotNull($rb, "{$path} should serve on deploy-b");
+            self::assertNotSame($ra->body, $rb->body, "the seeded surface {$path} must differ across deploy seeds");
+        }
+    }
+
     public function test_the_canonicalization_is_not_vacuous(): void
     {
         // A negative control: two responses differing only in body are NOT equal after masking, so the

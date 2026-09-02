@@ -6,7 +6,10 @@ priority: 341
 # 2.0 with an apiKey bearer scheme — matching the stack-neutral OpenAPI 3.0 doc at /v3/api-docs; now
 # that neither doc leaks a PHP docroot there is no framework contradiction across the two surfaces.
 # Persona-seeded host + contact. Served application/json (the endpoint's real type). Opens with a lone
-# `{` for the JSON taunt; the example id is dec:5.
+# `{` for the JSON taunt. FP-0278: the four operation paths are per-deploy-seeded nouns under the
+# expect-pinned basePath /api/v1 ({{surface.noun:c1|c2|d1|d2}}, the SAME nouns the other docs advertise),
+# and the definition is a noun-neutral `Page` mirroring the 398 envelope (data/page/per_page/total) so
+# no seed can make the doc name a type the served nouns contradict. The example total is dec:4.
 new_page:
   method: GET
   paths: ['/v2/api-docs']
@@ -34,13 +37,13 @@ response:
       "Bearer": { "type": "apiKey", "name": "Authorization", "in": "header" }
     },
     "paths": {
-      "/users": { "get": { "summary": "List users", "responses": { "200": { "description": "OK" }, "401": { "description": "Unauthorized" } } } },
-      "/orders": { "get": { "summary": "List orders", "responses": { "200": { "description": "OK" }, "401": { "description": "Unauthorized" } } } },
-      "/status": { "get": { "summary": "Service status", "responses": { "200": { "description": "OK" } } } },
-      "/config": { "get": { "summary": "Service configuration", "responses": { "200": { "description": "OK" }, "401": { "description": "Unauthorized" } } } }
+      "/{{surface.noun:c1}}": { "get": { "summary": "List {{surface.noun:c1}}", "responses": { "200": { "description": "OK" }, "401": { "description": "Unauthorized" } } } },
+      "/{{surface.noun:c2}}": { "get": { "summary": "List {{surface.noun:c2}}", "responses": { "200": { "description": "OK" }, "401": { "description": "Unauthorized" } } } },
+      "/{{surface.noun:d1}}": { "get": { "summary": "Service {{surface.noun:d1}}", "responses": { "200": { "description": "OK" } } } },
+      "/{{surface.noun:d2}}": { "get": { "summary": "Service {{surface.noun:d2}}", "responses": { "200": { "description": "OK" }, "401": { "description": "Unauthorized" } } } }
     },
     "definitions": {
-      "User": { "type": "object", "properties": { "id": { "type": "integer", "example": {{fake.userid:dec:5}} }, "email": { "type": "string" } } }
+      "Page": { "type": "object", "properties": { "data": { "type": "array", "items": { "type": "object" } }, "page": { "type": "integer" }, "per_page": { "type": "integer" }, "total": { "type": "integer", "example": {{fake.pagetotal:dec:4}} } } }
     }
     }
 taunt: { mode: inline_field, key: '_comment' }

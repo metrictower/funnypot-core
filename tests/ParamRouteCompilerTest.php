@@ -163,6 +163,36 @@ final class ParamRouteCompilerTest extends TestCase
         $this->compile([$doc]);
     }
 
+    public function test_surface_directives_pass_the_lint(): void
+    {
+        // FP-0278: the three closed {{surface.*}} forms compile cleanly (sitemap, disallow, every slot).
+        $doc = $this->doc('param-surface', '/@fs/{path*}');
+        $doc['response']['body'] = '{{surface.sitemap}} {{surface.disallow}} {{surface.noun:c1}} {{surface.noun:c2}} {{surface.noun:d1}} {{surface.noun:d2}}';
+        $out = $this->compile([$doc]);
+        self::assertArrayHasKey('@fs', $out['buckets']);
+    }
+
+    public function test_surface_unknown_slot_is_rejected(): void
+    {
+        // FP-0278: surface.noun:SLOT is a CLOSED slot set (c1/c2/d1/d2) — a mistyped slot must fail the
+        // build, not silently render '' and drop the seeded noun.
+        $doc = $this->doc('param-surface-typo', '/@fs/{path*}');
+        $doc['response']['body'] = '{{surface.noun:zz}}';
+        $this->expectException(RuntimeException::class);
+        $this->expectExceptionMessage('unknown surface form');
+        $this->compile([$doc]);
+    }
+
+    public function test_surface_unknown_form_is_rejected(): void
+    {
+        // An unknown surface FORM (not sitemap/disallow/noun) must fail the closed-vocabulary lint.
+        $doc = $this->doc('param-surface-form-typo', '/@fs/{path*}');
+        $doc['response']['body'] = '{{surface.robots}}';
+        $this->expectException(RuntimeException::class);
+        $this->expectExceptionMessage('unknown surface form');
+        $this->compile([$doc]);
+    }
+
     public function test_duplicate_id_within_the_param_set_is_rejected(): void
     {
         $this->expectException(RuntimeException::class);

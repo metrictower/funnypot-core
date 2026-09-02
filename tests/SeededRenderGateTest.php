@@ -136,6 +136,25 @@ final class SeededRenderGateTest extends TestCase
         self::assertStringContainsString('1 seeded surfaces verified', $out);
     }
 
+    public function test_g4_a_surface_directive_body_varies_per_deploy(): void
+    {
+        // FP-0278: a route body carrying {{surface.sitemap}} renders a per-deploy-seeded <loc> set +
+        // order + nouns (off the deploy seed the gate injects at each material), so G4 sees the route's
+        // render path drive the new directive and vary across the two sample deploy materials.
+        $env = $this->emptyEnv();
+        $env['routes'] = $this->tmpPhp('rt', [[
+            'id' => 'route-fp-0278-surface',
+            'match' => ['template_needle' => ['fpsurface']],
+            'body' => "<urlset>\n{{surface.sitemap}}\n</urlset>",
+            'headers' => ['Content-Type' => 'application/xml'],
+        ]]);
+        $env['surfaces'] = $this->tmpPhp('sf', ['route:route-fp-0278-surface' => 'FP-0278 seeded sitemap block']);
+
+        [$code, $out] = $this->runGate($env);
+        self::assertSame(0, $code, $out);
+        self::assertStringContainsString('1 seeded surfaces verified', $out);
+    }
+
     // --- G1: a leak visible ONLY after render -----------------------------------------------------
 
     public function test_g1_catches_a_denylisted_token_that_appears_only_after_render(): void

@@ -11,6 +11,7 @@ use Funnypot\Core\Support\Fake\FakeSecrets;
 use Funnypot\Core\Support\PersonaIdentity;
 use Funnypot\Core\Support\SeededIndex;
 use Funnypot\Core\Support\SubSeed;
+use Funnypot\Core\Support\SurfaceGraph;
 
 /**
  * Fills the bounded `{{...}}` directives in a template body/header value. This is the ONLY
@@ -50,6 +51,14 @@ use Funnypot\Core\Support\SubSeed;
  *   {{persona.PATH}}                 one coherent fake identity for the seed (company, db, admin,
  *                                    cloud) — PATH is a CLOSED field set (Support\PersonaIdentity);
  *                                    an unknown subfield renders '' (never the literal)
+ *   {{surface.noun:SLOT}}            one per-deploy seeded resource noun (FP-0278); SLOT is a CLOSED
+ *                                    set (Support\SurfaceGraph::SLOTS = c1,c2,d1,d2) — the SAME slot
+ *                                    across the docs/robots/sitemap/nav yields the SAME noun, so the
+ *                                    surface graph tells one coherent story. Off the deploy identity
+ *                                    seed (identitySeed()), like {{persona.*}}
+ *   {{surface.sitemap}}              the deploy's whole seeded `<url><loc>…</loc></url>` sitemap block
+ *   {{surface.disallow}}             the deploy's whole seeded `Disallow: …` robots block
+ *                                    (both CLOSED forms; an unknown surface form fails the lint)
  *   {{hex:AABBCC}}                   raw bytes hex2bin(AABBCC) — embed exact bytes (incl. >= 0x80)
  *                                    that the YAML \xNN transport can't carry byte-exact; non-hex
  *                                    chars are stripped, an odd digit count renders '' (never a
@@ -59,7 +68,7 @@ use Funnypot\Core\Support\SubSeed;
 final class DirectiveRenderer
 {
     /** The closed directive prefixes — used by the compile-time lint. */
-    public const KNOWN_PREFIXES = ['canned.', 'fake.', 'volatile.', 'misdirect', 'fakeHex:', 'hex:', 'match.', 'urldecode:match.', 'xml:match.', 'html:match.', 'compute.md5:', 'compute.crc32:', 'pick:', 'canary.', 'persona.'];
+    public const KNOWN_PREFIXES = ['canned.', 'fake.', 'volatile.', 'misdirect', 'fakeHex:', 'hex:', 'match.', 'urldecode:match.', 'xml:match.', 'html:match.', 'compute.md5:', 'compute.crc32:', 'pick:', 'canary.', 'persona.', 'surface.'];
 
     /** The closed set of valid fake.person.* sub-fields — used by the compile-time lint (mirrors
      *  PersonaIdentity::FIELDS' role for persona.*; unlike a plain fake.NAME, this sub-field is
@@ -373,6 +382,28 @@ final class DirectiveRenderer
         }
         if (strpos($part, 'persona.') === 0) {
             return $this->personaField($seed, substr($part, 8));
+        }
+        if (strpos($part, 'surface.') === 0) {
+            // Per-deploy seeded decoy surface graph (FP-0278). Off identitySeed() — the injected deploy
+            // persona seed when wired, else the per-request render seed — the SAME fold {{persona.*}}
+            // uses, so the surface graph, the persona and the canned surfaces all track ONE identity.
+            // Three CLOSED forms; a returned value carries no `{{` and is inserted once, never
+            // re-scanned. An unknown form -> null so the compile-time closed-set lint (which rejects it
+            // first) is the real guard and '' is the safe runtime fallback.
+            $rest = substr($part, 8);
+            $ident = $this->identitySeed($seed);
+            if (strpos($rest, 'noun:') === 0) {
+                return SurfaceGraph::noun($ident, substr($rest, 5));
+            }
+            if ($rest === 'sitemap') {
+                // DOMAIN is the same coherent persona company.domain the rest of the page shows.
+                return SurfaceGraph::sitemapBlock($ident, $this->personaField($seed, 'company.domain'));
+            }
+            if ($rest === 'disallow') {
+                return SurfaceGraph::disallowBlock($ident);
+            }
+
+            return null;
         }
 
         // Unknown directive -> '' (via null so resolve()'s '|'-alternatives still cascade), aligning

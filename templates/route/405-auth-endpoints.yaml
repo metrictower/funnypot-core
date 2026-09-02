@@ -3,7 +3,10 @@ priority: 405
 # Brand-new page (FP-0233): the auth archetype — an RFC 7807 problem+json 401, the shape the OIDC
 # discovery document (395) and the OpenAPI docs point their auth endpoints at. Maps to /auth,
 # /auth/login, /auth/token and /api/v2/auth/login (all GET here; the corpus already carries the
-# POST forms). Inert: GET, 401, no request byte reflected, fully persona-seeded (serves from any
+# POST forms). /api/v2/auth/login stays COMPILED for harmless extra coverage, but since FP-0278 the
+# 345 /api/v2 index links /auth/login instead (no robots root covers /api/v2/auth/login), so nothing
+# advertises /api/v2/auth/login — it is reachable-if-guessed, never a linked-but-unadvertised tell.
+# Inert: GET, 401, no request byte reflected, fully persona-seeded (serves from any
 # origin). A 401 is the honest answer an unauthenticated GET of an auth endpoint gives — so the
 # discovery links resolve to a real inert decoy, not a 404 hole. Content-Type is the problem+json
 # media type (the endpoint's real error type). Opens with a lone `{` for the inline-field JSON

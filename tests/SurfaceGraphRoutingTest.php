@@ -8,6 +8,7 @@ use Funnypot\Core\Config;
 use Funnypot\Core\Honeypot;
 use Funnypot\Core\RequestContext;
 use Funnypot\Core\Store\PhpArrayStore;
+use Funnypot\Core\Support\SurfaceGraph;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\Yaml\Yaml;
 
@@ -54,11 +55,25 @@ final class SurfaceGraphRoutingTest extends TestCase
         '/webhooks', '/metrics', '/status', '/debug', '/graphql',
     ];
 
+    /** The deploy materials the FP-0278 coherence sweep varies the IDENTITY seed over. */
+    private const DEPLOY_MATERIALS = [
+        '', 'funnypot', 'fp-0278-a', 'fp-0278-b', 'fp-0278-c', 'fp-0278-d', 'fp-0278-e', 'fp-0278-f',
+        'fp-0278-g', 'fp-0278-h', 'fp-0278-i', 'fp-0278-j', 'fp-0278-k', 'fp-0278-l', 'fp-0278-m',
+        'fp-0278-n', 'fp-0278-o', 'fp-0278-p', 'fp-0278-q', 'fp-0278-r', 'fp-0278-s', 'fp-0278-t',
+        'fp-0278-u', 'fp-0278-v', 'fp-0278-w', 'fp-0278-x', 'fp-0278-y', 'fp-0278-z',
+    ];
+
     private function inverter(): Honeypot
     {
         return $this->seededInverter('fixed');
     }
 
+    /**
+     * The render-seed axis (FP-0233): the seed is Config ctor arg 4, the per-REQUEST persona-seed
+     * source (Config.php $personaSeed). This exercises PersonaSelector::pick at co-tenanted keys — the
+     * FP-0233 guarantee — but does NOT vary the deploy-seeded surface graph (deploySeed/seedSalt unset
+     * ⇒ deploySeedMaterial() is '' every iteration), so it is the WITHIN-deploy axis for this ticket.
+     */
     private function seededInverter(string $seed): Honeypot
     {
         $store = new PhpArrayStore(require __DIR__ . '/../resources/compiled/nuclei-index.full.php');
@@ -71,6 +86,29 @@ final class SurfaceGraphRoutingTest extends TestCase
             'coherent',
             'realistic'
         ));
+    }
+
+    /**
+     * The deploy-seed axis (FP-0278): setting deploySeed + seedSalt varies the IDENTITY seed
+     * (Config::deploySeed() → Honeypot → DirectiveRenderer::identitySeed()), which drives the seeded
+     * surface graph. This is the axis every coherence assertion below sweeps — the render-seed-only
+     * sweep would be VACUOUS for this ticket (the graph is constant along it).
+     */
+    private function deployInverter(string $material): Honeypot
+    {
+        $store = new PhpArrayStore(require __DIR__ . '/../resources/compiled/nuclei-index.full.php');
+        $config = new Config(
+            'respond',
+            static function (RequestContext $r): bool { return true; },
+            'matched-only',
+            null,
+            'coherent',
+            'realistic'
+        );
+        $config->deploySeed = $material;
+        $config->seedSalt = 'fp-0278-salt';
+
+        return new Honeypot($store, $config);
     }
 
     /** Strip scheme+authority (and any query/fragment) from a URL, leaving the root-absolute path. */
@@ -89,10 +127,11 @@ final class SurfaceGraphRoutingTest extends TestCase
         return $url;
     }
 
-    /** Fetch a surface body at the fixed seed (each source below is a deterministic single winner). */
-    private function body(string $path): string
+    /** Fetch a surface body from the given inverter (defaults to the fixed within-deploy inverter). */
+    private function body(string $path, ?Honeypot $inv = null): string
     {
-        $r = $this->inverter()->respond(new RequestContext('GET', $path));
+        $inv = $inv ?? $this->inverter();
+        $r = $inv->respond(new RequestContext('GET', $path));
         self::assertNotNull($r, "{$path} must serve a fake");
 
         return $r->body;
@@ -120,6 +159,320 @@ final class SurfaceGraphRoutingTest extends TestCase
                 self::assertArrayHasKey('Content-Type', $resp->headers, "seed {$seed}: {$path} must carry a Content-Type");
                 self::assertStringNotContainsString('{{', $resp->body, "seed {$seed}: {$path} must be fully rendered (no residual directive)");
             }
+        }
+    }
+
+    // === FP-0278: coherence at every sampled DEPLOY seed (the identity-seed axis) ==================
+
+    /** Segment-aware "does $root cover $p" — /status covers /status and /status/x, never /statuses. */
+    private static function covers(string $root, string $p): bool
+    {
+        return $p === $root || strpos($p, $root . '/') === 0;
+    }
+
+    /** The sitemap's <loc> paths for one deploy. @return list<string> */
+    private function sitemapLocs(Honeypot $inv): array
+    {
+        $locs = [];
+        if (preg_match_all('#<loc>\s*([^<\s]+)\s*</loc>#i', $this->body('/sitemap.xml', $inv), $m)) {
+            foreach ($m[1] as $loc) {
+                $locs[] = self::toPath($loc);
+            }
+        }
+
+        return $locs;
+    }
+
+    /** The robots Disallow: roots for one deploy. @return list<string> */
+    private function disallowRoots(Honeypot $inv): array
+    {
+        $roots = [];
+        foreach (explode("\n", $this->body('/robots.txt', $inv)) as $line) {
+            if (preg_match('/^\s*Disallow:\s*(\S+)/i', $line, $mm)) {
+                $roots[] = self::toPath($mm[1]);
+            }
+        }
+
+        return $roots;
+    }
+
+    /**
+     * Every same-host path a body LINKS for one deploy (397 _links + documentation, 400 hrefs, 345
+     * endpoints incl. auth, 395 *_endpoint/jwks_uri). @return list<string>
+     */
+    private function linkedPaths(Honeypot $inv): array
+    {
+        $links = [];
+        $addLink = static function ($u) use (&$links): void {
+            $p = self::toPath((string) $u);
+            if ($p !== '' && $p[0] === '/') {
+                $links[$p] = true;
+            }
+        };
+        $root = json_decode($this->body('/api', $inv), true);
+        self::assertIsArray($root, '/api root index must be valid JSON');
+        foreach ((array) ($root['_links'] ?? []) as $u) {
+            $addLink($u);
+        }
+        if (isset($root['documentation'])) {
+            $addLink($root['documentation']);
+        }
+        if (preg_match_all('#href="(/[^"]*)"#i', $this->body('/admin', $inv), $hm)) {
+            foreach ($hm[1] as $href) {
+                $addLink($href);
+            }
+        }
+        $v2 = json_decode($this->body('/api/v2', $inv), true);
+        self::assertIsArray($v2, '/api/v2 index must be valid JSON');
+        foreach ((array) ($v2['endpoints'] ?? []) as $u) {
+            $addLink($u);
+        }
+        if (isset($v2['documentation'])) {
+            $addLink($v2['documentation']);
+        }
+        $oidc = json_decode($this->body('/.well-known/openid-configuration', $inv), true);
+        self::assertIsArray($oidc, 'OIDC discovery must be valid JSON');
+        foreach ((array) $oidc as $k => $v) {
+            if (is_string($v) && (substr((string) $k, -9) === '_endpoint' || $k === 'jwks_uri')) {
+                $addLink($v);
+            }
+        }
+
+        return array_keys($links);
+    }
+
+    /**
+     * The distinct nouns of one $pool that appear as the LAST segment of any path in $paths (pools are
+     * disjoint, so a path's slot class is unambiguous). @param list<string> $paths @return list<string>
+     */
+    private static function nounsIn(array $paths, array $pool): array
+    {
+        $found = [];
+        foreach ($paths as $p) {
+            $seg = substr($p, (int) strrpos($p, '/') + 1);
+            if (in_array($seg, $pool, true)) {
+                $found[$seg] = true;
+            }
+        }
+        $out = array_keys($found);
+        sort($out);
+
+        return $out;
+    }
+
+    /** The `paths` keys of a JSON OpenAPI/Swagger doc, resolved against $base. @return list<string> */
+    private function docPaths(Honeypot $inv, string $path, string $base): array
+    {
+        $doc = json_decode($this->body($path, $inv), true);
+        self::assertIsArray($doc, "{$path} must be valid JSON");
+        $out = [];
+        foreach (array_keys((array) ($doc['paths'] ?? [])) as $p) {
+            $out[] = self::toPath($base . $p);
+        }
+
+        return $out;
+    }
+
+    /**
+     * C1 (deploy axis): every advertised path resolves to an inert decoy at EVERY sampled deploy seed.
+     * The render-seed sweep above is vacuous for the seeded graph; THIS sweep varies the identity seed.
+     */
+    public function test_every_advertised_path_resolves_across_deploy_seeds(): void
+    {
+        foreach (self::DEPLOY_MATERIALS as $material) {
+            $inv = $this->deployInverter($material);
+            $advertised = $this->collectAdvertisedPaths($inv);
+            self::assertGreaterThan(25, count($advertised), "material '{$material}': the graph must advertise a large endpoint set");
+            foreach ($advertised as $path) {
+                $resp = $inv->respond(new RequestContext('GET', $path));
+                self::assertNotNull($resp, "material '{$material}': advertised {$path} must resolve (no partial-tree tell)");
+                self::assertContains($resp->status, [200, 401], "material '{$material}': {$path} must be an inert 200/401");
+                self::assertArrayHasKey('Content-Type', $resp->headers, "material '{$material}': {$path} must carry a Content-Type");
+                self::assertStringNotContainsString('{{', $resp->body, "material '{$material}': {$path} must be fully rendered");
+            }
+        }
+    }
+
+    /**
+     * C2 (linked ⇒ advertised): every same-host path a body links is a sitemap <loc> or lies under a
+     * Disallow root, at every deploy seed. Includes the two plan-review cases as named checks.
+     */
+    public function test_every_linked_path_is_advertised_across_deploys(): void
+    {
+        foreach (self::DEPLOY_MATERIALS as $material) {
+            $inv = $this->deployInverter($material);
+            $locs = $this->sitemapLocs($inv);
+            $roots = $this->disallowRoots($inv);
+            $linked = $this->linkedPaths($inv);
+            self::assertNotEmpty($linked, "material '{$material}': the surfaces must link paths");
+
+            foreach ($linked as $p) {
+                $advertised = in_array($p, $locs, true);
+                if (!$advertised) {
+                    foreach ($roots as $root) {
+                        if (self::covers($root, $p)) {
+                            $advertised = true;
+                            break;
+                        }
+                    }
+                }
+                self::assertTrue($advertised, "material '{$material}': linked path {$p} must be advertised (a sitemap loc or under a Disallow root)");
+            }
+
+            // Named review cases: /api and /api/v1 always advertised; 345's auth is /auth/login,
+            // covered by the always-present Disallow: /auth.
+            self::assertContains('/api', $locs, "material '{$material}': /api must be a sitemap loc (SPINE)");
+            self::assertContains('/api/v1', $locs, "material '{$material}': /api/v1 must be a sitemap loc (SPINE)");
+            $v2 = json_decode($this->body('/api/v2', $inv), true);
+            self::assertSame('/auth/login', self::toPath((string) ($v2['endpoints']['auth'] ?? '')), "material '{$material}': /api/v2 auth must link /auth/login, not /api/v2/auth/login");
+            $authCovered = false;
+            foreach ($roots as $root) {
+                if (self::covers($root, '/auth/login')) {
+                    $authCovered = true;
+                }
+            }
+            self::assertTrue($authCovered, "material '{$material}': /auth/login must be covered by a Disallow root");
+        }
+    }
+
+    /**
+     * C3 (no sitemap/robots contradiction): no sitemap <loc> is covered by a Disallow root, and /api
+     * never appears as a Disallow root, at every deploy seed.
+     */
+    public function test_no_sitemap_robots_contradiction_across_deploys(): void
+    {
+        foreach (self::DEPLOY_MATERIALS as $material) {
+            $inv = $this->deployInverter($material);
+            $locs = $this->sitemapLocs($inv);
+            $roots = $this->disallowRoots($inv);
+            self::assertNotContains('/api', $roots, "material '{$material}': /api must not be Disallow-ed (the sitemap advertises the /api tree)");
+            foreach ($locs as $loc) {
+                foreach ($roots as $root) {
+                    self::assertFalse(self::covers($root, $loc), "material '{$material}': sitemap loc {$loc} must not be covered by Disallow {$root}");
+                }
+            }
+        }
+    }
+
+    /**
+     * C4 (one noun story, per slot class): the COLLECTION nouns agree across sitemap/330/340/342/341/
+     * 345/397/400; the SINGLETON nouns agree across sitemap/330/340/342/341/397 (345 and 400 carry
+     * none by design) — at every deploy seed.
+     */
+    public function test_one_noun_story_per_slot_class_across_deploys(): void
+    {
+        $col = SurfaceGraph::COLLECTION_NOUNS;
+        $det = SurfaceGraph::DETAIL_NOUNS;
+        foreach (self::DEPLOY_MATERIALS as $material) {
+            $inv = $this->deployInverter($material);
+            $locs = $this->sitemapLocs($inv);
+            $links = $this->linkedPaths($inv);
+            $p330 = $this->docPaths($inv, '/openapi.json', '');
+            $p340 = $this->docPaths($inv, '/swagger.json', '');
+            $p342Doc = Yaml::parse($this->body('/openapi.yaml', $inv));
+            $p342 = array_map([self::class, 'toPath'], array_keys((array) ($p342Doc['paths'] ?? [])));
+            $sw2 = json_decode($this->body('/v2/api-docs', $inv), true);
+            self::assertIsArray($sw2, 'Swagger 2.0 doc must be valid JSON');
+            $base2 = rtrim((string) ($sw2['basePath'] ?? ''), '/');
+            $p341 = [];
+            foreach (array_keys((array) ($sw2['paths'] ?? [])) as $p) {
+                $p341[] = self::toPath($base2 . $p);
+            }
+
+            // Collection nouns across all eight advertisers.
+            $collectionSets = [
+                'sitemap' => self::nounsIn($locs, $col),
+                '330' => self::nounsIn($p330, $col),
+                '340' => self::nounsIn($p340, $col),
+                '342' => self::nounsIn($p342, $col),
+                '341' => self::nounsIn($p341, $col),
+                'links(397/400/345)' => self::nounsIn($links, $col),
+            ];
+            $expectCol = $collectionSets['sitemap'];
+            self::assertCount(2, $expectCol, "material '{$material}': the sitemap must carry exactly two collection nouns");
+            foreach ($collectionSets as $src => $set) {
+                self::assertSame($expectCol, $set, "material '{$material}': collection nouns from {$src} must match the sitemap");
+            }
+
+            // Singleton nouns across sitemap/330/340/342/341/397 only.
+            $links397 = [];
+            $root = json_decode($this->body('/api', $inv), true);
+            foreach ((array) ($root['_links'] ?? []) as $u) {
+                $links397[] = self::toPath((string) $u);
+            }
+            $singletonSets = [
+                'sitemap' => self::nounsIn($locs, $det),
+                '330' => self::nounsIn($p330, $det),
+                '340' => self::nounsIn($p340, $det),
+                '342' => self::nounsIn($p342, $det),
+                '341' => self::nounsIn($p341, $det),
+                '397' => self::nounsIn($links397, $det),
+            ];
+            $expectDet = $singletonSets['sitemap'];
+            self::assertCount(2, $expectDet, "material '{$material}': the sitemap must carry exactly two singleton nouns");
+            foreach ($singletonSets as $src => $set) {
+                self::assertSame($expectDet, $set, "material '{$material}': singleton nouns from {$src} must match the sitemap");
+            }
+        }
+    }
+
+    /** C5 (ops paths robots-only): no NEVER_IN_SITEMAP path ever appears as a <loc>, at every seed. */
+    public function test_ops_paths_are_never_sitemapped_across_deploys(): void
+    {
+        foreach (self::DEPLOY_MATERIALS as $material) {
+            $locs = $this->sitemapLocs($this->deployInverter($material));
+            foreach (SurfaceGraph::NEVER_IN_SITEMAP as $never) {
+                self::assertNotContains($never, $locs, "material '{$material}': ops path {$never} must be robots-only, never sitemapped");
+            }
+        }
+    }
+
+    /**
+     * Cross-deploy (domain-stripped): the ORDERED <loc> path list and the ORDERED Disallow list differ
+     * between two deploys, and the noun set differs for at least one pair — the load-bearing proof that
+     * the graph is de-fingerprinted (the seeded-render gate's G4 alone would pass on the domain).
+     */
+    public function test_cross_deploy_path_sets_and_nouns_differ(): void
+    {
+        $a = $this->deployInverter('fp-0278-a');
+        $b = $this->deployInverter('fp-0278-b');
+        // The sitemap ordering carries the entropy (18!+ permutations), so a specific pair differs.
+        self::assertNotSame($this->sitemapLocs($a), $this->sitemapLocs($b), 'the ordered sitemap path list must differ across deploys');
+
+        // The Disallow axis is deliberately small (order of 4 required roots + 0..2 optional ⇒ 96
+        // variants — the sitemap is the entropy source), so a SPECIFIC pair can collide; assert the
+        // axis is live by requiring >1 distinct ordered Disallow list across the sampled deploys, and
+        // that the advertised noun set likewise varies.
+        $sitemapOrders = [];
+        $disallowOrders = [];
+        $nounSets = [];
+        foreach (self::DEPLOY_MATERIALS as $material) {
+            $inv = $this->deployInverter($material);
+            $sitemapOrders[serialize($this->sitemapLocs($inv))] = true;
+            $disallowOrders[serialize($this->disallowRoots($inv))] = true;
+            $root = json_decode($this->body('/api', $inv), true);
+            $nounSets[serialize($root['_links'] ?? [])] = true;
+        }
+        self::assertGreaterThan(1, count($sitemapOrders), 'the sitemap set/order must vary across deploys');
+        self::assertGreaterThan(1, count($disallowOrders), 'the Disallow set/order must vary across deploys');
+        self::assertGreaterThan(1, count($nounSets), 'the advertised noun set must vary across deploys');
+    }
+
+    /**
+     * Within-deploy determinism along the render axis: at ONE deploy material, the sitemap <loc> list
+     * is identical across render seeds (the surface graph is a pure function of the deploy seed, not
+     * the request). A free companion to the deploy-axis coherence sweep.
+     */
+    public function test_surface_graph_is_constant_along_the_render_axis(): void
+    {
+        // seededInverter varies the per-REQUEST persona seed (ctor arg 4), which must NOT move the graph.
+        $baseline = null;
+        foreach (['0', '1', '7', '4242', 'probe'] as $renderSeed) {
+            $locs = $this->sitemapLocs($this->seededInverter($renderSeed));
+            if ($baseline === null) {
+                $baseline = $locs;
+            }
+            self::assertSame($baseline, $locs, "render seed {$renderSeed}: the surface graph must be constant along the render axis");
         }
     }
 
@@ -214,8 +567,9 @@ final class SurfaceGraphRoutingTest extends TestCase
     /**
      * @return array<int,string> the deduplicated advertised path set drawn from every surface.
      */
-    private function collectAdvertisedPaths(): array
+    private function collectAdvertisedPaths(?Honeypot $inv = null): array
     {
+        $inv = $inv ?? $this->inverter();
         $paths = [];
         $add = static function (string $p) use (&$paths): void {
             $p = self::toPath($p);
@@ -233,14 +587,14 @@ final class SurfaceGraphRoutingTest extends TestCase
         };
 
         // sitemap.xml — every <loc>.
-        if (preg_match_all('#<loc>\s*([^<\s]+)\s*</loc>#i', $this->body('/sitemap.xml'), $m)) {
+        if (preg_match_all('#<loc>\s*([^<\s]+)\s*</loc>#i', $this->body('/sitemap.xml', $inv), $m)) {
             foreach ($m[1] as $loc) {
                 $add($loc);
             }
         }
 
         // robots.txt — every Disallow: path and the Sitemap: URL.
-        foreach (explode("\n", $this->body('/robots.txt')) as $line) {
+        foreach (explode("\n", $this->body('/robots.txt', $inv)) as $line) {
             if (preg_match('/^\s*Disallow:\s*(\S+)/i', $line, $mm)) {
                 $add($mm[1]);
             } elseif (preg_match('/^\s*Sitemap:\s*(\S+)/i', $line, $mm)) {
@@ -249,7 +603,7 @@ final class SurfaceGraphRoutingTest extends TestCase
         }
 
         // OIDC discovery — every *_endpoint + jwks_uri.
-        $oidc = json_decode($this->body('/.well-known/openid-configuration'), true);
+        $oidc = json_decode($this->body('/.well-known/openid-configuration', $inv), true);
         self::assertIsArray($oidc, 'OIDC discovery must be valid JSON');
         foreach ($oidc as $k => $v) {
             if (is_string($v) && (substr((string) $k, -9) === '_endpoint' || $k === 'jwks_uri')) {
@@ -258,7 +612,7 @@ final class SurfaceGraphRoutingTest extends TestCase
         }
 
         // OpenAPI 3.0 (/swagger.json) — server base path + every paths key.
-        $oas = json_decode($this->body('/swagger.json'), true);
+        $oas = json_decode($this->body('/swagger.json', $inv), true);
         self::assertIsArray($oas, 'OpenAPI 3.0 doc must be valid JSON');
         $base3 = self::toPath((string) ($oas['servers'][0]['url'] ?? ''));
         $base3 = $base3 === '/' ? '' : rtrim($base3, '/');
@@ -267,7 +621,7 @@ final class SurfaceGraphRoutingTest extends TestCase
         }
 
         // Swagger 2.0 (/v2/api-docs) — basePath + every paths key.
-        $sw2 = json_decode($this->body('/v2/api-docs'), true);
+        $sw2 = json_decode($this->body('/v2/api-docs', $inv), true);
         self::assertIsArray($sw2, 'Swagger 2.0 doc must be valid JSON');
         $base2 = rtrim((string) ($sw2['basePath'] ?? ''), '/');
         foreach (array_keys((array) ($sw2['paths'] ?? [])) as $p) {
@@ -275,7 +629,7 @@ final class SurfaceGraphRoutingTest extends TestCase
         }
 
         // OpenAPI YAML (/openapi.yaml) — server base path + every paths key.
-        $yaml = Yaml::parse($this->body('/openapi.yaml'));
+        $yaml = Yaml::parse($this->body('/openapi.yaml', $inv));
         self::assertIsArray($yaml, 'OpenAPI YAML doc must parse');
         $baseY = self::toPath((string) ($yaml['servers'][0]['url'] ?? ''));
         $baseY = $baseY === '/' ? '' : rtrim($baseY, '/');
@@ -284,7 +638,7 @@ final class SurfaceGraphRoutingTest extends TestCase
         }
 
         // /api/v2 index — its documentation + endpoints map.
-        $v2 = json_decode($this->body('/api/v2'), true);
+        $v2 = json_decode($this->body('/api/v2', $inv), true);
         self::assertIsArray($v2, '/api/v2 index must be valid JSON');
         if (isset($v2['documentation'])) {
             $add((string) $v2['documentation']);
@@ -293,10 +647,28 @@ final class SurfaceGraphRoutingTest extends TestCase
             $add((string) $u);
         }
 
+        // FP-0278: the API root index (397) — every _links value + documentation. A seeded noun link
+        // here that were not advertised would be a linked-but-unadvertised tell (C2).
+        $root = json_decode($this->body('/api', $inv), true);
+        self::assertIsArray($root, '/api root index must be valid JSON');
+        if (isset($root['documentation'])) {
+            $add((string) $root['documentation']);
+        }
+        foreach ((array) ($root['_links'] ?? []) as $u) {
+            $add((string) $u);
+        }
+
+        // FP-0278: the admin dashboard (400) — every root-absolute href.
+        if (preg_match_all('#href="(/[^"]*)"#i', $this->body('/admin', $inv), $hm)) {
+            foreach ($hm[1] as $href) {
+                $add($href);
+            }
+        }
+
         // problem+json `type` URIs — a same-host `type` that 404s is a dangling advertisement. The
         // RFC 7807 default `about:blank` is not a same-host path, so $add drops it (nothing to probe).
         foreach (['/auth', '/auth/token'] as $authPath) {
-            $prob = json_decode($this->body($authPath), true);
+            $prob = json_decode($this->body($authPath, $inv), true);
             if (is_array($prob) && isset($prob['type']) && is_string($prob['type'])) {
                 $add($prob['type']);
             }
@@ -305,7 +677,7 @@ final class SurfaceGraphRoutingTest extends TestCase
         // .well-known/ai-plugin.json — the manifest URLs a crawler follows (the OpenAPI doc, and the
         // optional logo/legal links). Every same-host one must resolve, or the manifest advertises a
         // hole.
-        $plugin = json_decode($this->body('/.well-known/ai-plugin.json'), true);
+        $plugin = json_decode($this->body('/.well-known/ai-plugin.json', $inv), true);
         self::assertIsArray($plugin, 'ai-plugin manifest must be valid JSON');
         if (isset($plugin['api']['url']) && is_string($plugin['api']['url'])) {
             $add($plugin['api']['url']);

@@ -158,6 +158,14 @@ Two independent conditions matter: `deploySeed` (identity material) and `seedSal
 Setting one persisted secret for both is the simplest safe configuration. **The core never generates
 or persists the secret** — it does no I/O; provisioning a per-install secret is the host app's job.
 
+The `deploySeed` also drives the **decoy surface graph** (the `/sitemap.xml`, `/robots.txt`, OpenAPI/
+Swagger docs and REST index): its advertised endpoint set, ordering and resource nouns are a per-deploy
+seeded subset (`{{surface.*}}`), so two deploys expose different but internally-coherent surface graphs
+instead of one fleet-correlation tell — every advertised path still resolves and no linked path ever
+dangles. Because it is seed-derived, **upgrading the package re-rolls a deploy's surface graph once**
+(a returning scanner sees the site's map change), exactly as it re-rolls the persona identity; the seed
+derivation itself never changes.
+
 Ask the engine what it sees, without changing a single served byte:
 
 ```php

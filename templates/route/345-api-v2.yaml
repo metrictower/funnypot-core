@@ -3,7 +3,10 @@ priority: 345
 # Brand-new page: a generic REST v2 API index at /api/v2 — the self-describing root a scanner reads
 # to discover the versioned endpoint list and the auth scheme. Persona-seeded host, pointing at this
 # host's OpenAPI doc. Served application/json. Opens with a lone `{` for the JSON taunt. Version
-# strings are dotted (no bare digit run).
+# strings are dotted (no bare digit run). FP-0278: the two collection endpoints are per-deploy-seeded
+# nouns under /api/v2 ({{surface.noun:c1|c2}}, the same c-nouns the other docs advertise); the `auth`
+# link points at /auth/login (a compiled 401 covered by the always-present robots Disallow: /auth) —
+# NOT /api/v2/auth/login, which no robots root covers, so it would be a linked-but-unadvertised tell.
 new_page:
   method: GET
   paths: ['/api/v2']
@@ -23,9 +26,9 @@ response:
     "status": "ok",
     "documentation": "https://{{persona.company.domain}}/openapi.json",
     "endpoints": {
-      "users": "https://{{persona.company.domain}}/api/v2/users",
-      "orders": "https://{{persona.company.domain}}/api/v2/orders",
-      "auth": "https://{{persona.company.domain}}/api/v2/auth/login"
+      "{{surface.noun:c1}}": "https://{{persona.company.domain}}/api/v2/{{surface.noun:c1}}",
+      "{{surface.noun:c2}}": "https://{{persona.company.domain}}/api/v2/{{surface.noun:c2}}",
+      "auth": "https://{{persona.company.domain}}/auth/login"
     },
     "authentication": { "type": "bearer", "header": "Authorization" }
     }

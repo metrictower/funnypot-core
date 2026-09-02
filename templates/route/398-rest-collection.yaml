@@ -6,6 +6,12 @@ priority: 398
 # structurally distinct SHAPE mapped to several literal paths: the render is persona-seeded (not
 # path-seeded), so these paths serve byte-identically — that is fine for resolution (every path is
 # a real inert decoy) and the archetype's job is to be one distinct crawl node, not many (FP-0174).
+# FP-0278: paths: is the fleet-identical SUPERSET of collection nouns (Support\SurfaceGraph::
+# collectionPaths — every noun under /api/v1,/api/v2,/,/admin), so every noun ANY deploy can advertise
+# resolves to this inert decoy; a deploy advertises only its seeded subset (docs/sitemap/nav), so a
+# prober guessing an un-advertised noun still lands on a coherent 200 (never an advertised-but-404).
+# The pool is grep-verified corpus-unowned, so each compiled key is surface-owned at weight 100000.
+# A test pins paths: === SurfaceGraph::collectionPaths() so the pool and the artifact never drift.
 # Inert: GET, 200, no request byte reflected, fully persona-seeded (serves from any origin). The
 # envelope carries NO pager `_links` (review fix): a `next` link with total:3 + per_page:25 is a
 # self-contradiction (page 1 of 3 items has no next page), and a `self` pointer naming /api/v1/users
@@ -14,7 +20,55 @@ priority: 398
 # inline-field JSON taunt. Row ids are dec:5 (no bare 6-digit run).
 new_page:
   method: GET
-  paths: ['/api/v1/users', '/api/v1/orders', '/admin/users', '/users', '/api/v2/users', '/api/v2/orders']
+  paths:
+    - '/api/v1/users'
+    - '/api/v2/users'
+    - '/users'
+    - '/admin/users'
+    - '/api/v1/orders'
+    - '/api/v2/orders'
+    - '/orders'
+    - '/admin/orders'
+    - '/api/v1/customers'
+    - '/api/v2/customers'
+    - '/customers'
+    - '/admin/customers'
+    - '/api/v1/accounts'
+    - '/api/v2/accounts'
+    - '/accounts'
+    - '/admin/accounts'
+    - '/api/v1/invoices'
+    - '/api/v2/invoices'
+    - '/invoices'
+    - '/admin/invoices'
+    - '/api/v1/products'
+    - '/api/v2/products'
+    - '/products'
+    - '/admin/products'
+    - '/api/v1/members'
+    - '/api/v2/members'
+    - '/members'
+    - '/admin/members'
+    - '/api/v1/clients'
+    - '/api/v2/clients'
+    - '/clients'
+    - '/admin/clients'
+    - '/api/v1/projects'
+    - '/api/v2/projects'
+    - '/projects'
+    - '/admin/projects'
+    - '/api/v1/subscriptions'
+    - '/api/v2/subscriptions'
+    - '/subscriptions'
+    - '/admin/subscriptions'
+    - '/api/v1/payments'
+    - '/api/v2/payments'
+    - '/payments'
+    - '/admin/payments'
+    - '/api/v1/tickets'
+    - '/api/v2/tickets'
+    - '/tickets'
+    - '/admin/tickets'
   sig: 0
   status: 200
   severity: info

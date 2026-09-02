@@ -4,10 +4,14 @@ priority: 394
 # advertisement to a scanner (and an AI agent's first enumeration read), and the Sitemap: line
 # hands the crawler the surface graph. Every Disallow: root here is a COMPILED literal endpoint
 # (the surface-graph new_page bundles) and the Sitemap: URL resolves to /sitemap.xml (393), so a
-# follow-up GET of anything named here lands on an inert decoy — no partial-tree tell. One host
-# identity: the Sitemap: URL is the apex {{persona.company.domain}} (matching the sitemap + the
-# OpenAPI servers[].url). Served text/plain (robots.txt's real type). Line-mode `#` taunt appends
-# comment lines (a real robots.txt allows `#` comments), so the file still parses. No digit runs.
+# follow-up GET of anything named here lands on an inert decoy — no partial-tree tell. FP-0278: the
+# Disallow SET + ORDER are per-deploy-seeded ({{surface.disallow}} off the deploy identity seed via
+# Support\SurfaceGraph) — /admin stays the fixed first line, the required roots (/auth,/webhooks,
+# /metrics,/status — each linked from another surface) vary in order only, and /graphql,/debug are a
+# seeded 0..2 subset. /api is NOT disallowed: the sitemap advertises the /api/* tree, so Disallow-ing
+# its root would contradict the sitemap. One host identity: the Sitemap: URL is the apex
+# {{persona.company.domain}} (matching the sitemap + the OpenAPI servers[].url). Served text/plain
+# (robots.txt's real type). Line-mode `#` taunt appends comment lines, so the file still parses.
 new_page:
   method: GET
   paths: ['/robots.txt']
@@ -23,14 +27,7 @@ response:
     Content-Type: "text/plain; charset=utf-8"
   body: |
     User-agent: *
-    Disallow: /admin
-    Disallow: /api
-    Disallow: /auth
-    Disallow: /graphql
-    Disallow: /metrics
-    Disallow: /status
-    Disallow: /debug
-    Disallow: /webhooks
+    {{surface.disallow}}
     Sitemap: https://{{persona.company.domain}}/sitemap.xml
 taunt: { mode: line, open: '#' }
 expect:

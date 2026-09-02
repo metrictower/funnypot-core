@@ -4,6 +4,8 @@ priority: 397
 # discover the versioned surface, then expands per link. Served at /api, /api/v1 and /v1. Every
 # _links URL is a COMPILED literal (the collection/detail/auth/webhooks decoys + the OpenAPI doc),
 # so a planner that walks the link map never bottoms out on a 404 — the connected-graph tarpit.
+# FP-0278: the four resource _links are per-deploy-seeded nouns ({{surface.noun:c1|c2|d1|d2}}), the
+# SAME nouns the docs/sitemap/nav advertise (one coherent story); self/webhooks/auth stay fixed.
 # Absolute apex {{persona.company.domain}} URLs (one host identity; the linter ignores scheme URLs).
 # Framework-neutral. Served application/json. Opens with a lone `{` so the inline-field JSON taunt
 # keeps it parseable. Version strings are dotted (no bare digit run).
@@ -28,10 +30,10 @@ response:
     "documentation": "https://{{persona.company.domain}}/openapi.json",
     "_links": {
       "self": "https://{{persona.company.domain}}/api/v1",
-      "users": "https://{{persona.company.domain}}/api/v1/users",
-      "orders": "https://{{persona.company.domain}}/api/v1/orders",
-      "status": "https://{{persona.company.domain}}/api/v1/status",
-      "config": "https://{{persona.company.domain}}/api/v1/config",
+      "{{surface.noun:c1}}": "https://{{persona.company.domain}}/api/v1/{{surface.noun:c1}}",
+      "{{surface.noun:c2}}": "https://{{persona.company.domain}}/api/v1/{{surface.noun:c2}}",
+      "{{surface.noun:d1}}": "https://{{persona.company.domain}}/api/v1/{{surface.noun:d1}}",
+      "{{surface.noun:d2}}": "https://{{persona.company.domain}}/api/v1/{{surface.noun:d2}}",
       "webhooks": "https://{{persona.company.domain}}/webhooks",
       "auth": "https://{{persona.company.domain}}/auth/login"
     }

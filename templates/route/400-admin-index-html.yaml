@@ -6,6 +6,10 @@ priority: 400
 # resolves to a COMPILED in-family decoy (all surface-graph bundles share the `api` family via
 # their first non-generic tag), so the linter sees no dangling / cross-family / unanchored link.
 # No stylesheet/script/img asset link (that would dangle) — anchors only, all to compiled paths.
+# FP-0278: the two admin nav links are per-deploy-seeded collection nouns (/admin/{{surface.noun:c1|c2}}
+# — the SAME c-nouns the docs advertise); the linter strips the directive, leaving /admin/ which
+# resolves in-family (this page's own paths). The /api link (not /api/v1/<noun>) is deliberate: the
+# stripped /api/v1/ has nothing compiled at it (a dangling WARN), whereas /api resolves (397).
 # Inert: GET, 200, no request byte reflected, fully persona-seeded. Served text/html. Block HTML
 # comment taunt after the body. No numbers on the page (no digit-run risk).
 new_page:
@@ -32,9 +36,9 @@ response:
       <h1>{{persona.company.name}} Dashboard</h1>
       <nav>
         <ul>
-          <li><a href="/admin/users">Users</a></li>
-          <li><a href="/api/v1/users">API: users</a></li>
-          <li><a href="/api/v1/orders">API: orders</a></li>
+          <li><a href="/admin/{{surface.noun:c1}}">Admin: {{surface.noun:c1}}</a></li>
+          <li><a href="/admin/{{surface.noun:c2}}">Admin: {{surface.noun:c2}}</a></li>
+          <li><a href="/api">API</a></li>
           <li><a href="/webhooks">Webhooks</a></li>
           <li><a href="/status">Status</a></li>
           <li><a href="/metrics">Metrics</a></li>
@@ -47,4 +51,4 @@ taunt: { mode: block, open: '<!--', close: '-->' }
 expect:
   - '<title>'
   - 'Dashboard</h1>'
-  - 'href="/admin/users"'
+  - 'href="/admin/'

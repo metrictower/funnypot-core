@@ -5,12 +5,17 @@ priority: 393
 # is the connected-graph lever: every <loc> here is a COMPILED literal endpoint or a compiled doc
 # URL (the surface-graph new_page bundles 393-405 + the api-docs cluster 330-345), so every path a
 # planner expands resolves to an inert decoy — no partial-tree tell over the advertised surface.
-# One host identity: every URL is the apex {{persona.company.domain}} (matching robots.txt and the
-# OpenAPI servers[].url, now apex-rooted). Absolute <loc> URLs are what real sitemaps carry and are
-# same-host so katana follows them; the route-integrity linter deliberately ignores scheme-prefixed
-# URLs (they are not href/action/fetch/js-url spans), so tests/SurfaceGraphRoutingTest is the real
-# enforcement that each <loc> resolves. Served application/xml (a sitemap's real type). Block XML
-# comment taunt after the root element (valid XML misc-after-root). No bare 6-digit run anywhere.
+# FP-0278: the <loc> SET, ORDER and resource NOUNS are a per-deploy-seeded subset ({{surface.sitemap}}
+# off the deploy identity seed via Support\SurfaceGraph), so two deploys expose different but
+# internally-coherent graphs instead of one fleet-correlation tell — the spine paths (docs +
+# well-known + /api,/api/v1) and the seeded noun paths stay advertised so nothing a doc/robots/nav
+# links ever dangles, and the ops paths (/metrics,/status,/debug,/auth/token) are robots-only (a real
+# site never sitemaps them). One host identity: every URL is the apex {{persona.company.domain}}
+# (matching robots.txt and the OpenAPI servers[].url). Absolute <loc> URLs are what real sitemaps
+# carry and are same-host so katana follows them; the route-integrity linter deliberately ignores
+# scheme-prefixed URLs (they are not href/action/fetch/js-url spans), so tests/SurfaceGraphRoutingTest
+# is the real enforcement that each <loc> resolves. Served application/xml (a sitemap's real type).
+# Block XML comment taunt after the root element (valid XML misc-after-root). No bare 6-digit run.
 new_page:
   method: GET
   paths: ['/sitemap.xml', '/sitemap', '/sitemap_index.xml']
@@ -27,39 +32,7 @@ response:
   body: |
     <?xml version="1.0" encoding="UTF-8"?>
     <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-    <url><loc>https://{{persona.company.domain}}/openapi.json</loc></url>
-    <url><loc>https://{{persona.company.domain}}/openapi.yaml</loc></url>
-    <url><loc>https://{{persona.company.domain}}/swagger.json</loc></url>
-    <url><loc>https://{{persona.company.domain}}/v3/api-docs</loc></url>
-    <url><loc>https://{{persona.company.domain}}/v2/api-docs</loc></url>
-    <url><loc>https://{{persona.company.domain}}/api-docs</loc></url>
-    <url><loc>https://{{persona.company.domain}}/swagger-ui.html</loc></url>
-    <url><loc>https://{{persona.company.domain}}/api/v2</loc></url>
-    <url><loc>https://{{persona.company.domain}}/.well-known/security.txt</loc></url>
-    <url><loc>https://{{persona.company.domain}}/.well-known/ai-plugin.json</loc></url>
-    <url><loc>https://{{persona.company.domain}}/.well-known/openid-configuration</loc></url>
-    <url><loc>https://{{persona.company.domain}}/.well-known/jwks.json</loc></url>
-    <url><loc>https://{{persona.company.domain}}/api</loc></url>
-    <url><loc>https://{{persona.company.domain}}/api/v1</loc></url>
-    <url><loc>https://{{persona.company.domain}}/v1</loc></url>
-    <url><loc>https://{{persona.company.domain}}/api/v1/users</loc></url>
-    <url><loc>https://{{persona.company.domain}}/api/v1/orders</loc></url>
-    <url><loc>https://{{persona.company.domain}}/api/v1/status</loc></url>
-    <url><loc>https://{{persona.company.domain}}/api/v1/config</loc></url>
-    <url><loc>https://{{persona.company.domain}}/api/v2/users</loc></url>
-    <url><loc>https://{{persona.company.domain}}/api/v2/orders</loc></url>
-    <url><loc>https://{{persona.company.domain}}/users</loc></url>
-    <url><loc>https://{{persona.company.domain}}/admin</loc></url>
-    <url><loc>https://{{persona.company.domain}}/admin/users</loc></url>
-    <url><loc>https://{{persona.company.domain}}/metrics</loc></url>
-    <url><loc>https://{{persona.company.domain}}/status</loc></url>
-    <url><loc>https://{{persona.company.domain}}/debug</loc></url>
-    <url><loc>https://{{persona.company.domain}}/webhooks</loc></url>
-    <url><loc>https://{{persona.company.domain}}/webhooks/subscriptions</loc></url>
-    <url><loc>https://{{persona.company.domain}}/graphql</loc></url>
-    <url><loc>https://{{persona.company.domain}}/auth</loc></url>
-    <url><loc>https://{{persona.company.domain}}/auth/login</loc></url>
-    <url><loc>https://{{persona.company.domain}}/auth/token</loc></url>
+    {{surface.sitemap}}
     </urlset>
 taunt: { mode: block, open: '<!--', close: '-->' }
 expect:

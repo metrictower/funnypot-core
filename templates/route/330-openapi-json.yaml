@@ -32,27 +32,27 @@ response:
       { "url": "https://{{persona.company.domain}}", "description": "Production" }
     ],
     "paths": {
-      "/api/v1/users": {
+      "/api/v1/{{surface.noun:c1}}": {
         "get": {
-          "summary": "List users",
+          "summary": "List {{surface.noun:c1}}",
           "responses": { "200": { "description": "OK" }, "401": { "description": "Unauthorized" } }
         }
       },
-      "/api/v1/orders": {
+      "/api/v1/{{surface.noun:c2}}": {
         "get": {
-          "summary": "List orders",
+          "summary": "List {{surface.noun:c2}}",
           "responses": { "200": { "description": "OK" }, "401": { "description": "Unauthorized" } }
         }
       },
-      "/api/v1/status": {
+      "/api/v1/{{surface.noun:d1}}": {
         "get": {
-          "summary": "Service status",
+          "summary": "Service {{surface.noun:d1}}",
           "responses": { "200": { "description": "OK" } }
         }
       },
-      "/api/v1/config": {
+      "/api/v1/{{surface.noun:d2}}": {
         "get": {
-          "summary": "Service configuration",
+          "summary": "Service {{surface.noun:d2}}",
           "responses": { "200": { "description": "OK" }, "401": { "description": "Unauthorized" } }
         }
       },

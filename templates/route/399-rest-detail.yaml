@@ -2,13 +2,24 @@ id: route-surface-detail
 priority: 399
 # Brand-new page (FP-0233): the REST detail/singleton archetype — a flat JSON object (NOT the
 # collection envelope), a structurally distinct shape so katana does not dedup it against 398. Maps
-# to the singleton resource endpoints the docs advertise (/api/v1/status, /api/v1/config). Inert:
+# to the singleton resource endpoints the docs advertise (/api/v1/status, /api/v1/config, …). Inert:
 # GET, 200, no request byte reflected, fully persona-seeded. Framework-neutral, one host identity.
+# FP-0278: paths: is the fleet-identical SUPERSET of detail nouns (Support\SurfaceGraph::detailPaths
+# — every singleton noun under /api/v1), so every noun ANY deploy can advertise resolves here; a
+# deploy advertises only its seeded {d1,d2} subset. A test pins paths: === detailPaths().
 # Served application/json. Opens with a lone `{` for the inline-field JSON taunt. Version strings
 # dotted; the uptime/counter values carry no bare 6-digit run.
 new_page:
   method: GET
-  paths: ['/api/v1/status', '/api/v1/config']
+  paths:
+    - '/api/v1/status'
+    - '/api/v1/config'
+    - '/api/v1/environment'
+    - '/api/v1/runtime'
+    - '/api/v1/release'
+    - '/api/v1/build'
+    - '/api/v1/capabilities'
+    - '/api/v1/limits'
   sig: 0
   status: 200
   severity: info

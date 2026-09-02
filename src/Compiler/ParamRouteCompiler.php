@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Funnypot\Core\Compiler;
 
 use Funnypot\Core\Support\PersonaIdentity;
+use Funnypot\Core\Support\SurfaceGraph;
 use Funnypot\Core\Template\DirectiveRenderer;
 use RuntimeException;
 use Symfony\Component\Yaml\Yaml;
@@ -470,8 +471,23 @@ final class ParamRouteCompiler
                 if (strpos($part, 'fake.person.') === 0 && !in_array(explode(':', substr($part, 12), 2)[0], DirectiveRenderer::PERSON_FIELDS, true)) {
                     throw new RuntimeException("Param template {$file}: unknown fake.person field '{{{$part}}}'. Field set is closed — check for a typo.");
                 }
+                // surface.* is a CLOSED form set (FP-0278): sitemap | disallow | noun:SLOT with SLOT in
+                // SurfaceGraph::SLOTS — same reasoning as persona.* / fake.person.* above.
+                if (strpos($part, 'surface.') === 0 && !self::isKnownSurfaceForm(substr($part, 8))) {
+                    throw new RuntimeException("Param template {$file}: unknown surface form '{{{$part}}}'. Forms are sitemap | disallow | noun:{c1,c2,d1,d2}.");
+                }
             }
         }
+    }
+
+    /** True if $form is a valid {{surface.*}} form (the closed FP-0278 vocabulary). */
+    private static function isKnownSurfaceForm(string $form): bool
+    {
+        if ($form === 'sitemap' || $form === 'disallow') {
+            return true;
+        }
+
+        return strpos($form, 'noun:') === 0 && in_array(substr($form, 5), SurfaceGraph::SLOTS, true);
     }
 
     private function assertStaticHeaderClean(string $name, string $value, string $file): void

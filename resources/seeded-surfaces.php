@@ -39,4 +39,23 @@ return [
     'attack:attack-lfi-environ' => 'FP-0277 seed-varied /proc/self/environ order + PWD',
     // {{canned.group}} — the member subset (coherent with passwd) varies; root:x:0: head verbatim.
     'attack:attack-lfi-group' => 'FP-0277 seed-varied /etc/group member set',
+    // --- FP-0278: the decoy surface graph de-fingerprinted (set/order/nouns per deploy) ---
+    // {{surface.sitemap}} — the <loc> set + order + noun paths vary; the spine locs stay advertised.
+    'route:route-surface-sitemap' => 'FP-0278 seeded surface graph (sitemap subset/order/nouns)',
+    // {{surface.disallow}} — the Disallow set + order vary; /admin stays the fixed first line.
+    'route:route-surface-robots' => 'FP-0278 seeded surface graph (robots Disallow set/order)',
+    // 397 _links resource nouns are seeded (c1/c2/d1/d2), coherent with the docs/sitemap/nav.
+    'route:route-surface-root' => 'FP-0278 seeded surface graph (API root index nouns)',
+    // 345 /api/v2 endpoint nouns are seeded (c1/c2), coherent with the rest of the graph.
+    'route:route-api-v2' => 'FP-0278 seeded surface graph (/api/v2 endpoint nouns)',
+    // 400 admin nav links the seeded /admin/<c1>,/admin/<c2> collection nouns.
+    'route:route-surface-admin' => 'FP-0278 seeded surface graph (admin nav nouns)',
+    // 330 OpenAPI 3.0 (/openapi.json) paths carry the four seeded nouns.
+    'route:route-openapi-json' => 'FP-0278 seeded surface graph (OpenAPI 3.0 JSON nouns)',
+    // 340 OpenAPI 3.0 (/swagger.json) paths carry the four seeded nouns.
+    'route:route-swagger-json-doc' => 'FP-0278 seeded surface graph (Swagger/OpenAPI JSON nouns)',
+    // 341 Swagger 2.0 (/v2/api-docs) paths carry the four seeded nouns under basePath /api/v1.
+    'route:route-swagger2-apidocs' => 'FP-0278 seeded surface graph (Swagger 2.0 nouns)',
+    // 342 OpenAPI 3.0 (/openapi.yaml) paths carry the four seeded nouns.
+    'route:route-swagger-yaml-doc' => 'FP-0278 seeded surface graph (OpenAPI YAML nouns)',
 ];
