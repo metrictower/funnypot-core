@@ -18,9 +18,19 @@ declare(strict_types=1);
  * funnypot-core CI already produced, tested, and gated. Signing is the LAST step, so a
  * signature attests that the fingerprint-safety + license gates passed on this exact commit.
  *
- *   FUNNYPOT_RULES_SIGNING_KEY  base64 of the 64-byte ed25519 secret key (CI secret)
- *   FUNNYPOT_RULES_VERSION      optional; default v<UTC date>-<short git sha>
- *   FUNNYPOT_RULES_SEQ          optional monotonic integer; default current unix time
+ *   FUNNYPOT_RULES_SIGNING_KEY           base64 of the 64-byte ed25519 RELEASE secret key (CI secret,
+ *                                        role 'release' — signs <version>.manifest.json)
+ *   FUNNYPOT_RULES_CHANNELS_SIGNING_KEY  base64 of the 64-byte ed25519 CHANNELS secret key (CI secret,
+ *                                        role 'channels' — signs channels.json). A SEPARATE key from
+ *                                        the release key: one stolen secret can move the pointer OR
+ *                                        sign a release, never both. No silent fallback if unset.
+ *   FUNNYPOT_RULES_VERSION               optional; default v<UTC date>-<short git sha>
+ *   FUNNYPOT_RULES_SEQ                   optional monotonic integer; default current unix time
+ *   FUNNYPOT_RULES_MANIFEST_TTL_DAYS     optional; freshness window on the manifest (default 90)
+ *   FUNNYPOT_RULES_CHANNELS_TTL_DAYS     optional; freshness window on channels.json (default 7).
+ *                                        channels MUST be re-signed at least every TTL by a scheduled
+ *                                        job or every fleet goes 'stale-metadata' (fail-safe: last-good
+ *                                        keeps serving; the distinct reason pages the publisher).
  *
  *   php scripts/ci/publish-rules-release.php [--out=DIR]
  */
@@ -49,6 +59,20 @@ if ($secret === false || strlen($secret) !== SODIUM_CRYPTO_SIGN_SECRETKEYBYTES) 
     fwrite(STDERR, "FUNNYPOT_RULES_SIGNING_KEY must be base64 of a 64-byte ed25519 secret key.\n");
     exit(2);
 }
+
+// The channels pointer is signed with a SEPARATE key (role separation): a stolen release secret
+// must not be able to also move the pointer. No silent fallback to the release key.
+$channelsSecretB64 = getenv('FUNNYPOT_RULES_CHANNELS_SIGNING_KEY') ?: '';
+$channelsSecret = base64_decode($channelsSecretB64, true);
+if ($channelsSecret === false || strlen($channelsSecret) !== SODIUM_CRYPTO_SIGN_SECRETKEYBYTES) {
+    fwrite(STDERR, "FUNNYPOT_RULES_CHANNELS_SIGNING_KEY must be base64 of a 64-byte ed25519 secret key (separate from the release key).\n");
+    exit(2);
+}
+
+$manifestTtlDays = (int) (getenv('FUNNYPOT_RULES_MANIFEST_TTL_DAYS') ?: 90);
+$channelsTtlDays = (int) (getenv('FUNNYPOT_RULES_CHANNELS_TTL_DAYS') ?: 7);
+$manifestTtlDays = $manifestTtlDays > 0 ? $manifestTtlDays : 90;
+$channelsTtlDays = $channelsTtlDays > 0 ? $channelsTtlDays : 7;
 
 $shortSha = trim((string) @shell_exec('git -C ' . escapeshellarg($root) . ' rev-parse --short HEAD 2>/dev/null'));
 $version = getenv('FUNNYPOT_RULES_VERSION') ?: ('v' . gmdate('Y.m.d') . ($shortSha !== '' ? '-' . $shortSha : ''));
@@ -101,11 +125,14 @@ if (is_array($coreManifest)) {
     ];
 }
 
+$nowTs = time();
 $manifest = [
-    'schema' => 1,
+    'schema' => \Funnypot\Core\SchemaVersion::RELEASE_CURRENT,
     'version' => $version,
     'version_seq' => $seq,
-    'built_at' => gmdate('c'),
+    'generated_at' => gmdate('c', $nowTs),
+    'expires' => gmdate('c', $nowTs + $manifestTtlDays * 86400),
+    'built_at' => gmdate('c', $nowTs),
     'built_from_commit' => $shortSha,
     'key_id' => getenv('FUNNYPOT_RULES_KEY_ID') ?: 'unknown',
     'tarball' => $tarballName,
@@ -114,16 +141,27 @@ $manifest = [
     'sources' => $sources,
 ];
 
+// Domain separation: sign CONTEXT_MANIFEST . bytes with the RELEASE key. The bytes on the wire are
+// unchanged (readable JSON); only the signed message is context-prefixed, so a channels signature
+// can never verify as a manifest signature.
 $manifestBytes = json_encode($manifest, JSON_UNESCAPED_SLASHES | JSON_PRETTY_PRINT);
-$manifestSig = sodium_crypto_sign_detached($manifestBytes, $secret);
+$manifestSig = sodium_crypto_sign_detached(\Funnypot\Core\Rules\SignatureVerifier::CONTEXT_MANIFEST . $manifestBytes, $secret);
 file_put_contents($out . '/' . $version . '.manifest.json', $manifestBytes);
 file_put_contents($out . '/' . $version . '.manifest.json.sig', $manifestSig);
 
-// Channels pointer (also signed). A promotion job can later hold `stable` behind `latest`.
-$channels = ['schema' => 1, 'latest' => $version, 'stable' => $version, 'revoked' => []];
+// Channels pointer, signed with the CHANNELS key over CONTEXT_CHANNELS . bytes. A promotion job can
+// later hold `stable` behind `latest`; that job re-signs channels.json with the channels key only.
+$channels = [
+    'schema' => \Funnypot\Core\SchemaVersion::RELEASE_CURRENT,
+    'generated_at' => gmdate('c', $nowTs),
+    'expires' => gmdate('c', $nowTs + $channelsTtlDays * 86400),
+    'latest' => $version,
+    'stable' => $version,
+    'revoked' => [],
+];
 $channelsBytes = json_encode($channels, JSON_UNESCAPED_SLASHES);
 file_put_contents($out . '/channels.json', $channelsBytes);
-file_put_contents($out . '/channels.json.sig', sodium_crypto_sign_detached($channelsBytes, $secret));
+file_put_contents($out . '/channels.json.sig', sodium_crypto_sign_detached(\Funnypot\Core\Rules\SignatureVerifier::CONTEXT_CHANNELS . $channelsBytes, $channelsSecret));
 
 // Clean up the stage tree.
 foreach ($artifacts as $artifact) {

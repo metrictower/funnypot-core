@@ -4,6 +4,9 @@ declare(strict_types=1);
 
 namespace Funnypot\Core\Rules;
 
+use DateTimeImmutable;
+use DateTimeInterface;
+use DateTimeZone;
 use Funnypot\Core\Compiler\Crs\FingerprintGuard;
 use Funnypot\Core\SchemaVersion;
 use Funnypot\Core\Store\PhpArrayStore;
@@ -42,6 +45,16 @@ final class RulesUpdater
 
     /** Upper bound on file count in a release (an inode-exhaustion / second gzip-bomb floor). */
     private const MAX_ENTRIES = 8000;
+
+    /** Clock-skew tolerance for signed freshness windows (seconds). Conventional; do not widen past
+     *  half the shortest TTL or a freeze attack regains a window. */
+    private const SKEW = 300;
+
+    /** @var int|null Test seam: freezes the wall clock so freshness/key-window checks are deterministic. */
+    private $nowOverride = null;
+
+    /** @var int|null Test seam: shrinks the decompression cap so the gzip-bomb test stays fast. */
+    private $maxExtractedBytesOverride = null;
 
     /** @var string */
     private $dataDir;
@@ -111,6 +124,35 @@ final class RulesUpdater
         $this->packagedCoverageOverride = $coverage;
     }
 
+    /** Test-only: freeze the wall clock (unix seconds) so freshness + key-window checks are deterministic. */
+    public function setNowForTesting(int $now): void
+    {
+        $this->nowOverride = $now;
+    }
+
+    /** Test-only: shrink the decompression cap so a gzip-bomb fixture need not be 128 MiB. */
+    public function setMaxExtractedBytesForTesting(int $bytes): void
+    {
+        $this->maxExtractedBytesOverride = max(1, $bytes);
+    }
+
+    /** The single wall clock the whole update shares (freshness windows, key windows, stamps). */
+    private function now(): int
+    {
+        return $this->nowOverride ?? time();
+    }
+
+    /** RFC3339/`gmdate('c')` stamp at the shared clock (deterministic under the test seam). */
+    private function nowStamp(): string
+    {
+        return gmdate('c', $this->now());
+    }
+
+    private function maxExtractedBytes(): int
+    {
+        return $this->maxExtractedBytesOverride ?? self::MAX_EXTRACTED_BYTES;
+    }
+
     // ---------------------------------------------------------------- update()
 
     public function update(): UpdateResult
@@ -129,17 +171,31 @@ final class RulesUpdater
             $this->ensureDir($this->dataDir);
             $this->ensureDir($this->dataDir . '/releases');
 
-            // 1. Resolve the target version (explicit pin, else the signed channels pointer).
-            $target = $this->pinnedVersion ?? $this->resolveChannelVersion();
+            // 1. Resolve the target version (explicit pin, else the signed channels pointer). A
+            //    channels pointer is verified for freshness here (resolveChannelVersion throws
+            //    stale-metadata on a replayed/expired pointer) — so reaching step 3 already proves a
+            //    FRESH signed pointer, which is what lets touchChecked() advance checked_at safely.
+            //    A PINNED install skips channels entirely and thus BYPASSES the revoked list — its
+            //    freshness anchor is the manifest's own 90-day window (enforced in step 2), so a
+            //    pinned host can lag revocation by at most that TTL. (The future offline --from=file
+            //    path is the deliberate escape hatch; a >90-day-old pinned release now fails closed.)
+            $channelGeneratedAt = null;
+            if ($this->pinnedVersion !== null) {
+                $target = $this->pinnedVersion;
+            } else {
+                [$target, $channelGeneratedAt] = $this->resolveChannelVersion();
+            }
 
-            // 2. Fetch + verify the manifest (the signed root).
+            // 2. Fetch + verify the manifest (the signed root); its own freshness window is enforced.
             [$manifest, $keyId] = $this->fetchVerifiedManifest($target);
             $version = (string) $manifest['version'];
             $seq = (int) $manifest['version_seq'];
 
-            // 3. No-op if already current — before any tarball download.
+            // 3. No-op if already current — before any tarball download. checked_at means "verified a
+            //    fresh signed pointer" (channel mode) or "verified a fresh signed manifest" (pinned
+            //    mode); either way a freeze/replay of stale metadata threw above and never reaches here.
             if ($currentVersion === $version) {
-                $this->touchChecked($state);
+                $this->touchChecked($state, $channelGeneratedAt);
 
                 return UpdateResult::noop($currentVersion);
             }
@@ -208,8 +264,9 @@ final class RulesUpdater
                 'version' => $version,
                 'version_seq' => $seq,
                 'key_id' => $keyId,
-                'applied_at' => gmdate('c'),
-                'checked_at' => gmdate('c'),
+                'applied_at' => $this->nowStamp(),
+                'checked_at' => $this->nowStamp(),
+                'channel_generated_at' => $channelGeneratedAt ?? ($state['channel_generated_at'] ?? null),
                 'coverage' => $coverage,
             ]);
             $this->prune($releaseDir);
@@ -277,8 +334,9 @@ final class RulesUpdater
                 'version' => (string) ($meta['version'] ?? $toVersion),
                 'version_seq' => (int) ($meta['version_seq'] ?? 0),
                 'key_id' => $meta['key_id'] ?? null,
-                'applied_at' => gmdate('c'),
-                'checked_at' => $state['checked_at'] ?? gmdate('c'),
+                'applied_at' => $this->nowStamp(),
+                'checked_at' => $state['checked_at'] ?? $this->nowStamp(),
+                'channel_generated_at' => $state['channel_generated_at'] ?? null,
                 'coverage' => (array) ($meta['coverage'] ?? []),
             ]);
 
@@ -306,7 +364,8 @@ final class RulesUpdater
             $state['applied_at'] ?? null,
             $state['checked_at'] ?? null,
             (array) ($state['coverage'] ?? []),
-            $this->retainedVersions()
+            $this->retainedVersions(),
+            $state['channel_generated_at'] ?? null
         );
     }
 
@@ -320,7 +379,15 @@ final class RulesUpdater
         $manifestBytes = $this->fetcher->get($this->assetUrl($version, $version . '.manifest.json'));
         $sig = $this->fetcher->get($this->assetUrl($version, $version . '.manifest.json.sig'));
 
-        $keyId = $this->verifier->verify($manifestBytes, $this->normaliseSignature($sig));
+        // The manifest signature is over CONTEXT_MANIFEST . bytes, and only a `release`-role key may
+        // verify it — a channels-key signature (pointer mover) can never authenticate a release.
+        $keyId = $this->verifier->verify(
+            $manifestBytes,
+            $this->normaliseSignature($sig),
+            SignatureVerifier::CONTEXT_MANIFEST,
+            SignatureVerifier::ROLE_RELEASE,
+            $this->now()
+        );
 
         $manifest = json_decode($manifestBytes, true);
         if (!is_array($manifest)) {
@@ -332,12 +399,13 @@ final class RulesUpdater
             }
         }
         $schema = (int) $manifest['schema'];
-        // Fail-safe forward-compat: a schema ahead of what this engine understands means the
-        // release format changed, and an older engine must refuse it rather than mis-parse it.
-        if ($schema > SchemaVersion::CURRENT) {
+        // Fail-safe forward-compat: a schema ahead of the update-channel envelope this engine
+        // understands means the release format changed, and an older engine must refuse it rather
+        // than mis-parse it. This is the ENVELOPE schema (RELEASE_CURRENT), not the template DSL.
+        if ($schema > SchemaVersion::RELEASE_CURRENT) {
             throw new RulesUpdateException(
                 RulesUpdateException::REASON_SCHEMA_TOO_NEW,
-                "Release schema {$schema} exceeds the engine's supported schema " . SchemaVersion::CURRENT . " — refusing to load (upgrade funnypot-core)."
+                "Release schema {$schema} exceeds the engine's supported schema " . SchemaVersion::RELEASE_CURRENT . " — refusing to load (upgrade funnypot-core)."
             );
         }
         if ($schema < 1) {
@@ -347,20 +415,58 @@ final class RulesUpdater
         if ((string) $manifest['version'] !== $version) {
             throw new RulesUpdateException(RulesUpdateException::REASON_BAD_MANIFEST, 'Manifest version does not match the requested tag.');
         }
+        // Signed freshness (schema >= 2): a replayed old-but-validly-signed manifest is rejected as
+        // stale so a pin (or a fresh install) cannot be pointed at a long-dead release.
+        if ($schema >= 2) {
+            $this->assertFresh($manifest, 'manifest', $this->now());
+        }
 
         return [$manifest, $keyId];
     }
 
-    private function resolveChannelVersion(): string
+    /**
+     * @return array{0:string,1:?string} [target version, the pointer's signed generated_at]
+     */
+    private function resolveChannelVersion(): array
     {
         $bytes = $this->fetcher->get($this->assetUrl('channels', 'channels.json'));
         $sig = $this->fetcher->get($this->assetUrl('channels', 'channels.json.sig'));
-        $this->verifier->verify($bytes, $this->normaliseSignature($sig));
+        // The channels signature is over CONTEXT_CHANNELS . bytes, and only a `channels`-role key may
+        // verify it — a release-key signature can never move the pointer.
+        $this->verifier->verify(
+            $bytes,
+            $this->normaliseSignature($sig),
+            SignatureVerifier::CONTEXT_CHANNELS,
+            SignatureVerifier::ROLE_CHANNELS,
+            $this->now()
+        );
 
         $channels = json_decode($bytes, true);
         if (!is_array($channels)) {
             throw new RulesUpdateException(RulesUpdateException::REASON_BAD_MANIFEST, 'channels.json is not valid JSON.');
         }
+        // The channels envelope carries a schema too (it was unchecked before schema 2). Same
+        // fail-safe forward-compat gate as the manifest: refuse a pointer format we can't parse.
+        if (!isset($channels['schema'])) {
+            throw new RulesUpdateException(RulesUpdateException::REASON_BAD_MANIFEST, "channels.json is missing 'schema'.");
+        }
+        $schema = (int) $channels['schema'];
+        if ($schema > SchemaVersion::RELEASE_CURRENT) {
+            throw new RulesUpdateException(
+                RulesUpdateException::REASON_SCHEMA_TOO_NEW,
+                "Channels schema {$schema} exceeds the engine's supported schema " . SchemaVersion::RELEASE_CURRENT . " — refusing to load (upgrade funnypot-core)."
+            );
+        }
+        if ($schema < 1) {
+            throw new RulesUpdateException(RulesUpdateException::REASON_BAD_MANIFEST, 'Unsupported channels schema.');
+        }
+        // Signed freshness (schema >= 2): a replayed/frozen pointer is rejected as stale BEFORE it is
+        // trusted — this is what kills the freeze/replay attack that defeated revocation and silenced
+        // the staleness alarm. Reaching past this point means the pointer is a fresh signed document.
+        if ($schema >= 2) {
+            $this->assertFresh($channels, 'channels.json', $this->now());
+        }
+
         $version = (string) ($channels[$this->channel] ?? '');
         if ($version === '') {
             throw new RulesUpdateException(RulesUpdateException::REASON_CONFIG, "Channel '{$this->channel}' is not defined in channels.json.");
@@ -369,7 +475,66 @@ final class RulesUpdater
             throw new RulesUpdateException(RulesUpdateException::REASON_DOWNGRADE, "Version {$version} is revoked.");
         }
 
-        return $version;
+        $generatedAt = isset($channels['generated_at']) ? (string) $channels['generated_at'] : null;
+
+        return [$version, $generatedAt];
+    }
+
+    /**
+     * Reject a signed document whose freshness window is missing, unparseable, expired, or
+     * implausibly future. Fail-closed: any doubt about the metadata's age drops the update (the
+     * caller degrades to last-good), it never applies stale/forged metadata. Timestamps are parsed
+     * strictly (RFC3339), NOT via lenient strtotime, mirroring KeyRing's fail-closed date rule.
+     *
+     * @param array<string,mixed> $doc
+     */
+    private function assertFresh(array $doc, string $what, int $now): void
+    {
+        $generatedAt = isset($doc['generated_at']) ? $this->parseTimestamp((string) $doc['generated_at']) : null;
+        $expires = isset($doc['expires']) ? $this->parseTimestamp((string) $doc['expires']) : null;
+        if ($generatedAt === null || $expires === null) {
+            // Freshness is not optional once the format carries it (schema >= 2): a missing or
+            // unparseable window is treated as a broken/forged envelope, not "assume fresh".
+            throw new RulesUpdateException(
+                RulesUpdateException::REASON_BAD_MANIFEST,
+                "The {$what} is missing a parseable generated_at/expires freshness window."
+            );
+        }
+        if ($now > $expires + self::SKEW) {
+            throw new RulesUpdateException(
+                RulesUpdateException::REASON_STALE_METADATA,
+                "The {$what} expired (expires=" . gmdate('c', $expires) . ', now=' . gmdate('c', $now) . ') — refusing stale signed metadata (serving last-good).'
+            );
+        }
+        if ($generatedAt > $now + self::SKEW) {
+            throw new RulesUpdateException(
+                RulesUpdateException::REASON_STALE_METADATA,
+                "The {$what} is dated in the future (generated_at=" . gmdate('c', $generatedAt) . ', now=' . gmdate('c', $now) . ') — broken publisher clock or clock-skew attack.'
+            );
+        }
+    }
+
+    /**
+     * Strict RFC3339 timestamp parse for a freshness field. Returns null on anything unparseable so
+     * assertFresh can fail closed.
+     */
+    private function parseTimestamp(string $value): ?int
+    {
+        $value = trim($value);
+        if ($value === '') {
+            return null;
+        }
+        $utc = new DateTimeZone('UTC');
+        foreach ([DateTimeInterface::RFC3339, 'Y-m-d\TH:i:s\Z', '!Y-m-d'] as $format) {
+            $dt = DateTimeImmutable::createFromFormat($format, $value, $utc);
+            $errors = DateTimeImmutable::getLastErrors();
+            $clean = $errors === false || (($errors['warning_count'] ?? 0) === 0 && ($errors['error_count'] ?? 0) === 0);
+            if ($dt !== false && $clean) {
+                return $dt->getTimestamp();
+            }
+        }
+
+        return null;
     }
 
     /** Accept a raw 64-byte signature or a base64/hex-encoded one. */
@@ -431,8 +596,21 @@ final class RulesUpdater
         }
         $this->rescanFingerprints($paramEntries);
 
-        // (b) ReDoS budget on every incoming regex condition (runs on attacker input at runtime).
-        $this->redos->inspectRules($rules);
+        // (b) ReDoS budget on EVERY incoming regex, across every fetched artifact that can run PCRE
+        //     on attacker bytes at runtime — not just an attack rule's top-level match. A poisoned
+        //     signer can plant a catastrophic pattern in a param-bucket entry (matchParamRoute), a
+        //     nested branch case `when.regex` (evalConditions), or a future shape; inspectArtifact
+        //     walks each tree shape-agnostically so an un-screened regex cannot drift into coverage.
+        //     funnypot-routes-index.php is NOT otherwise loaded here, so it is require'd explicitly
+        //     (its .php was already proven a pure literal in step 8 before this runs).
+        $this->redos->inspectArtifact($rules, 'funnypot-attack.php');
+        $this->redos->inspectArtifact($routes, 'funnypot-routes.php');
+        $this->redos->inspectArtifact($params, 'funnypot-param.php');
+        $routesIndex = require $engineDir . '/funnypot-routes-index.php';
+        if (!is_array($routesIndex)) {
+            throw new RulesUpdateException(RulesUpdateException::REASON_BAD_MANIFEST, 'Routes-index artifact did not return an array.');
+        }
+        $this->redos->inspectArtifact($routesIndex, 'funnypot-routes-index.php');
 
         // (c) anti-blinding floor: a fetched set that guts coverage is an attack, not an update.
         $new = $this->computeCoverage($engineDir);
@@ -608,19 +786,66 @@ final class RulesUpdater
 
     private function extractTarball(string $bytes, string $partial): void
     {
-        // Bound the decompressed size up front via the gzip ISIZE trailer (uncompressed size mod
-        // 2^32) so a signed gzip bomb cannot fill the disk during extraction. listTreeFiles()
-        // enforces the count/size caps afterward as belt-and-braces.
+        $this->ensureDir($partial);
+        $cap = $this->maxExtractedBytes();
+
+        // The gzip ISIZE trailer (uncompressed size mod 2^32) is attacker bytes and trivially
+        // forgeable, so it is NO LONGER load-bearing — kept only as a cheap FAST-REJECT for a bomb
+        // that honestly admits its size. The real bound is the streaming byte counter below.
         if (strlen($bytes) >= 4) {
             $trailer = unpack('V', substr($bytes, -4));
-            if (($trailer[1] ?? 0) > self::MAX_EXTRACTED_BYTES) {
+            if (($trailer[1] ?? 0) > $cap) {
                 throw new RulesUpdateException(RulesUpdateException::REASON_EXTRACT_FAILED, 'Release decompresses beyond the size cap.');
             }
         }
-        $this->ensureDir($partial);
-        $tarPath = $partial . '/release.tar.gz';
-        if (@file_put_contents($tarPath, $bytes) === false) {
+
+        // Stream-inflate the fetched .gz with a RUNNING decompressed-byte counter, writing the plain
+        // .tar out as it is produced. The instant the counter exceeds the cap, abort — a signed (or
+        // replayed, or signer-compromised) gzip bomb with a forged small ISIZE can no longer fill the
+        // disk, because extraction now happens on a SIZE-VERIFIED tar, not the raw .gz. Fail closed on
+        // a missing zlib, an inflate error, or a stream that ends before the gzip trailer.
+        if (!function_exists('inflate_init')) {
+            throw new RulesUpdateException(RulesUpdateException::REASON_EXTRACT_FAILED, 'ext-zlib is not loaded; refusing to trust the gzip ISIZE trailer.');
+        }
+        $tarPath = $partial . '/release.tar';
+        $inflate = @inflate_init(ZLIB_ENCODING_GZIP);
+        $fh = @fopen($tarPath, 'wb');
+        if ($inflate === false || $fh === false) {
+            if ($fh !== false) {
+                fclose($fh);
+            }
+            @unlink($tarPath);
             throw new RulesUpdateException(RulesUpdateException::REASON_EXTRACT_FAILED, 'Cannot stage the tarball.');
+        }
+        $total = 0;
+        $len = strlen($bytes);
+        $chunkSize = 256 * 1024;
+        $failure = null;
+        for ($offset = 0; $offset < $len; $offset += $chunkSize) {
+            $isLast = ($offset + $chunkSize) >= $len;
+            $out = @inflate_add($inflate, substr($bytes, $offset, $chunkSize), $isLast ? ZLIB_FINISH : ZLIB_NO_FLUSH);
+            if ($out === false) {
+                $failure = 'Release gzip stream is corrupt.';
+                break;
+            }
+            $total += strlen($out);
+            if ($total > $cap) {
+                $failure = 'Release decompresses beyond the size cap.';
+                break;
+            }
+            if ($out !== '' && @fwrite($fh, $out) === false) {
+                $failure = 'Cannot stage the tarball.';
+                break;
+            }
+        }
+        if ($failure === null && inflate_get_status($inflate) !== ZLIB_STREAM_END) {
+            // A truncated/incomplete gzip inflated without error but never reached its trailer.
+            $failure = 'Release gzip stream ended before completion.';
+        }
+        fclose($fh);
+        if ($failure !== null) {
+            @unlink($tarPath);
+            throw new RulesUpdateException(RulesUpdateException::REASON_EXTRACT_FAILED, $failure);
         }
 
         try {
@@ -679,7 +904,7 @@ final class RulesUpdater
                 throw new RulesUpdateException(RulesUpdateException::REASON_EXTRACT_FAILED, 'Release exceeds the file-count cap.');
             }
             $size += (int) $item->getSize();
-            if ($size > self::MAX_EXTRACTED_BYTES) {
+            if ($size > $this->maxExtractedBytes()) {
                 throw new RulesUpdateException(RulesUpdateException::REASON_EXTRACT_FAILED, 'Release exceeds the size cap.');
             }
             $out[] = ltrim(str_replace('\\', '/', substr($item->getPathname(), strlen($base) + 1)), '/');
@@ -818,9 +1043,12 @@ final class RulesUpdater
         $this->atomicWrite($this->dataDir . '/state.json', $this->json($state));
     }
 
-    private function touchChecked(array $state): void
+    private function touchChecked(array $state, ?string $channelGeneratedAt): void
     {
-        $state['checked_at'] = gmdate('c');
+        $state['checked_at'] = $this->nowStamp();
+        if ($channelGeneratedAt !== null) {
+            $state['channel_generated_at'] = $channelGeneratedAt;
+        }
         $this->writeState($state);
     }
 

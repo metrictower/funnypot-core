@@ -19,12 +19,17 @@ one at every layer.
 `RulesUpdater::update()`, in order — **everything below runs before anything goes live**:
 
 1. **flock** the data dir (a second concurrent run no-ops rather than racing).
-2. **Resolve the target version** — an explicit pin, or a signed `channels.json` pointer.
+2. **Resolve the target version** — an explicit pin, or a signed `channels.json` pointer. The
+   pointer's signature is verified with the **channels** role key, its envelope `schema` is gated,
+   and its **freshness window is enforced** (see *Freshness* below) before it is trusted — a
+   replayed/frozen pointer is rejected as `stale-metadata`, never followed.
 3. **Fetch + ed25519-verify the manifest.** The manifest is the signed root; it pins the tarball's
    sha256 and every file's sha256. The signature is checked with
    `sodium_crypto_sign_verify_detached` against a public key **vendored inside funnypot-core**
    (`resources/rules-signing-keys.php`), **never fetched** alongside the artifact. Same ed25519
-   primitive funnypot uses for the SSH host key.
+   primitive funnypot uses for the SSH host key. The manifest's own freshness window is enforced
+   here too, and the signature is scoped to the **release** role and a manifest-specific context
+   prefix (see *Signing: domains + roles* below).
 4. **No-op** if the manifest version already matches current — before any download.
 5. **Anti-downgrade** — refuse a `version_seq` ≤ the installed one (unless `rollback()` is the
    explicit caller). Stops a replay of an older, still-validly-signed release.
@@ -65,6 +70,56 @@ There is no code path that blanks the rules.
 - The ReDoS screen catches **exponential** catastrophic backtracking, not merely-expensive
   polynomial patterns (those the runtime already bounds via the 32 KB surface cap + PCRE limit and
   fails safe on).
+
+## Freshness (signed `generated_at` / `expires`)
+
+A valid signature proves *who* published, not *when*. Without a freshness anchor, an old-but-validly
+-signed `channels.json` replays forever — defeating revocation (serve a pre-revocation pointer and
+the revoked version looks clean again) and freezing a fleet on stale rules while the staleness alarm
+still reports healthy. So the envelope (`schema: 2`) carries a **signed** freshness window:
+
+- `channels.json` — `generated_at` + `expires`, short TTL (**7 days** default). This is the primary
+  freshness anchor (TUF-timestamp style: a short-lived pointer over longer-lived release metadata).
+- `<version>.manifest.json` — the same pair, longer TTL (**90 days** default), since re-signing
+  every historical release weekly is not operationally realistic.
+
+The client rejects a document whose window is **missing/unparseable** (`bad-manifest`), **expired**
+(`now > expires + 300 s` skew → `stale-metadata`), or **implausibly future** (`generated_at > now +
+300 s` → `stale-metadata`, a broken publisher clock or a skew attack). Timestamps are parsed
+**strictly** (RFC3339), never via lenient `strtotime`.
+
+**Stale ≠ broken.** A stale document makes `update()` return the distinct reason `stale-metadata`;
+the swap never happens, `current` keeps serving last-good, and the reason lets the cron wrapper page
+"channel is stale/frozen" (a *publisher* problem) rather than "channel is broken" (a fleet problem).
+`checked_at` only advances once a **fresh** signed document has been verified, so a freeze/replay can
+no longer keep the alarm quiet. `state.json` also records `channel_generated_at` (surfaced by
+`rules:status`) so an external monitor can alarm on signed-metadata age directly.
+
+**Pinned installs bypass the revoked list.** A pinned install (`--version=` / `pinned_version`)
+skips `channels.json` entirely — so it does **not** see the `revoked` array. Its only freshness
+anchor is the *manifest's* own 90-day window, so a pinned host can lag a revocation by at most that
+TTL before its pinned release goes `stale-metadata` and stops re-applying. In pinned mode `checked_at`
+therefore means "verified a fresh signed **manifest**", not "verified a fresh **channels** pointer".
+
+**Operator-visible behavior change:** pinning a release older than the manifest TTL (default 90 days)
+now **fails closed** with `stale-metadata` — there is no escape hatch until the deferred offline
+`--from=file` path lands. Keep pins current, or run unpinned through the channel.
+
+## Signing: domains + roles
+
+The signature is over `context || document-bytes`, not the raw bytes. Two context prefixes —
+`funnypot-rules:channels:v2` and `funnypot-rules:manifest:v2` — give **domain separation**: a
+channels signature can never verify as a manifest signature (or vice-versa), even if the two
+byte-strings ever collided.
+
+**Two keys, two roles.** The keyring (`resources/rules-signing-keys.php`) tags each key with `roles`
+(`['release']` / `['channels']`); CI holds two secrets — `FUNNYPOT_RULES_SIGNING_KEY` (release,
+signs manifests) and `FUNNYPOT_RULES_CHANNELS_SIGNING_KEY` (channels, signs/promotes the pointer). A
+key with no `roles` matches no role (fail-closed). One stolen secret can then move the pointer among
+*already-signed* releases **or** sign a release *nobody points to*, but not both. The shipped ring is
+empty, so there is **no legacy (context-free, schema-1) verification path** — a schema-1 or
+context-free-signed manifest simply fails signature verification under the current verifier, which is
+the correct fail-closed outcome.
 
 ## Engine seam
 
@@ -138,6 +193,17 @@ The updater itself only ever creates the data dir `0755` (never `0777`).
 `funnypot-core`'s `.github/workflows/publish-rules.yml` fires on a push to `main` touching
 `resources/compiled/**` — i.e. only after a human merges the refresh PR. It re-runs the two security
 gates on the merged commit, then `scripts/ci/publish-rules-release.php` packages `resources/compiled`
-into `engine/*`, builds + signs the manifest with the CI-secret ed25519 key, and uploads the release
-+ `channels` pointer to `funnypot-rules`. One-time setup (create repo, keygen, store secrets, commit
-the public key into the keyring): [`dist/funnypot-rules/SETUP.md`](../dist/funnypot-rules/SETUP.md).
+into `engine/*`, builds + signs the schema-2 manifest (release key, manifest context) and the
+`channels` pointer (channels key, channels context), and uploads both to `funnypot-rules`. It needs
+**both** CI secrets — `FUNNYPOT_RULES_SIGNING_KEY` (release) and `FUNNYPOT_RULES_CHANNELS_SIGNING_KEY`
+(channels) — and fails loudly if either is unset (no silent single-key fallback). TTLs are overridable
+via `FUNNYPOT_RULES_MANIFEST_TTL_DAYS` / `FUNNYPOT_RULES_CHANNELS_TTL_DAYS`.
+
+**Channels re-sign cadence is a hard prerequisite.** Because the `channels.json` TTL is short (7 days),
+a scheduled job in funnypot-rules CI **must** re-sign `channels.json` (channels key only) at least
+every TTL, or every fleet goes `stale-metadata` once the window lapses. This is fail-safe (last-good
+keeps serving; the distinct reason pages the *publisher*, not the fleet), but the re-sign workflow is
+a rollout-checklist item before freshness is enabled in production.
+
+One-time setup (create repo, keygen the two role keys, store both secrets, commit the two public keys
+into the keyring): [`dist/funnypot-rules/SETUP.md`](../dist/funnypot-rules/SETUP.md).

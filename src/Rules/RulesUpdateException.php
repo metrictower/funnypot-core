@@ -21,6 +21,7 @@ final class RulesUpdateException extends RuntimeException
     public const REASON_NO_TRUSTED_KEY = 'no-trusted-key';
     public const REASON_BAD_SIGNATURE = 'bad-signature';
     public const REASON_BAD_MANIFEST = 'bad-manifest';
+    public const REASON_STALE_METADATA = 'stale-metadata';
     public const REASON_SHA_MISMATCH = 'sha256-mismatch';
     public const REASON_EXTRACT_FAILED = 'extract-failed';
     public const REASON_NOT_LITERAL = 'not-literal';

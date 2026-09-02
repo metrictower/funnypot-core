@@ -26,6 +26,15 @@ final class RulesStatus
     /** @var string|null */
     public $checkedAt;
 
+    /**
+     * @var string|null The signed `generated_at` of the channels.json pointer verified at the last
+     *                  successful check. A staleness alarm can key off THIS to alert on signed-metadata
+     *                  age directly (a freeze/replay can no longer keep checkedAt fresh — a stale
+     *                  pointer fails the update before checkedAt advances). Null when never resolved
+     *                  through a channels pointer (e.g. a pinned install).
+     */
+    public $channelGeneratedAt;
+
     /** @var array<string,int> */
     public $coverage;
 
@@ -43,7 +52,8 @@ final class RulesStatus
         ?string $appliedAt,
         ?string $checkedAt,
         array $coverage,
-        array $retained
+        array $retained,
+        ?string $channelGeneratedAt = null
     ) {
         $this->source = $source;
         $this->version = $version;
@@ -52,6 +62,7 @@ final class RulesStatus
         $this->checkedAt = $checkedAt;
         $this->coverage = $coverage;
         $this->retained = $retained;
+        $this->channelGeneratedAt = $channelGeneratedAt;
     }
 
     /**
@@ -73,6 +84,25 @@ final class RulesStatus
         return max(0, ($now ?? time()) - $ts);
     }
 
+    /**
+     * Seconds since the signed channels pointer that was verified at the last successful check was
+     * generated. This tracks signed-metadata age directly — a monitor that alarms on this catches a
+     * frozen/replayed channel that a wedged-but-still-running updater's checkedAt could otherwise
+     * mask. Null when there is no channel_generated_at (never resolved a pointer, or pinned).
+     */
+    public function channelAgeSeconds(?int $now = null): ?int
+    {
+        if ($this->channelGeneratedAt === null) {
+            return null;
+        }
+        $ts = strtotime($this->channelGeneratedAt);
+        if ($ts === false) {
+            return null;
+        }
+
+        return max(0, ($now ?? time()) - $ts);
+    }
+
     /** @return array<string,mixed> */
     public function toArray(): array
     {
@@ -82,6 +112,7 @@ final class RulesStatus
             'version_seq' => $this->versionSeq,
             'applied_at' => $this->appliedAt,
             'checked_at' => $this->checkedAt,
+            'channel_generated_at' => $this->channelGeneratedAt,
             'coverage' => $this->coverage,
             'retained' => $this->retained,
         ];

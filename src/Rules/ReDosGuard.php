@@ -58,6 +58,50 @@ final class ReDosGuard
     }
 
     /**
+     * Shape-agnostic screen of EVERY regex in one fetched artifact. `inspectRules()` only covered an
+     * attack rule's top-level `match[].regex`, but a signer-supplied artifact runs PCRE on attacker
+     * bytes from several other shapes — a param-bucket entry `regex` (TemplateAttackEmulator::
+     * matchParamRoute), a branch case `when.regex` (evalConditions), and any future shape. This walks
+     * the whole array tree (depth-capped) and screens every string value keyed `regex`, reading the
+     * sibling `ci`/`dotall` flags exactly as the runtime assembles them. A shape the walker does not
+     * specifically know can no longer fail OPEN — an un-screened regex is impossible, which is the
+     * fail-closed direction. Identical pattern+flags are probed once (a bounded re-probe cap).
+     *
+     * @param array<int|string,mixed> $tree the fetched artifact array
+     * @throws RulesUpdateException on the first pattern that fails to compile or blows the budget
+     */
+    public function inspectArtifact(array $tree, string $artifactName, int $maxDepth = 32): void
+    {
+        $seen = [];
+        $this->walk($tree, $artifactName, 0, $maxDepth, $seen);
+    }
+
+    /**
+     * @param mixed                $node
+     * @param array<string,true>   $seen pattern+flags already probed (dedupe / re-probe cap)
+     */
+    private function walk($node, string $artifactName, int $depth, int $maxDepth, array &$seen): void
+    {
+        if (!is_array($node) || $depth > $maxDepth) {
+            return;
+        }
+        if (isset($node['regex']) && is_string($node['regex'])) {
+            $ci = ($node['ci'] ?? true) !== false;
+            $dotall = ($node['dotall'] ?? false) === true;
+            $key = $node['regex'] . '|' . ($ci ? 'i' : '') . ($dotall ? 's' : '');
+            if (!isset($seen[$key])) {
+                $seen[$key] = true;
+                $this->inspectPattern($node['regex'], $ci, $dotall, $artifactName);
+            }
+        }
+        foreach ($node as $child) {
+            if (is_array($child)) {
+                $this->walk($child, $artifactName, $depth + 1, $maxDepth, $seen);
+            }
+        }
+    }
+
+    /**
      * @throws RulesUpdateException
      */
     public function inspectPattern(string $regex, bool $ci, bool $dotall, string $id): void
@@ -68,7 +112,7 @@ final class ReDosGuard
         if (@preg_match($pattern, '') === false) {
             throw new RulesUpdateException(
                 RulesUpdateException::REASON_REDOS,
-                "Attack rule '{$id}' has a regex that does not compile."
+                "'{$id}' has a regex that does not compile."
             );
         }
 
@@ -80,7 +124,7 @@ final class ReDosGuard
                 if (preg_last_error() === PREG_BACKTRACK_LIMIT_ERROR) {
                     throw new RulesUpdateException(
                         RulesUpdateException::REASON_REDOS,
-                        "Attack rule '{$id}' regex exceeds the {$this->backtrackBudget}-step backtrack budget "
+                        "'{$id}' has a regex that exceeds the {$this->backtrackBudget}-step backtrack budget "
                         . '(catastrophic backtracking risk).'
                     );
                 }
