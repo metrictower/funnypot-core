@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Funnypot\Core;
 
+use Funnypot\Core\Support\OobHaystack;
+
 /**
  * Detect an out-of-band / SSRF probe anywhere in a request. Like Log4ShellProbe this is a DETECT-ONLY
  * signal: the exploit's proof is an out-of-band DNS/HTTP callback to the attacker's collaborator zone,
@@ -69,16 +71,10 @@ final class OastProbe
     public static function detect(RequestContext $r): ?string
     {
         // OOB payloads are planted anywhere: query, body, or a header (Referer, User-Agent,
-        // X-Forwarded-For). Build one haystack, cap it (authored matchers vs attacker input), lowercase,
-        // and append a URL-decoded copy so a %2F-encoded SSRF URL is caught too.
-        $hay = $r->path . ' ' . $r->query . ' ' . (string) ($r->rawBody ?? '');
-        foreach ($r->headers as $value) {
-            $hay .= ' ' . (string) $value;
-        }
-        if (strlen($hay) > 16384) {
-            $hay = substr($hay, 0, 16384);
-        }
-        $hay = strtolower($hay);
+        // X-Forwarded-For). The shared OobHaystack builds one capped, header-first haystack (raw
+        // bytes); the casing + URL-decoded-copy post-processing is probe-local — lowercase, then
+        // append a rawurldecode copy so a %2F-encoded SSRF URL is caught too.
+        $hay = strtolower(OobHaystack::raw($r));
         $hay .= ' ' . rawurldecode($hay);
 
         foreach (self::PATTERNS as $pattern => $label) {

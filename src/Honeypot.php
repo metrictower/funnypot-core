@@ -184,21 +184,24 @@ final class Honeypot implements Engine
      * "should we act?". The request-shape bot signals ride on the Verdict (Phase 1b).
      *
      * A thin decorator over classifyContent(): the content verdict is produced first (byte-identical
-     * to the pre-OAST classifier), then — iff a known OAST/OOB collaborator zone or cloud-metadata
-     * SSRF endpoint appears verbatim in the request — one high-signal, SIGNAL-ONLY match is folded in
-     * via foldOast(). Detect-only: OastProbe::detect() is pure string matching (no DNS, no fetch) and
-     * the fold never touches fakeHandle, so no callback is ever made and no served byte changes.
+     * to the pre-OOB classifier), then every registered signal-only probe in the OobSignalRegistry
+     * (OAST/SSRF collaborator zones, Log4Shell/JNDI) folds one high-signal, SIGNAL-ONLY match in via
+     * foldOob(). Detect-only: the registry is pure string matching (no DNS, no fetch) and the fold
+     * never touches fakeHandle, so no callback is ever made and no served byte changes.
      */
     public function classify(RequestContext $r, SiteProfile $profile): Verdict
     {
         $verdict = $this->classifyContent($r, $profile);
 
-        $family = OastProbe::detect($r);
-        if ($family !== null) {
-            $verdict = $this->foldOast($verdict, $family);
+        // OOB signal-probe registry (FP-0256): every registered signal-only probe (OAST/SSRF
+        // collaborator zones, Log4Shell/JNDI) is pure string matching — no DNS, no fetch — and
+        // each hit folds one high-signal, SIGNAL-ONLY match via foldOob(). The fold never touches
+        // fakeHandle, so no served byte changes and no callback is ever made.
+        foreach (OobSignalRegistry::matches($r) as $match) {
+            $verdict = $this->foldOob($verdict, $match);
         }
 
-        // Honeytoken-retrieval fold (built exactly like foldOast): iff a decoy-session key is
+        // Honeytoken-retrieval fold (delegates to foldOob, like the registry probes): iff a decoy-session key is
         // configured AND the request presents a valid minted `s=1` cookie, the attacker walked the
         // mock-auth trap and is pulling loot — fold one high-signal, SIGNAL-ONLY match. An unset key
         // makes this a no-op, so a build that never enabled the decoy session is byte- and
@@ -339,29 +342,26 @@ final class Honeypot implements Engine
     }
 
     /**
-     * Fold a detected OAST/OOB collaborator callback into a content Verdict as a high-signal,
-     * SIGNAL-ONLY match. Decorator invariants (all falsifiable in OastSeamTest):
-     *  - NEVER touches fakeHandle: an OAST-only CLEAN request keeps fakeHandle === null, so respond()
+     * Fold one OOB signal-probe match (from OobSignalRegistry) into a content Verdict as a
+     * high-signal, SIGNAL-ONLY match. The generalization of the old foldOast (FP-0256): the match
+     * is now built by the registry and passed in, and the severity ceiling uses the match's own
+     * severity (so a critical log4shell hit raises the ceiling to critical) — for a 'high' OAST
+     * match this is arithmetic-identical to the pre-FP-0256 foldOast. Decorator invariants (all
+     * falsifiable in OastSeamTest / Log4ShellSeamTest):
+     *  - NEVER touches fakeHandle: a signal-only CLEAN request keeps fakeHandle === null, so respond()
      *    serves nothing at its early guard — no serve, therefore nothing that could be a callback. A
      *    routed/attack request keeps its existing handle, so its served bytes are unchanged.
-     *  - Bumps CLEAN -> SCANNER_PROBE only when fakeHandle === null (the pure OAST-only case). A
+     *  - Bumps CLEAN -> SCANNER_PROBE only when fakeHandle === null (the pure signal-only case). A
      *    CLEAN-with-route-handle root entry stays CLEAN so its serve-gating is untouched;
      *    SCANNER_PROBE / ATTACK_CLASS are left as-is (never downgrades an attack coincidence).
      *  - Adds no I/O. The synthetic match lives only inside the Detection (a logging/telemetry
      *    projection); it is never written into a served body or header, so the served response is
      *    byte-identical whether or not the probe fires.
      */
-    private function foldOast(Verdict $v, string $family): Verdict
+    private function foldOob(Verdict $v, TemplateMatch $match): Verdict
     {
-        $match = new TemplateMatch(
-            'oast-callback',
-            'high',
-            ['oast-callback', $family, 'ssrf', 'oob'],
-            'OAST/OOB collaborator callback'
-        );
-
         $matches = array_merge($v->detection->matches, [$match]);
-        $ceiling = Detection::ceilingSeverity($v->detection->highestSeverity ?: 'unknown', 'high');
+        $ceiling = Detection::ceilingSeverity($v->detection->highestSeverity ?: 'unknown', $match->severity);
         $detection = new Detection(true, $matches, $v->detection->clusterKey, $ceiling);
 
         $classification = ($v->classification === Verdict::CLEAN && $v->fakeHandle === null)
@@ -374,8 +374,8 @@ final class Honeypot implements Engine
     /**
      * Fold a decoy-session honeytoken RETRIEVAL into a content Verdict as a high-signal, SIGNAL-ONLY
      * match — the attacker presented a minted `s=1` cookie and walked the mock-auth breached-DB trap.
-     * Built exactly like foldOast(), with the same decorator invariants (all falsifiable in
-     * HoneytokenRetrievalSeamTest):
+     * Delegates to foldOob() with its own TemplateMatch, so it carries the same decorator invariants
+     * (all falsifiable in HoneytokenRetrievalSeamTest):
      *  - NEVER touches fakeHandle: the gate still renders the authed body via emulate() unchanged, so
      *    the served bytes are byte-identical whether or not this fires. The synthetic match lives only
      *    inside the Detection (a logging/telemetry projection), never in a served body or header.
@@ -383,6 +383,10 @@ final class Honeypot implements Engine
      *    resolved to no route handle); a CLEAN-with-route-handle verdict keeps its serve-gating, and
      *    SCANNER_PROBE / ATTACK_CLASS are left as-is (never downgrades an attack coincidence).
      *  - Adds no I/O (DecoySessionProbe is pure string work over the Cookie header).
+     *
+     * Kept as a named private method (not inlined into classify()) so its config-gated call site and
+     * the HoneytokenRetrievalSeamTest source-slice anchor stay put; it is deliberately OUTSIDE the
+     * static OobSignalRegistry because DecoySessionProbe is config-dependent (needs decoySessionKey).
      */
     private function foldHoneytoken(Verdict $v): Verdict
     {
@@ -393,15 +397,7 @@ final class Honeypot implements Engine
             'decoy mock-auth breached-DB retrieval'
         );
 
-        $matches = array_merge($v->detection->matches, [$match]);
-        $ceiling = Detection::ceilingSeverity($v->detection->highestSeverity ?: 'unknown', 'high');
-        $detection = new Detection(true, $matches, $v->detection->clusterKey, $ceiling);
-
-        $classification = ($v->classification === Verdict::CLEAN && $v->fakeHandle === null)
-            ? Verdict::SCANNER_PROBE
-            : $v->classification;
-
-        return new Verdict($classification, $detection, $ceiling, $v->anomaly, $v->signals, $v->fakeHandle);
+        return $this->foldOob($v, $match);
     }
 
     /**
@@ -889,11 +885,12 @@ final class Honeypot implements Engine
 
         $handle = $verdict->fakeHandle;
         if ($handle === null || $handle->kind !== FakeHandle::KIND_ROUTE) {
-            // A genuine miss / real route / empty entry: the app serves its own 404. Exception: an
-            // OAST-only probe folds a signal-only detection onto a null-handle verdict (SCANNER_PROBE,
-            // nothing to serve). Surface it so the app can score the spray. Pre-OAST this branch was
-            // reached only with an empty detection, so this fires ONLY for the new OAST-only case — no
-            // double-fire (routed/attack coincidences already fire onDetection below / in respondAttack).
+            // A genuine miss / real route / empty entry: the app serves its own 404. Exception: a
+            // signal-only probe (OAST/SSRF or Log4Shell/JNDI) folds a detection onto a null-handle
+            // verdict (SCANNER_PROBE, nothing to serve). Surface it so the app can score the spray.
+            // Pre-fold this branch was reached only with an empty detection, so this fires ONLY for the
+            // signal-only fold case — no double-fire (routed/attack coincidences already fire
+            // onDetection below / in respondAttack).
             if (!$verdict->detection->isEmpty()) {
                 $this->safeOnDetection($r, $verdict->detection);
             }
