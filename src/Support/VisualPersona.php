@@ -7,7 +7,8 @@ use Funnypot\Core\Support\Fake\FakePeople;
 /**
  * The visual half of a host's fake identity — the part PersonaIdentity (credential-shaped, no visual
  * fields) does not carry. Every value is a pure function of the seed, so a host renders one stable
- * look and coherent company across all its pages. The class-name prefix, palette and pick() carry
+ * look and coherent company across all its pages. The class-name prefix (word + hex tail), the full
+ * palette (including fg/muted — FP-0283 seeded the last two fixed hex bytes) and pick() carry
  * real per-seed entropy so a public, fixed skin does not collapse the whole fleet to one CSS hash —
  * pick() specifically lets a skin vary its class-name vocabulary and DOM structure, not just leaf
  * colors/prefixes, so the entropy survives a scanner that normalizes those away.
@@ -34,23 +35,30 @@ final class VisualPersona
 
     public static function fromSeed(int $seed): self
     {
-        // Accent is vivid; bg/border are near-neutral (high bytes) so text stays legible. These are
-        // seed-derived, not fixed, which is the anti-fleet-fingerprint property.
+        // Accent is vivid; bg/border are near-neutral (high bytes) so text stays legible. fg is a dark
+        // near-neutral and muted is fg lifted by ONE per-deploy amount, so the text pair stays a
+        // coherent, legible grey family (analytic contrast floors, provable at EVERY seed: fg/bg ≥ 8.46,
+        // muted/bg ≥ 3.28, fg/muted ≥ 1.92 — see VisualPersonaTest). ALL five are seed-derived — FP-0283
+        // retired the last two fixed hex bytes (the old fleet-constant fg `#1b1e21` / muted `#6b7280`).
+        $fg = self::dark(self::hashFor($seed, 'fg'));
         $palette = [
             'bg' => '#' . self::light(self::hashFor($seed, 'bg')),
-            'fg' => '#1b1e21',
+            'fg' => '#' . $fg,
             'accent' => self::hue($seed, 'accent'),
-            'muted' => '#6b7280',
+            'muted' => '#' . self::lift($fg, self::hashFor($seed, 'muted')),
             'border' => '#' . self::light(self::hashFor($seed, 'border')),
         ];
         // The class prefix is sourced from PersonaIdentity (single source of truth), so the phpMyAdmin
         // login/gate templates ({{persona.classPrefix}}) and this skin's dashboard share one value.
-        // PersonaIdentity derives it from the SAME `|visual|prefix` material used below, so the value
-        // is unchanged from what this class shipped historically; the inline derivation stays as a
-        // null fallback for an identity that (some future path) does not carry the field.
+        // PersonaIdentity derives it from the SAME NS_VISUAL material, so the value is coherent across
+        // both tiers. `classPrefix` is a FIELD populated unconditionally by fromSeed(), so it is total;
+        // we throw rather than silently re-derive a prefix (FP-0283 — a re-derivation is where a second
+        // `fp-` literal would creep back in), keeping the single-source-of-truth invariant enforceable.
         $identity = PersonaIdentity::fromSeed($seed);
-        $classPrefix = $identity->field('classPrefix')
-            ?? ('fp-' . substr(self::hashFor($seed, 'prefix'), 0, 4));
+        $classPrefix = $identity->field('classPrefix');
+        if ($classPrefix === null) {
+            throw new \LogicException('PersonaIdentity carries no classPrefix field');
+        }
         return new self($classPrefix, $palette, $identity, $seed);
     }
 
@@ -73,6 +81,39 @@ final class VisualPersona
         for ($i = 0; $i < 3; $i++) {
             $b = hexdec(substr($hex, $i * 2, 2)) % 64 + 190; // 190-253
             $out .= str_pad(dechex($b), 2, '0', STR_PAD_LEFT);
+        }
+        return $out;
+    }
+
+    /**
+     * Map a hash to a DARK near-neutral hex for foreground text: a shared low base (14-29) plus ≤6 of
+     * per-channel tint, so every channel lands in [14,35] — reads as a theme's "almost black", never a
+     * saturated color. Byte0 sets the base; bytes 1-3 tint each channel independently.
+     */
+    private static function dark(string $hex): string
+    {
+        $base = 14 + hexdec(substr($hex, 0, 2)) % 16; // 14-29
+        $out = '';
+        for ($i = 0; $i < 3; $i++) {
+            $c = $base + hexdec(substr($hex, 2 + $i * 2, 2)) % 7; // base..base+6, ≤35
+            $out .= str_pad(dechex($c), 2, '0', STR_PAD_LEFT);
+        }
+        return $out;
+    }
+
+    /**
+     * Lift a dark fg hex into its muted sibling: the SAME per-deploy lift (52-63) added to every
+     * channel, so muted keeps fg's exact tint — one coherent grey family per deploy, and fg/muted can
+     * never swap or merge (each channel lands in [66,98]). $fgHex is the 6-hex dark() output; byte0 of
+     * $hex sets the lift.
+     */
+    private static function lift(string $fgHex, string $hex): string
+    {
+        $lift = 52 + hexdec(substr($hex, 0, 2)) % 12; // 52-63
+        $out = '';
+        for ($i = 0; $i < 3; $i++) {
+            $c = hexdec(substr($fgHex, $i * 2, 2)) + $lift; // 66-98
+            $out .= str_pad(dechex($c), 2, '0', STR_PAD_LEFT);
         }
         return $out;
     }

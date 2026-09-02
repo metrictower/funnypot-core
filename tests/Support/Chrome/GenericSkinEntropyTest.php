@@ -10,19 +10,21 @@ use PHPUnit\Framework\TestCase;
 final class GenericSkinEntropyTest extends TestCase
 {
     /**
-     * Strip every seed-derived LEAF value (palette hex, fp-XXXX class prefix, tok_/AKIA fakes) from a
-     * rendered page, leaving only the class-name VOCABULARY and DOM/CSS STRUCTURE behind. Hashing raw
-     * bytes over 24 seeds passes trivially — the palette hex and fp- prefix alone guarantee 24 unique
-     * md5s even if the skeleton (selectors, element nesting, declaration order) were byte-identical
-     * across the whole fleet. A scanner that normalizes away colors/ids the same way this method does
-     * would then still collapse every generic-skin page to ONE skeleton hash: a fleet-wide fingerprint
-     * hiding behind seed-varied colors. Normalizing before hashing here measures the residual that
-     * actually matters — whether the skeleton itself varies per deployment.
+     * Strip every seed-derived LEAF value (palette hex, the seeded `<word>-XXXX` class prefix, tok_/AKIA
+     * fakes) from a rendered page, leaving only the class-name VOCABULARY and DOM/CSS STRUCTURE behind.
+     * Hashing raw bytes over 24 seeds passes trivially — the palette hex and the prefix alone guarantee
+     * 24 unique md5s even if the skeleton (selectors, element nesting, declaration order) were
+     * byte-identical across the whole fleet. A scanner that normalizes away colors/ids the same way this
+     * method does would then still collapse every generic-skin page to ONE skeleton hash: a fleet-wide
+     * fingerprint hiding behind seed-varied colors. Normalizing before hashing here measures the residual
+     * that actually matters — whether the skeleton itself varies per deployment. FP-0283: the prefix is
+     * now `<word>-XXXX` (word ∈ CLASS_PREFIX_WORDS), so the normalizer strips the whole prefix token; the
+     * SUFFIX vocabulary after it (the structural entropy this test measures) is left intact.
      */
     private static function normalizedSkeleton(string $html): string
     {
         $html = preg_replace('~#[0-9a-f]{6}\b~i', '#HEX', $html);
-        $html = preg_replace('~fp-[0-9a-f]+~i', 'fp-ID', $html);
+        $html = preg_replace('~\b[a-z]{2,3}-[0-9a-f]{4}\b~i', 'PFX-ID', $html);
         $html = preg_replace('~tok_[0-9a-f]+~i', 'tok_ID', $html);
         $html = preg_replace('~AKIA[0-9A-Z]+~', 'AKIA_ID', $html);
         return $html;

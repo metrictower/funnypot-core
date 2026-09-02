@@ -21,6 +21,73 @@ trait RenderHtmlHelpers
         return Esc::text($v);
     }
 
+    /** @var string|null the bound per-deploy class prefix (VisualPersona::classPrefix()); null until bound */
+    private $chromePrefix;
+
+    /**
+     * Bind the deploy's class prefix for every prefixed class this trait emits (card/pill/gauge/
+     * sparkline/breadcrumb/result-card/pager) and for widgetCss(). Call once at the top of render()
+     * with $persona->classPrefix(). The prefix is a trusted skin value, never model text; the shape
+     * guard makes it structurally inert in the attribute/selector sinks it reaches. FP-0283: there is
+     * NO default — an unbound widget throws (boundClassPrefix()), so a fleet-constant `fp-` literal can
+     * never silently come back as a fallback.
+     */
+    protected function bindClassPrefix(string $prefix): void
+    {
+        if (preg_match('/^[a-z][a-z0-9]*-[0-9a-f]{4}$/', $prefix) !== 1) {
+            throw new \LogicException('RenderHtmlHelpers::bindClassPrefix expects a <word>-XXXX shape, got ' . $prefix);
+        }
+        $this->chromePrefix = $prefix;
+    }
+
+    /** The bound class prefix. Named distinctly from VisualPersona::classPrefix() so a skin's
+     *  `$this->boundClassPrefix()` never reads as `$persona->classPrefix()`. Throws if unbound. */
+    protected function boundClassPrefix(): string
+    {
+        if ($this->chromePrefix === null) {
+            throw new \LogicException('RenderHtmlHelpers: bindClassPrefix() must be called before a prefixed widget is rendered');
+        }
+        return $this->chromePrefix;
+    }
+
+    /** A prefixed widget class `boundClassPrefix()-$suffix`. $suffix is a code literal (never model
+     *  text) and must match `/^[a-z][a-z0-9_-]*$/`, so the class token is structurally inert. */
+    protected function chromeClass(string $suffix): string
+    {
+        if (preg_match('/^[a-z][a-z0-9_-]*$/', $suffix) !== 1) {
+            throw new \LogicException('RenderHtmlHelpers::chromeClass expects a [a-z][a-z0-9_-]* suffix literal, got ' . $suffix);
+        }
+        return $this->boundClassPrefix() . '-' . $suffix;
+    }
+
+    /**
+     * The CSS rules for the six widget classes that depend on skin-level CSS (card, card-header,
+     * card-body, muted, dl, pager) — the ONLY widget classes not styled by their own inline styles.
+     * Generated from chromeClass(), the SAME accessor the emitters use, so a skin that appends this to
+     * its <style> is class↔style coherent by construction (emission and rules cannot diverge). The
+     * colour literals are the neutral admin look the app (AdminLteSkin) shipped, so the move is a visual
+     * no-op; they are FIXED AdminLte neutrals, NOT the seeded palette()['muted'] — the skin's seeded
+     * muted does not reach these widgets by design (a Bootstrap/admin dashboard fixes these).
+     */
+    protected function widgetCss(): string
+    {
+        $card = '.' . $this->chromeClass('card');
+        $cardHeader = '.' . $this->chromeClass('card-header');
+        $cardBody = '.' . $this->chromeClass('card-body');
+        $muted = '.' . $this->chromeClass('muted');
+        $dl = '.' . $this->chromeClass('dl');
+        $pager = '.' . $this->chromeClass('pager');
+
+        return $card . '{background:#fff;border:1px solid #d7dbdf;border-radius:4px;margin-bottom:20px}'
+            . $cardHeader . '{padding:10px 14px;border-bottom:1px solid #d7dbdf;font-weight:bold;color:#2c3136;'
+            . 'display:flex;justify-content:space-between;align-items:center}'
+            . $cardBody . '{padding:14px}'
+            . $muted . '{font-weight:normal;color:#9aa1a8;font-size:.82em}'
+            . $dl . '{color:#3b7ea1;text-decoration:none;font-family:monospace}'
+            . $dl . ':hover{text-decoration:underline}'
+            . $pager . '{padding:10px 4px;color:#6c757d;font-size:.84em}';
+    }
+
     /**
      * Assembles a full HTML document. $title is model-derived and is escaped here, once. $inlineCss
      * and $bodyHtml are trusted, skin-assembled raw markup. $htmlAttrs/$headExtra/$bodyAttrs are
@@ -48,7 +115,7 @@ trait RenderHtmlHelpers
      *
      * @param list<string> $cols
      * @param list<list<string>> $rows
-     * @param string $tableAttrs trusted literal, e.g. ' class="fp-table"' (include the leading space)
+     * @param string $tableAttrs trusted literal, e.g. ' class="' . $this->chromeClass('table') . '"' (include the leading space)
      */
     protected function tableHtml(array $cols, array $rows, string $tableAttrs = ''): string
     {
@@ -183,9 +250,9 @@ trait RenderHtmlHelpers
      */
     protected function card(string $header, string $body, string $headerExtra = ''): string
     {
-        $extra = $headerExtra !== '' ? '<span class="fp-muted">' . $this->esc($headerExtra) . '</span>' : '';
-        return '<div class="fp-card"><div class="fp-card-header">' . $this->esc($header) . $extra . '</div>'
-            . '<div class="fp-card-body">' . $body . '</div></div>';
+        $extra = $headerExtra !== '' ? '<span class="' . $this->chromeClass('muted') . '">' . $this->esc($headerExtra) . '</span>' : '';
+        return '<div class="' . $this->chromeClass('card') . '"><div class="' . $this->chromeClass('card-header') . '">' . $this->esc($header) . $extra . '</div>'
+            . '<div class="' . $this->chromeClass('card-body') . '">' . $body . '</div></div>';
     }
 
     /**
@@ -246,10 +313,14 @@ trait RenderHtmlHelpers
 
     // --- deep-panel widget vocabulary (all SVG/CSS, escape-by-construction, deterministic) ---
     //
-    // These carry their own inline styles so any skin/section can call them without depending on
-    // skin-level CSS. The only values that reach output are: model/attacker text (routed through
-    // esc()), a clamped integer, a coerced finite number, or a fixed hex literal chosen by a
-    // map/threshold — never a raw model value concatenated into markup.
+    // Every class name here comes from the bound per-deploy prefix (bindClassPrefix() → chromeClass()),
+    // never a `fp-` literal (FP-0283). Most widgets carry their own inline styles so any skin/section
+    // can call them without depending on skin-level CSS; the six that DO depend on skin CSS (card/
+    // card-header/card-body/muted/dl/pager) are styled by widgetCss(), generated from the SAME
+    // chromeClass() accessor so class emission and the <style> rules cannot diverge. The only values
+    // that reach output are: model/attacker text (routed through esc()), a clamped integer, a coerced
+    // finite number, or a fixed hex literal chosen by a map/threshold — never a raw model value
+    // concatenated into markup.
 
     /**
      * A small status badge. $label is escaped; $status only selects a fixed colour pair (never rendered
@@ -259,7 +330,7 @@ trait RenderHtmlHelpers
     protected function pillHtml(string $label, string $status): string
     {
         [$fg, $bg] = $this->pillColors($status);
-        return '<span class="fp-pill" style="display:inline-block;padding:2px 9px;border-radius:10px;'
+        return '<span class="' . $this->chromeClass('pill') . '" style="display:inline-block;padding:2px 9px;border-radius:10px;'
             . 'font-size:.76em;font-weight:600;line-height:1.5;white-space:nowrap;color:' . $fg . ';background:' . $bg . '">'
             . $this->esc($label) . '</span>';
     }
@@ -294,17 +365,17 @@ trait RenderHtmlHelpers
         $arc = 125.66;
         $filled = $this->num(round($arc * $pct / 100, 2));
         $color = $this->gaugeBandColor($pct);
-        $svg = '<svg class="fp-gauge-svg" viewBox="0 0 100 60" preserveAspectRatio="xMidYMid meet" '
+        $svg = '<svg class="' . $this->chromeClass('gauge-svg') . '" viewBox="0 0 100 60" preserveAspectRatio="xMidYMid meet" '
             . 'style="width:100%;max-width:160px;height:auto;display:block;margin:0 auto">'
             . '<path d="M 10 50 A 40 40 0 0 1 90 50" fill="none" stroke="#e3e6e8" stroke-width="8" stroke-linecap="round"/>'
             . '<path d="M 10 50 A 40 40 0 0 1 90 50" fill="none" stroke="' . $color . '" stroke-width="8" '
             . 'stroke-linecap="round" stroke-dasharray="' . $filled . ' ' . $arc . '"/>'
             . '<text x="50" y="46" text-anchor="middle" font-size="16" font-family="sans-serif" '
             . 'font-weight="bold" fill="#2c3136">' . $pct . '%</text></svg>';
-        return '<div class="fp-gauge" style="display:inline-block;text-align:center;min-width:120px">'
+        return '<div class="' . $this->chromeClass('gauge') . '" style="display:inline-block;text-align:center;min-width:120px">'
             . $svg
-            . '<div class="fp-gauge-text" style="font-size:.82em;color:#5b636a">' . $this->esc($text) . '</div>'
-            . '<div class="fp-gauge-label" style="font-size:.72em;color:#9aa1a8;text-transform:uppercase;letter-spacing:.04em">'
+            . '<div class="' . $this->chromeClass('gauge-text') . '" style="font-size:.82em;color:#5b636a">' . $this->esc($text) . '</div>'
+            . '<div class="' . $this->chromeClass('gauge-label') . '" style="font-size:.72em;color:#9aa1a8;text-transform:uppercase;letter-spacing:.04em">'
             . $this->esc($label) . '</div></div>';
     }
 
@@ -354,7 +425,7 @@ trait RenderHtmlHelpers
                 : 15.0;
             $coords[] = $this->num($x) . ',' . $this->num($y);
         }
-        return '<svg class="fp-sparkline" viewBox="0 0 100 30" preserveAspectRatio="none" '
+        return '<svg class="' . $this->chromeClass('sparkline') . '" viewBox="0 0 100 30" preserveAspectRatio="none" '
             . 'style="width:100%;height:30px;display:block;overflow:visible">'
             . '<polyline points="' . implode(' ', $coords) . '" fill="none" stroke="#3b7ea1" '
             . 'stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round"/></svg>';
@@ -375,18 +446,18 @@ trait RenderHtmlHelpers
         }
         $crumbs = array_values($crumbs);
         $last = count($crumbs) - 1;
-        $html = '<nav class="fp-breadcrumb" style="font-size:.84em;color:#6c757d;margin-bottom:12px">';
+        $html = '<nav class="' . $this->chromeClass('breadcrumb') . '" style="font-size:.84em;color:#6c757d;margin-bottom:12px">';
         foreach ($crumbs as $i => $crumb) {
             $label = isset($crumb[0]) ? (string) $crumb[0] : '';
             $href = isset($crumb[1]) ? $this->safeCrumbHref((string) $crumb[1]) : '#';
             if ($i > 0) {
-                $html .= '<span class="fp-breadcrumb-sep" style="margin:0 6px;color:#c9ccd1">/</span>';
+                $html .= '<span class="' . $this->chromeClass('breadcrumb-sep') . '" style="margin:0 6px;color:#c9ccd1">/</span>';
             }
             if ($i < $last && $href !== '#') {
-                $html .= '<a class="fp-breadcrumb-link" style="color:#3b7ea1;text-decoration:none" href="'
+                $html .= '<a class="' . $this->chromeClass('breadcrumb-link') . '" style="color:#3b7ea1;text-decoration:none" href="'
                     . $this->esc($href) . '">' . $this->esc($label) . '</a>';
             } else {
-                $html .= '<span class="fp-breadcrumb-cur">' . $this->esc($label) . '</span>';
+                $html .= '<span class="' . $this->chromeClass('breadcrumb-cur') . '">' . $this->esc($label) . '</span>';
             }
         }
         return $html . '</nav>';
@@ -415,14 +486,14 @@ trait RenderHtmlHelpers
      */
     protected function controlResultCard(string $title, array $detailPairs): string
     {
-        return '<div class="fp-result-card" style="background:#fff;border:1px solid #d7dbdf;'
+        return '<div class="' . $this->chromeClass('result-card') . '" style="background:#fff;border:1px solid #d7dbdf;'
             . 'border-left:4px solid #3b7ea1;border-radius:4px;margin:16px 0">'
-            . '<div class="fp-result-head" style="padding:10px 14px;border-bottom:1px solid #eef1f3;'
+            . '<div class="' . $this->chromeClass('result-head') . '" style="padding:10px 14px;border-bottom:1px solid #eef1f3;'
             . 'display:flex;align-items:center;gap:8px">'
             . $this->pillHtml('Queued', 'info')
-            . '<span class="fp-result-title" style="font-weight:600;color:#2c3136">' . $this->esc($title) . '</span></div>'
-            . '<div class="fp-result-body" style="padding:12px 14px">'
-            . $this->kvTableHtml($detailPairs, ' class="fp-result-kv" style="border-collapse:collapse;width:100%"')
+            . '<span class="' . $this->chromeClass('result-title') . '" style="font-weight:600;color:#2c3136">' . $this->esc($title) . '</span></div>'
+            . '<div class="' . $this->chromeClass('result-body') . '" style="padding:12px 14px">'
+            . $this->kvTableHtml($detailPairs, ' class="' . $this->chromeClass('result-kv') . '" style="border-collapse:collapse;width:100%"')
             . '</div></div>';
     }
 
@@ -448,13 +519,13 @@ trait RenderHtmlHelpers
             $page = $totalPages;
         }
         $prev = $page > 1
-            ? '<a class="fp-dl" href="' . $this->esc($this->pagerHref($basePath, $page - 1)) . '">‹ prev</a>'
+            ? '<a class="' . $this->chromeClass('dl') . '" href="' . $this->esc($this->pagerHref($basePath, $page - 1)) . '">‹ prev</a>'
             : '<span style="color:#c9ccd1">‹ prev</span>';
         $next = $page < $totalPages
-            ? '<a class="fp-dl" href="' . $this->esc($this->pagerHref($basePath, $page + 1)) . '">next ›</a>'
+            ? '<a class="' . $this->chromeClass('dl') . '" href="' . $this->esc($this->pagerHref($basePath, $page + 1)) . '">next ›</a>'
             : '<span style="color:#c9ccd1">next ›</span>';
         $mid = $summary !== '' ? $summary . ' · ' : '';
-        return '<div class="fp-pager">' . $prev . ' &nbsp; ' . $mid . 'page ' . $page . ' / '
+        return '<div class="' . $this->chromeClass('pager') . '">' . $prev . ' &nbsp; ' . $mid . 'page ' . $page . ' / '
             . $totalPages . ' &nbsp; ' . $next . '</div>';
     }
 

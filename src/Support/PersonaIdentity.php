@@ -42,9 +42,11 @@ final class PersonaIdentity
         // staying denylist-safe (no bare `\b9\d{5}\b`) and inert. buildId is the 21-char nanoid shape;
         // assetHash/appHash are the 16-hex content-hash shape (css+webpack chunk / main-app chunk).
         'nextjs.buildId', 'nextjs.assetHash', 'nextjs.appHash',
-        // The deploy-stable presentation class prefix. Derived from the SAME `|visual|prefix` hash
-        // material VisualPersona uses, so the phpMyAdmin login/gate templates ({{persona.classPrefix}})
-        // and the authed dashboard skin (VisualPersona::classPrefix()) resolve to one identical prefix.
+        // The deploy-stable presentation class prefix, shape `<word>-XXXX`: a seed-picked word from
+        // CLASS_PREFIX_WORDS (FP-0283 — no fleet-wide `fp-` regex) plus the historical `|visual|prefix`
+        // hex tail. Derived from the SAME NS_VISUAL material VisualPersona uses, so the phpMyAdmin
+        // login/gate templates ({{persona.classPrefix}}) and the authed dashboard skin
+        // (VisualPersona::classPrefix()) resolve to one identical prefix. See classPrefix().
         'classPrefix',
         'wordpress.version', 'wordpress.theme', 'wordpress.themeVersion',
         // The 32-hex COOKIEHASH real WordPress derives from the site URL and appends to its auth
@@ -391,16 +393,33 @@ final class PersonaIdentity
     }
 
     /**
-     * The deploy-stable presentation class prefix (shape `fp-XXXX`). Deliberately hashes the SAME
-     * `|visual|prefix` material VisualPersona uses for its own prefix, NOT this class's `|persona|`
-     * tag — so the value is byte-identical to the prefix VisualPersona already ships. That is what
-     * makes the phpMyAdmin login/gate templates (which read this via {{persona.classPrefix}}) and the
-     * authed dashboard (which reads VisualPersona::classPrefix()) present one coherent class
+     * Neutral CSS-namespace words a real front-end ships (styled-components/Material/Element-style
+     * prefixes, plain app/ui namespaces). Lowercase [a-z]{2,3}: no digit (so a word can never extend
+     * the hex tail into a denied digit run), no product word (pma/wp — those skins keep their own
+     * literal vocabularies by design), and NEVER `fp` — the funnypot signature this pool exists to
+     * retire (FP-0283). Denylist-clean against every reachable word × tail × suffix (RenderHtmlHelpersTest
+     * exhaustive sweep). `scan()` is a whole-needle stripos, so `el`/`sc` being substrings of the
+     * denylist literals `paranoia-level`/`inbound_anomaly_score` can never make a served page hit.
+     * Public so the tests can sweep it.
+     *
+     * @var non-empty-list<string>
+     */
+    public const CLASS_PREFIX_WORDS = ['ui', 'app', 'st', 'mx', 'tpl', 'cx', 'el', 'ns', 'vx', 'ux', 'mat', 'sc'];
+
+    /**
+     * The deploy-stable presentation class prefix (shape `<word>-XXXX`). The WORD is seed-picked from
+     * CLASS_PREFIX_WORDS (FP-0283) so no fleet-wide `fp-` regex exists any more; the 4-hex TAIL keeps
+     * the historical `|visual|prefix` digest byte-for-byte, so only the word moves from what this deploy
+     * shipped. Deliberately hashes the SAME `|visual|prefix`/`prefix-word` material under NS_VISUAL, NOT
+     * this class's `|persona|` tag — so the value is byte-identical to the prefix VisualPersona ships.
+     * That is what makes the phpMyAdmin login/gate templates (which read this via {{persona.classPrefix}})
+     * and the authed dashboard (which reads VisualPersona::classPrefix()) present one coherent class
      * vocabulary; VisualPersona::classPrefix() delegates here so there is a single source of truth.
      */
     private static function classPrefix(int $seed): string
     {
-        return 'fp-' . substr(SubSeed::digest($seed, SubSeed::NS_VISUAL, 'prefix'), 0, 4);
+        return SubSeed::pick(self::CLASS_PREFIX_WORDS, $seed, SubSeed::NS_VISUAL, 'prefix-word')
+            . '-' . substr(SubSeed::digest($seed, SubSeed::NS_VISUAL, 'prefix'), 0, 4);
     }
 
     /**

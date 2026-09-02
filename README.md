@@ -159,6 +159,20 @@ Two independent conditions matter: `deploySeed` (identity material) and `seedSal
 Setting one persisted secret for both is the simplest safe configuration. **The core never generates
 or persists the secret** — it does no I/O; provisioning a per-install secret is the host app's job.
 
+The visual skin the `deploySeed` drives is seeded end to end: the CSS class-name prefix **word** (a
+neutral `<word>-XXXX` namespace, never the old fleet-constant `fp-`) and the full text **palette**
+(including the foreground/muted greys) vary per deploy too (FP-0283), so two deploys never share one
+CSS hash. Skins reach the prefix through `RenderHtmlHelpers::bindClassPrefix($persona->classPrefix())`,
+called once at the top of `render()`; the widget helpers throw if used unbound (there is no
+fleet-constant fallback).
+
+> **Release note (FP-0283 — breaking `RenderHtmlHelpers` trait API).** FP-0283 removes the fixed `fp-`
+> class prefix and gives the widget trait a required `bindClassPrefix()`/`chromeClass()`/`widgetCss()`
+> surface. This is a **breaking change for `^0.6` consumers**, so the **first core tag that contains
+> FP-0283 MUST be `v0.7.0`, never a `v0.6.x`** — a `v0.6.x` tag would let a consumer's `composer update`
+> pull the new trait and throw on every panel that renders a widget unbound. The app tier adopts it (bump
+> to `^0.7` + bind + rename its own `fp-*` literals) under follow-up **FP-0298**.
+
 The `deploySeed` also drives the **decoy surface graph** (the `/sitemap.xml`, `/robots.txt`, OpenAPI/
 Swagger docs and REST index): its advertised endpoint set, ordering and resource nouns are a per-deploy
 seeded subset (`{{surface.*}}`), so two deploys expose different but internally-coherent surface graphs

@@ -37,6 +37,7 @@ final class PhpMyAdminSkin extends AbstractSkin
     public function render(PageSlots $slots, VisualPersona $persona, string $escapedPath, string $path = ''): string
     {
         $p = $persona->classPrefix();
+        $this->bindClassPrefix($p);
         $company = $this->esc($persona->company());
         $domain = $this->esc($persona->domain());
         $db = $this->esc($this->slug($persona->company()));

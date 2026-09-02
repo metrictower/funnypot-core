@@ -81,13 +81,18 @@ final class SubSeedTest extends TestCase
         }
     }
 
-    /** VisualPersona palette() + pick() at 3 seeds — captured at a469c71 (the {{visual|*}} surface). */
+    /**
+     * VisualPersona palette() + pick() at 3 seeds. fg + muted were RE-CAPTURED at FP-0283 — those two
+     * bytes are deliberately seed-moved (the last fixed hex constants #1b1e21/#6b7280 retired into a
+     * coherent seeded grey family). bg/accent/border and pick() stay byte-identical (originally captured
+     * at a469c71), which is what still proves the SubSeed byte-identity for the untouched derivations.
+     */
     public function test_rendered_visual_goldens_are_unchanged(): void
     {
         $palettes = [
-            1 => ['bg' => '#e0c8d7', 'fg' => '#1b1e21', 'accent' => '#231931', 'muted' => '#6b7280', 'border' => '#c6ecf2'],
-            7 => ['bg' => '#d6bfe2', 'fg' => '#1b1e21', 'accent' => '#3910f3', 'muted' => '#6b7280', 'border' => '#c6d5e4'],
-            4242 => ['bg' => '#f5c8c9', 'fg' => '#1b1e21', 'accent' => '#ac3b8e', 'muted' => '#6b7280', 'border' => '#edf7cf'],
+            1 => ['bg' => '#e0c8d7', 'fg' => '#0f130e', 'accent' => '#231931', 'muted' => '#474b46', 'border' => '#c6ecf2'],
+            7 => ['bg' => '#d6bfe2', 'fg' => '#141715', 'accent' => '#3910f3', 'muted' => '#505351', 'border' => '#c6d5e4'],
+            4242 => ['bg' => '#f5c8c9', 'fg' => '#181c17', 'accent' => '#ac3b8e', 'muted' => '#4e524d', 'border' => '#edf7cf'],
         ];
         $picks = [1 => 'd', 7 => 'e', 4242 => 'c'];
         foreach ($palettes as $seed => $palette) {
@@ -106,7 +111,9 @@ final class SubSeedTest extends TestCase
         self::assertSame('webadmin', $id->field('user.admin.username'));
         self::assertSame('srL.hkn!VjtUnrmE', $id->field('user.admin.password'));
         self::assertSame('AKIANFLMU2RCMJNXVMPL', $id->field('cloud.aws.accessKeyId'));
-        self::assertSame('fp-7219', $id->field('classPrefix'));
+        // FP-0283: the prefix WORD is seed-picked (was the fleet-constant `fp-`); the 7219 hex tail is
+        // unchanged (the historical |visual|prefix digest), so only the word moved (fp- -> el-).
+        self::assertSame('el-7219', $id->field('classPrefix'));
         self::assertSame('Lh-xUkfXvpZyvPTfK6sf', $id->field('db.password'));
     }
 

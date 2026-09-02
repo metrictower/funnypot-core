@@ -113,6 +113,11 @@ final class PhpMyAdminAuthedDashboardTest extends TestCase
         foreach (DecoyTables::columns(self::SEED, 'users') as $col) {
             self::assertStringContainsString('<th>' . $col . '</th>', $r->body);
         }
+        // FP-0283: the authed body carries the seeded `<word>-XXXX` class prefix on both sides and never
+        // the retired fleet-constant `fp-` (the login/gate templates + this skin resolve one prefix).
+        $prefix = VisualPersona::fromSeed(self::SEED)->classPrefix();
+        self::assertStringContainsString('class="' . $prefix . '-topbar"', $r->body, 'authed body uses the seeded class prefix');
+        self::assertStringNotContainsString('class="fp-', $r->body, 'no legacy fp- class prefix in the served authed body');
     }
 
     public function test_table_query_selects_api_keys_grid(): void

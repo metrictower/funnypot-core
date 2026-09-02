@@ -197,6 +197,40 @@ final class SeededRenderGateTest extends TestCase
         self::assertStringContainsString('attack-fp-0276-leak', $out);
     }
 
+    // --- G7: the legacy fp- class prefix must not survive to a rendered byte (FP-0283) ------------
+
+    public function test_g7_catches_a_legacy_fp_class_prefix_in_a_rendered_body(): void
+    {
+        // A rendered body carrying `class="fp-XXXX-…"` is the retired funnypot-signature tell FP-0283
+        // closed; G7 fails it. (At baseline the real 102/103 + authed renders tripped this — proven by
+        // running the gate alone before the code change.)
+        $env = $this->emptyEnv();
+        $env['attack'] = $this->tmpPhp('atk', [[
+            'id' => 'attack-fp-0283-legacy',
+            'response' => ['headers' => [], 'body' => '<div class="fp-9c3a-card">x</div>'],
+        ]]);
+
+        [$code, $out] = $this->runGate($env);
+        self::assertSame(1, $code, $out);
+        self::assertStringContainsString('G7 legacy fp- class prefix', $out);
+        self::assertStringContainsString('attack-fp-0283-legacy', $out);
+    }
+
+    public function test_g7_does_not_false_positive_on_an_fp_content_path(): void
+    {
+        // `/flatpress/fp-content/` is a path byte, not a class attribute / selector / `fp-XXXX-` shape,
+        // so G7 must NOT fire on it (pins the no-false-positive boundary the scoped regex guarantees).
+        $env = $this->emptyEnv();
+        $env['attack'] = $this->tmpPhp('atk', [[
+            'id' => 'attack-fp-0283-path',
+            'response' => ['headers' => [], 'body' => '<a href="/flatpress/fp-content/plugins/x">link</a>'],
+        ]]);
+
+        [$code, $out] = $this->runGate($env);
+        self::assertSame(0, $code, $out);
+        self::assertStringNotContainsString('G7', $out);
+    }
+
     // --- G2: a marker absent from the base render -------------------------------------------------
 
     public function test_g2_catches_a_missing_marker(): void

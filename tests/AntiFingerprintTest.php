@@ -12,6 +12,7 @@ use Funnypot\Core\Response\RouteTemplateEmulator;
 use Funnypot\Core\Response\RouteTemplateSet;
 use Funnypot\Core\Response\Style;
 use Funnypot\Core\Support\PersonaIdentity;
+use Funnypot\Core\Support\VisualPersona;
 use Funnypot\Core\Synthesis\ResponseSynthesizer;
 use PHPUnit\Framework\TestCase;
 
@@ -89,6 +90,47 @@ final class AntiFingerprintTest extends TestCase
 
         // Across two deploys, the two Set-Cookie envelopes differ (name and/or payload and/or attrs).
         self::assertNotSame($h->bait($seedA), $h->bait($seedB), 'two deploys must not plant an identical bait envelope');
+    }
+
+    // --- FP-0283: seeded visual surface (class-prefix word + fg/muted) ---
+
+    public function test_visual_skin_bytes_vary_across_deploys_but_are_stable_within_one(): void
+    {
+        // The seeded class-prefix WORD and the fg/muted palette bytes are per-deploy — no longer the
+        // fleet constants `fp-` / #1b1e21 / #6b7280.
+        $seedA = PersonaIdentity::seedFromMaterial('fp-0276-sample-a');
+        $seedB = PersonaIdentity::seedFromMaterial('fp-0276-sample-b');
+
+        $a = VisualPersona::fromSeed($seedA);
+        $b = VisualPersona::fromSeed($seedB);
+
+        // Within one deploy, byte-identical every render.
+        self::assertSame($a->classPrefix(), VisualPersona::fromSeed($seedA)->classPrefix());
+        self::assertSame($a->palette(), VisualPersona::fromSeed($seedA)->palette());
+
+        // Across two deploys, the class prefix and both seeded text colours differ.
+        self::assertNotSame($a->classPrefix(), $b->classPrefix(), 'two deploys must not share one class prefix');
+        self::assertNotSame($a->palette()['fg'], $b->palette()['fg'], 'two deploys must not share one fg');
+        self::assertNotSame($a->palette()['muted'], $b->palette()['muted'], 'two deploys must not share one muted');
+    }
+
+    public function test_no_fp_class_prefix_literal_in_src(): void
+    {
+        // A code lint so the funnypot-signature `fp-` class prefix cannot come back in any skin/helper:
+        // no quoted or selector-form `fp-` literal (incl. the old `'fp-' .` concatenations) and no bare
+        // `fp-XXXX` hex survives in src/. Backtick-quoted prose (`fp-`) in docblocks is not matched.
+        $offenders = [];
+        $it = new \RecursiveIteratorIterator(new \RecursiveDirectoryIterator(dirname(__DIR__) . '/src', \FilesystemIterator::SKIP_DOTS));
+        foreach ($it as $file) {
+            if ($file->getExtension() !== 'php') {
+                continue;
+            }
+            $src = (string) file_get_contents($file->getPathname());
+            if (preg_match('~[\'"\.]fp-~', $src) === 1 || preg_match('~\bfp-[0-9a-f]{4}\b~', $src) === 1) {
+                $offenders[] = $file->getPathname();
+            }
+        }
+        self::assertSame([], $offenders, 'legacy fp- class-prefix literal(s) in src/: ' . implode(', ', $offenders));
     }
 
     // --- Log4Shell / JNDI probe detection ---

@@ -9,7 +9,7 @@ use Funnypot\Core\Support\VisualPersona;
  * content box, footer) built entirely from PageSlots + VisualPersona. Every CSS byte, class name AND
  * the DOM/CSS *skeleton* itself (class-name vocabulary, nav markup shape, content wrapper element,
  * declaration order, an optional breadcrumb bar) is seed-derived via VisualPersona::pick() — not just
- * the palette hex and the fp-XXXX prefix. A value-normalizing scanner that strips colors/ids away
+ * the palette hex and the seeded `<word>-XXXX` prefix. A value-normalizing scanner that strips colors/ids away
  * would otherwise still see one fixed skeleton for the whole fleet, which is itself a fingerprint;
  * varying the skeleton per deployment closes that residual (see GenericSkinEntropyTest).
  */
@@ -39,6 +39,7 @@ final class GenericSkin extends AbstractSkin
     public function render(PageSlots $slots, VisualPersona $persona, string $escapedPath, string $path = ''): string
     {
         $p = $persona->classPrefix();
+        $this->bindClassPrefix($p);
         $pal = $persona->palette();
         $navBase = $this->navBase($path);
 
@@ -106,7 +107,7 @@ final class GenericSkin extends AbstractSkin
         // The header/box rules below are written as two equivalent property orderings (both valid,
         // same rendered result, since none of these properties conflict) so the seed also perturbs
         // CSS *declaration order* — a structural byte, not a color leaf, so it survives a normalizer
-        // that only strips hex values and the fp- prefix.
+        // that only strips hex values and the class prefix.
         $hdRule = $altOrder
             ? ".{$p}-{$hdWord}{padding:14px 22px;color:#fff;background:{$pal['accent']}}"
             : ".{$p}-{$hdWord}{background:{$pal['accent']};color:#fff;padding:14px 22px}";

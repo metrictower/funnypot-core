@@ -25,6 +25,12 @@ declare(strict_types=1);
  *   G4  cross-deploy       — every surface in resources/seeded-surfaces.php differs between two deploy
  *       variance             materials at a fixed render seed (a regression that re-constants a
  *                            converted surface is caught here).
+ *   G7  legacy-prefix law — no rendered byte carries the retired `fp-` class prefix (the funnypot-
+ *       (FP-0283)            signature tell FP-0283 closed by seeding the class-prefix word). Scoped to
+ *                            class attributes / CSS selectors / the `fp-XXXX-` class shape so a path byte
+ *                            like `/flatpress/fp-content/` never false-positives. Runs in $scanLeaves, so
+ *                            it covers every leg (attack/param, authed, route, synth); at baseline it
+ *                            fails on the 102/103 + authed phpMyAdmin renders (non-vacuous).
  *
  * MINIMAL-SYNTH leg (FP-0281, the --nuclei index). ResponseSynthesizer's minimal-synth output is not a
  * rendered RULE, so the loops above never see it; this leg renders every bundle of the compiled nuclei
@@ -182,6 +188,13 @@ $scanLeaves = static function (?array $c, string $id, string $where) use ($guard
         $hits = $guard->scan((string) $text);
         if ($hits !== []) {
             $fail[] = "G1 fingerprint leak in {$where} '{$id}': " . implode(', ', $hits);
+        }
+        // G7 legacy-prefix law (FP-0283): no rendered byte may carry the retired `fp-` class prefix —
+        // the funnypot-signature tell FP-0283 closed by seeding the class-prefix word. Scoped to class
+        // attributes (`class="…fp-`), CSS selectors (`.fp-<letter>`) and the `fp-XXXX-` class shape so
+        // path bytes like `/flatpress/fp-content/` never false-positive.
+        if (preg_match('~class="[^"]*\bfp-|\.fp-[a-z]|\bfp-[0-9a-f]{4}-~', (string) $text) === 1) {
+            $fail[] = "G7 legacy fp- class prefix in {$where} '{$id}'";
         }
     }
 };
