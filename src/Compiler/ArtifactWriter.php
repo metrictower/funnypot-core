@@ -37,6 +37,10 @@ final class ArtifactWriter
 
         $sha = hash('sha256', $php);
         $manifest = $result['manifest'];
+        // built_at is a sidecar-only wall-clock record now (dropped from the compiled index so the
+        // index is byte-reproducible). Minted here in the writer via gmdate — Compiler::manifest()
+        // no longer threads it. Placed with the other write-time sidecar fields below.
+        $manifest['built_at'] = gmdate('c');
         $manifest['sha256'] = $sha;
         $manifest['skipped_count'] = count($result['skipped']);
         $manifest['artifact_bytes'] = strlen($php);

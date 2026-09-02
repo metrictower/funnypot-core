@@ -279,7 +279,7 @@ final class ManifestBuilder
                 $families[$pid]['paths'][] = array('path' => $path, 'method' => $method);
             }
         }
-        ksort($families);
+        ksort($families, SORT_STRING);
 
         return array('families' => array_values($families), 'index' => $index);
     }

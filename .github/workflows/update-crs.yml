@@ -72,14 +72,15 @@ jobs:
 
       - name: Fold CRS templates into the runtime emulator index
         run: |
-          # compile-ai regenerates templates/attack-ai/, which compile-emulators folds in below.
-          # Deterministic from resources/ai/model-catalog.php (this workflow never touches that
-          # file), so it's a no-op — the committed attack-ai templates already reflect it.
-          php bin/funnypot compile-ai
-          php bin/funnypot compile-emulators
-          # Re-run so a new CRS attack id colliding with a param id build-fails here (param ids
-          # reserve against the compiled attack set).
-          php bin/funnypot compile-params
+          # The `funnypot build` DAG folds the freshly re-derived CRS templates into funnypot-attack.php
+          # (compile-emulators globs templates/attack-crs alongside attack + attack-ai), re-reserves
+          # param ids against the new attack set, and rebuilds the decoy manifest last so its band-A
+          # records + counts stay in step. One orchestrator = the same order composer check / the
+          # artifact-law gate enforce, so the CRS refresh PR can never trip its own drift gate.
+          php -d memory_limit=2G bin/funnypot build
+
+      - name: Route-integrity gate (lint-routes)
+        run: php -d memory_limit=2G bin/funnypot lint-routes
 
       - name: Unit + compiler tests
         run: vendor/bin/phpunit
@@ -107,6 +108,7 @@ jobs:
             templates/attack-crs/
             resources/compiled/funnypot-attack.php
             resources/compiled/funnypot-param.php
+            resources/compiled/funnypot-manifest.php
             resources/compiled/crs-manifest.json
             resources/skipped-crs.json
             resources/upstream-licenses/coreruleset.LICENSE.md

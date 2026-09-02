@@ -43,13 +43,7 @@ final class EmulatorCompiler
      */
     public function compileDirs(array $dirs): array
     {
-        $files = [];
-        foreach ($dirs as $dir) {
-            foreach (glob(rtrim($dir, '/') . '/*.yaml') ?: [] as $file) {
-                $files[] = $file;
-            }
-        }
-        sort($files);
+        $files = TemplateGlob::yaml($dirs);
 
         $rules = [];
         $seenIds = [];

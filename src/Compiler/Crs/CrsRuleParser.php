@@ -32,7 +32,7 @@ final class CrsRuleParser
     public function parseDir(string $dir): array
     {
         $files = glob(rtrim($dir, '/') . '/*.conf') ?: [];
-        sort($files);
+        sort($files, SORT_STRING); // cross-PHP-stable order (see TemplateGlob)
 
         $rules = [];
         foreach ($files as $file) {

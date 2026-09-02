@@ -1,3 +1,12 @@
+# Line endings (FP-0263, zero-drift law): the source_tree provenance stamp hashes template + PHP
+# bytes, and the drift gate recompiles and diffs the committed artifacts. A CRLF checkout would
+# change every byte-hash, so a Windows contributor's local `composer check` would disagree with CI
+# and the recompile would spuriously drift. Pin these to LF so the committed bytes are the law
+# regardless of core.autocrlf.
+*.yaml  text eol=lf
+*.yml   text eol=lf
+*.php   text eol=lf
+
 # Keep the published package to what a consumer actually runs. Everything below is
 # development material: it is in the repo, but `composer require` should not download it.
 # NOTE: scripts/ is deliberately NOT ignored — sibling packages CI-invoke

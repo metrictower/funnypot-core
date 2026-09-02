@@ -394,9 +394,11 @@ house flagship — placed first so it heads `/v1/models` + `/api/tags` and shows
 `/api/ps`, matching the identity the chat surface gives when asked "what model are you"; the real,
 verified models follow as the also-available multi-model rig. `bin/funnypot compile-ai` regenerates the templates from the catalog
 (route templates into `templates/generated/`, owns_path rules into `templates/attack-ai/`); re-run
-it after a catalog change, then rebuild in order: `compile-ai` → `compile-routes` → `merge-routes` →
-`compile-emulators` (`merge-routes` is idempotent by pid, so re-folding never duplicates a route; a
-full deterministic rebuild starts from a base `compile`).
+it after a catalog change, then rebuild the in-repo artifacts with `composer build` — the single
+`funnypot build` orchestrator that encodes the whole DAG in order (`compile-ai` → `compile-emulators`
+→ `compile-routes` → `compile-params` → `merge-routes` → `build-manifest`; `merge-routes` is
+idempotent by pid, so re-folding never duplicates a route). A full rebuild from the external corpus
+starts from a base `compile` first, then `composer build`.
 
 The interactive streaming chat and the actual LLM live in the funnypot **app**, not here — this
 package only floors the buffered, non-streaming chat shapes, so those four paths still answer
@@ -473,6 +475,46 @@ composer install
 vendor/bin/phpunit                 # unit + compiler suite
 bash tests/acceptance/run.sh       # real nuclei (Docker) vs a php -S server (golden test)
 ```
+
+### Zero-drift compiled-artifact law
+
+The compiled artifacts under `resources/compiled/` are generated from the templates and MUST be
+regenerated-and-committed whenever the templates change — nothing serves them stale, but a stale
+`funnypot-manifest.php` / orphaned `manifest.json` fingerprint is a real defect. Two commands:
+
+```bash
+composer build                     # recompile the in-repo artifacts (the funnypot build DAG)
+composer check                     # the LAW: recompile + drift gate + lint-routes + fingerprint + namespace
+```
+
+Run `composer check` before pushing. It runs the exact bytes CI's `artifact-law` workflow runs
+(both call `scripts/ci/check-drift.sh`), so local and CI cannot disagree: the script rebuilds, then
+`git status --porcelain` over `resources/compiled` + `templates/generated` + `templates/attack-ai`
+must be empty (catching modified, untracked, and deleted outputs — a plain `git diff` misses new
+files), and `manifest.json`'s sha256 must fingerprint `nuclei-index.full.php`. If it drifts, run
+`composer build` and commit the result.
+
+**How the compile is made deterministic.** The compiled index carries no wall-clock stamp — the old
+`built_at` field made a fresh recompile never reproduce the committed bytes, so it moved to the JSON
+sidecars (`manifest.json` / `crs-manifest.json`), which are refresh-workflow records, never rewritten
+by the in-repo `build`. In its place each artifact carries a reproducible `source-tree` sha256
+provenance stamp (`SourceTreeStamp` over exactly the `*.yaml` set the step globbed, repo-relative and
+`SORT_STRING`-ordered), and the index keeps `upstream_tag`/`upstream_sha` for the pinned corpus. File
+globs sort `SORT_STRING` (cross-PHP-stable for the digit-prefixed filenames) and all compile writes go
+through one atomic writer. `merge-routes` owns the index's reproducible fields: it recomputes
+`source_tree`, refreshes the post-fold `route_keys`/`templates_indexed` counts (which
+`RulesUpdater`/`publish-rules-release` read into coverage and signed release manifests), and refreshes
+the `manifest.json` sha256/size so the sidecar's fingerprint actually verifies the index.
+
+The law is defined at **PHP 8.3's bytes** (the version the refresh workflows build with). Line
+endings are pinned to **LF** via `.gitattributes` (`*.yaml`/`*.php text eol=lf`) so a CRLF checkout
+can't change a content hash and make local `composer check` disagree with CI. `artifact-law` ships as
+`workflow_dispatch`-only for now (FP-0039's PR-CI pause stands); the law is enforced by `composer
+check` locally and manual dispatch.
+
+`compile-emulators` prints ~23 exit-0 `warning:` lines about the AI `owns_path` templates on a clean
+build — an intentional design note (those rules lean on the runtime auth-witness backstop, not full
+path-regex variant coverage), **not** drift. Only a non-zero exit or a dirty tree is drift.
 
 ## Licence
 

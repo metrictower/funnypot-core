@@ -135,7 +135,7 @@ final class Compiler
                 $files[] = $f->getPathname();
             }
         }
-        sort($files); // deterministic build order
+        sort($files, SORT_STRING); // deterministic build order (SORT_STRING: cross-PHP-stable for digit-prefixed names)
 
         return $files;
     }
@@ -169,7 +169,7 @@ final class Compiler
      */
     private function buildRoutes(array $groups, array $rootKeys, array $templatesMeta): array
     {
-        ksort($groups);
+        ksort($groups, SORT_STRING);
         $routes = [];
         $multiBundle = 0;
         $largest = 0;
@@ -317,7 +317,11 @@ final class Compiler
             'license' => 'MIT (c) 2025 ProjectDiscovery, Inc.',
             'upstream_tag' => (string) ($meta['tag'] ?? 'unknown'),
             'upstream_sha' => (string) ($meta['sha'] ?? 'unknown'),
-            'built_at' => (string) ($meta['built_at'] ?? gmdate('c')),
+            // NB: no `built_at` here. A wall-clock stamp in the compiled index made a fresh recompile
+            // never reproduce the committed bytes (the whole blocker this ticket removes). Provenance
+            // that IS reproducible lives in `source_tree` (stamped by merge-routes over the in-repo
+            // template inputs) + `upstream_tag`/`upstream_sha` (the pinned corpus). The wall-clock
+            // `built_at` is kept only in the JSON sidecars (ArtifactWriter/crs), never the index.
             'templates_seen' => $stats['total'],
             'templates_in' => $stats['in'],
             'templates_indexed' => $templateCount,

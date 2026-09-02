@@ -1,0 +1,58 @@
+name: artifact-law
+
+# Zero-drift compiled-artifact law (FP-0263). Recompiles the in-repo artifacts and fails on any
+# drift from the committed bytes, then runs the three static gates (route-integrity, fingerprint-
+# safety, namespace-collisions). `build-manifest` runs inside `check-drift.sh` (via `funnypot
+# build`) and its output is drift-checked, so the manifest can never go stale unnoticed again.
+#
+# TRIGGER: workflow_dispatch ONLY — operator decision (bobby, FP-0263). FP-0039 deliberately paused
+# all PR CI (tests.yml is workflow_dispatch-only, its pull_request block commented, "Do NOT add
+# push") to stop credit burn, and that pause STANDS. The law is enforced locally via `composer
+# check` before pushing + manual dispatch here; no `pull_request` / `push` trigger is added. If the
+# operator later lifts the PR-CI pause, add `pull_request: branches: [main]` here (one edit) and
+# make `artifact-law` a required status check on main.
+on:
+  workflow_dispatch:
+
+jobs:
+  drift:
+    name: Zero-drift + lint + fingerprint gates
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # PHP 8.3: the version stamped into the refresh workflows (update-templates.yml /
+      # update-crs.yml) — i.e. the version that builds the committed artifacts. The law is defined
+      # at 8.3's bytes (see README); a mismatch would be spurious drift.
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          extensions: mbstring, ctype
+          coverage: none
+
+      # composer.lock is gitignored (library convention); cache the download dir keyed on
+      # composer.json so this job stops fetching every package cold. Mirrors tests.yml.
+      - name: Cache Composer downloads
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/composer
+          key: ${{ runner.os }}-php8.3-composer-${{ hashFiles('**/composer.json') }}
+          restore-keys: ${{ runner.os }}-php8.3-composer-
+
+      - name: Install dependencies
+        run: composer install --no-interaction --prefer-dist --no-progress
+
+      # Recompile + porcelain-clean + sha256 integrity. The SAME script `composer check` runs, so
+      # CI and local can't diverge.
+      - name: Zero-drift check
+        run: bash scripts/ci/check-drift.sh
+
+      - name: Route-integrity gate (lint-routes)
+        run: php -d memory_limit=1G bin/funnypot lint-routes
+
+      - name: Fingerprint-safety gate
+        run: php scripts/ci/check-fingerprint-safety.php
+
+      - name: Namespace-collision gate
+        run: php scripts/ci/check-namespace-collisions.php

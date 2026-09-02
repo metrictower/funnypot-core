@@ -40,8 +40,7 @@ final class ParamRouteCompiler
      */
     public function compile(string $dir, array $reservedIds = []): array
     {
-        $files = glob(rtrim($dir, '/') . '/*.yaml') ?: [];
-        sort($files);
+        $files = TemplateGlob::yaml([$dir]);
 
         $reserved = array_flip(array_map('strval', $reservedIds));
 
