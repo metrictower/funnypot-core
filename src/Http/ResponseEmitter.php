@@ -24,14 +24,26 @@ final class ResponseEmitter
         http_response_code($response->status);
 
         foreach ($response->headers as $name => $value) {
-            // C8 defence-in-depth: skip any header that could split the response.
-            if (preg_match('/[\r\n\x00]/', (string) $name) === 1
-                || preg_match('/[\r\n\x00]/', (string) $value) === 1) {
+            // C8 defence-in-depth: a poisoned NAME could split the response — skip the whole header.
+            if (preg_match('/[\r\n\x00]/', (string) $name) === 1) {
                 continue;
             }
-            // Set-Cookie must append (a response can carry several, e.g. a session cookie
-            // plus a planted honeytoken); every other header replaces.
-            header($name . ': ' . $value, strcasecmp((string) $name, 'Set-Cookie') !== 0);
+            // A value may be a single string or a list (multi Set-Cookie); apply the CRLF/NUL guard
+            // PER ELEMENT so one poisoned element is dropped without losing the rest.
+            $values = is_array($value) ? $value : [$value];
+            // Set-Cookie must append (a response can carry several, e.g. a session cookie plus a
+            // planted honeytoken); every other header replaces. For a multi-value header only the
+            // first EMITTED line carries the replace flag; the rest append so all lines survive —
+            // and if the first element was dropped as poisoned, the next surviving one inherits it.
+            $replace = strcasecmp((string) $name, 'Set-Cookie') !== 0;
+            $first = true;
+            foreach ($values as $v) {
+                if (preg_match('/[\r\n\x00]/', (string) $v) === 1) {
+                    continue;
+                }
+                header($name . ': ' . $v, $first ? $replace : false);
+                $first = false;
+            }
         }
 
         echo $response->body;

@@ -14,7 +14,12 @@ final class SynthesizedResponse
     /** @var int */
     public $status;
 
-    /** @var array<string,string> */
+    /**
+     * @var array<string,string|string[]> A value may be a plain string (one header line) or a list
+     * of strings (several lines under one name) — so a honeytoken Set-Cookie and a session
+     * Set-Cookie can coexist. The pipe carries either; every current producer emits plain strings,
+     * so existing output is byte-identical.
+     */
     public $headers;
 
     /** @var string */
@@ -45,7 +50,7 @@ final class SynthesizedResponse
      */
     public $delayMicros = 0;
 
-    /** @param array<string,string> $headers */
+    /** @param array<string,string|string[]> $headers */
     public function __construct(
         int $status,
         array $headers,
