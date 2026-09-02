@@ -1,0 +1,61 @@
+id: attack-xss-baseline
+severity: low
+priority: 64
+tags: [attack, xss, reflection-baseline]
+# HTML-safe by construction: the ONE reflected value ({{match.marker}}) is the named capture
+# `marker`, whose class is `[A-Za-z0-9]{1,64}` — it excludes < > " ' & { } ( ) ; / % + = space
+# CR LF NUL and every other markup-forming byte, so reflecting it into this text/html body can
+# open no tag, close no attribute, and start no entity. Asserted (compile-time only, never copied
+# into the artifact) so the HTML-reflection lint passes WITHOUT gating this decoy off — exactly the
+# attack-phpcgi-1823 (`[\w.-]` filename) and 45-ssti-numeric (integer-only) precedent. A retroactive
+# `reflects_input: true` would be WRONG here: it would isolated-origin-gate this ungated baseline
+# off, and the whole point is that the benign marker reflects on a DEFAULT (embedded) install.
+html_safe_captures: true
+# Owned reflection BASELINE for the dalfox/nuclei-style XSS confirmation chain (FP-0259). Scanners
+# send a benign alphanumeric marker first and only escalate to markup if it echoes; the existing
+# attack-xss decoy (priority 65) matches markup ONLY, so its bait was unreachable by the very
+# scanner it targets. This rule owns ONE synthetic search path and echoes ONE query value that is
+# WHOLLY [A-Za-z0-9] (1..64 bytes — dalfox's bracketed discovery marker is 36).
+#
+# THE ANTI-SINK INVARIANT (capture-class-bound). The regex class IS the whitelist. The reflected
+# string is ALWAYS the named capture `marker`; the anchored, delimiter-bounded group
+# `(?:^|&)q=(?P<marker>[A-Za-z0-9]{1,64})(?:&|$)` reads the RAW query surface (no decode precedes
+# the match, so %3C / %253C cannot smuggle a byte past the class), and the match either yields an
+# alnum-only capture or fails. On failure evalConditions returns null on the first failed condition
+# so the whole rule declines and the request continues down the scan — a value like
+# `q=abc<script>` does NOT partially reflect `abc`; the baseline declines and a canned decoy
+# (attack-crs-xss / attack-ssti-numeric) serves a body carrying no {{match. So no non-alnum byte can
+# ever reach {{match.marker}}. (Harmless edge notes: `q=abc<script>&q=abc` reflects the SECOND,
+# alnum `q`; the `$` alternative admits a trailing LF after an otherwise-alnum marker — both cases
+# still reflect only [A-Za-z0-9] bytes.)
+#
+# Full-tag reflection stays on the existing attack-xss under the UNCHANGED FP-0236 gate
+# (reflect_class:xss + Config::$isolatedOrigin, default OFF): priority 64 < 65 so this rule is
+# evaluated first, but because it DECLINES on any non-alnum q, a markup escalation on this same
+# path flows straight to attack-xss exactly as today. Full dalfox Stage-3 / nuclei confirmation is
+# a deliberate documented trade-off (deferred to FP-0286); this baseline engages dalfox discovery.
+#
+# Opt-out is ID-ONLY for the attack tier: Config::$exclude must name 'attack-xss-baseline'
+# (tag-based exclusion works only for route bundles, never the attack tier).
+match:
+  - in: path
+    regex: '^/products/quick-search/?$'      # store miss, first segment not a param bucket (@fs/catalog)
+  - in: query
+    regex: '(?:^|&)q=(?P<marker>[A-Za-z0-9]{1,64})(?:&|$)'
+    capture: true                            # LOAD-BEARING: selects THIS condition's groups for {{match.*}}
+status: 200
+response:
+  headers:
+    Content-Type: "text/html; charset=utf-8"
+  body: |
+    <!doctype html>
+    <html lang="en">
+    <head><meta charset="utf-8"><title>{{persona.company.name}} — Product search</title></head>
+    <body>
+    <h1>Product search</h1>
+    <form action="/products/quick-search" method="get"><input type="text" name="q"><button type="submit">Search</button></form>
+    <p>No products matched your search for <span>{{match.marker}}</span>.</p>
+    <p>Try a different keyword or browse the catalog.</p>
+    </body>
+    </html>
+expect: ['No products matched your search for', 'Product search']

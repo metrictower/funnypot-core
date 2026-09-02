@@ -3440,6 +3440,53 @@ router uptime: up 3 days
   ),
   51 => 
   array (
+    'id' => 'attack-xss-baseline',
+    'severity' => 'low',
+    'tags' => 
+    array (
+      0 => 'attack',
+      1 => 'xss',
+      2 => 'reflection-baseline',
+    ),
+    'status' => 200,
+    'match' => 
+    array (
+      0 => 
+      array (
+        'in' => 'path',
+        'regex' => '^/products/quick-search/?$',
+      ),
+      1 => 
+      array (
+        'in' => 'query',
+        'regex' => '(?:^|&)q=(?P<marker>[A-Za-z0-9]{1,64})(?:&|$)',
+        'capture' => true,
+      ),
+    ),
+    'response' => 
+    array (
+      'headers' => 
+      array (
+        'Content-Type' => 'text/html; charset=utf-8',
+      ),
+      'body' => '<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8"><title>{{persona.company.name}} — Product search</title></head>
+<body>
+<h1>Product search</h1>
+<form action="/products/quick-search" method="get"><input type="text" name="q"><button type="submit">Search</button></form>
+<p>No products matched your search for <span>{{match.marker}}</span>.</p>
+<p>Try a different keyword or browse the catalog.</p>
+</body>
+</html>
+',
+    ),
+    'lit' => '/products/quick-search',
+    'lit_in' => 'path',
+    'lit_ci' => true,
+  ),
+  52 => 
+  array (
     'id' => 'attack-xss',
     'severity' => 'medium',
     'tags' => 
@@ -3471,7 +3518,7 @@ router uptime: up 3 days
     'reflects_input' => true,
     'reflect_class' => 'xss',
   ),
-  52 => 
+  53 => 
   array (
     'id' => 'attack-xdebug',
     'severity' => 'critical',
@@ -3509,7 +3556,7 @@ router uptime: up 3 days
     'lit_in' => 'request',
     'lit_ci' => true,
   ),
-  53 => 
+  54 => 
   array (
     'id' => 'attack-node-red',
     'severity' => 'critical',
@@ -3568,7 +3615,7 @@ router uptime: up 3 days
       ),
     ),
   ),
-  54 => 
+  55 => 
   array (
     'id' => 'attack-thinkphp-rce',
     'severity' => 'critical',
@@ -3604,7 +3651,7 @@ router uptime: up 3 days
 ',
     ),
   ),
-  55 => 
+  56 => 
   array (
     'id' => 'attack-owncloud-49103',
     'severity' => 'high',
@@ -3647,7 +3694,7 @@ router uptime: up 3 days
     'lit_in' => 'path',
     'lit_ci' => true,
   ),
-  56 => 
+  57 => 
   array (
     'id' => 'attack-f5-1388',
     'severity' => 'critical',
@@ -3681,7 +3728,7 @@ router uptime: up 3 days
     'lit_in' => 'path',
     'lit_ci' => true,
   ),
-  57 => 
+  58 => 
   array (
     'id' => 'attack-geoserver-36401',
     'severity' => 'critical',
@@ -3724,7 +3771,7 @@ router uptime: up 3 days
     'lit_in' => 'path',
     'lit_ci' => true,
   ),
-  58 => 
+  59 => 
   array (
     'id' => 'attack-fortios-40684',
     'severity' => 'critical',
@@ -3763,7 +3810,7 @@ router uptime: up 3 days
     'lit_in' => 'path',
     'lit_ci' => true,
   ),
-  59 => 
+  60 => 
   array (
     'id' => 'attack-ivanti-21887',
     'severity' => 'critical',
@@ -3798,7 +3845,7 @@ router uptime: up 3 days
     'lit_in' => 'request',
     'lit_ci' => true,
   ),
-  60 => 
+  61 => 
   array (
     'id' => 'attack-citrix-bleed-4966',
     'severity' => 'critical',
@@ -3833,7 +3880,7 @@ router uptime: up 3 days
     'lit_in' => 'path',
     'lit_ci' => true,
   ),
-  61 => 
+  62 => 
   array (
     'id' => 'attack-webshell-panel',
     'severity' => 'critical',
@@ -3868,7 +3915,7 @@ $ </pre>
 ',
     ),
   ),
-  62 => 
+  63 => 
   array (
     'id' => 'attack-spring-actuator',
     'severity' => 'high',
@@ -3901,7 +3948,7 @@ $ </pre>
     'lit_in' => 'path',
     'lit_ci' => true,
   ),
-  63 => 
+  64 => 
   array (
     'id' => 'attack-imds-base',
     'severity' => 'high',
@@ -4611,7 +4658,7 @@ vpc-ipv4-cidr-block
       ),
     ),
   ),
-  64 => 
+  65 => 
   array (
     'id' => 'attack-imds-identity-doc',
     'severity' => 'high',
@@ -4663,7 +4710,7 @@ vpc-ipv4-cidr-block
     'lit_in' => 'path',
     'lit_ci' => true,
   ),
-  65 => 
+  66 => 
   array (
     'id' => 'attack-cloud-imds',
     'severity' => 'high',
@@ -4701,7 +4748,7 @@ vpc-ipv4-cidr-block
 ',
     ),
   ),
-  66 => 
+  67 => 
   array (
     'id' => 'attack-ignition-execute-solution',
     'severity' => 'high',
@@ -4790,7 +4837,7 @@ vpc-ipv4-cidr-block
       ),
     ),
   ),
-  67 => 
+  68 => 
   array (
     'id' => 'attack-webmin-session-login',
     'severity' => 'high',
@@ -4860,7 +4907,7 @@ vpc-ipv4-cidr-block
     'lit_in' => 'method',
     'lit_ci' => false,
   ),
-  68 => 
+  69 => 
   array (
     'id' => 'attack-jenkins-acegi-login',
     'severity' => 'high',
@@ -4908,7 +4955,7 @@ vpc-ipv4-cidr-block
     'lit_in' => 'method',
     'lit_ci' => false,
   ),
-  69 => 
+  70 => 
   array (
     'id' => 'attack-hnap-login',
     'severity' => 'high',
@@ -4993,7 +5040,7 @@ vpc-ipv4-cidr-block
       ),
     ),
   ),
-  70 => 
+  71 => 
   array (
     'id' => 'attack-wp-admin-redirect',
     'severity' => 'low',
@@ -5048,7 +5095,7 @@ vpc-ipv4-cidr-block
       'table_key' => 'users',
     ),
   ),
-  71 => 
+  72 => 
   array (
     'id' => 'attack-crs-sqli',
     'severity' => 'high',
@@ -5078,7 +5125,7 @@ vpc-ipv4-cidr-block
 ',
     ),
   ),
-  72 => 
+  73 => 
   array (
     'id' => 'attack-crs-xss',
     'severity' => 'high',
@@ -5110,7 +5157,7 @@ vpc-ipv4-cidr-block
 ',
     ),
   ),
-  73 => 
+  74 => 
   array (
     'id' => 'attack-crs-lfi',
     'severity' => 'high',
@@ -5139,7 +5186,7 @@ vpc-ipv4-cidr-block
       'body' => '{{canned.passwd}}',
     ),
   ),
-  74 => 
+  75 => 
   array (
     'id' => 'attack-crs-rce',
     'severity' => 'critical',

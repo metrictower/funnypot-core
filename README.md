@@ -218,6 +218,28 @@ and can therefore only ever **subtract**: setting a class to `true` on an embedd
 (`isolatedOrigin=false`) does **not** re-enable it — the `isolatedOrigin` term dominates, so an
 embedded host never reflects, whatever the map says. The fail-safe default is preserved.
 
+### The XSS reflection baseline (inert by charset, not by the gate)
+
+Most XSS scanners (dalfox, nuclei) send a **benign alphanumeric marker** first and only escalate to
+markup once it echoes; the gated reflected-XSS decoy above matches markup **only**, so its bait was
+unreachable by the very scanners it targets. The `attack-xss-baseline` rule closes that gap: it owns
+one synthetic search path, `GET /products/quick-search`, and echoes one query value — `q` — that is
+**wholly `[A-Za-z0-9]{1,64}`**. That character class **is** the whitelist: any out-of-class byte
+(markup, quotes, `%`-encoding, space, `+`, `&`, CR/LF/NUL, multibyte) makes the capture fail, so the
+rule declines and echoes nothing — the reflected string can never carry a markup-forming byte. Unlike
+the reflectors above it is therefore **inert by construction** (like the php-cgi source-disclosure
+and SSTI-numeric decoys) and serves on a **default embedded install**, with no isolated origin
+required. Full-tag reflection stays on the gated `attack-xss` decoy, unchanged.
+
+- **Opt-out is ID-only** for this attack-tier rule: `Config::$exclude = ['attack-xss-baseline']`.
+  A **tag** (`exclude: ['xss']`) does **not** disable it — tag-based exclusion applies only to route
+  bundles, never the attack tier.
+- **Embedding caveat:** on a store miss the attack tier does not consult your `SiteProfile`, and the
+  middleware runs before your handler, so if your app genuinely serves `/products/quick-search?q=…`
+  the decoy will answer it. This is the same exposure the `/@fs/` and `/catalog/{slug}` decoys accept;
+  use the ID opt-out above if the path collides with a real route. (Follow-up: consult the profile in
+  the attack tier for store-miss paths.)
+
 ### Using Laravel?
 
 Use **[funnypot-laravel](https://github.com/metrictower/funnypot-laravel)**
