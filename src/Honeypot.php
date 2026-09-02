@@ -61,6 +61,18 @@ final class Honeypot implements Engine
         // secrets stay per-request (per-attacker) — only the identity is deploy-stable.
         $personaSeed = $this->config->deploySeed();
 
+        // FP-0276 boot-time seed-health signal. NON-SERVED and material-only (never re-derives, never
+        // touches $personaSeed's value). Fired once at construction; an Observer that also implements
+        // HealthObserver receives it, swallowed per FP-0252 so a throwing observer cannot break
+        // construction or change served bytes. The pull API Honeypot::seedHealth() is the primary path.
+        if ($this->observer instanceof HealthObserver) {
+            try {
+                $this->observer->onSeedHealth($this->config->seedHealth());
+            } catch (\Throwable $e) {
+                // Swallow: a health observer is a diagnostic seam, never a serving dependency.
+            }
+        }
+
         // FP-0239: opt-in prompt-injection seeding. Read the gate + build the per-deploy self-beacon
         // canary off Config, then hand both DISCRETE values down the real render path
         // (EmulatorRegistry::default → RouteTemplateEmulator). No SynthesisConfig — it is dead on this
@@ -92,7 +104,8 @@ final class Honeypot implements Engine
             EmulatorRegistry::default($personaSeed, $this->config->promptInjectionSeeding, $beaconCanary, $this->config->volatileProof),
             $this->config->responseStyle,
             $this->config->serverHeader,
-            $this->config->poweredBy
+            $this->config->poweredBy,
+            $personaSeed
         );
 
         // What we will not serve is driven by primitives on Config: the exclude deny-set (template
@@ -109,6 +122,21 @@ final class Honeypot implements Engine
         $this->attackEmulator = $this->config->attackEmulation
             ? TemplateAttackEmulator::fromPackage([], $personaSeed, $this->config->decoySessionKey, $this->config->volatileProof, $this->config->promptInjectionSeeding)->disable($this->config->exclude)
             : null;
+    }
+
+    /**
+     * The deploy's NON-SERVED seed-health report (FP-0276) — the pull companion of the HealthObserver
+     * push. An app status page / dashboard reads this to surface an unseeded or fleet-constant install
+     * (identity material empty/placeholder, or an empty render salt) without configuring an observer.
+     * Material-only, never re-derives; delegates to Config::seedHealth() so pull and push return the
+     * identical array. Added on the final class only — the Engine/Evaluator interfaces are not extended
+     * (an interface addition would break every app implementer).
+     *
+     * @return array{identity:string,render_salt:string,ok:bool,warnings:list<string>}
+     */
+    public function seedHealth(): array
+    {
+        return $this->config->seedHealth();
     }
 
     /**

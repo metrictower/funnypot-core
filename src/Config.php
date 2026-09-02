@@ -7,6 +7,7 @@ namespace Funnypot\Core;
 use Closure;
 use Funnypot\Core\Response\Style;
 use Funnypot\Core\Support\PersonaIdentity;
+use Funnypot\Core\Support\SeedHealth;
 
 /**
  * Host-app policy for the inverter. Defaults make an install INERT: detect mode
@@ -95,7 +96,8 @@ final class Config
     /** @var Closure|null fn(RequestContext):bool — root/homepage (sig=1) fires ONLY when true; null ⇒ never */
     public $probeSignature;
 
-    /** @var string per-deploy salt so persona differs per site */
+    /** @var string per-deploy salt so persona differs per site. Empty ⇒ every unconfigured deploy is
+     *              fleet-constant (one shared identity, an equalizable render seed) — see seedHealth(). */
     public $seedSalt;
 
     /** @var string[] template ids or tags to never SERVE (respond path); detection is unaffected */
@@ -122,7 +124,8 @@ final class Config
     /** @var string|null HMAC key for the tamper-evident bait cookie; null ⇒ feature off */
     public $honeytokenKey;
 
-    /** @var string|null per-deploy persona-material override; null/'' ⇒ fall back to $seedSalt */
+    /** @var string|null per-deploy persona-material override; null/'' ⇒ fall back to $seedSalt.
+     *              Empty/unset AND an empty $seedSalt ⇒ a fleet-constant identity — see seedHealth(). */
     public $deploySeed;
 
     /** @var string|null per-deploy secret signing the decoy mock-auth session cookie; null ⇒ feature off */
@@ -389,8 +392,32 @@ final class Config
      */
     public function deploySeed(): int
     {
-        $m = ($this->deploySeed !== null && $this->deploySeed !== '') ? $this->deploySeed : $this->seedSalt;
+        return PersonaIdentity::seedFromMaterial($this->deploySeedMaterial());
+    }
 
-        return PersonaIdentity::seedFromMaterial($m);
+    /**
+     * The exact material deploySeed() hashes: an explicit `deploySeed` when set, else the `seedSalt`.
+     * The `?:`-fallback ordering lives HERE, in ONE place — deploySeed() and seedHealth() both read
+     * it, so the health signal classifies the SAME string the derivation consumes. Pure, no I/O.
+     * Extracting it does not change deploySeed()'s output for any input (including ''): guard-and-warn
+     * never re-derives, and DeploySeedTest / PersonaIdentityTest pin the bytes.
+     */
+    public function deploySeedMaterial(): string
+    {
+        return ($this->deploySeed !== null && $this->deploySeed !== '') ? $this->deploySeed : $this->seedSalt;
+    }
+
+    /**
+     * A NON-SERVED health report on this deploy's seed material (FP-0276). Classifies the identity
+     * material (set / empty / a known placeholder) and the render salt (set / empty) by MATERIAL-STRING
+     * comparison only — it NEVER inspects the derived seed and NEVER re-derives. An unconfigured deploy
+     * shares one fleet-wide persona identity; this is how an operator learns that without any served
+     * byte changing. Read it via Honeypot::seedHealth() (pull) or receive it via HealthObserver (push).
+     *
+     * @return array{identity:string,render_salt:string,ok:bool,warnings:list<string>}
+     */
+    public function seedHealth(): array
+    {
+        return SeedHealth::evaluate($this->deploySeedMaterial(), $this->seedSalt);
     }
 }

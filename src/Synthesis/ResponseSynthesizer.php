@@ -57,16 +57,26 @@ final class ResponseSynthesizer
     /** @var string|null */
     private $poweredBy;
 
+    /**
+     * @var int|null the deploy's per-deploy identity seed (Config::deploySeed()). Stored here now
+     * (FP-0276) so the synthesizer-side siblings — FP-0280's witness menu, FP-0281's scaffold order —
+     * can key SubSeed derivations off the deploy identity without a second ctor-signature change each.
+     * Unused by this ticket; served bytes are unchanged whether it is passed or left null.
+     */
+    private $deploySeed;
+
     public function __construct(
         ?EmulatorRegistry $emulators = null,
         string $style = Style::MINIMAL,
         ?string $serverHeader = null,
-        ?string $poweredBy = null
+        ?string $poweredBy = null,
+        ?int $deploySeed = null
     ) {
         $this->emulators = $emulators;
         $this->style = Style::isValid($style) ? $style : Style::MINIMAL;
         $this->serverHeader = $serverHeader;
         $this->poweredBy = $poweredBy;
+        $this->deploySeed = $deploySeed;
     }
 
     /**
