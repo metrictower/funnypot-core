@@ -43,6 +43,15 @@ declare(strict_types=1);
  * same loop). This script reads compiled artifacts + template YAML only; it writes and compiles NOTHING
  * (zero compiled-byte impact). It also PRINTS (never fails on) the fleet-constant inventory.
  *
+ * AUTHED DECOY leg (FP-0282, the `authed:` kind). The attack loop renders every rule position-blind
+ * ($r = null), where a decoy-session gate fails closed to its login page — so its seeded table story
+ * (DecoyTables: tree/whitelist names, column convention, dropped table) is never rendered above. This
+ * leg mints a fixed-key s=1 cookie and renders each gate rule WITH a request, so G1/G3/G4 see the authed
+ * body, plus:
+ *   G-authed  servability   — the authed body must render (not the fail-closed login/base decline); a
+ *                             seeded table name tripping the runtime FingerprintGuard at some seed is
+ *                             caught here rather than leaking as a silent decline.
+ *
  *   php scripts/ci/check-seeded-render.php
  *     [--attack=PATH] [--routes=PATH] [--param=PATH] [--templates=DIR] [--surfaces=PATH] [--nuclei=PATH]
  *     [--volatile-proof]   (test-only: arm volatileProof so a {{volatile.*}} body FAILS G3)
@@ -50,9 +59,11 @@ declare(strict_types=1);
  * Exit code 1 on any G1–G6 failure or on zero rules rendered (fail-closed floor).
  */
 
+use Funnypot\Core\Behavior\DecoySession;
 use Funnypot\Core\Compiler\Crs\FingerprintGuard;
 use Funnypot\Core\Contracts\Clock;
 use Funnypot\Core\Detection;
+use Funnypot\Core\RequestContext;
 use Funnypot\Core\Response\EmulatedContent;
 use Funnypot\Core\Response\RouteTemplateEmulator;
 use Funnypot\Core\Response\RouteTemplateSet;
@@ -271,6 +282,80 @@ foreach ([['attack', $attackRules, $makeAttack], ['param', $paramRules, $makePar
                 $surfaceRuns[$surfaceKey][$material . '|' . $rlabel] = $c1;
             }
             $checkMarkers($id, $deploySeeds[$material], "{$kind} {$id} [m={$material}]");
+        }
+    }
+}
+
+// ---------------------------------------------------------------------------------------------------
+// AUTHED DECOY leg (FP-0282). The attack loop above renders every rule position-blind ($r = null), so a
+// decoy-session GATE rule fails CLOSED to its login page and its seeded table story is never rendered —
+// registering `attack:<gate>` alone would pass G4 for the wrong reason (the login page already varies
+// through {{persona.*}}). This leg mints a fixed-key s=1 cookie and renders each gate rule WITH a
+// request, so G1/G3/G4 actually see the table tree, the ?table= whitelist names, and the column
+// convention this deploy serves. Recorded as `authed:<id>` surfaces so the G4 loop + fleet-constant
+// inventory treat them like any rule surface.
+//   G-authed  servability — the authed body must render (not the fail-closed login/base decline); a
+//              seeded name tripping the runtime FingerprintGuard at some seed is caught here.
+// ---------------------------------------------------------------------------------------------------
+$authedGateRenders = 0;
+foreach ($attackRules as $rule) {
+    if (!is_array($rule)) {
+        continue;
+    }
+    $cfg = is_array($rule['decoy-session'] ?? null) ? $rule['decoy-session'] : [];
+    if ((string) ($rule['behavior'] ?? '') !== 'decoy-session' || (string) ($cfg['mode'] ?? '') !== 'gate') {
+        continue;
+    }
+    $id = (string) ($rule['id'] ?? '?');
+    // Owned-path selection mirrors ManifestBuilder::skinLinks (:433-439): default to $owned[0], only
+    // UPGRADE to an …/index.php entry when one exists. Requiring /index.php would silently skip the WP
+    // gate (its compiled owns_path is ["/wp-admin"]).
+    $owned = array_values(array_filter((array) ($rule['owns_path'] ?? []), 'is_string'));
+    if ($owned === []) {
+        fwrite(STDOUT, "INFO: authed leg skipped gate '{$id}' (no owns_path)\n");
+        continue;
+    }
+    $ownedPath = $owned[0];
+    foreach ($owned as $p) {
+        if (substr($p, -10) === '/index.php') {
+            $ownedPath = $p;
+            break;
+        }
+    }
+    $cookieName = (string) ($cfg['cookie_name'] ?? 'phpMyAdmin');
+    $cookiePath = (string) ($cfg['cookie_path'] ?? '/');
+    $surfaceKey = 'authed:' . $id;
+
+    foreach ($materials as $material) {
+        $deploySeed = $deploySeeds[$material];
+        $emu = $makeAttack($deploySeed);
+        foreach ($renderSeeds as $rlabel => $renderSeed) {
+            $where = "authed {$id} [m={$material},{$rlabel}]";
+            // Resolve the cookie name exactly as handleDecoySession does (:1074-1078), then mint an s=1
+            // cookie for that name (the ManifestBuilder :442-448 split) and present it on the request.
+            $renderedName = (new DirectiveRenderer($deploySeed, $volatileProof, false))->render($cookieName, [], $renderSeed);
+            if ($renderedName === '') {
+                $renderedName = $cookieName;
+            }
+            $mint = (new DecoySession($FIXED_DECOY_KEY))->mintCookie($renderedName, $cookiePath);
+            $semi = strpos($mint, ';');
+            $pair = $semi === false ? $mint : substr($mint, 0, $semi);
+            $r = new RequestContext('GET', $ownedPath, '', ['Cookie' => $pair]);
+            $first = $emu->renderRule($rule, [], $renderSeed, $r);
+            $second = $emu->renderRule($rule, [], $renderSeed, $r);
+            $rendered += 2;
+            $authedGateRenders += 2;
+            $c1 = $canon($first);
+            $c2 = $canon($second);
+            $base = $canon($emu->renderRule($rule, [], $renderSeed, null));
+            if ($c1 !== $c2) {
+                $fail[] = "G3 nondeterministic render: {$where} (" . firstDiff($c1, $c2) . ')';
+            }
+            if ($c1 === null || $c1 === $base) {
+                $fail[] = "G-authed: gate '{$id}' served its declined/base body at {$where} (fail-closed or gate miss)";
+            }
+            $scanLeaves($c1, $id, $where);
+            $surfaceRuns[$surfaceKey][$material . '|' . $rlabel] = $c1;
         }
     }
 }
@@ -515,10 +600,11 @@ if ($fail !== []) {
 $ruleCount = count(array_filter($attackRules, 'is_array')) + count(array_filter($routeRules, 'is_array')) + count(array_filter($paramRules, 'is_array'));
 $points = count($materials) * count($renderSeeds);
 fwrite(STDOUT, sprintf(
-    "OK: %d rules × %d points rendered twice; %d bundles synthesized; %d leaves scanned; %d seeded surfaces verified; %d fleet-constant.\n",
+    "OK: %d rules × %d points rendered twice; %d bundles synthesized; %d authed gate renders; %d leaves scanned; %d seeded surfaces verified; %d fleet-constant.\n",
     $ruleCount,
     $points,
     $synthBundleCount,
+    $authedGateRenders,
     $leavesScanned,
     $seededVerified,
     count($fleetConstant)

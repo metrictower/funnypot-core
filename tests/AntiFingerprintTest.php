@@ -11,6 +11,7 @@ use Funnypot\Core\RequestContext;
 use Funnypot\Core\Response\RouteTemplateEmulator;
 use Funnypot\Core\Response\RouteTemplateSet;
 use Funnypot\Core\Response\Style;
+use Funnypot\Core\Support\PersonaIdentity;
 use Funnypot\Core\Synthesis\ResponseSynthesizer;
 use PHPUnit\Framework\TestCase;
 
@@ -73,6 +74,21 @@ final class AntiFingerprintTest extends TestCase
         // An attacker who escalates the role breaks the signature.
         $tampered = rawurlencode('r=admin.' . substr($value, strpos(rawurldecode($value), '.') + 1));
         self::assertSame('tampered', $h->inspect($tampered));
+    }
+
+    public function test_bait_envelope_varies_across_deploys_but_is_stable_within_one(): void
+    {
+        // FP-0282: the site-wide bait cookie envelope (name/payload/attributes) is per-deploy — no longer
+        // the fleet constant `sess=r%3Duser…; path=/; HttpOnly`.
+        $h = new Honeytoken('server-side-secret');
+        $seedA = PersonaIdentity::seedFromMaterial('fp-0276-sample-a');
+        $seedB = PersonaIdentity::seedFromMaterial('fp-0276-sample-b');
+
+        // Within one deploy, byte-identical every render.
+        self::assertSame($h->bait($seedA), $h->bait($seedA));
+
+        // Across two deploys, the two Set-Cookie envelopes differ (name and/or payload and/or attrs).
+        self::assertNotSame($h->bait($seedA), $h->bait($seedB), 'two deploys must not plant an identical bait envelope');
     }
 
     // --- Log4Shell / JNDI probe detection ---

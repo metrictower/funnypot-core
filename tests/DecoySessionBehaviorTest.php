@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Funnypot\Core\Tests;
 
+use Funnypot\Core\Behavior\DecoyTables;
 use Funnypot\Core\Honeytoken;
 use Funnypot\Core\RequestContext;
 use Funnypot\Core\Template\TemplateAttackEmulator;
@@ -224,7 +225,10 @@ final class DecoySessionBehaviorTest extends TestCase
         // seed-derived class prefix.
         self::assertStringContainsString('phpMyAdmin', $r->body);
         self::assertStringContainsString('<table', $r->body);
-        foreach (['users', 'password_resets', 'api_keys', 'sessions', 'orders'] as $t) {
+        // FP-0282: the tree lists THIS deploy's seeded table story. This emulator is unwired
+        // (personaSeed null), so emulate()'s default seed 0 is the identity seed — derive the expected
+        // names from the helper at seed 0 rather than re-pinning the old six-name fleet constant.
+        foreach (DecoyTables::names(0) as $t) {
             self::assertStringContainsString('>' . $t . '</li>', $r->body, $t . ' must appear in the table tree');
         }
         self::assertStringNotContainsString(self::LOGIN_STUB_GATE, $r->body);

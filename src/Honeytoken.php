@@ -4,12 +4,16 @@ declare(strict_types=1);
 
 namespace Funnypot\Core;
 
+use Funnypot\Core\Support\HoneytokenEnvelope;
+
 /**
- * A tamper-evident bait cookie. The honeypot plants a signed low-privilege cookie
- * (e.g. `r=user`); a client that replays it untouched is normal, but one that returns it
- * ALTERED (say `r=admin`) breaks the HMAC — a high-signal privilege-escalation attempt no
- * ordinary visitor produces. The key never leaves the server, so the signature is
- * unforgeable; the attacker can only strip or corrupt it.
+ * A tamper-evident bait cookie. The honeypot plants a signed low-privilege cookie carrying a seeded
+ * low-role payload (e.g. `lvl=member`) whose name, payload vocabulary and attribute tail vary per deploy
+ * (Support\HoneytokenEnvelope), so the envelope is not a fleet regex; a client that replays it untouched
+ * is normal, but one that returns it ALTERED (say the role word raised to `admin`) breaks the HMAC — a
+ * high-signal privilege-escalation attempt no ordinary visitor produces. The key never leaves the
+ * server, so the signature is unforgeable; the attacker can only strip or corrupt it. The signature is
+ * over the payload + key ONLY — the name and attributes never enter the HMAC.
  */
 final class Honeytoken
 {
@@ -21,10 +25,30 @@ final class Honeytoken
         $this->key = $key;
     }
 
-    /** A `Set-Cookie` value planting the signed bait, scoped to the given path. */
-    public function cookie(string $name = 'sess', string $payload = 'r=user', string $path = '/'): string
+    /**
+     * A `Set-Cookie` value planting the signed payload under an explicit name, scoped to the given path.
+     * For the site-wide per-deploy bait cookie, use bait() (which seeds the whole envelope); this named
+     * form is for callers that own a specific product-protocol cookie name (e.g. the decoy-session mint).
+     */
+    public function cookie(string $name, string $payload, string $path = '/'): string
     {
         return $name . '=' . rawurlencode($payload . '.' . $this->sign($payload)) . '; path=' . $path . '; HttpOnly';
+    }
+
+    /**
+     * The site-wide bait `Set-Cookie` for this deploy: a seeded envelope (name + `key=role` low-role
+     * payload + attribute tail, all from HoneytokenEnvelope) wrapped around the SAME signed
+     * `payload.16hex` value cookie() produces. inspect()/verifiedPayload() need no change — the value
+     * shape is identical; only the envelope varies. A seed rotation invalidates old bait cookies, which
+     * reads as an ordinary server-side session reset (inspect() returns `absent` for the old name).
+     */
+    public function bait(int $deploySeed, string $path = '/'): string
+    {
+        $payload = HoneytokenEnvelope::payload($deploySeed);
+
+        return HoneytokenEnvelope::name($deploySeed)
+            . '=' . rawurlencode($payload . '.' . $this->sign($payload))
+            . HoneytokenEnvelope::attributes($deploySeed, $path);
     }
 
     /**

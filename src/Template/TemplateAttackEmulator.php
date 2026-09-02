@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Funnypot\Core\Template;
 
 use Funnypot\Core\Behavior\DecoySession;
+use Funnypot\Core\Behavior\DecoyTables;
 use Funnypot\Core\Behavior\NullEphemeralStore;
 use Funnypot\Core\Behavior\SystemClock;
 use Funnypot\Core\Compiler\Crs\FingerprintGuard;
@@ -80,24 +81,6 @@ final class TemplateAttackEmulator
     /** @var bool whether the guard load has been attempted — a null guard after this is set means the
      *  denylist was unavailable, handled fail-closed (never retried per request). */
     private $fingerprintGuardLoaded = false;
-
-    /** The mock tables the authed phpMyAdmin decoy lists in its left tree, in display order. */
-    private const DECOY_TABLE_NAMES = ['users', 'password_resets', 'api_keys', 'sessions', 'orders', 'secrets'];
-
-    /**
-     * Column headers per mock table, matching FakeRecords' documented row shapes. Doubles as the
-     * whitelist of browsable tables: a `?table=` value is honored only if it is a key here.
-     *
-     * @var array<string,list<string>>
-     */
-    private const DECOY_TABLE_COLUMNS = [
-        'users' => ['id', 'username', 'email', 'created_at'],
-        'password_resets' => ['email', 'reset_token', 'requested_at', 'expires_at'],
-        'api_keys' => ['id', 'owner_name', 'api_key', 'created_at', 'last_used_at'],
-        'sessions' => ['id', 'username', 'ip', 'last_activity'],
-        'orders' => ['order_id', 'customer', 'amount', 'status', 'created_at'],
-        'secrets' => ['id', 'name', 'value'],
-    ];
 
     /**
      * Named behavior primitives, keyed by the rule's `behavior` value. Each is a closure over
@@ -1236,9 +1219,11 @@ final class TemplateAttackEmulator
     }
 
     /**
-     * The authed phpMyAdmin browse screen: a fabricated "breached database" — the left tree lists the
-     * mock tables (DECOY_TABLE_NAMES) and the grid shows the selected one's rows, all seeded from
-     * FakeRecords. Renders through the shared core PhpMyAdminSkin so this tier and any template tier show
+     * The authed phpMyAdmin browse screen: a fabricated "breached database" — the left tree lists this
+     * deploy's seeded table story (DecoyTables::forDeploy, FP-0282) and the grid shows the selected
+     * table's rows, all seeded from FakeRecords. The `?table=` whitelist is the SAME seeded set the tree
+     * shows (DecoyTables::whitelist is a projection of the same array), so the advertised and accepted
+     * names can never drift. Renders through the shared core PhpMyAdminSkin so this tier and any template tier show
      * ONE coherent product identity (class prefix + MySQL version banner are both seed-derived by the
      * skin, never a fleet-wide literal). Row count is re-clamped to MAX_DECOY_ROWS regardless of the
      * authored value (mirrors handleIterate's fan-out cap) — no amplification via a hand-crafted artifact.
@@ -1259,15 +1244,16 @@ final class TemplateAttackEmulator
         }
         $rows = min($rows, self::MAX_DECOY_ROWS);
 
-        $table = $this->decoySessionSelectedTable($r);
+        $selected = $this->decoySessionSelectedTable($r, $deploySeed);
+        $kind = DecoyTables::whitelist($deploySeed)[$selected];
         $slots = PageSlots::trusted(
             'phpMyAdmin',
             '',
-            $table,
+            $selected,
             '',
-            self::DECOY_TABLE_NAMES,
-            self::DECOY_TABLE_COLUMNS[$table],
-            $this->decoySessionTableRows($table, $deploySeed, $domain, $panelKey, $rows),
+            DecoyTables::names($deploySeed),
+            DecoyTables::columns($deploySeed, $kind),
+            $this->decoySessionTableRows($kind, $deploySeed, $domain, $panelKey, $rows),
             [],
             '',
             ''
@@ -1358,32 +1344,37 @@ final class TemplateAttackEmulator
     }
 
     /**
-     * Pick which mock table to browse from the request's `?table=` query, whitelisted against
-     * DECOY_TABLE_COLUMNS. The raw query value is only ever compared to the whitelist keys, never
-     * reflected, so a crafted value can neither inject nor steer output; an absent/unknown/position-
-     * blind ($r === null) request shows `users`.
+     * Pick which mock table to browse from the request's `?table=` query, whitelisted against this
+     * deploy's DecoyTables::whitelist() — the SAME seeded set the tree shows. The raw query value is only
+     * ever compared to the whitelist keys, never reflected, so a crafted value can neither inject nor
+     * steer output; an absent/unknown/foreign/position-blind ($r === null) request shows the deploy's
+     * users-kind default table.
      */
-    private function decoySessionSelectedTable(?RequestContext $r): string
+    private function decoySessionSelectedTable(?RequestContext $r, int $deploySeed): string
     {
+        $default = DecoyTables::defaultName($deploySeed);
         if ($r === null || $r->query === '') {
-            return 'users';
+            return $default;
         }
         $params = [];
         parse_str($r->query, $params);
         $requested = isset($params['table']) && is_string($params['table']) ? $params['table'] : '';
+        $whitelist = DecoyTables::whitelist($deploySeed);
 
-        return isset(self::DECOY_TABLE_COLUMNS[$requested]) ? $requested : 'users';
+        return isset($whitelist[$requested]) ? $requested : $default;
     }
 
     /**
-     * The seeded rows for one mock table. apiKeys and orders take no domain (no cell shows one); the
-     * rest fold the persona domain into the row draw so emails/accounts agree with the site identity.
+     * The seeded rows for one mock table, keyed by the CANONICAL kind (a DecoyTables::KINDS value, never
+     * a served name — so the row content is byte-identical per seed regardless of the deploy's table
+     * names). apiKeys and orders take no domain (no cell shows one); the rest fold the persona domain
+     * into the row draw so emails/accounts agree with the site identity.
      *
      * @return list<list<string>>
      */
-    private function decoySessionTableRows(string $table, int $seed, string $domain, string $key, int $n): array
+    private function decoySessionTableRows(string $kind, int $seed, string $domain, string $key, int $n): array
     {
-        switch ($table) {
+        switch ($kind) {
             case 'password_resets':
                 return FakeRecords::passwordResets($seed, $domain, $key, $n);
             case 'api_keys':

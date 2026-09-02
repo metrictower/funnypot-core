@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace Funnypot\Core\Tests;
 
 use Funnypot\Core\Honeytoken;
+use Funnypot\Core\Support\HoneytokenEnvelope;
+use Funnypot\Core\Support\PersonaIdentity;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -40,8 +42,59 @@ final class HoneytokenTest extends TestCase
 
         // Lowercase `path=` matches PHP's setcookie() output (real PHP apps like phpMyAdmin) and
         // the rest of the codebase's cookie emitters — capital `Path=` would be a subtle tell.
-        self::assertStringContainsString('path=/', $h->cookie());
-        self::assertStringContainsString('HttpOnly', $h->cookie());
+        // cookie() no longer defaults its name/payload (FP-0282: those fleet constants are dropped — see
+        // the Reflection pin below); every caller names its own envelope.
+        self::assertStringContainsString('path=/', $h->cookie('sess', 'r=user'));
+        self::assertStringContainsString('HttpOnly', $h->cookie('sess', 'r=user'));
+    }
+
+    public function test_cookie_has_no_fleet_constant_name_or_payload_defaults(): void
+    {
+        // FP-0282: the 'sess'/'r=user' defaults were the fleet-constant bait envelope; they are gone so
+        // no caller can silently plant the old constant. $path stays optional (a genuine convenience).
+        $params = (new \ReflectionMethod(Honeytoken::class, 'cookie'))->getParameters();
+        self::assertFalse($params[0]->isOptional(), 'cookie() name must be required (no fleet-constant default)');
+        self::assertFalse($params[1]->isOptional(), 'cookie() payload must be required (no fleet-constant default)');
+        self::assertTrue($params[2]->isOptional(), 'cookie() path stays optional');
+    }
+
+    // --- (c) bait(): the per-deploy seeded envelope (FP-0282) ---
+
+    public function test_bait_is_deterministic_and_round_trips_across_seeds(): void
+    {
+        $h = new Honeytoken('server-side-secret');
+
+        foreach (['', 'funnypot', 'fp-0276-sample-a', 'fp-0276-sample-b', 'm-17', 'm-42'] as $material) {
+            $seed = PersonaIdentity::seedFromMaterial($material);
+
+            // Within a deploy the bait is byte-identical every render (the within-deploy law).
+            self::assertSame($h->bait($seed), $h->bait($seed), "bait must be stable for '{$material}'");
+
+            // The browser sends the value back; it verifies, and reveals the seeded low-role payload.
+            $name = HoneytokenEnvelope::name($seed);
+            $value = $this->extractCookieValue($h->bait($seed), $name);
+            self::assertSame('ok', $h->inspect($value), "bait must replay ok for '{$material}'");
+            self::assertSame(HoneytokenEnvelope::payload($seed), $h->verifiedPayload($value), "payload for '{$material}'");
+
+            // bait() is cookie() + envelope, with NO second signing path: the signed value part is
+            // exactly what cookie(name, payload) produces.
+            $viaCookie = $this->extractCookieValue($h->cookie($name, HoneytokenEnvelope::payload($seed), '/'), $name);
+            self::assertSame($viaCookie, $value, "bait value must equal cookie()'s value for '{$material}'");
+        }
+    }
+
+    public function test_bait_role_escalation_breaks_the_hmac(): void
+    {
+        $h = new Honeytoken('server-side-secret');
+        $seed = PersonaIdentity::seedFromMaterial('fp-0276-sample-a');
+        $name = HoneytokenEnvelope::name($seed);
+        $value = $this->extractCookieValue($h->bait($seed), $name);
+
+        $decoded = rawurldecode($value);
+        $sig = substr($decoded, strpos($decoded, '.') + 1);
+        // Raise the role word to admin: the payload no longer matches its signature.
+        $tampered = rawurlencode('r=admin.' . $sig);
+        self::assertSame('tampered', $h->inspect($tampered));
     }
 
     public function test_cookie_custom_path_is_scoped_and_not_root(): void

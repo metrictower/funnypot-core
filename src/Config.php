@@ -50,8 +50,11 @@ final class Config
      * @param string|null   $poweredBy       X-Powered-By emitted on every response, consistent with
      *                                       $serverHeader. null ⇒ omit (many servers don't send it).
      * @param string|null   $honeytokenKey   HMAC key for the tamper-evident bait cookie. Set it and
-     *                                       the app plants a signed `role=user` cookie; a request that
-     *                                       returns it altered (e.g. role=admin) is a HIGH-signal
+     *                                       the app plants a signed low-role bait cookie
+     *                                       (Honeytoken::bait($deploySeed); the envelope — name, payload
+     *                                       vocabulary and attribute tail — is per-deploy, see
+     *                                       Support\HoneytokenEnvelope); a request that returns it
+     *                                       altered (the role word raised) is a HIGH-signal
      *                                       privilege-escalation attempt. null ⇒ feature off.
      */
     /** @var string off | detect | respond */

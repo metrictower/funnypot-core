@@ -47,7 +47,8 @@ by default (detect only); respond mode is opt-in and gated by your own suspicion
   so rows are coherent per deployment rather than repeated `jdoe`/`example.com` placeholders.
 - **Anti-fingerprint.** One coherent product persona per attacker (deterministic, spoof-proof seed)
   instead of an impossible "vulnerable to everything" host. Consistent `X-Powered-By`, tamper-evident
-  honeytoken cookie.
+  honeytoken cookie whose name, payload vocabulary and attribute tail are seeded per deploy
+  (`Honeytoken::bait($deploySeed)`), so the bait envelope is not a fleet-wide regex.
 - **AI-API recon surface.** A fake Ollama + OpenAI/Anthropic-shaped model API — `/api/tags`,
   `/api/version`, `/api/ps`, `/api/show`, header-branched `/v1/models` — plus a buffered floor on
   the four chat endpoints. One shared model catalog is the single source of truth for every body.
@@ -149,7 +150,7 @@ $secret = /* a per-install secret, generated once and persisted by your app */;
 $funnypot = Honeypot::default(new Config(
     mode: 'respond',
     gate: fn ($r) => isSuspicious($r),
-    deploySeed: $secret,   // drives the persona IDENTITY ({{persona.*}}, visual skin, decoy session)
+    deploySeed: $secret,   // drives the persona IDENTITY ({{persona.*}}, visual skin, decoy session + its breached-DB table story + the bait cookie envelope)
     seedSalt: $secret,     // drives the per-request RENDER seed ({{fake.*}}, {{pick:*}} choices)
 ));
 ```

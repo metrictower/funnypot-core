@@ -9,9 +9,11 @@ declare(strict_types=1);
  * ("the named surface varies per deploy") is machine-checked, and how a regression that silently
  * re-constants a surface is caught.
  *
- * Keys are '<kind>:<rule-id>' (kind ∈ attack|route|param|synth); values are a short human note. The
- * `synth:` kind names an AGGREGATE surface over the whole nuclei index, rendered by the gate's
- * minimal-synth leg (--nuclei) rather than by a single rule. TRACKED and
+ * Keys are '<kind>:<rule-id>' (kind ∈ attack|route|param|synth|authed); values are a short human note.
+ * The `synth:` kind names an AGGREGATE surface over the whole nuclei index, rendered by the gate's
+ * minimal-synth leg (--nuclei) rather than by a single rule. The `authed:` kind names a decoy-session
+ * gate rendered WITH a minted s=1 cookie by the gate's authed leg (FP-0282), so its post-login table
+ * story is checked (the attack loop renders gates position-blind, where they decline). TRACKED and
  * APPEND-ONLY: FP-0277..FP-0284 each append the surface(s) they convert from fleet-constant to
  * per-deploy. The initial entries are surfaces that already vary through {{persona.*}} at a469c71 —
  * the regression baseline the siblings build on. The gate's fleet-constant inventory (informational)
@@ -79,4 +81,11 @@ return [
     'synth:minimal-body-order' => 'FP-0281 deploy-seeded bw word order (aggregate over all multi-word minimal-synth bundles)',
     // The synthetic witness-header NAMES actually served (aggregate). Was the fleet-constant X-Detected-N.
     'synth:witness-header-names' => 'FP-0281 deploy-seeded witness-header names (was X-Detected-N)',
+    // --- FP-0282: the authed decoy table story, rendered through the gate's authed leg ---
+    // The phpMyAdmin authed dashboard's seeded table story: tree/whitelist names, column convention,
+    // dropped optional table — one seeded set (DecoyTables) serving BOTH the tree and the ?table= set.
+    'authed:attack-phpmyadmin-gate' => 'FP-0282 seeded decoy table story (tree/whitelist names, column convention, subset)',
+    // The wp-admin authed dashboard's loot (the five persona WordPress users) varies per deploy; rendered
+    // by the same authed leg (owns_path ["/wp-admin"] via the $owned[0] fallback).
+    'authed:attack-wp-admin-redirect' => 'FP-0276-origin (persona users) — registered by FP-0282 authed leg',
 ];

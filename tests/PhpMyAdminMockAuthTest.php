@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Funnypot\Core\Tests;
 
+use Funnypot\Core\Behavior\DecoyTables;
 use Funnypot\Core\Compiler\Crs\FingerprintGuard;
 use Funnypot\Core\Honeytoken;
 use Funnypot\Core\RequestContext;
@@ -205,14 +206,19 @@ final class PhpMyAdminMockAuthTest extends TestCase
         $mint = $this->mintValidLogin();
         $cookieHeader = $this->cookieHeaderFrom($mint->headers['Set-Cookie']);
 
-        $authed = $this->serve('GET', '/phpmyadmin/index.php', 'table=secrets', ['Cookie' => $cookieHeader]);
+        // FP-0282: the secrets table is served under THIS deploy's seeded name. serve() drives the
+        // compiled rules unwired (personaSeed null), so emulate()'s default seed 0 is the identity seed.
+        $secretsName = DecoyTables::nameOf(0, 'secrets');
+        self::assertNotNull($secretsName, 'secrets is never a dropped kind');
+
+        $authed = $this->serve('GET', '/phpmyadmin/index.php', 'table=' . $secretsName, ['Cookie' => $cookieHeader]);
         self::assertNotNull($authed);
         self::assertSame(200, $authed->status);
         self::assertStringContainsString('Showing rows', $authed->body);
         self::assertMatchesRegularExpression('/FLAG\.\{[0-9a-f]{40}\}\.GALF/', $authed->body, 'the flag must render behind the login');
 
         // No cookie: the login page, and the flag never leaks pre-auth.
-        $preAuth = $this->serve('GET', '/phpmyadmin/index.php', 'table=secrets');
+        $preAuth = $this->serve('GET', '/phpmyadmin/index.php', 'table=' . $secretsName);
         self::assertNotNull($preAuth);
         self::assertStringContainsString('id="login_form"', $preAuth->body);
         self::assertStringNotContainsString('FLAG.{', $preAuth->body);

@@ -108,9 +108,10 @@ final class SeededRenderGateTest extends TestCase
         self::assertSame(0, $code, $text);
         self::assertStringContainsString('rules ×', $text);
         self::assertStringContainsString('bundles synthesized', $text, 'the minimal-synth leg must run on the committed index');
+        self::assertStringContainsString('authed gate renders', $text, 'the FP-0282 authed decoy leg must run on the committed rules');
         self::assertStringContainsString('seeded surfaces verified', $text);
-        // 24 rule-driven surfaces + the 2 FP-0281 synth: aggregates.
-        self::assertMatchesRegularExpression('/(2[6-9]|[3-9]\d) seeded surfaces verified/', $text, 'the 24 rule surfaces + 2 synth aggregates must verify');
+        // 24 rule-driven surfaces + 2 FP-0281 synth: aggregates + 2 FP-0282 authed: gates (phpMyAdmin + wp-admin).
+        self::assertMatchesRegularExpression('/(2[8-9]|[3-9]\d) seeded surfaces verified/', $text, 'the 24 rule surfaces + 2 synth aggregates + 2 authed gates must verify');
         self::assertMatchesRegularExpression('/[1-9]\d* fleet-constant/', $text, 'the informational inventory must be non-empty');
     }
 
