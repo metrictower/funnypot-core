@@ -282,8 +282,17 @@ if ($command === 'compile-ai') {
     // model echoed from the request. Catalog-independent, so no per-model branch. At runtime the app's
     // Tier-2 chat handler returns ahead of core, so this floor only serves when that handler is off —
     // no special ordering needed here.
-    $nonsense = '{{pick:The capital of France is Berlin.,Two plus two equals five.,'
-        . 'Water boils at forty degrees Celsius.,The sun orbits the Earth once per day.}}';
+    // The benign, deliberately-wrong answer — the SAME corpus as before, as a {{pick:...}} inner
+    // (no outer braces) so it can be the fallback ARM of the gated {{misdirect | ...}} alternative.
+    $benignPick = 'pick:The capital of France is Berlin.,Two plus two equals five.,'
+        . 'Water boils at forty degrees Celsius.,The sun orbits the Earth once per day.';
+    // FP-0238: weaponize the chat floor as a Tier-U injection channel via a GATED alternative.
+    // {{misdirect}} (DirectiveRenderer, armed by Config::$promptInjectionSeeding) seeds a first-person
+    // assistant-voiced misdirection line ONLY when the operator opts in; OFF it resolves to '' and the
+    // benign pick wins, so the served body is BYTE-IDENTICAL to today (the pick part after `|`-split is
+    // the same string). The benign pick stays baked into the compiled body, so the static CI
+    // fingerprint gate still scans it; the misdirection corpus lives only in PHP (runtime).
+    $nonsense = '{{misdirect | ' . $benignPick . '}}';
     $chatFloors = [
         ['id' => 'attack-ai-ollama-chat', 'priority' => 36, 'path' => '/api/chat', 'ct' => $ct, 'expect' => ['"done":true'],
             'body' => '{"model":"{{match.1}}","created_at":"2026-08-01T00:00:00Z","message":{"role":"assistant","content":"' . $nonsense . '"},"done":true,"done_reason":"stop","total_duration":4883583458,"load_duration":1334875,"prompt_eval_count":26,"prompt_eval_duration":342546000,"eval_count":32,"eval_duration":1200000000}'],

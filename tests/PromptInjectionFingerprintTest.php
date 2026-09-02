@@ -30,10 +30,19 @@ final class PromptInjectionFingerprintTest extends TestCase
         return FingerprintGuard::fromPackage();
     }
 
-    /** Every payload line the feature can ever emit (misdirection + the beacon template). */
+    /**
+     * Every payload line the feature can ever emit: the route-decoy misdirection + the beacon template,
+     * plus the FP-0238 first-person chat-floor re-voicing (CHAT_MISDIRECTION). All share the SAME inert /
+     * defensive-only bright line, and CHAT_MISDIRECTION likewise lives only in PHP (never compiled), so
+     * this test is its ONLY fingerprint/inertness coverage too.
+     */
     private function allPayloadLines(): array
     {
-        return array_merge(InjectionPayloads::MISDIRECTION, [InjectionPayloads::BEACON_TEMPLATE]);
+        return array_merge(
+            InjectionPayloads::MISDIRECTION,
+            InjectionPayloads::CHAT_MISDIRECTION,
+            [InjectionPayloads::BEACON_TEMPLATE]
+        );
     }
 
     /** A fully-rendered sample block in each comment mode, beacon substituted, as actually served. */

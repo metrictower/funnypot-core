@@ -2201,7 +2201,7 @@ body{margin:0;font-family:-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-s
       array (
         'Content-Type' => 'application/json; charset=utf-8',
       ),
-      'body' => '{"model":"{{match.1}}","created_at":"2026-08-01T00:00:00Z","message":{"role":"assistant","content":"{{pick:The capital of France is Berlin.,Two plus two equals five.,Water boils at forty degrees Celsius.,The sun orbits the Earth once per day.}}"},"done":true,"done_reason":"stop","total_duration":4883583458,"load_duration":1334875,"prompt_eval_count":26,"prompt_eval_duration":342546000,"eval_count":32,"eval_duration":1200000000}',
+      'body' => '{"model":"{{match.1}}","created_at":"2026-08-01T00:00:00Z","message":{"role":"assistant","content":"{{misdirect | pick:The capital of France is Berlin.,Two plus two equals five.,Water boils at forty degrees Celsius.,The sun orbits the Earth once per day.}}"},"done":true,"done_reason":"stop","total_duration":4883583458,"load_duration":1334875,"prompt_eval_count":26,"prompt_eval_duration":342546000,"eval_count":32,"eval_duration":1200000000}',
     ),
     'lit' => '/api/chat',
     'lit_in' => 'path',
@@ -2250,7 +2250,7 @@ body{margin:0;font-family:-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-s
       array (
         'Content-Type' => 'application/json; charset=utf-8',
       ),
-      'body' => '{"model":"{{match.1}}","created_at":"2026-08-01T00:00:00Z","response":"{{pick:The capital of France is Berlin.,Two plus two equals five.,Water boils at forty degrees Celsius.,The sun orbits the Earth once per day.}}","done":true,"done_reason":"stop","context":[1,2,3],"total_duration":4883583458,"load_duration":1334875,"prompt_eval_count":26,"prompt_eval_duration":342546000,"eval_count":32,"eval_duration":1200000000}',
+      'body' => '{"model":"{{match.1}}","created_at":"2026-08-01T00:00:00Z","response":"{{misdirect | pick:The capital of France is Berlin.,Two plus two equals five.,Water boils at forty degrees Celsius.,The sun orbits the Earth once per day.}}","done":true,"done_reason":"stop","context":[1,2,3],"total_duration":4883583458,"load_duration":1334875,"prompt_eval_count":26,"prompt_eval_duration":342546000,"eval_count":32,"eval_duration":1200000000}',
     ),
     'lit' => '/api/generate',
     'lit_in' => 'path',
@@ -2374,7 +2374,7 @@ body{margin:0;font-family:-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-s
       array (
         'Content-Type' => 'application/json',
       ),
-      'body' => '{"id":"chatcmpl-B7kQw2ZfR3nT8xLmPa4Vd","object":"chat.completion","created":1769904000,"model":"{{match.1}}","choices":[{"index":0,"message":{"role":"assistant","content":"{{pick:The capital of France is Berlin.,Two plus two equals five.,Water boils at forty degrees Celsius.,The sun orbits the Earth once per day.}}","refusal":null},"logprobs":null,"finish_reason":"stop"}],"usage":{"prompt_tokens":19,"completion_tokens":10,"total_tokens":29}}',
+      'body' => '{"id":"chatcmpl-B7kQw2ZfR3nT8xLmPa4Vd","object":"chat.completion","created":1769904000,"model":"{{match.1}}","choices":[{"index":0,"message":{"role":"assistant","content":"{{misdirect | pick:The capital of France is Berlin.,Two plus two equals five.,Water boils at forty degrees Celsius.,The sun orbits the Earth once per day.}}","refusal":null},"logprobs":null,"finish_reason":"stop"}],"usage":{"prompt_tokens":19,"completion_tokens":10,"total_tokens":29}}',
     ),
     'lit' => '/v1/chat/completions',
     'lit_in' => 'path',
@@ -2631,7 +2631,7 @@ Ethernet adapter Ethernet0:
       array (
         'Content-Type' => 'application/json',
       ),
-      'body' => '{"id":"msg_014kQw2ZfR3nT8xLmPa4VdRs","type":"message","role":"assistant","model":"{{match.1}}","content":[{"type":"text","text":"{{pick:The capital of France is Berlin.,Two plus two equals five.,Water boils at forty degrees Celsius.,The sun orbits the Earth once per day.}}"}],"stop_reason":"end_turn","stop_sequence":null,"usage":{"input_tokens":21,"output_tokens":10}}',
+      'body' => '{"id":"msg_014kQw2ZfR3nT8xLmPa4VdRs","type":"message","role":"assistant","model":"{{match.1}}","content":[{"type":"text","text":"{{misdirect | pick:The capital of France is Berlin.,Two plus two equals five.,Water boils at forty degrees Celsius.,The sun orbits the Earth once per day.}}"}],"stop_reason":"end_turn","stop_sequence":null,"usage":{"input_tokens":21,"output_tokens":10}}',
     ),
     'lit' => '/v1/messages',
     'lit_in' => 'path',

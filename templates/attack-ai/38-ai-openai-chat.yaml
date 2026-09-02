@@ -27,6 +27,6 @@ match:
 response:
   headers:
     Content-Type: application/json
-  body: '{"id":"chatcmpl-B7kQw2ZfR3nT8xLmPa4Vd","object":"chat.completion","created":1769904000,"model":"{{match.1}}","choices":[{"index":0,"message":{"role":"assistant","content":"{{pick:The capital of France is Berlin.,Two plus two equals five.,Water boils at forty degrees Celsius.,The sun orbits the Earth once per day.}}","refusal":null},"logprobs":null,"finish_reason":"stop"}],"usage":{"prompt_tokens":19,"completion_tokens":10,"total_tokens":29}}'
+  body: '{"id":"chatcmpl-B7kQw2ZfR3nT8xLmPa4Vd","object":"chat.completion","created":1769904000,"model":"{{match.1}}","choices":[{"index":0,"message":{"role":"assistant","content":"{{misdirect | pick:The capital of France is Berlin.,Two plus two equals five.,Water boils at forty degrees Celsius.,The sun orbits the Earth once per day.}}","refusal":null},"logprobs":null,"finish_reason":"stop"}],"usage":{"prompt_tokens":19,"completion_tokens":10,"total_tokens":29}}'
 expect:
   - '"chat.completion"'

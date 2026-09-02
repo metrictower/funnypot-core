@@ -5,7 +5,10 @@ declare(strict_types=1);
 namespace Funnypot\Core\Tests\Ai;
 
 use Funnypot\Core\Compiler\Crs\FingerprintGuard;
+use Funnypot\Core\Config;
 use Funnypot\Core\RequestContext;
+use Funnypot\Core\Response\InjectionPayloads;
+use Funnypot\Core\Template\DirectiveRenderer;
 use Funnypot\Core\Template\TemplateAttackEmulator;
 use PHPUnit\Framework\TestCase;
 
@@ -22,6 +25,35 @@ final class AiChatFloorTest extends TestCase
     private function emulator(): TemplateAttackEmulator
     {
         return TemplateAttackEmulator::fromFile(self::COMPILED);
+    }
+
+    /** FP-0238: the gate-ON emulator (promptInjectionSeeding: true) — the opt-in that arms {{misdirect}}. */
+    private function armedEmulator(): TemplateAttackEmulator
+    {
+        return TemplateAttackEmulator::fromFile(self::COMPILED, [], null, null, false, true);
+    }
+
+    /** The pre-FP-0238 benign nonsense answers — the exact corpus the chat floor served before, and the
+     *  fallback arm of {{misdirect | pick:...}} that gate-OFF must still resolve to byte-for-byte. */
+    private const NONSENSE = [
+        'The capital of France is Berlin.',
+        'Two plus two equals five.',
+        'Water boils at forty degrees Celsius.',
+        'The sun orbits the Earth once per day.',
+    ];
+
+    /** Extract the dialect-specific answer field from a decoded floor body. */
+    private function contentOf(string $path, string $body): string
+    {
+        $j = json_decode($body, true);
+        self::assertIsArray($j, "{$path} body must decode to an object");
+        switch ($path) {
+            case '/api/chat':             return (string) $j['message']['content'];
+            case '/api/generate':         return (string) $j['response'];
+            case '/v1/chat/completions':  return (string) $j['choices'][0]['message']['content'];
+            case '/v1/messages':          return (string) $j['content'][0]['text'];
+        }
+        self::fail("unknown dialect path {$path}");
     }
 
     /** A representative buffered chat request body naming a catalog model. */
@@ -110,6 +142,110 @@ final class AiChatFloorTest extends TestCase
             self::assertNotNull($r, "{$path} must serve");
             self::assertNotNull(json_decode($r->body), "{$path} floor must stay valid JSON on a quote-bearing model");
             self::assertStringContainsString('"safe"', $r->body, "{$path} must echo only the pre-quote model bytes");
+        }
+    }
+
+    // ── FP-0238: the gated {{misdirect}} chat-floor injection channel ─────────────────────────────
+
+    /**
+     * Gate OFF (today's default construction) is BYTE-IDENTICAL to pre-change: {{misdirect}} resolves
+     * to '' so the benign {{pick:...}} fallback wins — the SAME seeded selection as before. Prove it by
+     * rendering the raw benign pick with a default (gate-off) DirectiveRenderer and asserting the served
+     * content field equals it exactly, per seed; and assert NO misdirection substring leaks.
+     *
+     * @dataProvider dialects
+     */
+    public function test_gate_off_chat_floor_is_byte_identical(string $path, string $marker, string $ct, string $shape): void
+    {
+        $off = $this->emulator();
+        $renderer = new DirectiveRenderer(); // gate off, exactly as the compile-time marker check builds it
+        $pick = '{{pick:The capital of France is Berlin.,Two plus two equals five.,'
+            . 'Water boils at forty degrees Celsius.,The sun orbits the Earth once per day.}}';
+
+        for ($seed = 0; $seed <= 40; $seed++) {
+            $r = $off->emulate(new RequestContext('POST', $path, '', [], self::BODY), $seed);
+            self::assertNotNull($r, "{$path} seed {$seed} must serve");
+            $content = $this->contentOf($path, $r->body);
+            self::assertSame($renderer->render($pick, [], $seed), $content, "{$path} seed {$seed} gate-off content must equal the pre-change benign pick");
+            self::assertContains($content, self::NONSENSE, "{$path} seed {$seed} gate-off content must be one of the pre-change nonsense answers");
+            self::assertStringNotContainsString('already-decommissioned', $r->body, "{$path} gate-off must not leak misdirection");
+            self::assertStringNotContainsString('out of scope', $r->body, "{$path} gate-off must not leak misdirection");
+        }
+    }
+
+    /**
+     * Gate ON seeds a first-person misdirection line from CHAT_MISDIRECTION into the CORRECT dialect
+     * content field — always (never falls back to the benign pick) across seeds. The body stays valid
+     * JSON, still carries the dialect structural marker, and still echoes the requested model.
+     *
+     * @dataProvider dialects
+     */
+    public function test_gate_on_seeds_persona_coherent_misdirection(string $path, string $marker, string $ct, string $shape): void
+    {
+        $on = $this->armedEmulator();
+        for ($seed = 0; $seed <= 40; $seed++) {
+            $r = $on->emulate(new RequestContext('POST', $path, '', [], self::BODY), $seed);
+            self::assertNotNull($r, "{$path} seed {$seed} must serve");
+            self::assertNotNull(json_decode($r->body), "{$path} seed {$seed} gate-on body must be valid JSON");
+            self::assertStringContainsString($marker, $r->body, "{$path} seed {$seed} must still carry its dialect marker");
+            self::assertStringContainsString('kimi-k3:2.8t', $r->body, "{$path} seed {$seed} must still echo the request model");
+            $content = $this->contentOf($path, $r->body);
+            self::assertContains($content, InjectionPayloads::CHAT_MISDIRECTION, "{$path} seed {$seed} content must be a seeded misdirection line, never the benign pick");
+            self::assertNotContains($content, self::NONSENSE, "{$path} seed {$seed} content must not be the benign nonsense when armed");
+        }
+    }
+
+    /**
+     * Gate ON is NON-REFLECTING: a quote-bearing model is still truncated at the quote by the [^"]
+     * capture (body stays valid JSON, echoes only the pre-quote bytes), and the misdirection is
+     * corpus-only — the seeded content carries no bytes from the request model field.
+     *
+     * @dataProvider dialects
+     */
+    public function test_gate_on_is_not_reflected(string $path, string $marker, string $ct, string $shape): void
+    {
+        $r = $this->armedEmulator()->emulate(new RequestContext('POST', $path, '', [], '{"model":"safe"evil"}'));
+        self::assertNotNull($r, "{$path} must serve");
+        self::assertNotNull(json_decode($r->body), "{$path} gate-on floor must stay valid JSON on a quote-bearing model");
+        self::assertStringContainsString('"safe"', $r->body, "{$path} must echo only the pre-quote model bytes");
+        $content = $this->contentOf($path, $r->body);
+        self::assertContains($content, InjectionPayloads::CHAT_MISDIRECTION, "{$path} misdirection must be corpus-only");
+        self::assertStringNotContainsString('evil', $content, "{$path} misdirection must carry no request bytes");
+    }
+
+    /**
+     * Gate ON stays within the Config body cap for every dialect and seed — larger than the 4-word
+     * nonsense, but far under maxBodyBytes (the core keeps bodies plausibly-sized; the aggressive
+     * drip is the named app follow-up).
+     *
+     * @dataProvider dialects
+     */
+    public function test_gate_on_body_within_size_cap(string $path, string $marker, string $ct, string $shape): void
+    {
+        $cap = (new Config())->maxBodyBytes;
+        $on = $this->armedEmulator();
+        for ($seed = 0; $seed <= 40; $seed++) {
+            $r = $on->emulate(new RequestContext('POST', $path, '', [], self::BODY), $seed);
+            self::assertNotNull($r, "{$path} seed {$seed} must serve");
+            self::assertLessThanOrEqual($cap, strlen($r->body), "{$path} seed {$seed} gate-on body must be within maxBodyBytes");
+        }
+    }
+
+    /**
+     * The runtime misdirection corpus is invisible to the static CI fingerprint gate
+     * (check-fingerprint-safety.php scans compiled bodies only), so the gate-ON served body must be
+     * FingerprintGuard-clean across the seed sweep — this test is that coverage.
+     */
+    public function test_chat_floor_fingerprint_clean_gate_on_across_seeds(): void
+    {
+        $guard = FingerprintGuard::fromPackage();
+        $on = $this->armedEmulator();
+        foreach (array_column(self::dialects(), 0) as $path) {
+            for ($seed = 0; $seed <= 40; $seed++) {
+                $r = $on->emulate(new RequestContext('POST', $path, '', [], self::BODY), $seed);
+                self::assertNotNull($r, "{$path} seed {$seed} must serve");
+                self::assertSame([], $guard->scan($r->body), "{$path} seed {$seed} gate-on body must be fingerprint-clean");
+            }
         }
     }
 }

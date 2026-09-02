@@ -107,7 +107,7 @@ final class Honeypot implements Engine
         $this->ignoreTemplates = array_flip($this->config->ignoreTemplates);
 
         $this->attackEmulator = $this->config->attackEmulation
-            ? TemplateAttackEmulator::fromPackage([], $personaSeed, $this->config->decoySessionKey, $this->config->volatileProof)->disable($this->config->exclude)
+            ? TemplateAttackEmulator::fromPackage([], $personaSeed, $this->config->decoySessionKey, $this->config->volatileProof, $this->config->promptInjectionSeeding)->disable($this->config->exclude)
             : null;
     }
 

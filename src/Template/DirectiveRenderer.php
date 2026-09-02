@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Funnypot\Core\Template;
 
 use Funnypot\Core\Attack\CannedData;
+use Funnypot\Core\Response\InjectionPayloads;
 use Funnypot\Core\Support\Fake\FakePeople;
 use Funnypot\Core\Support\Fake\FakeSecrets;
 use Funnypot\Core\Support\PersonaIdentity;
@@ -57,7 +58,7 @@ final class DirectiveRenderer
     ];
 
     /** The closed directive prefixes — used by the compile-time lint. */
-    public const KNOWN_PREFIXES = ['canned.', 'fake.', 'volatile.', 'fakeHex:', 'hex:', 'match.', 'urldecode:match.', 'xml:match.', 'compute.md5:', 'compute.crc32:', 'pick:', 'canary.', 'persona.'];
+    public const KNOWN_PREFIXES = ['canned.', 'fake.', 'volatile.', 'misdirect', 'fakeHex:', 'hex:', 'match.', 'urldecode:match.', 'xml:match.', 'compute.md5:', 'compute.crc32:', 'pick:', 'canary.', 'persona.'];
 
     /** The closed set of valid fake.person.* sub-fields — used by the compile-time lint (mirrors
      *  PersonaIdentity::FIELDS' role for persona.*; unlike a plain fake.NAME, this sub-field is
@@ -97,10 +98,24 @@ final class DirectiveRenderer
      */
     private $volatileProof;
 
-    public function __construct(?int $personaSeed = null, bool $volatileProof = false)
+    /**
+     * Master arm for the {{misdirect}} chat-floor misdirection directive (FP-0238) — the exact shape of
+     * $volatileProof. false (default) ⇒ {{misdirect}} resolves to '' so the authored alternative (the
+     * benign nonsense pick) wins and every served body is byte-identical to today; a package-embedded
+     * host that has not opted in never emits attacker-facing deception. true ⇒ {{misdirect}} resolves to
+     * a seeded pick from InjectionPayloads::CHAT_MISDIRECTION (built from constants + seed only, never
+     * from a capture, so it is non-reflecting). Reuses Config::$promptInjectionSeeding — the same opt-in
+     * the route-decoy injection rides — so there is no new gate. Off by default and fail-safe.
+     *
+     * @var bool
+     */
+    private $promptInjectionSeeding;
+
+    public function __construct(?int $personaSeed = null, bool $volatileProof = false, bool $promptInjectionSeeding = false)
     {
         $this->personaSeed = $personaSeed;
         $this->volatileProof = $volatileProof;
+        $this->promptInjectionSeeding = $promptInjectionSeeding;
     }
 
     /**
@@ -148,6 +163,23 @@ final class DirectiveRenderer
      */
     private function resolveOne(string $part, array $captures, int $seed, array $canary): ?string
     {
+        if (strpos($part, 'misdirect') === 0) {
+            // {{misdirect}} — the gated chat-floor misdirection directive (FP-0238), same OFF/ON shape as
+            // {{volatile.*}}. OFF (the default arm): resolve to '' so the authored alternative — the
+            // benign nonsense {{pick:...}} — wins, and the served body is byte-identical to today (the
+            // fail-safe for package-embedded hosts). ON: a seeded pick from CHAT_MISDIRECTION, built from
+            // the constant corpus + seed ONLY (never a capture), so it is non-reflecting. The corpus is
+            // inert English with no `"`/`\`/`{{`, so the pick lands byte-safe inside the JSON content
+            // string it fills; a returned value is inserted once and never re-scanned (its single `{` in
+            // FLAG{...} stays literal). Returns '' when the arm is off OR the corpus is empty so resolve()
+            // falls through to the next alternative in both cases.
+            if (!$this->promptInjectionSeeding) {
+                return '';
+            }
+            $corpus = InjectionPayloads::CHAT_MISDIRECTION;
+
+            return $corpus === [] ? '' : $corpus[crc32($seed . '|misdirect') % count($corpus)];
+        }
         if (strpos($part, 'canned.') === 0) {
             return self::CANNED[substr($part, 7)] ?? null;
         }
