@@ -41,4 +41,20 @@ final class SeededIndex
 
         return (int) fmod((float) hexdec(hash('crc32b', $material)), (float) $count);
     }
+
+    /**
+     * The same width-safe reduction as pick(), but over an ALREADY-computed hex window instead of a
+     * crc32 of the material — the shared reduction the sha256-family SubSeed helper (FP-0276) uses to
+     * turn the first 8 hex of a sub-seed digest into an offset. $hex8 is up to 8 hex chars (<= 2^32),
+     * so `fmod` is exact (< 2^53) and both PHP widths compute the IDENTICAL index; on 64-bit it is
+     * byte-for-byte `hexdec($hex8) % $count`. Returns 0 for a non-positive count.
+     */
+    public static function fromHex(string $hex8, int $count): int
+    {
+        if ($count < 1) {
+            return 0;
+        }
+
+        return (int) fmod((float) hexdec($hex8), (float) $count);
+    }
 }

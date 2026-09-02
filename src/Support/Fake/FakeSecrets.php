@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Funnypot\Core\Support\Fake;
 
+use Funnypot\Core\Support\SubSeed;
+
 /**
  * Seeded fake-secret generator for the mock-auth panels: dead-but-syntactically-valid values
  * that authenticate to nothing anywhere. Every value is a pure function of (seed, key), and
@@ -167,7 +169,7 @@ final class FakeSecrets
      */
     private static function hitsDeniedDigits(string $value): bool
     {
-        return preg_match('/\b9\d{5}\b/', $value) === 1;
+        return SubSeed::hitsDeniedDigits($value);
     }
 
     private static function hash(int $seed, string $field): string

@@ -400,7 +400,7 @@ final class PersonaIdentity
      */
     private static function classPrefix(int $seed): string
     {
-        return 'fp-' . substr(hash('sha256', $seed . '|visual|prefix'), 0, 4);
+        return 'fp-' . substr(SubSeed::digest($seed, SubSeed::NS_VISUAL, 'prefix'), 0, 4);
     }
 
     /**
@@ -419,7 +419,7 @@ final class PersonaIdentity
      */
     private static function h(int $seed, string $field): string
     {
-        return hash('sha256', $seed . '|persona|' . $field);
+        return SubSeed::digest($seed, SubSeed::NS_PERSONA, $field);
     }
 
     /**
@@ -429,9 +429,7 @@ final class PersonaIdentity
      */
     private static function pick(array $dict, int $seed, string $field): string
     {
-        $idx = (int) (hexdec(substr(self::h($seed, $field), 0, 8)) % count($dict));
-
-        return $dict[$idx];
+        return SubSeed::pick(array_values($dict), $seed, SubSeed::NS_PERSONA, $field);
     }
 
     /**
@@ -529,7 +527,7 @@ final class PersonaIdentity
      */
     private static function hitsDeniedDigits(string $value): bool
     {
-        return preg_match('/\b9\d{5}\b/', $value) === 1;
+        return SubSeed::hitsDeniedDigits($value);
     }
 
     /**

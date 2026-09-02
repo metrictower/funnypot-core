@@ -10,6 +10,7 @@ use Funnypot\Core\Support\Fake\FakePeople;
 use Funnypot\Core\Support\Fake\FakeSecrets;
 use Funnypot\Core\Support\PersonaIdentity;
 use Funnypot\Core\Support\SeededIndex;
+use Funnypot\Core\Support\SubSeed;
 
 /**
  * Fills the bounded `{{...}}` directives in a template body/header value. This is the ONLY
@@ -245,7 +246,10 @@ final class DirectiveRenderer
             $name = $bits[0] ?? '';
             $enc = $bits[1] ?? 'hex';
             $len = max(1, (int) ($bits[2] ?? 16));
-            $digest = hash('sha256', $seed . '|fake|' . $name);
+            // {{fake.*}} is keyed on the per-request RENDER seed by design (per-attacker), so $seed is
+            // the input here — not the deploy identity seed. Byte-identical to the historical
+            // `hash('sha256', $seed . '|fake|' . $name)`.
+            $digest = SubSeed::digest($seed, SubSeed::NS_FAKE, $name);
             if ($enc === 'hexupper') {
                 return strtoupper(substr($digest, 0, $len));
             }
@@ -476,12 +480,23 @@ final class DirectiveRenderer
     private function personaField(int $seed, string $path): string
     {
         // Identity is per-deploy when a persona seed was injected, else per-request (the render seed).
-        $identSeed = $this->personaSeed ?? $seed;
+        $identSeed = $this->identitySeed($seed);
         if (!isset($this->personaMemo[$identSeed])) {
             $this->personaMemo[$identSeed] = PersonaIdentity::fromSeed($identSeed);
         }
 
         return $this->personaMemo[$identSeed]->field($path) ?? '';
+    }
+
+    /**
+     * The one fail-toward-stable-fallback rule for persona identity (FP-0276): the injected per-deploy
+     * persona seed when set, else the per-request render seed (still deterministic per request, never a
+     * crash or a per-request random). Named once here so no site — this class's or a sibling's — writes
+     * `?? $seed` a second time.
+     */
+    private function identitySeed(int $renderSeed): int
+    {
+        return $this->personaSeed ?? $renderSeed;
     }
 
     /** @param array<int|string,string> $captures */

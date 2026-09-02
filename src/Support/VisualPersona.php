@@ -57,7 +57,7 @@ final class VisualPersona
     /** Per-field visual sub-hash, tagged distinctly from PersonaIdentity's own `|persona|` space. */
     private static function hashFor(int $seed, string $field): string
     {
-        return hash('sha256', $seed . '|visual|' . $field);
+        return SubSeed::digest($seed, SubSeed::NS_VISUAL, $field);
     }
 
     /** A vivid hex color for $field, derived from the same tagged sub-hash as hashFor(). */
@@ -115,8 +115,10 @@ final class VisualPersona
      */
     public function pick(string $salt, array $options): string
     {
-        $idx = hexdec(substr(hash('sha256', $this->seed . '|pick|' . $salt), 0, 8)) % count($options);
-        return $options[$idx];
+        // The `|pick|` tag is a distinct namespace from this class's `|visual|` (hashFor) space, so a
+        // pick() choice can never move in lockstep with a palette/prefix value. index() reproduces the
+        // historical `hexdec(substr(h,0,8)) % count` byte-for-byte on 64-bit (32-bit-corrected).
+        return $options[SubSeed::index($this->seed, 'pick', $salt, count($options))];
     }
 
     public function awsKey(): string

@@ -1195,6 +1195,16 @@ final class TemplateAttackEmulator
     }
 
     /**
+     * The one fail-toward-stable-fallback rule for persona identity (FP-0276): the injected per-deploy
+     * persona seed when set, else the per-request render seed. The twin of DirectiveRenderer::
+     * identitySeed(); named here so the decoy-body sites never write `?? $seed` inline again.
+     */
+    private function identitySeed(int $renderSeed): int
+    {
+        return $this->personaSeed ?? $renderSeed;
+    }
+
+    /**
      * The authed decoy body: dispatch on the gate's `panel` to the matching authed shell builder, then
      * run ONE shared verify-before-serve tail so every panel is fingerprint-checked by construction.
      *
@@ -1238,7 +1248,7 @@ final class TemplateAttackEmulator
      */
     private function decoyPhpMyAdminHtml(array $config, int $seed, ?RequestContext $r): string
     {
-        $deploySeed = $this->personaSeed ?? $seed;
+        $deploySeed = $this->identitySeed($seed);
         $persona = VisualPersona::fromSeed($deploySeed);
         $domain = $this->decoySessionDomain($config, $seed, $persona);
         $panelKey = (string) ($config['table_key'] ?? 'users');
@@ -1286,7 +1296,7 @@ final class TemplateAttackEmulator
      */
     private function decoyWordpressAdminHtml(array $config, int $seed, ?RequestContext $r): string
     {
-        $deploySeed = $this->personaSeed ?? $seed;
+        $deploySeed = $this->identitySeed($seed);
         $persona = VisualPersona::fromSeed($deploySeed);
         $domain = $this->decoySessionDomain($config, $seed, $persona);
         $id = $persona->identity();
