@@ -23,7 +23,6 @@ response:
   body: |
     <?php
     // Environment configuration — production.
-    // ctf: {{fake.flag:envphp}}
 
     return [
         'APP_ENV' => 'production',
@@ -51,5 +50,3 @@ expect:
   - 'AKIA'
   - 'sk_live_'
   - 'SG.'
-  - 'FLAG.{'
-  - '}.GALF'

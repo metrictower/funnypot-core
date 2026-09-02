@@ -30,8 +30,10 @@ final class FakeRecords
     private const STATUSES = ['pending', 'paid', 'shipped', 'refunded', 'cancelled'];
 
     /** Plausible labels for the `secrets` table's `name` column — all pure letters/underscore, so
-     *  they can never contribute a digit run to the fingerprint denylist. */
-    private const SECRET_LABELS = ['ctf_flag', 'root_flag', 'admin_token', 'service_flag', 'backup_token'];
+     *  they can never contribute a digit run to the fingerprint denylist. A `*_flag` label carries a
+     *  CTF-sentinel flag value; a `*_token` label carries a plain 40-hex token, so the value column's
+     *  shape agrees with its own name (a flag row shows a flag, a token row shows a token). */
+    private const SECRET_LABELS = ['ctf_flag', 'root_flag', 'service_flag', 'admin_token', 'backup_token'];
 
     private function __construct()
     {
@@ -135,23 +137,53 @@ final class FakeRecords
         return $rows;
     }
 
-    /** Rows [id, name, value]. The `value` column is an inert CTF-sentinel flag honeytoken
-     *  (FakeSecrets::flag) — an obviously-fake `FLAG.{…}.GALF` token that authenticates/validates
-     *  nowhere; `name` is a plausible label from a seeded small set. This is the marquee lure the
-     *  authed phpMyAdmin decoy plants behind its mock login. */
+    /** Rows [id, name, value] — the marquee lure the authed phpMyAdmin decoy plants behind its mock
+     *  login. `name` is drawn from a per-(seed,key) PERMUTATION of SECRET_LABELS indexed by row, so
+     *  the labels are unique across a table (no duplicate `name` within the first count(labels) rows)
+     *  and deploy-stable. `value` is shaped to match its label: a `*_flag` label carries an inert
+     *  CTF-sentinel flag (FakeSecrets::flag — an obviously-fake `FLAG.{…}.GALF` that validates
+     *  nowhere), a `*_token` label a plain 40-hex reset-token-shape secret — mirroring how apiKeys
+     *  alternates its secret shape per row. */
     public static function secrets(int $seed, string $key, int $n): array
     {
+        $labels = self::permutedLabels($seed, $key);
+        $count = count($labels);
+
         $rows = [];
         for ($i = 0; $i < $n; $i++) {
             $rowKey = $key . '#' . $i;
+            $label = $labels[$i % $count];
+            $value = substr($label, -5) === '_flag'
+                ? FakeSecrets::flag($seed, $rowKey)
+                : FakeSecrets::resetToken($seed, $rowKey);
             $rows[] = [
                 self::id($seed, $rowKey . '|id'),
-                self::SECRET_LABELS[self::index($seed, $rowKey . '|label', count(self::SECRET_LABELS))],
-                FakeSecrets::flag($seed, $rowKey),
+                $label,
+                $value,
             ];
         }
 
         return $rows;
+    }
+
+    /**
+     * SECRET_LABELS in a deterministic per-(seed,key) order: each label is tagged with a sub-hash and
+     * the set sorted by that tag, yielding a stable permutation without a stateful shuffle. Row $i then
+     * takes $labels[$i % count], so labels stay unique across a table (up to count(labels) rows).
+     *
+     * @return list<string>
+     */
+    private static function permutedLabels(int $seed, string $key): array
+    {
+        $tagged = [];
+        foreach (self::SECRET_LABELS as $j => $label) {
+            $tagged[] = [self::hash($seed, $key . '|labelorder|' . $j), $label];
+        }
+        usort($tagged, static function (array $a, array $b): int {
+            return strcmp($a[0], $b[0]);
+        });
+
+        return array_column($tagged, 1);
     }
 
     /** A 5-digit id string (10000-99999): one digit short of the denylist's 6-digit run, so no

@@ -62,9 +62,6 @@ response:
 
     JWT_SECRET={{fake.jwtsecret:hex:64}}
     SLACK_WEBHOOK_URL=https://hooks.slack.com/services/T{{fake.slackt:hex:8}}/B{{fake.slackb:hex:8}}/{{fake.slacktok:hex:24}}
-
-    # internal CTF sentinel — do not remove
-    CTF_FLAG={{fake.flag:env}}
 taunt: { mode: line, open: '#' }
 expect:
   - 'APP_KEY=base64:'
@@ -73,5 +70,3 @@ expect:
   - 'STRIPE_SECRET=sk_live_'
   - 'whsec_'
   - 'SENDGRID_API_KEY=SG.'
-  - 'FLAG.{'
-  - '}.GALF'

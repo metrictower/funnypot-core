@@ -37,7 +37,5 @@ response:
     INSERT INTO `api_credentials` VALUES (2,'AWS_SECRET_ACCESS_KEY','{{persona.cloud.aws.secretKey}}');
     INSERT INTO `api_credentials` VALUES (3,'STRIPE_SECRET_KEY','{{persona.cloud.stripe.secretKey}}');
     INSERT INTO `api_credentials` VALUES (4,'SENDGRID_API_KEY','{{persona.cloud.sendgrid.apiKey}}');
-
-    -- ctf: {{fake.flag:sqldump}}
 taunt: { mode: line, open: '--' }
-expect: ['CREATE TABLE', 'PRIMARY KEY', 'api_credentials', 'FLAG.{', '}.GALF']
+expect: ['CREATE TABLE', 'PRIMARY KEY', 'api_credentials']

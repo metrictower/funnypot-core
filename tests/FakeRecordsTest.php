@@ -123,14 +123,24 @@ final class FakeRecordsTest extends TestCase
         self::assertSame($rows, FakeRecords::secrets(7, 'secrets', 5));
         self::assertCount(5, $rows);
 
-        $labels = ['ctf_flag', 'root_flag', 'admin_token', 'service_flag', 'backup_token'];
+        $labels = ['ctf_flag', 'root_flag', 'service_flag', 'admin_token', 'backup_token'];
+        $names = [];
         foreach ($rows as $row) {
             self::assertCount(3, $row);
             [$id, $name, $value] = $row;
             self::assertMatchesRegularExpression('/^\d{5}$/', $id);
             self::assertContains($name, $labels);
-            self::assertMatchesRegularExpression('/^FLAG\.\{[0-9a-f]{40}\}\.GALF$/', $value);
+            $names[] = $name;
+            // The value's shape agrees with its own label: a *_flag row carries a flag, a *_token
+            // row a plain 40-hex token.
+            if (substr($name, -5) === '_flag') {
+                self::assertMatchesRegularExpression('/^FLAG\.\{[0-9a-f]{40}\}\.GALF$/', $value);
+            } else {
+                self::assertMatchesRegularExpression('/^[0-9a-f]{40}$/', $value);
+            }
         }
+        // Labels are unique across the table (a per-(seed,key) permutation, not independent draws).
+        self::assertSame($names, array_values(array_unique($names)), 'secret labels must be unique per render');
     }
 
     public function test_secrets_differs_across_seeds_and_keys(): void

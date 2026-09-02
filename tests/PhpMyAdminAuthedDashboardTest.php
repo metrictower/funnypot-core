@@ -14,7 +14,7 @@ use PHPUnit\Framework\TestCase;
 /**
  * Phase B: the authed phpMyAdmin decoy dashboard. Once a request presents a verified `s=1` cookie the
  * gate renders a fabricated "breached database" through the shared core PhpMyAdminSkin. Pins:
- *  - the left tree lists all five mock tables; the grid shows the selected one;
+ *  - the left tree lists all six mock tables; the grid shows the selected one;
  *  - `?table=` selects among a whitelist (unknown/absent -> users), never reflecting the raw value;
  *  - one deploy seed => byte-stable output (a fleet-coherent identity), a different seed diverges;
  *  - fabricated cells are HTML-escaped;
