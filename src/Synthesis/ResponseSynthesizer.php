@@ -399,7 +399,7 @@ final class ResponseSynthesizer
      * @param int $ident the deploy identity for the witness-header naming (always passed by callers)
      * @return array<string,string>|null null on an unsatisfiable/unsafe header set
      */
-    private function buildHeaders(array $bundle, bool $guaranteeWitnesses = true, int $ident = 0): ?array
+    private function buildHeaders(array $bundle, bool $guaranteeWitnesses, int $ident): ?array
     {
         /** @var array<string,string> $headers canonical-key => value */
         $headers = [];
