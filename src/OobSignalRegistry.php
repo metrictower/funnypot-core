@@ -30,12 +30,11 @@ final class OobSignalRegistry
 
         $family = OastProbe::detect($r);
         if ($family !== null) {
-            $out[] = new TemplateMatch(
-                'oast-callback',
-                'high',
-                ['oast-callback', $family, 'ssrf', 'oob'],
-                'OAST/OOB collaborator callback'
-            );
+            // Per-family projection (FP-0257): OastProbe::matchFor maps the zone-family label to its
+            // id / severity / tags — cloud-metadata is critical (SSRF target, id cloud-metadata-ssrf),
+            // xxe-oob / jndi-oob / dns-rebinding carry their own ids, the collaborator families keep
+            // the legacy oast-callback shape. Built here so the registry stays the one fold seam.
+            $out[] = OastProbe::matchFor($family);
         }
 
         $mode = Log4ShellProbe::detect($r);

@@ -356,7 +356,12 @@ final class Honeypot implements Engine
      *    SCANNER_PROBE / ATTACK_CLASS are left as-is (never downgrades an attack coincidence).
      *  - Adds no I/O. The synthetic match lives only inside the Detection (a logging/telemetry
      *    projection); it is never written into a served body or header, so the served response is
-     *    byte-identical whether or not the probe fires.
+     *    byte-identical whether or not the probe fires. NOTE (accuracy): the folded Detection is not
+     *    ONLY telemetry — respond() hands it to the app's serve veto, Observer::shouldRespond($r,
+     *    $verdict->detection) (the safeShouldRespond call ~line 919), so an app veto keyed on
+     *    severity/tags CAN flip VETOED<->SERVED after a retag (e.g. FP-0257's cloud-metadata ->
+     *    cloud-metadata-ssrf/critical). CORE serve gating never reads $verdict->severity, so core
+     *    bytes are unchanged; the exposure is app-policy-visible, same class as the retag itself.
      */
     private function foldOob(Verdict $v, TemplateMatch $match): Verdict
     {

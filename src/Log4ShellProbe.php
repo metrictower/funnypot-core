@@ -37,10 +37,13 @@ final class Log4ShellProbe
      * The severity mode of a JNDI probe, or null when none is present. JNDI probes are
      * usually planted in a header (User-Agent, X-Api-Version, Referer…), but the shared
      * OobHaystack scans the path, query, header values, and body too (header-first, capped).
+     * Scans build() (lowercased + bounded multi-URL-decode): lowercasing is harmless (the
+     * patterns are /i) and the decode gives Log4ShellProbe its first decode layer, so a
+     * percent-encoded `${jndi:…}` in the query — which arrives URL-encoded — is now caught.
      */
     public static function detect(RequestContext $r): ?string
     {
-        $hay = OobHaystack::raw($r);
+        $hay = OobHaystack::build($r);
 
         if (preg_match(self::CONFIRMED_PATTERN, $hay) === 1) {
             return self::CONFIRMED;

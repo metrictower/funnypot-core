@@ -63,7 +63,11 @@ final class OastSeamTest extends TestCase
     }
 
     /**
-     * Test #1b: family label rides through as a tag (spot-check a second family + metadata SSRF).
+     * Test #1b: family label rides through as a tag, and the FP-0257 cloud-metadata retag. IMDS is an
+     * SSRF TARGET, not a callback, so it now folds id `cloud-metadata-ssrf` at severity `critical`
+     * with the `imds` tag. The legacy `oast-callback` tag is KEPT for one deprecation release (so
+     * this is a tag-PRESENCE assertion for one release; it will become a tag-absence assertion when
+     * the legacy tag is dropped in the follow-up).
      */
     public function test_oast_family_labels_ride_as_tags(): void
     {
@@ -71,10 +75,54 @@ final class OastSeamTest extends TestCase
             new RequestContext('GET', '/', 'url=http://169.254.169.254/latest/meta-data/'),
             SiteProfile::empty()
         );
-        self::assertContains('oast-callback', $meta->detection->tags());
         self::assertContains('cloud-metadata', $meta->detection->tags());
+        self::assertContains('imds', $meta->detection->tags());
         self::assertContains('ssrf', $meta->detection->tags());
         self::assertContains('oob', $meta->detection->tags());
+        // Legacy tag kept for one deprecation release (softens app alerting/veto exposure).
+        self::assertContains('oast-callback', $meta->detection->tags());
+        // Retag: critical severity + the new id.
+        self::assertContains('cloud-metadata-ssrf', $meta->detection->templateIds());
+        self::assertSame('critical', $meta->detection->highestSeverity);
+        self::assertSame('critical', $meta->severity);
+    }
+
+    /**
+     * Test #1c (FP-0257): per-family severity/tags ride the fold across all three tiers — critical
+     * (cloud-metadata-ssrf), high (a collaborator callback), and medium (dns-rebinding-hint) — folded
+     * through classify(). A lone medium hint still bumps a pure signal-only CLEAN miss to
+     * SCANNER_PROBE (null handle), which is accepted for inbound honeypot traffic.
+     */
+    public function test_per_family_severity_and_tags_ride_the_fold(): void
+    {
+        $critical = $this->engine()->classify(
+            new RequestContext('GET', '/', 'url=http://169.254.169.254/latest/'),
+            SiteProfile::empty()
+        );
+        self::assertSame('critical', $critical->severity);
+        self::assertContains('cloud-metadata-ssrf', $critical->detection->templateIds());
+        self::assertSame(Verdict::SCANNER_PROBE, $critical->classification);
+
+        $high = $this->engine()->classify(
+            new RequestContext('GET', '/', 'q=http://x.bxss.me/'),
+            SiteProfile::empty()
+        );
+        self::assertSame('high', $high->severity);
+        self::assertContains('blind-xss', $high->detection->tags());
+        self::assertContains('oast-callback', $high->detection->templateIds());
+
+        // A lone medium dns-rebinding hint: SCANNER_PROBE bump on a null-handle miss, severity medium.
+        $medium = $this->engine()->classify(
+            new RequestContext('GET', '/', '', ['Referer' => 'http://x.nip.io/']),
+            SiteProfile::empty()
+        );
+        self::assertSame('medium', $medium->severity);
+        self::assertContains('dns-rebinding', $medium->detection->tags());
+        self::assertContains('dns-rebinding-hint', $medium->detection->templateIds());
+        self::assertContains('oob-hint', $medium->detection->tags());
+        self::assertNotContains('oast-callback', $medium->detection->tags());
+        self::assertSame(Verdict::SCANNER_PROBE, $medium->classification);
+        self::assertNull($medium->fakeHandle);
     }
 
     /**
