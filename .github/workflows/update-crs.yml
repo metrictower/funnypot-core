@@ -109,6 +109,12 @@ jobs:
             resources/compiled/funnypot-attack.php
             resources/compiled/funnypot-param.php
             resources/compiled/funnypot-manifest.php
+            resources/compiled/funnypot-routes.php
+            resources/compiled/funnypot-routes-index.php
+            resources/compiled/nuclei-index.full.php
+            resources/compiled/manifest.json
             resources/compiled/crs-manifest.json
             resources/skipped-crs.json
             resources/upstream-licenses/coreruleset.LICENSE.md
+            templates/generated/
+            templates/attack-ai/
