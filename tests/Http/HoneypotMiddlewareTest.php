@@ -8,8 +8,10 @@ use Funnypot\Core\Config;
 use Funnypot\Core\Detection;
 use Funnypot\Core\Http\HoneypotMiddleware;
 use Funnypot\Core\Honeypot;
+use Funnypot\Core\Observer;
 use Funnypot\Core\RequestContext;
 use Funnypot\Core\Store\PhpArrayStore;
+use Funnypot\Core\SynthesizedResponse;
 use Nyholm\Psr7\Factory\Psr17Factory;
 use Nyholm\Psr7\ServerRequest;
 use PHPUnit\Framework\TestCase;
@@ -113,5 +115,49 @@ final class HoneypotMiddlewareTest extends TestCase
         self::assertInstanceOf(Detection::class, $detection);
         self::assertTrue($detection->matched);
         self::assertSame(['git-config'], $detection->templateIds());
+    }
+
+    public function test_a_throwing_observer_does_not_500_the_host(): void
+    {
+        // FP-0252 Fix C: an Observer whose every method throws must not escape core into the host.
+        $observer = new class implements Observer {
+            public function onDetection(RequestContext $r, Detection $d): void
+            {
+                throw new \RuntimeException('boom');
+            }
+
+            public function shouldRespond(RequestContext $r, Detection $d): bool
+            {
+                throw new \RuntimeException('boom');
+            }
+
+            public function onOutcome(RequestContext $r, ?SynthesizedResponse $resp, string $reason): void
+            {
+                throw new \RuntimeException('boom');
+            }
+        };
+
+        $inverter = new Honeypot($this->store(), new Config(
+            'respond',
+            static function (RequestContext $r): bool { return true; }
+        ), $observer);
+        $factory = new Psr17Factory();
+        $middleware = new HoneypotMiddleware($inverter, $factory, $factory);
+
+        $handler = new class implements RequestHandlerInterface {
+            public function handle(ServerRequestInterface $request): ResponseInterface
+            {
+                return (new Psr17Factory())->createResponse(404);
+            }
+        };
+
+        // Probe path: shouldRespond throws ⇒ veto ⇒ the middleware falls through to the handler's
+        // 404. The point is that NO Throwable escapes as a host 500.
+        $probe = $middleware->process(new ServerRequest('GET', 'https://example.test/.git/config'), $handler);
+        self::assertSame(404, $probe->getStatusCode());
+
+        // Miss path: the downstream handler's own 404, never a 500.
+        $miss = $middleware->process(new ServerRequest('GET', 'https://example.test/totally/legit/page'), $handler);
+        self::assertSame(404, $miss->getStatusCode());
     }
 }

@@ -895,14 +895,14 @@ final class Honeypot implements Engine
             // reached only with an empty detection, so this fires ONLY for the new OAST-only case — no
             // double-fire (routed/attack coincidences already fire onDetection below / in respondAttack).
             if (!$verdict->detection->isEmpty()) {
-                $this->observer->onDetection($r, $verdict->detection);
+                $this->safeOnDetection($r, $verdict->detection);
             }
             return null;
         }
 
         // A routed probe. Detection covers EVERY routed template (the full 'd' id-list); signal
         // the app before any serve decision.
-        $this->observer->onDetection($r, $verdict->detection);
+        $this->safeOnDetection($r, $verdict->detection);
 
         if (!$this->config->gateOpen($r)) {
             return $this->declined($r, Outcome::GATE_CLOSED);
@@ -919,7 +919,7 @@ final class Honeypot implements Engine
             return $this->declined($r, $built['reason']);
         }
 
-        if (!$this->observer->shouldRespond($r, $verdict->detection)) {
+        if (!$this->safeShouldRespond($r, $verdict->detection)) {
             return $this->declined($r, Outcome::VETOED);
         }
 
@@ -928,7 +928,7 @@ final class Honeypot implements Engine
         $built['r']->servedBy = $handle;
 
         $this->serveDelay();
-        $this->observer->onOutcome($r, $built['r'], Outcome::SERVED);
+        $this->safeOnOutcome($r, $built['r'], Outcome::SERVED);
 
         return $built['r'];
     }
@@ -940,7 +940,7 @@ final class Honeypot implements Engine
      */
     private function respondAttack(RequestContext $r, Verdict $verdict, string $seed): ?SynthesizedResponse
     {
-        $this->observer->onDetection($r, $verdict->detection);
+        $this->safeOnDetection($r, $verdict->detection);
 
         $built = $this->buildFake($verdict->fakeHandle, SiteProfile::empty(), $seed, $r);
         if ($built['r'] === null) {
@@ -952,7 +952,7 @@ final class Honeypot implements Engine
         $built['r']->servedBy = $verdict->fakeHandle;
 
         $this->serveDelay();
-        $this->observer->onOutcome($r, $built['r'], Outcome::SERVED);
+        $this->safeOnOutcome($r, $built['r'], Outcome::SERVED);
 
         return $built['r'];
     }
@@ -975,9 +975,46 @@ final class Honeypot implements Engine
 
     private function declined(RequestContext $r, string $reason): ?SynthesizedResponse
     {
-        $this->observer->onOutcome($r, null, $reason);
+        $this->safeOnOutcome($r, null, $reason);
 
         return null;
+    }
+
+    /**
+     * FP-0252 fail-safe wrappers around the host-supplied Observer. A buggy app callback that throws
+     * must never turn a would-be 404 into a host 500, so every Observer call goes through these:
+     *  - onDetection throw ⇒ swallowed (signal loss only; the serving decision is unaffected).
+     *  - shouldRespond throw ⇒ treated as a veto (false), so respond() declines with Outcome::VETOED
+     *    — surfaced to a working observer via the wrapped onOutcome below.
+     *  - onOutcome throw ⇒ swallowed (incl. inside declined(), so the veto path never re-throws).
+     * Silent by design: core does no I/O, so there is nowhere to log. Determinism is unaffected —
+     * same inputs, same throw, same fallback.
+     */
+    private function safeOnDetection(RequestContext $r, Detection $detection): void
+    {
+        try {
+            $this->observer->onDetection($r, $detection);
+        } catch (\Throwable $e) {
+            // Swallow: signal loss only.
+        }
+    }
+
+    private function safeShouldRespond(RequestContext $r, Detection $detection): bool
+    {
+        try {
+            return $this->observer->shouldRespond($r, $detection);
+        } catch (\Throwable $e) {
+            return false;
+        }
+    }
+
+    private function safeOnOutcome(RequestContext $r, ?SynthesizedResponse $response, string $reason): void
+    {
+        try {
+            $this->observer->onOutcome($r, $response, $reason);
+        } catch (\Throwable $e) {
+            // Swallow: the outcome signal is best-effort; a throw here must not escape core.
+        }
     }
 
     /** Pause (base + random jitter) so replies aren't instant/uniform. No-op when latency is 0. */

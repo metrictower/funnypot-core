@@ -255,9 +255,22 @@ final class Config
         return max(0, ($this->latencyMs + $jitter) * 1000);
     }
 
+    /**
+     * FP-0252 fail-safe: a host-supplied closure that throws must never escape core as a host 500.
+     * The kill switch is the un-poison control, so a broken one fails to "tripped" (true) — serve
+     * nothing. Swallowed silently by design (killSwitch takes no request and has no Outcome to
+     * surface it on; core does no I/O).
+     */
     public function killSwitchTripped(): bool
     {
-        return $this->killSwitch !== null && ($this->killSwitch)() === true;
+        if ($this->killSwitch === null) {
+            return false;
+        }
+        try {
+            return ($this->killSwitch)() === true;
+        } catch (\Throwable $e) {
+            return true;
+        }
     }
 
     /** Per-class enable flag. Missing key ⇒ enabled (preserves today's isolated-origin behavior). */
@@ -276,23 +289,59 @@ final class Config
         return $this->isolatedOrigin && $this->reflectClassEnabled($class);
     }
 
+    /**
+     * FP-0252 fail-safe: a throwing trustedBypass is treated as trusted (true) — never risk faking
+     * at your own scanner; a skipped fake is just the app's own 404, harmless. Silent by design
+     * (no Outcome carries it — the request short-circuits before a probe is recognized).
+     */
     public function isTrusted(RequestContext $r): bool
     {
-        return $this->trustedBypass !== null && ($this->trustedBypass)($r) === true;
+        if ($this->trustedBypass === null) {
+            return false;
+        }
+        try {
+            return ($this->trustedBypass)($r) === true;
+        } catch (\Throwable $e) {
+            return true;
+        }
     }
 
+    /**
+     * FP-0252 fail-safe: a throwing gate is treated as closed (false), matching the null ⇒ closed
+     * default. The facade surfaces the decline as Outcome::GATE_CLOSED via the wrapped onOutcome, so
+     * a working observer still sees that something declined.
+     */
     public function gateOpen(RequestContext $r): bool
     {
-        return $this->gate !== null && ($this->gate)($r) === true;
+        if ($this->gate === null) {
+            return false;
+        }
+        try {
+            return ($this->gate)($r) === true;
+        } catch (\Throwable $e) {
+            return false;
+        }
     }
 
     /**
      * Root / homepage-class (sig=1) entries fire only when this returns true, so an
      * ordinary visitor to "/" never gets a fake. Defaults closed.
      */
+    /**
+     * FP-0252 fail-safe: a throwing probeSignature is treated as false, matching the null ⇒ never
+     * default — a sig=1 root entry declines and the facade surfaces Outcome::NO_SIGNATURE via the
+     * wrapped onOutcome.
+     */
     public function hasProbeSignature(RequestContext $r): bool
     {
-        return $this->probeSignature !== null && ($this->probeSignature)($r) === true;
+        if ($this->probeSignature === null) {
+            return false;
+        }
+        try {
+            return ($this->probeSignature)($r) === true;
+        } catch (\Throwable $e) {
+            return false;
+        }
     }
 
     /**
@@ -304,9 +353,17 @@ final class Config
      */
     public function seedFor(RequestContext $r): string
     {
-        $base = $this->personaSeed !== null
-            ? (string) ($this->personaSeed)($r)
-            : $r->host;
+        // FP-0252 fail-safe: a throwing personaSeed falls back to the built-in $r->host seed —
+        // deterministic per host, identical to not configuring the closure at all, so the persona
+        // stays stable rather than the request escaping as a host 500.
+        $base = $r->host;
+        if ($this->personaSeed !== null) {
+            try {
+                $base = (string) ($this->personaSeed)($r);
+            } catch (\Throwable $e) {
+                $base = $r->host;
+            }
+        }
 
         return $base . '|' . $this->seedSalt;
     }
