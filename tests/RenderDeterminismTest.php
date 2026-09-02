@@ -198,6 +198,80 @@ final class RenderDeterminismTest extends TestCase
         }
     }
 
+    /**
+     * A Honeypot over a controlled in-test index whose one route falls to MINIMAL synthesis (no route
+     * template recognises its marker) — so the FP-0281 deploy-seeded scaffold order is what the facade
+     * serves. Mirrors inverter()'s config, with the store swapped.
+     */
+    private function minimalSynthInverter(string $deploySeed): Honeypot
+    {
+        $index = [
+            'schema' => 1,
+            'templates' => ['fp-0281-marker' => ['sev' => 'medium', 'tags' => ['exposure'], 'name' => 'FP-0281 minimal synth probe']],
+            'routes' => ['GET /fp-0281' => ['b' => [[
+                's' => 200,
+                'bw' => ['alpha', 'bravo', 'charlie', 'delta', 'echo', 'foxtrot'],
+                'h' => ['Content-Type' => 'text/plain'],
+                'pid' => 'fp-0281',
+                'sev' => 'medium',
+                'sig' => 0,
+                't' => ['fp-0281-marker'],
+            ]]]],
+        ];
+        $config = new Config(
+            'respond',
+            static function (RequestContext $r): bool { return true; },
+            'matched-only',
+            null,
+            'coherent',
+            Style::REALISTIC,
+            'high',
+            65536,
+            0,
+            0,
+            true
+        );
+        $config->seedSalt = 'render-salt';
+        $config->deploySeed = $deploySeed;
+        $config->isolatedOrigin = true;
+
+        return new Honeypot(new PhpArrayStore($index), $config);
+    }
+
+    public function test_minimal_synth_body_is_byte_identical_on_rescan_within_a_deploy(): void
+    {
+        // Within one deploy the seeded word order is a pure function of the deploy seed, so re-scans are
+        // byte-identical (X-Request-Id masked). Proves E1 is still the only per-request byte on the
+        // minimal path.
+        $h = $this->minimalSynthInverter('id-secret');
+        $probe = new RequestContext('GET', '/fp-0281', '', [], null, 'vic.example');
+        $r1 = $h->respond($probe);
+        $r2 = $h->respond($probe);
+        self::assertNotNull($r1, '/fp-0281 should serve via minimal synthesis');
+        self::assertNotNull($r2);
+        self::assertSame($this->canon($r1), $this->canon($r2), 're-scan must be byte-identical (X-Request-Id masked)');
+        // The served body is exactly the deploy-seeded order of the words (arm is not vacuous — S1).
+        $seed = \Funnypot\Core\Support\PersonaIdentity::seedFromMaterial('id-secret');
+        $expected = implode("\n", \Funnypot\Core\Synthesis\SynthScaffold::bodyOrder(['alpha', 'bravo', 'charlie', 'delta', 'echo', 'foxtrot'], $seed));
+        self::assertSame($expected, $r1->body, 'the served body is the deploy-seeded word order');
+    }
+
+    public function test_minimal_synth_body_order_differs_across_deploys(): void
+    {
+        $probe = new RequestContext('GET', '/fp-0281', '', [], null, 'vic.example');
+        $ra = $this->minimalSynthInverter('deploy-a')->respond($probe);
+        $rb = $this->minimalSynthInverter('deploy-b')->respond($probe);
+        self::assertNotNull($ra, '/fp-0281 should serve on deploy-a');
+        self::assertNotNull($rb, '/fp-0281 should serve on deploy-b');
+        self::assertNotSame($ra->body, $rb->body, 'the seeded minimal-synth word order must differ across deploys');
+        // Same bytes, only reordered — no invented content.
+        $la = explode("\n", $ra->body);
+        $lb = explode("\n", $rb->body);
+        sort($la);
+        sort($lb);
+        self::assertSame($la, $lb, 'the word multiset is deploy-invariant (permutation only)');
+    }
+
     public function test_the_canonicalization_is_not_vacuous(): void
     {
         // A negative control: two responses differing only in body are NOT equal after masking, so the

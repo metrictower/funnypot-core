@@ -9,7 +9,9 @@ declare(strict_types=1);
  * ("the named surface varies per deploy") is machine-checked, and how a regression that silently
  * re-constants a surface is caught.
  *
- * Keys are '<kind>:<rule-id>' (kind ∈ attack|route|param); values are a short human note. TRACKED and
+ * Keys are '<kind>:<rule-id>' (kind ∈ attack|route|param|synth); values are a short human note. The
+ * `synth:` kind names an AGGREGATE surface over the whole nuclei index, rendered by the gate's
+ * minimal-synth leg (--nuclei) rather than by a single rule. TRACKED and
  * APPEND-ONLY: FP-0277..FP-0284 each append the surface(s) they convert from fleet-constant to
  * per-deploy. The initial entries are surfaces that already vary through {{persona.*}} at a469c71 —
  * the regression baseline the siblings build on. The gate's fleet-constant inventory (informational)
@@ -71,4 +73,10 @@ return [
     'attack:attack-ssti-multifence' => 'FP-0279 seeded attack-class body (SSTI decline page copy)',
     // (param:param-sqli-differential is NOT registered: the gate renders its persona-varying BASE body
     //  at $r = null, so the breaker variance is proven by the unit test instead — FP-0279 plan §3.)
+    // --- FP-0281: the minimal-synth scaffold + witness-header names, seeded per deploy ---
+    // The bw word ORDER across all multi-word bundles (aggregate hash). Registering this key also arms
+    // the gate's ≥50% multi-word body-order floor (G6) — it is enforced only once this entry exists.
+    'synth:minimal-body-order' => 'FP-0281 deploy-seeded bw word order (aggregate over all multi-word minimal-synth bundles)',
+    // The synthetic witness-header NAMES actually served (aggregate). Was the fleet-constant X-Detected-N.
+    'synth:witness-header-names' => 'FP-0281 deploy-seeded witness-header names (was X-Detected-N)',
 ];

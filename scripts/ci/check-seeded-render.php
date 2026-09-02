@@ -26,24 +26,40 @@ declare(strict_types=1);
  *       variance             materials at a fixed render seed (a regression that re-constants a
  *                            converted surface is caught here).
  *
- * It also PRINTS (never fails on) the fleet-constant inventory — surfaces identical at every grid point
- * — the siblings' work list. This script reads compiled artifacts + template YAML only; it writes and
- * compiles NOTHING (zero compiled-byte impact).
+ * MINIMAL-SYNTH leg (FP-0281, the --nuclei index). ResponseSynthesizer's minimal-synth output is not a
+ * rendered RULE, so the loops above never see it; this leg renders every bundle of the compiled nuclei
+ * index through ResponseSynthesizer at MINIMAL, twice per grid point, so the deploy-seeded scaffold
+ * (bw word ORDER) and witness-header NAMES get the same G1 (fingerprint-clean) + G3 (render-twice
+ * determinism) treatment, plus:
+ *   G5  served-set        — the set of served (route,i) keys is IDENTICAL at every grid point (a
+ *       invariance          seed-dependent skip would be a matcher-servability regression).
+ *   G6  body-order floor  — among multi-word (≥2 bw) bundles, ≥50% differ between the two sample deploy
+ *                            materials (else the permutation silently re-constanted). ARMED only when
+ *                            resources/seeded-surfaces.php registers `synth:minimal-body-order`, so an
+ *                            operator-commit sequencing (FP-0280) that lands the registry entry later
+ *                            can hang its own floor on the same switch.
+ * Two AGGREGATE `synth:` surfaces are recorded so the G4 loop + fleet-constant inventory treat the leg
+ * like any rule surface. This leg is also FP-0280's M1 infra (it collects the served rx vector in the
+ * same loop). This script reads compiled artifacts + template YAML only; it writes and compiles NOTHING
+ * (zero compiled-byte impact). It also PRINTS (never fails on) the fleet-constant inventory.
  *
  *   php scripts/ci/check-seeded-render.php
- *     [--attack=PATH] [--routes=PATH] [--param=PATH] [--templates=DIR] [--surfaces=PATH]
+ *     [--attack=PATH] [--routes=PATH] [--param=PATH] [--templates=DIR] [--surfaces=PATH] [--nuclei=PATH]
  *     [--volatile-proof]   (test-only: arm volatileProof so a {{volatile.*}} body FAILS G3)
  *
- * Exit code 1 on any G1–G4 failure or on zero rules rendered (fail-closed floor).
+ * Exit code 1 on any G1–G6 failure or on zero rules rendered (fail-closed floor).
  */
 
 use Funnypot\Core\Compiler\Crs\FingerprintGuard;
 use Funnypot\Core\Contracts\Clock;
+use Funnypot\Core\Detection;
 use Funnypot\Core\Response\EmulatedContent;
 use Funnypot\Core\Response\RouteTemplateEmulator;
 use Funnypot\Core\Response\RouteTemplateSet;
 use Funnypot\Core\Response\Style;
 use Funnypot\Core\Support\PersonaIdentity;
+use Funnypot\Core\Synthesis\ResponseSynthesizer;
+use Funnypot\Core\Synthesis\SynthScaffold;
 use Funnypot\Core\SynthesizedResponse;
 use Funnypot\Core\Template\DirectiveRenderer;
 use Funnypot\Core\Template\TemplateAttackEmulator;
@@ -59,6 +75,7 @@ $opt = [
     'param' => $root . '/resources/compiled/funnypot-param.php',
     'templates' => $root . '/templates',
     'surfaces' => $root . '/resources/seeded-surfaces.php',
+    'nuclei' => $root . '/resources/compiled/nuclei-index.full.php',
 ];
 $volatileProof = false;
 foreach (array_slice($argv, 1) as $arg) {
@@ -312,6 +329,141 @@ foreach ($routeRules as $rule) {
 }
 
 // ---------------------------------------------------------------------------------------------------
+// MINIMAL-SYNTH leg (FP-0281): render every nuclei-index bundle through ResponseSynthesizer at MINIMAL,
+// twice per grid point, so the deploy-seeded scaffold order + witness-header names get G1/G3, plus the
+// served-set law (G5) and the multi-word body-order floor (G6). Two aggregate `synth:` surfaces feed G4.
+// ---------------------------------------------------------------------------------------------------
+$synthBundleCount = 0;
+$synthServedRef = null;      // reference served-set (G5)
+$synthServedRefKey = null;
+$bodyAtA = [];               // (route#i) => body at fp-0276-sample-a|r-a  (G6)
+$bodyAtB = [];               // (route#i) => body at fp-0276-sample-b|r-a  (G6)
+$multiWordKeys = [];         // (route#i) => true for served bundles with ≥2 bw words
+
+if (is_file($opt['nuclei'])) {
+    ini_set('memory_limit', '512M'); // raise-only; the full index + synthesizer peak ~48 MB
+    $nuclei = requireArray($opt['nuclei']);
+    $nucleiRoutes = (isset($nuclei['routes']) && is_array($nuclei['routes'])) ? $nuclei['routes'] : [];
+
+    // A synthetic name is one this leg emits: a pool name, or the deterministic overflow shape. Defined
+    // positively (not by chrome/typed exclusion) so the aggregate is exact on any index.
+    $poolNames = array_flip(SynthScaffold::allNames());
+    $isSyntheticName = static function (string $name) use ($poolNames): bool {
+        return isset($poolNames[$name]) || preg_match('/^X-[A-Z][a-z]+-[A-Z][a-z]+-\d+$/', $name) === 1;
+    };
+
+    $firstMaterial = $materials[0];
+    $firstRlabel = (string) array_key_first($renderSeeds);
+
+    foreach ($materials as $material) {
+        // deploySeed set ⇒ the render seed is inert on the minimal path (identitySeed returns the
+        // deploySeed); a future null-seed regression would surface as cross-material variance instead.
+        $synth = new ResponseSynthesizer(null, Style::MINIMAL, null, null, $deploySeeds[$material]);
+        foreach ($renderSeeds as $rlabel => $renderSeed) {
+            $gridKey = $material . '|' . $rlabel;
+            $renderStr = 'gate.example|' . $material;
+            $bodyStream = '';
+            $nameSet = [];
+            $served = [];
+            $gridMultiWord = 0;
+            foreach ($nucleiRoutes as $route => $entry) {
+                foreach ((array) ($entry['b'] ?? []) as $i => $bundle) {
+                    if (!is_array($bundle)) {
+                        continue;
+                    }
+                    $key = $route . '#' . $i;
+                    $c1 = $canon($synth->synthesize($bundle, Detection::none(), $renderStr));
+                    $c2 = $canon($synth->synthesize($bundle, Detection::none(), $renderStr));
+                    if ($material === $firstMaterial && $rlabel === $firstRlabel) {
+                        $synthBundleCount++;
+                    }
+                    if ($c1 === null) {
+                        continue; // not served (seed-independent: no registry / anchored / eq overflow)
+                    }
+                    if ($c1 !== $c2) {
+                        $fail[] = "G3 nondeterministic render: synth {$key} [m={$material},{$rlabel}] (" . firstDiff($c1, $c2) . ')';
+                    }
+                    $scanLeaves($c1, $key, "synth {$key} [m={$material},{$rlabel}]");
+                    $served[] = $key;
+                    $bodyStream .= $key . "\x1f" . $c1['body'] . "\x1e";
+                    foreach (array_keys($c1['headers']) as $hn) {
+                        if ($isSyntheticName((string) $hn)) {
+                            $nameSet[(string) $hn] = true;
+                        }
+                    }
+                    if (count((array) ($bundle['bw'] ?? [])) >= 2) {
+                        $gridMultiWord++;
+                        $multiWordKeys[$key] = true;
+                        if ($gridKey === 'fp-0276-sample-a|r-a') {
+                            $bodyAtA[$key] = $c1['body'];
+                        } elseif ($gridKey === 'fp-0276-sample-b|r-a') {
+                            $bodyAtB[$key] = $c1['body'];
+                        }
+                    }
+                }
+            }
+
+            // G5 served-set invariance (only meaningful once ≥1 bundle rendered).
+            sort($served);
+            if ($synthServedRef === null) {
+                $synthServedRef = $served;
+                $synthServedRefKey = $gridKey;
+            } elseif ($served !== $synthServedRef) {
+                $fail[] = "G5 synth served-set differs across seeds: {$gridKey} vs {$synthServedRefKey}";
+            }
+
+            // Aggregate surfaces (canon shape) so G4 + the fleet-constant inventory treat them as rules.
+            // Recorded ONLY when the leg produced something to measure at this grid point — no multi-word
+            // bundle ⇒ minimal-body-order is NOT recorded, so a registered key over an empty/single-word
+            // leg fails as a stale-registry entry (M1(b): fail-closed, never a false "identical", never a
+            // div-by-zero). Servability is seed-independent, so this records consistently at every point.
+            if ($gridMultiWord > 0) {
+                $surfaceRuns['synth:minimal-body-order'][$gridKey] = ['status' => 0, 'headers' => [], 'body' => hash('sha256', $bodyStream)];
+            }
+            if ($nameSet !== []) {
+                ksort($nameSet);
+                $surfaceRuns['synth:witness-header-names'][$gridKey] = ['status' => 0, 'headers' => [], 'body' => hash('sha256', implode("\n", array_keys($nameSet)))];
+            }
+        }
+    }
+}
+
+// G6 — the multi-word body-order floor, ARMED only when the surface is registered (so an operator-commit
+// sequencing can land the registry entry later). Skipped (never div-by-zero) when the leg synthesized no
+// multi-word bundles at both sample materials.
+$synthMultiWord = 0;
+$synthMultiWordDiff = 0;
+foreach (array_keys($multiWordKeys) as $key) {
+    if (isset($bodyAtA[$key], $bodyAtB[$key])) {
+        $synthMultiWord++;
+        if ($bodyAtA[$key] !== $bodyAtB[$key]) {
+            $synthMultiWordDiff++;
+        }
+    }
+}
+if ($synthMultiWord > 0) {
+    $pct = $synthMultiWordDiff / $synthMultiWord;
+    fwrite(STDOUT, sprintf(
+        "INFO: synth bundles=%d served-set-size=%d multi-word=%d differing-at-a·b=%d (%.1f%%)\n",
+        $synthBundleCount,
+        $synthServedRef === null ? 0 : count($synthServedRef),
+        $synthMultiWord,
+        $synthMultiWordDiff,
+        $pct * 100
+    ));
+    if (isset($surfaces['synth:minimal-body-order']) && $pct < 0.5) {
+        $fail[] = sprintf(
+            'G6 synth body-order floor: only %d/%d (%.1f%%) multi-word bundles differ across deploy seeds (need ≥50%%)',
+            $synthMultiWordDiff,
+            $synthMultiWord,
+            $pct * 100
+        );
+    }
+} elseif ($synthBundleCount > 0) {
+    fwrite(STDOUT, "INFO: synth bundles={$synthBundleCount} served-set-size=" . ($synthServedRef === null ? 0 : count($synthServedRef)) . " multi-word=0 (body-order floor skipped)\n");
+}
+
+// ---------------------------------------------------------------------------------------------------
 // G4 — registered seeded surfaces must vary across deploy materials at a fixed render seed; and the
 // fleet-constant inventory (informational) is every surface identical at every grid point.
 // ---------------------------------------------------------------------------------------------------
@@ -363,9 +515,10 @@ if ($fail !== []) {
 $ruleCount = count(array_filter($attackRules, 'is_array')) + count(array_filter($routeRules, 'is_array')) + count(array_filter($paramRules, 'is_array'));
 $points = count($materials) * count($renderSeeds);
 fwrite(STDOUT, sprintf(
-    "OK: %d rules × %d points rendered twice; %d leaves scanned; %d seeded surfaces verified; %d fleet-constant.\n",
+    "OK: %d rules × %d points rendered twice; %d bundles synthesized; %d leaves scanned; %d seeded surfaces verified; %d fleet-constant.\n",
     $ruleCount,
     $points,
+    $synthBundleCount,
     $leavesScanned,
     $seededVerified,
     count($fleetConstant)

@@ -75,7 +75,27 @@ final class SeededRenderGateTest extends TestCase
             'param' => $this->tmpPhp('pm', ['schema' => 1, 'buckets' => []]),
             'templates' => $this->tmpDir(),
             'surfaces' => $this->tmpPhp('sf', []),
+            // Empty nuclei index so a doctored run renders the minimal-synth leg over nothing unless it
+            // overrides --nuclei (the real full index is slow and would swamp a doctored case).
+            'nuclei' => $this->tmpPhp('nx', ['schema' => 1, 'routes' => []]),
         ];
+    }
+
+    /**
+     * emptyEnv() + one benign attack rule, so the fail-closed rule floor (:350, rule renders only)
+     * passes and the doctored --nuclei synth leg is actually reached (M1(a)).
+     *
+     * @return array<string,string>
+     */
+    private function synthEnv(): array
+    {
+        $env = $this->emptyEnv();
+        $env['attack'] = $this->tmpPhp('atk', [[
+            'id' => 'attack-fp-0281-anchor',
+            'response' => ['headers' => [], 'body' => 'ok'],
+        ]]);
+
+        return $env;
     }
 
     // --- the committed corpus ---------------------------------------------------------------------
@@ -87,8 +107,10 @@ final class SeededRenderGateTest extends TestCase
         $text = implode("\n", $out);
         self::assertSame(0, $code, $text);
         self::assertStringContainsString('rules ×', $text);
+        self::assertStringContainsString('bundles synthesized', $text, 'the minimal-synth leg must run on the committed index');
         self::assertStringContainsString('seeded surfaces verified', $text);
-        self::assertMatchesRegularExpression('/[1-9]\d* seeded surfaces verified/', $text, 'at least one G4 surface must be verified');
+        // 24 rule-driven surfaces + the 2 FP-0281 synth: aggregates.
+        self::assertMatchesRegularExpression('/(2[6-9]|[3-9]\d) seeded surfaces verified/', $text, 'the 24 rule surfaces + 2 synth aggregates must verify');
         self::assertMatchesRegularExpression('/[1-9]\d* fleet-constant/', $text, 'the informational inventory must be non-empty');
     }
 
@@ -203,6 +225,73 @@ final class SeededRenderGateTest extends TestCase
         $text = implode("\n", $out);
         self::assertSame(1, $code, $text);
         self::assertStringContainsString('G3 nondeterministic render', $text);
+    }
+
+    // --- the FP-0281 minimal-synth (--nuclei) leg -------------------------------------------------
+
+    public function test_synth_leg_body_order_and_names_vary_across_deploys(): void
+    {
+        // A 6-word bundle (order collision ~1/720 across the two sample seeds) + one hw witness, with
+        // both aggregate surfaces registered ⇒ both verify.
+        $env = $this->synthEnv();
+        $env['nuclei'] = $this->tmpPhp('nx', ['schema' => 1, 'routes' => ['GET /fp-0281' => ['b' => [[
+            's' => 200,
+            'bw' => ['alpha', 'bravo', 'charlie', 'delta', 'echo', 'foxtrot'],
+            'hw' => ['WIDGET'],
+            'nf' => [], 'sz' => null, 'rx' => [], 'h' => [], 't' => ['fp-0281'], 'pid' => '', 'sev' => 'info', 'sig' => 1,
+        ]]]]]);
+        $env['surfaces'] = $this->tmpPhp('sf', [
+            'synth:minimal-body-order' => 'FP-0281 deploy-seeded bw word order',
+            'synth:witness-header-names' => 'FP-0281 deploy-seeded witness-header names',
+        ]);
+
+        [$code, $out] = $this->runGate($env);
+        self::assertSame(0, $code, $out);
+        self::assertStringContainsString('2 seeded surfaces verified', $out);
+        self::assertStringContainsString('1 bundles synthesized', $out);
+    }
+
+    public function test_synth_leg_body_order_surface_fails_closed_with_no_multi_word_bundle(): void
+    {
+        // Single-word-only bundles never permute, so there is nothing for the body-order surface to
+        // measure — it must NOT be recorded (M1(b)): a registered key then fails as a stale-registry
+        // entry rather than silently passing or dividing by zero.
+        $env = $this->synthEnv();
+        $env['nuclei'] = $this->tmpPhp('nx', ['schema' => 1, 'routes' => ['GET /fp-0281-one' => ['b' => [[
+            's' => 200, 'bw' => ['lonelyword'], 'nf' => [], 'sz' => null, 'rx' => [], 'h' => [], 't' => ['x'], 'pid' => '', 'sev' => 'info', 'sig' => 1,
+        ]]]]]);
+        $env['surfaces'] = $this->tmpPhp('sf', ['synth:minimal-body-order' => 'must vary per deploy']);
+
+        [$code, $out] = $this->runGate($env);
+        self::assertSame(1, $code, $out);
+        self::assertStringContainsString('synth:minimal-body-order', $out);
+        self::assertStringContainsString('names no rendered rule', $out);
+    }
+
+    public function test_synth_leg_g1_catches_a_denylisted_bw_word(): void
+    {
+        // A denylisted token in a served bw word is only visible after minimal synthesis — the leg's G1
+        // scan must catch it.
+        $env = $this->synthEnv();
+        $env['nuclei'] = $this->tmpPhp('nx', ['schema' => 1, 'routes' => ['GET /fp-0281-leak' => ['b' => [[
+            's' => 200, 'bw' => ['mod_security'], 'nf' => [], 'sz' => null, 'rx' => [], 'h' => [], 't' => ['x'], 'pid' => '', 'sev' => 'info', 'sig' => 1,
+        ]]]]]);
+
+        [$code, $out] = $this->runGate($env);
+        self::assertSame(1, $code, $out);
+        self::assertStringContainsString('G1 fingerprint leak in synth', $out);
+    }
+
+    public function test_synth_leg_stale_registry_key_fails_closed_on_empty_index(): void
+    {
+        // A registered synth: key with an empty nuclei index records no surface ⇒ the stale-registry
+        // guard fires (M1(b): the floor is never computed on an empty leg — no div-by-zero).
+        $env = $this->synthEnv();
+        $env['surfaces'] = $this->tmpPhp('sf', ['synth:minimal-body-order' => 'registered but nothing rendered']);
+
+        [$code, $out] = $this->runGate($env);
+        self::assertSame(1, $code, $out);
+        self::assertStringContainsString('names no rendered rule', $out);
     }
 
     // --- fail-closed floor ------------------------------------------------------------------------

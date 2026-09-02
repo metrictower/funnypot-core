@@ -58,10 +58,12 @@ final class ResponseSynthesizer
     private $poweredBy;
 
     /**
-     * @var int|null the deploy's per-deploy identity seed (Config::deploySeed()). Stored here now
-     * (FP-0276) so the synthesizer-side siblings — FP-0280's witness menu, FP-0281's scaffold order —
-     * can key SubSeed derivations off the deploy identity without a second ctor-signature change each.
-     * Unused by this ticket; served bytes are unchanged whether it is passed or left null.
+     * @var int|null the deploy's per-deploy identity seed (Config::deploySeed()). Stored here by
+     * FP-0276 and CONSUMED by FP-0281 (the minimal-synth `bw` word order + the witness-header names,
+     * via SynthScaffold) — and later by FP-0280's witness menu — to key SubSeed derivations off the
+     * deploy identity without a second ctor-signature change each. When null (never in production —
+     * Honeypot always passes Config::deploySeed(); only a bare test/app-tier construction hits it) the
+     * scaffold falls back to identitySeed()'s render-seed keying, so bytes stay deterministic.
      */
     private $deploySeed;
 
@@ -88,6 +90,11 @@ final class ResponseSynthesizer
     {
         $this->lastSkipReason = '';
 
+        // The per-deploy identity for every SynthScaffold derivation on this render (FP-0281); computed
+        // once so the whole response shares one deploy identity. Fixed for a deploy, so re-scans are
+        // byte-identical; differs across deploys, so the scaffold order + witness-header names vary.
+        $ident = $this->identitySeed($seed);
+
         // Binary rule (FP-0230): a `bin` bundle (favicon/image) carries empty bw/nf/rx/hw/sz, so
         // minimal-synth would emit an EMPTY body. Route it to the rich emulator (which base64-decodes
         // the bytes) REGARDLESS of style, so the icon serves even under MINIMAL. Favicon serving thus
@@ -101,12 +108,12 @@ final class ResponseSynthesizer
                 return null;
             }
 
-            return $this->tryEmulator($bundle, $satisfies, $seed);
+            return $this->tryEmulator($bundle, $satisfies, $seed, $ident);
         }
 
         // Rich emulator layer (validated; falls through to minimal on any mismatch).
         if ($this->style !== Style::MINIMAL && $this->emulators !== null) {
-            $rich = $this->tryEmulator($bundle, $satisfies, $seed);
+            $rich = $this->tryEmulator($bundle, $satisfies, $seed, $ident);
             if ($rich !== null) {
                 return $rich;
             }
@@ -131,7 +138,7 @@ final class ResponseSynthesizer
             }
         }
 
-        $body = $this->assembleBody($bodyWords, $witnesses, $exclusive, $size);
+        $body = $this->assembleBody($bodyWords, $witnesses, $exclusive, $size, $ident);
         if ($body === null) {
             return null; // reason already set
         }
@@ -153,7 +160,7 @@ final class ResponseSynthesizer
 
         $status = (int) ($bundle['s'] ?? 200);
 
-        $headers = $this->buildHeaders($bundle);
+        $headers = $this->buildHeaders($bundle, true, $ident);
         if ($headers === null) {
             return null; // reason already set
         }
@@ -171,6 +178,22 @@ final class ResponseSynthesizer
     }
 
     /**
+     * The deploy identity seed for scaffold derivations (FP-0281). A synthesizer built without a
+     * deploy seed (tests, a bare app tier) falls back to the render seed — the same crc32($seed)
+     * tryEmulator() hands the emulators — so bytes stay deterministic PER REQUEST, never per-request
+     * random. The crc32 is masked to its low 31 bits (0x7fffffff) so the fallback derives the same
+     * digest on a 32-bit build as on 64-bit (crc32 returns a negative int for high values on 32-bit);
+     * the deploySeed itself is a 60-bit value that only a 64-bit build produces (PersonaIdentity::
+     * seedFromMaterial), and production always supplies it, so the mask only disciplines the never-hit
+     * test/app fallback path. Only SubSeed::pick/permute (via SynthScaffold) consume the result —
+     * never SubSeed::int, which is 64-bit-only.
+     */
+    private function identitySeed(string $seed): int
+    {
+        return $this->deploySeed ?? (crc32($seed) & 0x7fffffff);
+    }
+
+    /**
      * Build the response body from required words and regex witnesses.
      *
      * A whole-body-exclusive bundle (`x`) whose exclusivity comes from an anchored regex
@@ -178,11 +201,16 @@ final class ResponseSynthesizer
      * other content would break a `^…`/`…$` anchor, and we cannot re-run the regex offline.
      * When that is not possible, skip. Everything else joins words and unanchored witnesses.
      *
+     * The `bw` words are served in a deploy-seeded ORDER (SynthScaffold::bodyOrder — `contains`-only by
+     * contract, so order is incidental to matching); the `rx` witnesses keep their compiled order and
+     * stay LAST, so a witness's right-hand neighbour (end-of-body / size filler) is byte-identical to
+     * today at every deploy seed and no anchored/adjacency assumption can break.
+     *
      * @param string[] $bodyWords
      * @param string[] $witnesses
      * @param array{op:string,n:int}|null $size
      */
-    private function assembleBody(array $bodyWords, array $witnesses, bool $exclusive, ?array $size): ?string
+    private function assembleBody(array $bodyWords, array $witnesses, bool $exclusive, ?array $size, int $ident): ?string
     {
         if ($witnesses !== [] && $exclusive && $size === null) {
             if (count($witnesses) !== 1 || $bodyWords !== []) {
@@ -192,7 +220,7 @@ final class ResponseSynthesizer
             return $witnesses[0];
         }
 
-        return $this->buildBody(array_merge($bodyWords, $witnesses));
+        return $this->buildBody(array_merge(SynthScaffold::bodyOrder($bodyWords, $ident), $witnesses));
     }
 
     /**
@@ -281,7 +309,7 @@ final class ResponseSynthesizer
      *
      * @param array<string,mixed> $bundle
      */
-    private function tryEmulator(array $bundle, Detection $satisfies, string $seed): ?SynthesizedResponse
+    private function tryEmulator(array $bundle, Detection $satisfies, string $seed, int $ident): ?SynthesizedResponse
     {
         $emulator = $this->emulators->find($bundle);
         if ($emulator === null) {
@@ -295,9 +323,9 @@ final class ResponseSynthesizer
 
         // Base headers WITHOUT the witness guarantee, then overlay the emulator's headers,
         // THEN run the guarantee over the merged block — so a real template header carrying
-        // the witness suppresses the synthetic X-Detected-N; only a still-missing witness
+        // the witness suppresses the synthetic witness header; only a still-missing witness
         // gets one.
-        $base = $this->buildHeaders($bundle, false);
+        $base = $this->buildHeaders($bundle, false, $ident);
         if ($base === null) {
             return null;
         }
@@ -305,7 +333,7 @@ final class ResponseSynthesizer
         foreach ($content->headers as $name => $value) {
             $headers[$this->canonicalKey((string) $name)] = (string) $value;
         }
-        $headers = $this->ensureHeaderWitnesses($headers, $bundle);
+        $headers = $this->ensureHeaderWitnesses($headers, $bundle, $ident);
 
         // Rich content must satisfy every constraint the validator knows (bw/nf/hw/hf), the
         // typed-header values, and the regex-witness / size shapes it does not — otherwise
@@ -359,16 +387,19 @@ final class ResponseSynthesizer
      */
     private function buildBody(array $bodyWords): string
     {
-        // Order is irrelevant to `contains` matching; a newline join reads like a
-        // real config/text file and keeps distinct words from fusing into one token.
+        // Order is irrelevant to `contains` matching (the caller supplies a deploy-seeded order); a
+        // newline join reads like a real config/text file and keeps distinct words from fusing into
+        // one token — and, since no forbidden `nf` substring contains an LF, no permutation of the
+        // words can ever form one across a join boundary.
         return implode("\n", $bodyWords);
     }
 
     /**
      * @param array<string,mixed> $bundle
+     * @param int $ident the deploy identity for the witness-header naming (always passed by callers)
      * @return array<string,string>|null null on an unsatisfiable/unsafe header set
      */
-    private function buildHeaders(array $bundle, bool $guaranteeWitnesses = true): ?array
+    private function buildHeaders(array $bundle, bool $guaranteeWitnesses = true, int $ident = 0): ?array
     {
         /** @var array<string,string> $headers canonical-key => value */
         $headers = [];
@@ -406,10 +437,10 @@ final class ResponseSynthesizer
 
         // Guarantee every header word appears somewhere in the header block. The rich path
         // defers this until AFTER its template-header overlay (see tryEmulator), so a real
-        // header already carrying the witness is not shadowed by a synthetic X-Detected-N —
-        // which no real server sends and would be a fingerprint tell.
+        // header already carrying the witness is not shadowed by a synthetic witness header —
+        // whose deploy-seeded name (SynthScaffold) replaces the old self-identifying X-Detected-N.
         if ($guaranteeWitnesses) {
-            $headers = $this->ensureHeaderWitnesses($headers, $bundle);
+            $headers = $this->ensureHeaderWitnesses($headers, $bundle, $ident);
         }
 
         // hf: a forbidden header-block substring must not be present.
@@ -449,29 +480,90 @@ final class ResponseSynthesizer
     }
 
     /**
-     * Guarantee every non-empty header word appears in the header block: inject each
-     * still-missing witness as its own X-Detected-N header value (a substring match is all
-     * nuclei needs on the all_headers region). A witness already present in a real header
-     * suppresses its synthetic — an enriched response with a believable banner is not also
-     * stamped with a tell no real server sends.
+     * Guarantee every non-empty header word appears in the header block: inject each still-missing
+     * witness as the VALUE of a deploy-seeded, semantics-free header NAME from SynthScaffold (a
+     * substring match on the all_headers region is all nuclei needs — the load-bearing byte is the
+     * value, never the name). The name was a fleet-constant, self-identifying `X-Detected-N` (a tell no
+     * real server sends AND a fleet correlator); it is now a per-deploy `X-<First>-<Suffix>` with no
+     * numeric ordinal. A witness already present in a real header suppresses its synthetic.
+     *
+     * Names are assigned from the deploy's ordered name list, skipping a candidate that is already a
+     * header key (a template/bundle header must never be overwritten) or that would introduce one of
+     * THIS bundle's `hf` forbidden substrings (which would make the bundle fail the hf check and be
+     * skipped — a detection regression). The pool hygiene in SynthScaffold makes both skips
+     * belt-and-braces on the shipped index; they defend a future pool/corpus edit.
      *
      * @param array<string,string> $headers
      * @param array<string,mixed>  $bundle
      * @return array<string,string>
      */
-    private function ensureHeaderWitnesses(array $headers, array $bundle): array
+    private function ensureHeaderWitnesses(array $headers, array $bundle, int $ident): array
     {
-        $synthetic = 0;
+        $names = SynthScaffold::witnessHeaderNames($ident);
+        $hf = array_values(array_map('strval', (array) ($bundle['hf'] ?? [])));
+        $cursor = 0;
+        $extra = 0;
         foreach (array_map('strval', (array) ($bundle['hw'] ?? [])) as $word) {
             if ($word === '') {
                 continue;
             }
-            if (strpos($this->headerBlock($headers), $word) === false) {
-                $headers[$this->canonicalKey('X-Detected-' . (++$synthetic))] = $word;
+            if (strpos($this->headerBlock($headers), $word) !== false) {
+                continue;
             }
+            $name = $this->nextWitnessName($names, $headers, $hf, $cursor, $extra);
+            $headers[$this->canonicalKey($name)] = $word;
         }
 
         return $headers;
+    }
+
+    /**
+     * The next usable witness-header name: walk the deploy's ordered name list from $cursor, skipping a
+     * candidate already keyed in $headers or case-insensitively carrying an `hf` substring. When the
+     * pool is exhausted (unreachable on the shipped index — corpus max is 5 witnesses vs 14 names) fall
+     * back to a deterministic `<first name>-<n>` overflow. $cursor/$extra advance by reference so each
+     * witness on one response gets a distinct name.
+     *
+     * @param list<string>         $names  the deploy's ordered witness names
+     * @param array<string,string> $headers headers assigned so far
+     * @param list<string>         $hf     this bundle's forbidden header-block substrings
+     */
+    private function nextWitnessName(array $names, array $headers, array $hf, int &$cursor, int &$extra): string
+    {
+        $count = count($names);
+        while ($cursor < $count) {
+            $candidate = $names[$cursor];
+            $cursor++;
+            if (isset($headers[$this->canonicalKey($candidate)])) {
+                continue;
+            }
+            if ($this->nameCarriesForbidden($candidate, $hf)) {
+                continue;
+            }
+
+            return $candidate;
+        }
+
+        $extra++;
+
+        return ($names[0] ?? 'X-Trace-Ctx') . '-' . $extra;
+    }
+
+    /**
+     * True if a candidate header name case-insensitively contains any of the bundle's `hf` forbidden
+     * header-block substrings.
+     *
+     * @param list<string> $hf
+     */
+    private function nameCarriesForbidden(string $name, array $hf): bool
+    {
+        foreach ($hf as $bad) {
+            if ($bad !== '' && stripos($name, $bad) !== false) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /**
