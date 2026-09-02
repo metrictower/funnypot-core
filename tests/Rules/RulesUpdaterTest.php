@@ -8,6 +8,7 @@ use Funnypot\Core\Rules\KeyRing;
 use Funnypot\Core\Rules\RulesLocator;
 use Funnypot\Core\Rules\RulesUpdater;
 use Funnypot\Core\Rules\SignatureVerifier;
+use Funnypot\Core\SchemaVersion;
 use Funnypot\Core\Tests\Support\ArrayFetcher;
 use Funnypot\Core\Tests\Support\ReleaseFactory;
 use PHPUnit\Framework\TestCase;
@@ -409,9 +410,9 @@ final class RulesUpdaterTest extends TestCase
         $this->updater('v1')->update();
         $before = $this->currentTarget();
 
-        // v2's manifest declares a schema ahead of SchemaVersion::CURRENT — an older deployed
+        // v2's manifest declares a schema ahead of SchemaVersion::RELEASE_CURRENT — an older deployed
         // engine must refuse it rather than mis-parse a newer release format.
-        $this->factory->publish($this->fetcher, 'v2', 2, $this->factory->engineFiles(), ['schema' => 2]);
+        $this->factory->publish($this->fetcher, 'v2', 2, $this->factory->engineFiles(), ['schema' => SchemaVersion::RELEASE_CURRENT + 1]);
         $result = $this->updater('v2')->update();
 
         self::assertFalse($result->success);
@@ -477,6 +478,352 @@ final class RulesUpdaterTest extends TestCase
 
         flock($held, LOCK_UN);
         fclose($held);
+    }
+
+    // ------------------------------------------------------------ F1: freshness / replay
+
+    public function test_replayed_expired_channels_metadata_is_rejected_as_stale(): void
+    {
+        // The named replay-old-metadata test: an old-but-validly-signed channels.json whose window
+        // has lapsed. Fail-safe to last-good (nothing was installed), reason distinctly stale.
+        $this->factory->publish($this->fetcher, 'v1', 1, $this->factory->engineFiles());
+        $this->factory->publishChannels(
+            $this->fetcher,
+            ['stable' => 'v1', 'revoked' => []],
+            ['generated_at' => gmdate('c', 1000), 'expires' => gmdate('c', 2000)]
+        );
+
+        $u = new RulesUpdater($this->dataDir(), 'stable', null, $this->factory->baseUrl, $this->fetcher, $this->factory->verifier());
+        $u->setPackagedCoverageForTesting(['routes' => 1, 'templates' => 1, 'attack_rules' => 1]);
+        $u->setNowForTesting(1_000_000_000); // long after `expires`
+        $result = $u->update();
+
+        self::assertFalse($result->success);
+        self::assertSame('stale-metadata', $result->status);
+        self::assertNull($this->currentTarget(), 'a stale pointer must not activate anything');
+    }
+
+    public function test_replayed_channels_freeze_does_not_refresh_checked_at(): void
+    {
+        // Install a good v1 through the channel (checked_at now set).
+        $this->factory->publish($this->fetcher, 'v1', 1, $this->factory->engineFiles());
+        $this->factory->publishChannels($this->fetcher, ['stable' => 'v1', 'revoked' => []]);
+        $u = new RulesUpdater($this->dataDir(), 'stable', null, $this->factory->baseUrl, $this->fetcher, $this->factory->verifier());
+        $u->setPackagedCoverageForTesting(['routes' => 1, 'templates' => 1, 'attack_rules' => 1]);
+        $u->update();
+        $checkedBefore = $u->status()->checkedAt;
+        self::assertNotNull($checkedBefore);
+
+        // The freeze attack: replay an EXPIRED channels.json still pointing at the installed v1. The
+        // old no-op path would refresh checked_at (silencing the staleness alarm); now the stale
+        // pointer is rejected BEFORE the no-op, so checked_at must NOT advance.
+        $this->factory->publishChannels(
+            $this->fetcher,
+            ['stable' => 'v1', 'revoked' => []],
+            ['generated_at' => gmdate('c', 1000), 'expires' => gmdate('c', 2000)]
+        );
+        $u2 = new RulesUpdater($this->dataDir(), 'stable', null, $this->factory->baseUrl, $this->fetcher, $this->factory->verifier());
+        $u2->setPackagedCoverageForTesting(['routes' => 1, 'templates' => 1, 'attack_rules' => 1]);
+        $u2->setNowForTesting(1_000_000_000);
+        $result = $u2->update();
+
+        self::assertFalse($result->success);
+        self::assertSame('stale-metadata', $result->status);
+        self::assertSame($checkedBefore, $u2->status()->checkedAt, 'a frozen channel must not refresh checked_at');
+    }
+
+    public function test_expired_manifest_is_rejected_even_when_pinned(): void
+    {
+        // A pinned install skips channels but still enforces the manifest's own freshness window.
+        $this->factory->publish(
+            $this->fetcher,
+            'v1',
+            1,
+            $this->factory->engineFiles(),
+            ['generated_at' => gmdate('c', 1000), 'expires' => gmdate('c', 2000)]
+        );
+        $u = $this->updater('v1');
+        $u->setNowForTesting(1_000_000_000);
+        $result = $u->update();
+
+        self::assertFalse($result->success);
+        self::assertSame('stale-metadata', $result->status);
+        self::assertNull($this->currentTarget());
+    }
+
+    public function test_freshness_tolerates_clock_skew(): void
+    {
+        // A manifest that expired 200 s ago is still accepted inside the 300 s skew tolerance.
+        $now = 1_000_000_000;
+        $this->factory->publish(
+            $this->fetcher,
+            'v1',
+            1,
+            $this->factory->engineFiles(),
+            ['generated_at' => gmdate('c', $now - 3600), 'expires' => gmdate('c', $now - 200)]
+        );
+        $u = $this->updater('v1');
+        $u->setNowForTesting($now);
+        $result = $u->update();
+
+        self::assertTrue($result->success, $result->message);
+        self::assertSame('v1', $result->toVersion);
+    }
+
+    public function test_far_future_generated_at_is_rejected(): void
+    {
+        // generated_at well beyond now + skew is a broken publisher clock or a skew attack.
+        $now = 1_000_000_000;
+        $this->factory->publish(
+            $this->fetcher,
+            'v1',
+            1,
+            $this->factory->engineFiles(),
+            ['generated_at' => gmdate('c', $now + 4000), 'expires' => gmdate('c', $now + 90 * 86400)]
+        );
+        $u = $this->updater('v1');
+        $u->setNowForTesting($now);
+        $result = $u->update();
+
+        self::assertFalse($result->success);
+        self::assertSame('stale-metadata', $result->status);
+        self::assertNull($this->currentTarget());
+    }
+
+    public function test_missing_freshness_fields_on_schema2_are_rejected(): void
+    {
+        // A schema-2 manifest that omits the window is a broken/forged envelope — freshness is not
+        // optional once the format carries it. (unset via override to null-out the defaults.)
+        $pub = $this->factory->publish($this->fetcher, 'v1', 1, $this->factory->engineFiles());
+        $manifest = $pub['manifest'];
+        unset($manifest['generated_at'], $manifest['expires']);
+        // Re-sign the trimmed manifest so it fails on freshness, not signature.
+        $bytes = json_encode($manifest, JSON_UNESCAPED_SLASHES);
+        $sig = $this->factory->sign(SignatureVerifier::CONTEXT_MANIFEST, $bytes, 'release');
+        $this->factory->tamper($this->fetcher, 'v1', 'v1.manifest.json', $bytes);
+        $this->factory->tamper($this->fetcher, 'v1', 'v1.manifest.json.sig', $sig);
+
+        $result = $this->updater('v1')->update();
+        self::assertFalse($result->success);
+        self::assertSame('bad-manifest', $result->status);
+        self::assertNull($this->currentTarget());
+    }
+
+    public function test_channel_generated_at_is_persisted_and_exposed(): void
+    {
+        $now = 1_000_000_000;
+        $genAt = gmdate('c', $now - 3600);
+        $this->factory->publish(
+            $this->fetcher,
+            'v1',
+            1,
+            $this->factory->engineFiles(),
+            ['generated_at' => gmdate('c', $now - 3600), 'expires' => gmdate('c', $now + 90 * 86400)]
+        );
+        $this->factory->publishChannels(
+            $this->fetcher,
+            ['stable' => 'v1', 'revoked' => []],
+            ['generated_at' => $genAt, 'expires' => gmdate('c', $now + 7 * 86400)]
+        );
+        $u = new RulesUpdater($this->dataDir(), 'stable', null, $this->factory->baseUrl, $this->fetcher, $this->factory->verifier());
+        $u->setPackagedCoverageForTesting(['routes' => 1, 'templates' => 1, 'attack_rules' => 1]);
+        $u->setNowForTesting($now);
+        $u->update();
+
+        $status = $u->status();
+        self::assertSame($genAt, $status->channelGeneratedAt);
+        self::assertSame($genAt, $status->toArray()['channel_generated_at']);
+    }
+
+    // ------------------------------------------------------------ F3: decompression bomb
+
+    public function test_forged_isize_gzip_bomb_is_rejected_before_extraction(): void
+    {
+        // The named forged-ISIZE bomb test. A tarball that decompresses to 2 MiB with an ISIZE forged
+        // to 1024 bytes; the streaming counter (cap shrunk to 512 KiB) catches it despite the trailer.
+        $this->factory->publishBomb($this->fetcher, 'v1', 1, 2 * 1024 * 1024);
+        $u = $this->updater('v1');
+        $u->setMaxExtractedBytesForTesting(512 * 1024);
+        $result = $u->update();
+
+        self::assertFalse($result->success);
+        self::assertSame('extract-failed', $result->status);
+        self::assertNull($this->currentTarget());
+
+        // No partial dir survives, and no ~bomb-size file was left anywhere under the data dir.
+        foreach (scandir($this->dataDir()) ?: [] as $item) {
+            self::assertStringStartsNotWith('.partial-', $item, 'the partial extraction dir must be cleaned up');
+        }
+        self::assertSame(0, $this->largestFileUnder($this->dataDir(), 512 * 1024), 'no oversized file may be left on disk');
+    }
+
+    public function test_truncated_gzip_stream_is_rejected(): void
+    {
+        $this->factory->publishTruncatedGzip($this->fetcher, 'v1', 1, $this->factory->engineFiles());
+        $result = $this->updater('v1')->update();
+
+        self::assertFalse($result->success);
+        self::assertSame('extract-failed', $result->status);
+        self::assertNull($this->currentTarget());
+    }
+
+    // ------------------------------------------------------------ F4: domain + role separation
+
+    public function test_channels_signed_by_release_key_is_rejected(): void
+    {
+        $this->factory->publish($this->fetcher, 'v1', 1, $this->factory->engineFiles());
+        // channels.json signed (with the channels context) by the RELEASE key — no channels-role key
+        // can verify it.
+        $this->factory->publishChannels($this->fetcher, ['stable' => 'v1', 'revoked' => []], [], null, 'release');
+        $u = new RulesUpdater($this->dataDir(), 'stable', null, $this->factory->baseUrl, $this->fetcher, $this->factory->verifier());
+        $u->setPackagedCoverageForTesting(['routes' => 1, 'templates' => 1, 'attack_rules' => 1]);
+        $result = $u->update();
+
+        self::assertFalse($result->success);
+        self::assertSame('bad-signature', $result->status);
+        self::assertNull($this->currentTarget());
+    }
+
+    public function test_manifest_signed_by_channels_key_is_rejected(): void
+    {
+        // Manifest signed (with the manifest context) by the CHANNELS key — no release-role key verifies.
+        $this->factory->publish($this->fetcher, 'v1', 1, $this->factory->engineFiles(), [], null, 'channels');
+        $result = $this->updater('v1')->update();
+
+        self::assertFalse($result->success);
+        self::assertSame('bad-signature', $result->status);
+        self::assertNull($this->currentTarget());
+    }
+
+    public function test_legacy_context_free_schema1_manifest_fails_under_context_verifier(): void
+    {
+        // A pre-hardening schema-1 manifest signed over RAW bytes (no context prefix) by the release
+        // key. Under the context-prefixed verifier it can never verify — the correct fail-closed
+        // outcome, since the shipped ring is empty and there is NO legacy verification path.
+        $this->factory->publish($this->fetcher, 'v1', 1, $this->factory->engineFiles(), ['schema' => 1], '');
+        $result = $this->updater('v1')->update();
+
+        self::assertFalse($result->success);
+        self::assertSame('bad-signature', $result->status);
+        self::assertNull($this->currentTarget());
+    }
+
+    public function test_channels_bytes_cannot_replay_as_manifest(): void
+    {
+        // Domain separation: take a validly channels-signed document and serve it (bytes + its own
+        // sig) at the manifest URL. The manifest verifier prefixes CONTEXT_MANIFEST, so the
+        // channels-context signature cannot verify.
+        $this->factory->publishChannels($this->fetcher, ['stable' => 'v9', 'revoked' => []]);
+        $channelsBytes = $this->fetcher->get($this->factory->channelsUrl('channels.json'));
+        $channelsSig = $this->fetcher->get($this->factory->channelsUrl('channels.json.sig'));
+        $this->fetcher->put($this->factory->assetUrl('v9', 'v9.manifest.json'), $channelsBytes);
+        $this->fetcher->put($this->factory->assetUrl('v9', 'v9.manifest.json.sig'), $channelsSig);
+
+        $result = $this->updater('v9')->update();
+        self::assertFalse($result->success);
+        self::assertSame('bad-signature', $result->status);
+        self::assertNull($this->currentTarget());
+    }
+
+    public function test_newer_channels_schema_is_refused(): void
+    {
+        $this->factory->publish($this->fetcher, 'v1', 1, $this->factory->engineFiles());
+        $this->factory->publishChannels($this->fetcher, ['stable' => 'v1', 'revoked' => []], ['schema' => SchemaVersion::RELEASE_CURRENT + 1]);
+        $u = new RulesUpdater($this->dataDir(), 'stable', null, $this->factory->baseUrl, $this->fetcher, $this->factory->verifier());
+        $u->setPackagedCoverageForTesting(['routes' => 1, 'templates' => 1, 'attack_rules' => 1]);
+        $result = $u->update();
+
+        self::assertFalse($result->success);
+        self::assertSame('schema-too-new', $result->status);
+        self::assertNull($this->currentTarget());
+    }
+
+    // ------------------------------------------------------------ F5: widened ReDoS screen
+
+    public function test_param_bucket_catastrophic_regex_is_rejected(): void
+    {
+        // A param-bucket entry regex runs on attacker path bytes at runtime (matchParamRoute) but was
+        // NOT screened before this ticket. The widened walk must catch a catastrophic pattern there.
+        $engine = $this->factory->engineFiles(100, 100);
+        $engine['funnypot-param.php'] = $this->factory->literal([
+            'schema' => 1,
+            'buckets' => [
+                '@fs' => [[
+                    'id' => 'param-redos',
+                    'severity' => 'high',
+                    'tags' => [],
+                    'status' => 200,
+                    'method' => 'GET',
+                    'regex' => '(a+)+$',
+                    'captures' => [],
+                    'response' => ['headers' => [], 'body' => 'ok'],
+                ]],
+            ],
+        ]);
+        $this->factory->publish($this->fetcher, 'v1', 1, $engine);
+
+        $result = $this->updater('v1')->update();
+        self::assertFalse($result->success);
+        self::assertSame('redos', $result->status);
+        self::assertNull($this->currentTarget());
+    }
+
+    public function test_branch_when_catastrophic_regex_is_rejected(): void
+    {
+        // A nested branch case `when.regex` runs on attacker bytes via evalConditions but was NOT
+        // screened before this ticket (only top-level match[].regex was). It must now fail the update.
+        $rules = [[
+            'id' => 'attack-branch-redos',
+            'match' => [['in' => 'query', 'regex' => 'q=([a-z]+)']],
+            'response' => ['body' => 'ok'],
+            'behavior' => 'branch',
+            'branch' => [
+                'cases' => [
+                    ['when' => ['in' => 'body', 'regex' => '(a+)+$'], 'response' => ['body' => 'x']],
+                ],
+                'default' => ['response' => ['body' => 'd']],
+            ],
+        ]];
+        $this->factory->publish($this->fetcher, 'v1', 1, $this->factory->engineFiles(100, 100, $rules));
+
+        $result = $this->updater('v1')->update();
+        self::assertFalse($result->success);
+        self::assertSame('redos', $result->status);
+        self::assertNull($this->currentTarget());
+    }
+
+    public function test_widened_guard_passes_over_the_real_compiled_artifacts(): void
+    {
+        // The bundled release must itself pass the widened walk (fail-closed direction can't reject
+        // the ground-truth artifacts). Screen every regex in the committed resources/compiled set.
+        $guard = new \Funnypot\Core\Rules\ReDosGuard();
+        $base = dirname(__DIR__, 2) . '/resources/compiled';
+        foreach (['funnypot-attack.php', 'funnypot-routes.php', 'funnypot-routes-index.php', 'funnypot-param.php'] as $artifact) {
+            $tree = require $base . '/' . $artifact;
+            self::assertIsArray($tree, "{$artifact} must return an array");
+            $guard->inspectArtifact($tree, $artifact);
+        }
+        $this->addToAssertionCount(1);
+    }
+
+    /** Largest regular-file size under $dir that is >= $threshold, else 0 (recursive). */
+    private function largestFileUnder(string $dir, int $threshold): int
+    {
+        if (!is_dir($dir)) {
+            return 0;
+        }
+        $max = 0;
+        $it = new \RecursiveIteratorIterator(new \RecursiveDirectoryIterator($dir, \FilesystemIterator::SKIP_DOTS));
+        foreach ($it as $item) {
+            if ($item->isFile() && !$item->isLink()) {
+                $size = (int) $item->getSize();
+                if ($size >= $threshold && $size > $max) {
+                    $max = $size;
+                }
+            }
+        }
+
+        return $max;
     }
 
     private function rmrf(string $dir): void
