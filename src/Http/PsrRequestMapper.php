@@ -60,7 +60,10 @@ final class PsrRequestMapper
      * so a miss still lets $handler->handle($request) read the body itself.
      *
      * Capped at MAX_BODY_BYTES so a huge body can never OOM the host — the read loop stops at the
-     * cap, and PSR-7 read($n) may return short reads so a single read(65536) is not enough. The
+     * cap, and PSR-7 read($n) may return short reads so a single read(65536) is not enough. Loop
+     * TERMINATION is unconditional (the buffer strictly grows and is hard-capped); the memory ceiling
+     * additionally assumes read($n) honours its "up to $n bytes" contract (all mainstream impls do —
+     * Nyholm/Guzzle/php-temp), the same assumption fromGlobals makes of file_get_contents(maxlen). The
      * whole read is throw-safe: a stream that lies about isSeekable()/throws on rewind() degrades to
      * "no body captured" (null) rather than escaping as a host 500 (same fail-safe family as Fix C).
      * The rewind is best-effort in a finally so the downstream handler still sees the body at 0.

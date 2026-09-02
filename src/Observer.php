@@ -7,6 +7,13 @@ namespace Funnypot\Core;
 /**
  * App-policy seam. The core calls these on the respond() path so all logging,
  * scoring, and banning live in the host app — the core stays side-effect-free.
+ *
+ * Fail-safe contract (FP-0252): the core wraps every call below in try/catch and
+ * SWALLOWS any Throwable, so a bug in your implementation can never turn a request
+ * into a host 500. A throw is therefore NOT a veto: to suppress a fake, return false
+ * from shouldRespond() — do not throw/abort() from onDetection() (that exception is
+ * discarded and the fake is still served). A shouldRespond() throw is treated as a
+ * veto (Outcome::VETOED); onDetection()/onOutcome() throws are silently dropped.
  */
 interface Observer
 {

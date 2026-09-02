@@ -22,7 +22,10 @@ final class Config
      * @param string        $mode            off | detect | respond
      * @param Closure|null  $gate            fn(RequestContext):bool — app suspicion predicate; null ⇒ closed (false)
      * @param string        $pathScope       matched-only (only compiled paths) | any
-     * @param Closure|null  $personaSeed     fn(RequestContext):string — determinism source; null ⇒ host + salt
+     * @param Closure|null  $personaSeed     fn(RequestContext):string — determinism source; null ⇒ host + salt.
+     *                                        FP-0252 fail-safe: a Throwable from this closure is caught and falls
+     *                                        back to the built-in host+salt seed (a request-dependent closure that
+     *                                        throws on some shapes can thus surface two personas on one origin).
      * @param string        $personaBreadth  coherent (one product persona) | greedy
      * @param string        $responseStyle   minimal | realistic | taunt (see Response\Style)
      * @param string        $severityCeiling refuse to fabricate anything stronger than this

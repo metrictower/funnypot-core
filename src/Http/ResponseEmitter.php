@@ -85,8 +85,12 @@ final class ResponseEmitter
 
         // Every mainstream origin sends Content-Length for a fixed body, so an emitter that never
         // does is the anomaly — this REDUCES fingerprintability. strlen() counts bytes (correct for
-        // the wire). Skip it only when the response already declares a Content-Length or is chunked.
-        if (!$hasContentLength && !$hasTransferEncoding) {
+        // the wire). Skip it when the response already declares a Content-Length or is chunked, and
+        // for the status classes where RFC 9110 §8.6 forbids the header (1xx informational and 204
+        // No Content) — sending it there is itself a tell on a bare SAPI (proxies strip it anyway).
+        $status = $response->status;
+        $forbidsContentLength = $status === 204 || ($status >= 100 && $status <= 199);
+        if (!$hasContentLength && !$hasTransferEncoding && !$forbidsContentLength) {
             $lines[] = ['Content-Length: ' . strlen($response->body), true];
         }
 

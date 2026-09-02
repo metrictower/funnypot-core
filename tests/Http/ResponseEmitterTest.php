@@ -134,6 +134,45 @@ final class ResponseEmitterTest extends TestCase
         self::assertContains('Content-Type: application/json', $lines);
     }
 
+    /**
+     * RFC 9110 §8.6: a 204 or 1xx response must not carry Content-Length. Synthesizing one there is
+     * itself a tell on a bare SAPI (proxies strip it), so headerLines() must skip it for those status
+     * classes even though the body is empty/absent.
+     * @dataProvider noContentLengthStatuses
+     */
+    public function test_content_length_not_synthesized_for_status_that_forbids_it(int $status): void
+    {
+        $r = new SynthesizedResponse($status, ['Content-Type' => 'text/plain'], '', Detection::none());
+
+        $cl = array_filter($this->linesOnly($r), static function (string $l): bool {
+            return stripos($l, 'Content-Length:') === 0;
+        });
+        self::assertCount(0, $cl, "status $status must not synthesize Content-Length");
+    }
+
+    /** @return array<string,array{0:int}> */
+    public function noContentLengthStatuses(): array
+    {
+        return [
+            '100 Continue' => [100],
+            '101 Switching Protocols' => [101],
+            '199 informational upper edge' => [199],
+            '204 No Content' => [204],
+        ];
+    }
+
+    public function test_content_length_still_synthesized_for_200_and_304(): void
+    {
+        // Guard the boundary: 200 (and 3xx like 304, which is NOT in the forbidden set) keep the header.
+        foreach ([200, 304] as $status) {
+            $r = new SynthesizedResponse($status, ['Content-Type' => 'text/plain'], 'hello', Detection::none());
+            $cl = array_filter($this->linesOnly($r), static function (string $l): bool {
+                return stripos($l, 'Content-Length:') === 0;
+            });
+            self::assertCount(1, $cl, "status $status should still synthesize Content-Length");
+        }
+    }
+
     public function test_emit_applies_delay_metadata(): void
     {
         $response = $this->response(['Content-Type' => 'text/plain'], 'x');
