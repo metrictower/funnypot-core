@@ -175,10 +175,14 @@ final class OastSeamTest extends TestCase
             'fsockopen', 'curl_', 'file_get_contents', 'fopen', 'stream_socket',
             'gethostby', 'dns_get_record', 'checkdnsrr', 'socket_create',
         ];
-        $oast = file_get_contents(__DIR__ . '/../src/OastProbe.php');
-        self::assertNotFalse($oast);
-        foreach ($needles as $needle) {
-            self::assertStringNotContainsString($needle, $oast, "OastProbe must not reference {$needle}");
+        // FP-0257 N-A: cover the shared OobHaystack::build() entry point both probes now call, so a
+        // future edit adding a network primitive to the haystack assembly trips this regression guard.
+        foreach (['/../src/OastProbe.php', '/../src/Support/OobHaystack.php'] as $rel) {
+            $src = file_get_contents(__DIR__ . $rel);
+            self::assertNotFalse($src);
+            foreach ($needles as $needle) {
+                self::assertStringNotContainsString($needle, $src, basename($rel) . " must not reference {$needle}");
+            }
         }
         // The fold itself (classify/foldOob) does only array/string work — assert the fold body.
         $honeypot = file_get_contents(__DIR__ . '/../src/Honeypot.php');
