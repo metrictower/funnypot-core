@@ -30,7 +30,13 @@ final class PsrRequestMapper
             $headers[$name] = implode(', ', $values);
         }
 
-        $host = $uri->getHost() !== '' ? $uri->getHost() : ($headers['Host'] ?? '');
+        // PSR-7 header access is case-insensitive by contract, so a lowercase h2 `host` and an h1
+        // `Host` resolve identically here — the $headers array preserves wire casing, so the old
+        // `$headers['Host']` lookup missed the h2 form and flapped the persona across protocol
+        // versions. strtolower() the fallback because Uri::getHost() is normalized lowercase but a
+        // header line keeps its wire casing, so EXAMPLE.com (h1) and example.com (h2) must not seed
+        // differently on a relative-URI request. The URI host still wins when present.
+        $host = $uri->getHost() !== '' ? $uri->getHost() : strtolower($request->getHeaderLine('Host'));
         $scheme = $uri->getScheme() !== '' ? $uri->getScheme() : 'https';
 
         return new RequestContext(
@@ -40,7 +46,11 @@ final class PsrRequestMapper
             $headers,
             self::readBody($request),
             $host,
-            $scheme
+            $scheme,
+            // The h2 self-consistency bot signal (an HTTP/2 request must not carry Connection) was
+            // blind for every PSR-15 host because this arg defaulted to ''. PSR-7 returns '1.1' /
+            // '2' / '2.0'; Honeypot::isHttp2() normalizes any of them.
+            $request->getProtocolVersion()
         );
     }
 
