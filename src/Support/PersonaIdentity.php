@@ -11,7 +11,9 @@ use Funnypot\Core\Support\Fake\FakePeople;
  * admin account, and cloud credentials that all agree with each other. Dependent fields are
  * string-composed from their parents (email uses the admin username AND the company domain;
  * db.name/db.user carry the company slug) so a synthesized response never contradicts itself
- * across two different fakes.
+ * across two different fakes. The cloud story is coherent the same way: the AWS region is drawn
+ * once and its ElastiCache short code (cloud.aws.regionCode) is a lookup off that one draw, so every
+ * config-disclosure surface (.env, wp-config, .aws/config, terraform.tfstate) discloses ONE region.
  *
  * Every value is a pure function of the seed plus the frozen dictionaries below, so the same
  * seed always yields byte-identical fields (a re-scan by the same attacker sees one stable
@@ -26,6 +28,11 @@ final class PersonaIdentity
         'db.host', 'db.name', 'db.wpName', 'db.user', 'db.password',
         'user.admin.username', 'user.admin.email', 'user.admin.password', 'user.admin.passwordHash',
         'cloud.aws.accessKeyId', 'cloud.aws.secretKey', 'cloud.aws.region',
+        // The ElastiCache/short region code (`use1`, `euw1`, `apse2`, …) that AWS embeds inside
+        // `*.cache.amazonaws.com` endpoints. A pure table lookup off cloud.aws.region (the codes are
+        // AWS's actual endpoint tokens — `ap-southeast-1` is `apse1`, not `apso1` — so a lookup, never
+        // a mechanical derivation), so the deploy draws its region ONCE and every host segment follows it.
+        'cloud.aws.regionCode',
         'cloud.anthropic.apiKey', 'cloud.openai.apiKey', 'cloud.github.copilotToken',
         'cloud.stripe.secretKey', 'cloud.sendgrid.apiKey', 'cloud.google.apiKey',
         'secret.jwt',
@@ -108,9 +115,18 @@ final class PersonaIdentity
         'astra', 'generatepress', 'oceanwp', 'kadence', 'hello-elementor',
     ];
 
-    private const AWS_REGIONS = [
-        'us-east-1', 'us-east-2', 'us-west-1', 'us-west-2', 'eu-west-1', 'eu-west-2',
-        'eu-central-1', 'ap-southeast-1', 'ap-southeast-2', 'ap-northeast-1', 'ca-central-1', 'sa-east-1',
+    // The region pool AND its ElastiCache short-code map in ONE table (keys = the regions the deploy
+    // picks from, values = AWS's actual `*.cache.amazonaws.com` endpoint token for each). The region
+    // pick draws over array_keys() of this map, so cloud.aws.regionCode is a total lookup that can never
+    // miss (no `?? ''` default). These codes are NOT mechanically derivable from the region name
+    // (`ap-southeast-1` → `apse1`, not `apso1`), hence an explicit table. Key order is load-bearing:
+    // SubSeed::pick indexes array_values(array_keys(...)), so reordering these keys reseeds every
+    // deploy's region — keep the historical order.
+    private const AWS_REGION_CODES = [
+        'us-east-1' => 'use1', 'us-east-2' => 'use2', 'us-west-1' => 'usw1', 'us-west-2' => 'usw2',
+        'eu-west-1' => 'euw1', 'eu-west-2' => 'euw2', 'eu-central-1' => 'euc1',
+        'ap-southeast-1' => 'apse1', 'ap-southeast-2' => 'apse2', 'ap-northeast-1' => 'apne1',
+        'ca-central-1' => 'cac1', 'sa-east-1' => 'sae1',
     ];
 
     // Mixed alphabets (upper + lower + digits + a couple of symbols) so fake passwords read like
@@ -170,7 +186,10 @@ final class PersonaIdentity
             // A real AWS secret key uses the standard alphabet, so the fake must too or a secret
             // scanner's regex rejects it and it never baits.
             'cloud.aws.secretKey' => self::awsSecretKey($seed),
-            'cloud.aws.region' => self::pick(self::AWS_REGIONS, $seed, 'aws_region'),
+            // Draw the region ONCE (over the map's keys, same order/tag as before ⇒ byte-identical to
+            // the historical pick), then derive its short code by a total lookup — no second draw.
+            'cloud.aws.region' => $region = self::pick(array_keys(self::AWS_REGION_CODES), $seed, 'aws_region'),
+            'cloud.aws.regionCode' => self::AWS_REGION_CODES[$region],
 
             // Synthetic AI-vendor keys. Each shape is exact by design: a secret scanner
             // (trufflehog/gitleaks) only bites when the counts/infix/suffix match the real

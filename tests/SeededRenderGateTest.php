@@ -110,8 +110,9 @@ final class SeededRenderGateTest extends TestCase
         self::assertStringContainsString('bundles synthesized', $text, 'the minimal-synth leg must run on the committed index');
         self::assertStringContainsString('authed gate renders', $text, 'the FP-0282 authed decoy leg must run on the committed rules');
         self::assertStringContainsString('seeded surfaces verified', $text);
-        // 24 rule-driven surfaces + 2 FP-0281 synth: aggregates + 2 FP-0282 authed: gates (phpMyAdmin + wp-admin).
-        self::assertMatchesRegularExpression('/(2[8-9]|[3-9]\d) seeded surfaces verified/', $text, 'the 24 rule surfaces + 2 synth aggregates + 2 authed gates must verify');
+        // 26 rule-driven surfaces (FP-0284 added route-aws-cli-config + route-terraform-tfstate) + 2
+        // FP-0281 synth: aggregates + 2 FP-0282 authed: gates (phpMyAdmin + wp-admin) = 30.
+        self::assertMatchesRegularExpression('/(30|3[1-9]|[4-9]\d) seeded surfaces verified/', $text, 'the 26 rule surfaces + 2 synth aggregates + 2 authed gates must verify');
         self::assertMatchesRegularExpression('/[1-9]\d* fleet-constant/', $text, 'the informational inventory must be non-empty');
     }
 

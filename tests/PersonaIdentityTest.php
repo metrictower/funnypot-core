@@ -47,7 +47,48 @@ final class PersonaIdentityTest extends TestCase
             );
             self::assertStringStartsWith($slug . '_', (string) $p->field('db.name'), "seed {$seed}: db.name carries the slug");
             self::assertStringStartsWith($slug . '_', (string) $p->field('db.user'), "seed {$seed}: db.user carries the slug");
+
+            // The AWS region code is a pure lookup off the once-drawn region — never empty, and the
+            // exact ElastiCache endpoint token for that region (pinned by a test-local map so a typo
+            // in the source const is caught here).
+            $region = (string) $p->field('cloud.aws.region');
+            $code = (string) $p->field('cloud.aws.regionCode');
+            self::assertNotSame('', $code, "seed {$seed}: regionCode is never empty");
+            self::assertSame(1, preg_match('/^[a-z]{2,4}\d$/', $code), "seed {$seed}: regionCode shape");
+            self::assertArrayHasKey($region, self::REGION_CODES, "seed {$seed}: region '{$region}' has a known code");
+            self::assertSame(self::REGION_CODES[$region], $code, "seed {$seed}: regionCode is the ElastiCache token for the region");
         }
+    }
+
+    /**
+     * The authoritative region → ElastiCache short-code map, kept locally so a typo in the source
+     * const (e.g. apse1 → apso1) is caught by comparison, and so the "every region has a code" sweep
+     * has an independent oracle. AWS's actual endpoint tokens — a lookup, not a mechanical derivation.
+     */
+    private const REGION_CODES = [
+        'us-east-1' => 'use1', 'us-east-2' => 'use2', 'us-west-1' => 'usw1', 'us-west-2' => 'usw2',
+        'eu-west-1' => 'euw1', 'eu-west-2' => 'euw2', 'eu-central-1' => 'euc1',
+        'ap-southeast-1' => 'apse1', 'ap-southeast-2' => 'apse2', 'ap-northeast-1' => 'apne1',
+        'ca-central-1' => 'cac1', 'sa-east-1' => 'sae1',
+    ];
+
+    public function test_region_code_table_covers_every_region_in_the_pool(): void
+    {
+        // Sweep enough materials to hit every one of the 12 pool regions (the planner's 300-material
+        // sweep hit all 12); every region seen must resolve to the mapped, non-empty code.
+        $seen = [];
+        $codes = [];
+        for ($seed = 0; $seed <= 3000; $seed++) {
+            $p = PersonaIdentity::fromSeed($seed);
+            $region = (string) $p->field('cloud.aws.region');
+            $code = (string) $p->field('cloud.aws.regionCode');
+            self::assertNotSame('', $code, "seed {$seed}: region '{$region}' resolved an empty code");
+            self::assertSame(self::REGION_CODES[$region] ?? null, $code, "seed {$seed}: region '{$region}' code");
+            $seen[$region] = true;
+            $codes[$code] = true;
+        }
+        self::assertCount(12, $seen, 'the sweep must exercise all 12 pool regions');
+        self::assertCount(12, $codes, 'the 12 regions map to 12 distinct codes');
     }
 
     public function test_credential_shapes_are_realistic(): void

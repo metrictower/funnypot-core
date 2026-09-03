@@ -23,9 +23,11 @@ declare(strict_types=1);
  */
 return [
     // WordPress config backup: DB name/user and the persona company surface through the render.
-    'route:route-wp-config' => 'FP-0276 persona-derived WordPress config credentials',
+    // FP-0284 moved DB_NAME/DB_USER/region/bucket onto persona directives (one DB story + region).
+    'route:route-wp-config' => 'FP-0276 persona-derived WordPress config credentials (FP-0284: name/user/region/bucket)',
     // A dotenv exposure: the persona company/domain + fake secrets vary per deploy.
-    'route:route-dotenv' => 'FP-0276 persona-derived .env credentials',
+    // FP-0284 moved APP_NAME/URL/DB name-user-password/region/bucket onto persona directives.
+    'route:route-dotenv' => 'FP-0276 persona-derived .env credentials (FP-0284: name/url/db-story/region/bucket)',
     // phpinfo surface carries the deploy persona (company/domain/versions).
     'route:route-phpinfo' => 'FP-0276 persona-derived phpinfo identity',
     // The phpMyAdmin login shell renders {{persona.classPrefix}} + {{persona.phpmyadmin.version}}.
@@ -88,4 +90,11 @@ return [
     // The wp-admin authed dashboard's loot (the five persona WordPress users) varies per deploy; rendered
     // by the same authed leg (owns_path ["/wp-admin"] via the $owned[0] fallback).
     'authed:attack-wp-admin-redirect' => 'FP-0276-origin (persona users) — registered by FP-0282 authed leg',
+    // --- FP-0284: the two coherent config-disclosure surfaces registered as the cross-file anchors ---
+    // 236 /.aws/config — always persona region (never fleet-constant); registered as the anchor every
+    // other disclosure file now equals. G4 only proves it varies per deploy; T1 proves the equality.
+    'route:route-aws-cli-config' => 'FP-0276-origin (persona region) — registered by FP-0284 as the cross-file region anchor',
+    // 231 terraform.tfstate — already varied through {{persona.cloud.aws.accessKeyId}}; FP-0284 moved
+    // the RDS identifier/region/username/password onto the persona so the DB story matches /.env's.
+    'route:route-terraform-tfstate' => 'FP-0276-origin (persona AWS key) — registered by FP-0284 (region/identifier/db.user/db.password now persona)',
 ];

@@ -4,6 +4,9 @@ priority: 236
 # that listing's second link live too. Region agrees with the same persona identity route 235's
 # credentials disclose, so the two files describe one coherent AWS setup.
 #
+# FP-0284: this region is the cross-file anchor — /.env, wp-config, terraform.tfstate and the /@fs
+# mirror all render {{persona.cloud.aws.region}} and so agree with THIS file on one region per deploy.
+#
 # A generic corpus template ('aws-config') already keys this same exact path with a detect-only
 # bundle that has no authored body — its minimal synth renders the WRONG field entirely
 # (`aws_access_key_id =`, not `region =`), a worse tell than the 404 this closes. The heavy

@@ -31,32 +31,30 @@ traversal-read:
       content:
         headers: { Content-Type: 'text/plain; charset=utf-8' }
         body: |
-          APP_NAME={{pick:Acme,Northwind,Contoso,Fabrikam,Initech}}
+          APP_NAME={{persona.company.name}}
           APP_ENV=production
           APP_KEY=base64:{{fake.app_key:b64:44}}
           APP_DEBUG=false
-          APP_URL=https://app.example.com
+          APP_URL=https://{{persona.company.domain}}
 
           LOG_CHANNEL=stack
 
           DB_CONNECTION=pgsql
-          DB_HOST=db-{{fake.pghost:hex:12}}.cluster-cg{{fake.pgacct:hex:9}}.eu-west-1.rds.amazonaws.com
+          DB_HOST=db-{{fake.pghost:hex:12}}.cluster-cg{{fake.pgacct:hex:9}}.{{persona.cloud.aws.region}}.rds.amazonaws.com
           DB_PORT=5432
-          DB_DATABASE=app_production
-          DB_USERNAME=app_prod
-          DB_PASSWORD={{fake.pgpass:hex:24}}
+          DB_DATABASE={{persona.db.name}}
+          DB_USERNAME={{persona.db.user}}
+          DB_PASSWORD={{persona.db.password}}
 
-          REDIS_HOST=cache-{{fake.redishost:hex:12}}.0001.euw1.cache.amazonaws.com
+          REDIS_HOST=cache-{{fake.redishost:hex:12}}.0001.{{persona.cloud.aws.regionCode}}.cache.amazonaws.com
           REDIS_PORT=6379
           REDIS_PASSWORD={{fake.redispass:hex:32}}
 
-          # AWS — S3 uploads + SES. The key pair is the persona identity's (not a shared pick), so
-          # /.env, /@fs/.env, /@fs/.aws/credentials and wp-config all disclose ONE coherent AWS key
-          # per deployment. Region stays eu-west-1 to agree with the RDS/ElastiCache hosts above.
+          # AWS — S3 uploads + SES
           AWS_ACCESS_KEY_ID={{persona.cloud.aws.accessKeyId}}
           AWS_SECRET_ACCESS_KEY={{persona.cloud.aws.secretKey}}
-          AWS_DEFAULT_REGION=eu-west-1
-          AWS_BUCKET={{pick:acme,northwind,contoso,fabrikam,initech}}-prod-uploads
+          AWS_DEFAULT_REGION={{persona.cloud.aws.region}}
+          AWS_BUCKET={{persona.company.slug}}-prod-uploads
 
           # Stripe — billing
           STRIPE_KEY=pk_live_{{fake.stripe_pk:hex:24}}
@@ -93,10 +91,10 @@ traversal-read:
            */
 
           // ** Database settings ** //
-          define('DB_NAME', '{{pick:wp_prod,wordpress,wp_live,blog}}');
-          define('DB_USER', 'wp_app');
+          define('DB_NAME', '{{persona.db.wpName}}');
+          define('DB_USER', '{{persona.db.user}}');
           define('DB_PASSWORD', '{{fake.dbpass:hex:24}}');
-          define('DB_HOST', 'wp-prod-db-{{fake.dbhost:hex:12}}.cluster-cg{{fake.dbacct:hex:9}}.us-east-1.rds.amazonaws.com');
+          define('DB_HOST', 'wp-prod-db-{{fake.dbhost:hex:12}}.cluster-cg{{fake.dbacct:hex:9}}.{{persona.cloud.aws.region}}.rds.amazonaws.com');
           define('DB_CHARSET', 'utf8mb4');
           define('DB_COLLATE', '');
 
@@ -105,8 +103,8 @@ traversal-read:
               'provider'          => 'aws',
               'access-key-id'     => '{{persona.cloud.aws.accessKeyId}}',
               'secret-access-key' => '{{persona.cloud.aws.secretKey}}',
-              'bucket'            => 'media.example.com',
-              'region'            => 'us-east-1',
+              'bucket'            => 'media.{{persona.company.domain}}',
+              'region'            => '{{persona.cloud.aws.region}}',
           )));
 
           // ** WooCommerce Stripe Gateway ** //

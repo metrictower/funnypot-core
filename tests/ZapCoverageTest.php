@@ -392,6 +392,56 @@ final class ZapCoverageTest extends TestCase
         self::assertSame($rl[1], $rk[1], 'the AWS region must be identical across .aws/config and credentials.txt');
     }
 
+    public function test_config_disclosure_cluster_renders_one_region_and_one_db_story(): void
+    {
+        // FP-0284: the whole config-disclosure cluster (/.env, wp-config, .aws/config, terraform.tfstate)
+        // must render ONE AWS region and ONE DB story from the single per-deploy persona — never the
+        // three-region / two-host incoherence that shipped before. The engine here threads the '' fleet
+        // default deploy identity, so a coherent cluster resolves one region across all four surfaces.
+        $engine = $this->fullEngine();
+        $env = $engine->respond(new RequestContext('GET', '/.env'));
+        $wp = $engine->respond(new RequestContext('GET', '/wp-config.php-backup'));
+        $tf = $engine->respond(new RequestContext('GET', '/terraform.tfstate'));
+        $aws = $engine->respond(new RequestContext('GET', '/.aws/config'));
+        foreach (['/.env' => $env, '/wp-config.php-backup' => $wp, '/terraform.tfstate' => $tf, '/.aws/config' => $aws] as $p => $r) {
+            self::assertNotNull($r, "{$p} must serve a fake");
+        }
+        // /.env is the exposed-.env nuclei surface — its octet-stream Content-Type is load-bearing.
+        self::assertSame('application/octet-stream', $env->headers['Content-Type'] ?? null, '/.env keeps its octet-stream fingerprint');
+
+        // The .aws/config region is the anchor every other file must equal.
+        self::assertSame(1, preg_match('/region = (\S+)/', $aws->body, $anchor));
+        $region = $anchor[1];
+
+        self::assertSame(1, preg_match('/AWS_DEFAULT_REGION=(\S+)/', $env->body, $er));
+        self::assertSame($region, $er[1], '/.env AWS_DEFAULT_REGION equals the .aws/config region');
+        self::assertSame(1, preg_match('/DB_HOST=\S+\.([a-z]{2}-[a-z]+-\d)\.rds\.amazonaws\.com/', $env->body, $edh));
+        self::assertSame($region, $edh[1], '/.env RDS host region equals the anchor');
+
+        self::assertSame(1, preg_match("/'region'\\s+=>\\s+'([^']+)'/", $wp->body, $wr));
+        self::assertSame($region, $wr[1], 'wp-config region equals the anchor');
+        self::assertSame(1, preg_match('/DB_HOST\', \'\S+\.([a-z]{2}-[a-z]+-\d)\.rds\.amazonaws\.com/', $wp->body, $wdh));
+        self::assertSame($region, $wdh[1], 'wp-config RDS host region equals the anchor');
+
+        self::assertSame(1, preg_match('/"address": "\S+?\.([a-z]{2}-[a-z]+-\d)\.rds\.amazonaws\.com"/', $tf->body, $tdh));
+        self::assertSame($region, $tdh[1], 'terraform.tfstate RDS host region equals the anchor');
+
+        // One DB story: /.env DB_USERNAME == wp-config DB_USER == tfstate "username".
+        self::assertSame(1, preg_match('/DB_USERNAME=(\S+)/', $env->body, $eu));
+        self::assertSame(1, preg_match("/define\\('DB_USER', '([^']+)'\\)/", $wp->body, $wu));
+        self::assertSame(1, preg_match('/"username": "([^"]+)"/', $tf->body, $tu));
+        self::assertSame($eu[1], $wu[1], '/.env and wp-config disclose the same DB user');
+        self::assertSame($eu[1], $tu[1], '/.env and terraform.tfstate disclose the same DB user');
+
+        // The binding must-fix: /.env and tfstate describe the SAME DB ⇒ one host + one password.
+        self::assertSame(1, preg_match('/DB_HOST=(\S+)/', $env->body, $eh));
+        self::assertSame(1, preg_match('/DB_PASSWORD=(\S+)/', $env->body, $ep));
+        self::assertSame(1, preg_match('/"address": "([^"]+)"/', $tf->body, $th));
+        self::assertSame(1, preg_match('/"password": "([^"]+)"/', $tf->body, $tp));
+        self::assertSame($eh[1], $th[1], 'terraform.tfstate host equals /.env DB_HOST (one DB, one host)');
+        self::assertSame($ep[1], $tp[1], 'terraform.tfstate password equals /.env DB_PASSWORD (one credential story)');
+    }
+
     // --- Fingerprint safety on the served bodies (not only the compiled artifacts) -------------
 
     public function test_new_surfaces_carry_no_denied_fingerprint_token(): void
