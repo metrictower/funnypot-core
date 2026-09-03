@@ -3,6 +3,7 @@
 [![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 [![PHP](https://img.shields.io/badge/php-%3E%3D7.3-777bb3.svg)](composer.json)
 [![Runtime](https://img.shields.io/badge/runtime-PHP--only-blue.svg)](#how-it-works)
+[![Docs](https://img.shields.io/badge/docs-funnypot.org-f46800.svg)](https://funnypot.org/packages/funnypot-core/)
 
 > **Not sure you're in the right place?**
 > - Want a ready-to-run **honeypot box** to deploy → [funnypot-app](https://github.com/metrictower/funnypot-app)
@@ -285,8 +286,8 @@ Set at init with `responseStyle`:
 
 | Style | What the attacker gets |
 |---|---|
-| `minimal` | Just the tokens the matcher needs. Smallest. The default. |
-| `realistic` | A believable fake: a full `.git/config`, a plausible `.env`, a real XML-RPC `methodResponse`. All values inert. |
+| `minimal` | Just the tokens the matcher needs. Smallest. |
+| `realistic` | A believable fake: a full `.git/config`, a plausible `.env`, a real XML-RPC `methodResponse`. All values inert. **The default.** |
 | `taunt` | Still satisfies the scanner, and carries a visible "honeypot, your scan was logged" marker. |
 
 Rich content is validated against the matcher before use. If a richer body would not satisfy the
@@ -437,10 +438,12 @@ at build time and not listed here. Every response stays **inert** (emulates outp
 | Family | Decoys | Behaviour |
 |---|---|---|
 | **Panel login oracles** | Grafana · Kibana · Jenkins · Webmin · cPanel/cpsrvd · phpPgAdmin · WP-login · D-Link HNAP | Byte-faithful login pages that **never** authenticate — bait the login, log the attempt, always decline |
-| **Mock-auth (high-interaction)** | phpMyAdmin (gate + login + authed dashboard) | Accepts any credential → inert decoy session → authed "breached DB" (5 seeded tables). Dormant until a signing key is set |
-| **WordPress** | xmlrpc (base · GET · addtwo · `system.multicall`) · wp-login · wp-admin redirect · REST API (`/wp-json` index + `wp/v2` users · posts · pages · comments · media · categories · tags · types · statuses · settings) | Request-aware `xmlrpc.php` parses the `methodCall`; login oracle; `/wp-admin` → login 302; REST endpoints serve one persona-seeded author set (5 users, index 1 = admin) that every collection references — no email/login exposed to anon, `settings` → 401 |
+| **Mock-auth (high-interaction)** | phpMyAdmin (gate + login + authed dashboard) · WordPress (wp-login mint → authed `/wp-admin` dashboard) | Accepts any credential → inert decoy session → an authed decoy: phpMyAdmin's "breached DB" (6 seeded tables, one seeded with an inert CTF-style flag) or a full WordPress admin dashboard. Dormant until a signing key is set |
+| **WordPress** | xmlrpc (base · GET · addtwo · `system.multicall`) · wp-login (mock-auth mint) · wp-admin (authed dashboard, else login redirect) · REST API (`/wp-json` index + `wp/v2` users · posts · pages · comments · media · categories · tags · types · statuses · settings) | Request-aware `xmlrpc.php` parses the `methodCall`; a plausible wp-login POST mints a signed decoy session and 302s to `/wp-admin/`, which renders an authed admin dashboard for that cookie and falls back to the pinned login redirect otherwise; REST endpoints serve one persona-seeded author set (5 users, index 1 = admin) that every collection references — no email/login exposed to anon, `settings` → 401 |
+| **Next.js / RSC** | App-Router `GET /` shell + a React Server Components (Flight) responder for `?_rsc=` navigations | A persona-gated framework fingerprint for the 2025 RSC CVE family (CVE-2025-55182/-55183/-55184) — fires only on deploys where the persona lottery picked Next.js for `/`, so it never leaks a stray Flight response on a WordPress/nginx deploy. Inert hand-authored Flight document, no request byte reflected |
 | **RCE / CVE exploits** | Confluence OGNL (26134) · php-cgi (1823 · 4577) · Shellshock · Struts OGNL (5638) · PHPUnit (9841) · ThinkPHP · F5 iControl (1388) · GeoServer (36401) · Laravel Ignition · ownCloud (49103) · Spring Actuator · webshell | Fake-vulnerable responses so the scanner "confirms" a hit that isn't real |
-| **Injection & reflection** | SQLi · XSS · SSTI (Twig · numeric) · command injection (unix · windows) · XXE · open-redirect · php-glastopf | Plausible reflected-payload behaviour, never executed |
+| **IoT / edge exploits (CVE)** | Hikvision camera (36260) · GPON router (10561) · Fiberhome router (27973) · Netgear router (6277) · Xdebug remote-debug recon · Node-RED (deploy RCE + recon) | Signal-only decoys for the highest-volume real-world IoT/edge HTTP exploit probes — path/payload-gated, inert canned reply, no request byte reflected |
+| **Injection & reflection** | SQLi · XSS · SSTI (Twig · numeric) · command injection (unix · windows) · XXE · open-redirect · CRLF response-splitting · php-glastopf | Plausible reflected-payload behaviour, never executed |
 | **LFI / traversal** | `/etc/shadow` · `/etc/group` · `/proc/*/environ` · unix · windows · SMB conf | Bounded fake file-read, in-string only — no filesystem access |
 | **Network appliances (CVE)** | FortiOS (40684) · Ivanti Connect Secure (21887) · Citrix Bleed (4966) | Edge-device exploit surfaces bots sweep hardest |
 | **Cloud / IMDS** | EC2 instance-metadata tree (category listing · every leaf · `placement`/`iam`/`network`/`block-device-mapping` sub-listings) · `instance-identity/document` · `iam/security-credentials` role listing → inert STS creds | Fully-walkable SSRF/LFI bait — every advertised child resolves (no partial tell), all values inert, seed-coherent, and consistent across the document and leaves |
