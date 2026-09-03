@@ -33,7 +33,7 @@ final class CrsArchetypes
     private const CLASSES = [
         'sqli' => ['id' => 'attack-crs-sqli', 'from' => 'templates/attack/50-sqli.yaml', 'severity' => 'high', 'priority' => 950],
         'xss' => ['id' => 'attack-crs-xss', 'from' => null, 'severity' => 'medium', 'priority' => 951],
-        'lfi' => ['id' => 'attack-crs-lfi', 'from' => 'templates/attack/31-lfi-unix.yaml', 'severity' => 'high', 'priority' => 952],
+        'lfi' => ['id' => 'attack-crs-lfi', 'from' => null, 'severity' => 'high', 'priority' => 952],
         'rce' => ['id' => 'attack-crs-rce', 'from' => 'templates/attack/41-cmdi-unix.yaml', 'severity' => 'critical', 'priority' => 953],
     ];
 
@@ -124,6 +124,23 @@ final class CrsArchetypes
                         . "</body></html>\n",
                 ],
                 [],
+            ];
+        }
+
+        if ($class === 'lfi') {
+            // FP-0190: the broad CRS traversal catch-all must NOT serve /etc/passwd for an unmapped
+            // target. The recognizable targets (passwd / shadow / hostname / id_rsa / win.ini / group /
+            // environ / smb.conf) are owned by the higher-priority hand-authored LFI tier
+            // (templates/attack/2x-3x, priority 21-31), which wins first-match and returns each target's
+            // own inert canned content. This priority-952 catch-all is only ever reached by the long tail
+            // of unmapped targets, so it returns a believable "file absent" read — never a canned secret,
+            // removing the /etc/passwd collision tell FP-0173 left in the generated tier.
+            return [
+                [
+                    'headers' => ['Content-Type' => 'text/plain; charset=utf-8'],
+                    'body' => "Warning: failed to open stream: No such file or directory\n",
+                ],
+                ['No such file or directory'],
             ];
         }
 

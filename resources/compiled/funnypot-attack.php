@@ -5184,7 +5184,8 @@ vpc-ipv4-cidr-block
       array (
         'Content-Type' => 'text/plain; charset=utf-8',
       ),
-      'body' => '{{canned.passwd}}',
+      'body' => 'Warning: failed to open stream: No such file or directory
+',
     ),
   ),
   75 => 

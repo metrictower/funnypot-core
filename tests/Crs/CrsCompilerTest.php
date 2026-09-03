@@ -58,7 +58,11 @@ final class CrsCompilerTest extends TestCase
     {
         $t = $this->templates();
         self::assertStringContainsString('SQL syntax', $t['attack-crs-sqli']['response']['body']);
-        self::assertStringContainsString('{{canned.passwd}}', $t['attack-crs-lfi']['response']['body']);
+        // FP-0190: the LFI catch-all no longer reuses the passwd body — that reused /etc/passwd for ANY
+        // unmapped traversal (a collision tell). The recognizable targets are owned by the higher-priority
+        // hand-authored LFI tier; this catch-all serves a believable file-absent read for the long tail.
+        self::assertStringNotContainsString('{{canned.passwd}}', $t['attack-crs-lfi']['response']['body']);
+        self::assertStringContainsString('No such file or directory', $t['attack-crs-lfi']['response']['body']);
     }
 
     public function test_generated_templates_never_reflect_attacker_input(): void
