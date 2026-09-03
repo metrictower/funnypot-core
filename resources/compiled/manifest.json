@@ -4,7 +4,7 @@
     "license": "MIT (c) 2025 ProjectDiscovery, Inc.",
     "upstream_tag": "2ec9141",
     "upstream_sha": "2ec914123864439c3618e7e9ae72d32d0eb56df7",
-    "source_tree": "efb03ed6c92e2d09469dabe7d1643f8c5a43401ede44ab17880392e2d2222d88",
+    "source_tree": "7e95353d5fc39f62f217061e0f105a904315f4d7ddaa9fb513d8e0a577222d48",
     "templates_seen": 11196,
     "templates_in": 6343,
     "templates_indexed": 6446,
@@ -37,7 +37,7 @@
         "deferred_cross_path_coherence": "Phase 3.5: persona is picked independently per path (seed % sum(w)), so a single scan can get e.g. WordPress at / and Jenkins at /index.php. Residual tell, not blocking; fix by choosing one product family per attacker from a global weighted table."
     },
     "built_at": "2026-08-17T14:04:52+00:00",
-    "sha256": "24232e5db4fc9c7e50783ca7ec7508c14af7eef596973455e82eb51f3e166794",
+    "sha256": "d527c29069c9a824d10f44818bb65ebaa2526e7c57172855eb8ecb11ad4f0114",
     "skipped_count": 4853,
     "artifact_bytes": 6224186
 }
