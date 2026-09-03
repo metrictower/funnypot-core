@@ -262,8 +262,8 @@ Set at init with `responseStyle`:
 
 | Style | What the attacker gets |
 |---|---|
-| `minimal` | Just the tokens the matcher needs. Smallest. The default. |
-| `realistic` | A believable fake: a full `.git/config`, a plausible `.env`, a real XML-RPC `methodResponse`. All values inert. |
+| `minimal` | Just the tokens the matcher needs. Smallest. |
+| `realistic` | A believable fake: a full `.git/config`, a plausible `.env`, a real XML-RPC `methodResponse`. All values inert. **The default.** |
 | `taunt` | Still satisfies the scanner, and carries a visible "honeypot, your scan was logged" marker. |
 
 Rich content is validated against the matcher before use. If a richer body would not satisfy the
