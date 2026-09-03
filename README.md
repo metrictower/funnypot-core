@@ -3,6 +3,7 @@
 [![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 [![PHP](https://img.shields.io/badge/php-%3E%3D7.3-777bb3.svg)](composer.json)
 [![Runtime](https://img.shields.io/badge/runtime-PHP--only-blue.svg)](#how-it-works)
+[![Docs](https://img.shields.io/badge/docs-funnypot.org-f46800.svg)](https://funnypot.org/packages/funnypot-core/)
 
 > **Not sure you're in the right place?**
 > - Want a ready-to-run **honeypot box** to deploy → [funnypot-app](https://github.com/metrictower/funnypot-app)
