@@ -45,11 +45,6 @@ final class RegexWitnessGenerator
             return MatcherResult::out('regex-part-unsupported:' . $partRaw);
         }
 
-        if (!empty($m['negative'])) {
-            // Guaranteeing a pattern never matches a synthesized body is not safe offline.
-            return MatcherResult::out('regex-negative-unsupported');
-        }
-
         $patterns = $m['regex'] ?? [];
         if (!is_array($patterns)) {
             $patterns = [$patterns];
@@ -57,12 +52,32 @@ final class RegexWitnessGenerator
         $patterns = array_values(array_map(static function ($p): string {
             return (string) $p;
         }, $patterns));
-        if ($patterns === []) {
-            return MatcherResult::out('regex-empty');
-        }
 
         $condition = strtolower((string) ($m['condition'] ?? ''));
         $allRequired = $condition === 'and';
+
+        return $this->invertRegion($region, $patterns, !empty($m['negative']), $allRequired);
+    }
+
+    /**
+     * Invert one or more regex patterns already resolved to a BODY/HEADER region — the shared core of
+     * {@see invert()} (the nuclei @regex matcher) and the DSL `regex(part, …)` function inversion
+     * (FP-0261). Patterns combine as AND when $allRequired, else OR (one witness suffices).
+     *
+     * @param string[] $patterns
+     */
+    public function invertRegion(string $region, array $patterns, bool $negative, bool $allRequired): MatcherResult
+    {
+        if ($region !== PartRouter::BODY && $region !== PartRouter::HEADER) {
+            return MatcherResult::out('regex-region-unsupported');
+        }
+        if ($negative) {
+            // Guaranteeing a pattern never matches a synthesized body is not safe offline.
+            return MatcherResult::out('regex-negative-unsupported');
+        }
+        if ($patterns === []) {
+            return MatcherResult::out('regex-empty');
+        }
 
         $witnesses = [];
         $exclusive = false;
