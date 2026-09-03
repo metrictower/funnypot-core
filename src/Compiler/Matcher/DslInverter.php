@@ -359,7 +359,7 @@ final class DslInverter
         $name = $value['name'] ?? '';
         $args = $value['args'] ?? [];
 
-        // FP-0261: route regex(region, pattern…) through the shared witness engine instead of folding.
+        // FP-0261: route regex(pattern, input) through the shared witness engine instead of folding.
         if ($name === 'regex') {
             return $this->regexFunc($args, $neg);
         }
