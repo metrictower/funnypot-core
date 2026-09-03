@@ -434,38 +434,44 @@ final class DslInverter
     }
 
     /**
-     * Invert a DSL `regex(region, pattern[, pattern…])` call (FP-0261) by routing it through the shared
+     * Invert a DSL `regex(pattern, input)` call (FP-0261) by routing it through the shared
      * RegexWitnessGenerator — the SAME witness engine the @regex matcher uses. Previously this folded the
      * whole AND-block with `dsl-func:regex`, almost certainly the largest single fold-reason bucket, so
-     * those scanners never confirmed. nuclei's regex() fires if ANY listed pattern matches the region, so
-     * the patterns combine as OR. It folds safely (fold OUT, never mis-serve) on a negated call, a
+     * those scanners never confirmed. nuclei's helper is `regex(pattern, input)` — pattern FIRST, region
+     * SECOND (e.g. `regex("token=[0-9]{3}", body)`). We kind-sniff the two args (the string literal is the
+     * pattern; the other — an ident, optionally tolower()-wrapped — is the region) so the argument order
+     * cannot defeat the inversion. It folds safely (fold OUT, never mis-serve) on a negated call, a
      * typed-header or non-body/header region, or an unwitnessable pattern.
      *
      * @param array<int,array{kind:string,name?:string,args?:array,v?:string}> $args
      */
     private function regexFunc(array $args, bool $neg): MatcherResult
     {
-        if (count($args) < 2) {
-            throw new DslUnsupported('dsl-func-arity');
+        // nuclei's regex() takes exactly (pattern, input).
+        if (count($args) !== 2) {
+            throw new DslUnsupported('dsl-regex-arity');
         }
-        $region = $this->regionOfArg($args[0]);
+        // Kind-sniff the pattern vs the region: exactly one arg must be a string literal (the pattern);
+        // the other is the region ident. Order-independent, so a corpus emitting either ordering inverts.
+        $aStr = ($args[0]['kind'] ?? '') === 'str';
+        $bStr = ($args[1]['kind'] ?? '') === 'str';
+        if ($aStr === $bStr) {
+            // Two literals (no region ident) or neither literal (a computed pattern) — not witnessable offline.
+            throw new DslUnsupported('dsl-regex-args');
+        }
+        $patternArg = $aStr ? $args[0] : $args[1];
+        $regionArg = $aStr ? $args[1] : $args[0];
+
+        $region = $this->regionOfArg($regionArg);
         if ($region === PartRouter::UNSUPPORTED) {
-            throw new DslUnsupported('dsl-region-unsupported');
+            throw new DslUnsupported('dsl-regex-region-unsupported');
         }
         if ($this->isTyped($region)) {
             // A block-position/typed-header regex witness is not safe offline; fold rather than guess.
             throw new DslUnsupported('dsl-regex-typed-header');
         }
 
-        $patterns = [];
-        for ($k = 1; $k < count($args); $k++) {
-            if (($args[$k]['kind'] ?? '') !== 'str') {
-                throw new DslUnsupported('dsl-non-literal-arg');
-            }
-            $patterns[] = (string) $args[$k]['v'];
-        }
-
-        $res = $this->regexGen->invertRegion($region, $patterns, $neg, false);
+        $res = $this->regexGen->invertRegion($region, [(string) $patternArg['v']], $neg, false);
         if (!$res->ok) {
             throw new DslUnsupported($res->reason !== '' ? $res->reason : 'dsl-regex-unwitnessable');
         }
