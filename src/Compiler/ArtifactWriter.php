@@ -23,9 +23,11 @@ final class ArtifactWriter
 
     /**
      * @param array{index:array,manifest:array,skipped:array,stats:array} $result
+     * @param array<string,string> $provenance sidecar-only compile record: `built_at`,
+     *                                         `core_commit`, `php_version` (each optional)
      * @return array<string,string> written paths
      */
-    public function write(array $result, string $indexPath): array
+    public function write(array $result, string $indexPath, array $provenance = []): array
     {
         $dir = dirname($indexPath);
         if (!is_dir($dir) && !@mkdir($dir, 0775, true) && !is_dir($dir)) {
@@ -37,10 +39,14 @@ final class ArtifactWriter
 
         $sha = hash('sha256', $php);
         $manifest = $result['manifest'];
-        // built_at is a sidecar-only wall-clock record now (dropped from the compiled index so the
-        // index is byte-reproducible). Minted here in the writer via gmdate — Compiler::manifest()
-        // no longer threads it. Placed with the other write-time sidecar fields below.
-        $manifest['built_at'] = gmdate('c');
+        // Sidecar-only compile record (none of it reaches the index, which stays byte-reproducible):
+        // built_at is the caller's reproducible stamp when given (SOURCE_DATE_EPOCH / upstream commit
+        // date, see bin/funnypot resolveUpstream) and wall-clock otherwise; core_commit + php_version
+        // say which compiler produced the corpus half. Field ORDER is a contract: merge-routes
+        // re-emits the sidecar in exactly this order when it refreshes the fingerprint.
+        $manifest['built_at'] = isset($provenance['built_at']) ? (string) $provenance['built_at'] : gmdate('c');
+        $manifest['core_commit'] = (string) ($provenance['core_commit'] ?? 'unknown');
+        $manifest['php_version'] = (string) ($provenance['php_version'] ?? PHP_VERSION);
         $manifest['sha256'] = $sha;
         $manifest['skipped_count'] = count($result['skipped']);
         $manifest['artifact_bytes'] = strlen($php);

@@ -57,19 +57,15 @@ jobs:
           git clone --depth 1 --branch "${{ steps.tpl.outputs.tag }}" \
             https://github.com/projectdiscovery/nuclei-templates.git /tmp/nuclei-templates
 
-      - name: Recompile index
+      - name: Pinned full rebuild (compile + build DAG), moving the pin to the new tag
         run: |
-          php -d memory_limit=2G bin/funnypot compile /tmp/nuclei-templates/http \
-            --out=resources/compiled/nuclei-index.full.php
-
-      - name: Recompile funnypot templates and fold new pages
-        run: |
-          # A fresh index has no funnypot routes; the `funnypot build` DAG recompiles the attack +
-          # route + param templates, folds brand-new product pages back into the freshly compiled
-          # index (merge-routes is idempotent), refreshes its source_tree/counts + the manifest.json
-          # sidecar fingerprint, and rebuilds the decoy manifest last. One orchestrator = the step
-          # order can never silently diverge from `composer check` / the artifact-law gate.
-          php -d memory_limit=2G bin/funnypot build
+          # `build-corpus` is the ONE full rebuild: compile http/ at the checkout's revision, then the
+          # `funnypot build` DAG (recompile attack + route + param templates, fold brand-new product
+          # pages into the fresh index, refresh source_tree/counts + the manifest.json fingerprint,
+          # rebuild the decoy manifest last). Same orchestrator as `composer check` / the artifact-law
+          # gate, so this PR can never trip its own drift gate. `--bump` is what makes moving the
+          # recorded upstream pin deliberate; the route-key delta is printed for the PR reviewer.
+          php -d memory_limit=2G bin/funnypot build-corpus /tmp/nuclei-templates --bump
 
       - name: Route-integrity gate (lint-routes)
         run: php -d memory_limit=2G bin/funnypot lint-routes
@@ -98,6 +94,10 @@ jobs:
 
             The unit suite and the real-nuclei golden acceptance both passed, so the
             refreshed index still satisfies every asserted template.
+
+            The upstream pin (`manifest.json` `upstream_sha`) moved to this tag. Review the
+            route-key delta in the build log; if the count fell, `tests/CorpusProvenanceTest.php`
+            `ROUTE_KEY_FLOOR` must be lowered in this PR as the reviewed record of accepted loss.
           add-paths: |
             resources/compiled/nuclei-index.full.php
             resources/compiled/manifest.json

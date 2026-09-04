@@ -10,8 +10,10 @@
 #   1. `funnypot build` (the in-repo compile DAG) reproduces every committed artifact byte-for-byte.
 #   2. `git status --porcelain` over the artifact + generated-template paths is empty — this catches
 #      MODIFIED, UNTRACKED (a brand-new output), and DELETED files, which a plain `git diff` misses.
-#   3. The manifest.json sidecar's sha256 actually fingerprints nuclei-index.full.php (the invariant
-#      merge-routes now maintains — a gate here makes it law).
+#   3. The manifest.json sidecar actually describes nuclei-index.full.php — sha256 + size, the
+#      route/template counts, and the upstream pin + source_tree embedded in the index (the
+#      invariant merge-routes maintains — a gate here makes it law). One implementation, shared
+#      with `funnypot doctor`.
 #
 # On drift it prints what changed and how to fix it, then exits 1.
 #
@@ -49,29 +51,9 @@ if [ -n "$STATUS" ]; then
 fi
 echo "clean."
 
-echo "== check-drift: sha256 integrity (manifest.json fingerprints the index) =="
-php -r '
-$root = getcwd();
-$idx = $root . "/resources/compiled/nuclei-index.full.php";
-$mj  = $root . "/resources/compiled/manifest.json";
-if (!is_file($idx) || !is_file($mj)) {
-    fwrite(STDERR, "integrity: missing index or manifest.json\n");
-    exit(1);
-}
-$m = json_decode((string) file_get_contents($mj), true);
-$actual = hash("sha256", (string) file_get_contents($idx));
-$claimed = (string) ($m["sha256"] ?? "");
-if ($claimed !== $actual) {
-    fwrite(STDERR, "DRIFT: manifest.json sha256 ({$claimed}) does not fingerprint nuclei-index.full.php ({$actual}).\n");
-    exit(1);
-}
-$bytes = (int) ($m["artifact_bytes"] ?? -1);
-$real = filesize($idx);
-if ($bytes !== $real) {
-    fwrite(STDERR, "DRIFT: manifest.json artifact_bytes ({$bytes}) != index size ({$real}).\n");
-    exit(1);
-}
-echo "integrity OK (sha256 + artifact_bytes match).\n";
-'
+echo "== check-drift: provenance (manifest.json must verify nuclei-index.full.php) =="
+# --provenance runs only the artifact check (the opcache half of `doctor` is a property of the
+# serving host, not of the repo). Exits 1 and lists every disagreement on drift.
+php -d memory_limit=1G bin/funnypot doctor --provenance
 
 echo "== check-drift: PASS (zero drift) =="

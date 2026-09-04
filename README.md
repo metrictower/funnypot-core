@@ -313,8 +313,9 @@ flowchart TD
 
 Templates are compiled once, at build time, into frozen PHP arrays (`resources/compiled/*.php`). The
 app loads them into opcache and serves with a single O(1) lookup. A miss returns `null` so your app
-serves its own 404. `symfony/yaml` is only needed by the compiler (`bin/funnypot compile`), which CI
-runs weekly against the latest nuclei-templates release. See [`SPEC.md`](SPEC.md) and
+serves its own 404. `symfony/yaml` is only needed by the compiler (`bin/funnypot build-corpus` — the
+pinned full rebuild, see [`docs/CORPUS-PIPELINE.md`](docs/CORPUS-PIPELINE.md)), which the
+`update-templates` workflow runs against a nuclei-templates release. See [`SPEC.md`](SPEC.md) and
 [`docs/PERSONA-CAP.md`](docs/PERSONA-CAP.md).
 
 ## Memory and opcache
@@ -349,8 +350,9 @@ What to check when embedding:
 - **bind `Honeypot::default()` lazily.** An eager service-provider binding makes every CLI and queue
   process pay for an index it will never consult.
 
-Check a host with the bundled command — exit 0 when the index is shared, 1 when it is not, so a
-deploy step can gate on it:
+Check a host with the bundled command — exit 0 when the index is shared **and** the packaged
+`manifest.json` still verifies the packaged index (sha256, size, counts, upstream pin), 1 otherwise,
+so a deploy step can gate on it:
 
 ```bash
 php vendor/metrictower/funnypot-core/bin/funnypot doctor
@@ -361,11 +363,18 @@ index shared : yes
 reason       : interned into opcache shared memory
 sapi         : cli
 opcache free : 238.5 MB
+
+corpus       : projectdiscovery/nuclei-templates @ 2ec9141 (2ec914123864439c3618e7e9ae72d32d0eb56df7)
+compiled by  : core unknown / php unknown / built_at 2026-08-17T14:04:52+00:00
+index        : 5301 route keys / 6446 templates / 6224186 bytes / sha256 d527c29069c9a824…
+provenance   : OK — manifest.json verifies nuclei-index.full.php (sha256, size, counts, upstream pin)
 ```
 
-Run it from the SAPI that actually serves your traffic. `PhpArrayStore::diagnose()` returns the same
-verdict as an array if you would rather wire it into a health endpoint; it never throws, and it
-degrades to `shared => false` when `opcache.restrict_api` blocks the introspection calls.
+Run it from the SAPI that actually serves your traffic. `doctor --provenance` runs only the artifact
+half — the form CI's drift gate calls, since opcache sharing is a property of the host, not the repo.
+`PhpArrayStore::diagnose()` returns the opcache verdict as an array if you would rather wire it into
+a health endpoint; it never throws, and it degrades to `shared => false` when `opcache.restrict_api`
+blocks the introspection calls.
 
 Two ways to lose the interning silently: `file_cache_only` as above, and making the compiled
 artifact non-literal (a `const` reference, a function call, a computed key). Both are worth catching
@@ -422,7 +431,8 @@ it after a catalog change, then rebuild the in-repo artifacts with `composer bui
 `funnypot build` orchestrator that encodes the whole DAG in order (`compile-ai` → `compile-emulators`
 → `compile-routes` → `compile-params` → `merge-routes` → `build-manifest`; `merge-routes` is
 idempotent by pid, so re-folding never duplicates a route). A full rebuild from the external corpus
-starts from a base `compile` first, then `composer build`.
+is `composer build-corpus`, pinned to the recorded upstream commit — see
+[`docs/CORPUS-PIPELINE.md`](docs/CORPUS-PIPELINE.md).
 
 The interactive streaming chat and the actual LLM live in the funnypot **app**, not here — this
 package only floors the buffered, non-streaming chat shapes, so those four paths still answer
@@ -517,8 +527,9 @@ Run `composer check` before pushing. It runs the exact bytes CI's `artifact-law`
 (both call `scripts/ci/check-drift.sh`), so local and CI cannot disagree: the script rebuilds, then
 `git status --porcelain` over `resources/compiled` + `templates/generated` + `templates/attack-ai`
 must be empty (catching modified, untracked, and deleted outputs — a plain `git diff` misses new
-files), and `manifest.json`'s sha256 must fingerprint `nuclei-index.full.php`. If it drifts, run
-`composer build` and commit the result.
+files), and `funnypot doctor --provenance` must pass — `manifest.json` must verify
+`nuclei-index.full.php` (sha256, size, counts, and the upstream pin embedded in the index). If it
+drifts, run `composer build` and commit the result.
 
 **How the compile is made deterministic.** The compiled index carries no wall-clock stamp — the old
 `built_at` field made a fresh recompile never reproduce the committed bytes, so it moved to the JSON
@@ -541,6 +552,28 @@ check` locally and manual dispatch.
 `compile-emulators` prints ~23 exit-0 `warning:` lines about the AI `owns_path` templates on a clean
 build — an intentional design note (those rules lean on the runtime auth-witness backstop, not full
 path-regex variant coverage), **not** drift. Only a non-zero exit or a dirty tree is drift.
+
+### Corpus provenance and the full rebuild
+
+`composer build` never touches the corpus half — it folds the committed index. The external half,
+the nuclei-templates compile, is **pinned**: `manifest.json`'s `upstream_sha` is the exact upstream
+commit the committed index was built from (also embedded in the index itself), and the one full
+rebuild is:
+
+```bash
+composer build-corpus                                # pin check -> compile <checkout>/http -> build
+composer build-corpus -- ../nuclei-templates --bump  # move the pin deliberately (prints the route-key delta)
+composer verify-corpus                               # prove the pinned checkout reproduces the committed bytes
+```
+
+`build-corpus` refuses a checkout that is not a git clone (no recordable revision — a
+`nuclei -update-templates` dir is scratch, not a source) or that is not at the pin. The checkout
+root comes from the argument, `NUCLEI_TEMPLATES_DIR`, or `../nuclei-templates`. The sidecar also
+records which compiler produced the corpus (`core_commit`, `php_version`) and a reproducible
+`built_at` (`SOURCE_DATE_EPOCH`, else the upstream commit date). `tests/CorpusProvenanceTest.php`
+holds a route-key floor so a rebuild that loses coverage fails loudly instead of shipping — running
+`compile` without the fold would drop every in-repo new-page key and still exit 0. The pipeline, the
+pin, and the refresh procedure: [`docs/CORPUS-PIPELINE.md`](docs/CORPUS-PIPELINE.md).
 
 ## Licence
 

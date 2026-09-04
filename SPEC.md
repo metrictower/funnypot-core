@@ -85,8 +85,10 @@ heads have several):
 ]],
 ```
 
-Sidecars: `manifest.json` (schema, upstream tag+SHA, built_at, groups, skipped count,
-sha256), `skipped.json` (`id` to `reason`, coverage audit), `UPSTREAM-LICENSE.md`.
+Sidecars: `manifest.json` (schema, upstream tag+SHA — the corpus pin —, the compiler record
+`core_commit`/`php_version`, a reproducible `built_at`, groups, skipped count, sha256),
+`skipped.json` (`id` to `reason`, coverage audit), `UPSTREAM-LICENSE.md`. Pipeline, pin and
+rebuild: `docs/CORPUS-PIPELINE.md`.
 
 **Merge = conflict-partition (graph coloring), not blind union.** Per group, build each
 template's *satisfy-plan* (§3), then color plans into compatible bundles:

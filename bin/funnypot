@@ -7,10 +7,12 @@ declare(strict_types=1);
  * funnypot CLI.
  *
  *   funnypot compile <templates-dir> [--out=PATH]
+ *   funnypot build-corpus [<nuclei-templates-checkout>] [--bump|--verify]
  *
  * Compiles the nuclei http template corpus into the schema-1 routing index plus
  * manifest.json / skipped.json sidecars. symfony/yaml (a compile-time-only dependency)
- * must be installed in the package vendor/.
+ * must be installed in the package vendor/. `build-corpus` is the pinned full rebuild
+ * (compile + the in-repo `build` DAG); see docs/CORPUS-PIPELINE.md.
  */
 
 use Funnypot\Core\Compiler\ArtifactWriter;
@@ -54,6 +56,10 @@ if ($command === 'compile-ai') {
 
 if ($command === 'build') {
     exit(runBuild($root, $argvv));
+}
+
+if ($command === 'build-corpus') {
+    exit(runBuildCorpus($root, $argvv));
 }
 
 /**
@@ -416,42 +422,78 @@ if ($command === 'lint-routes') {
 }
 
 /**
- * `funnypot doctor` — is the compiled index actually shared, or is every request rebuilding it?
+ * `funnypot doctor` — two host checks, exit 1 if either fails so a deploy step can gate on it:
  *
- * That is a 0.00 MB vs 20.43 MB per-request difference and nothing else surfaces it: a
- * misconfigured host looks exactly like a correct one until it runs out of memory under load.
- * Exit 0 when shared, 1 when not — so a deploy check can gate on it.
+ *   1. Is the compiled index actually shared, or is every request rebuilding it? That is a
+ *      0.00 MB vs 20.43 MB per-request difference and nothing else surfaces it: a misconfigured
+ *      host looks exactly like a correct one until it runs out of memory under load.
+ *   2. Does the packaged manifest.json still describe the packaged index (sha256, size, counts,
+ *      upstream pin)? A corpus whose provenance record has drifted cannot be audited or rebuilt.
+ *
+ * `--provenance` runs only check 2 — the form CI's drift gate calls, since check 1 is a property
+ * of the serving host, not of the repo. `--compiled-dir=PATH` points check 2 at another pair.
  */
 if ($command === 'doctor') {
-    // Load the index first. Under a web SAPI a previous request has usually already interned it,
-    // but a one-shot CLI process starts cold, so without this the answer is always "NO" and tells
-    // you nothing about the host. Loading makes the question the useful one: does this host intern
-    // it when asked?
-    \Funnypot\Core\Store\PhpArrayStore::fromPackage();
-
-    $d = \Funnypot\Core\Store\PhpArrayStore::diagnose();
-
-    printf("index shared : %s\n", $d['shared'] ? 'yes' : 'NO');
-    printf("reason       : %s\n", $d['reason']);
-    printf("sapi         : %s\n", $d['sapi']);
-    if ($d['shm_free'] > 0) {
-        printf("opcache free : %.1f MB\n", $d['shm_free'] / 1048576);
-    }
-    if ($d['restarts'] > 0) {
-        printf("restarts     : %d  (opcache is evicting under pressure)\n", $d['restarts']);
-    }
-    if ($d['remedy'] !== '') {
-        printf("remedy       : %s\n", $d['remedy']);
+    $provenanceOnly = false;
+    $compiledDir = $root . '/resources/compiled';
+    foreach ($argvv as $arg) {
+        if ($arg === '--provenance') {
+            $provenanceOnly = true;
+        } elseif (strncmp($arg, '--compiled-dir=', 15) === 0) {
+            $compiledDir = substr($arg, 15);
+        }
     }
 
-    // Not an error on CLI: opcache.enable_cli is off by default, and running `doctor` from the
-    // shell is the normal way to look. What matters is the web SAPI the app actually serves from.
-    if (!$d['shared'] && $d['sapi'] === 'cli') {
-        fwrite(STDOUT, "\nnote: this is the CLI SAPI. Run the same check from your web SAPI —\n"
-            . "      that is the one serving requests.\n");
+    $shared = true;
+    if (!$provenanceOnly) {
+        // Load the index first. Under a web SAPI a previous request has usually already interned it,
+        // but a one-shot CLI process starts cold, so without this the answer is always "NO" and tells
+        // you nothing about the host. Loading makes the question the useful one: does this host intern
+        // it when asked?
+        \Funnypot\Core\Store\PhpArrayStore::fromPackage();
+
+        $d = \Funnypot\Core\Store\PhpArrayStore::diagnose();
+        $shared = (bool) $d['shared'];
+
+        printf("index shared : %s\n", $d['shared'] ? 'yes' : 'NO');
+        printf("reason       : %s\n", $d['reason']);
+        printf("sapi         : %s\n", $d['sapi']);
+        if ($d['shm_free'] > 0) {
+            printf("opcache free : %.1f MB\n", $d['shm_free'] / 1048576);
+        }
+        if ($d['restarts'] > 0) {
+            printf("restarts     : %d  (opcache is evicting under pressure)\n", $d['restarts']);
+        }
+        if ($d['remedy'] !== '') {
+            printf("remedy       : %s\n", $d['remedy']);
+        }
+
+        // Not an error on CLI: opcache.enable_cli is off by default, and running `doctor` from the
+        // shell is the normal way to look. What matters is the web SAPI the app actually serves from.
+        if (!$d['shared'] && $d['sapi'] === 'cli') {
+            fwrite(STDOUT, "\nnote: this is the CLI SAPI. Run the same check from your web SAPI —\n"
+                . "      that is the one serving requests.\n");
+        }
+        fwrite(STDOUT, "\n");
     }
 
-    exit($d['shared'] ? 0 : 1);
+    // The provenance check `require`s the 6 MB index a second time (the store's copy is private).
+    ensureBuildMemory();
+    $p = checkCorpusProvenance($compiledDir);
+    foreach ($p['lines'] as $line) {
+        fwrite(STDOUT, $line . "\n");
+    }
+    if ($p['ok']) {
+        fwrite(STDOUT, "provenance   : OK — manifest.json verifies nuclei-index.full.php (sha256, size, counts, upstream pin)\n");
+    } else {
+        fwrite(STDOUT, "provenance   : DRIFT\n");
+        foreach ($p['problems'] as $problem) {
+            fwrite(STDOUT, "  - {$problem}\n");
+        }
+        fwrite(STDOUT, "  fix: `composer build` re-fingerprints the sidecar; a wrong/unknown upstream pin needs `funnypot build-corpus`.\n");
+    }
+
+    exit($shared && $p['ok'] ? 0 : 1);
 }
 
 if ($command === 'coverage') {
@@ -485,69 +527,357 @@ if ($command === 'coverage') {
     exit(0);
 }
 
-if ($command !== 'compile') {
-    fwrite(STDERR, "usage: funnypot compile <templates-dir> [--out=PATH]\n");
-    fwrite(STDERR, "       funnypot coverage  (rank upstream rules we can/can't confirm, by reason)\n");
-    fwrite(STDERR, "       funnypot compile-emulators [<attack-template-dir>] [--out=PATH]\n");
-    fwrite(STDERR, "       funnypot compile-routes [<route-template-dir>] [--out=PATH]\n");
-    fwrite(STDERR, "       funnypot compile-ai [--out=<generated-dir>]  (route + owns_path attack templates)\n");
-    fwrite(STDERR, "       funnypot compile-params [<param-template-dir>] [--out=PATH]\n");
-    fwrite(STDERR, "       funnypot merge-routes [<index>] [--fragment=PATH] [--out=PATH]\n");
-    fwrite(STDERR, "       funnypot compile-crs <coreruleset-rules-dir> [--out=PATH] [--pl=N]\n");
-    fwrite(STDERR, "       funnypot build-manifest [--out=PATH]  (derive the two-band decoy registry)\n");
-    fwrite(STDERR, "       funnypot build  (in-repo compile DAG: compile-ai->emulators->routes->params->merge-routes->build-manifest)\n");
-    fwrite(STDERR, "       funnypot lint-routes [--format=table|json] [--config=PATH]  (route-integrity gate)\n");
-    fwrite(STDERR, "       funnypot rules:update [--data-dir=PATH] [--channel=stable] [--version=vX]\n");
-    fwrite(STDERR, "       funnypot rules:status [--data-dir=PATH]\n");
-    fwrite(STDERR, "       funnypot rules:rollback [--data-dir=PATH] [--to=vX]\n");
-    fwrite(STDERR, "       funnypot doctor  (is the compiled index shared via opcache? exit 1 if not)\n");
-    exit($command === '' || $command === 'help' || $command === '--help' ? 0 : 2);
+if ($command === 'compile') {
+    exit(runCompile($root, $argvv));
 }
 
-$dir = null;
-$out = $root . '/resources/compiled/nuclei-index.full.php';
-foreach ($argvv as $arg) {
-    if (strncmp($arg, '--out=', 6) === 0) {
-        $out = substr($arg, 6);
-    } elseif ($dir === null && strncmp($arg, '--', 2) !== 0) {
-        $dir = $arg;
+fwrite(STDERR, "usage: funnypot compile <templates-dir> [--out=PATH]\n");
+fwrite(STDERR, "       funnypot build-corpus [<nuclei-templates-checkout>] [--bump|--verify]  (pinned full rebuild: compile + build)\n");
+fwrite(STDERR, "       funnypot coverage  (rank upstream rules we can/can't confirm, by reason)\n");
+fwrite(STDERR, "       funnypot compile-emulators [<attack-template-dir>] [--out=PATH]\n");
+fwrite(STDERR, "       funnypot compile-routes [<route-template-dir>] [--out=PATH]\n");
+fwrite(STDERR, "       funnypot compile-ai [--out=<generated-dir>]  (route + owns_path attack templates)\n");
+fwrite(STDERR, "       funnypot compile-params [<param-template-dir>] [--out=PATH]\n");
+fwrite(STDERR, "       funnypot merge-routes [<index>] [--fragment=PATH] [--out=PATH]\n");
+fwrite(STDERR, "       funnypot compile-crs <coreruleset-rules-dir> [--out=PATH] [--pl=N]\n");
+fwrite(STDERR, "       funnypot build-manifest [--out=PATH]  (derive the two-band decoy registry)\n");
+fwrite(STDERR, "       funnypot build  (in-repo compile DAG: compile-ai->emulators->routes->params->merge-routes->build-manifest)\n");
+fwrite(STDERR, "       funnypot lint-routes [--format=table|json] [--config=PATH]  (route-integrity gate)\n");
+fwrite(STDERR, "       funnypot rules:update [--data-dir=PATH] [--channel=stable] [--version=vX]\n");
+fwrite(STDERR, "       funnypot rules:status [--data-dir=PATH]\n");
+fwrite(STDERR, "       funnypot rules:rollback [--data-dir=PATH] [--to=vX]\n");
+fwrite(STDERR, "       funnypot doctor [--provenance] [--compiled-dir=PATH]  (opcache sharing + corpus provenance; exit 1 on either)\n");
+exit($command === '' || $command === 'help' || $command === '--help' ? 0 : 2);
+
+/**
+ * `funnypot compile` — the external corpus step: parse a nuclei-templates `http/` dir into the
+ * schema-1 index plus its manifest.json / skipped.json sidecars. The sidecar records which compiler
+ * produced the corpus half (core commit + PHP version) and a reproducible built_at; the index
+ * itself carries only the upstream tag/sha. Run through `build-corpus`, which enforces the pin —
+ * this raw step compiles whatever it is pointed at.
+ *
+ * @param string[] $argvv
+ */
+function runCompile(string $root, array $argvv): int
+{
+    $dir = null;
+    $out = $root . '/resources/compiled/nuclei-index.full.php';
+    foreach ($argvv as $arg) {
+        if (strncmp($arg, '--out=', 6) === 0) {
+            $out = substr($arg, 6);
+        } elseif ($dir === null && strncmp($arg, '--', 2) !== 0) {
+            $dir = $arg;
+        }
     }
+
+    if ($dir === null || !is_dir($dir)) {
+        fwrite(STDERR, "error: templates dir not found: " . ($dir ?? '(none)') . "\n");
+
+        return 2;
+    }
+
+    $meta = resolveUpstream($dir);
+
+    $start = microtime(true);
+    $compiler = new Compiler();
+    $result = $compiler->compile($dir, $meta);
+
+    $writer = new ArtifactWriter();
+    $paths = $writer->write($result, $out, ['built_at' => $meta['built_at']] + compilerProvenance($root));
+
+    $elapsed = number_format(microtime(true) - $start, 1);
+    $stats = $result['stats'];
+
+    fwrite(STDOUT, "compiled in {$elapsed}s\n");
+    fwrite(STDOUT, sprintf(
+        "  seen=%d  in=%d  route-keys=%d  multi-bundle-keys=%d  largest-bundle=%d  bundles=%d\n",
+        $stats['total'],
+        $stats['in'],
+        $stats['route_keys'] ?? 0,
+        $stats['multi_bundle_keys'] ?? 0,
+        $stats['largest_bundle_count'] ?? 0,
+        $stats['bundles_total'] ?? 0
+    ));
+    fwrite(STDOUT, "  gateA-excluded=" . array_sum($stats['gateA']) . "  gateB-folded=" . array_sum($stats['gateB']) . "\n");
+    fwrite(STDOUT, "  index:    {$paths['index']}\n");
+    fwrite(STDOUT, "  manifest: {$paths['manifest']}\n");
+    fwrite(STDOUT, "  skipped:  {$paths['skipped']}\n");
+    fwrite(STDOUT, "  sha256:   {$paths['sha256']}\n");
+
+    return 0;
 }
 
-if ($dir === null || !is_dir($dir)) {
-    fwrite(STDERR, "error: templates dir not found: " . ($dir ?? '(none)') . "\n");
-    exit(2);
+/**
+ * `funnypot build-corpus` — the ONE full rebuild: external `compile` followed by the in-repo
+ * `build` DAG, so the obvious single command can never be the wrong one (`compile` alone drops
+ * every folded new-page key and still exits 0).
+ *
+ * The corpus source is pinned. `resources/compiled/manifest.json` `upstream_sha` is the pin — the
+ * exact nuclei-templates commit the committed index was compiled from — and the checkout must be
+ * a git clone AT that commit. A checkout with no recordable revision (a `nuclei -update-templates`
+ * dir is not a git repo) is refused outright: an untraceable corpus cannot be audited or rebuilt.
+ * An off-pin checkout is refused unless `--bump` moves the pin on purpose; the route-key delta is
+ * printed so the refresh is a reviewed diff, never an accident.
+ *
+ * `--verify` proves reproducibility instead of rebuilding: it compiles + folds into a scratch dir
+ * and compares the result byte-for-byte against the committed index. Never writes into the tree.
+ *
+ * Checkout resolution: positional arg, else NUCLEI_TEMPLATES_DIR, else ../nuclei-templates beside
+ * the package. It must be the checkout ROOT (the `http/` subdir is picked here).
+ *
+ * @param string[] $argvv
+ */
+function runBuildCorpus(string $root, array $argvv): int
+{
+    ensureBuildMemory();
+    $dir = null;
+    $bump = false;
+    $verify = false;
+    foreach ($argvv as $arg) {
+        if ($arg === '--bump') {
+            $bump = true;
+        } elseif ($arg === '--verify') {
+            $verify = true;
+        } elseif ($dir === null && strncmp($arg, '--', 2) !== 0) {
+            $dir = $arg;
+        }
+    }
+    if ($dir === null) {
+        $env = getenv('NUCLEI_TEMPLATES_DIR');
+        $dir = is_string($env) && $env !== '' ? $env : dirname($root) . '/nuclei-templates';
+    }
+    $dir = rtrim($dir, '/');
+    if (!is_dir($dir)) {
+        fwrite(STDERR, "error: nuclei-templates checkout not found: {$dir}\n"
+            . "  pass the checkout root, set NUCLEI_TEMPLATES_DIR, or clone projectdiscovery/nuclei-templates\n"
+            . "  beside the package as ../nuclei-templates. See docs/CORPUS-PIPELINE.md.\n");
+
+        return 2;
+    }
+    $http = $dir . '/http';
+    if (!is_dir($http)) {
+        fwrite(STDERR, "error: {$dir}/http not found — pass the nuclei-templates checkout ROOT, not a subdir.\n");
+
+        return 2;
+    }
+
+    $up = resolveUpstream($dir);
+    if ($up['sha'] === 'unknown') {
+        fwrite(STDERR, "error: {$dir} is not a git checkout, so its upstream revision cannot be recorded and the\n"
+            . "  compiled corpus would be untraceable. Compile only from a git clone of\n"
+            . "  projectdiscovery/nuclei-templates (a `nuclei -update-templates` dir is scratch, not a source).\n");
+
+        return 2;
+    }
+
+    $compiled = $root . '/resources/compiled';
+    $sidecarPath = $compiled . '/manifest.json';
+    $sidecar = is_file($sidecarPath) ? json_decode((string) file_get_contents($sidecarPath), true) : null;
+    $sidecar = is_array($sidecar) ? $sidecar : [];
+    $pin = (string) ($sidecar['upstream_sha'] ?? 'unknown');
+    $pinned = $pin !== 'unknown' && $pin !== '';
+
+    if ($pinned && $pin !== $up['sha'] && ($verify || !$bump)) {
+        fwrite(STDERR, "error: upstream revision mismatch — refusing to compile from an off-pin checkout.\n"
+            . "  pinned   : {$pin}  (resources/compiled/manifest.json upstream_sha)\n"
+            . "  checkout : {$up['sha']}  ({$up['tag']}) at {$dir}\n"
+            . "  To rebuild the committed corpus:  git -C " . escapeshellarg($dir) . " checkout {$pin}\n"
+            . "  To move the pin deliberately:     funnypot build-corpus " . escapeshellarg($dir) . " --bump\n"
+            . "     (then review the printed route-key delta and tests/CorpusProvenanceTest.php ROUTE_KEY_FLOOR)\n");
+
+        return 2;
+    }
+
+    if ($verify) {
+        return verifyCorpusRebuild($root, $http, $up);
+    }
+
+    $before = isset($sidecar['route_keys']) ? (int) $sidecar['route_keys'] : null;
+    fwrite(STDOUT, "== build-corpus: compile {$http} @ {$up['tag']} ({$up['sha']}) ==\n");
+    $code = runCompile($root, [$http, '--out=' . $compiled . '/nuclei-index.full.php']);
+    if ($code !== 0) {
+        return $code;
+    }
+    $code = runBuild($root, []);
+    if ($code !== 0) {
+        return $code;
+    }
+
+    $fresh = json_decode((string) file_get_contents($sidecarPath), true);
+    $fresh = is_array($fresh) ? $fresh : [];
+    $after = (int) ($fresh['route_keys'] ?? 0);
+    fwrite(STDOUT, "== build-corpus: OK ==\n");
+    fwrite(STDOUT, "  upstream   : {$up['tag']} {$up['sha']}\n");
+    fwrite(STDOUT, "  compiled by: core " . ($fresh['core_commit'] ?? '?') . " / php " . ($fresh['php_version'] ?? '?') . "\n");
+    fwrite(STDOUT, "  sha256     : " . ($fresh['sha256'] ?? '?') . "\n");
+    if ($before === null) {
+        fwrite(STDOUT, "  route keys : {$after}\n");
+    } else {
+        fwrite(STDOUT, sprintf("  route keys : %d -> %d (%+d)\n", $before, $after, $after - $before));
+    }
+    if ($pinned && $pin !== $up['sha']) {
+        fwrite(STDOUT, "  pin moved  : {$pin} -> {$up['sha']}\n"
+            . "  Review the delta above, adjust tests/CorpusProvenanceTest.php ROUTE_KEY_FLOOR if the count fell,\n"
+            . "  run `composer check`, and commit resources/compiled + templates/generated + templates/attack-ai.\n");
+    }
+
+    return 0;
 }
 
-$meta = resolveUpstream($dir);
+/**
+ * `build-corpus --verify`: compile the pinned checkout + fold the committed fragment into a scratch
+ * dir and compare with the committed index byte-for-byte. The committed fragment is the right fold
+ * input because the drift gate already proves it matches templates/route + templates/generated.
+ * On a mismatch the rebuilt copy is kept for diffing.
+ *
+ * @param array<string,string> $up resolveUpstream() of the checkout
+ */
+function verifyCorpusRebuild(string $root, string $http, array $up): int
+{
+    $committed = $root . '/resources/compiled/nuclei-index.full.php';
+    $fragment = $root . '/resources/compiled/funnypot-routes-index.php';
+    if (!is_file($committed)) {
+        fwrite(STDERR, "error: no committed index at {$committed} to verify against\n");
 
-$start = microtime(true);
-$compiler = new Compiler();
-$result = $compiler->compile($dir, $meta);
+        return 2;
+    }
+    $tmp = rtrim(sys_get_temp_dir(), '/') . '/fp-verify-' . getmypid();
+    if (!is_dir($tmp . '/folded') && !mkdir($tmp . '/folded', 0777, true)) {
+        fwrite(STDERR, "error: cannot create scratch dir {$tmp}\n");
 
-$writer = new ArtifactWriter();
-$paths = $writer->write($result, $out);
+        return 2;
+    }
 
-$elapsed = number_format(microtime(true) - $start, 1);
-$stats = $result['stats'];
+    fwrite(STDOUT, "== build-corpus --verify: compile {$http} @ {$up['tag']} ({$up['sha']}) -> {$tmp} ==\n");
+    $code = runCompile($root, [$http, '--out=' . $tmp . '/nuclei-index.full.php']);
+    if ($code !== 0) {
+        return $code;
+    }
+    $code = runMergeRoutes($root, [$tmp . '/nuclei-index.full.php', '--fragment=' . $fragment, '--out=' . $tmp . '/folded/nuclei-index.full.php']);
+    if ($code !== 0) {
+        return $code;
+    }
 
-fwrite(STDOUT, "compiled in {$elapsed}s\n");
-fwrite(STDOUT, sprintf(
-    "  seen=%d  in=%d  route-keys=%d  multi-bundle-keys=%d  largest-bundle=%d  bundles=%d\n",
-    $stats['total'],
-    $stats['in'],
-    $stats['route_keys'] ?? 0,
-    $stats['multi_bundle_keys'] ?? 0,
-    $stats['largest_bundle_count'] ?? 0,
-    $stats['bundles_total'] ?? 0
-));
-fwrite(STDOUT, "  gateA-excluded=" . array_sum($stats['gateA']) . "  gateB-folded=" . array_sum($stats['gateB']) . "\n");
-fwrite(STDOUT, "  index:    {$paths['index']}\n");
-fwrite(STDOUT, "  manifest: {$paths['manifest']}\n");
-fwrite(STDOUT, "  skipped:  {$paths['skipped']}\n");
-fwrite(STDOUT, "  sha256:   {$paths['sha256']}\n");
+    $rebuilt = $tmp . '/folded/nuclei-index.full.php';
+    $shaCommitted = hash_file('sha256', $committed);
+    $shaRebuilt = hash_file('sha256', $rebuilt);
+    $keys = static function (string $path): int {
+        $index = require $path;
 
-exit(0);
+        return is_array($index) ? count((array) ($index['routes'] ?? [])) : -1;
+    };
+    fwrite(STDOUT, sprintf("  committed : sha256 %s  (%d route keys)\n", $shaCommitted, $keys($committed)));
+    fwrite(STDOUT, sprintf("  rebuilt   : sha256 %s  (%d route keys)\n", $shaRebuilt, $keys($rebuilt)));
+
+    if ($shaCommitted === $shaRebuilt) {
+        foreach (glob($tmp . '/folded/*') ?: [] as $f) {
+            @unlink($f);
+        }
+        @rmdir($tmp . '/folded');
+        foreach (glob($tmp . '/*') ?: [] as $f) {
+            @unlink($f);
+        }
+        @rmdir($tmp);
+        fwrite(STDOUT, "== build-corpus --verify: REPRODUCIBLE (rebuild from the pinned revision is byte-identical) ==\n");
+
+        return 0;
+    }
+    fwrite(STDERR, "== build-corpus --verify: MISMATCH — the pinned revision does not reproduce the committed index.\n"
+        . "  rebuilt copy kept at {$rebuilt} for diffing (php version, dirty compiler tree, or a stale fragment are the usual causes)\n");
+
+    return 1;
+}
+
+/**
+ * Does `manifest.json` still describe `nuclei-index.full.php`? The sidecar is the readable
+ * provenance record (no 6 MB parse needed), so every claim it makes about the index is checked
+ * here: sha256 + size fingerprint the bytes, the counts equal the real table sizes, and the
+ * upstream pin (tag/sha) + source_tree agree with the copy embedded in the index. The pin must be
+ * a full commit sha — `unknown` means the corpus has no traceable source, which is drift too.
+ *
+ * @return array{ok:bool,lines:string[],problems:string[]}
+ */
+function checkCorpusProvenance(string $compiledDir): array
+{
+    $indexPath = rtrim($compiledDir, '/') . '/nuclei-index.full.php';
+    $sidecarPath = rtrim($compiledDir, '/') . '/manifest.json';
+    $out = ['ok' => false, 'lines' => [], 'problems' => []];
+    if (!is_file($indexPath) || !is_file($sidecarPath)) {
+        $out['problems'][] = 'missing ' . (is_file($indexPath) ? $sidecarPath : $indexPath);
+
+        return $out;
+    }
+    $sidecar = json_decode((string) file_get_contents($sidecarPath), true);
+    if (!is_array($sidecar)) {
+        $out['problems'][] = "{$sidecarPath} is not valid JSON";
+
+        return $out;
+    }
+    $bytes = (string) file_get_contents($indexPath);
+    $index = require $indexPath;
+    if (!is_array($index) || (int) ($index['schema'] ?? 0) !== 1) {
+        $out['problems'][] = "{$indexPath} is not a schema-1 index";
+
+        return $out;
+    }
+    $embedded = (array) ($index['manifest'] ?? []);
+    $routeKeys = count((array) ($index['routes'] ?? []));
+    $templates = count((array) ($index['templates'] ?? []));
+    $sha = hash('sha256', $bytes);
+
+    $expect = static function (string $what, $claimed, $actual) use (&$out): void {
+        if ($claimed !== $actual) {
+            $out['problems'][] = "{$what}: manifest.json says " . var_export($claimed, true) . ', index has ' . var_export($actual, true);
+        }
+    };
+    $expect('sha256', (string) ($sidecar['sha256'] ?? ''), $sha);
+    $expect('artifact_bytes', (int) ($sidecar['artifact_bytes'] ?? -1), strlen($bytes));
+    $expect('route_keys', (int) ($sidecar['route_keys'] ?? -1), $routeKeys);
+    $expect('templates_indexed', (int) ($sidecar['templates_indexed'] ?? -1), $templates);
+    foreach (['upstream_sha', 'upstream_tag', 'source_tree'] as $field) {
+        $expect($field, (string) ($sidecar[$field] ?? ''), (string) ($embedded[$field] ?? ''));
+    }
+    if ((int) ($embedded['route_keys'] ?? -1) !== $routeKeys) {
+        $out['problems'][] = 'embedded route_keys ' . var_export($embedded['route_keys'] ?? null, true) . " != actual {$routeKeys} (run `funnypot build`)";
+    }
+    $pin = (string) ($sidecar['upstream_sha'] ?? '');
+    if (preg_match('/^[0-9a-f]{40}$/', $pin) !== 1) {
+        $out['problems'][] = "upstream_sha '{$pin}' is not a commit sha — the corpus source is unpinned";
+    }
+
+    $out['lines'][] = sprintf('corpus       : %s @ %s (%s)', $sidecar['source'] ?? '?', $sidecar['upstream_tag'] ?? '?', $pin !== '' ? $pin : '?');
+    $out['lines'][] = sprintf('compiled by  : core %s / php %s / built_at %s', $sidecar['core_commit'] ?? 'unknown', $sidecar['php_version'] ?? 'unknown', $sidecar['built_at'] ?? '?');
+    $out['lines'][] = sprintf('index        : %d route keys / %d templates / %d bytes / sha256 %s', $routeKeys, $templates, strlen($bytes), substr($sha, 0, 16) . '…');
+    $out['ok'] = $out['problems'] === [];
+
+    return $out;
+}
+
+/**
+ * Which compiler produced this compile: the package's own commit (suffixed `-dirty` when the
+ * compiler inputs — src/, templates/, bin/ — carry uncommitted changes; resources/compiled is
+ * expected to be dirty mid-build so it is not consulted) and the PHP that ran it. `unknown` for a
+ * composer-installed copy with no .git.
+ *
+ * @return array<string,string>
+ */
+function compilerProvenance(string $root): array
+{
+    $git = static function (string $args) use ($root): string {
+        $out = @shell_exec('git -C ' . escapeshellarg($root) . ' ' . $args . ' 2>/dev/null');
+
+        return is_string($out) ? trim($out) : '';
+    };
+    $sha = $git('rev-parse HEAD');
+    if ($sha !== '' && $git('status --porcelain --untracked-files=no -- src templates bin') !== '') {
+        $sha .= '-dirty';
+    }
+
+    return [
+        'core_commit' => $sha !== '' ? $sha : 'unknown',
+        'php_version' => PHP_VERSION,
+    ];
+}
 
 /**
  * The source-tree provenance stamp for a compile step: a sha256 over the exact `*.yaml` set the
@@ -845,9 +1175,11 @@ function runMergeRoutes(string $root, array $argvv): int
     fwrite(STDOUT, "{$folded} new-page bundle(s) folded -> {$out}\n");
 
     // Refresh the manifest.json sidecar so its sha256/size/counts verify the bytes just written.
-    // Shape mirrors ArtifactWriter::write(): the embedded manifest fields, then the write-time
-    // sidecar fields (built_at, sha256, skipped_count, artifact_bytes). built_at + skipped_count
-    // are preserved from the existing sidecar (merge-routes recomputes neither).
+    // Shape mirrors ArtifactWriter::write() field-for-field, in the same order: the embedded
+    // manifest fields, then the compile record (built_at, core_commit, php_version), then
+    // sha256, skipped_count, artifact_bytes. The compile record + skipped_count describe the
+    // external `compile` step, so they are preserved from the existing sidecar (a fold recomputes
+    // none of them); a sidecar predating the record gets `unknown`, never this process's values.
     $oldSidecar = [];
     $srcSidecar = dirname($indexPath) . '/manifest.json';
     if (is_file($srcSidecar)) {
@@ -859,6 +1191,8 @@ function runMergeRoutes(string $root, array $argvv): int
     if ($oldSidecar !== []) {
         $sidecar = $index['manifest'];
         $sidecar['built_at'] = $oldSidecar['built_at'] ?? gmdate('c');
+        $sidecar['core_commit'] = (string) ($oldSidecar['core_commit'] ?? 'unknown');
+        $sidecar['php_version'] = (string) ($oldSidecar['php_version'] ?? 'unknown');
         $sidecar['sha256'] = hash('sha256', $php);
         $sidecar['skipped_count'] = (int) ($oldSidecar['skipped_count'] ?? 0);
         $sidecar['artifact_bytes'] = strlen($php);
@@ -1089,7 +1423,12 @@ function renderLintRoutes(array $result, string $format): int
 }
 
 /**
- * Best-effort upstream tag + sha from the templates repo (or an ancestor).
+ * Best-effort upstream tag + sha from the templates repo (or an ancestor), plus the sidecar
+ * `built_at`. That stamp is reproducible on purpose: SOURCE_DATE_EPOCH when set (the
+ * reproducible-builds convention), else the upstream HEAD's committer date, else wall-clock for a
+ * dir with no revision — so two compiles of the same pinned checkout emit the same sidecar.
+ * Always UTC. Shared by `compile` and `compile-crs`; the compilers themselves never read the
+ * environment.
  *
  * @return array<string,string>
  */
@@ -1105,9 +1444,15 @@ function resolveUpstream(string $dir): array
     $sha = $git($dir, 'rev-parse HEAD');
     $tag = $git($dir, 'describe --tags --always');
 
+    $epoch = getenv('SOURCE_DATE_EPOCH');
+    if (!is_string($epoch) || !ctype_digit($epoch)) {
+        $epoch = $git($dir, 'log -1 --format=%ct');
+    }
+    $builtAt = ctype_digit($epoch) && $epoch !== '' ? gmdate('c', (int) $epoch) : gmdate('c');
+
     return [
         'tag' => $tag !== '' ? $tag : 'unknown',
         'sha' => $sha !== '' ? $sha : 'unknown',
-        'built_at' => gmdate('c'),
+        'built_at' => $builtAt,
     ];
 }

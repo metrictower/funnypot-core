@@ -37,6 +37,8 @@
         "deferred_cross_path_coherence": "Phase 3.5: persona is picked independently per path (seed % sum(w)), so a single scan can get e.g. WordPress at / and Jenkins at /index.php. Residual tell, not blocking; fix by choosing one product family per attacker from a global weighted table."
     },
     "built_at": "2026-08-17T14:04:52+00:00",
+    "core_commit": "unknown",
+    "php_version": "unknown",
     "sha256": "d527c29069c9a824d10f44818bb65ebaa2526e7c57172855eb8ecb11ad4f0114",
     "skipped_count": 4853,
     "artifact_bytes": 6224186
