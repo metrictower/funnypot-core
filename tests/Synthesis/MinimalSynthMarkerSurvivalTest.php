@@ -40,7 +40,6 @@ final class MinimalSynthMarkerSurvivalTest extends TestCase
     private static function index(): array
     {
         if (self::$index === null) {
-            ini_set('memory_limit', '512M');
             self::$index = require __DIR__ . '/../../resources/compiled/nuclei-index.full.php';
         }
 

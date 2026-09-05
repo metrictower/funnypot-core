@@ -209,7 +209,6 @@ final class SurfaceGraphTest extends TestCase
         if (!is_file(self::FULL_INDEX)) {
             self::markTestSkipped('nuclei-index.full.php not built — run bin/funnypot build');
         }
-        ini_set('memory_limit', '512M');
         $index = require self::FULL_INDEX;
         $routes = $index['routes'] ?? $index;
         $surfacePids = ['route-surface-collection', 'route-surface-detail'];

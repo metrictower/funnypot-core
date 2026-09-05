@@ -227,8 +227,8 @@ final class CorpusProvenanceTest extends TestCase
 
     /**
      * A fresh load per call, deliberately NOT cached: a retained copy of the ~6 MB index would sit
-     * in process memory for the rest of the suite, and a later test lowers memory_limit to 512M
-     * before tokenizing that same file.
+     * in process memory for the rest of the suite, on top of the peak a later Rules test hits while
+     * tokenizing that same file.
      *
      * @return array<string,mixed>
      */

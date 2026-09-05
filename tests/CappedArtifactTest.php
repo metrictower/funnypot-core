@@ -23,7 +23,6 @@ final class CappedArtifactTest extends TestCase
         if (!is_file(self::INDEX)) {
             self::markTestSkipped('nuclei-index.full.php not built — run bin/funnypot compile');
         }
-        ini_set('memory_limit', '512M');
     }
 
     private function store(): PhpArrayStore

@@ -146,7 +146,6 @@ final class RenderDeterminismTest extends TestCase
      */
     private function fullInverter(string $deploySeed): Honeypot
     {
-        ini_set('memory_limit', '512M');
         $store = new PhpArrayStore(require __DIR__ . '/../resources/compiled/nuclei-index.full.php');
         $config = new Config(
             'respond',

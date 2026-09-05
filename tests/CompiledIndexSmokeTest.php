@@ -23,8 +23,6 @@ final class CompiledIndexSmokeTest extends TestCase
         if (!is_file(self::INDEX)) {
             self::markTestSkipped('nuclei-index.full.php not built — run bin/funnypot compile');
         }
-        // The full corpus array is larger than the default CLI limit.
-        ini_set('memory_limit', '512M');
     }
 
     private function inverter(): Honeypot
