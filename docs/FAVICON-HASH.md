@@ -55,6 +55,11 @@ render, taunt, or token append) with `Content-Type: image/x-icon` and **no chars
 under MINIMAL), with a null-registry guard (a no-registry host serves no favicon, never fatals). The
 fingerprint-safety gate skips `bin` rules (no textual matcher surface).
 
+A binary body that must carry the deploy's *persona* (the Spring heap dump) cannot be static bytes; it
+uses the sibling `response.binary_generator` arm — a closed built-in writer run at serve time, same
+`bin` marker and emulator path. The full `response` key set and the generator contract are in
+[`ROUTE-TEMPLATES.md`](ROUTE-TEMPLATES.md).
+
 ## Coherence — what ships, what is deferred
 
 - **Within-page coherence (the win).** Each product decoy page's `<link rel="icon" href="X">` points

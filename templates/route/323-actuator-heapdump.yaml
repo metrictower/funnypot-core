@@ -1,0 +1,36 @@
+id: route-actuator-heapdump
+priority: 323
+# Brand-new page: the corpus routes no heapdump path (upstream springboot-heapdump is a multi-request
+# probe, skipped at gate A), so the twelve exact paths its scanner probes are folded in here. The body
+# is not authored bytes — `binary_generator` names the built-in HotSpot HPROF writer, which plants this
+# deploy's persona datasource/AWS/admin/JWT secrets as rooted java.lang.String objects a heap analyser
+# (or `strings -a`) recovers. Raw .hprof bytes as application/octet-stream with NO Content-Disposition,
+# which is what Spring Boot's HeapDumpWebEndpoint streams. `severity: high` (not critical) so the
+# default ceiling still serves it. Header time agrees with the logfile decoy's boot date (324).
+new_page:
+  method: GET
+  paths:
+    - /heapdump
+    - /actuator/heapdump
+    - /bbo-admin/heapdump
+    - /bbo-admin/actuator/heapdump
+    - /bbo-rest/heapdump
+    - /bbo-rest/actuator/heapdump
+    - /bbo-search/heapdump
+    - /bbo-search/actuator/heapdump
+    - /bbo-token/heapdump
+    - /bbo-token/actuator/heapdump
+    - /bbo-vin/heapdump
+    - /bbo-vin/actuator/heapdump
+  status: 200
+  severity: high
+  tags: [springboot, actuator, heapdump, hprof, exposure]
+  name: 'Exposed Spring Boot Actuator heap dump'
+  body_words: []
+  forbidden: []
+  typed_headers:
+    Content-Type: [application/octet-stream]
+response:
+  headers:
+    Content-Type: application/octet-stream
+  binary_generator: spring_hprof_v1

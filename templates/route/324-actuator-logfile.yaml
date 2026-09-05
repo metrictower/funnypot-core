@@ -1,0 +1,32 @@
+id: route-actuator-logfile
+priority: 324
+# Enrich: the corpus routes /actuator/logfile, /actuators/logfile and /logfile to the
+# `springboot-logfile` bundle (body words `springframework.web.HttpRequestMethodNotSupportedException`,
+# `INFO`; header word text/plain). Minimal synth would emit the bare words; here we serve a Logback
+# console log in the Boot 3.0/3.1 default pattern whose DEBUG lines leak the host's datasource, AWS and
+# Eureka credentials — byte-identical to the persona every other Spring surface discloses. The keyed
+# date pick is repeated verbatim so every line names one boot day, and the heapdump decoy (323) stamps
+# the same day into its HPROF header. Selected by bundle needle only: the unrelated iSpy bundle that
+# shares bare /logfile is never dressed. Content-Type is Spring's exact `text/plain;charset=UTF-8`
+# (no space). Range/206 is not emulated (the route tier is request-header-blind).
+match:
+  template_needle: [springboot-logfile]
+response:
+  headers:
+    Content-Type: 'text/plain;charset=UTF-8'
+  body: |
+    {{pick:spring-log-date:2026-04-14,2026-05-09,2026-06-21,2026-07-18,2026-08-24}}T08:12:04.112Z  INFO 1 --- [           main] o.s.b.w.embedded.tomcat.TomcatWebServer  : Tomcat initialized with port 8080 (http)
+    {{pick:spring-log-date:2026-04-14,2026-05-09,2026-06-21,2026-07-18,2026-08-24}}T08:12:04.250Z  INFO 1 --- [           main] o.apache.catalina.core.StandardService   : Starting service [Tomcat]
+    {{pick:spring-log-date:2026-04-14,2026-05-09,2026-06-21,2026-07-18,2026-08-24}}T08:12:05.102Z  INFO 1 --- [           main] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Starting...
+    {{pick:spring-log-date:2026-04-14,2026-05-09,2026-06-21,2026-07-18,2026-08-24}}T08:12:05.340Z  INFO 1 --- [           main] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Start completed.
+    {{pick:spring-log-date:2026-04-14,2026-05-09,2026-06-21,2026-07-18,2026-08-24}}T08:12:06.012Z  INFO 1 --- [           main] o.s.b.a.e.web.EndpointLinksResolver      : Exposing 14 endpoint(s) beneath base path '/actuator'
+    {{pick:spring-log-date:2026-04-14,2026-05-09,2026-06-21,2026-07-18,2026-08-24}}T08:12:06.840Z  INFO 1 --- [           main] com.{{persona.company.slug}}.Application : Started Application in 3.420 seconds (process running for 4.120)
+    {{pick:spring-log-date:2026-04-14,2026-05-09,2026-06-21,2026-07-18,2026-08-24}}T08:18:45.910Z DEBUG 1 --- [nio-8080-exec-3] o.s.b.a.jdbc.DataSourceProperties        : url=jdbc:postgresql://{{persona.db.host}}:5432/{{persona.db.name}} username={{persona.db.user}} password={{persona.db.password}}
+    {{pick:spring-log-date:2026-04-14,2026-05-09,2026-06-21,2026-07-18,2026-08-24}}T08:18:45.912Z DEBUG 1 --- [nio-8080-exec-3] c.{{persona.company.slug}}.AwsBootstrap  : AWS_ACCESS_KEY_ID={{persona.cloud.aws.accessKeyId}} AWS_SECRET_ACCESS_KEY={{persona.cloud.aws.secretKey}} AWS_REGION={{persona.cloud.aws.region}}
+    {{pick:spring-log-date:2026-04-14,2026-05-09,2026-06-21,2026-07-18,2026-08-24}}T08:24:10.119Z  WARN 1 --- [nio-8080-exec-7] c.{{persona.company.slug}}.Discovery     : registration retry for http://{{persona.user.admin.username}}:{{persona.user.admin.password}}@discovery.internal:8761/eureka/
+    {{pick:spring-log-date:2026-04-14,2026-05-09,2026-06-21,2026-07-18,2026-08-24}}T08:31:42.401Z  WARN 1 --- [nio-8080-exec-9] .m.m.a.ExceptionHandlerExceptionResolver : Resolved [org.springframework.web.HttpRequestMethodNotSupportedException: Request method 'POST' is not supported]
+expect:
+  - 'springframework.web.HttpRequestMethodNotSupportedException'
+  - 'HikariPool-1'
+  - 'jdbc:postgresql://'
+  - 'AWS_ACCESS_KEY_ID=AKIA'

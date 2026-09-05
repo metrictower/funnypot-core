@@ -77,9 +77,11 @@ final class ZapCoverageTest extends TestCase
     public function test_route_rule_count_is_128_plus_the_new_rules(): void
     {
         $rules = require __DIR__ . '/../resources/compiled/funnypot-routes.php';
-        self::assertCount(183, $rules, 'route rule count must be 128 (baseline) + 4 (css, listing, credentials, config) + 6 (.env family: development/staging/test/bak/php/laravel-subdir) + 12 (VCS-exposure pack: 3 enrich .git-logs/.bzr/.hg-hgrc + 9 new .git/.svn/.hg pages) + 3 (CVS/Entries + TYPO3 typo3conf listing + localconf.php) + 10 (WordPress REST wp/v2: users/posts/pages/comments/media/categories/tags/types/statuses/settings) + 1 (FP-0229 nextjs app-shell) + 5 (FP-0230 persona-coherent favicons: grafana/phpmyadmin/jenkins/catalina + neutral) + 13 (FP-0233 decoy surface graph: sitemap/robots/openid-config/jwks + api-root/collection/detail/admin-html/metrics/health/webhooks/graphql-get/auth archetypes) + 1 (FP-0233 review fix: POST /auth/token auth arm)');
+        self::assertCount(185, $rules, 'route rule count must be 128 (baseline) + 4 (css, listing, credentials, config) + 6 (.env family: development/staging/test/bak/php/laravel-subdir) + 12 (VCS-exposure pack: 3 enrich .git-logs/.bzr/.hg-hgrc + 9 new .git/.svn/.hg pages) + 3 (CVS/Entries + TYPO3 typo3conf listing + localconf.php) + 10 (WordPress REST wp/v2: users/posts/pages/comments/media/categories/tags/types/statuses/settings) + 1 (FP-0229 nextjs app-shell) + 5 (FP-0230 persona-coherent favicons: grafana/phpmyadmin/jenkins/catalina + neutral) + 13 (FP-0233 decoy surface graph: sitemap/robots/openid-config/jwks + api-root/collection/detail/admin-html/metrics/health/webhooks/graphql-get/auth archetypes) + 1 (FP-0233 review fix: POST /auth/token auth arm) + 2 (Spring Boot Actuator heapdump generated-HPROF new page + logfile enrich)');
 
         $ids = array_map(static function (array $r): string { return (string) $r['id']; }, $rules);
+        self::assertContains('route-actuator-heapdump', $ids, 'the generated-HPROF heap dump page');
+        self::assertContains('route-actuator-logfile', $ids, 'the Spring logfile enrich');
         self::assertContains('route-phpmyadmin-css', $ids);
         self::assertContains('route-dotaws-listing', $ids);
         self::assertContains('route-aws-cli-credentials', $ids);

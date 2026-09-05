@@ -73,13 +73,14 @@ final class RouteBundleSynth
             if (isset($np['weight'])) {
                 $bundle['w'] = max(1, (int) $np['weight']);
             }
-            // Binary favicon/image page (FP-0230): stamp `bin` so ResponseSynthesizer routes this
-            // bundle to the rich emulator (which base64-decodes the body) and never to minimal-synth
-            // (which would emit an empty body from the bundle's empty bw/nf). The `response` block is
-            // a top-level sibling of `new_page` (same shape RouteEmulatorCompiler reads); the base64
-            // lives in the compiled route rule, so the bundle only needs the marker.
+            // Binary page (FP-0230): stamp `bin` so ResponseSynthesizer routes this bundle to the
+            // rich emulator (which base64-decodes the body, or runs its binary_generator) and never
+            // to minimal-synth (which would emit an empty body from the bundle's empty bw/nf). The
+            // `response` block is a top-level sibling of `new_page` (same shape RouteEmulatorCompiler
+            // reads); the bytes/generator live in the compiled route rule, so the bundle only needs
+            // the marker.
             $response = (array) ($doc['response'] ?? []);
-            if (isset($response['body_b64']) || !empty($response['binary'])) {
+            if (isset($response['body_b64']) || !empty($response['binary']) || isset($response['binary_generator'])) {
                 $bundle['bin'] = 1;
             }
             $typed = (array) ($np['typed_headers'] ?? []);

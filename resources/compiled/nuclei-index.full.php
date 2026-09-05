@@ -13,11 +13,11 @@ return array (
     'license' => 'MIT (c) 2025 ProjectDiscovery, Inc.',
     'upstream_tag' => '2ec9141',
     'upstream_sha' => '2ec914123864439c3618e7e9ae72d32d0eb56df7',
-    'source_tree' => '6a37cd7a913a1a393214fc0f76853b6dde89c30509b21f7c0e902c03f6c0631e',
+    'source_tree' => '48c8abcca5a9d0fee40c9a1a49afa6dd547098baadc1f9cba12fd98161c594cd',
     'templates_seen' => 11196,
     'templates_in' => 6343,
-    'templates_indexed' => 6447,
-    'route_keys' => 5303,
+    'templates_indexed' => 6448,
+    'route_keys' => 5315,
     'multi_bundle_keys' => 276,
     'largest_bundle_count' => 1325,
     'persona_cap' => 
@@ -85016,6 +85016,19 @@ return array (
         3 => 'vuln',
       ),
       'name' => 'Exposed Kibana landing page',
+    ),
+    'route-actuator-heapdump' => 
+    array (
+      'sev' => 'high',
+      'tags' => 
+      array (
+        0 => 'springboot',
+        1 => 'actuator',
+        2 => 'heapdump',
+        3 => 'hprof',
+        4 => 'exposure',
+      ),
+      'name' => 'Exposed Spring Boot Actuator heap dump',
     ),
   ),
   'routes' => 
@@ -303979,6 +303992,378 @@ a</title>',
           't' => 
           array (
             0 => 'route-kibana',
+          ),
+        ),
+      ),
+    ),
+    'GET /heapdump' => 
+    array (
+      'b' => 
+      array (
+        0 => 
+        array (
+          's' => 200,
+          'bw' => 
+          array (
+          ),
+          'nf' => 
+          array (
+          ),
+          'pid' => 'route-actuator-heapdump',
+          'sev' => 'high',
+          'sig' => 0,
+          't' => 
+          array (
+            0 => 'route-actuator-heapdump',
+          ),
+          'bin' => 1,
+          'th' => 
+          array (
+            'Content-Type' => 
+            array (
+              0 => 'application/octet-stream',
+            ),
+          ),
+        ),
+      ),
+    ),
+    'GET /actuator/heapdump' => 
+    array (
+      'b' => 
+      array (
+        0 => 
+        array (
+          's' => 200,
+          'bw' => 
+          array (
+          ),
+          'nf' => 
+          array (
+          ),
+          'pid' => 'route-actuator-heapdump',
+          'sev' => 'high',
+          'sig' => 0,
+          't' => 
+          array (
+            0 => 'route-actuator-heapdump',
+          ),
+          'bin' => 1,
+          'th' => 
+          array (
+            'Content-Type' => 
+            array (
+              0 => 'application/octet-stream',
+            ),
+          ),
+        ),
+      ),
+    ),
+    'GET /bbo-admin/heapdump' => 
+    array (
+      'b' => 
+      array (
+        0 => 
+        array (
+          's' => 200,
+          'bw' => 
+          array (
+          ),
+          'nf' => 
+          array (
+          ),
+          'pid' => 'route-actuator-heapdump',
+          'sev' => 'high',
+          'sig' => 0,
+          't' => 
+          array (
+            0 => 'route-actuator-heapdump',
+          ),
+          'bin' => 1,
+          'th' => 
+          array (
+            'Content-Type' => 
+            array (
+              0 => 'application/octet-stream',
+            ),
+          ),
+        ),
+      ),
+    ),
+    'GET /bbo-admin/actuator/heapdump' => 
+    array (
+      'b' => 
+      array (
+        0 => 
+        array (
+          's' => 200,
+          'bw' => 
+          array (
+          ),
+          'nf' => 
+          array (
+          ),
+          'pid' => 'route-actuator-heapdump',
+          'sev' => 'high',
+          'sig' => 0,
+          't' => 
+          array (
+            0 => 'route-actuator-heapdump',
+          ),
+          'bin' => 1,
+          'th' => 
+          array (
+            'Content-Type' => 
+            array (
+              0 => 'application/octet-stream',
+            ),
+          ),
+        ),
+      ),
+    ),
+    'GET /bbo-rest/heapdump' => 
+    array (
+      'b' => 
+      array (
+        0 => 
+        array (
+          's' => 200,
+          'bw' => 
+          array (
+          ),
+          'nf' => 
+          array (
+          ),
+          'pid' => 'route-actuator-heapdump',
+          'sev' => 'high',
+          'sig' => 0,
+          't' => 
+          array (
+            0 => 'route-actuator-heapdump',
+          ),
+          'bin' => 1,
+          'th' => 
+          array (
+            'Content-Type' => 
+            array (
+              0 => 'application/octet-stream',
+            ),
+          ),
+        ),
+      ),
+    ),
+    'GET /bbo-rest/actuator/heapdump' => 
+    array (
+      'b' => 
+      array (
+        0 => 
+        array (
+          's' => 200,
+          'bw' => 
+          array (
+          ),
+          'nf' => 
+          array (
+          ),
+          'pid' => 'route-actuator-heapdump',
+          'sev' => 'high',
+          'sig' => 0,
+          't' => 
+          array (
+            0 => 'route-actuator-heapdump',
+          ),
+          'bin' => 1,
+          'th' => 
+          array (
+            'Content-Type' => 
+            array (
+              0 => 'application/octet-stream',
+            ),
+          ),
+        ),
+      ),
+    ),
+    'GET /bbo-search/heapdump' => 
+    array (
+      'b' => 
+      array (
+        0 => 
+        array (
+          's' => 200,
+          'bw' => 
+          array (
+          ),
+          'nf' => 
+          array (
+          ),
+          'pid' => 'route-actuator-heapdump',
+          'sev' => 'high',
+          'sig' => 0,
+          't' => 
+          array (
+            0 => 'route-actuator-heapdump',
+          ),
+          'bin' => 1,
+          'th' => 
+          array (
+            'Content-Type' => 
+            array (
+              0 => 'application/octet-stream',
+            ),
+          ),
+        ),
+      ),
+    ),
+    'GET /bbo-search/actuator/heapdump' => 
+    array (
+      'b' => 
+      array (
+        0 => 
+        array (
+          's' => 200,
+          'bw' => 
+          array (
+          ),
+          'nf' => 
+          array (
+          ),
+          'pid' => 'route-actuator-heapdump',
+          'sev' => 'high',
+          'sig' => 0,
+          't' => 
+          array (
+            0 => 'route-actuator-heapdump',
+          ),
+          'bin' => 1,
+          'th' => 
+          array (
+            'Content-Type' => 
+            array (
+              0 => 'application/octet-stream',
+            ),
+          ),
+        ),
+      ),
+    ),
+    'GET /bbo-token/heapdump' => 
+    array (
+      'b' => 
+      array (
+        0 => 
+        array (
+          's' => 200,
+          'bw' => 
+          array (
+          ),
+          'nf' => 
+          array (
+          ),
+          'pid' => 'route-actuator-heapdump',
+          'sev' => 'high',
+          'sig' => 0,
+          't' => 
+          array (
+            0 => 'route-actuator-heapdump',
+          ),
+          'bin' => 1,
+          'th' => 
+          array (
+            'Content-Type' => 
+            array (
+              0 => 'application/octet-stream',
+            ),
+          ),
+        ),
+      ),
+    ),
+    'GET /bbo-token/actuator/heapdump' => 
+    array (
+      'b' => 
+      array (
+        0 => 
+        array (
+          's' => 200,
+          'bw' => 
+          array (
+          ),
+          'nf' => 
+          array (
+          ),
+          'pid' => 'route-actuator-heapdump',
+          'sev' => 'high',
+          'sig' => 0,
+          't' => 
+          array (
+            0 => 'route-actuator-heapdump',
+          ),
+          'bin' => 1,
+          'th' => 
+          array (
+            'Content-Type' => 
+            array (
+              0 => 'application/octet-stream',
+            ),
+          ),
+        ),
+      ),
+    ),
+    'GET /bbo-vin/heapdump' => 
+    array (
+      'b' => 
+      array (
+        0 => 
+        array (
+          's' => 200,
+          'bw' => 
+          array (
+          ),
+          'nf' => 
+          array (
+          ),
+          'pid' => 'route-actuator-heapdump',
+          'sev' => 'high',
+          'sig' => 0,
+          't' => 
+          array (
+            0 => 'route-actuator-heapdump',
+          ),
+          'bin' => 1,
+          'th' => 
+          array (
+            'Content-Type' => 
+            array (
+              0 => 'application/octet-stream',
+            ),
+          ),
+        ),
+      ),
+    ),
+    'GET /bbo-vin/actuator/heapdump' => 
+    array (
+      'b' => 
+      array (
+        0 => 
+        array (
+          's' => 200,
+          'bw' => 
+          array (
+          ),
+          'nf' => 
+          array (
+          ),
+          'pid' => 'route-actuator-heapdump',
+          'sev' => 'high',
+          'sig' => 0,
+          't' => 
+          array (
+            0 => 'route-actuator-heapdump',
+          ),
+          'bin' => 1,
+          'th' => 
+          array (
+            'Content-Type' => 
+            array (
+              0 => 'application/octet-stream',
+            ),
           ),
         ),
       ),

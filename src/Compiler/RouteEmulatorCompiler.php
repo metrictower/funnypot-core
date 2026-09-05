@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Funnypot\Core\Compiler;
 
 use Funnypot\Core\Attack\AttackBodies;
+use Funnypot\Core\Response\BinaryBodyGeneratorRegistry;
 use Funnypot\Core\SchemaVersion;
 use Funnypot\Core\Support\PersonaIdentity;
 use Funnypot\Core\Support\SurfaceGraph;
@@ -24,6 +25,22 @@ use Symfony\Component\Yaml\Yaml;
  */
 final class RouteEmulatorCompiler
 {
+    /**
+     * The closed `response` key set. An unknown key fails the build instead of being silently
+     * ignored, so a would-be generator argument, class name or callback can never ride along in a
+     * rule artifact. `binary` is the legacy marker that forces body_b64 handling.
+     */
+    public const RESPONSE_KEYS = ['headers', 'body', 'body_b64', 'binary', 'binary_generator'];
+
+    /**
+     * Prefix of the compiled `body` a binary_generator rule carries. Deliberately outside the base64
+     * alphabet: a runtime that predates generators takes the base64 branch for every bin rule, and a
+     * strict decode of this sentinel returns false, so it declines to the host 404 — whereas an empty
+     * body would decode to '' and serve a 200 empty attachment. The current runtime resolves
+     * `binary_generator` before ever reading `body`.
+     */
+    public const GENERATOR_BODY_SENTINEL = '!';
+
     /**
      * @return array<int,array<string,mixed>>
      */
@@ -102,17 +119,30 @@ final class RouteEmulatorCompiler
         $match = $this->normalizeMatch($matchDoc, $file);
 
         $response = (array) $doc['response'];
+        foreach (array_keys($response) as $key) {
+            if (!in_array((string) $key, self::RESPONSE_KEYS, true)) {
+                throw new RuntimeException("Route template {$file}: unknown response key '{$key}'. The set is closed: " . implode(' | ', self::RESPONSE_KEYS) . '.');
+            }
+        }
         $headers = array_map('strval', (array) ($response['headers'] ?? []));
 
+        // Exactly one body source: `body` (directive text), `body_b64` (static bytes) or
+        // `binary_generator` (a built-in writer, resolved at serve time). Both binary arms are
+        // detected FIRST — BEFORE the empty-`response.body` throw below — because a binary rule
+        // legitimately has no `response.body`.
+        $generator = array_key_exists('binary_generator', $response)
+            ? $this->normalizeBinaryGenerator($response, $file)
+            : null;
+
         // Binary rule (FP-0230): an image/favicon body is stored base64-at-rest as
-        // `response.body_b64` (a `binary: true` marker forces it too) and decoded at serve. It is
-        // detected as the FIRST thing after reading $response — BEFORE the empty-`response.body`
-        // throw below — because a binary rule legitimately has no `response.body`. base64 is opaque
-        // ASCII, not directive text, so the directive/marker body guards are skipped for it; header
-        // text is still guarded exactly as for a text rule. Storing base64 (never raw bytes) keeps
-        // every compiled artifact ASCII-clean under var_export.
-        $isBinary = isset($response['body_b64']) || !empty($response['binary']);
-        if ($isBinary) {
+        // `response.body_b64` (a `binary: true` marker forces it too) and decoded at serve. base64
+        // is opaque ASCII, not directive text, so the directive/marker body guards are skipped for
+        // it; header text is still guarded exactly as for a text rule. Storing base64 (never raw
+        // bytes) keeps every compiled artifact ASCII-clean under var_export.
+        $isBinary = $generator !== null || isset($response['body_b64']) || !empty($response['binary']);
+        if ($generator !== null) {
+            $body = self::GENERATOR_BODY_SENTINEL . $generator;
+        } elseif ($isBinary) {
             if (isset($response['body'])) {
                 throw new RuntimeException("Route template {$file}: a binary rule carries response.body_b64, not response.body (both present).");
             }
@@ -146,8 +176,12 @@ final class RouteEmulatorCompiler
             '_priority' => (int) ($doc['priority'] ?? 100),
         ];
         if ($isBinary) {
-            // Stamp the runtime marker: RouteTemplateEmulator base64-decodes and serves verbatim.
+            // Stamp the runtime marker: RouteTemplateEmulator serves the bytes verbatim (generated
+            // or base64-decoded) and ResponseSynthesizer never routes the bundle to minimal synth.
             $rule['bin'] = 1;
+        }
+        if ($generator !== null) {
+            $rule['binary_generator'] = $generator;
         }
         if (isset($doc['taunt'])) {
             $rule['taunt'] = $this->normalizeTaunt((array) $doc['taunt'], $file);
@@ -161,6 +195,27 @@ final class RouteEmulatorCompiler
         }
 
         return $rule;
+    }
+
+    /**
+     * `response.binary_generator` is a bare string naming one built-in generator, exactly (no trim).
+     * A mapping, list, number or unknown token is rejected: YAML selects a generator, it never
+     * supplies a class, callback, options or template text.
+     *
+     * @param array<string,mixed> $response
+     */
+    private function normalizeBinaryGenerator(array $response, string $file): string
+    {
+        if (isset($response['body']) || isset($response['body_b64'])) {
+            throw new RuntimeException("Route template {$file}: response.binary_generator is exclusive with response.body / response.body_b64 — exactly one of the three.");
+        }
+        $id = $response['binary_generator'];
+        if (!is_string($id) || !in_array($id, BinaryBodyGeneratorRegistry::IDS, true)) {
+            $shown = is_string($id) ? $id : gettype($id);
+            throw new RuntimeException("Route template {$file}: unknown binary_generator '{$shown}'. The registry is closed: " . implode(' | ', BinaryBodyGeneratorRegistry::IDS) . '.');
+        }
+
+        return $id;
     }
 
     /**

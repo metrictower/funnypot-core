@@ -323,6 +323,11 @@ final class NewPageRoutingTest extends TestCase
             // body word), so its presence proves the shell served rather than a minimal synth.
             'kibana landing'        => ['/kibana', 200, 'kbn-injected-metadata', 'text/html; charset=utf-8'],
             'kibana landing (slash)' => ['/kibana/', 200, 'kbn-injected-metadata', 'text/html; charset=utf-8'],
+            // Spring Boot Actuator heap dump — a generated binary page (a built-in HPROF writer, no
+            // authored bytes). The marker is the HPROF magic; the type is the raw-bytes one Spring
+            // streams (no charset, no disposition). The full twelve-path sweep + the parser live in
+            // SpringActuatorArtifactTest / SpringHprofGeneratorTest.
+            'actuator heapdump'     => ['/actuator/heapdump', 200, 'JAVA PROFILE 1.0.2', 'application/octet-stream'],
 
             // VCS-exposure pack (.git / .svn / .hg / .bzr). Each serves its file's real type — the
             // git text metadata files are text/plain, and /.git/logs/HEAD is application/octet-stream
