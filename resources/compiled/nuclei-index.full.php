@@ -13,11 +13,11 @@ return array (
     'license' => 'MIT (c) 2025 ProjectDiscovery, Inc.',
     'upstream_tag' => '2ec9141',
     'upstream_sha' => '2ec914123864439c3618e7e9ae72d32d0eb56df7',
-    'source_tree' => '7e95353d5fc39f62f217061e0f105a904315f4d7ddaa9fb513d8e0a577222d48',
+    'source_tree' => '6a37cd7a913a1a393214fc0f76853b6dde89c30509b21f7c0e902c03f6c0631e',
     'templates_seen' => 11196,
     'templates_in' => 6343,
-    'templates_indexed' => 6446,
-    'route_keys' => 5301,
+    'templates_indexed' => 6447,
+    'route_keys' => 5303,
     'multi_bundle_keys' => 276,
     'largest_bundle_count' => 1325,
     'persona_cap' => 
@@ -85004,6 +85004,18 @@ return array (
         2 => 'discovery',
       ),
       'name' => 'Exposed auth endpoint (401)',
+    ),
+    'route-kibana' => 
+    array (
+      'sev' => 'medium',
+      'tags' => 
+      array (
+        0 => 'kibana',
+        1 => 'unauth',
+        2 => 'misconfig',
+        3 => 'vuln',
+      ),
+      'name' => 'Exposed Kibana landing page',
     ),
   ),
   'routes' => 
@@ -303918,6 +303930,56 @@ a</title>',
             0 => 'route-surface-detail',
           ),
           'w' => 100000,
+        ),
+      ),
+    ),
+    'GET /kibana' => 
+    array (
+      'b' => 
+      array (
+        0 => 
+        array (
+          's' => 200,
+          'bw' => 
+          array (
+            0 => 'kibanaWelcomeView',
+            1 => '<title>Kibana</title>',
+          ),
+          'nf' => 
+          array (
+          ),
+          'pid' => 'route-kibana',
+          'sev' => 'medium',
+          'sig' => 0,
+          't' => 
+          array (
+            0 => 'route-kibana',
+          ),
+        ),
+      ),
+    ),
+    'GET /kibana/' => 
+    array (
+      'b' => 
+      array (
+        0 => 
+        array (
+          's' => 200,
+          'bw' => 
+          array (
+            0 => 'kibanaWelcomeView',
+            1 => '<title>Kibana</title>',
+          ),
+          'nf' => 
+          array (
+          ),
+          'pid' => 'route-kibana',
+          'sev' => 'medium',
+          'sig' => 0,
+          't' => 
+          array (
+            0 => 'route-kibana',
+          ),
         ),
       ),
     ),

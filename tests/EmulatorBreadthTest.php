@@ -139,6 +139,9 @@ final class EmulatorBreadthTest extends TestCase
             'webmin panel enrich'              => ['GET /webmin/', 0, 'route-webmin'],
             'phppgadmin panel enrich'          => ['GET /phppgadmin/', 0, 'route-phppgadmin'],
             'kibana panel enrich'              => ['GET /app/kibana', 0, 'route-kibana'],
+            // The Kibana rule also folds the bare /kibana(/) mounts as new-page aliases (pid =
+            // route-kibana); the alias bundle must satisfy through the same authored shell.
+            'kibana bare alias (new-page)'     => ['GET /kibana', 0, 'route-kibana'],
             'jenkins panel enrich'             => ['GET /jenkins/', 0, 'route-jenkins'],
             'grafana settings enrich'          => ['GET /api/frontend/settings', 0, 'route-grafana-settings'],
         ];
@@ -453,7 +456,9 @@ final class EmulatorBreadthTest extends TestCase
      * (a needle that is a substring of ANY t-id in ANY bundle shadows that route). Lock each to EXACTLY
      * ONE bundle id across the whole compiled index — /app/kibana carries two co-ids and the enrich
      * deliberately keys on the tighter `exposed-kibana` — so a corpus refresh that introduced a
-     * colliding t-id fails CI before a rules release is signed.
+     * colliding t-id fails CI before a rules release is signed. The Kibana rule's bare /kibana(/)
+     * aliases are keyed by its own pid (`route-kibana`), which neither equals nor substrings
+     * `exposed-kibana`, so they never inflate this count.
      */
     public function test_panel_pack_needles_are_unique(): void
     {
@@ -493,6 +498,8 @@ final class EmulatorBreadthTest extends TestCase
             'GET /webmin/'               => 'text/html; charset=utf-8',
             'GET /phppgadmin/'           => 'text/html; charset=utf-8',
             'GET /app/kibana'            => 'text/html; charset=utf-8',
+            'GET /kibana'                => 'text/html; charset=utf-8',
+            'GET /kibana/'               => 'text/html; charset=utf-8',
             'GET /jenkins/'              => 'text/html; charset=utf-8',
             'GET /api/frontend/settings' => 'application/json',
         ];

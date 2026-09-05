@@ -405,7 +405,7 @@ opcache free : 238.5 MB
 
 corpus       : projectdiscovery/nuclei-templates @ 2ec9141 (2ec914123864439c3618e7e9ae72d32d0eb56df7)
 compiled by  : core unknown / php unknown / built_at 2026-08-17T14:04:52+00:00
-index        : 5301 route keys / 6446 templates / 6224186 bytes / sha256 d527c29069c9a824…
+index        : 5303 route keys / 6447 templates / 6225412 bytes / sha256 4fa6b2f1bb8ca32e…
 provenance   : OK — manifest.json verifies nuclei-index.full.php (sha256, size, counts, upstream pin)
 ```
 

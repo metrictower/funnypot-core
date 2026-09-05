@@ -31,8 +31,9 @@ use PHPUnit\Framework\TestCase;
  * corpus resources/compiled/nuclei-index.full.php — what PhpArrayStore::fromPackage() loads in prod —
  * has a live exact-store bundle keyed EXACTLY `POST /internal/security/login` (nuclei template
  * `elasticsearch-default-login`): a fake LOGIN-SUCCESS, status 200 with a `Set-Cookie: sid=`
- * header-watch. Route 372 (route-kibana) is NOT the collision — it keys only the `exposed-kibana`
- * needle, bound to `GET /app/kibana(/)`, never this path. Without owns_path, classify() would resolve
+ * header-watch. Route 372 (route-kibana) is NOT the collision — it keys the `exposed-kibana` needle
+ * (`GET /app/kibana(/)`) plus its own pid for the bare `GET /kibana(/)` aliases, never this path (its
+ * new_page block is GET-only and exact). Without owns_path, classify() would resolve
  * a POST here to that dangerous corpus bundle instead of this oracle; see
  * test_classify_overrides_the_live_elasticsearch_default_login_bundle and
  * test_served_response_is_the_oracle_never_the_elasticsearch_login_success_bundle below, which drive

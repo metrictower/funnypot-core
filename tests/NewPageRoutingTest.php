@@ -318,6 +318,11 @@ final class NewPageRoutingTest extends TestCase
             'pgadmin login (alt)'   => ['/pgadmin4/login', 200, 'Version 8.5', 'text/html; charset=utf-8'],
             'cpanel login'          => ['/cpanel', 200, '<h1>cPanel</h1>', 'text/html; charset=utf-8'],
             'whm login'             => ['/whm', 200, 'Web Host Manager', 'text/html; charset=utf-8'],
+            // Bare Kibana mounts — new-page aliases of the /app/kibana enrich (one rule owns both). The
+            // marker is the bootstrap metadata element, authored only in the rich body (not a bundle
+            // body word), so its presence proves the shell served rather than a minimal synth.
+            'kibana landing'        => ['/kibana', 200, 'kbn-injected-metadata', 'text/html; charset=utf-8'],
+            'kibana landing (slash)' => ['/kibana/', 200, 'kbn-injected-metadata', 'text/html; charset=utf-8'],
 
             // VCS-exposure pack (.git / .svn / .hg / .bzr). Each serves its file's real type — the
             // git text metadata files are text/plain, and /.git/logs/HEAD is application/octet-stream

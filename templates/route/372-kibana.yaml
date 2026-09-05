@@ -1,14 +1,32 @@
 id: route-kibana
 priority: 372
-# Enrich: the corpus routes /app/kibana to the `exposed-kibana` bundle (body words `kibanaWelcomeView`,
-# `<title>Kibana</title>`). Minimal synth would emit the bare words; here we serve the real Kibana
-# bootstrap shell — the `kbn-injected-metadata` element (carrying the exact version a scanner reads)
-# and the `kibanaWelcomeView` loading screen. Needle is `exposed-kibana`, the tighter of the two co-ids
-# on this route and unique across the corpus (findRule is global). Kibana is engine-agnostic, so this
-# panel names no database. Version is a dotted literal and the buildNumber is a 5-digit tag (no bare
-# 6-digit run). Content-Type is text/html.
+# Enrich + alias: the corpus routes /app/kibana to the `exposed-kibana` bundle (body words
+# `kibanaWelcomeView`, `<title>Kibana</title>`). Minimal synth would emit the bare words; here we serve
+# the real Kibana bootstrap shell — the `kbn-injected-metadata` element (carrying the exact version a
+# scanner reads) and the `kibanaWelcomeView` loading screen. Needle is `exposed-kibana`, the tighter of
+# the two co-ids on this route and unique across the corpus (findRule is global). Kibana is
+# engine-agnostic, so this panel names no database. Version is a dotted literal and the buildNumber is
+# a 5-digit tag (no bare 6-digit run). Content-Type is text/html.
+#
+# The bare /kibana and /kibana/ mounts (a reverse-proxied Kibana's usual public path) have no nuclei
+# template, so without a new_page block nothing is keyed there and the request falls out of core
+# entirely. new_page folds exactly those two GET keys as single-bundle routes; the body they serve is
+# this same shell. Same dual-ownership shape as 60-phpinfo.yaml.
+new_page:
+  method: GET
+  paths: ['/kibana', '/kibana/']
+  sig: 0
+  status: 200
+  severity: medium
+  tags: [kibana, unauth, misconfig, vuln]
+  name: 'Exposed Kibana landing page'
+  body_words: ['kibanaWelcomeView', '<title>Kibana</title>']
 match:
+  # template_needle keeps dressing the corpus /app/kibana bundles. pid binds this body to the folded
+  # new-page bundles explicitly — the selector is only auto-filled when match is absent, so a
+  # new_page rule that also declares a needle must name its own pid or its aliases fall to minimal synth.
   template_needle: [exposed-kibana]
+  pid: [route-kibana]
 response:
   headers:
     Content-Type: "text/html; charset=utf-8"
