@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Funnypot\Core\Tests;
 
+use Funnypot\Core\Compiler\RouteIndexFold;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -25,6 +26,7 @@ final class CorpusProvenanceTest extends TestCase
     private const COMPILED = __DIR__ . '/../resources/compiled';
     private const INDEX = self::COMPILED . '/nuclei-index.full.php';
     private const SIDECAR = self::COMPILED . '/manifest.json';
+    private const FRAGMENT = self::COMPILED . '/funnypot-routes-index.php';
 
     /** In-repo new-page routes: two from templates/route, one from templates/generated (compile-ai). */
     private const CANARIES = ['GET /.claude.json', 'GET /secrets.json', 'GET /api/tags'];
@@ -100,6 +102,58 @@ final class CorpusProvenanceTest extends TestCase
             });
             // /api/tags also exists upstream, so presence alone would not prove the fold.
             self::assertNotEmpty($folded, "{$key} routes, but not via a folded route-* bundle: " . implode(',', $pids));
+        }
+    }
+
+    // --- the synchronizing fold left no orphaned owned entry ------------------------------------
+
+    public function test_committed_index_owns_exactly_the_fragment_route_entries(): void
+    {
+        // The synchronizing fold removes every route-* entry, then folds the fragment, so the
+        // index's owned set must equal the fragment's. A route-* template/bundle/detection in the
+        // index that the fragment no longer authors is an orphan a rebuild would drop — the exact
+        // defect (route-npmrc) that this invariant caught. RED before the first synchronizing
+        // regeneration, GREEN after, and a guard against any future orphan.
+        if (!is_file(self::FRAGMENT)) {
+            self::markTestSkipped('compiled fragment not built');
+        }
+        $index = self::index();
+        $fragment = require self::FRAGMENT;
+        $fragKeys = array_keys((array) $fragment['templates']);
+        $fragSet = array_flip($fragKeys);
+
+        $indexOwnedTemplates = [];
+        foreach (array_keys((array) $index['templates']) as $id) {
+            if (RouteIndexFold::owns((string) $id)) {
+                $indexOwnedTemplates[] = (string) $id;
+            }
+        }
+        sort($indexOwnedTemplates);
+        $sortedFragKeys = $fragKeys;
+        sort($sortedFragKeys);
+        self::assertSame(
+            $sortedFragKeys,
+            $indexOwnedTemplates,
+            'index route-* templates must equal the fragment template keys (orphan or missing fold)'
+        );
+
+        foreach ((array) $index['routes'] as $key => $entry) {
+            foreach ((array) ($entry['b'] ?? []) as $bundle) {
+                $pid = (string) ($bundle['pid'] ?? '');
+                if (RouteIndexFold::owns($pid)) {
+                    self::assertArrayHasKey($pid, $fragSet, "orphaned owned bundle {$pid} at {$key}");
+                }
+            }
+            foreach ((array) ($entry['d'] ?? []) as $did) {
+                $did = (string) $did;
+                if (RouteIndexFold::owns($did)) {
+                    self::assertArrayHasKey($did, $fragSet, "orphaned owned detection {$did} at {$key}");
+                }
+            }
+        }
+
+        foreach ($fragKeys as $id) {
+            self::assertArrayHasKey($id, (array) $index['templates'], "fragment template {$id} missing from the index (fold not run)");
         }
     }
 
