@@ -206,16 +206,44 @@ be a live XSS / open redirect in that host's real origin.
 The engine is **fail-safe by default**: `Config::$isolatedOrigin` defaults to `false`, meaning "treat
 this install as embedded" — reflecting decoys are **withheld from serving**, while detection is
 untouched (the probe still classifies, so the intel is captured; only the reflection is suppressed).
-A standalone honeypot opts in to keep the bait:
+
+Since **v0.7.0** an isolated origin is **necessary but not sufficient**. `isolatedOrigin` is the
+operator's coarse *intent*; a reflector also requires *evidence* about the specific request —
+`Config::$reflectorAuthorizer`, a `fn(RequestContext, string $reflectClass): bool` the adapter
+supplies. A reflector serves only when **all** of these hold, in order:
+
+```
+isolatedOrigin === true  &&  class enabled  &&  a live request is present  &&  reflectorAuthorizer(request, class) === true
+```
+
+The authorizer is **fail-closed** exactly like `gate`: `null` (the default) suppresses every
+reflector, only a literal `true` authorizes, and any `Throwable` suppresses. It must return `true`
+**only from a server-derived fact a client cannot supply or override** — for example a static
+FastCGI param injected by an exact deception vhost whose router has no operator-plane routes. Reading
+`RequestContext::$host`/`$scheme`, `Host`, `Forwarded`, `X-Forwarded-*`, a cookie, a query value, or
+any ordinary request header is **not** evidence (a client controls all of those) and must never gate
+a reflector. A standalone honeypot opts in with both terms:
 
 ```php
 $funnypot = Honeypot::default(new Config(
     mode: 'respond',
     gate: fn (RequestContext $r) => isSuspicious($r),
     attackEmulation: true,
-    isolatedOrigin: true,   // this box owns its origin — reflecting decoys are safe bait
+    isolatedOrigin: true,                        // intent: this box owns its origin
+    // ... reflectorAuthorizer is the LAST positional arg; usually set as a property:
 ));
+$config->reflectorAuthorizer = fn (RequestContext $r, string $class) => edgeAttestsDeceptionOrigin();
 ```
+
+> **v0.7.0 migration (breaking, safe-off).** An `isolatedOrigin: true` install that does nothing
+> else now serves **no** active reflector until it wires a `reflectorAuthorizer` — the three reflect
+> classes (`xss`, `open-redirect`, `fs-read`) all ride this one seam, so all three go dormant
+> together. This is deliberate: a bare boolean was never proof that the reflection would not act in
+> an operator origin. Re-enable per class from the authorizer's `$reflectClass` argument. The
+> standalone-app activation path (an edge-attested origin split from the operator plane) is delivered
+> separately; do **not** substitute `fn () => true` for the missing callback in a shared-origin app.
+> A newer rules artifact reaching an older (pre-v0.7.0) engine is also safe: the unknown
+> `{{urldecode-ascii:match.*}}` slot renders empty, so no attacker bytes are reflected.
 
 Embedded hosts (`funnypot-laravel`, the `funnypot` embedder) inherit the safe default and need no
 change. A template joins this class by declaring `reflects_input: true` at its top level (the attack
@@ -236,8 +264,9 @@ $funnypot = Honeypot::default(new Config(
 ));
 ```
 
-A **missing** key defaults to enabled, so the default `[]` reflects every class exactly as before.
-The map **AND-composes** with `isolatedOrigin` (`serveReflector(class) = isolatedOrigin && (reflectClasses[class] ?? true)`)
+A **missing** key defaults to enabled, so the default `[]` neither adds nor removes a class. The map
+is AND-composed into the serve decision alongside the origin intent and the request-bound authorizer
+(`serveReflector(class, request) = isolatedOrigin && (reflectClasses[class] ?? true) && request-present && reflectorAuthorizer(request, class) === true`)
 and can therefore only ever **subtract**: setting a class to `true` on an embedded host
 (`isolatedOrigin=false`) does **not** re-enable it — the `isolatedOrigin` term dominates, so an
 embedded host never reflects, whatever the map says. The fail-safe default is preserved.
@@ -254,6 +283,16 @@ rule declines and echoes nothing — the reflected string can never carry a mark
 the reflectors above it is therefore **inert by construction** (like the php-cgi source-disclosure
 and SSTI-numeric decoys) and serves on a **default embedded install**, with no isolated origin
 required. Full-tag reflection stays on the gated `attack-xss` decoy, unchanged.
+
+Its bounded **raw escalation companion** `attack-xss-escalation` (priority 65, same owned path)
+carries a scanner's *confirmation* stages — dalfox's batched special-character probe and generated
+tags, nuclei's percent-encoded `'"><N>` breakout — that the alphanumeric baseline refuses. It
+reflects the raw `q` through a single bounded slot (`{{urldecode-ascii:match.value}}`: one form-decode,
+then 1..512 printable-ASCII bytes or nothing) behind a restrictive sandbox CSP. Being a
+`reflects_input`/`reflect_class: xss` rule it obeys the full three-term gate above, so on a **default
+install** a non-alphanumeric `q` on this path is suppressed to the host's own 404 (the detection is
+still recorded) — no attacker bytes are ever served without an isolated origin *and* a
+`reflectorAuthorizer`.
 
 - **Opt-out is ID-only** for this attack-tier rule: `Config::$exclude = ['attack-xss-baseline']`.
   A **tag** (`exclude: ['xss']`) does **not** disable it — tag-based exclusion applies only to route

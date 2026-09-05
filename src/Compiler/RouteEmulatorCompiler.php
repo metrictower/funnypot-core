@@ -237,6 +237,11 @@ final class RouteEmulatorCompiler
                 if (strpos($part, 'surface.') === 0 && !self::isKnownSurfaceForm(substr($part, 8))) {
                     throw new RuntimeException("Route template {$file}: unknown surface form '{{{$part}}}'. Forms are sitemap | disallow | noun:{c1,c2,d1,d2}.");
                 }
+                // urldecode-ascii:match.* is the bounded raw reflector slot for an HTML body; its byte class
+                // excludes CR/LF/NUL, so only this compile-time reject keeps it out of a header.
+                if ($inHeader && strpos($part, 'urldecode-ascii:match.') === 0) {
+                    throw new RuntimeException("Route template {$file}: '{{{$part}}}' is body-only — the raw reflector slot must not appear in a header value.");
+                }
                 // attack.* is a CLOSED form set (FP-0279): sqli.{prefix,near,suffix} | page.{title,body}:{home,search}.
                 if (strpos($part, 'attack.') === 0) {
                     if ($inHeader) {
@@ -269,11 +274,11 @@ final class RouteEmulatorCompiler
     }
 
     /**
-     * A text/html response body reflecting a RAW request capture ({{match.*}} / {{urldecode:match.*}})
-     * with no render-layer escape is a reflected-XSS-shaped surface — refused unless the template
-     * declares `reflects_input: true` or asserts `html_safe_captures: true`. Escaped {{html:match.*}} /
-     * {{xml:match.*}} are fine. Mirrors EmulatorCompiler::assertHtmlReflectionSafe (same closed lint on
-     * the route tier); compile-time only, never copied into the compiled rule.
+     * A text/html response body reflecting a RAW request capture ({{match.*}} / {{urldecode:match.*}} /
+     * {{urldecode-ascii:match.*}}) with no render-layer escape is a reflected-XSS-shaped surface — refused
+     * unless the template declares `reflects_input: true` or asserts `html_safe_captures: true`. Escaped
+     * {{html:match.*}} / {{xml:match.*}} are fine. Mirrors EmulatorCompiler::assertHtmlReflectionSafe (same
+     * closed lint on the route tier); compile-time only, never copied into the compiled rule.
      *
      * @param array<string,mixed> $doc
      */
@@ -323,7 +328,7 @@ final class RouteEmulatorCompiler
         }
         foreach ($all[1] as $expr) {
             foreach (array_map('trim', explode('|', $expr)) as $part) {
-                if (strpos($part, 'match.') === 0 || strpos($part, 'urldecode:match.') === 0) {
+                if (strpos($part, 'match.') === 0 || strpos($part, 'urldecode:match.') === 0 || strpos($part, 'urldecode-ascii:match.') === 0) {
                     return true;
                 }
             }

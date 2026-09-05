@@ -50,8 +50,10 @@ final class XRequestIdEnvelopeTest extends TestCase
             $poweredBy                                                    // poweredBy
         );
         // This suite verifies the served envelope of every branch, including the reflecting decoys
-        // (xss-reflect, open-redirect) — which serve only from an isolated origin. Opt in.
+        // (xss-reflect, open-redirect) — which serve only from an isolated origin WITH request-bound
+        // evidence. Opt in with a test-only unconditional authorizer.
         $config->isolatedOrigin = true;
+        $config->reflectorAuthorizer = static function (RequestContext $r, string $class): bool { return true; };
 
         return new Honeypot($store, $config);
     }

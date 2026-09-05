@@ -1174,12 +1174,15 @@ final class Honeypot implements Engine
         // ran, so the detection/intel is captured — this only withholds the reflection. Covers both
         // the attack tier and the param tier: a matched param route rides an attack handle and
         // ruleById() resolves param entries here too. serveReflector() AND-composes the global
-        // isolatedOrigin posture with the per-class knob (Config::$reflectClasses): the isolatedOrigin
-        // term dominates, so the knob can only ever subtract — an embedded host never reflects. A rule
-        // with no reflect_class falls back to 'default' (absent from the map ⇒ enabled), keeping any
-        // untagged reflector fail-safe under isolatedOrigin exactly as today.
+        // isolatedOrigin posture, the per-class knob (Config::$reflectClasses) and the request-bound
+        // authorizer (Config::$reflectorAuthorizer): every term can only subtract, so an embedded host
+        // never reflects and neither does an isolated one that supplies no evidence. $r is the live
+        // request on the facade path and null on the position-blind port — a null request carries no
+        // evidence, so synthesize() suppresses every reflector by construction. A rule with no
+        // reflect_class falls back to 'default' (absent from the map ⇒ enabled), keeping any untagged
+        // reflector fail-safe under the same three-term gate.
         if (!empty($rule['reflects_input'])
-            && !$this->config->serveReflector((string) ($rule['reflect_class'] ?? 'default'))) {
+            && !$this->config->serveReflector((string) ($rule['reflect_class'] ?? 'default'), $r)) {
             return ['r' => null, 'reason' => Outcome::REFLECTION_SUPPRESSED];
         }
 

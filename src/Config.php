@@ -187,6 +187,22 @@ final class Config
      */
     public $reflectClasses;
 
+    /**
+     * @var Closure|null fn(RequestContext, string $reflectClass):bool — the request-bound authorization
+     * term every reflects_input serve requires. $isolatedOrigin is an operator ASSERTION; this closure is
+     * where the adapter supplies EVIDENCE that this exact request arrived on an origin with no operator
+     * plane behind it. It must return true only from a server-derived fact a client cannot supply or
+     * override (e.g. a static FastCGI param set by an exact deception vhost). Deciding from
+     * RequestContext::$host / $scheme, Host, Forwarded, X-Forwarded-*, a cookie, a query value or any
+     * ordinary request header is NOT evidence — a client controls all of those — and must never be done
+     * here. null (the default) ⇒ no reflector serves, whatever $isolatedOrigin says: an install that
+     * supplies no authorizer LOSES active reflection rather than gaining it. Fail-closed: only a literal
+     * true authorizes; false, a truthy non-bool, or a Throwable all suppress. Invoked at most once per
+     * decision, after the cheap $isolatedOrigin and class-map checks, and never on the position-blind
+     * port path (no request ⇒ no evidence ⇒ suppressed).
+     */
+    public $reflectorAuthorizer;
+
     public function __construct(
         string $mode = 'detect',
         ?Closure $gate = null,
@@ -215,7 +231,8 @@ final class Config
         bool $promptInjectionSeeding = false,
         ?string $beaconUrl = null,
         bool $volatileProof = false,
-        array $reflectClasses = []
+        array $reflectClasses = [],
+        ?Closure $reflectorAuthorizer = null
     ) {
         $this->mode = $mode;
         $this->gate = $gate;
@@ -245,6 +262,7 @@ final class Config
         $this->beaconUrl = $beaconUrl;
         $this->volatileProof = $volatileProof;
         $this->reflectClasses = $reflectClasses;
+        $this->reflectorAuthorizer = $reflectorAuthorizer;
     }
 
     public function respondEnabled(): bool
@@ -293,13 +311,46 @@ final class Config
     }
 
     /**
-     * The single reflection decision. Reflection serves ONLY from an isolated origin AND when the
-     * class is not disabled. The isolatedOrigin term is first and dominates: an embedded host
-     * (false) never reflects, whatever the class map says — the knob can only ever subtract.
+     * The request-bound authorization term of serveReflector(). Same fail-closed shape as gateOpen():
+     * null ⇒ false, only a literal true authorizes, a Throwable ⇒ false. A reflector is a live XSS /
+     * open-redirect if it serves on the wrong origin, so a broken or absent authorizer must always
+     * fall to "withhold" — there is no compatibility path that treats a missing callback as true.
      */
-    public function serveReflector(string $class): bool
+    public function reflectorAuthorized(RequestContext $r, string $class): bool
     {
-        return $this->isolatedOrigin && $this->reflectClassEnabled($class);
+        if ($this->reflectorAuthorizer === null) {
+            return false;
+        }
+        try {
+            return ($this->reflectorAuthorizer)($r, $class) === true;
+        } catch (\Throwable $e) {
+            return false;
+        }
+    }
+
+    /**
+     * The single reflection decision:
+     *
+     *   isolatedOrigin && classEnabled && request present && authorizer(request, class) === true
+     *
+     * evaluated in that order, each term able only to subtract. isolatedOrigin (operator intent) is
+     * first and dominates: an embedded host never reflects whatever the class map or authorizer say.
+     * The class map can only turn a class off. The request-bound authorizer is the EVIDENCE term:
+     * intent alone never serves a reflector, so an isolatedOrigin=true install that wires no
+     * authorizer is safe-off. A null request (the position-blind synthesize() port) carries no
+     * evidence and suppresses every reflector. The closure runs at most once, and only after the two
+     * cheap configuration checks passed.
+     */
+    public function serveReflector(string $class, ?RequestContext $request = null): bool
+    {
+        if (!$this->isolatedOrigin || !$this->reflectClassEnabled($class)) {
+            return false;
+        }
+        if ($request === null) {
+            return false;
+        }
+
+        return $this->reflectorAuthorized($request, $class);
     }
 
     /**

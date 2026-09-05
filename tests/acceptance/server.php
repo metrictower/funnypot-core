@@ -37,6 +37,18 @@ $config = new Config(
     'coherent',                                                                         // personaBreadth
     $style                                                                              // responseStyle
 );
+
+// NI_REFLECT=1 arms the request-authorized reflector lane (tests/acceptance/run-reflect.sh): the
+// attack tier on, the origin asserted isolated, and an authorizer that treats every request as
+// evidence. That authorizer is valid ONLY here — a throwaway loopback responder with no operator
+// plane behind it; a real adapter must derive its answer from a server-side fact a client cannot
+// supply. Off (the default) the golden job's config and served bytes are untouched.
+if (getenv('NI_REFLECT') === '1') {
+    $config->attackEmulation = true;
+    $config->isolatedOrigin = true;
+    $config->reflectorAuthorizer = static function (RequestContext $r, string $class): bool { return true; };
+}
+
 $inverter = new Honeypot($store, $config);
 
 $response = $inverter->respond(RequestContext::fromGlobals());

@@ -92,19 +92,50 @@ final class SynthesizeTest extends TestCase
             0,                                   // latencyJitterMs
             true                                 // attackEmulation
         );
-        // The xss reflect decoy serves (and reflects captures) only from an isolated origin.
-        $config->isolatedOrigin = true;
         $engine = new Honeypot($this->store(), $config);
-        $payload = '<script>alert(document.domain)</script>';
-        $verdict = $engine->classify(new RequestContext('GET', '/search', 'q=' . $payload), SiteProfile::empty());
+        // The inert reflection baseline echoes its wholly-alphanumeric capture with no gate (HTML-safe
+        // by charset), so it is the rule that can prove capture plumbing on the position-blind port.
+        $verdict = $engine->classify(new RequestContext('GET', '/products/quick-search', 'q=laptop42'), SiteProfile::empty());
 
         self::assertSame(Verdict::ATTACK_CLASS, $verdict->classification);
         self::assertSame(FakeHandle::KIND_ATTACK, $verdict->fakeHandle->kind);
 
         $fake = $engine->synthesize($verdict, SiteProfile::empty(), 'atk-seed');
         self::assertNotNull($fake);
-        // The captured payload is reflected — proving captures ride the handle into synthesize().
-        self::assertStringContainsString($payload, $fake->body);
+        // The captured value is reflected — proving captures ride the handle into synthesize().
+        self::assertStringContainsString('laptop42', $fake->body);
+    }
+
+    public function test_position_blind_synthesize_never_serves_a_reflecting_decoy(): void
+    {
+        // synthesize() carries no request, so the request-bound reflector authorizer has nothing to
+        // judge: a reflects_input rule is withheld on the port path even with isolatedOrigin=true AND
+        // an authorizer wired. Only the facade (respond), which threads the live request, can serve it.
+        $config = new Config(
+            'detect',                            // mode
+            null,                                // gate
+            'matched-only',                      // pathScope
+            null,                                // personaSeed
+            'coherent',                          // personaBreadth
+            \Funnypot\Core\Response\Style::MINIMAL,   // responseStyle
+            'high',                              // severityCeiling
+            65536,                               // maxBodyBytes
+            0,                                   // latencyMs
+            0,                                   // latencyJitterMs
+            true                                 // attackEmulation
+        );
+        $config->isolatedOrigin = true;
+        $config->reflectorAuthorizer = static function (RequestContext $r, string $class): bool { return true; };
+        $engine = new Honeypot($this->store(), $config);
+        $payload = '<script>alert(document.domain)</script>';
+        $verdict = $engine->classify(new RequestContext('GET', '/search', 'q=' . $payload), SiteProfile::empty());
+
+        // Detection is untouched — the reflector is recognized; only the serve is withheld.
+        self::assertSame(Verdict::ATTACK_CLASS, $verdict->classification);
+        self::assertSame('attack-xss', $verdict->fakeHandle->ruleId);
+
+        self::assertNull($engine->synthesize($verdict, SiteProfile::empty(), 'atk-seed'));
+        self::assertNull($engine->synthesizeFromHandle($verdict->fakeHandle, SiteProfile::empty(), 'atk-seed'));
     }
 
     public function test_attack_synthesis_honours_the_severity_ceiling(): void

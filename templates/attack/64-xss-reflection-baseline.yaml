@@ -29,11 +29,12 @@ html_safe_captures: true
 # alnum `q`; the `$` alternative admits a trailing LF after an otherwise-alnum marker — both cases
 # still reflect only [A-Za-z0-9] bytes.)
 #
-# Full-tag reflection stays on the existing attack-xss under the UNCHANGED FP-0236 gate
-# (reflect_class:xss + Config::$isolatedOrigin, default OFF): priority 64 < 65 so this rule is
-# evaluated first, but because it DECLINES on any non-alnum q, a markup escalation on this same
-# path flows straight to attack-xss exactly as today. Full dalfox Stage-3 / nuclei confirmation is
-# a deliberate documented trade-off (deferred to FP-0286); this baseline engages dalfox discovery.
+# Markup reflection stays behind the reflects_input gate (reflect_class:xss + Config::serveReflector,
+# default OFF): priority 64 < 65 so this rule is evaluated first, but because it DECLINES on any
+# non-alnum q, a markup escalation on this same path flows to the two gated priority-65 rules —
+# attack-xss for full tag shapes (sorts first by id) and the raw companion attack-xss-escalation
+# (65-xss-reflection-escalation.yaml) for everything else non-alnum on this path. This baseline
+# engages a scanner's discovery stage; the companion carries the confirmation stages.
 #
 # Opt-out is ID-ONLY for the attack tier: Config::$exclude must name 'attack-xss-baseline'
 # (tag-based exclusion works only for route bundles, never the attack tier).

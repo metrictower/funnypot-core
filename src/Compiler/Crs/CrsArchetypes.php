@@ -157,7 +157,7 @@ final class CrsArchetypes
     {
         $strip = static function (string $s): string {
             return (string) preg_replace(
-                '/\{\{\s*(?:urldecode:)?match\.[^}]*\}\}/',
+                '/\{\{\s*(?:urldecode(?:-ascii)?:)?match\.[^}]*\}\}/',
                 '',
                 $s
             );

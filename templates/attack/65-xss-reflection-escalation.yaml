@@ -1,0 +1,65 @@
+id: attack-xss-escalation
+severity: medium
+priority: 65
+tags: [attack, xss, reflection-baseline]
+reflects_input: true
+reflect_class: xss
+# The bounded RAW escalation companion of attack-xss-baseline (priority 64) on the SAME owned
+# search path. The baseline echoes a wholly-alphanumeric `q` on every install, which engages a
+# scanner's discovery stage; the next stages — dalfox's batched special-character probe and
+# generated tags, nuclei's percent-encoded `'"><N>` breakout — carry markup bytes the baseline's
+# class refuses, and the older attack-xss (same priority, sorts first by id) claims only full tag
+# shapes. This rule owns what falls between: any non-alphanumeric `q` on this path, reflected RAW
+# through {{urldecode-ascii:match.value}} so a scanner's own payload comes back byte-for-byte.
+#
+# WHY IT IS SAFE TO AUTHOR RAW. `reflects_input: true` puts it behind Config::serveReflector(): it
+# serves ONLY when the operator asserts an isolated origin AND the xss class is enabled AND the
+# adapter's request-bound authorizer returns literal true for THIS request. A default install, an
+# embedded host, the position-blind synthesize() port, and an isolated origin with no authorizer all
+# suppress it (REFLECTION_SUPPRESSED, host 404) while the detection is still recorded. So on a
+# default install a non-alphanumeric `q` on this path now 404s rather than falling through to a
+# canned decline page — no attacker byte is served either way.
+#
+# THE ONE ATTACKER-CONTROLLED SLOT is the text node inside <span>. The directive form-decodes the
+# raw capture exactly once (urldecode: %XX ⇒ byte, + ⇒ space, as a real $_GET sink sees it) and emits
+# it only when the result is 1..512 bytes of printable ASCII 0x20..0x7e; empty, over-cap, or any
+# CR/LF/NUL/C0/DEL/high byte renders '' — nothing partial. It is never decoded twice: %250a is served
+# as the printable text %0a. The raw capture is bounded to 1536 non-&/CR/LF/NUL bytes (a fully
+# percent-encoded 512-byte value); a longer value fails the match and the rule declines whole.
+#
+# The headers are defense in depth for a REAL browser (the operator's), not for the scanner: a
+# sandboxed, source-less CSP, no-store, no referrer, nosniff, same-origin COOP/CORP. No cookie, no
+# CORS header, no redirect, no external URL, no authored script, no subresource; the form posts to
+# this same relative path and form-action 'none' neuters even that. CSP is never weakened to coax a
+# scanner's severity label — the primary boundary is the separate deception origin the authorizer
+# attests, and dalfox drives no browser (its verified result is a static DOM-position check).
+match:
+  - in: method
+    regex: '^GET$'
+  - in: path
+    regex: '^/products/quick-search/?$'      # same owned path as the baseline; nothing else, ever
+  - in: query
+    regex: '(?:^|&)q=(?P<value>[^&\r\n\x00]{1,1536})(?:&|$)'
+    capture: true                            # LOAD-BEARING: selects THIS condition's groups for {{…match.value}}
+status: 200
+response:
+  headers:
+    Content-Type: "text/html; charset=utf-8"
+    Content-Security-Policy: "sandbox; default-src 'none'; script-src 'none'; connect-src 'none'; img-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'"
+    Cache-Control: "no-store"
+    Referrer-Policy: "no-referrer"
+    X-Content-Type-Options: "nosniff"
+    Cross-Origin-Resource-Policy: "same-origin"
+    Cross-Origin-Opener-Policy: "same-origin"
+  body: |
+    <!doctype html>
+    <html lang="en">
+    <head><meta charset="utf-8"><title>{{persona.company.name}} — Product search</title></head>
+    <body>
+    <h1>Product search</h1>
+    <form action="/products/quick-search" method="get"><input type="text" name="q"><button type="submit">Search</button></form>
+    <p>No products matched your search for <span>{{urldecode-ascii:match.value}}</span>.</p>
+    <p>Try a different keyword or browse the catalog.</p>
+    </body>
+    </html>
+expect: ['No products matched your search for', 'Product search']

@@ -90,8 +90,10 @@ final class NewPageRoutingTest extends TestCase
             true // attackEmulation ⇒ builds the emulator, which loads the param buckets
         );
         // The /@fs param route reflects the attacker path into its base body — a reflecting decoy
-        // that serves only from an isolated origin, which these param-path serve sweeps exercise.
+        // that serves only from an isolated origin with request-bound evidence, which these
+        // param-path serve sweeps exercise (test-only unconditional authorizer).
         $config->isolatedOrigin = true;
+        $config->reflectorAuthorizer = static function (RequestContext $r, string $class): bool { return true; };
 
         return new Honeypot($store, $config);
     }

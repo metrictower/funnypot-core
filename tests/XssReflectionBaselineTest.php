@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Funnypot\Core\Tests;
 
+use Closure;
 use Funnypot\Core\Compiler\EmulatorCompiler;
 use Funnypot\Core\Config;
 use Funnypot\Core\Honeypot;
@@ -22,8 +23,9 @@ use PHPUnit\Framework\TestCase;
  * ALWAYS the named capture `marker`, so it can NEVER carry a markup-forming byte. dalfox's benign
  * 36-char discovery marker round-trips (so its Stage-0/1/2 discovery engages), while any
  * out-of-charset byte makes the anchored, delimiter-bounded capture FAIL — the baseline declines
- * and a canned decoy (attack-crs-xss / attack-ssti-numeric) serves instead. Full-tag reflection
- * stays on the UNCHANGED attack-xss under the FP-0236 gate (reflect_class:xss + isolatedOrigin).
+ * and the request flows to the gated priority-65 reflectors (attack-xss for full tag shapes, the
+ * raw companion attack-xss-escalation for everything else non-alnum on this path), which a default
+ * install suppresses to a host 404 — see XssEscalationReflectorTest.
  *
  * The baseline is inert BY CHARSET (not by the isolated-origin gate): it is NOT a reflects_input
  * rule (it asserts `html_safe_captures: true`, compile-time only), so the marker reflects on a
@@ -56,7 +58,7 @@ final class XssReflectionBaselineTest extends TestCase
      * @param array<string,bool> $reflectClasses
      * @param string[]           $exclude
      */
-    private function config(bool $isolatedOrigin, array $reflectClasses, array $exclude): Config
+    private function config(bool $isolatedOrigin, array $reflectClasses, array $exclude, ?Closure $authorizer = null): Config
     {
         $config = new Config(
             'respond',                                                  // mode
@@ -74,6 +76,7 @@ final class XssReflectionBaselineTest extends TestCase
         $config->isolatedOrigin = $isolatedOrigin;
         $config->reflectClasses = $reflectClasses;
         $config->exclude = $exclude;
+        $config->reflectorAuthorizer = $authorizer;
 
         return $config;
     }
@@ -131,7 +134,8 @@ final class XssReflectionBaselineTest extends TestCase
         self::assertStringContainsString(self::MARKER64, $r64->body);
 
         // 65 alnum chars: the length cap makes the capture FAIL — the baseline declines and never
-        // reflects the over-long value (nothing else matches a pure-alnum value ⇒ null).
+        // reflects the over-long value (the raw companion claims it but is gate-suppressed on this
+        // default install ⇒ null).
         $over = self::MARKER64 . 'e'; // 65 chars, still wholly alnum
         self::assertNotContains(self::BASELINE_ID, $this->templateIds($hp, self::req('q=' . $over)));
         $rOver = $hp->respond(self::req('q=' . $over));
@@ -150,9 +154,10 @@ final class XssReflectionBaselineTest extends TestCase
      */
     public function test_out_of_charset_bytes_are_never_reflected(string $query, string $mustNotAppear): void
     {
-        // isolatedOrigin=false — the default install AND the mode where attack-xss is gate-suppressed,
-        // so the ONLY thing that could reflect an out-of-charset byte here is the baseline. It never
-        // does: the capture class refuses, so the baseline declines and a canned decoy serves.
+        // isolatedOrigin=false — the default install AND the mode where every reflects_input rule is
+        // gate-suppressed, so the ONLY thing that could reflect an out-of-charset byte here is the
+        // baseline. It never does: the capture class refuses, so the baseline declines and either a
+        // canned decoy serves or the suppressed raw companion yields a host 404.
         $hp = $this->honeypot(false);
         $r = self::req($query);
 
@@ -229,12 +234,16 @@ final class XssReflectionBaselineTest extends TestCase
         // Default (embedded) install: reflection withheld.
         self::assertNull($this->honeypot(false)->respond($r));
 
-        // Isolated origin but xss class disabled: still withheld.
-        $off = Honeypot::default($this->config(true, ['xss' => false], []));
+        // Isolated origin but no request-bound authorizer: still withheld (intent is not evidence).
+        self::assertNull($this->honeypot(true)->respond($r));
+
+        // Isolated origin + authorizer, but xss class disabled: still withheld.
+        $vouch = static function (RequestContext $rq, string $class): bool { return true; };
+        $off = Honeypot::default($this->config(true, ['xss' => false], [], $vouch));
         self::assertNull($off->respond($r));
 
-        // Isolated origin, gate open: attack-xss (NOT the baseline) reflects the full tag.
-        $on = $this->honeypot(true)->respond($r);
+        // Isolated origin, class on, authorizer vouching: attack-xss (NOT the baseline) reflects the full tag.
+        $on = Honeypot::default($this->config(true, [], [], $vouch))->respond($r);
         self::assertNotNull($on);
         self::assertStringContainsString($payload, $on->body);
         self::assertSame('attack-xss', $on->servedBy->ruleId);

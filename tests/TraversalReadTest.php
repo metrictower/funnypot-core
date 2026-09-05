@@ -69,8 +69,10 @@ final class TraversalReadTest extends TestCase
             true
         );
         // The /@fs route reflects the attacker path into its base body, so it is a reflecting decoy
-        // that serves only from an isolated origin; these end-to-end serve tests assert that path.
+        // that serves only from an isolated origin with request-bound evidence; these end-to-end
+        // serve tests assert that path (test-only unconditional authorizer).
         $config->isolatedOrigin = true;
+        $config->reflectorAuthorizer = static function (RequestContext $r, string $class): bool { return true; };
 
         return new Honeypot($store, $config);
     }

@@ -64,8 +64,10 @@ final class ParamRouteTest extends TestCase
             true
         );
         // The /@fs route reflects the attacker path into its base body — a reflecting decoy that
-        // serves only from an isolated origin, which the served-body assertions below exercise.
+        // serves only from an isolated origin with request-bound evidence, which the served-body
+        // assertions below exercise (test-only unconditional authorizer).
         $config->isolatedOrigin = true;
+        $config->reflectorAuthorizer = static function (RequestContext $r, string $class): bool { return true; };
 
         return new Honeypot($this->store(), $config);
     }

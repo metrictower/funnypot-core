@@ -36,6 +36,13 @@ use Funnypot\Core\Support\SurfaceGraph;
  *   {{match.N}} / {{match.NAME}}     regex capture group (numeric or named) — BOUNDED reflection of the
  *                                    matched attacker bytes (header values are CR/LF-checked by callers)
  *   {{urldecode:match.N}}            percent-decoded capture
+ *   {{urldecode-ascii:match.N}}      form-decoded capture (ONE urldecode pass: %XX ⇒ byte, + ⇒ space, as a
+ *                                    real $_GET sink sees it), emitted RAW only when the decoded value is
+ *                                    1..512 bytes of printable ASCII 0x20..0x7e; anything else — empty,
+ *                                    over-cap, any C0/DEL/high byte — renders ''. Never decoded twice
+ *                                    (%250a ⇒ the printable text "%0a"). Deliberately keeps markup bytes:
+ *                                    it is the bounded DAST-escalation reflector slot, BODY-ONLY (the
+ *                                    compilers reject it in a header) and requires `reflects_input: true`
  *   {{xml:match.N}}                  XML-escaped capture (ENT_XML1) — render-layer backstop for XML bodies
  *   {{html:match.N}}                 HTML-escaped capture (ENT_HTML5) — render-layer backstop for HTML bodies;
  *                                    both only ever NARROW reflected bytes, never a new sink
@@ -80,7 +87,10 @@ use Funnypot\Core\Support\SurfaceGraph;
 final class DirectiveRenderer
 {
     /** The closed directive prefixes — used by the compile-time lint. */
-    public const KNOWN_PREFIXES = ['canned.', 'fake.', 'volatile.', 'misdirect', 'fakeHex:', 'hex:', 'match.', 'urldecode:match.', 'xml:match.', 'html:match.', 'compute.md5:', 'compute.crc32:', 'pick:', 'canary.', 'persona.', 'surface.', 'attack.'];
+    public const KNOWN_PREFIXES = ['canned.', 'fake.', 'volatile.', 'misdirect', 'fakeHex:', 'hex:', 'match.', 'urldecode:match.', 'urldecode-ascii:match.', 'xml:match.', 'html:match.', 'compute.md5:', 'compute.crc32:', 'pick:', 'canary.', 'persona.', 'surface.', 'attack.'];
+
+    /** Decoded-byte ceiling of {{urldecode-ascii:match.*}}: a longer value renders '' (no partial). */
+    public const ASCII_REFLECT_MAX_BYTES = 512;
 
     /** The closed set of valid fake.person.* sub-fields — used by the compile-time lint (mirrors
      *  PersonaIdentity::FIELDS' role for persona.*; unlike a plain fake.NAME, this sub-field is
@@ -348,6 +358,9 @@ final class DirectiveRenderer
         if (strpos($part, 'urldecode:match.') === 0) {
             return rawurldecode($this->capture($captures, substr($part, 16)));
         }
+        if (strpos($part, 'urldecode-ascii:match.') === 0) {
+            return self::printableFormDecoded($this->capture($captures, substr($part, 22)));
+        }
         if (strpos($part, 'xml:match.') === 0) {
             // XML-escape a reflected capture before it lands in an XML body — a render-layer backstop
             // so a widened capture class can never inject markup into the fault XML.
@@ -561,6 +574,27 @@ final class DirectiveRenderer
         $key = is_numeric($ref) ? (int) $ref : $ref;
 
         return $captures[$key] ?? '';
+    }
+
+    /**
+     * The {{urldecode-ascii:match.*}} value: ONE form-decode pass (urldecode: %XX ⇒ byte, + ⇒ space — a
+     * real GET form sink's view; an invalid %-triplet stays literal text), then all-or-nothing
+     * admission — 1..ASCII_REFLECT_MAX_BYTES bytes, every one printable ASCII 0x20..0x7e — else ''.
+     * The byte class is the safety boundary: no CR/LF/NUL (no header splitting, no line-based
+     * smuggling), no other C0/DEL control, no high byte (no multibyte / overlong tricks); markup
+     * bytes are deliberately KEPT because this is the bounded raw reflector slot. Never decoded
+     * again: a double-encoded %250a becomes the printable text "%0a" and is served as those three
+     * characters, so an encoder cannot smuggle a control byte past the class.
+     */
+    private static function printableFormDecoded(string $raw): string
+    {
+        $decoded = urldecode($raw);
+        $len = strlen($decoded);
+        if ($len < 1 || $len > self::ASCII_REFLECT_MAX_BYTES) {
+            return '';
+        }
+
+        return preg_match('/\A[\x20-\x7e]+\z/', $decoded) === 1 ? $decoded : '';
     }
 
     /**
