@@ -19,6 +19,7 @@ use Funnypot\Core\Compiler\ArtifactWriter;
 use Funnypot\Core\Compiler\Compiler;
 use Funnypot\Core\Compiler\Crs\CrsCompiler;
 use Funnypot\Core\Compiler\GeneratedPhp;
+use Funnypot\Core\Compiler\RouteIndexFold;
 use Funnypot\Core\Compiler\SourceTreeStamp;
 use Funnypot\Core\Compiler\TemplateGlob;
 use Funnypot\Core\Manifest\ManifestBuilder;
@@ -1110,35 +1111,9 @@ function runMergeRoutes(string $root, array $argvv): int
         return 2;
     }
 
-    foreach ((array) ($fragment['templates'] ?? []) as $id => $entry) {
-        $index['templates'][$id] = $entry;
-    }
-    $folded = 0;
-    foreach ((array) ($fragment['routes'] ?? []) as $key => $bundles) {
-        foreach ((array) $bundles as $bundle) {
-            if (!isset($index['routes'][$key])) {
-                $index['routes'][$key] = ['b' => [$bundle]];
-            } else {
-                // Idempotent: a re-fold must not duplicate a new-page bundle. Its pid is
-                // unique (route-*), so skip if one with this pid is already present here.
-                foreach ((array) $index['routes'][$key]['b'] as $existing) {
-                    if (($existing['pid'] ?? null) === ($bundle['pid'] ?? '~')) {
-                        continue 2;
-                    }
-                }
-                if (isset($index['routes'][$key]['d'])) {
-                    // Capped key: keep detect coverage in 'd', give the injected bundle a
-                    // mid persona-weight tier so it neither dominates nor vanishes.
-                    $bundle['w'] = 8;
-                    $index['routes'][$key]['d'] = array_values(array_unique(
-                        array_merge((array) $index['routes'][$key]['d'], (array) $bundle['t'])
-                    ));
-                }
-                $index['routes'][$key]['b'][] = $bundle;
-            }
-            $folded++;
-        }
-    }
+    $result = (new RouteIndexFold())->apply($index, $fragment);
+    $index = $result['index'];
+    $folded = $result['stats']['folded'];
 
     // Reproducible provenance for the folded index (see the docblock). source_tree is stamped over
     // the in-repo fold inputs; upstream_tag/sha keep the corpus provenance.
