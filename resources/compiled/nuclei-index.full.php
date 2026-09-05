@@ -16,8 +16,8 @@ return array (
     'source_tree' => '48c8abcca5a9d0fee40c9a1a49afa6dd547098baadc1f9cba12fd98161c594cd',
     'templates_seen' => 11196,
     'templates_in' => 6343,
-    'templates_indexed' => 6448,
-    'route_keys' => 5315,
+    'templates_indexed' => 6447,
+    'route_keys' => 5313,
     'multi_bundle_keys' => 276,
     'largest_bundle_count' => 1325,
     'persona_cap' => 
@@ -83815,568 +83815,6 @@ return array (
       ),
       'name' => 'Zzzcms 1.75 - Cross-Site Scripting',
     ),
-    'route-basic-auth' => 
-    array (
-      'sev' => 'low',
-      'tags' => 
-      array (
-        0 => 'basic-auth',
-        1 => '401',
-        2 => 'exposure',
-      ),
-      'name' => 'Basic Auth challenge',
-    ),
-    'route-credentials-txt' => 
-    array (
-      'sev' => 'high',
-      'tags' => 
-      array (
-        0 => 'exposure',
-        1 => 'credentials',
-        2 => 'secrets',
-      ),
-      'name' => 'Exposed credentials.txt',
-    ),
-    'route-terraform-tfstate' => 
-    array (
-      'sev' => 'high',
-      'tags' => 
-      array (
-        0 => 'exposure',
-        1 => 'terraform',
-        2 => 'secrets',
-      ),
-      'name' => 'Exposed terraform.tfstate',
-    ),
-    'route-users-csv' => 
-    array (
-      'sev' => 'medium',
-      'tags' => 
-      array (
-        0 => 'exposure',
-        1 => 'pii',
-        2 => 'credentials',
-      ),
-      'name' => 'Exposed users.csv',
-    ),
-    'route-sql-backup' => 
-    array (
-      'sev' => 'high',
-      'tags' => 
-      array (
-        0 => 'exposure',
-        1 => 'database',
-        2 => 'backup',
-      ),
-      'name' => 'Exposed SQL backup',
-    ),
-    'route-phpmyadmin' => 
-    array (
-      'sev' => 'high',
-      'tags' => 
-      array (
-        0 => 'phpmyadmin',
-        1 => 'panel',
-        2 => 'exposure',
-      ),
-      'name' => 'phpMyAdmin login',
-    ),
-    'route-npmrc' => 
-    array (
-      'sev' => 'high',
-      'tags' => 
-      array (
-        0 => 'exposure',
-        1 => 'npm',
-        2 => 'secrets',
-      ),
-      'name' => 'Exposed .npmrc',
-    ),
-    'route-ai-claude-json' => 
-    array (
-      'sev' => 'high',
-      'tags' => 
-      array (
-        0 => 'exposure',
-        1 => 'ai-config',
-        2 => 'config-disclosure',
-        3 => 'appliance',
-      ),
-      'name' => 'Exposed Claude Code config (.claude.json)',
-    ),
-    'route-ai-claude-desktop' => 
-    array (
-      'sev' => 'high',
-      'tags' => 
-      array (
-        0 => 'exposure',
-        1 => 'ai-config',
-        2 => 'config-disclosure',
-        3 => 'appliance',
-      ),
-      'name' => 'Exposed Claude Desktop config',
-    ),
-    'route-ai-mcp-json' => 
-    array (
-      'sev' => 'high',
-      'tags' => 
-      array (
-        0 => 'exposure',
-        1 => 'ai-config',
-        2 => 'config-disclosure',
-        3 => 'appliance',
-      ),
-      'name' => 'Exposed editor MCP config',
-    ),
-    'route-ai-continue' => 
-    array (
-      'sev' => 'high',
-      'tags' => 
-      array (
-        0 => 'exposure',
-        1 => 'ai-config',
-        2 => 'config-disclosure',
-        3 => 'appliance',
-      ),
-      'name' => 'Exposed Continue config',
-    ),
-    'route-ai-aider' => 
-    array (
-      'sev' => 'high',
-      'tags' => 
-      array (
-        0 => 'exposure',
-        1 => 'ai-config',
-        2 => 'config-disclosure',
-        3 => 'appliance',
-      ),
-      'name' => 'Exposed aider config',
-    ),
-    'route-ai-copilot-token' => 
-    array (
-      'sev' => 'high',
-      'tags' => 
-      array (
-        0 => 'exposure',
-        1 => 'ai-config',
-        2 => 'config-disclosure',
-        3 => 'appliance',
-      ),
-      'name' => 'Exposed Copilot token endpoint',
-    ),
-    'route-ai-openai-models' => 
-    array (
-      'sev' => 'medium',
-      'tags' => 
-      array (
-        0 => 'exposure',
-        1 => 'ai-config',
-        2 => 'config-disclosure',
-        3 => 'appliance',
-      ),
-      'name' => 'Exposed OpenAI-compatible models list',
-    ),
-    'route-mcp-endpoint' => 
-    array (
-      'sev' => 'medium',
-      'tags' => 
-      array (
-        0 => 'exposure',
-        1 => 'ai-config',
-        2 => 'mcp',
-        3 => 'appliance',
-      ),
-      'name' => 'MCP Streamable-HTTP endpoint',
-    ),
-    'route-llm-auth' => 
-    array (
-      'sev' => 'medium',
-      'tags' => 
-      array (
-        0 => 'exposure',
-        1 => 'ai-config',
-        2 => 'llm-gateway',
-        3 => 'appliance',
-      ),
-      'name' => 'LLM gateway auth required',
-    ),
-    'route-config-php' => 
-    array (
-      'sev' => 'high',
-      'tags' => 
-      array (
-        0 => 'exposure',
-        1 => 'config-disclosure',
-        2 => 'secrets',
-      ),
-      'name' => 'Exposed application config (config.php)',
-    ),
-    'route-envfile-prod' => 
-    array (
-      'sev' => 'high',
-      'tags' => 
-      array (
-        0 => 'exposure',
-        1 => 'config-disclosure',
-        2 => 'secrets',
-      ),
-      'name' => 'Exposed environment file (.env.production)',
-    ),
-    'route-secrets-json' => 
-    array (
-      'sev' => 'high',
-      'tags' => 
-      array (
-        0 => 'exposure',
-        1 => 'config-disclosure',
-        2 => 'secrets',
-      ),
-      'name' => 'Exposed secrets.json',
-    ),
-    'route-docker-compose' => 
-    array (
-      'sev' => 'high',
-      'tags' => 
-      array (
-        0 => 'exposure',
-        1 => 'config-disclosure',
-        2 => 'secrets',
-      ),
-      'name' => 'Exposed docker-compose.yml',
-    ),
-    'route-application-properties' => 
-    array (
-      'sev' => 'high',
-      'tags' => 
-      array (
-        0 => 'exposure',
-        1 => 'config-disclosure',
-        2 => 'secrets',
-      ),
-      'name' => 'Exposed Spring properties (application.properties)',
-    ),
-    'route-envfile-local' => 
-    array (
-      'sev' => 'high',
-      'tags' => 
-      array (
-        0 => 'exposure',
-        1 => 'config-disclosure',
-        2 => 'secrets',
-      ),
-      'name' => 'Exposed environment file (.env.local)',
-    ),
-    'route-wp-debug-log' => 
-    array (
-      'sev' => 'medium',
-      'tags' => 
-      array (
-        0 => 'exposure',
-        1 => 'log-disclosure',
-        2 => 'information-disclosure',
-      ),
-      'name' => 'Exposed WordPress debug log (debug.log)',
-    ),
-    'route-php-error-log' => 
-    array (
-      'sev' => 'medium',
-      'tags' => 
-      array (
-        0 => 'exposure',
-        1 => 'log-disclosure',
-        2 => 'information-disclosure',
-      ),
-      'name' => 'Exposed PHP error log (error_log)',
-    ),
-    'route-laravel-log-alt' => 
-    array (
-      'sev' => 'high',
-      'tags' => 
-      array (
-        0 => 'exposure',
-        1 => 'log-disclosure',
-        2 => 'secrets',
-      ),
-      'name' => 'Exposed Laravel log (laravel.log)',
-    ),
-    'route-nginx-error-log' => 
-    array (
-      'sev' => 'medium',
-      'tags' => 
-      array (
-        0 => 'exposure',
-        1 => 'log-disclosure',
-        2 => 'information-disclosure',
-      ),
-      'name' => 'Exposed nginx error log (error.log)',
-    ),
-    'route-nginx-access-log' => 
-    array (
-      'sev' => 'medium',
-      'tags' => 
-      array (
-        0 => 'exposure',
-        1 => 'log-disclosure',
-        2 => 'information-disclosure',
-      ),
-      'name' => 'Exposed nginx access log (access.log)',
-    ),
-    'route-apache-error-log' => 
-    array (
-      'sev' => 'medium',
-      'tags' => 
-      array (
-        0 => 'exposure',
-        1 => 'log-disclosure',
-        2 => 'information-disclosure',
-      ),
-      'name' => 'Exposed Apache error log (error.log)',
-    ),
-    'route-apache-access-log' => 
-    array (
-      'sev' => 'medium',
-      'tags' => 
-      array (
-        0 => 'exposure',
-        1 => 'log-disclosure',
-        2 => 'information-disclosure',
-      ),
-      'name' => 'Exposed Apache access log (access.log)',
-    ),
-    'route-app-log' => 
-    array (
-      'sev' => 'medium',
-      'tags' => 
-      array (
-        0 => 'exposure',
-        1 => 'log-disclosure',
-        2 => 'information-disclosure',
-      ),
-      'name' => 'Exposed application log (app.log)',
-    ),
-    'route-catalina-out' => 
-    array (
-      'sev' => 'medium',
-      'tags' => 
-      array (
-        0 => 'exposure',
-        1 => 'log-disclosure',
-        2 => 'information-disclosure',
-      ),
-      'name' => 'Exposed Tomcat log (catalina.out)',
-    ),
-    'route-swagger-json-doc' => 
-    array (
-      'sev' => 'info',
-      'tags' => 
-      array (
-        0 => 'exposure',
-        1 => 'api',
-        2 => 'openapi',
-        3 => 'discovery',
-      ),
-      'name' => 'Exposed OpenAPI/Swagger document',
-    ),
-    'route-swagger2-apidocs' => 
-    array (
-      'sev' => 'info',
-      'tags' => 
-      array (
-        0 => 'exposure',
-        1 => 'api',
-        2 => 'swagger',
-        3 => 'discovery',
-      ),
-      'name' => 'Exposed Swagger 2.0 document',
-    ),
-    'route-swagger-yaml-doc' => 
-    array (
-      'sev' => 'info',
-      'tags' => 
-      array (
-        0 => 'exposure',
-        1 => 'api',
-        2 => 'openapi',
-        3 => 'discovery',
-      ),
-      'name' => 'Exposed OpenAPI document (YAML)',
-    ),
-    'route-swagger-ui-html' => 
-    array (
-      'sev' => 'info',
-      'tags' => 
-      array (
-        0 => 'exposure',
-        1 => 'api',
-        2 => 'swagger-ui',
-        3 => 'discovery',
-      ),
-      'name' => 'Exposed Swagger UI',
-    ),
-    'route-wp-json' => 
-    array (
-      'sev' => 'info',
-      'tags' => 
-      array (
-        0 => 'exposure',
-        1 => 'api',
-        2 => 'wordpress',
-        3 => 'discovery',
-      ),
-      'name' => 'Exposed WordPress REST API index',
-    ),
-    'route-api-v2' => 
-    array (
-      'sev' => 'info',
-      'tags' => 
-      array (
-        0 => 'exposure',
-        1 => 'api',
-        2 => 'discovery',
-      ),
-      'name' => 'Exposed REST API index (/api/v2)',
-    ),
-    'route-phpmyadmin-changelog' => 
-    array (
-      'sev' => 'info',
-      'tags' => 
-      array (
-        0 => 'phpmyadmin',
-        1 => 'version',
-        2 => 'disclosure',
-      ),
-      'name' => 'phpMyAdmin ChangeLog (version disclosure)',
-    ),
-    'route-phpmyadmin-readme' => 
-    array (
-      'sev' => 'info',
-      'tags' => 
-      array (
-        0 => 'phpmyadmin',
-        1 => 'version',
-        2 => 'disclosure',
-      ),
-      'name' => 'phpMyAdmin README (version disclosure)',
-    ),
-    'route-phpmyadmin-doc' => 
-    array (
-      'sev' => 'info',
-      'tags' => 
-      array (
-        0 => 'phpmyadmin',
-        1 => 'version',
-        2 => 'disclosure',
-      ),
-      'name' => 'phpMyAdmin documentation (version disclosure)',
-    ),
-    'route-grafana-health' => 
-    array (
-      'sev' => 'info',
-      'tags' => 
-      array (
-        0 => 'grafana',
-        1 => 'health',
-        2 => 'version',
-        3 => 'disclosure',
-      ),
-      'name' => 'Grafana health (version disclosure)',
-    ),
-    'route-grafana-login' => 
-    array (
-      'sev' => 'info',
-      'tags' => 
-      array (
-        0 => 'grafana',
-        1 => 'panel',
-        2 => 'login',
-        3 => 'exposure',
-      ),
-      'name' => 'Grafana login',
-    ),
-    'route-jenkins-apijson' => 
-    array (
-      'sev' => 'info',
-      'tags' => 
-      array (
-        0 => 'jenkins',
-        1 => 'api',
-        2 => 'version',
-        3 => 'disclosure',
-      ),
-      'name' => 'Jenkins API root (version disclosure)',
-    ),
-    'route-pgadmin-login' => 
-    array (
-      'sev' => 'info',
-      'tags' => 
-      array (
-        0 => 'pgadmin',
-        1 => 'panel',
-        2 => 'login',
-        3 => 'exposure',
-      ),
-      'name' => 'pgAdmin 4 login',
-    ),
-    'route-cpanel-login' => 
-    array (
-      'sev' => 'low',
-      'tags' => 
-      array (
-        0 => 'cpanel',
-        1 => 'panel',
-        2 => 'login',
-        3 => 'exposure',
-      ),
-      'name' => 'cPanel login',
-    ),
-    'route-whm-login' => 
-    array (
-      'sev' => 'low',
-      'tags' => 
-      array (
-        0 => 'whm',
-        1 => 'cpanel',
-        2 => 'panel',
-        3 => 'login',
-        4 => 'exposure',
-      ),
-      'name' => 'WHM login',
-    ),
-    'route-phppgadmin-intro' => 
-    array (
-      'sev' => 'low',
-      'tags' => 
-      array (
-        0 => 'phppgadmin',
-        1 => 'postgres',
-        2 => 'panel',
-        3 => 'version',
-        4 => 'disclosure',
-      ),
-      'name' => 'phpPgAdmin intro (version disclosure)',
-    ),
-    'route-ai-ollama-version' => 
-    array (
-      'sev' => 'medium',
-      'tags' => 
-      array (
-        0 => 'ai-recon',
-        1 => 'exposure',
-        2 => 'appliance',
-      ),
-      'name' => 'Exposed Ollama server version',
-    ),
-    'route-ai-ollama-tags' => 
-    array (
-      'sev' => 'medium',
-      'tags' => 
-      array (
-        0 => 'ai-recon',
-        1 => 'exposure',
-        2 => 'appliance',
-      ),
-      'name' => 'Exposed Ollama model list',
-    ),
     'route-ai-ollama-ps' => 
     array (
       'sev' => 'medium',
@@ -84388,130 +83826,16 @@ return array (
       ),
       'name' => 'Exposed Ollama running models',
     ),
-    'route-dotaws-listing' => 
-    array (
-      'sev' => 'high',
-      'tags' => 
-      array (
-        0 => 'exposure',
-        1 => 'cloud',
-        2 => 'aws',
-        3 => 'directory-listing',
-      ),
-      'name' => 'Exposed .aws directory listing',
-    ),
-    'route-aws-cli-credentials' => 
-    array (
-      'sev' => 'high',
-      'tags' => 
-      array (
-        0 => 'exposure',
-        1 => 'cloud',
-        2 => 'aws',
-        3 => 'credentials',
-      ),
-      'name' => 'Exposed AWS CLI credentials',
-    ),
-    'route-aws-cli-config' => 
-    array (
-      'sev' => 'high',
-      'tags' => 
-      array (
-        0 => 'exposure',
-        1 => 'cloud',
-        2 => 'aws',
-        3 => 'config',
-      ),
-      'name' => 'Exposed AWS CLI config',
-    ),
-    'route-phpmyadmin-css' => 
-    array (
-      'sev' => 'low',
-      'tags' => 
-      array (
-        0 => 'phpmyadmin',
-        1 => 'panel',
-        2 => 'asset',
-      ),
-      'name' => 'phpMyAdmin theme stylesheet',
-    ),
-    'route-phpinfo' => 
+    'route-ai-ollama-tags' => 
     array (
       'sev' => 'medium',
       'tags' => 
       array (
-        0 => 'recon',
-        1 => 'phpinfo',
-        2 => 'exposure',
+        0 => 'ai-recon',
+        1 => 'exposure',
+        2 => 'appliance',
       ),
-      'name' => 'PHP info page disclosure',
-    ),
-    'route-envfile-dev' => 
-    array (
-      'sev' => 'high',
-      'tags' => 
-      array (
-        0 => 'exposure',
-        1 => 'config-disclosure',
-        2 => 'secrets',
-      ),
-      'name' => 'Exposed environment file (.env.development)',
-    ),
-    'route-envfile-staging' => 
-    array (
-      'sev' => 'high',
-      'tags' => 
-      array (
-        0 => 'exposure',
-        1 => 'config-disclosure',
-        2 => 'secrets',
-      ),
-      'name' => 'Exposed environment file (.env.staging)',
-    ),
-    'route-envfile-test' => 
-    array (
-      'sev' => 'high',
-      'tags' => 
-      array (
-        0 => 'exposure',
-        1 => 'config-disclosure',
-        2 => 'secrets',
-      ),
-      'name' => 'Exposed environment file (.env.test)',
-    ),
-    'route-envfile-bak' => 
-    array (
-      'sev' => 'high',
-      'tags' => 
-      array (
-        0 => 'exposure',
-        1 => 'config-disclosure',
-        2 => 'secrets',
-      ),
-      'name' => 'Exposed environment file (.env.bak)',
-    ),
-    'route-envfile-php-src' => 
-    array (
-      'sev' => 'high',
-      'tags' => 
-      array (
-        0 => 'exposure',
-        1 => 'config-disclosure',
-        2 => 'secrets',
-        3 => 'source-leak',
-      ),
-      'name' => 'Exposed environment file source (.env.php)',
-    ),
-    'route-envfile-laravel' => 
-    array (
-      'sev' => 'high',
-      'tags' => 
-      array (
-        0 => 'exposure',
-        1 => 'config-disclosure',
-        2 => 'secrets',
-      ),
-      'name' => 'Exposed environment file (/laravel/.env)',
+      'name' => 'Exposed Ollama model list',
     ),
     'route-vcs-head' => 
     array (
@@ -84621,42 +83945,553 @@ return array (
       ),
       'name' => 'Exposed Mercurial requires (.hg/requires)',
     ),
-    'route-vcs-cvs-entries' => 
+    'route-basic-auth' => 
     array (
-      'sev' => 'medium',
+      'sev' => 'low',
       'tags' => 
       array (
-        0 => 'exposure',
-        1 => 'vcs',
-        2 => 'cvs',
-        3 => 'source-disclosure',
+        0 => 'basic-auth',
+        1 => '401',
+        2 => 'exposure',
       ),
-      'name' => 'Exposed CVS/Entries',
+      'name' => 'Basic Auth challenge',
     ),
-    'route-typo3conf-listing' => 
-    array (
-      'sev' => 'medium',
-      'tags' => 
-      array (
-        0 => 'exposure',
-        1 => 'cms',
-        2 => 'typo3',
-        3 => 'directory-listing',
-      ),
-      'name' => 'Exposed TYPO3 typo3conf directory listing',
-    ),
-    'route-typo3conf-localconf' => 
+    'route-credentials-txt' => 
     array (
       'sev' => 'high',
       'tags' => 
       array (
         0 => 'exposure',
-        1 => 'cms',
-        2 => 'typo3',
-        3 => 'config-disclosure',
-        4 => 'secrets',
+        1 => 'credentials',
+        2 => 'secrets',
       ),
-      'name' => 'Exposed TYPO3 localconf.php',
+      'name' => 'Exposed credentials.txt',
+    ),
+    'route-terraform-tfstate' => 
+    array (
+      'sev' => 'high',
+      'tags' => 
+      array (
+        0 => 'exposure',
+        1 => 'terraform',
+        2 => 'secrets',
+      ),
+      'name' => 'Exposed terraform.tfstate',
+    ),
+    'route-users-csv' => 
+    array (
+      'sev' => 'medium',
+      'tags' => 
+      array (
+        0 => 'exposure',
+        1 => 'pii',
+        2 => 'credentials',
+      ),
+      'name' => 'Exposed users.csv',
+    ),
+    'route-sql-backup' => 
+    array (
+      'sev' => 'high',
+      'tags' => 
+      array (
+        0 => 'exposure',
+        1 => 'database',
+        2 => 'backup',
+      ),
+      'name' => 'Exposed SQL backup',
+    ),
+    'route-dotaws-listing' => 
+    array (
+      'sev' => 'high',
+      'tags' => 
+      array (
+        0 => 'exposure',
+        1 => 'cloud',
+        2 => 'aws',
+        3 => 'directory-listing',
+      ),
+      'name' => 'Exposed .aws directory listing',
+    ),
+    'route-aws-cli-credentials' => 
+    array (
+      'sev' => 'high',
+      'tags' => 
+      array (
+        0 => 'exposure',
+        1 => 'cloud',
+        2 => 'aws',
+        3 => 'credentials',
+      ),
+      'name' => 'Exposed AWS CLI credentials',
+    ),
+    'route-aws-cli-config' => 
+    array (
+      'sev' => 'high',
+      'tags' => 
+      array (
+        0 => 'exposure',
+        1 => 'cloud',
+        2 => 'aws',
+        3 => 'config',
+      ),
+      'name' => 'Exposed AWS CLI config',
+    ),
+    'route-phpmyadmin' => 
+    array (
+      'sev' => 'high',
+      'tags' => 
+      array (
+        0 => 'phpmyadmin',
+        1 => 'panel',
+        2 => 'exposure',
+      ),
+      'name' => 'phpMyAdmin login',
+    ),
+    'route-phpmyadmin-css' => 
+    array (
+      'sev' => 'low',
+      'tags' => 
+      array (
+        0 => 'phpmyadmin',
+        1 => 'panel',
+        2 => 'asset',
+      ),
+      'name' => 'phpMyAdmin theme stylesheet',
+    ),
+    'route-ai-claude-json' => 
+    array (
+      'sev' => 'high',
+      'tags' => 
+      array (
+        0 => 'exposure',
+        1 => 'ai-config',
+        2 => 'config-disclosure',
+        3 => 'appliance',
+      ),
+      'name' => 'Exposed Claude Code config (.claude.json)',
+    ),
+    'route-ai-claude-desktop' => 
+    array (
+      'sev' => 'high',
+      'tags' => 
+      array (
+        0 => 'exposure',
+        1 => 'ai-config',
+        2 => 'config-disclosure',
+        3 => 'appliance',
+      ),
+      'name' => 'Exposed Claude Desktop config',
+    ),
+    'route-ai-mcp-json' => 
+    array (
+      'sev' => 'high',
+      'tags' => 
+      array (
+        0 => 'exposure',
+        1 => 'ai-config',
+        2 => 'config-disclosure',
+        3 => 'appliance',
+      ),
+      'name' => 'Exposed editor MCP config',
+    ),
+    'route-ai-continue' => 
+    array (
+      'sev' => 'high',
+      'tags' => 
+      array (
+        0 => 'exposure',
+        1 => 'ai-config',
+        2 => 'config-disclosure',
+        3 => 'appliance',
+      ),
+      'name' => 'Exposed Continue config',
+    ),
+    'route-ai-aider' => 
+    array (
+      'sev' => 'high',
+      'tags' => 
+      array (
+        0 => 'exposure',
+        1 => 'ai-config',
+        2 => 'config-disclosure',
+        3 => 'appliance',
+      ),
+      'name' => 'Exposed aider config',
+    ),
+    'route-ai-copilot-token' => 
+    array (
+      'sev' => 'high',
+      'tags' => 
+      array (
+        0 => 'exposure',
+        1 => 'ai-config',
+        2 => 'config-disclosure',
+        3 => 'appliance',
+      ),
+      'name' => 'Exposed Copilot token endpoint',
+    ),
+    'route-ai-openai-models' => 
+    array (
+      'sev' => 'medium',
+      'tags' => 
+      array (
+        0 => 'exposure',
+        1 => 'ai-config',
+        2 => 'config-disclosure',
+        3 => 'appliance',
+      ),
+      'name' => 'Exposed OpenAI-compatible models list',
+    ),
+    'route-mcp-endpoint' => 
+    array (
+      'sev' => 'medium',
+      'tags' => 
+      array (
+        0 => 'exposure',
+        1 => 'ai-config',
+        2 => 'mcp',
+        3 => 'appliance',
+      ),
+      'name' => 'MCP Streamable-HTTP endpoint',
+    ),
+    'route-llm-auth' => 
+    array (
+      'sev' => 'medium',
+      'tags' => 
+      array (
+        0 => 'exposure',
+        1 => 'ai-config',
+        2 => 'llm-gateway',
+        3 => 'appliance',
+      ),
+      'name' => 'LLM gateway auth required',
+    ),
+    'route-ai-ollama-version' => 
+    array (
+      'sev' => 'medium',
+      'tags' => 
+      array (
+        0 => 'ai-recon',
+        1 => 'exposure',
+        2 => 'appliance',
+      ),
+      'name' => 'Exposed Ollama server version',
+    ),
+    'route-config-php' => 
+    array (
+      'sev' => 'high',
+      'tags' => 
+      array (
+        0 => 'exposure',
+        1 => 'config-disclosure',
+        2 => 'secrets',
+      ),
+      'name' => 'Exposed application config (config.php)',
+    ),
+    'route-envfile-prod' => 
+    array (
+      'sev' => 'high',
+      'tags' => 
+      array (
+        0 => 'exposure',
+        1 => 'config-disclosure',
+        2 => 'secrets',
+      ),
+      'name' => 'Exposed environment file (.env.production)',
+    ),
+    'route-secrets-json' => 
+    array (
+      'sev' => 'high',
+      'tags' => 
+      array (
+        0 => 'exposure',
+        1 => 'config-disclosure',
+        2 => 'secrets',
+      ),
+      'name' => 'Exposed secrets.json',
+    ),
+    'route-docker-compose' => 
+    array (
+      'sev' => 'high',
+      'tags' => 
+      array (
+        0 => 'exposure',
+        1 => 'config-disclosure',
+        2 => 'secrets',
+      ),
+      'name' => 'Exposed docker-compose.yml',
+    ),
+    'route-application-properties' => 
+    array (
+      'sev' => 'high',
+      'tags' => 
+      array (
+        0 => 'exposure',
+        1 => 'config-disclosure',
+        2 => 'secrets',
+      ),
+      'name' => 'Exposed Spring properties (application.properties)',
+    ),
+    'route-envfile-local' => 
+    array (
+      'sev' => 'high',
+      'tags' => 
+      array (
+        0 => 'exposure',
+        1 => 'config-disclosure',
+        2 => 'secrets',
+      ),
+      'name' => 'Exposed environment file (.env.local)',
+    ),
+    'route-envfile-dev' => 
+    array (
+      'sev' => 'high',
+      'tags' => 
+      array (
+        0 => 'exposure',
+        1 => 'config-disclosure',
+        2 => 'secrets',
+      ),
+      'name' => 'Exposed environment file (.env.development)',
+    ),
+    'route-envfile-staging' => 
+    array (
+      'sev' => 'high',
+      'tags' => 
+      array (
+        0 => 'exposure',
+        1 => 'config-disclosure',
+        2 => 'secrets',
+      ),
+      'name' => 'Exposed environment file (.env.staging)',
+    ),
+    'route-envfile-test' => 
+    array (
+      'sev' => 'high',
+      'tags' => 
+      array (
+        0 => 'exposure',
+        1 => 'config-disclosure',
+        2 => 'secrets',
+      ),
+      'name' => 'Exposed environment file (.env.test)',
+    ),
+    'route-envfile-bak' => 
+    array (
+      'sev' => 'high',
+      'tags' => 
+      array (
+        0 => 'exposure',
+        1 => 'config-disclosure',
+        2 => 'secrets',
+      ),
+      'name' => 'Exposed environment file (.env.bak)',
+    ),
+    'route-envfile-php-src' => 
+    array (
+      'sev' => 'high',
+      'tags' => 
+      array (
+        0 => 'exposure',
+        1 => 'config-disclosure',
+        2 => 'secrets',
+        3 => 'source-leak',
+      ),
+      'name' => 'Exposed environment file source (.env.php)',
+    ),
+    'route-envfile-laravel' => 
+    array (
+      'sev' => 'high',
+      'tags' => 
+      array (
+        0 => 'exposure',
+        1 => 'config-disclosure',
+        2 => 'secrets',
+      ),
+      'name' => 'Exposed environment file (/laravel/.env)',
+    ),
+    'route-wp-debug-log' => 
+    array (
+      'sev' => 'medium',
+      'tags' => 
+      array (
+        0 => 'exposure',
+        1 => 'log-disclosure',
+        2 => 'information-disclosure',
+      ),
+      'name' => 'Exposed WordPress debug log (debug.log)',
+    ),
+    'route-php-error-log' => 
+    array (
+      'sev' => 'medium',
+      'tags' => 
+      array (
+        0 => 'exposure',
+        1 => 'log-disclosure',
+        2 => 'information-disclosure',
+      ),
+      'name' => 'Exposed PHP error log (error_log)',
+    ),
+    'route-laravel-log-alt' => 
+    array (
+      'sev' => 'high',
+      'tags' => 
+      array (
+        0 => 'exposure',
+        1 => 'log-disclosure',
+        2 => 'secrets',
+      ),
+      'name' => 'Exposed Laravel log (laravel.log)',
+    ),
+    'route-nginx-error-log' => 
+    array (
+      'sev' => 'medium',
+      'tags' => 
+      array (
+        0 => 'exposure',
+        1 => 'log-disclosure',
+        2 => 'information-disclosure',
+      ),
+      'name' => 'Exposed nginx error log (error.log)',
+    ),
+    'route-nginx-access-log' => 
+    array (
+      'sev' => 'medium',
+      'tags' => 
+      array (
+        0 => 'exposure',
+        1 => 'log-disclosure',
+        2 => 'information-disclosure',
+      ),
+      'name' => 'Exposed nginx access log (access.log)',
+    ),
+    'route-apache-error-log' => 
+    array (
+      'sev' => 'medium',
+      'tags' => 
+      array (
+        0 => 'exposure',
+        1 => 'log-disclosure',
+        2 => 'information-disclosure',
+      ),
+      'name' => 'Exposed Apache error log (error.log)',
+    ),
+    'route-apache-access-log' => 
+    array (
+      'sev' => 'medium',
+      'tags' => 
+      array (
+        0 => 'exposure',
+        1 => 'log-disclosure',
+        2 => 'information-disclosure',
+      ),
+      'name' => 'Exposed Apache access log (access.log)',
+    ),
+    'route-app-log' => 
+    array (
+      'sev' => 'medium',
+      'tags' => 
+      array (
+        0 => 'exposure',
+        1 => 'log-disclosure',
+        2 => 'information-disclosure',
+      ),
+      'name' => 'Exposed application log (app.log)',
+    ),
+    'route-catalina-out' => 
+    array (
+      'sev' => 'medium',
+      'tags' => 
+      array (
+        0 => 'exposure',
+        1 => 'log-disclosure',
+        2 => 'information-disclosure',
+      ),
+      'name' => 'Exposed Tomcat log (catalina.out)',
+    ),
+    'route-actuator-heapdump' => 
+    array (
+      'sev' => 'high',
+      'tags' => 
+      array (
+        0 => 'springboot',
+        1 => 'actuator',
+        2 => 'heapdump',
+        3 => 'hprof',
+        4 => 'exposure',
+      ),
+      'name' => 'Exposed Spring Boot Actuator heap dump',
+    ),
+    'route-swagger-json-doc' => 
+    array (
+      'sev' => 'info',
+      'tags' => 
+      array (
+        0 => 'exposure',
+        1 => 'api',
+        2 => 'openapi',
+        3 => 'discovery',
+      ),
+      'name' => 'Exposed OpenAPI/Swagger document',
+    ),
+    'route-swagger2-apidocs' => 
+    array (
+      'sev' => 'info',
+      'tags' => 
+      array (
+        0 => 'exposure',
+        1 => 'api',
+        2 => 'swagger',
+        3 => 'discovery',
+      ),
+      'name' => 'Exposed Swagger 2.0 document',
+    ),
+    'route-swagger-yaml-doc' => 
+    array (
+      'sev' => 'info',
+      'tags' => 
+      array (
+        0 => 'exposure',
+        1 => 'api',
+        2 => 'openapi',
+        3 => 'discovery',
+      ),
+      'name' => 'Exposed OpenAPI document (YAML)',
+    ),
+    'route-swagger-ui-html' => 
+    array (
+      'sev' => 'info',
+      'tags' => 
+      array (
+        0 => 'exposure',
+        1 => 'api',
+        2 => 'swagger-ui',
+        3 => 'discovery',
+      ),
+      'name' => 'Exposed Swagger UI',
+    ),
+    'route-wp-json' => 
+    array (
+      'sev' => 'info',
+      'tags' => 
+      array (
+        0 => 'exposure',
+        1 => 'api',
+        2 => 'wordpress',
+        3 => 'discovery',
+      ),
+      'name' => 'Exposed WordPress REST API index',
+    ),
+    'route-api-v2' => 
+    array (
+      'sev' => 'info',
+      'tags' => 
+      array (
+        0 => 'exposure',
+        1 => 'api',
+        2 => 'discovery',
+      ),
+      'name' => 'Exposed REST API index (/api/v2)',
     ),
     'route-wp-json-v2-users' => 
     array (
@@ -84791,6 +84626,137 @@ return array (
       ),
       'name' => 'Next.js App Router site',
     ),
+    'route-kibana' => 
+    array (
+      'sev' => 'medium',
+      'tags' => 
+      array (
+        0 => 'kibana',
+        1 => 'unauth',
+        2 => 'misconfig',
+        3 => 'vuln',
+      ),
+      'name' => 'Exposed Kibana landing page',
+    ),
+    'route-phpmyadmin-changelog' => 
+    array (
+      'sev' => 'info',
+      'tags' => 
+      array (
+        0 => 'phpmyadmin',
+        1 => 'version',
+        2 => 'disclosure',
+      ),
+      'name' => 'phpMyAdmin ChangeLog (version disclosure)',
+    ),
+    'route-phpmyadmin-readme' => 
+    array (
+      'sev' => 'info',
+      'tags' => 
+      array (
+        0 => 'phpmyadmin',
+        1 => 'version',
+        2 => 'disclosure',
+      ),
+      'name' => 'phpMyAdmin README (version disclosure)',
+    ),
+    'route-phpmyadmin-doc' => 
+    array (
+      'sev' => 'info',
+      'tags' => 
+      array (
+        0 => 'phpmyadmin',
+        1 => 'version',
+        2 => 'disclosure',
+      ),
+      'name' => 'phpMyAdmin documentation (version disclosure)',
+    ),
+    'route-grafana-health' => 
+    array (
+      'sev' => 'info',
+      'tags' => 
+      array (
+        0 => 'grafana',
+        1 => 'health',
+        2 => 'version',
+        3 => 'disclosure',
+      ),
+      'name' => 'Grafana health (version disclosure)',
+    ),
+    'route-grafana-login' => 
+    array (
+      'sev' => 'info',
+      'tags' => 
+      array (
+        0 => 'grafana',
+        1 => 'panel',
+        2 => 'login',
+        3 => 'exposure',
+      ),
+      'name' => 'Grafana login',
+    ),
+    'route-jenkins-apijson' => 
+    array (
+      'sev' => 'info',
+      'tags' => 
+      array (
+        0 => 'jenkins',
+        1 => 'api',
+        2 => 'version',
+        3 => 'disclosure',
+      ),
+      'name' => 'Jenkins API root (version disclosure)',
+    ),
+    'route-pgadmin-login' => 
+    array (
+      'sev' => 'info',
+      'tags' => 
+      array (
+        0 => 'pgadmin',
+        1 => 'panel',
+        2 => 'login',
+        3 => 'exposure',
+      ),
+      'name' => 'pgAdmin 4 login',
+    ),
+    'route-cpanel-login' => 
+    array (
+      'sev' => 'low',
+      'tags' => 
+      array (
+        0 => 'cpanel',
+        1 => 'panel',
+        2 => 'login',
+        3 => 'exposure',
+      ),
+      'name' => 'cPanel login',
+    ),
+    'route-whm-login' => 
+    array (
+      'sev' => 'low',
+      'tags' => 
+      array (
+        0 => 'whm',
+        1 => 'cpanel',
+        2 => 'panel',
+        3 => 'login',
+        4 => 'exposure',
+      ),
+      'name' => 'WHM login',
+    ),
+    'route-phppgadmin-intro' => 
+    array (
+      'sev' => 'low',
+      'tags' => 
+      array (
+        0 => 'phppgadmin',
+        1 => 'postgres',
+        2 => 'panel',
+        3 => 'version',
+        4 => 'disclosure',
+      ),
+      'name' => 'phpPgAdmin intro (version disclosure)',
+    ),
     'route-grafana-favicon' => 
     array (
       'sev' => 'info',
@@ -84845,6 +84811,43 @@ return array (
         2 => 'exposure',
       ),
       'name' => 'Neutral favicon',
+    ),
+    'route-vcs-cvs-entries' => 
+    array (
+      'sev' => 'medium',
+      'tags' => 
+      array (
+        0 => 'exposure',
+        1 => 'vcs',
+        2 => 'cvs',
+        3 => 'source-disclosure',
+      ),
+      'name' => 'Exposed CVS/Entries',
+    ),
+    'route-typo3conf-listing' => 
+    array (
+      'sev' => 'medium',
+      'tags' => 
+      array (
+        0 => 'exposure',
+        1 => 'cms',
+        2 => 'typo3',
+        3 => 'directory-listing',
+      ),
+      'name' => 'Exposed TYPO3 typo3conf directory listing',
+    ),
+    'route-typo3conf-localconf' => 
+    array (
+      'sev' => 'high',
+      'tags' => 
+      array (
+        0 => 'exposure',
+        1 => 'cms',
+        2 => 'typo3',
+        3 => 'config-disclosure',
+        4 => 'secrets',
+      ),
+      'name' => 'Exposed TYPO3 localconf.php',
     ),
     'route-surface-sitemap' => 
     array (
@@ -85005,30 +85008,16 @@ return array (
       ),
       'name' => 'Exposed auth endpoint (401)',
     ),
-    'route-kibana' => 
+    'route-phpinfo' => 
     array (
       'sev' => 'medium',
       'tags' => 
       array (
-        0 => 'kibana',
-        1 => 'unauth',
-        2 => 'misconfig',
-        3 => 'vuln',
+        0 => 'recon',
+        1 => 'phpinfo',
+        2 => 'exposure',
       ),
-      'name' => 'Exposed Kibana landing page',
-    ),
-    'route-actuator-heapdump' => 
-    array (
-      'sev' => 'high',
-      'tags' => 
-      array (
-        0 => 'springboot',
-        1 => 'actuator',
-        2 => 'heapdump',
-        3 => 'hprof',
-        4 => 'exposure',
-      ),
-      'name' => 'Exposed Spring Boot Actuator heap dump',
+      'name' => 'PHP info page disclosure',
     ),
   ),
   'routes' => 
@@ -94586,24 +94575,6 @@ return array (
             0 => 'text/html',
             1 => 'application/javascript',
             2 => 'application/json',
-          ),
-        ),
-        1 => 
-        array (
-          's' => 200,
-          'bw' => 
-          array (
-            0 => ':_authToken',
-          ),
-          'nf' => 
-          array (
-          ),
-          'pid' => 'route-npmrc',
-          'sev' => 'high',
-          'sig' => 0,
-          't' => 
-          array (
-            0 => 'route-npmrc',
           ),
         ),
       ),
@@ -299092,6 +299063,245 @@ a</title>',
         ),
       ),
     ),
+    'GET /api/ps' => 
+    array (
+      'b' => 
+      array (
+        0 => 
+        array (
+          's' => 200,
+          'bw' => 
+          array (
+            0 => '"models"',
+          ),
+          'nf' => 
+          array (
+          ),
+          'pid' => 'route-ai-ollama-ps',
+          'sev' => 'medium',
+          'sig' => 0,
+          't' => 
+          array (
+            0 => 'route-ai-ollama-ps',
+          ),
+          'w' => 1000,
+        ),
+      ),
+    ),
+    'GET /.git/HEAD' => 
+    array (
+      'b' => 
+      array (
+        0 => 
+        array (
+          's' => 200,
+          'bw' => 
+          array (
+            0 => 'ref: refs/heads/',
+          ),
+          'nf' => 
+          array (
+          ),
+          'pid' => 'route-vcs-head',
+          'sev' => 'medium',
+          'sig' => 0,
+          't' => 
+          array (
+            0 => 'route-vcs-head',
+          ),
+        ),
+      ),
+    ),
+    'GET /.git/packed-refs' => 
+    array (
+      'b' => 
+      array (
+        0 => 
+        array (
+          's' => 200,
+          'bw' => 
+          array (
+            0 => 'refs/remotes/origin/',
+          ),
+          'nf' => 
+          array (
+          ),
+          'pid' => 'route-vcs-packed-refs',
+          'sev' => 'medium',
+          'sig' => 0,
+          't' => 
+          array (
+            0 => 'route-vcs-packed-refs',
+          ),
+        ),
+      ),
+    ),
+    'GET /.git/refs/heads/main' => 
+    array (
+      'b' => 
+      array (
+        0 => 
+        array (
+          's' => 200,
+          'bw' => 
+          array (
+          ),
+          'nf' => 
+          array (
+          ),
+          'pid' => 'route-vcs-refs-main',
+          'sev' => 'medium',
+          'sig' => 0,
+          't' => 
+          array (
+            0 => 'route-vcs-refs-main',
+          ),
+        ),
+      ),
+    ),
+    'GET /.git/description' => 
+    array (
+      'b' => 
+      array (
+        0 => 
+        array (
+          's' => 200,
+          'bw' => 
+          array (
+            0 => 'Unnamed repository',
+          ),
+          'nf' => 
+          array (
+          ),
+          'pid' => 'route-vcs-description',
+          'sev' => 'medium',
+          'sig' => 0,
+          't' => 
+          array (
+            0 => 'route-vcs-description',
+          ),
+        ),
+      ),
+    ),
+    'GET /.git/COMMIT_EDITMSG' => 
+    array (
+      'b' => 
+      array (
+        0 => 
+        array (
+          's' => 200,
+          'bw' => 
+          array (
+          ),
+          'nf' => 
+          array (
+          ),
+          'pid' => 'route-vcs-commit-msg',
+          'sev' => 'medium',
+          'sig' => 0,
+          't' => 
+          array (
+            0 => 'route-vcs-commit-msg',
+          ),
+        ),
+      ),
+    ),
+    'GET /.git/info/exclude' => 
+    array (
+      'b' => 
+      array (
+        0 => 
+        array (
+          's' => 200,
+          'bw' => 
+          array (
+            0 => 'git ls-files --others',
+          ),
+          'nf' => 
+          array (
+          ),
+          'pid' => 'route-vcs-exclude',
+          'sev' => 'medium',
+          'sig' => 0,
+          't' => 
+          array (
+            0 => 'route-vcs-exclude',
+          ),
+        ),
+      ),
+    ),
+    'GET /.git/info/refs' => 
+    array (
+      'b' => 
+      array (
+        0 => 
+        array (
+          's' => 200,
+          'bw' => 
+          array (
+            0 => 'refs/heads/',
+          ),
+          'nf' => 
+          array (
+          ),
+          'pid' => 'route-vcs-info-refs',
+          'sev' => 'medium',
+          'sig' => 0,
+          't' => 
+          array (
+            0 => 'route-vcs-info-refs',
+          ),
+        ),
+      ),
+    ),
+    'GET /.svn/entries' => 
+    array (
+      'b' => 
+      array (
+        0 => 
+        array (
+          's' => 200,
+          'bw' => 
+          array (
+            0 => 'dir',
+          ),
+          'nf' => 
+          array (
+          ),
+          'pid' => 'route-vcs-svn-entries',
+          'sev' => 'medium',
+          'sig' => 0,
+          't' => 
+          array (
+            0 => 'route-vcs-svn-entries',
+          ),
+        ),
+      ),
+    ),
+    'GET /.hg/requires' => 
+    array (
+      'b' => 
+      array (
+        0 => 
+        array (
+          's' => 200,
+          'bw' => 
+          array (
+            0 => 'revlogv1',
+          ),
+          'nf' => 
+          array (
+          ),
+          'pid' => 'route-vcs-hg-requires',
+          'sev' => 'medium',
+          'sig' => 0,
+          't' => 
+          array (
+            0 => 'route-vcs-hg-requires',
+          ),
+        ),
+      ),
+    ),
     'GET /private/' => 
     array (
       'b' => 
@@ -299435,6 +299645,54 @@ a</title>',
         ),
       ),
     ),
+    'GET /.aws' => 
+    array (
+      'b' => 
+      array (
+        0 => 
+        array (
+          's' => 200,
+          'bw' => 
+          array (
+            0 => 'Index of',
+          ),
+          'nf' => 
+          array (
+          ),
+          'pid' => 'route-dotaws-listing',
+          'sev' => 'high',
+          'sig' => 0,
+          't' => 
+          array (
+            0 => 'route-dotaws-listing',
+          ),
+        ),
+      ),
+    ),
+    'GET /.aws/' => 
+    array (
+      'b' => 
+      array (
+        0 => 
+        array (
+          's' => 200,
+          'bw' => 
+          array (
+            0 => 'Index of',
+          ),
+          'nf' => 
+          array (
+          ),
+          'pid' => 'route-dotaws-listing',
+          'sev' => 'high',
+          'sig' => 0,
+          't' => 
+          array (
+            0 => 'route-dotaws-listing',
+          ),
+        ),
+      ),
+    ),
     'GET /phpmyadmin/' => 
     array (
       'b' => 
@@ -299531,7 +299789,7 @@ a</title>',
         ),
       ),
     ),
-    'GET /npmrc' => 
+    'GET /phpmyadmin/phpmyadmin.css.php' => 
     array (
       'b' => 
       array (
@@ -299540,22 +299798,23 @@ a</title>',
           's' => 200,
           'bw' => 
           array (
-            0 => ':_authToken',
+            0 => 'loginform',
+            1 => 'pma-card',
           ),
           'nf' => 
           array (
           ),
-          'pid' => 'route-npmrc',
-          'sev' => 'high',
+          'pid' => 'route-phpmyadmin-css',
+          'sev' => 'low',
           'sig' => 0,
           't' => 
           array (
-            0 => 'route-npmrc',
+            0 => 'route-phpmyadmin-css',
           ),
         ),
       ),
     ),
-    'GET /backup/.npmrc' => 
+    'GET /phpMyAdmin/phpmyadmin.css.php' => 
     array (
       'b' => 
       array (
@@ -299564,17 +299823,68 @@ a</title>',
           's' => 200,
           'bw' => 
           array (
-            0 => ':_authToken',
+            0 => 'loginform',
+            1 => 'pma-card',
           ),
           'nf' => 
           array (
           ),
-          'pid' => 'route-npmrc',
-          'sev' => 'high',
+          'pid' => 'route-phpmyadmin-css',
+          'sev' => 'low',
           'sig' => 0,
           't' => 
           array (
-            0 => 'route-npmrc',
+            0 => 'route-phpmyadmin-css',
+          ),
+        ),
+      ),
+    ),
+    'GET /pma/phpmyadmin.css.php' => 
+    array (
+      'b' => 
+      array (
+        0 => 
+        array (
+          's' => 200,
+          'bw' => 
+          array (
+            0 => 'loginform',
+            1 => 'pma-card',
+          ),
+          'nf' => 
+          array (
+          ),
+          'pid' => 'route-phpmyadmin-css',
+          'sev' => 'low',
+          'sig' => 0,
+          't' => 
+          array (
+            0 => 'route-phpmyadmin-css',
+          ),
+        ),
+      ),
+    ),
+    'GET /phpmyadmin.css.php' => 
+    array (
+      'b' => 
+      array (
+        0 => 
+        array (
+          's' => 200,
+          'bw' => 
+          array (
+            0 => 'loginform',
+            1 => 'pma-card',
+          ),
+          'nf' => 
+          array (
+          ),
+          'pid' => 'route-phpmyadmin-css',
+          'sev' => 'low',
+          'sig' => 0,
+          't' => 
+          array (
+            0 => 'route-phpmyadmin-css',
           ),
         ),
       ),
@@ -300007,6 +300317,150 @@ a</title>',
           't' => 
           array (
             0 => 'route-envfile-local',
+          ),
+        ),
+      ),
+    ),
+    'GET /.env.development' => 
+    array (
+      'b' => 
+      array (
+        0 => 
+        array (
+          's' => 200,
+          'bw' => 
+          array (
+            0 => 'AWS_SECRET_ACCESS_KEY',
+          ),
+          'nf' => 
+          array (
+          ),
+          'pid' => 'route-envfile-dev',
+          'sev' => 'high',
+          'sig' => 0,
+          't' => 
+          array (
+            0 => 'route-envfile-dev',
+          ),
+        ),
+      ),
+    ),
+    'GET /.env.staging' => 
+    array (
+      'b' => 
+      array (
+        0 => 
+        array (
+          's' => 200,
+          'bw' => 
+          array (
+            0 => 'AWS_SECRET_ACCESS_KEY',
+          ),
+          'nf' => 
+          array (
+          ),
+          'pid' => 'route-envfile-staging',
+          'sev' => 'high',
+          'sig' => 0,
+          't' => 
+          array (
+            0 => 'route-envfile-staging',
+          ),
+        ),
+      ),
+    ),
+    'GET /.env.test' => 
+    array (
+      'b' => 
+      array (
+        0 => 
+        array (
+          's' => 200,
+          'bw' => 
+          array (
+            0 => 'AWS_SECRET_ACCESS_KEY',
+          ),
+          'nf' => 
+          array (
+          ),
+          'pid' => 'route-envfile-test',
+          'sev' => 'high',
+          'sig' => 0,
+          't' => 
+          array (
+            0 => 'route-envfile-test',
+          ),
+        ),
+      ),
+    ),
+    'GET /.env.bak' => 
+    array (
+      'b' => 
+      array (
+        0 => 
+        array (
+          's' => 200,
+          'bw' => 
+          array (
+            0 => 'AWS_SECRET_ACCESS_KEY',
+          ),
+          'nf' => 
+          array (
+          ),
+          'pid' => 'route-envfile-bak',
+          'sev' => 'high',
+          'sig' => 0,
+          't' => 
+          array (
+            0 => 'route-envfile-bak',
+          ),
+        ),
+      ),
+    ),
+    'GET /.env.php' => 
+    array (
+      'b' => 
+      array (
+        0 => 
+        array (
+          's' => 200,
+          'bw' => 
+          array (
+            0 => 'AWS_SECRET_ACCESS_KEY',
+          ),
+          'nf' => 
+          array (
+          ),
+          'pid' => 'route-envfile-php-src',
+          'sev' => 'high',
+          'sig' => 0,
+          't' => 
+          array (
+            0 => 'route-envfile-php-src',
+          ),
+        ),
+      ),
+    ),
+    'GET /laravel/.env' => 
+    array (
+      'b' => 
+      array (
+        0 => 
+        array (
+          's' => 200,
+          'bw' => 
+          array (
+            0 => 'AWS_SECRET_ACCESS_KEY',
+          ),
+          'nf' => 
+          array (
+          ),
+          'pid' => 'route-envfile-laravel',
+          'sev' => 'high',
+          'sig' => 0,
+          't' => 
+          array (
+            0 => 'route-envfile-laravel',
           ),
         ),
       ),
@@ -300501,6 +300955,378 @@ a</title>',
         ),
       ),
     ),
+    'GET /heapdump' => 
+    array (
+      'b' => 
+      array (
+        0 => 
+        array (
+          's' => 200,
+          'bw' => 
+          array (
+          ),
+          'nf' => 
+          array (
+          ),
+          'pid' => 'route-actuator-heapdump',
+          'sev' => 'high',
+          'sig' => 0,
+          't' => 
+          array (
+            0 => 'route-actuator-heapdump',
+          ),
+          'bin' => 1,
+          'th' => 
+          array (
+            'Content-Type' => 
+            array (
+              0 => 'application/octet-stream',
+            ),
+          ),
+        ),
+      ),
+    ),
+    'GET /actuator/heapdump' => 
+    array (
+      'b' => 
+      array (
+        0 => 
+        array (
+          's' => 200,
+          'bw' => 
+          array (
+          ),
+          'nf' => 
+          array (
+          ),
+          'pid' => 'route-actuator-heapdump',
+          'sev' => 'high',
+          'sig' => 0,
+          't' => 
+          array (
+            0 => 'route-actuator-heapdump',
+          ),
+          'bin' => 1,
+          'th' => 
+          array (
+            'Content-Type' => 
+            array (
+              0 => 'application/octet-stream',
+            ),
+          ),
+        ),
+      ),
+    ),
+    'GET /bbo-admin/heapdump' => 
+    array (
+      'b' => 
+      array (
+        0 => 
+        array (
+          's' => 200,
+          'bw' => 
+          array (
+          ),
+          'nf' => 
+          array (
+          ),
+          'pid' => 'route-actuator-heapdump',
+          'sev' => 'high',
+          'sig' => 0,
+          't' => 
+          array (
+            0 => 'route-actuator-heapdump',
+          ),
+          'bin' => 1,
+          'th' => 
+          array (
+            'Content-Type' => 
+            array (
+              0 => 'application/octet-stream',
+            ),
+          ),
+        ),
+      ),
+    ),
+    'GET /bbo-admin/actuator/heapdump' => 
+    array (
+      'b' => 
+      array (
+        0 => 
+        array (
+          's' => 200,
+          'bw' => 
+          array (
+          ),
+          'nf' => 
+          array (
+          ),
+          'pid' => 'route-actuator-heapdump',
+          'sev' => 'high',
+          'sig' => 0,
+          't' => 
+          array (
+            0 => 'route-actuator-heapdump',
+          ),
+          'bin' => 1,
+          'th' => 
+          array (
+            'Content-Type' => 
+            array (
+              0 => 'application/octet-stream',
+            ),
+          ),
+        ),
+      ),
+    ),
+    'GET /bbo-rest/heapdump' => 
+    array (
+      'b' => 
+      array (
+        0 => 
+        array (
+          's' => 200,
+          'bw' => 
+          array (
+          ),
+          'nf' => 
+          array (
+          ),
+          'pid' => 'route-actuator-heapdump',
+          'sev' => 'high',
+          'sig' => 0,
+          't' => 
+          array (
+            0 => 'route-actuator-heapdump',
+          ),
+          'bin' => 1,
+          'th' => 
+          array (
+            'Content-Type' => 
+            array (
+              0 => 'application/octet-stream',
+            ),
+          ),
+        ),
+      ),
+    ),
+    'GET /bbo-rest/actuator/heapdump' => 
+    array (
+      'b' => 
+      array (
+        0 => 
+        array (
+          's' => 200,
+          'bw' => 
+          array (
+          ),
+          'nf' => 
+          array (
+          ),
+          'pid' => 'route-actuator-heapdump',
+          'sev' => 'high',
+          'sig' => 0,
+          't' => 
+          array (
+            0 => 'route-actuator-heapdump',
+          ),
+          'bin' => 1,
+          'th' => 
+          array (
+            'Content-Type' => 
+            array (
+              0 => 'application/octet-stream',
+            ),
+          ),
+        ),
+      ),
+    ),
+    'GET /bbo-search/heapdump' => 
+    array (
+      'b' => 
+      array (
+        0 => 
+        array (
+          's' => 200,
+          'bw' => 
+          array (
+          ),
+          'nf' => 
+          array (
+          ),
+          'pid' => 'route-actuator-heapdump',
+          'sev' => 'high',
+          'sig' => 0,
+          't' => 
+          array (
+            0 => 'route-actuator-heapdump',
+          ),
+          'bin' => 1,
+          'th' => 
+          array (
+            'Content-Type' => 
+            array (
+              0 => 'application/octet-stream',
+            ),
+          ),
+        ),
+      ),
+    ),
+    'GET /bbo-search/actuator/heapdump' => 
+    array (
+      'b' => 
+      array (
+        0 => 
+        array (
+          's' => 200,
+          'bw' => 
+          array (
+          ),
+          'nf' => 
+          array (
+          ),
+          'pid' => 'route-actuator-heapdump',
+          'sev' => 'high',
+          'sig' => 0,
+          't' => 
+          array (
+            0 => 'route-actuator-heapdump',
+          ),
+          'bin' => 1,
+          'th' => 
+          array (
+            'Content-Type' => 
+            array (
+              0 => 'application/octet-stream',
+            ),
+          ),
+        ),
+      ),
+    ),
+    'GET /bbo-token/heapdump' => 
+    array (
+      'b' => 
+      array (
+        0 => 
+        array (
+          's' => 200,
+          'bw' => 
+          array (
+          ),
+          'nf' => 
+          array (
+          ),
+          'pid' => 'route-actuator-heapdump',
+          'sev' => 'high',
+          'sig' => 0,
+          't' => 
+          array (
+            0 => 'route-actuator-heapdump',
+          ),
+          'bin' => 1,
+          'th' => 
+          array (
+            'Content-Type' => 
+            array (
+              0 => 'application/octet-stream',
+            ),
+          ),
+        ),
+      ),
+    ),
+    'GET /bbo-token/actuator/heapdump' => 
+    array (
+      'b' => 
+      array (
+        0 => 
+        array (
+          's' => 200,
+          'bw' => 
+          array (
+          ),
+          'nf' => 
+          array (
+          ),
+          'pid' => 'route-actuator-heapdump',
+          'sev' => 'high',
+          'sig' => 0,
+          't' => 
+          array (
+            0 => 'route-actuator-heapdump',
+          ),
+          'bin' => 1,
+          'th' => 
+          array (
+            'Content-Type' => 
+            array (
+              0 => 'application/octet-stream',
+            ),
+          ),
+        ),
+      ),
+    ),
+    'GET /bbo-vin/heapdump' => 
+    array (
+      'b' => 
+      array (
+        0 => 
+        array (
+          's' => 200,
+          'bw' => 
+          array (
+          ),
+          'nf' => 
+          array (
+          ),
+          'pid' => 'route-actuator-heapdump',
+          'sev' => 'high',
+          'sig' => 0,
+          't' => 
+          array (
+            0 => 'route-actuator-heapdump',
+          ),
+          'bin' => 1,
+          'th' => 
+          array (
+            'Content-Type' => 
+            array (
+              0 => 'application/octet-stream',
+            ),
+          ),
+        ),
+      ),
+    ),
+    'GET /bbo-vin/actuator/heapdump' => 
+    array (
+      'b' => 
+      array (
+        0 => 
+        array (
+          's' => 200,
+          'bw' => 
+          array (
+          ),
+          'nf' => 
+          array (
+          ),
+          'pid' => 'route-actuator-heapdump',
+          'sev' => 'high',
+          'sig' => 0,
+          't' => 
+          array (
+            0 => 'route-actuator-heapdump',
+          ),
+          'bin' => 1,
+          'th' => 
+          array (
+            'Content-Type' => 
+            array (
+              0 => 'application/octet-stream',
+            ),
+          ),
+        ),
+      ),
+    ),
     'GET /swagger.json' => 
     array (
       'b' => 
@@ -300822,952 +301648,6 @@ a</title>',
           't' => 
           array (
             0 => 'route-api-v2',
-          ),
-        ),
-      ),
-    ),
-    'GET /phpmyadmin/ChangeLog' => 
-    array (
-      'b' => 
-      array (
-        0 => 
-        array (
-          's' => 200,
-          'bw' => 
-          array (
-            0 => 'phpMyAdmin',
-            1 => 'ChangeLog',
-          ),
-          'nf' => 
-          array (
-          ),
-          'pid' => 'route-phpmyadmin-changelog',
-          'sev' => 'info',
-          'sig' => 0,
-          't' => 
-          array (
-            0 => 'route-phpmyadmin-changelog',
-          ),
-        ),
-      ),
-    ),
-    'GET /phpmyadmin/README' => 
-    array (
-      'b' => 
-      array (
-        0 => 
-        array (
-          's' => 200,
-          'bw' => 
-          array (
-            0 => 'phpMyAdmin',
-          ),
-          'nf' => 
-          array (
-          ),
-          'pid' => 'route-phpmyadmin-readme',
-          'sev' => 'info',
-          'sig' => 0,
-          't' => 
-          array (
-            0 => 'route-phpmyadmin-readme',
-          ),
-        ),
-      ),
-    ),
-    'GET /phpmyadmin/doc/html/index.html' => 
-    array (
-      'b' => 
-      array (
-        0 => 
-        array (
-          's' => 200,
-          'bw' => 
-          array (
-            0 => 'phpMyAdmin',
-          ),
-          'nf' => 
-          array (
-          ),
-          'pid' => 'route-phpmyadmin-doc',
-          'sev' => 'info',
-          'sig' => 0,
-          't' => 
-          array (
-            0 => 'route-phpmyadmin-doc',
-          ),
-        ),
-      ),
-    ),
-    'GET /api/health' => 
-    array (
-      'b' => 
-      array (
-        0 => 
-        array (
-          's' => 200,
-          'bw' => 
-          array (
-            0 => 'commit',
-            1 => 'version',
-          ),
-          'nf' => 
-          array (
-          ),
-          'pid' => 'route-grafana-health',
-          'sev' => 'info',
-          'sig' => 0,
-          't' => 
-          array (
-            0 => 'route-grafana-health',
-          ),
-        ),
-      ),
-    ),
-    'GET /grafana/' => 
-    array (
-      'b' => 
-      array (
-        0 => 
-        array (
-          's' => 200,
-          'bw' => 
-          array (
-            0 => 'Grafana',
-          ),
-          'nf' => 
-          array (
-          ),
-          'pid' => 'route-grafana-login',
-          'sev' => 'info',
-          'sig' => 0,
-          't' => 
-          array (
-            0 => 'route-grafana-login',
-          ),
-        ),
-      ),
-    ),
-    'GET /grafana/login' => 
-    array (
-      'b' => 
-      array (
-        0 => 
-        array (
-          's' => 200,
-          'bw' => 
-          array (
-            0 => 'Grafana',
-          ),
-          'nf' => 
-          array (
-          ),
-          'pid' => 'route-grafana-login',
-          'sev' => 'info',
-          'sig' => 0,
-          't' => 
-          array (
-            0 => 'route-grafana-login',
-          ),
-        ),
-      ),
-    ),
-    'GET /api/json' => 
-    array (
-      'b' => 
-      array (
-        0 => 
-        array (
-          's' => 200,
-          'bw' => 
-          array (
-            0 => 'jobs',
-            1 => 'mode',
-          ),
-          'nf' => 
-          array (
-          ),
-          'pid' => 'route-jenkins-apijson',
-          'sev' => 'info',
-          'sig' => 0,
-          't' => 
-          array (
-            0 => 'route-jenkins-apijson',
-          ),
-        ),
-      ),
-    ),
-    'GET /pgadmin4/' => 
-    array (
-      'b' => 
-      array (
-        0 => 
-        array (
-          's' => 200,
-          'bw' => 
-          array (
-            0 => 'pgAdmin',
-          ),
-          'nf' => 
-          array (
-          ),
-          'pid' => 'route-pgadmin-login',
-          'sev' => 'info',
-          'sig' => 0,
-          't' => 
-          array (
-            0 => 'route-pgadmin-login',
-          ),
-        ),
-      ),
-    ),
-    'GET /pgadmin4/login' => 
-    array (
-      'b' => 
-      array (
-        0 => 
-        array (
-          's' => 200,
-          'bw' => 
-          array (
-            0 => 'pgAdmin',
-          ),
-          'nf' => 
-          array (
-          ),
-          'pid' => 'route-pgadmin-login',
-          'sev' => 'info',
-          'sig' => 0,
-          't' => 
-          array (
-            0 => 'route-pgadmin-login',
-          ),
-        ),
-      ),
-    ),
-    'GET /cpanel' => 
-    array (
-      'b' => 
-      array (
-        0 => 
-        array (
-          's' => 200,
-          'bw' => 
-          array (
-            0 => 'cPanel',
-          ),
-          'nf' => 
-          array (
-          ),
-          'pid' => 'route-cpanel-login',
-          'sev' => 'low',
-          'sig' => 0,
-          't' => 
-          array (
-            0 => 'route-cpanel-login',
-          ),
-        ),
-      ),
-    ),
-    'GET /whm' => 
-    array (
-      'b' => 
-      array (
-        0 => 
-        array (
-          's' => 200,
-          'bw' => 
-          array (
-            0 => 'WHM',
-          ),
-          'nf' => 
-          array (
-          ),
-          'pid' => 'route-whm-login',
-          'sev' => 'low',
-          'sig' => 0,
-          't' => 
-          array (
-            0 => 'route-whm-login',
-          ),
-        ),
-      ),
-    ),
-    'GET /api/ps' => 
-    array (
-      'b' => 
-      array (
-        0 => 
-        array (
-          's' => 200,
-          'bw' => 
-          array (
-            0 => '"models"',
-          ),
-          'nf' => 
-          array (
-          ),
-          'pid' => 'route-ai-ollama-ps',
-          'sev' => 'medium',
-          'sig' => 0,
-          't' => 
-          array (
-            0 => 'route-ai-ollama-ps',
-          ),
-          'w' => 1000,
-        ),
-      ),
-    ),
-    'GET /.aws' => 
-    array (
-      'b' => 
-      array (
-        0 => 
-        array (
-          's' => 200,
-          'bw' => 
-          array (
-            0 => 'Index of',
-          ),
-          'nf' => 
-          array (
-          ),
-          'pid' => 'route-dotaws-listing',
-          'sev' => 'high',
-          'sig' => 0,
-          't' => 
-          array (
-            0 => 'route-dotaws-listing',
-          ),
-        ),
-      ),
-    ),
-    'GET /.aws/' => 
-    array (
-      'b' => 
-      array (
-        0 => 
-        array (
-          's' => 200,
-          'bw' => 
-          array (
-            0 => 'Index of',
-          ),
-          'nf' => 
-          array (
-          ),
-          'pid' => 'route-dotaws-listing',
-          'sev' => 'high',
-          'sig' => 0,
-          't' => 
-          array (
-            0 => 'route-dotaws-listing',
-          ),
-        ),
-      ),
-    ),
-    'GET /phpmyadmin/phpmyadmin.css.php' => 
-    array (
-      'b' => 
-      array (
-        0 => 
-        array (
-          's' => 200,
-          'bw' => 
-          array (
-            0 => 'loginform',
-            1 => 'pma-card',
-          ),
-          'nf' => 
-          array (
-          ),
-          'pid' => 'route-phpmyadmin-css',
-          'sev' => 'low',
-          'sig' => 0,
-          't' => 
-          array (
-            0 => 'route-phpmyadmin-css',
-          ),
-        ),
-      ),
-    ),
-    'GET /phpMyAdmin/phpmyadmin.css.php' => 
-    array (
-      'b' => 
-      array (
-        0 => 
-        array (
-          's' => 200,
-          'bw' => 
-          array (
-            0 => 'loginform',
-            1 => 'pma-card',
-          ),
-          'nf' => 
-          array (
-          ),
-          'pid' => 'route-phpmyadmin-css',
-          'sev' => 'low',
-          'sig' => 0,
-          't' => 
-          array (
-            0 => 'route-phpmyadmin-css',
-          ),
-        ),
-      ),
-    ),
-    'GET /pma/phpmyadmin.css.php' => 
-    array (
-      'b' => 
-      array (
-        0 => 
-        array (
-          's' => 200,
-          'bw' => 
-          array (
-            0 => 'loginform',
-            1 => 'pma-card',
-          ),
-          'nf' => 
-          array (
-          ),
-          'pid' => 'route-phpmyadmin-css',
-          'sev' => 'low',
-          'sig' => 0,
-          't' => 
-          array (
-            0 => 'route-phpmyadmin-css',
-          ),
-        ),
-      ),
-    ),
-    'GET /phpmyadmin.css.php' => 
-    array (
-      'b' => 
-      array (
-        0 => 
-        array (
-          's' => 200,
-          'bw' => 
-          array (
-            0 => 'loginform',
-            1 => 'pma-card',
-          ),
-          'nf' => 
-          array (
-          ),
-          'pid' => 'route-phpmyadmin-css',
-          'sev' => 'low',
-          'sig' => 0,
-          't' => 
-          array (
-            0 => 'route-phpmyadmin-css',
-          ),
-        ),
-      ),
-    ),
-    'GET /phpinfo.php' => 
-    array (
-      'b' => 
-      array (
-        0 => 
-        array (
-          's' => 200,
-          'bw' => 
-          array (
-            0 => 'phpinfo()',
-            1 => 'PHP Version',
-          ),
-          'nf' => 
-          array (
-          ),
-          'pid' => 'route-phpinfo',
-          'sev' => 'medium',
-          'sig' => 0,
-          't' => 
-          array (
-            0 => 'route-phpinfo',
-          ),
-          'w' => 8,
-        ),
-      ),
-    ),
-    'GET /phpinfo' => 
-    array (
-      'b' => 
-      array (
-        0 => 
-        array (
-          's' => 200,
-          'bw' => 
-          array (
-            0 => 'phpinfo()',
-            1 => 'PHP Version',
-          ),
-          'nf' => 
-          array (
-          ),
-          'pid' => 'route-phpinfo',
-          'sev' => 'medium',
-          'sig' => 0,
-          't' => 
-          array (
-            0 => 'route-phpinfo',
-          ),
-          'w' => 8,
-        ),
-      ),
-    ),
-    'GET /.env.development' => 
-    array (
-      'b' => 
-      array (
-        0 => 
-        array (
-          's' => 200,
-          'bw' => 
-          array (
-            0 => 'AWS_SECRET_ACCESS_KEY',
-          ),
-          'nf' => 
-          array (
-          ),
-          'pid' => 'route-envfile-dev',
-          'sev' => 'high',
-          'sig' => 0,
-          't' => 
-          array (
-            0 => 'route-envfile-dev',
-          ),
-        ),
-      ),
-    ),
-    'GET /.env.staging' => 
-    array (
-      'b' => 
-      array (
-        0 => 
-        array (
-          's' => 200,
-          'bw' => 
-          array (
-            0 => 'AWS_SECRET_ACCESS_KEY',
-          ),
-          'nf' => 
-          array (
-          ),
-          'pid' => 'route-envfile-staging',
-          'sev' => 'high',
-          'sig' => 0,
-          't' => 
-          array (
-            0 => 'route-envfile-staging',
-          ),
-        ),
-      ),
-    ),
-    'GET /.env.test' => 
-    array (
-      'b' => 
-      array (
-        0 => 
-        array (
-          's' => 200,
-          'bw' => 
-          array (
-            0 => 'AWS_SECRET_ACCESS_KEY',
-          ),
-          'nf' => 
-          array (
-          ),
-          'pid' => 'route-envfile-test',
-          'sev' => 'high',
-          'sig' => 0,
-          't' => 
-          array (
-            0 => 'route-envfile-test',
-          ),
-        ),
-      ),
-    ),
-    'GET /.env.bak' => 
-    array (
-      'b' => 
-      array (
-        0 => 
-        array (
-          's' => 200,
-          'bw' => 
-          array (
-            0 => 'AWS_SECRET_ACCESS_KEY',
-          ),
-          'nf' => 
-          array (
-          ),
-          'pid' => 'route-envfile-bak',
-          'sev' => 'high',
-          'sig' => 0,
-          't' => 
-          array (
-            0 => 'route-envfile-bak',
-          ),
-        ),
-      ),
-    ),
-    'GET /.env.php' => 
-    array (
-      'b' => 
-      array (
-        0 => 
-        array (
-          's' => 200,
-          'bw' => 
-          array (
-            0 => 'AWS_SECRET_ACCESS_KEY',
-          ),
-          'nf' => 
-          array (
-          ),
-          'pid' => 'route-envfile-php-src',
-          'sev' => 'high',
-          'sig' => 0,
-          't' => 
-          array (
-            0 => 'route-envfile-php-src',
-          ),
-        ),
-      ),
-    ),
-    'GET /laravel/.env' => 
-    array (
-      'b' => 
-      array (
-        0 => 
-        array (
-          's' => 200,
-          'bw' => 
-          array (
-            0 => 'AWS_SECRET_ACCESS_KEY',
-          ),
-          'nf' => 
-          array (
-          ),
-          'pid' => 'route-envfile-laravel',
-          'sev' => 'high',
-          'sig' => 0,
-          't' => 
-          array (
-            0 => 'route-envfile-laravel',
-          ),
-        ),
-      ),
-    ),
-    'GET /.git/HEAD' => 
-    array (
-      'b' => 
-      array (
-        0 => 
-        array (
-          's' => 200,
-          'bw' => 
-          array (
-            0 => 'ref: refs/heads/',
-          ),
-          'nf' => 
-          array (
-          ),
-          'pid' => 'route-vcs-head',
-          'sev' => 'medium',
-          'sig' => 0,
-          't' => 
-          array (
-            0 => 'route-vcs-head',
-          ),
-        ),
-      ),
-    ),
-    'GET /.git/packed-refs' => 
-    array (
-      'b' => 
-      array (
-        0 => 
-        array (
-          's' => 200,
-          'bw' => 
-          array (
-            0 => 'refs/remotes/origin/',
-          ),
-          'nf' => 
-          array (
-          ),
-          'pid' => 'route-vcs-packed-refs',
-          'sev' => 'medium',
-          'sig' => 0,
-          't' => 
-          array (
-            0 => 'route-vcs-packed-refs',
-          ),
-        ),
-      ),
-    ),
-    'GET /.git/refs/heads/main' => 
-    array (
-      'b' => 
-      array (
-        0 => 
-        array (
-          's' => 200,
-          'bw' => 
-          array (
-          ),
-          'nf' => 
-          array (
-          ),
-          'pid' => 'route-vcs-refs-main',
-          'sev' => 'medium',
-          'sig' => 0,
-          't' => 
-          array (
-            0 => 'route-vcs-refs-main',
-          ),
-        ),
-      ),
-    ),
-    'GET /.git/description' => 
-    array (
-      'b' => 
-      array (
-        0 => 
-        array (
-          's' => 200,
-          'bw' => 
-          array (
-            0 => 'Unnamed repository',
-          ),
-          'nf' => 
-          array (
-          ),
-          'pid' => 'route-vcs-description',
-          'sev' => 'medium',
-          'sig' => 0,
-          't' => 
-          array (
-            0 => 'route-vcs-description',
-          ),
-        ),
-      ),
-    ),
-    'GET /.git/COMMIT_EDITMSG' => 
-    array (
-      'b' => 
-      array (
-        0 => 
-        array (
-          's' => 200,
-          'bw' => 
-          array (
-          ),
-          'nf' => 
-          array (
-          ),
-          'pid' => 'route-vcs-commit-msg',
-          'sev' => 'medium',
-          'sig' => 0,
-          't' => 
-          array (
-            0 => 'route-vcs-commit-msg',
-          ),
-        ),
-      ),
-    ),
-    'GET /.git/info/exclude' => 
-    array (
-      'b' => 
-      array (
-        0 => 
-        array (
-          's' => 200,
-          'bw' => 
-          array (
-            0 => 'git ls-files --others',
-          ),
-          'nf' => 
-          array (
-          ),
-          'pid' => 'route-vcs-exclude',
-          'sev' => 'medium',
-          'sig' => 0,
-          't' => 
-          array (
-            0 => 'route-vcs-exclude',
-          ),
-        ),
-      ),
-    ),
-    'GET /.git/info/refs' => 
-    array (
-      'b' => 
-      array (
-        0 => 
-        array (
-          's' => 200,
-          'bw' => 
-          array (
-            0 => 'refs/heads/',
-          ),
-          'nf' => 
-          array (
-          ),
-          'pid' => 'route-vcs-info-refs',
-          'sev' => 'medium',
-          'sig' => 0,
-          't' => 
-          array (
-            0 => 'route-vcs-info-refs',
-          ),
-        ),
-      ),
-    ),
-    'GET /.svn/entries' => 
-    array (
-      'b' => 
-      array (
-        0 => 
-        array (
-          's' => 200,
-          'bw' => 
-          array (
-            0 => 'dir',
-          ),
-          'nf' => 
-          array (
-          ),
-          'pid' => 'route-vcs-svn-entries',
-          'sev' => 'medium',
-          'sig' => 0,
-          't' => 
-          array (
-            0 => 'route-vcs-svn-entries',
-          ),
-        ),
-      ),
-    ),
-    'GET /.hg/requires' => 
-    array (
-      'b' => 
-      array (
-        0 => 
-        array (
-          's' => 200,
-          'bw' => 
-          array (
-            0 => 'revlogv1',
-          ),
-          'nf' => 
-          array (
-          ),
-          'pid' => 'route-vcs-hg-requires',
-          'sev' => 'medium',
-          'sig' => 0,
-          't' => 
-          array (
-            0 => 'route-vcs-hg-requires',
-          ),
-        ),
-      ),
-    ),
-    'GET /CVS/Entries' => 
-    array (
-      'b' => 
-      array (
-        0 => 
-        array (
-          's' => 200,
-          'bw' => 
-          array (
-            0 => '/index.php/',
-          ),
-          'nf' => 
-          array (
-          ),
-          'pid' => 'route-vcs-cvs-entries',
-          'sev' => 'medium',
-          'sig' => 0,
-          't' => 
-          array (
-            0 => 'route-vcs-cvs-entries',
-          ),
-        ),
-      ),
-    ),
-    'GET /typo3conf/' => 
-    array (
-      'b' => 
-      array (
-        0 => 
-        array (
-          's' => 200,
-          'bw' => 
-          array (
-            0 => 'Index of',
-          ),
-          'nf' => 
-          array (
-          ),
-          'pid' => 'route-typo3conf-listing',
-          'sev' => 'medium',
-          'sig' => 0,
-          't' => 
-          array (
-            0 => 'route-typo3conf-listing',
-          ),
-        ),
-      ),
-    ),
-    'GET /typo3conf' => 
-    array (
-      'b' => 
-      array (
-        0 => 
-        array (
-          's' => 200,
-          'bw' => 
-          array (
-            0 => 'Index of',
-          ),
-          'nf' => 
-          array (
-          ),
-          'pid' => 'route-typo3conf-listing',
-          'sev' => 'medium',
-          'sig' => 0,
-          't' => 
-          array (
-            0 => 'route-typo3conf-listing',
-          ),
-        ),
-      ),
-    ),
-    'GET /typo3conf/localconf.php' => 
-    array (
-      'b' => 
-      array (
-        0 => 
-        array (
-          's' => 200,
-          'bw' => 
-          array (
-            0 => '$typo_db_password',
-          ),
-          'nf' => 
-          array (
-          ),
-          'pid' => 'route-typo3conf-localconf',
-          'sev' => 'high',
-          'sig' => 0,
-          't' => 
-          array (
-            0 => 'route-typo3conf-localconf',
           ),
         ),
       ),
@@ -302238,6 +302118,323 @@ a</title>',
         ),
       ),
     ),
+    'GET /kibana' => 
+    array (
+      'b' => 
+      array (
+        0 => 
+        array (
+          's' => 200,
+          'bw' => 
+          array (
+            0 => 'kibanaWelcomeView',
+            1 => '<title>Kibana</title>',
+          ),
+          'nf' => 
+          array (
+          ),
+          'pid' => 'route-kibana',
+          'sev' => 'medium',
+          'sig' => 0,
+          't' => 
+          array (
+            0 => 'route-kibana',
+          ),
+        ),
+      ),
+    ),
+    'GET /kibana/' => 
+    array (
+      'b' => 
+      array (
+        0 => 
+        array (
+          's' => 200,
+          'bw' => 
+          array (
+            0 => 'kibanaWelcomeView',
+            1 => '<title>Kibana</title>',
+          ),
+          'nf' => 
+          array (
+          ),
+          'pid' => 'route-kibana',
+          'sev' => 'medium',
+          'sig' => 0,
+          't' => 
+          array (
+            0 => 'route-kibana',
+          ),
+        ),
+      ),
+    ),
+    'GET /phpmyadmin/ChangeLog' => 
+    array (
+      'b' => 
+      array (
+        0 => 
+        array (
+          's' => 200,
+          'bw' => 
+          array (
+            0 => 'phpMyAdmin',
+            1 => 'ChangeLog',
+          ),
+          'nf' => 
+          array (
+          ),
+          'pid' => 'route-phpmyadmin-changelog',
+          'sev' => 'info',
+          'sig' => 0,
+          't' => 
+          array (
+            0 => 'route-phpmyadmin-changelog',
+          ),
+        ),
+      ),
+    ),
+    'GET /phpmyadmin/README' => 
+    array (
+      'b' => 
+      array (
+        0 => 
+        array (
+          's' => 200,
+          'bw' => 
+          array (
+            0 => 'phpMyAdmin',
+          ),
+          'nf' => 
+          array (
+          ),
+          'pid' => 'route-phpmyadmin-readme',
+          'sev' => 'info',
+          'sig' => 0,
+          't' => 
+          array (
+            0 => 'route-phpmyadmin-readme',
+          ),
+        ),
+      ),
+    ),
+    'GET /phpmyadmin/doc/html/index.html' => 
+    array (
+      'b' => 
+      array (
+        0 => 
+        array (
+          's' => 200,
+          'bw' => 
+          array (
+            0 => 'phpMyAdmin',
+          ),
+          'nf' => 
+          array (
+          ),
+          'pid' => 'route-phpmyadmin-doc',
+          'sev' => 'info',
+          'sig' => 0,
+          't' => 
+          array (
+            0 => 'route-phpmyadmin-doc',
+          ),
+        ),
+      ),
+    ),
+    'GET /api/health' => 
+    array (
+      'b' => 
+      array (
+        0 => 
+        array (
+          's' => 200,
+          'bw' => 
+          array (
+            0 => 'commit',
+            1 => 'version',
+          ),
+          'nf' => 
+          array (
+          ),
+          'pid' => 'route-grafana-health',
+          'sev' => 'info',
+          'sig' => 0,
+          't' => 
+          array (
+            0 => 'route-grafana-health',
+          ),
+        ),
+      ),
+    ),
+    'GET /grafana/' => 
+    array (
+      'b' => 
+      array (
+        0 => 
+        array (
+          's' => 200,
+          'bw' => 
+          array (
+            0 => 'Grafana',
+          ),
+          'nf' => 
+          array (
+          ),
+          'pid' => 'route-grafana-login',
+          'sev' => 'info',
+          'sig' => 0,
+          't' => 
+          array (
+            0 => 'route-grafana-login',
+          ),
+        ),
+      ),
+    ),
+    'GET /grafana/login' => 
+    array (
+      'b' => 
+      array (
+        0 => 
+        array (
+          's' => 200,
+          'bw' => 
+          array (
+            0 => 'Grafana',
+          ),
+          'nf' => 
+          array (
+          ),
+          'pid' => 'route-grafana-login',
+          'sev' => 'info',
+          'sig' => 0,
+          't' => 
+          array (
+            0 => 'route-grafana-login',
+          ),
+        ),
+      ),
+    ),
+    'GET /api/json' => 
+    array (
+      'b' => 
+      array (
+        0 => 
+        array (
+          's' => 200,
+          'bw' => 
+          array (
+            0 => 'jobs',
+            1 => 'mode',
+          ),
+          'nf' => 
+          array (
+          ),
+          'pid' => 'route-jenkins-apijson',
+          'sev' => 'info',
+          'sig' => 0,
+          't' => 
+          array (
+            0 => 'route-jenkins-apijson',
+          ),
+        ),
+      ),
+    ),
+    'GET /pgadmin4/' => 
+    array (
+      'b' => 
+      array (
+        0 => 
+        array (
+          's' => 200,
+          'bw' => 
+          array (
+            0 => 'pgAdmin',
+          ),
+          'nf' => 
+          array (
+          ),
+          'pid' => 'route-pgadmin-login',
+          'sev' => 'info',
+          'sig' => 0,
+          't' => 
+          array (
+            0 => 'route-pgadmin-login',
+          ),
+        ),
+      ),
+    ),
+    'GET /pgadmin4/login' => 
+    array (
+      'b' => 
+      array (
+        0 => 
+        array (
+          's' => 200,
+          'bw' => 
+          array (
+            0 => 'pgAdmin',
+          ),
+          'nf' => 
+          array (
+          ),
+          'pid' => 'route-pgadmin-login',
+          'sev' => 'info',
+          'sig' => 0,
+          't' => 
+          array (
+            0 => 'route-pgadmin-login',
+          ),
+        ),
+      ),
+    ),
+    'GET /cpanel' => 
+    array (
+      'b' => 
+      array (
+        0 => 
+        array (
+          's' => 200,
+          'bw' => 
+          array (
+            0 => 'cPanel',
+          ),
+          'nf' => 
+          array (
+          ),
+          'pid' => 'route-cpanel-login',
+          'sev' => 'low',
+          'sig' => 0,
+          't' => 
+          array (
+            0 => 'route-cpanel-login',
+          ),
+        ),
+      ),
+    ),
+    'GET /whm' => 
+    array (
+      'b' => 
+      array (
+        0 => 
+        array (
+          's' => 200,
+          'bw' => 
+          array (
+            0 => 'WHM',
+          ),
+          'nf' => 
+          array (
+          ),
+          'pid' => 'route-whm-login',
+          'sev' => 'low',
+          'sig' => 0,
+          't' => 
+          array (
+            0 => 'route-whm-login',
+          ),
+        ),
+      ),
+    ),
     'GET /grafana/favicon.ico' => 
     array (
       'b' => 
@@ -302334,6 +302531,102 @@ a</title>',
         ),
       ),
     ),
+    'GET /CVS/Entries' => 
+    array (
+      'b' => 
+      array (
+        0 => 
+        array (
+          's' => 200,
+          'bw' => 
+          array (
+            0 => '/index.php/',
+          ),
+          'nf' => 
+          array (
+          ),
+          'pid' => 'route-vcs-cvs-entries',
+          'sev' => 'medium',
+          'sig' => 0,
+          't' => 
+          array (
+            0 => 'route-vcs-cvs-entries',
+          ),
+        ),
+      ),
+    ),
+    'GET /typo3conf/' => 
+    array (
+      'b' => 
+      array (
+        0 => 
+        array (
+          's' => 200,
+          'bw' => 
+          array (
+            0 => 'Index of',
+          ),
+          'nf' => 
+          array (
+          ),
+          'pid' => 'route-typo3conf-listing',
+          'sev' => 'medium',
+          'sig' => 0,
+          't' => 
+          array (
+            0 => 'route-typo3conf-listing',
+          ),
+        ),
+      ),
+    ),
+    'GET /typo3conf' => 
+    array (
+      'b' => 
+      array (
+        0 => 
+        array (
+          's' => 200,
+          'bw' => 
+          array (
+            0 => 'Index of',
+          ),
+          'nf' => 
+          array (
+          ),
+          'pid' => 'route-typo3conf-listing',
+          'sev' => 'medium',
+          'sig' => 0,
+          't' => 
+          array (
+            0 => 'route-typo3conf-listing',
+          ),
+        ),
+      ),
+    ),
+    'GET /typo3conf/localconf.php' => 
+    array (
+      'b' => 
+      array (
+        0 => 
+        array (
+          's' => 200,
+          'bw' => 
+          array (
+            0 => '$typo_db_password',
+          ),
+          'nf' => 
+          array (
+          ),
+          'pid' => 'route-typo3conf-localconf',
+          'sev' => 'high',
+          'sig' => 0,
+          't' => 
+          array (
+            0 => 'route-typo3conf-localconf',
+          ),
+        ),
+      ),
+    ),
     'GET /sitemap' => 
     array (
       'b' => 
@@ -302412,33 +302705,7 @@ a</title>',
         ),
       ),
     ),
-    'GET /api/v1/orders' => 
-    array (
-      'b' => 
-      array (
-        0 => 
-        array (
-          's' => 200,
-          'bw' => 
-          array (
-            0 => '"data":',
-            1 => '"per_page":',
-          ),
-          'nf' => 
-          array (
-          ),
-          'pid' => 'route-surface-collection',
-          'sev' => 'info',
-          'sig' => 0,
-          't' => 
-          array (
-            0 => 'route-surface-collection',
-          ),
-          'w' => 100000,
-        ),
-      ),
-    ),
-    'GET /admin/users' => 
+    'GET /api/v2/users' => 
     array (
       'b' => 
       array (
@@ -302490,7 +302757,33 @@ a</title>',
         ),
       ),
     ),
-    'GET /api/v2/users' => 
+    'GET /admin/users' => 
+    array (
+      'b' => 
+      array (
+        0 => 
+        array (
+          's' => 200,
+          'bw' => 
+          array (
+            0 => '"data":',
+            1 => '"per_page":',
+          ),
+          'nf' => 
+          array (
+          ),
+          'pid' => 'route-surface-collection',
+          'sev' => 'info',
+          'sig' => 0,
+          't' => 
+          array (
+            0 => 'route-surface-collection',
+          ),
+          'w' => 100000,
+        ),
+      ),
+    ),
+    'GET /api/v1/orders' => 
     array (
       'b' => 
       array (
@@ -302537,162 +302830,6 @@ a</title>',
           't' => 
           array (
             0 => 'route-surface-collection',
-          ),
-          'w' => 100000,
-        ),
-      ),
-    ),
-    'GET /api/v1/status' => 
-    array (
-      'b' => 
-      array (
-        0 => 
-        array (
-          's' => 200,
-          'bw' => 
-          array (
-            0 => '"environment":',
-            1 => '"region":',
-          ),
-          'nf' => 
-          array (
-          ),
-          'pid' => 'route-surface-detail',
-          'sev' => 'info',
-          'sig' => 0,
-          't' => 
-          array (
-            0 => 'route-surface-detail',
-          ),
-          'w' => 100000,
-        ),
-      ),
-    ),
-    'GET /debug' => 
-    array (
-      'b' => 
-      array (
-        0 => 
-        array (
-          's' => 200,
-          'bw' => 
-          array (
-            0 => '"checks":',
-            1 => '"uptime_seconds":',
-          ),
-          'nf' => 
-          array (
-          ),
-          'pid' => 'route-surface-health',
-          'sev' => 'info',
-          'sig' => 0,
-          't' => 
-          array (
-            0 => 'route-surface-health',
-          ),
-          'w' => 100000,
-        ),
-      ),
-    ),
-    'GET /webhooks' => 
-    array (
-      'b' => 
-      array (
-        0 => 
-        array (
-          's' => 200,
-          'bw' => 
-          array (
-            0 => '"subscriptions":',
-            1 => '"target_url":',
-          ),
-          'nf' => 
-          array (
-          ),
-          'pid' => 'route-surface-webhooks',
-          'sev' => 'info',
-          'sig' => 0,
-          't' => 
-          array (
-            0 => 'route-surface-webhooks',
-          ),
-          'w' => 100000,
-        ),
-      ),
-    ),
-    'GET /webhooks/subscriptions' => 
-    array (
-      'b' => 
-      array (
-        0 => 
-        array (
-          's' => 200,
-          'bw' => 
-          array (
-            0 => '"subscriptions":',
-            1 => '"target_url":',
-          ),
-          'nf' => 
-          array (
-          ),
-          'pid' => 'route-surface-webhooks',
-          'sev' => 'info',
-          'sig' => 0,
-          't' => 
-          array (
-            0 => 'route-surface-webhooks',
-          ),
-          'w' => 100000,
-        ),
-      ),
-    ),
-    'GET /auth/token' => 
-    array (
-      'b' => 
-      array (
-        0 => 
-        array (
-          's' => 401,
-          'bw' => 
-          array (
-            0 => '"title":',
-            1 => '"detail":',
-          ),
-          'nf' => 
-          array (
-          ),
-          'pid' => 'route-surface-auth',
-          'sev' => 'info',
-          'sig' => 0,
-          't' => 
-          array (
-            0 => 'route-surface-auth',
-          ),
-          'w' => 100000,
-        ),
-      ),
-    ),
-    'GET /api/v2/auth/login' => 
-    array (
-      'b' => 
-      array (
-        0 => 
-        array (
-          's' => 401,
-          'bw' => 
-          array (
-            0 => '"title":',
-            1 => '"detail":',
-          ),
-          'nf' => 
-          array (
-          ),
-          'pid' => 'route-surface-auth',
-          'sev' => 'info',
-          'sig' => 0,
-          't' => 
-          array (
-            0 => 'route-surface-auth',
           ),
           'w' => 100000,
         ),
@@ -303790,6 +303927,32 @@ a</title>',
         ),
       ),
     ),
+    'GET /api/v1/status' => 
+    array (
+      'b' => 
+      array (
+        0 => 
+        array (
+          's' => 200,
+          'bw' => 
+          array (
+            0 => '"environment":',
+            1 => '"region":',
+          ),
+          'nf' => 
+          array (
+          ),
+          'pid' => 'route-surface-detail',
+          'sev' => 'info',
+          'sig' => 0,
+          't' => 
+          array (
+            0 => 'route-surface-detail',
+          ),
+          'w' => 100000,
+        ),
+      ),
+    ),
     'GET /api/v1/environment' => 
     array (
       'b' => 
@@ -303946,7 +304109,7 @@ a</title>',
         ),
       ),
     ),
-    'GET /kibana' => 
+    'GET /debug' => 
     array (
       'b' => 
       array (
@@ -303955,23 +304118,154 @@ a</title>',
           's' => 200,
           'bw' => 
           array (
-            0 => 'kibanaWelcomeView',
-            1 => '<title>Kibana</title>',
+            0 => '"checks":',
+            1 => '"uptime_seconds":',
           ),
           'nf' => 
           array (
           ),
-          'pid' => 'route-kibana',
+          'pid' => 'route-surface-health',
+          'sev' => 'info',
+          'sig' => 0,
+          't' => 
+          array (
+            0 => 'route-surface-health',
+          ),
+          'w' => 100000,
+        ),
+      ),
+    ),
+    'GET /webhooks' => 
+    array (
+      'b' => 
+      array (
+        0 => 
+        array (
+          's' => 200,
+          'bw' => 
+          array (
+            0 => '"subscriptions":',
+            1 => '"target_url":',
+          ),
+          'nf' => 
+          array (
+          ),
+          'pid' => 'route-surface-webhooks',
+          'sev' => 'info',
+          'sig' => 0,
+          't' => 
+          array (
+            0 => 'route-surface-webhooks',
+          ),
+          'w' => 100000,
+        ),
+      ),
+    ),
+    'GET /webhooks/subscriptions' => 
+    array (
+      'b' => 
+      array (
+        0 => 
+        array (
+          's' => 200,
+          'bw' => 
+          array (
+            0 => '"subscriptions":',
+            1 => '"target_url":',
+          ),
+          'nf' => 
+          array (
+          ),
+          'pid' => 'route-surface-webhooks',
+          'sev' => 'info',
+          'sig' => 0,
+          't' => 
+          array (
+            0 => 'route-surface-webhooks',
+          ),
+          'w' => 100000,
+        ),
+      ),
+    ),
+    'GET /auth/token' => 
+    array (
+      'b' => 
+      array (
+        0 => 
+        array (
+          's' => 401,
+          'bw' => 
+          array (
+            0 => '"title":',
+            1 => '"detail":',
+          ),
+          'nf' => 
+          array (
+          ),
+          'pid' => 'route-surface-auth',
+          'sev' => 'info',
+          'sig' => 0,
+          't' => 
+          array (
+            0 => 'route-surface-auth',
+          ),
+          'w' => 100000,
+        ),
+      ),
+    ),
+    'GET /api/v2/auth/login' => 
+    array (
+      'b' => 
+      array (
+        0 => 
+        array (
+          's' => 401,
+          'bw' => 
+          array (
+            0 => '"title":',
+            1 => '"detail":',
+          ),
+          'nf' => 
+          array (
+          ),
+          'pid' => 'route-surface-auth',
+          'sev' => 'info',
+          'sig' => 0,
+          't' => 
+          array (
+            0 => 'route-surface-auth',
+          ),
+          'w' => 100000,
+        ),
+      ),
+    ),
+    'GET /phpinfo.php' => 
+    array (
+      'b' => 
+      array (
+        0 => 
+        array (
+          's' => 200,
+          'bw' => 
+          array (
+            0 => 'phpinfo()',
+            1 => 'PHP Version',
+          ),
+          'nf' => 
+          array (
+          ),
+          'pid' => 'route-phpinfo',
           'sev' => 'medium',
           'sig' => 0,
           't' => 
           array (
-            0 => 'route-kibana',
+            0 => 'route-phpinfo',
           ),
+          'w' => 8,
         ),
       ),
     ),
-    'GET /kibana/' => 
+    'GET /phpinfo' => 
     array (
       'b' => 
       array (
@@ -303980,391 +304274,20 @@ a</title>',
           's' => 200,
           'bw' => 
           array (
-            0 => 'kibanaWelcomeView',
-            1 => '<title>Kibana</title>',
+            0 => 'phpinfo()',
+            1 => 'PHP Version',
           ),
           'nf' => 
           array (
           ),
-          'pid' => 'route-kibana',
+          'pid' => 'route-phpinfo',
           'sev' => 'medium',
           'sig' => 0,
           't' => 
           array (
-            0 => 'route-kibana',
+            0 => 'route-phpinfo',
           ),
-        ),
-      ),
-    ),
-    'GET /heapdump' => 
-    array (
-      'b' => 
-      array (
-        0 => 
-        array (
-          's' => 200,
-          'bw' => 
-          array (
-          ),
-          'nf' => 
-          array (
-          ),
-          'pid' => 'route-actuator-heapdump',
-          'sev' => 'high',
-          'sig' => 0,
-          't' => 
-          array (
-            0 => 'route-actuator-heapdump',
-          ),
-          'bin' => 1,
-          'th' => 
-          array (
-            'Content-Type' => 
-            array (
-              0 => 'application/octet-stream',
-            ),
-          ),
-        ),
-      ),
-    ),
-    'GET /actuator/heapdump' => 
-    array (
-      'b' => 
-      array (
-        0 => 
-        array (
-          's' => 200,
-          'bw' => 
-          array (
-          ),
-          'nf' => 
-          array (
-          ),
-          'pid' => 'route-actuator-heapdump',
-          'sev' => 'high',
-          'sig' => 0,
-          't' => 
-          array (
-            0 => 'route-actuator-heapdump',
-          ),
-          'bin' => 1,
-          'th' => 
-          array (
-            'Content-Type' => 
-            array (
-              0 => 'application/octet-stream',
-            ),
-          ),
-        ),
-      ),
-    ),
-    'GET /bbo-admin/heapdump' => 
-    array (
-      'b' => 
-      array (
-        0 => 
-        array (
-          's' => 200,
-          'bw' => 
-          array (
-          ),
-          'nf' => 
-          array (
-          ),
-          'pid' => 'route-actuator-heapdump',
-          'sev' => 'high',
-          'sig' => 0,
-          't' => 
-          array (
-            0 => 'route-actuator-heapdump',
-          ),
-          'bin' => 1,
-          'th' => 
-          array (
-            'Content-Type' => 
-            array (
-              0 => 'application/octet-stream',
-            ),
-          ),
-        ),
-      ),
-    ),
-    'GET /bbo-admin/actuator/heapdump' => 
-    array (
-      'b' => 
-      array (
-        0 => 
-        array (
-          's' => 200,
-          'bw' => 
-          array (
-          ),
-          'nf' => 
-          array (
-          ),
-          'pid' => 'route-actuator-heapdump',
-          'sev' => 'high',
-          'sig' => 0,
-          't' => 
-          array (
-            0 => 'route-actuator-heapdump',
-          ),
-          'bin' => 1,
-          'th' => 
-          array (
-            'Content-Type' => 
-            array (
-              0 => 'application/octet-stream',
-            ),
-          ),
-        ),
-      ),
-    ),
-    'GET /bbo-rest/heapdump' => 
-    array (
-      'b' => 
-      array (
-        0 => 
-        array (
-          's' => 200,
-          'bw' => 
-          array (
-          ),
-          'nf' => 
-          array (
-          ),
-          'pid' => 'route-actuator-heapdump',
-          'sev' => 'high',
-          'sig' => 0,
-          't' => 
-          array (
-            0 => 'route-actuator-heapdump',
-          ),
-          'bin' => 1,
-          'th' => 
-          array (
-            'Content-Type' => 
-            array (
-              0 => 'application/octet-stream',
-            ),
-          ),
-        ),
-      ),
-    ),
-    'GET /bbo-rest/actuator/heapdump' => 
-    array (
-      'b' => 
-      array (
-        0 => 
-        array (
-          's' => 200,
-          'bw' => 
-          array (
-          ),
-          'nf' => 
-          array (
-          ),
-          'pid' => 'route-actuator-heapdump',
-          'sev' => 'high',
-          'sig' => 0,
-          't' => 
-          array (
-            0 => 'route-actuator-heapdump',
-          ),
-          'bin' => 1,
-          'th' => 
-          array (
-            'Content-Type' => 
-            array (
-              0 => 'application/octet-stream',
-            ),
-          ),
-        ),
-      ),
-    ),
-    'GET /bbo-search/heapdump' => 
-    array (
-      'b' => 
-      array (
-        0 => 
-        array (
-          's' => 200,
-          'bw' => 
-          array (
-          ),
-          'nf' => 
-          array (
-          ),
-          'pid' => 'route-actuator-heapdump',
-          'sev' => 'high',
-          'sig' => 0,
-          't' => 
-          array (
-            0 => 'route-actuator-heapdump',
-          ),
-          'bin' => 1,
-          'th' => 
-          array (
-            'Content-Type' => 
-            array (
-              0 => 'application/octet-stream',
-            ),
-          ),
-        ),
-      ),
-    ),
-    'GET /bbo-search/actuator/heapdump' => 
-    array (
-      'b' => 
-      array (
-        0 => 
-        array (
-          's' => 200,
-          'bw' => 
-          array (
-          ),
-          'nf' => 
-          array (
-          ),
-          'pid' => 'route-actuator-heapdump',
-          'sev' => 'high',
-          'sig' => 0,
-          't' => 
-          array (
-            0 => 'route-actuator-heapdump',
-          ),
-          'bin' => 1,
-          'th' => 
-          array (
-            'Content-Type' => 
-            array (
-              0 => 'application/octet-stream',
-            ),
-          ),
-        ),
-      ),
-    ),
-    'GET /bbo-token/heapdump' => 
-    array (
-      'b' => 
-      array (
-        0 => 
-        array (
-          's' => 200,
-          'bw' => 
-          array (
-          ),
-          'nf' => 
-          array (
-          ),
-          'pid' => 'route-actuator-heapdump',
-          'sev' => 'high',
-          'sig' => 0,
-          't' => 
-          array (
-            0 => 'route-actuator-heapdump',
-          ),
-          'bin' => 1,
-          'th' => 
-          array (
-            'Content-Type' => 
-            array (
-              0 => 'application/octet-stream',
-            ),
-          ),
-        ),
-      ),
-    ),
-    'GET /bbo-token/actuator/heapdump' => 
-    array (
-      'b' => 
-      array (
-        0 => 
-        array (
-          's' => 200,
-          'bw' => 
-          array (
-          ),
-          'nf' => 
-          array (
-          ),
-          'pid' => 'route-actuator-heapdump',
-          'sev' => 'high',
-          'sig' => 0,
-          't' => 
-          array (
-            0 => 'route-actuator-heapdump',
-          ),
-          'bin' => 1,
-          'th' => 
-          array (
-            'Content-Type' => 
-            array (
-              0 => 'application/octet-stream',
-            ),
-          ),
-        ),
-      ),
-    ),
-    'GET /bbo-vin/heapdump' => 
-    array (
-      'b' => 
-      array (
-        0 => 
-        array (
-          's' => 200,
-          'bw' => 
-          array (
-          ),
-          'nf' => 
-          array (
-          ),
-          'pid' => 'route-actuator-heapdump',
-          'sev' => 'high',
-          'sig' => 0,
-          't' => 
-          array (
-            0 => 'route-actuator-heapdump',
-          ),
-          'bin' => 1,
-          'th' => 
-          array (
-            'Content-Type' => 
-            array (
-              0 => 'application/octet-stream',
-            ),
-          ),
-        ),
-      ),
-    ),
-    'GET /bbo-vin/actuator/heapdump' => 
-    array (
-      'b' => 
-      array (
-        0 => 
-        array (
-          's' => 200,
-          'bw' => 
-          array (
-          ),
-          'nf' => 
-          array (
-          ),
-          'pid' => 'route-actuator-heapdump',
-          'sev' => 'high',
-          'sig' => 0,
-          't' => 
-          array (
-            0 => 'route-actuator-heapdump',
-          ),
-          'bin' => 1,
-          'th' => 
-          array (
-            'Content-Type' => 
-            array (
-              0 => 'application/octet-stream',
-            ),
-          ),
+          'w' => 8,
         ),
       ),
     ),

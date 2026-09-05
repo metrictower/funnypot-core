@@ -7,8 +7,8 @@
     "source_tree": "48c8abcca5a9d0fee40c9a1a49afa6dd547098baadc1f9cba12fd98161c594cd",
     "templates_seen": 11196,
     "templates_in": 6343,
-    "templates_indexed": 6448,
-    "route_keys": 5315,
+    "templates_indexed": 6447,
+    "route_keys": 5313,
     "multi_bundle_keys": 276,
     "largest_bundle_count": 1325,
     "persona_cap": {
@@ -39,7 +39,7 @@
     "built_at": "2026-08-17T14:04:52+00:00",
     "core_commit": "unknown",
     "php_version": "unknown",
-    "sha256": "82ff477e7b8ed262bd053e95d5f6173bff65663ed5603a900a06833e9009d0d5",
+    "sha256": "7d47e5a66ef9072a34fff2cb6e29a93ed90b02d4ca586807d16453ac4b216a21",
     "skipped_count": 4853,
-    "artifact_bytes": 6233252
+    "artifact_bytes": 6231806
 }
