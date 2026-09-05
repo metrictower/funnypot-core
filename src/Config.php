@@ -176,7 +176,7 @@ final class Config
 
     /**
      * @var array<string,bool> per-reflect-class serve override. Keyed by a rule's reflect_class
-     * ('xss', 'open-redirect', 'fs-read'). A MISSING key defaults to ENABLED, so a standalone
+     * ('xss', 'open-redirect', 'fs-read', 'param-reaction'). A MISSING key defaults to ENABLED, so a standalone
      * isolatedOrigin=true install reflects every class exactly as it does today. Set a class to
      * false to WITHHOLD that class even from an isolated origin. This map can ONLY subtract: it is
      * AND-ed with isolatedOrigin (see serveReflector()), so it can never re-enable reflection in an
@@ -202,6 +202,19 @@ final class Config
      * port path (no request ⇒ no evidence ⇒ suppressed).
      */
     public $reflectorAuthorizer;
+
+    /**
+     * @var bool opt-in bounded query-parameter reactions on resolved decoy routes (FP-0157). false
+     * (default) ⇒ no route handle carries a query intent and no response is decorated, so Verdict/
+     * FakeHandle arrays and served bytes are byte-identical to today. true ⇒ a resolved decoy route
+     * MAY append an inert, persona-coherent reaction when a query matches the closed intent matrix.
+     * It is a REFLECTING decoy: it is ALSO gated by serveReflector('param-reaction', request) at both
+     * classify and synthesize, so isolatedOrigin=false (the Laravel/WordPress/embedder default) never
+     * reacts whatever this flag says, and the position-blind synthesize() port never reacts. Never
+     * creates a route, changes classification, performs the requested operation, weakens a matcher, or
+     * enters a header/redirect/I/O context; every decline preserves the exact base response.
+     */
+    public $paramReactivity;
 
     public function __construct(
         string $mode = 'detect',
@@ -232,7 +245,8 @@ final class Config
         ?string $beaconUrl = null,
         bool $volatileProof = false,
         array $reflectClasses = [],
-        ?Closure $reflectorAuthorizer = null
+        ?Closure $reflectorAuthorizer = null,
+        bool $paramReactivity = false
     ) {
         $this->mode = $mode;
         $this->gate = $gate;
@@ -263,6 +277,7 @@ final class Config
         $this->volatileProof = $volatileProof;
         $this->reflectClasses = $reflectClasses;
         $this->reflectorAuthorizer = $reflectorAuthorizer;
+        $this->paramReactivity = $paramReactivity;
     }
 
     public function respondEnabled(): bool

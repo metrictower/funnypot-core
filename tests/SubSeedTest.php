@@ -272,7 +272,7 @@ final class SubSeedTest extends TestCase
     {
         $allowed = [
             // SubSeed NS_* registry
-            'persona', 'fake', 'visual', 'canned', 'surface', 'attack', 'witness', 'scaffold', 'honeytoken', 'decoy',
+            'persona', 'fake', 'visual', 'canned', 'surface', 'attack', 'witness', 'scaffold', 'honeytoken', 'decoy', 'reaction',
             // documented legacy tags (not de-triplicated by this ticket)
             'pick', 'token', 'awskey', 'product-version', 'secret', 'person', 'record', 'labelorder',
         ];

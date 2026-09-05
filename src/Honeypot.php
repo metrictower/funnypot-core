@@ -5,6 +5,9 @@ declare(strict_types=1);
 namespace Funnypot\Core;
 
 use Funnypot\Core\Contracts\CompiledStore;
+use Funnypot\Core\Reaction\ParamIntent;
+use Funnypot\Core\Reaction\ParamReactionDecorator;
+use Funnypot\Core\Reaction\QueryIntentClassifier;
 use Funnypot\Core\Response\EmulatorRegistry;
 use Funnypot\Core\Store\PhpArrayStore;
 use Funnypot\Core\Support\PathNormalizer;
@@ -34,6 +37,9 @@ final class Honeypot implements Engine
 
     /** @var ResponseSynthesizer */
     private $synthesizer;
+
+    /** @var ParamReactionDecorator */
+    private $reactions;
 
     /** @var TemplateAttackEmulator|null */
     private $attackEmulator;
@@ -107,6 +113,12 @@ final class Honeypot implements Engine
             $this->config->poweredBy,
             $personaSeed
         );
+
+        // FP-0157 param reactions: an opt-in, isolated-origin-only decorator that appends an inert
+        // query reaction to an already-synthesized decoy route. Built here (next to the synthesizer)
+        // so its fingerprint guard loads once per engine, never per request. Dormant unless
+        // Config::$paramReactivity AND serveReflector('param-reaction', request) both hold.
+        $this->reactions = new ParamReactionDecorator($this->config, $personaSeed);
 
         // What we will not serve is driven by primitives on Config: the exclude deny-set (template
         // ids / pids / tags) and the nuclei-corpus group flag. An operator UI (the app's emulation
@@ -313,7 +325,7 @@ final class Honeypot implements Engine
                 return new Verdict(Verdict::CLEAN, Detection::none(), '', $anomaly, $signals, null);
             }
 
-            $handle = FakeHandle::route($key);
+            $handle = FakeHandle::route($key, $this->paramIntentFor($r, $bundles));
 
             // A bare root/homepage entry (all bundles sig=1) is an ordinary-visitor path: classify
             // clean natively (the probe-signature predicate is a policy input, not content). Keep
@@ -453,6 +465,31 @@ final class Honeypot implements Engine
         }
 
         return $bundles !== [];
+    }
+
+    /**
+     * The query reaction intent to attach to a resolved decoy route handle (FP-0157), or null. Null
+     * unless ALL hold: the reflecting-decoy gate is open for this request (paramReactivity AND
+     * serveReflector('param-reaction', $r) — so an embedded origin never attaches an intent); the entry
+     * is not a root/homepage entry (an ordinary-visitor path is governed by the probe-signature policy,
+     * never a reaction); and the raw query classifies to a bounded intent. The intent never changes the
+     * route key, detection, severity, classification, anomaly or signals — a null intent leaves the
+     * handle byte-identical to today. The synthesize-time decorator re-gates on the same terms, so a
+     * config change or a null-request port between phases still yields the exact base response.
+     *
+     * @param array<int,array<string,mixed>> $bundles
+     */
+    private function paramIntentFor(RequestContext $r, array $bundles): ?ParamIntent
+    {
+        if (!$this->config->paramReactivity
+            || !$this->config->serveReflector(ParamReactionDecorator::REFLECT_CLASS, $r)) {
+            return null;
+        }
+        if ($this->isRootEntry($bundles) || $r->query === '') {
+            return null;
+        }
+
+        return QueryIntentClassifier::classify($r->query);
     }
 
     /**
@@ -1069,7 +1106,7 @@ final class Honeypot implements Engine
             return ['r' => null, 'reason' => Outcome::NO_CANDIDATE];
         }
         if ($handle->kind === FakeHandle::KIND_ROUTE) {
-            $built = $this->buildRouteFake($handle, $profile, $seed);
+            $built = $this->buildRouteFake($handle, $profile, $seed, $r);
         } elseif ($handle->kind === FakeHandle::KIND_ATTACK) {
             $built = $this->buildAttackFake($handle, $seed, $r);
         } else {
@@ -1115,7 +1152,7 @@ final class Honeypot implements Engine
     /**
      * @return array{r:?SynthesizedResponse,reason:string}
      */
-    private function buildRouteFake(FakeHandle $handle, SiteProfile $profile, string $seed): array
+    private function buildRouteFake(FakeHandle $handle, SiteProfile $profile, string $seed, ?RequestContext $r = null): array
     {
         $key = (string) $handle->key;
 
@@ -1144,6 +1181,15 @@ final class Honeypot implements Engine
         $response = $this->synthesizer->synthesize($bundle, $satisfies, $seed);
         if ($response === null) {
             return ['r' => null, 'reason' => Outcome::UNSYNTHESIZABLE];
+        }
+
+        // FP-0157: append an inert query reaction when the handle carries a validated intent and the
+        // reflecting-decoy gate is open for this request. It returns a NEW response or null; on null
+        // (any decline, a null-request port, config off, an ineligible bundle/response) the base
+        // response is kept unchanged, so opting in never reduces route coverage.
+        $decorated = $this->reactions->decorate($response, $bundle, $handle, $r);
+        if ($decorated !== null) {
+            $response = $decorated;
         }
 
         // Never emit an oversized body (no tarpit/amplifier unless the app opts in).

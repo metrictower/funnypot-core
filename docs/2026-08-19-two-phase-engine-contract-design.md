@@ -359,7 +359,8 @@ that is the point.
   (header-presence, fetch-metadata/client-hint absence, self-consistency contradictions), accumulated
   weight, UA class, and the digit-stripped/sorted-list structural fingerprint string. Serializable
   (rides the Verdict; travels as the decision-T `signals` telemetry). INPUT-side only — never emitted.
-- `Funnypot\FakeHandle` — `{ kind, key?, ruleId? }` opaque synthesize pointer.
+- `Funnypot\FakeHandle` — `{ kind, key?, ruleId?, paramIntent? }` opaque synthesize pointer
+  (`paramIntent` rides route handles only, FP-0157; absent unless present, re-validated on rebuild).
 - `Funnypot\SiteProfile` — `declaredStack[]` + `?routeExists` oracle + `::empty()`.
 - `Funnypot\SynthesisConfig` — the synthesize-only remainder of `Config` (style, ceiling, exclude,
   nucleiReflection, maxBodyBytes, serverHeader, poweredBy).

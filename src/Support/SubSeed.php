@@ -52,6 +52,7 @@ final class SubSeed
     public const NS_SCAFFOLD = 'scaffold';  // FP-0281 (minimal-synth order, header-name pick)
     public const NS_HONEYTOKEN = 'honeytoken'; // FP-0282
     public const NS_DECOY = 'decoy';        // FP-0282
+    public const NS_REACTION = 'reaction';  // FP-0157 (param-reaction closed-family cosmetics)
 
     private function __construct()
     {

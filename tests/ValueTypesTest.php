@@ -74,6 +74,61 @@ final class ValueTypesTest extends TestCase
         self::assertEquals($h, FakeHandle::fromArray(json_decode(json_encode($h->toArray()), true)));
     }
 
+    public function test_fakehandle_route_without_intent_serializes_exactly_as_before(): void
+    {
+        // The paramIntent key is absent unless present, so legacy route arrays are byte-identical.
+        self::assertSame(
+            ['kind' => 'route', 'key' => 'GET /x', 'ruleId' => null, 'captures' => []],
+            FakeHandle::route('GET /x')->toArray()
+        );
+    }
+
+    public function test_fakehandle_route_with_intent_round_trips(): void
+    {
+        $intent = \Funnypot\Core\Reaction\ParamIntent::create('search-result', 'q', 'hello');
+        self::assertNotNull($intent);
+        $h = FakeHandle::route('GET /x', $intent);
+
+        self::assertSame(
+            ['kind' => 'route', 'key' => 'GET /x', 'ruleId' => null, 'captures' => [], 'paramIntent' => ['v' => 1, 'kind' => 'search-result', 'key' => 'q', 'value' => 'hello']],
+            $h->toArray()
+        );
+        self::assertEquals($h, FakeHandle::fromArray($h->toArray()));
+        self::assertEquals($h, FakeHandle::fromArray(json_decode(json_encode($h->toArray()), true)));
+    }
+
+    /**
+     * @dataProvider malformedIntentProvider
+     * @param mixed $paramIntent
+     */
+    public function test_fakehandle_malformed_intent_degrades_to_null($paramIntent): void
+    {
+        $data = ['kind' => 'route', 'key' => 'GET /x', 'ruleId' => null, 'captures' => [], 'paramIntent' => $paramIntent];
+        self::assertNull(FakeHandle::fromArray($data)->paramIntent);
+    }
+
+    /** @return iterable<string,array{0:mixed}> */
+    public static function malformedIntentProvider(): iterable
+    {
+        yield 'string' => ['not-an-array'];
+        yield 'positional list' => [['search-result', 'q', 'hello']];
+        yield 'unknown version' => [['v' => 2, 'kind' => 'search-result', 'key' => 'q', 'value' => 'x']];
+        yield 'unknown kind' => [['v' => 1, 'kind' => 'nope', 'key' => 'q', 'value' => 'x']];
+        yield 'key kind mismatch' => [['v' => 1, 'kind' => 'search-result', 'key' => 'cmd', 'value' => 'x']];
+        yield 'oversized value' => [['v' => 1, 'kind' => 'search-result', 'key' => 'q', 'value' => str_repeat('a', 257)]];
+        yield 'extra field' => [['v' => 1, 'kind' => 'search-result', 'key' => 'q', 'value' => 'x', 'extra' => 1]];
+    }
+
+    public function test_fakehandle_non_route_kind_never_carries_an_intent(): void
+    {
+        $intent = \Funnypot\Core\Reaction\ParamIntent::create('search-result', 'q', 'hello');
+        self::assertNotNull($intent);
+        // Construct an attack handle with an intent argument: it must be forced null.
+        $attack = new FakeHandle(FakeHandle::KIND_ATTACK, null, 'attack-x', [], $intent);
+        self::assertNull($attack->paramIntent);
+        self::assertArrayNotHasKey('paramIntent', $attack->toArray());
+    }
+
     public function test_siteprofile_empty_has_no_stack_and_no_oracle(): void
     {
         $p = SiteProfile::empty();

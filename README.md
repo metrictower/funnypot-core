@@ -271,6 +271,38 @@ and can therefore only ever **subtract**: setting a class to `true` on an embedd
 (`isolatedOrigin=false`) does **not** re-enable it — the `isolatedOrigin` term dominates, so an
 embedded host never reflects, whatever the map says. The fail-safe default is preserved.
 
+### Parameter reactions (opt-in, isolated origin only)
+
+`Config::$paramReactivity` (default `false`) lets an **already-resolved decoy route** react to a
+common query-parameter intent — a file/path read, a redirect/SSRF notice, a debug view, a command
+result, or a search result — by appending an inert, persona-coherent panel to its response. It never
+creates a route, changes classification, performs the requested operation, weakens the route's
+scanner matcher, or enters a header/redirect/I/O context; anything unsupported, ambiguous or
+constraint-sensitive keeps the exact base response.
+
+**It is a reflecting decoy** and rides the SAME gate as every other reflector: a reaction serves only
+when `paramReactivity` is on **and** `serveReflector('param-reaction', request)` is true. Because that
+composition AND-s in `isolatedOrigin`, an embedded host (`funnypot-laravel`, the `funnypot` embedder —
+`isolatedOrigin=false`) **can never** echo a reaction, and the position-blind `synthesize()` port
+(no request, no evidence) never reacts either — only the `respond()` facade does. An isolated origin
+subtracts it like any class with `reflectClasses: ['param-reaction' => false]`.
+
+```php
+$funnypot = Honeypot::default(new Config(
+    mode: 'respond',
+    isolatedOrigin: true,                 // this box owns its origin ...
+    reflectorAuthorizer: $evidence,       // ... and supplies per-request evidence
+    paramReactivity: true,                // append bounded query reactions on decoy routes
+));
+```
+
+The query is parsed by a strict, closed classifier (at most 2 KiB / 32 pairs, one percent-decode, no
+`parse_str`), the reflected value appears only as entity- or byte-encoded **display text** (never in a
+URL, attribute, script, header or redirect), and only append-safe `text/html`/`text/plain` responses
+are decorated — every size/exclusive/regex/binary bundle and every active-header response declines to
+the untouched base. `'param-reaction'` is a **code-defined** reflect class (no compiled rule carries
+it), so no compiled artifact changes.
+
 ### The XSS reflection baseline (inert by charset, not by the gate)
 
 Most XSS scanners (dalfox, nuclei) send a **benign alphanumeric marker** first and only escalate to

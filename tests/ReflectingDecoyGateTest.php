@@ -9,7 +9,9 @@ use Funnypot\Core\Config;
 use Funnypot\Core\Honeypot;
 use Funnypot\Core\RequestContext;
 use Funnypot\Core\Response\Style;
+use Funnypot\Core\Reaction\ParamIntent;
 use Funnypot\Core\SiteProfile;
+use Funnypot\Core\Store\PhpArrayStore;
 use Funnypot\Core\Template\TemplateAttackEmulator;
 use Funnypot\Core\Verdict;
 use PHPUnit\Framework\TestCase;
@@ -461,6 +463,50 @@ final class ReflectingDecoyGateTest extends TestCase
         );
         self::assertTrue($config->serveReflector('xss', new RequestContext('GET', '/x')));
         self::assertNull((new Config())->reflectorAuthorizer, 'default is null ⇒ every reflector safe-off');
+    }
+
+    // --- param reactions (FP-0157): a reflecting decoy gated through the SAME three terms ---
+
+    /** A tiny controlled store with one text/html decoy route, so the param-reaction path is exercised. */
+    private function paramReactionEngine(bool $isolatedOrigin, ?Closure $authorizer = null): Honeypot
+    {
+        $index = [
+            'schema' => 1,
+            'manifest' => [],
+            'templates' => ['pr-t' => ['sev' => 'medium', 'tags' => [], 'name' => 'PR']],
+            'routes' => [
+                'GET /shop' => ['b' => [[
+                    's' => 200, 'bw' => ['<html', 'Welcome', '</body>'], 'h' => ['Content-Type' => 'text/html'],
+                    'pid' => 'shop', 'sev' => 'medium', 'sig' => 0, 't' => ['pr-t'],
+                ]]],
+            ],
+        ];
+        $config = new Config('respond', static function (RequestContext $r): bool { return true; }, 'matched-only', null, 'coherent', Style::REALISTIC, 'high', 65536, 0, 0, false);
+        $config->isolatedOrigin = $isolatedOrigin;
+        $config->reflectorAuthorizer = $authorizer;
+        $config->paramReactivity = true;
+
+        return new Honeypot(new PhpArrayStore($index), $config);
+    }
+
+    public function test_embedded_never_reacts_to_params(): void
+    {
+        // B2: with paramReactivity ON but isolatedOrigin=false, an embedded host echoes nothing — the
+        // classify handle carries no intent and respond() serves the undecorated base bytes.
+        $r = new RequestContext('GET', '/shop', 'q=Your+account+is+locked', [], null, 'shop.example');
+
+        $embedded = $this->paramReactionEngine(false, self::vouch());
+        $verdict = $embedded->classify($r, SiteProfile::empty());
+        self::assertNull($verdict->fakeHandle->paramIntent, 'embedded classify must attach no intent');
+        $resp = $embedded->respond($r);
+        self::assertNotNull($resp);
+        self::assertStringNotContainsString('search-results', $resp->body, 'embedded must not echo a reaction');
+
+        // Positive control on the same harness: isolated + authorized DOES react, so the assertion
+        // above is selectivity, not a dead path.
+        $isolated = $this->paramReactionEngine(true, self::vouch());
+        self::assertInstanceOf(ParamIntent::class, $isolated->classify($r, SiteProfile::empty())->fakeHandle->paramIntent);
+        self::assertStringContainsString('search-results', (string) $isolated->respond($r)->body);
     }
 
     // --- dalfox selectivity (verify-only): raw markup reflects, plain sentinels do not ---
