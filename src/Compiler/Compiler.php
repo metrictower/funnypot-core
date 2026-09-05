@@ -72,6 +72,15 @@ final class Compiler
                 continue;
             }
 
+            // The route- id prefix is reserved for the folded new_page set (RouteIndexFold owns
+            // every route-* id in the index). A corpus template squatting it would be silently
+            // removed by every fold, so skip it loudly with a recorded reason.
+            if (RouteIndexFold::owns($t->id)) {
+                $skipped[$t->id] = 'gateA:reserved-route-id';
+                $this->bump($stats['gateA'], 'gateA:reserved-route-id');
+                continue;
+            }
+
             $reasonA = $this->gateA->reject($t);
             if ($reasonA !== null) {
                 $skipped[$t->id] = $reasonA;

@@ -16,6 +16,9 @@ use Symfony\Component\Yaml\Yaml;
  *
  * Enrich templates (which dress a bundle the nuclei index already routes to) carry no
  * new_page block and produce no fragment; the index is untouched for them.
+ *
+ * The `route-` id prefix is reserved for new_page ids: a non-matching id is rejected here, because
+ * RouteIndexFold owns (and on a rebuild removes) every route-* id in the index by that prefix.
  */
 final class RouteBundleSynth
 {
@@ -48,6 +51,11 @@ final class RouteBundleSynth
             $id = (string) ($doc['id'] ?? '');
             if ($id === '') {
                 throw new RuntimeException("new_page in {$file} needs an id.");
+            }
+            if (!RouteIndexFold::owns($id)) {
+                throw new RuntimeException(
+                    "new_page id '{$id}' in {$file} must match route-[a-z0-9-]+ — the fold owns every route-* id in the index."
+                );
             }
             $np = (array) $doc['new_page'];
             $method = strtoupper((string) ($np['method'] ?? 'GET'));

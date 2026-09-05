@@ -15,8 +15,10 @@ use PHPUnit\Framework\TestCase;
  * The zero-drift compiled-artifact law (FP-0263): the compile output is a pure function of its
  * inputs. Two compiles of the same inputs produce byte-identical artifacts, the compiled index
  * carries NO wall-clock `built_at` (it moved to the JSON sidecar), and the reproducible
- * `source_tree` provenance stamp takes its place. merge-routes is idempotent and keeps the
- * embedded manifest counts + the manifest.json fingerprint in step with the index it writes.
+ * `source_tree` provenance stamp takes its place. merge-routes is synchronizing (it removes every
+ * owned route-* entry, then folds the current fragment) yet still deterministic: re-folding the
+ * committed fragment reproduces the committed index, and the embedded manifest counts + the
+ * manifest.json fingerprint stay in step with the index it writes.
  */
 final class ArtifactDeterminismTest extends TestCase
 {
@@ -184,6 +186,57 @@ final class ArtifactDeterminismTest extends TestCase
         self::assertSame($m['route_keys'], $mj['route_keys']);
         self::assertSame($m['templates_indexed'], $mj['templates_indexed']);
         self::assertSame($m['source_tree'], $mj['source_tree']);
+    }
+
+    // --- synchronizing fold: an empty fragment removes owned entries; the fragment is always written
+
+    public function test_merge_routes_with_an_empty_fragment_removes_owned_entries(): void
+    {
+        $bin = escapeshellarg(__DIR__ . '/../bin/funnypot');
+        $src = $this->tmpDir('mroot');
+        $index = [
+            'schema' => 1,
+            'manifest' => [
+                'schema' => 1,
+                'source' => 'test',
+                'upstream_tag' => 't',
+                'upstream_sha' => 's',
+                'templates_in' => 0,
+                'route_keys' => 2,
+                'templates_indexed' => 2,
+            ],
+            'templates' => ['nuc1' => ['name' => 'nuc1'], 'route-old' => ['name' => 'old']],
+            'routes' => [
+                'GET /nuc' => ['b' => [['pid' => 'nuc1', 's' => 200, 't' => ['nuc1']]]],
+                'GET /owned' => ['b' => [['pid' => 'route-old', 's' => 200, 't' => ['route-old']]]],
+            ],
+        ];
+        file_put_contents($src . '/idx.php', "<?php\n\nreturn " . var_export($index, true) . ";\n");
+        file_put_contents($src . '/empty.php', "<?php\n\nreturn " . var_export(['templates' => [], 'routes' => []], true) . ";\n");
+
+        $out = $this->tmpDir('mout') . '/nuclei-index.full.php';
+        $this->exec("php -d memory_limit=1G {$bin} merge-routes " . escapeshellarg($src . '/idx.php')
+            . ' --fragment=' . escapeshellarg($src . '/empty.php') . ' --out=' . escapeshellarg($out));
+
+        $folded = require $out;
+        self::assertArrayNotHasKey('route-old', $folded['templates'], 'owned template must be removed');
+        self::assertArrayNotHasKey('GET /owned', $folded['routes'], 'owned-only key must drop');
+        self::assertSame($index['routes']['GET /nuc'], $folded['routes']['GET /nuc'], 'the unowned nuclei key is byte-equal');
+        self::assertSame(count($folded['routes']), $folded['manifest']['route_keys'], 'route_keys recomputed');
+        self::assertSame(count($folded['templates']), $folded['manifest']['templates_indexed'], 'templates_indexed recomputed');
+        self::assertSame(1, $folded['manifest']['route_keys']);
+    }
+
+    public function test_compile_routes_always_writes_the_fragment_even_when_empty(): void
+    {
+        $bin = escapeshellarg(__DIR__ . '/../bin/funnypot');
+        $empty = $this->tmpDir('croutes');
+        $out = $this->tmpDir('crout') . '/funnypot-routes.php';
+        $this->exec("php -d memory_limit=1G {$bin} compile-routes " . escapeshellarg($empty) . ' --out=' . escapeshellarg($out));
+
+        $frag = dirname($out) . '/funnypot-routes-index.php';
+        self::assertFileExists($frag, 'compile-routes must always write the index fragment (never unlink)');
+        self::assertSame(['templates' => [], 'routes' => []], require $frag);
     }
 
     private function exec(string $cmd): void

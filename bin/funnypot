@@ -1000,19 +1000,14 @@ function runCompileRoutes(string $root, array $argvv): int
     fwrite(STDOUT, count($rules) . " route rules compiled -> {$out}\n");
 
     // Brand-new pages (new_page blocks) emit an index fragment for the fold step. N6: ALWAYS
-    // (re)write it when non-empty and DELETE it when empty, so a stale fragment can never persist
-    // (e.g. every new_page removed) and silently re-fold on the next merge-routes.
+    // (re)write it — an empty {templates:[],routes:[]} map when nothing is authored — never an
+    // unlink. An always-fresh fragment can never be stale; an empty one is a valid synchronizing
+    // fold input (it removes every owned route-* entry from the index); and the release stays
+    // complete for RulesUpdater::ENGINE_ARTIFACTS, which requires funnypot-routes-index.php.
     $fragment = (new Funnypot\Core\Compiler\RouteBundleSynth())->fragmentDirs($dirs);
     $fragOut = dirname($out) . '/funnypot-routes-index.php';
-    if ($fragment['routes'] === [] && $fragment['templates'] === []) {
-        if (is_file($fragOut)) {
-            unlink($fragOut);
-            fwrite(STDOUT, "no new-page routes -> removed stale {$fragOut}\n");
-        }
-    } else {
-        GeneratedPhp::write($fragOut, '`funnypot compile-routes`', $fragment, $provenance);
-        fwrite(STDOUT, count($fragment['routes']) . " new-page route keys -> {$fragOut} (fold with merge-routes)\n");
-    }
+    GeneratedPhp::write($fragOut, '`funnypot compile-routes`', $fragment, $provenance);
+    fwrite(STDOUT, count($fragment['routes']) . " new-page route keys -> {$fragOut} (fold with merge-routes)\n");
 
     return 0;
 }
@@ -1062,8 +1057,11 @@ function runCompileParams(string $root, array $argvv): int
 }
 
 /**
- * `funnypot merge-routes` — fold new-page bundles into a compiled index (additive; idempotent by
- * pid). It also OWNS the index's reproducible provenance (FP-0263):
+ * `funnypot merge-routes` — fold new-page bundles into a compiled index. The fold is SYNCHRONIZING
+ * (RouteIndexFold): it owns every `route-*` template, bundle and detection in the base index,
+ * removes them all, then folds the current fragment, so a removed or changed new-page never survives
+ * a rebuild. A malformed index/fragment fails closed (exit 2, nothing written). It also OWNS the
+ * index's reproducible provenance (FP-0263):
  *
  *   - drops the wall-clock `built_at` from the embedded manifest (sidecar-only now);
  *   - recomputes `source_tree` over the in-repo fold inputs (templates/route + templates/generated),
@@ -1111,9 +1109,15 @@ function runMergeRoutes(string $root, array $argvv): int
         return 2;
     }
 
-    $result = (new RouteIndexFold())->apply($index, $fragment);
+    try {
+        $result = (new RouteIndexFold())->apply($index, $fragment);
+    } catch (\RuntimeException $e) {
+        fwrite(STDERR, "error: {$e->getMessage()}\n");
+
+        return 2;
+    }
     $index = $result['index'];
-    $folded = $result['stats']['folded'];
+    $st = $result['stats'];
 
     // Reproducible provenance for the folded index (see the docblock). source_tree is stamped over
     // the in-repo fold inputs; upstream_tag/sha keep the corpus provenance.
@@ -1147,7 +1151,16 @@ function runMergeRoutes(string $root, array $argvv): int
     $php = "<?php\n\ndeclare(strict_types=1);\n\n// GENERATED index (nuclei corpus + folded funnypot new-page routes).\n\nreturn "
         . var_export($index, true) . ";\n";
     GeneratedPhp::atomicWrite($out, $php);
-    fwrite(STDOUT, "{$folded} new-page bundle(s) folded -> {$out}\n");
+    fwrite(STDOUT, sprintf(
+        "%d new-page bundle(s) folded (%d replaced); stale removed: %d template / %d bundle(s) / %d detection(s); %d key(s) dropped -> %s\n",
+        $st['folded'],
+        $st['replaced_bundles'],
+        $st['stale_templates'],
+        $st['stale_bundles'],
+        $st['stale_detections'],
+        $st['dropped_keys'],
+        $out
+    ));
 
     // Refresh the manifest.json sidecar so its sha256/size/counts verify the bytes just written.
     // Shape mirrors ArtifactWriter::write() field-for-field, in the same order: the embedded

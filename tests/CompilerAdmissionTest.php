@@ -149,6 +149,32 @@ YAML);
         self::assertSame('gateA:variable-path', $result['skipped']['payload-path-fuzz'] ?? null);
     }
 
+    public function test_corpus_template_squatting_the_reserved_route_prefix_is_skipped(): void
+    {
+        // The route- id prefix is reserved for the folded new_page set. A corpus template that uses
+        // it must be skipped with a recorded reason, never admitted (the next fold would delete it).
+        $this->write('route-shadow', <<<'YAML'
+id: route-shadow
+info:
+  name: Shadow
+  severity: high
+  tags: test
+http:
+  - method: GET
+    path:
+      - "{{BaseURL}}/route-shadow"
+    matchers:
+      - type: status
+        status:
+          - 200
+YAML);
+
+        $result = $this->compile();
+        self::assertSame('gateA:reserved-route-id', $result['skipped']['route-shadow'] ?? null);
+        self::assertArrayNotHasKey('route-shadow', $result['index']['templates']);
+        self::assertSame([], $result['index']['routes'], 'a reserved-prefix corpus template must not route');
+    }
+
     public function test_method_variety_is_carried_through(): void
     {
         $this->write('put-raw', <<<'YAML'
