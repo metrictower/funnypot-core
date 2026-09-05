@@ -469,7 +469,10 @@ verified models follow as the also-available multi-model rig. `bin/funnypot comp
 it after a catalog change, then rebuild the in-repo artifacts with `composer build` — the single
 `funnypot build` orchestrator that encodes the whole DAG in order (`compile-ai` → `compile-emulators`
 → `compile-routes` → `compile-params` → `merge-routes` → `build-manifest`; `merge-routes` is
-idempotent by pid, so re-folding never duplicates a route). A full rebuild from the external corpus
+synchronizing — it owns every `route-*` id in the index (the prefix is reserved for `new_page` ids:
+`RouteBundleSynth` rejects any other id and `compile` skips a corpus template that squats it),
+removes them all, then folds the current fragment, so a removed or changed page never survives a
+rebuild). A full rebuild from the external corpus
 is `composer build-corpus`, pinned to the recorded upstream commit — see
 [`docs/CORPUS-PIPELINE.md`](docs/CORPUS-PIPELINE.md).
 
@@ -583,10 +586,13 @@ by the in-repo `build`. In its place each artifact carries a reproducible `sourc
 provenance stamp (`SourceTreeStamp` over exactly the `*.yaml` set the step globbed, repo-relative and
 `SORT_STRING`-ordered), and the index keeps `upstream_tag`/`upstream_sha` for the pinned corpus. File
 globs sort `SORT_STRING` (cross-PHP-stable for the digit-prefixed filenames) and all compile writes go
-through one atomic writer. `merge-routes` owns the index's reproducible fields: it recomputes
-`source_tree`, refreshes the post-fold `route_keys`/`templates_indexed` counts (which
-`RulesUpdater`/`publish-rules-release` read into coverage and signed release manifests), and refreshes
-the `manifest.json` sha256/size so the sidecar's fingerprint actually verifies the index.
+through one atomic writer. `merge-routes` owns the index's reproducible fields: it synchronizes the
+owned `route-*` fold (removes every `route-*` template/bundle/detection, drops a key left empty, then
+folds the current fragment — a removed or changed page cannot linger), recomputes `source_tree`,
+refreshes the post-fold `route_keys`/`templates_indexed` counts (which `RulesUpdater`/
+`publish-rules-release` read into coverage and signed release manifests), and refreshes the
+`manifest.json` sha256/size so the sidecar's fingerprint actually verifies the index. A malformed
+index or fragment fails the fold closed (exit 2, nothing written).
 
 The law is defined at **PHP 8.3's bytes** (the version the refresh workflows build with). Line
 endings are pinned to **LF** via `.gitattributes` (`*.yaml`/`*.php text eol=lf`) so a CRLF checkout
