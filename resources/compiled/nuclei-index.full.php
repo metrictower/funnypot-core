@@ -13,11 +13,11 @@ return array (
     'license' => 'MIT (c) 2025 ProjectDiscovery, Inc.',
     'upstream_tag' => '2ec91412386',
     'upstream_sha' => '2ec914123864439c3618e7e9ae72d32d0eb56df7',
-    'source_tree' => 'eb077f7bd653af66cdf01d1eba4987cfab816e2ecc0ed1bd4e3032acad466fb0',
+    'source_tree' => 'beac2e9a03cc7200e496d36ba9e61fc170d709b9bb0ef35ef7e73b51d8841935',
     'templates_seen' => 11196,
     'templates_in' => 6363,
-    'templates_indexed' => 6470,
-    'route_keys' => 5340,
+    'templates_indexed' => 6476,
+    'route_keys' => 5349,
     'multi_bundle_keys' => 277,
     'largest_bundle_count' => 1324,
     'persona_cap' => 
@@ -84375,6 +84375,76 @@ return array (
         2 => 'asset',
       ),
       'name' => 'phpMyAdmin theme stylesheet',
+    ),
+    'route-umbraco-config' => 
+    array (
+      'sev' => 'high',
+      'tags' => 
+      array (
+        0 => 'exposure',
+        1 => 'cms',
+        2 => 'umbraco',
+        3 => 'config',
+      ),
+      'name' => 'Exposed Umbraco config',
+    ),
+    'route-app-plugins-packages' => 
+    array (
+      'sev' => 'medium',
+      'tags' => 
+      array (
+        0 => 'exposure',
+        1 => 'dotnet',
+        2 => 'nuget',
+      ),
+      'name' => 'Exposed NuGet packages.config',
+    ),
+    'route-glpi-session' => 
+    array (
+      'sev' => 'high',
+      'tags' => 
+      array (
+        0 => 'exposure',
+        1 => 'glpi',
+        2 => 'session',
+        3 => 'pii',
+      ),
+      'name' => 'Exposed GLPI PHP session',
+    ),
+    'route-sap-km-repository' => 
+    array (
+      'sev' => 'medium',
+      'tags' => 
+      array (
+        0 => 'exposure',
+        1 => 'sap',
+        2 => 'netweaver',
+        3 => 'km',
+      ),
+      'name' => 'Exposed SAP KM repository metadata',
+    ),
+    'route-php-backup-config' => 
+    array (
+      'sev' => 'high',
+      'tags' => 
+      array (
+        0 => 'exposure',
+        1 => 'php',
+        2 => 'config',
+        3 => 'credentials',
+      ),
+      'name' => 'Exposed PHP config backup',
+    ),
+    'route-listing-forbidden-parents' => 
+    array (
+      'sev' => 'info',
+      'tags' => 
+      array (
+        0 => 'exposure',
+        1 => 'forbidden',
+        2 => 'directory-parent',
+      ),
+      'name' => 'Forbidden directory parent',
     ),
     'route-ai-claude-json' => 
     array (
@@ -307529,6 +307599,234 @@ a</title>',
           't' => 
           array (
             0 => 'route-phpmyadmin-css',
+          ),
+        ),
+      ),
+    ),
+    'GET /App_Data/umbraco.config' => 
+    array (
+      'b' => 
+      array (
+        0 => 
+        array (
+          's' => 200,
+          'bw' => 
+          array (
+            0 => 'umbracoDbDSN',
+          ),
+          'nf' => 
+          array (
+          ),
+          'pid' => 'route-umbraco-config',
+          'sev' => 'high',
+          'sig' => 0,
+          'amb' => 0,
+          't' => 
+          array (
+            0 => 'route-umbraco-config',
+          ),
+        ),
+      ),
+    ),
+    'GET /App_Plugins/packages.config' => 
+    array (
+      'b' => 
+      array (
+        0 => 
+        array (
+          's' => 200,
+          'bw' => 
+          array (
+            0 => '<packages>',
+          ),
+          'nf' => 
+          array (
+          ),
+          'pid' => 'route-app-plugins-packages',
+          'sev' => 'medium',
+          'sig' => 0,
+          'amb' => 0,
+          't' => 
+          array (
+            0 => 'route-app-plugins-packages',
+          ),
+        ),
+      ),
+    ),
+    'GET /files/_sessions/sess_8f640be55b7e9080c1ad18f6d9' => 
+    array (
+      'b' => 
+      array (
+        0 => 
+        array (
+          's' => 200,
+          'bw' => 
+          array (
+            0 => 'glpi_currenttime',
+            1 => 'glpicookietest',
+          ),
+          'nf' => 
+          array (
+          ),
+          'pid' => 'route-glpi-session',
+          'sev' => 'high',
+          'sig' => 0,
+          'amb' => 0,
+          't' => 
+          array (
+            0 => 'route-glpi-session',
+          ),
+        ),
+      ),
+    ),
+    'GET /glpi/files/_sessions/sess_8f640be55b7e9080c1ad18f6d9' => 
+    array (
+      'b' => 
+      array (
+        0 => 
+        array (
+          's' => 200,
+          'bw' => 
+          array (
+            0 => 'glpi_currenttime',
+            1 => 'glpicookietest',
+          ),
+          'nf' => 
+          array (
+          ),
+          'pid' => 'route-glpi-session',
+          'sev' => 'high',
+          'sig' => 0,
+          'amb' => 0,
+          't' => 
+          array (
+            0 => 'route-glpi-session',
+          ),
+        ),
+      ),
+    ),
+    'GET /irj/go/km/navigation/repository.xml' => 
+    array (
+      'b' => 
+      array (
+        0 => 
+        array (
+          's' => 200,
+          'bw' => 
+          array (
+            0 => '<repository',
+          ),
+          'nf' => 
+          array (
+          ),
+          'pid' => 'route-sap-km-repository',
+          'sev' => 'medium',
+          'sig' => 0,
+          'amb' => 0,
+          't' => 
+          array (
+            0 => 'route-sap-km-repository',
+          ),
+        ),
+      ),
+    ),
+    'GET /php/backup/config.php.bak' => 
+    array (
+      'b' => 
+      array (
+        0 => 
+        array (
+          's' => 200,
+          'bw' => 
+          array (
+            0 => 'db_pass',
+            1 => 'db_user',
+          ),
+          'nf' => 
+          array (
+          ),
+          'pid' => 'route-php-backup-config',
+          'sev' => 'high',
+          'sig' => 0,
+          'amb' => 0,
+          't' => 
+          array (
+            0 => 'route-php-backup-config',
+          ),
+        ),
+      ),
+    ),
+    'GET /irj/go/km/' => 
+    array (
+      'b' => 
+      array (
+        0 => 
+        array (
+          's' => 403,
+          'bw' => 
+          array (
+            0 => '403 Forbidden',
+          ),
+          'nf' => 
+          array (
+          ),
+          'pid' => 'route-listing-forbidden-parents',
+          'sev' => 'info',
+          'sig' => 0,
+          'amb' => 0,
+          't' => 
+          array (
+            0 => 'route-listing-forbidden-parents',
+          ),
+        ),
+      ),
+    ),
+    'GET /php/' => 
+    array (
+      'b' => 
+      array (
+        0 => 
+        array (
+          's' => 403,
+          'bw' => 
+          array (
+            0 => '403 Forbidden',
+          ),
+          'nf' => 
+          array (
+          ),
+          'pid' => 'route-listing-forbidden-parents',
+          'sev' => 'info',
+          'sig' => 0,
+          'amb' => 0,
+          't' => 
+          array (
+            0 => 'route-listing-forbidden-parents',
+          ),
+        ),
+      ),
+    ),
+    'GET /wp-content/' => 
+    array (
+      'b' => 
+      array (
+        0 => 
+        array (
+          's' => 403,
+          'bw' => 
+          array (
+            0 => '403 Forbidden',
+          ),
+          'nf' => 
+          array (
+          ),
+          'pid' => 'route-listing-forbidden-parents',
+          'sev' => 'info',
+          'sig' => 0,
+          'amb' => 0,
+          't' => 
+          array (
+            0 => 'route-listing-forbidden-parents',
           ),
         ),
       ),
