@@ -76,5 +76,26 @@ return array(
             'path' => '/wp-login.php',
             'reason' => 'root-absolute redirect target, byte-faithful to auth_redirect(); the GET resolves to the corpus /wp-login.php page (a WordPress-plugin sample serving a WordPress login) — content-coherent, family-label-only leak; re-homing the corpus key would change prod GET /wp-login.php',
         ),
+
+        // A login form whose own action path is claimed by the family's match-regex rule, not owns_path.
+        // The lint surfaces it as a conditional candidate because the manifest cannot prove the rule's
+        // body/query predicate — but the form itself submits the field that predicate tests, so a real
+        // browser submit resolves in-family. Accepted with the field named; not promoted to owns_path
+        // because that would disagree with the runtime override set.
+        array(
+            'check' => 'dangling',
+            'a' => 'attack-webmin-session-login',
+            'path' => '/session_login.cgi',
+            'reason' => 'form action owned by the webmin match-regex rule (body predicate user=); the login form posts user=, satisfying it, so a browser submit resolves in-family — the lint cannot prove the body match from the manifest, so it warns conditionally',
+        ),
+        // One path-scoped entry: both the baseline and escalation reflection decoys emit the same
+        // /products/quick-search search form, so this covers each finding (a as source, the owner id
+        // as winner) by the one-sided accept match.
+        array(
+            'check' => 'dangling',
+            'a' => 'attack-xss-baseline',
+            'path' => '/products/quick-search',
+            'reason' => 'form action owned by the reflection-baseline match-regex rule (query predicate q=); both reflection decoys submit q= via this search form, satisfying it, so a browser submit resolves in-family — the lint cannot prove the query match from the manifest, so it warns conditionally',
+        ),
     ),
 );
