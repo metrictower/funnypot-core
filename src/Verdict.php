@@ -16,6 +16,12 @@ final class Verdict
 {
     /** classification enum (const strings, not a PHP enum — 7.3 floor). */
     public const CLEAN = 'clean';
+    /**
+     * A path fetched unprompted by browsers, crawlers and platforms (resources/ambient-paths.php):
+     * a bare corpus match here is not itself evidence. An OOB/honeytoken witness is request-level
+     * proof the fetch was NOT unprompted, so the fold bumps AMBIENT to SCANNER_PROBE.
+     */
+    public const AMBIENT = 'ambient';
     public const SCANNER_PROBE = 'scanner-probe';
     public const ATTACK_CLASS = 'attack-class';
     /**
@@ -70,6 +76,11 @@ final class Verdict
     public function isClean(): bool
     {
         return $this->classification === self::CLEAN;
+    }
+
+    public function isAmbient(): bool
+    {
+        return $this->classification === self::AMBIENT;
     }
 
     /**

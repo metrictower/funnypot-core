@@ -41,11 +41,13 @@ final class Compiler
     }
 
     /**
-     * @param array<string,mixed> $meta upstream tag/sha etc. for the manifest
+     * @param array<string,mixed> $meta         upstream tag/sha etc. for the manifest
+     * @param string[]|null       $ambientPaths null = the package's resources/ambient-paths.php
      * @return array{index:array,manifest:array,skipped:array,stats:array}
      */
-    public function compile(string $templatesDir, array $meta = []): array
+    public function compile(string $templatesDir, array $meta = [], ?array $ambientPaths = null): array
     {
+        $ambientKeys = AmbientPaths::routeKeys($ambientPaths ?? AmbientPaths::fromPackage());
         $files = $this->enumerate($templatesDir);
 
         $templatesMeta = [];   // id => [sev,tags,name]
@@ -111,7 +113,7 @@ final class Compiler
             }
         }
 
-        [$routes, $routeStats] = $this->buildRoutes($groups, $rootKeys, $templatesMeta);
+        [$routes, $routeStats] = $this->buildRoutes($groups, $rootKeys, $ambientKeys, $templatesMeta);
 
         $index = [
             'schema' => 1,
@@ -173,10 +175,11 @@ final class Compiler
     /**
      * @param array<string,SatisfyPlan[]>                               $groups
      * @param array<string,bool>                                        $rootKeys
+     * @param array<string,true>                                        $ambientKeys
      * @param array<string,array{sev:string,tags:string[],name:string}> $templatesMeta
      * @return array{0:array,1:array}
      */
-    private function buildRoutes(array $groups, array $rootKeys, array $templatesMeta): array
+    private function buildRoutes(array $groups, array $rootKeys, array $ambientKeys, array $templatesMeta): array
     {
         ksort($groups, SORT_STRING);
         $routes = [];
@@ -188,6 +191,7 @@ final class Compiler
         foreach ($groups as $key => $plans) {
             $bundles = $this->partitioner->partition(array_values($plans));
             $sig = isset($rootKeys[$key]) ? 1 : 0;
+            $amb = isset($ambientKeys[$key]) ? 1 : 0;
             $count = count($bundles);
 
             if ($count > PersonaCap::N) {
@@ -198,7 +202,7 @@ final class Compiler
 
                 $frozen = [];
                 foreach ($capResult['kept'] as $bundle) {
-                    $out = $this->freezeBundle($bundle, $sig);
+                    $out = $this->freezeBundle($bundle, $sig, $amb);
                     $out['w'] = $this->cap->weight($bundle, $templatesMeta);
                     $frozen[] = $out;
                 }
@@ -213,7 +217,7 @@ final class Compiler
             } else {
                 $frozen = [];
                 foreach ($bundles as $bundle) {
-                    $frozen[] = $this->freezeBundle($bundle, $sig);
+                    $frozen[] = $this->freezeBundle($bundle, $sig, $amb);
                 }
                 $routes[$key] = ['b' => $frozen];
             }
@@ -262,7 +266,7 @@ final class Compiler
     /**
      * @return array<string,mixed>
      */
-    private function freezeBundle(Bundle $bundle, int $sig): array
+    private function freezeBundle(Bundle $bundle, int $sig, int $amb): array
     {
         $out = [
             's' => $bundle->status ?? 200,
@@ -275,6 +279,7 @@ final class Compiler
             'pid' => $bundle->product,
             'sev' => $bundle->severity !== '' ? $bundle->severity : 'unknown',
             'sig' => $sig,
+            'amb' => $amb,
             't' => $bundle->templateIds,
         ];
 

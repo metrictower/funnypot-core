@@ -22,6 +22,15 @@ use Symfony\Component\Yaml\Yaml;
  */
 final class RouteBundleSynth
 {
+    /** @var array<string,true> GET route keys of the curated ambient list */
+    private $ambientKeys;
+
+    /** @param string[]|null $ambientPaths null = the package's resources/ambient-paths.php */
+    public function __construct(?array $ambientPaths = null)
+    {
+        $this->ambientKeys = AmbientPaths::routeKeys($ambientPaths ?? AmbientPaths::fromPackage());
+    }
+
     /**
      * @return array{templates: array<string,array<string,mixed>>, routes: array<string,array<int,array<string,mixed>>>}
      */
@@ -71,6 +80,7 @@ final class RouteBundleSynth
                 'pid' => $id,
                 'sev' => (string) ($np['severity'] ?? 'high'),
                 'sig' => (int) ($np['sig'] ?? 0),
+                'amb' => 0, // per PATH, stamped in the loop below — never from the template
                 't' => [$id],
             ];
             // Optional persona weight: when a brand-new path also carries niche corpus detections,
@@ -109,7 +119,13 @@ final class RouteBundleSynth
             ];
 
             foreach ($paths as $path) {
-                $routes[PathNormalizer::key($method, $path)][] = $bundle;
+                $key = PathNormalizer::key($method, $path);
+                // One new_page may declare several paths and only the curated ones are ambient
+                // (393-sitemap-xml.yaml declares /sitemap.xml, /sitemap and /sitemap_index.xml together),
+                // so the stamp is decided per PATH from the shared list, never from the template.
+                $out = $bundle;
+                $out['amb'] = isset($this->ambientKeys[$key]) ? 1 : 0;
+                $routes[$key][] = $out;
             }
         }
 

@@ -336,4 +336,69 @@ final class ClassifyTest extends TestCase
         self::assertNotNull($verdict->fakeHandle);
         self::assertSame(FakeHandle::KIND_ATTACK, $verdict->fakeHandle->kind);
     }
+
+    public function test_ambient_entry_classifies_ambient_and_preserves_detection(): void
+    {
+        $store = new PhpArrayStore([
+            'schema' => 1,
+            'manifest' => [],
+            'templates' => ['t-a' => ['sev' => 'info', 'tags' => ['exposure'], 'name' => 'A']],
+            'routes' => [
+                'GET /favicon.ico' => ['b' => [
+                    ['s' => 200, 'bw' => ['ICO'], 'nf' => [], 'h' => [], 'pid' => 'p', 'sev' => 'info', 'sig' => 0, 'amb' => 1, 't' => ['t-a']],
+                ]],
+            ],
+        ]);
+        $engine = new Honeypot($store);
+
+        $verdict = $engine->classify(new RequestContext('GET', '/favicon.ico'), SiteProfile::empty());
+
+        self::assertSame(Verdict::AMBIENT, $verdict->classification);
+        self::assertTrue($verdict->isAmbient());
+        self::assertNotNull($verdict->fakeHandle);
+        self::assertSame('GET /favicon.ico', $verdict->fakeHandle->key);
+        self::assertSame(['t-a'], $verdict->detection->templateIds(), 'detection data must survive on an AMBIENT verdict');
+    }
+
+    public function test_ambient_requires_every_bundle_to_agree(): void
+    {
+        // ALL-semantics: a key whose halves were built from different list revisions has mixed
+        // stamps — classify it SCANNER_PROBE, never suppress a real probe.
+        $store = new PhpArrayStore([
+            'schema' => 1,
+            'manifest' => [],
+            'templates' => [
+                't-a' => ['sev' => 'info', 'tags' => [], 'name' => 'A'],
+                't-b' => ['sev' => 'high', 'tags' => [], 'name' => 'B'],
+            ],
+            'routes' => [
+                'GET /robots.txt' => ['b' => [
+                    ['s' => 200, 'bw' => [], 'nf' => [], 'h' => [], 'pid' => 'p1', 'sev' => 'info', 'sig' => 0, 'amb' => 1, 't' => ['t-a']],
+                    ['s' => 200, 'bw' => [], 'nf' => [], 'h' => [], 'pid' => 'p2', 'sev' => 'high', 'sig' => 0, 'amb' => 0, 't' => ['t-b']],
+                ]],
+            ],
+        ]);
+
+        $verdict = (new Honeypot($store))->classify(new RequestContext('GET', '/robots.txt'), SiteProfile::empty());
+
+        self::assertSame(Verdict::SCANNER_PROBE, $verdict->classification);
+    }
+
+    public function test_root_takes_precedence_over_ambient(): void
+    {
+        $store = new PhpArrayStore([
+            'schema' => 1,
+            'manifest' => [],
+            'templates' => ['t-a' => ['sev' => 'info', 'tags' => [], 'name' => 'A']],
+            'routes' => [
+                'GET /' => ['b' => [
+                    ['s' => 200, 'bw' => [], 'nf' => [], 'h' => [], 'pid' => 'p', 'sev' => 'info', 'sig' => 1, 'amb' => 1, 't' => ['t-a']],
+                ]],
+            ],
+        ]);
+
+        $verdict = (new Honeypot($store))->classify(new RequestContext('GET', '/'), SiteProfile::empty());
+
+        self::assertSame(Verdict::CLEAN, $verdict->classification);
+    }
 }

