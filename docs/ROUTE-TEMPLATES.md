@@ -23,11 +23,23 @@ first free `NNN` in the family you are extending; the file prefix is convention,
 | `template_needle: [s, …]` | its `pid` equals `s`, or `s` is a substring of any id in its `t[]` |
 | `pid: [s, …]` | its `pid` equals `s` exactly |
 | `body_word_contains: [s, …]` | any of its body words contains `s` |
+| `route_key: [k, …]` | **guard** — the resolved store key equals a `k` exactly (see below) |
 
-Selection is by bundle metadata, never by request path: an enrich on a needle dresses that bundle on
-every path it appears at, and never a co-tenant bundle on the same path (bare `/logfile` carries an
-iSpy bundle and a Spring bundle; `template_needle: [springboot-logfile]` dresses only the latter).
-Needles substring-match, so keep an `id` clear of any broader needle already in the set.
+The first three are OR selector axes. Selection is by bundle metadata, never by request path: an enrich
+on a needle dresses that bundle on every path it appears at, and never a co-tenant bundle on the same
+path (bare `/logfile` carries an iSpy bundle and a Spring bundle; `template_needle: [springboot-logfile]`
+dresses only the latter). Needles substring-match, so keep an `id` clear of any broader needle already in
+the set.
+
+`route_key` is a **conjunctive guard**, not a fourth OR axis: when present, the resolved route key
+(`'<METHOD> <path>'`, the exact compiled store key) must equal one entry *and* one of the three axes
+must still match. A rule may not be route-key-only. Use it to give ONE path its own body where a single
+product bundle appears at many paths — e.g. the `directory-listing` bundle is dressed with a
+path-correct `Index of /<path>` per key rather than one shared listing. The key comes only from the
+resolved `FakeHandle`, never request bytes, so facade and position-blind synthesis stay byte-identical;
+a null key (a direct call / embedded host) never satisfies a guarded rule, so unguarded rules keep
+first-match-wins. Format is validated at build time: an uppercase supported method, one space, an
+absolute path, no query/fragment/control byte, no duplicates.
 
 ## `new_page`
 
