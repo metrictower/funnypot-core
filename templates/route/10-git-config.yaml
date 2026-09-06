@@ -1,6 +1,6 @@
 id: route-git-config
 priority: 10
-# Exposed .git/config — believable git config, decoy example.com remote, no credentials.
+# Exposed .git/config — believable git config, decoy remote on the persona domain, no credentials.
 match:
   template_needle: [git-config, git]
 response:
@@ -13,7 +13,7 @@ response:
     	bare = false
     	logallrefupdates = true
     [remote "origin"]
-    	url = https://git.example.com/internal/{{pick:app,platform,api,web,core}}.git
+    	url = https://git.{{persona.company.domain}}/internal/{{pick:app,platform,api,web,core}}.git
     	fetch = +refs/heads/*:refs/remotes/origin/*
     [branch "{{pick:main,master,develop,release}}"]
     	remote = origin

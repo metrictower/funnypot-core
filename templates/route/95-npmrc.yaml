@@ -14,7 +14,7 @@ response:
   body: |
     //registry.npmjs.org/:_authToken=npm_{{fake.npmtok:hex:36}}
 
-    @acme:registry=https://npm.pkg.github.com
+    @{{persona.company.slug}}:registry=https://npm.pkg.github.com
     //npm.pkg.github.com/:_authToken=ghp_{{fake.ghtok:hex:36}}
 
     always-auth=true

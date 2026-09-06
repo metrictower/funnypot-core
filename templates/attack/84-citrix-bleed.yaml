@@ -11,6 +11,6 @@ response:
   headers:
     Content-Type: "application/json; charset=utf-8"
   body: |
-    {"issuer":"https://gateway.example.com/oauth/idp","authorization_endpoint":"https://gateway.example.com/oauth/idp/login"}
+    {"issuer":"https://gateway.{{persona.company.domain}}/oauth/idp","authorization_endpoint":"https://gateway.{{persona.company.domain}}/oauth/idp/login"}
     {{fake.bleed:hex:60}}{{fake.bleed2:hex:60}}
 expect: ['authorization_endpoint']
