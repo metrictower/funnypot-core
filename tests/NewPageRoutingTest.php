@@ -360,11 +360,13 @@ final class NewPageRoutingTest extends TestCase
             'CVS/Entries'         => ['/CVS/Entries', 200, '/index.php/1.4/', 'text/plain; charset=utf-8'],
 
             // TYPO3 typo3conf pack — a leaked CMS config directory listing + its linked localconf.php.
-            // The listing is text/html (autoindex), localconf.php is text/plain (a raw PHP source leak,
-            // NEVER application/x-php). The localconf marker is $typo_db_username (authored, not the bare
+            // The listing is text/html (autoindex) at the trailing-slash base only; the no-slash base is a
+            // DirectorySlash 301 to it (iso-8859-1, as Apache hard-codes for redirect docs) so the listing's
+            // relative link stays base-independent. localconf.php is text/plain (a raw PHP source leak, NEVER
+            // application/x-php). The localconf marker is $typo_db_username (authored, not the bare
             // $typo_db_password body word), so it proves the full config body served, not a minimal synth.
-            'typo3conf listing'      => ['/typo3conf/', 200, 'Index of /typo3conf', 'text/html; charset=utf-8'],
-            'typo3conf (no slash)'   => ['/typo3conf', 200, 'Index of /typo3conf', 'text/html; charset=utf-8'],
+            'typo3conf listing'       => ['/typo3conf/', 200, 'Index of /typo3conf', 'text/html; charset=utf-8'],
+            'typo3conf (no slash 301)' => ['/typo3conf', 301, 'Moved Permanently', 'text/html; charset=iso-8859-1'],
             'typo3conf localconf.php' => ['/typo3conf/localconf.php', 200, '$typo_db_username', 'text/plain; charset=utf-8'],
         ];
     }
@@ -498,25 +500,31 @@ final class NewPageRoutingTest extends TestCase
 
     public function test_typo3conf_pair_is_coherent_and_links_only_to_served_paths(): void
     {
-        // The typo3conf listing (both /typo3conf/ and the no-slash variant) must serve an autoindex
-        // whose ONLY file link is localconf.php — the page route 392 actually serves — so it creates
-        // no dangling link (a link that 404s is its own tell). localconf.php must be a text/plain PHP
-        // source leak (never executed, never x-php) disclosing the host's ONE db identity: the SAME
-        // db name/user/password the config pack (/.env.production) discloses for the same seed.
+        // The typo3conf listing serves an autoindex at the trailing-slash base whose ONLY file link is
+        // localconf.php — the page route 392 actually serves — so it creates no dangling link (a link
+        // that 404s is its own tell). The relative href resolves only when the base ends in a slash, so
+        // the no-slash base is a DirectorySlash 301 to /typo3conf/ (covered in full by
+        // DirectoryListingCanonicalizationTest). localconf.php must be a text/plain PHP source leak
+        // (never executed, never x-php) disclosing the host's ONE db identity: the SAME db
+        // name/user/password the config pack (/.env.production) discloses for the same seed.
         for ($seed = 0; $seed <= 20; $seed++) {
             $inv = $this->seededInverter((string) $seed, 'realistic');
 
-            foreach (['/typo3conf/', '/typo3conf'] as $listPath) {
-                $list = $inv->respond(new RequestContext('GET', $listPath));
-                self::assertNotNull($list, "seed {$seed}: {$listPath} must serve a fake");
-                self::assertSame(200, $list->status, "seed {$seed}: {$listPath} status");
-                self::assertSame('text/html; charset=utf-8', $list->headers['Content-Type'] ?? null, "seed {$seed}: {$listPath} Content-Type");
-                self::assertStringContainsString('href="localconf.php"', $list->body, "seed {$seed}: {$listPath} must link localconf.php");
-                // No link to a path this pack does not serve (ext/, l10n/, database.sql were dropped).
-                self::assertStringNotContainsString('href="ext/"', $list->body, "seed {$seed}: {$listPath} must not link an unserved ext/ dir");
-                self::assertStringNotContainsString('href="l10n/"', $list->body, "seed {$seed}: {$listPath} must not link an unserved l10n/ dir");
-                self::assertStringNotContainsString('database.sql', $list->body, "seed {$seed}: {$listPath} must not link an unserved database.sql");
-            }
+            $list = $inv->respond(new RequestContext('GET', '/typo3conf/'));
+            self::assertNotNull($list, "seed {$seed}: /typo3conf/ must serve a fake");
+            self::assertSame(200, $list->status, "seed {$seed}: /typo3conf/ status");
+            self::assertSame('text/html; charset=utf-8', $list->headers['Content-Type'] ?? null, "seed {$seed}: /typo3conf/ Content-Type");
+            self::assertStringContainsString('href="localconf.php"', $list->body, "seed {$seed}: /typo3conf/ must link localconf.php");
+            // No link to a path this pack does not serve (ext/, l10n/, database.sql were dropped).
+            self::assertStringNotContainsString('href="ext/"', $list->body, "seed {$seed}: /typo3conf/ must not link an unserved ext/ dir");
+            self::assertStringNotContainsString('href="l10n/"', $list->body, "seed {$seed}: /typo3conf/ must not link an unserved l10n/ dir");
+            self::assertStringNotContainsString('database.sql', $list->body, "seed {$seed}: /typo3conf/ must not link an unserved database.sql");
+
+            // The no-slash base 301s to the slash form so the relative link stays base-independent.
+            $redir = $inv->respond(new RequestContext('GET', '/typo3conf'));
+            self::assertNotNull($redir, "seed {$seed}: /typo3conf must serve a redirect");
+            self::assertSame(301, $redir->status, "seed {$seed}: /typo3conf must 301 to the slash form");
+            self::assertSame('/typo3conf/', $redir->headers['Location'] ?? null, "seed {$seed}: /typo3conf Location");
 
             // The linked localconf.php resolves to a served page (the link is not dangling).
             $conf = $inv->respond(new RequestContext('GET', '/typo3conf/localconf.php'));

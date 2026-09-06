@@ -77,7 +77,7 @@ final class ZapCoverageTest extends TestCase
     public function test_route_rule_count_is_128_plus_the_new_rules(): void
     {
         $rules = require __DIR__ . '/../resources/compiled/funnypot-routes.php';
-        self::assertCount(186, $rules, 'route rule count must be 128 (baseline) + 4 (css, listing, credentials, config) + 6 (.env family: development/staging/test/bak/php/laravel-subdir) + 12 (VCS-exposure pack: 3 enrich .git-logs/.bzr/.hg-hgrc + 9 new .git/.svn/.hg pages) + 3 (CVS/Entries + TYPO3 typo3conf listing + localconf.php) + 10 (WordPress REST wp/v2: users/posts/pages/comments/media/categories/tags/types/statuses/settings) + 1 (FP-0229 nextjs app-shell) + 5 (FP-0230 persona-coherent favicons: grafana/phpmyadmin/jenkins/catalina + neutral) + 13 (FP-0233 decoy surface graph: sitemap/robots/openid-config/jwks + api-root/collection/detail/admin-html/metrics/health/webhooks/graphql-get/auth archetypes) + 1 (FP-0233 review fix: POST /auth/token auth arm) + 2 (Spring Boot Actuator heapdump generated-HPROF new page + logfile enrich) + 1 (FP-0017 WEB-INF/web.xml Java deployment descriptor)');
+        self::assertCount(188, $rules, 'route rule count must be 128 (baseline) + 4 (css, listing, credentials, config) + 6 (.env family: development/staging/test/bak/php/laravel-subdir) + 12 (VCS-exposure pack: 3 enrich .git-logs/.bzr/.hg-hgrc + 9 new .git/.svn/.hg pages) + 3 (CVS/Entries + TYPO3 typo3conf listing + localconf.php) + 10 (WordPress REST wp/v2: users/posts/pages/comments/media/categories/tags/types/statuses/settings) + 1 (FP-0229 nextjs app-shell) + 5 (FP-0230 persona-coherent favicons: grafana/phpmyadmin/jenkins/catalina + neutral) + 13 (FP-0233 decoy surface graph: sitemap/robots/openid-config/jwks + api-root/collection/detail/admin-html/metrics/health/webhooks/graphql-get/auth archetypes) + 1 (FP-0233 review fix: POST /auth/token auth arm) + 2 (Spring Boot Actuator heapdump generated-HPROF new page + logfile enrich) + 1 (FP-0017 WEB-INF/web.xml Java deployment descriptor) + 2 (FP-0196 no-slash canonical-slash 301 redirects for /.aws and /typo3conf)');
 
         $ids = array_map(static function (array $r): string { return (string) $r['id']; }, $rules);
         self::assertContains('route-web-inf-web-xml', $ids, 'the FP-0017 Java deployment-descriptor page');
@@ -322,18 +322,18 @@ final class ZapCoverageTest extends TestCase
 
     public function test_dotaws_listing_serves_an_autoindex_naming_both_files(): void
     {
-        foreach (['/.aws', '/.aws/'] as $path) {
-            $r = $this->fullEngine()->respond(new RequestContext('GET', $path));
-            self::assertNotNull($r, $path);
-            self::assertSame(200, $r->status, $path);
-            self::assertSame('text/html; charset=utf-8', $r->headers['Content-Type'] ?? null, $path);
-            self::assertStringContainsString('Index of /.aws', $r->body, $path);
-            self::assertStringContainsString('href="credentials"', $r->body, $path);
-            self::assertStringContainsString('href="config"', $r->body, $path);
-            // Version-less, and no fixed/localhost host baked in.
-            self::assertDoesNotMatchRegularExpression('/Apache\/[\d.]+/', $r->body, $path);
-            self::assertStringNotContainsString('localhost', $r->body, $path);
-        }
+        // The autoindex serves only at the trailing-slash base so its relative child links resolve
+        // under /.aws/; the no-slash base is a DirectorySlash 301 to it (see the redirect test below).
+        $r = $this->fullEngine()->respond(new RequestContext('GET', '/.aws/'));
+        self::assertNotNull($r, '/.aws/');
+        self::assertSame(200, $r->status, '/.aws/');
+        self::assertSame('text/html; charset=utf-8', $r->headers['Content-Type'] ?? null, '/.aws/');
+        self::assertStringContainsString('Index of /.aws', $r->body, '/.aws/');
+        self::assertStringContainsString('href="credentials"', $r->body, '/.aws/');
+        self::assertStringContainsString('href="config"', $r->body, '/.aws/');
+        // Version-less, and no fixed/localhost host baked in.
+        self::assertDoesNotMatchRegularExpression('/Apache\/[\d.]+/', $r->body, '/.aws/');
+        self::assertStringNotContainsString('localhost', $r->body, '/.aws/');
     }
 
     public function test_dotaws_listing_links_both_resolve_no_dead_link_tell(): void

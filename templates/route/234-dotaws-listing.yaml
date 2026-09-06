@@ -6,9 +6,12 @@ priority: 234
 # one level down. Compare route/230-credentials-txt.yaml (same dropped-cloud-secrets family) and
 # route/180-directory-listing.yaml (the autoindex look). Footer names the deploy persona's own
 # domain rather than a fixed host, and stays version-less.
+# Slash-only: the listing serves at the trailing-slash base so its relative child links resolve
+# under /.aws/. The no-slash /.aws base is a DirectorySlash 301 to here (route/237), matching real
+# Apache and keeping those links base-independent.
 new_page:
   method: GET
-  paths: ['/.aws', '/.aws/']
+  paths: ['/.aws/']
   sig: 0
   status: 200
   severity: high

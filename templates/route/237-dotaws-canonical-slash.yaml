@@ -1,0 +1,35 @@
+id: route-dotaws-canonical-slash
+priority: 237
+# DirectorySlash 301 for the no-slash /.aws base. The autoindex listing (route/234) now owns only the
+# trailing-slash /.aws/; a bare /.aws would resolve the listing's relative child links (href="credentials",
+# href="config") against / and dangle. Real Apache answers a no-slash directory with a 301 to the slash
+# form, which makes those relative links base-independent — a 200 listing body at the no-slash URL is a
+# mild tell whose links also dangle. The Location is the static rooted-relative /.aws/ (never Host / query /
+# scheme / a captured value), so there is no open redirect; the slash target never matches this redirect,
+# so there is no loop. Body/headers are the byte-for-byte IETF-HTML-2.0 shape produced by
+# TemplateAttackEmulator::canonicalSlashRedirect(); no taunt, iso-8859-1 as Apache hard-codes for its
+# redirect docs. The id avoids the `directory-listing` needle so route 180 never redresses it.
+new_page:
+  method: GET
+  paths: ['/.aws']
+  sig: 0
+  status: 301
+  severity: high
+  tags: [exposure, cloud, aws]
+  name: 'Canonical-slash redirect for /.aws'
+  body_words: ['Moved Permanently']
+response:
+  headers:
+    Content-Type: "text/html; charset=iso-8859-1"
+    Location: "/.aws/"
+  body: |
+    <!DOCTYPE HTML PUBLIC "-//IETF//DTD HTML 2.0//EN">
+    <html><head>
+    <title>301 Moved Permanently</title>
+    </head><body>
+    <h1>Moved Permanently</h1>
+    <p>The document has moved <a href="/.aws/">here</a>.</p>
+    </body></html>
+expect:
+  - 'Moved Permanently'
+  - 'href="/.aws/"'

@@ -13,10 +13,10 @@ return array (
     'license' => 'MIT (c) 2025 ProjectDiscovery, Inc.',
     'upstream_tag' => '2ec91412',
     'upstream_sha' => '2ec914123864439c3618e7e9ae72d32d0eb56df7',
-    'source_tree' => 'c979b477e0c2e6c4532a78a322da37a516998f9925036e346fb1d5080ba61c73',
+    'source_tree' => '310970033ecf34d22448d6dbe79152c5be3ab30152956fd280747d90a0cc72e3',
     'templates_seen' => 11196,
     'templates_in' => 6386,
-    'templates_indexed' => 6491,
+    'templates_indexed' => 6493,
     'route_keys' => 5360,
     'multi_bundle_keys' => 277,
     'largest_bundle_count' => 1326,
@@ -84645,6 +84645,28 @@ return array (
         3 => 'config',
       ),
       'name' => 'Exposed AWS CLI config',
+    ),
+    'route-dotaws-canonical-slash' => 
+    array (
+      'sev' => 'high',
+      'tags' => 
+      array (
+        0 => 'exposure',
+        1 => 'cloud',
+        2 => 'aws',
+      ),
+      'name' => 'Canonical-slash redirect for /.aws',
+    ),
+    'route-typo3conf-canonical-slash' => 
+    array (
+      'sev' => 'medium',
+      'tags' => 
+      array (
+        0 => 'exposure',
+        1 => 'cms',
+        2 => 'typo3',
+      ),
+      'name' => 'Canonical-slash redirect for /typo3conf',
     ),
     'route-phpmyadmin' => 
     array (
@@ -308291,7 +308313,7 @@ a</title>',
         ),
       ),
     ),
-    'GET /.aws' => 
+    'GET /.aws/' => 
     array (
       'b' => 
       array (
@@ -308316,27 +308338,52 @@ a</title>',
         ),
       ),
     ),
-    'GET /.aws/' => 
+    'GET /.aws' => 
     array (
       'b' => 
       array (
         0 => 
         array (
-          's' => 200,
+          's' => 301,
           'bw' => 
           array (
-            0 => 'Index of',
+            0 => 'Moved Permanently',
           ),
           'nf' => 
           array (
           ),
-          'pid' => 'route-dotaws-listing',
+          'pid' => 'route-dotaws-canonical-slash',
           'sev' => 'high',
           'sig' => 0,
           'amb' => 0,
           't' => 
           array (
-            0 => 'route-dotaws-listing',
+            0 => 'route-dotaws-canonical-slash',
+          ),
+        ),
+      ),
+    ),
+    'GET /typo3conf' => 
+    array (
+      'b' => 
+      array (
+        0 => 
+        array (
+          's' => 301,
+          'bw' => 
+          array (
+            0 => 'Moved Permanently',
+          ),
+          'nf' => 
+          array (
+          ),
+          'pid' => 'route-typo3conf-canonical-slash',
+          'sev' => 'medium',
+          'sig' => 0,
+          'amb' => 0,
+          't' => 
+          array (
+            0 => 'route-typo3conf-canonical-slash',
           ),
         ),
       ),
@@ -311319,31 +311366,6 @@ a</title>',
       ),
     ),
     'GET /typo3conf/' => 
-    array (
-      'b' => 
-      array (
-        0 => 
-        array (
-          's' => 200,
-          'bw' => 
-          array (
-            0 => 'Index of',
-          ),
-          'nf' => 
-          array (
-          ),
-          'pid' => 'route-typo3conf-listing',
-          'sev' => 'medium',
-          'sig' => 0,
-          'amb' => 0,
-          't' => 
-          array (
-            0 => 'route-typo3conf-listing',
-          ),
-        ),
-      ),
-    ),
-    'GET /typo3conf' => 
     array (
       'b' => 
       array (

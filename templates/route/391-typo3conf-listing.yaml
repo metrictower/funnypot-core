@@ -6,9 +6,12 @@ priority: 391
 # route-typo3conf-localconf (priority 392) actually serves, so the listing creates no dangling link
 # (a link that 404s is its own tell). The id avoids the `directory-listing` needle (route 180) so
 # that enrich never redresses this page.
+# Slash-only: the listing serves at the trailing-slash base so its relative localconf.php link
+# resolves under /typo3conf/. The no-slash /typo3conf base is a DirectorySlash 301 to here
+# (route/238), matching real Apache and keeping that link base-independent.
 new_page:
   method: GET
-  paths: ['/typo3conf/', '/typo3conf']
+  paths: ['/typo3conf/']
   sig: 0
   status: 200
   severity: medium
