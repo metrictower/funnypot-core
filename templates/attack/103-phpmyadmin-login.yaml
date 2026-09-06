@@ -11,7 +11,7 @@ owns_path: [/phpmyadmin/index.php, /phpmyadmin/, /pma/index.php, /pma/]
 # this rule ahead of route 240's static stub, the same override mechanism, just gated to POST here.
 #
 # `behavior: decoy-session` mode `mint`: a plausible non-empty pma_username/pma_password mints the
-# signed `s=1` phpMyAdmin cookie and 302s to the FIXED literal /phpmyadmin/index.php (never a
+# signed authenticated phpMyAdmin cookie and 302s to the FIXED literal /phpmyadmin/index.php (never a
 # submitted value — no open redirect); an empty/whitespace/implausible credential declines to the
 # base `response` below — this SAME faithful login page, fail-closed (no 302, no Set-Cookie). See
 # TemplateAttackEmulator::decoySessionMint's docblock for the full invariant list.

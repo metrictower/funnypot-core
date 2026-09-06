@@ -4,11 +4,13 @@ declare(strict_types=1);
 
 namespace Funnypot\Core;
 
+use Funnypot\Core\Behavior\DecoySession;
+
 /**
  * Detect that a request presents a valid, minted decoy-session cookie — i.e. the client walked the
  * mock-auth login (phpMyAdmin "breached DB" or any future decoy panel) and is now pulling loot from
- * behind it. Like OastProbe this is a DETECT-ONLY signal: a valid `s=1` payload can only exist if we
- * minted it (the HMAC key never leaves the server, so it is unforgeable), so its presence is
+ * behind it. Like OastProbe this is a DETECT-ONLY signal: a valid authenticated payload can only exist
+ * if we minted it (the HMAC key never leaves the server, so it is unforgeable), so its presence is
  * high-confidence evidence that the attacker committed budget to the trap.
  *
  * Name-agnostic on purpose: it inspects EVERY cookie value in the Cookie header, not one fixed cookie
@@ -20,12 +22,14 @@ namespace Funnypot\Core;
 final class DecoySessionProbe
 {
     /**
-     * True iff any cookie in the request's Cookie header carries a value that verifies (under $key)
-     * to the authenticated decoy-session payload class `s=1`. A validly-signed `s=0` (pre-auth
-     * marker) is a DIFFERENT payload class and must NOT count as authenticated. An empty key disables
-     * the probe (no decoy session configured ⇒ nothing to verify against).
+     * True iff any cookie in the request's Cookie header carries a value that verifies (under $key) to
+     * THIS deploy's authenticated decoy-session payload. A validly-signed pre-auth marker is a
+     * DIFFERENT payload class and must NOT count; so does an authenticated value from another deploy
+     * seed. An empty key disables the probe (no decoy session configured ⇒ nothing to verify against).
+     * The deploy seed must be the SAME snapshot the mint path used, so the engine passes its stored
+     * value here rather than re-reading mutable Config.
      */
-    public static function authenticated(RequestContext $r, string $key): bool
+    public static function authenticated(RequestContext $r, string $key, ?int $deploySeed = null): bool
     {
         if ($key === '') {
             return false;
@@ -36,14 +40,14 @@ final class DecoySessionProbe
             return false;
         }
 
-        $token = new Honeytoken($key);
+        $session = new DecoySession($key, $deploySeed);
         foreach (explode(';', $header) as $pair) {
             $pair = trim($pair);
             $eq = strpos($pair, '=');
             if ($eq === false) {
                 continue;
             }
-            if ($token->verifiedPayload(substr($pair, $eq + 1)) === 's=1') {
+            if ($session->isAuthenticatedValue(substr($pair, $eq + 1))) {
                 return true;
             }
         }

@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Funnypot\Core\Tests;
 
+use Funnypot\Core\Behavior\DecoySession;
+use Funnypot\Core\Behavior\DecoySessionPayloads;
 use Funnypot\Core\Compiler\Crs\FingerprintGuard;
 use Funnypot\Core\Config;
 use Funnypot\Core\Honeypot;
@@ -23,8 +25,8 @@ use PHPUnit\Framework\TestCase;
  * FP-0271 — the authed WordPress admin dashboard behind the wp-login mock-auth mint. Drives the
  * COMPILED rules directly (mirrors PhpMyAdminMockAuthTest), with a decoySessionKey so mint (rule 97)
  * and gate (rule 104) are live. Pins the whole flow AND the paramount safety invariant: the authed
- * dashboard is UNREACHABLE without a validly HMAC-minted `s=1` decoy session — a forged/tampered/
- * wrong-key/absent/s=0 cookie falls through to the pinned 302 (byte-identical to today), and a
+ * dashboard is UNREACHABLE without a validly HMAC-minted authenticated decoy session for THIS deploy —
+ * a forged/tampered/wrong-key/absent/pre-auth/cross-seed cookie falls through to the pinned 302 (byte-identical to today), and a
  * key-unset deploy is byte-identical to today.
  *
  * LICENSING: the dashboard HTML/CSS is original — a hand-authored lookalike of the wp-admin shell
@@ -101,7 +103,7 @@ final class WpAdminMockAuthTest extends TestCase
         self::assertNotFalse($eq);
         self::assertSame($this->cookieName(self::SEED), substr($nameValue, 0, $eq), 'cookie name is the per-deploy wordpress_logged_in_<hash>');
         $payload = (new Honeytoken(self::KEY))->verifiedPayload(substr($nameValue, $eq + 1));
-        self::assertSame('s=1', $payload, 'the minted cookie must decode to the authenticated payload class');
+        self::assertSame(DecoySessionPayloads::authenticated(self::SEED), $payload, 'the minted cookie must decode to this deploy\'s authenticated payload');
     }
 
     public function test_empty_or_implausible_credentials_decline_to_login_error_page(): void
@@ -113,9 +115,9 @@ final class WpAdminMockAuthTest extends TestCase
             self::assertSame(200, $r->status, "[{$body}] declines to the 200 login-error page");
             self::assertArrayNotHasKey('Location', $r->headers, $body);
             // The base page keeps only the inert wordpress_test_cookie a real server also sets pre-auth;
-            // NO minted s=1 session cookie, and never a wordpress_logged_in auth cookie value.
+            // NO minted authenticated session cookie (never a wordpress_logged_in auth cookie).
             $setCookie = (string) ($r->headers['Set-Cookie'] ?? '');
-            self::assertStringNotContainsString('s=1.', $setCookie, "[{$body}] no minted session cookie");
+            self::assertStringNotContainsString('wordpress_logged_in_', $setCookie, "[{$body}] no minted session cookie");
             self::assertStringContainsString('wordpress_test_cookie', $setCookie, $body);
             self::assertStringContainsString('login_error', $r->body, $body);
             self::assertStringNotContainsString('<script>', $r->body, 'no crafted username is ever reflected');
@@ -172,10 +174,10 @@ final class WpAdminMockAuthTest extends TestCase
         $em = $this->seededEmulator();
         $name = $this->cookieName(self::SEED);
 
-        // A valid s=1 minted under a DIFFERENT key (attacker cannot know the server key).
-        $wrongKey = (new Honeytoken('a-completely-different-key'))->cookie($name, 's=1', '/');
+        // A valid authenticated token minted under a DIFFERENT key (attacker cannot know the server key).
+        $wrongKey = (new DecoySession('a-completely-different-key', self::SEED))->mintCookie($name, '/');
         // A structurally valid value whose signature is truncated.
-        $validValue = substr($this->cookieHeaderFrom((new Honeytoken(self::KEY))->cookie($name, 's=1', '/')), strlen($name) + 1);
+        $validValue = substr($this->cookieHeaderFrom((new DecoySession(self::KEY, self::SEED))->mintCookie($name, '/')), strlen($name) + 1);
         $truncated = $name . '=' . substr($validValue, 0, -4);
 
         $forged = [
@@ -196,13 +198,14 @@ final class WpAdminMockAuthTest extends TestCase
         }
     }
 
-    public function test_signed_s0_preauth_cookie_is_not_authenticated(): void
+    public function test_signed_pre_auth_cookie_is_not_authenticated(): void
     {
-        // A validly-signed s=0 (pre-auth marker class) must NOT authenticate — a different payload class.
+        // A validly-signed pre-auth marker must NOT authenticate — a different payload class. Minted at
+        // this deploy's seed so it is a genuinely current pre-auth value.
         $name = $this->cookieName(self::SEED);
-        $s0 = $this->cookieHeaderFrom((new Honeytoken(self::KEY))->cookie($name, 's=0', '/'));
+        $preAuth = $this->cookieHeaderFrom((new DecoySession(self::KEY, self::SEED))->preAuthCookie($name, '/'));
 
-        $r = $this->seededEmulator()->emulate(new RequestContext('GET', '/wp-admin/', '', ['Cookie' => $s0]));
+        $r = $this->seededEmulator()->emulate(new RequestContext('GET', '/wp-admin/', '', ['Cookie' => $preAuth]));
 
         self::assertNotNull($r);
         self::assertSame(302, $r->status);
@@ -220,11 +223,11 @@ final class WpAdminMockAuthTest extends TestCase
         self::assertNotNull($post);
         self::assertSame(200, $post->status, 'no key: the POST is the login-error oracle, never a mint');
         self::assertArrayNotHasKey('Location', $post->headers);
-        self::assertDoesNotMatchRegularExpression('/^s=1\./', (string) ($post->headers['Set-Cookie'] ?? ''));
+        self::assertStringNotContainsString('wordpress_logged_in_', (string) ($post->headers['Set-Cookie'] ?? ''));
 
-        // Even presenting a validly minted s=1 cookie: with no key the gate cannot verify, so it declines.
+        // Even presenting a validly minted authenticated cookie: with no key the gate cannot verify, so it declines.
         $name = $this->cookieName(self::SEED);
-        $cookie = $this->cookieHeaderFrom((new Honeytoken(self::KEY))->cookie($name, 's=1', '/'));
+        $cookie = $this->cookieHeaderFrom((new DecoySession(self::KEY, self::SEED))->mintCookie($name, '/'));
         $get = $unkeyed->emulate(new RequestContext('GET', '/wp-admin/', '', ['Cookie' => $cookie]));
         self::assertNotNull($get);
         self::assertSame(302, $get->status);
@@ -241,8 +244,9 @@ final class WpAdminMockAuthTest extends TestCase
         $config->decoySessionKey = self::KEY;
         $engine = new Honeypot($store, $config);
 
-        // DecoySessionProbe is name-agnostic: ANY cookie value verifying to s=1 folds the signal.
-        $cookie = $this->cookieHeaderFrom((new Honeytoken(self::KEY))->cookie('sess', 's=1', '/'));
+        // DecoySessionProbe is name-agnostic: ANY cookie value verifying to this deploy's authenticated
+        // payload folds the signal. Mint at the engine's snapshotted deploy seed (Config::deploySeed()).
+        $cookie = $this->cookieHeaderFrom((new DecoySession(self::KEY, $config->deploySeed()))->mintCookie('sess', '/'));
         $v = $engine->classify(new RequestContext('GET', '/wp-admin/', '', ['Cookie' => $cookie]), SiteProfile::empty());
 
         self::assertSame(Verdict::ATTACK_CLASS, $v->classification, 'stays the attack-class verdict');

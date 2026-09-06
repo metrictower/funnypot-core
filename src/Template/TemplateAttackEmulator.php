@@ -1025,9 +1025,9 @@ final class TemplateAttackEmulator
      *    cookie and redirects to the authed panel — but the redirect target is a FIXED literal,
      *    never the submitted value (no open redirect), and an empty/whitespace credential is
      *    declined so a blank submit is not treated as a login.
-     *  - `gate` (the authed panel GET): only a verified `s=1` cookie renders the authed body;
-     *    anything else (absent, garbage, a validly-signed but wrong-class `s=0`, or no request at
-     *    all) declines to null so renderRule falls back to the rule's base `response` — the
+     *  - `gate` (the authed panel GET): only a verified authenticated cookie renders the authed body;
+     *    anything else (absent, garbage, a validly-signed but wrong-class pre-auth marker, or no request
+     *    at all) declines to null so renderRule falls back to the rule's base `response` — the
      *    login page. This is fail-closed by construction: the ONLY path to the authed body is
      *    DecoySession::isAuthenticated() returning true.
      *
@@ -1060,7 +1060,10 @@ final class TemplateAttackEmulator
             $name = $nameAuthored;
         }
         $path = (string) ($config['cookie_path'] ?? '/');
-        $session = new DecoySession($this->decoySessionKey);
+        // identitySeed() (not the raw render seed): the deploy persona seed when wired, so the login
+        // POST and the panel GET — which can carry DIFFERENT render seeds — mint and gate the SAME
+        // seeded payload text and the cookie round-trips. Unwired, it degrades to the render seed.
+        $session = new DecoySession($this->decoySessionKey, $this->identitySeed($seed));
 
         if ($mode === 'mint') {
             return $this->decoySessionMint($session, $config, $captures, $name, $path);
@@ -1075,7 +1078,7 @@ final class TemplateAttackEmulator
     /**
      * The mint half: an empty/whitespace-only username or password is not a login attempt, so it
      * declines (-> the base login-page response), as does an implausible username. Otherwise mint
-     * the `s=1` cookie and redirect. The Location is a FIXED literal — captures are read ONLY for
+     * the authenticated cookie and redirect. The Location is a FIXED literal — captures are read ONLY for
      * the credential check, never woven into a header, so a crafted redirect/servername field in
      * the POST body can never steer the client anywhere (no open redirect).
      *
@@ -1106,7 +1109,7 @@ final class TemplateAttackEmulator
     }
 
     /**
-     * The gate half: fails closed on anything but a verified `s=1` cookie (isAuthenticated() is
+     * The gate half: fails closed on anything but a verified authenticated cookie (isAuthenticated() is
      * the ONLY authentication path). The Cookie header is read case-insensitively, mirroring
      * surface()'s strcasecmp loop — a null $r (the position-blind port) has no cookie to read, so
      * it degrades to the same fail-closed decline.
@@ -1274,7 +1277,7 @@ final class TemplateAttackEmulator
      * WordPress Application-Password shape (24 lowercase in groups of 4), which would need a dedicated
      * FakeSecrets generator (a deliberate follow-up — no new secret generator is introduced here). The
      * honeytoken-RETRIEVAL signal itself is independent of this cell: it fires in Honeypot::classify() the
-     * moment the valid s=1 cookie is replayed (DecoySessionProbe), with no served-byte change. Content is
+     * moment the valid authenticated cookie is replayed (DecoySessionProbe), with no served-byte change. Content is
      * a pure function of the deploy seed (deploy-stable); rendered through the new WordpressSkin::
      * renderAdmin(), NOT its login-card render(), so the LLM-tier login shell is untouched.
      *

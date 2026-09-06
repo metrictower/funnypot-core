@@ -21,10 +21,10 @@ owns_path: [/phpmyadmin/, /phpmyadmin/index.php, /pma/, /phpMyAdmin/]
 # matters. See that template's own note.
 #
 # `behavior: decoy-session` mode `gate` renders the authed FakeRecords placeholder ONLY on a
-# verified `s=1` phpMyAdmin cookie (DecoySession::isAuthenticated) — anything else (no cookie, a
-# garbage value, a validly-signed but wrong-class s=0, the signing key disabled, or a path/method
+# verified authenticated phpMyAdmin cookie (DecoySession::isAuthenticated) — anything else (no cookie, a
+# garbage value, a validly-signed but wrong-class pre-auth marker, the signing key disabled, or a path/method
 # variant this rule itself declines) falls back to the base `response` below: this SAME faithful
-# login page. Fail-closed by construction — the ONLY path to the authed body is a verified s=1 (see
+# login page. Fail-closed by construction — the ONLY path to the authed body is a verified authenticated cookie (see
 # TemplateAttackEmulator::handleDecoySession's docblock for the full invariant list).
 #
 # `domain: {{persona.company.domain}}` — rendered at request time (TemplateAttackEmulator's existing

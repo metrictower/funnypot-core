@@ -140,6 +140,7 @@ $classes = [
     'Funnypot\\Core\\Support\\PersonaIdentity',
     'Funnypot\\Core\\Synthesis\\SynthScaffold',
     'Funnypot\\Core\\Behavior\\DecoyTables',
+    'Funnypot\\Core\\Behavior\\DecoySessionPayloads',
     'Funnypot\\Core\\Response\\InjectionPayloads',
     'Funnypot\\Core\\Ai\\ChatFloor',
     'Funnypot\\Core\\Attack\\AttackBodies',

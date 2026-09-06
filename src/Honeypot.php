@@ -64,6 +64,9 @@ final class Honeypot implements Engine
     /** @var array<string,bool> per-rule-id cache of ServedStringWalker::reflectsCaptures() */
     private $reflectorCache = [];
 
+    /** @var int the deploy identity seed, snapshotted once at construction (never re-read per request) */
+    private $deploySeed;
+
     public function __construct(
         CompiledStore $store,
         ?Config $config = null,
@@ -75,8 +78,11 @@ final class Honeypot implements Engine
 
         // One per-deploy identity seed drives {{persona.*}} in both runtime renderers below, so the
         // template tier and the app LLM tier present one coherent site identity. Fabricated {{fake.*}}
-        // secrets stay per-request (per-attacker) — only the identity is deploy-stable.
-        $personaSeed = $this->config->deploySeed();
+        // secrets stay per-request (per-attacker) — only the identity is deploy-stable. Snapshotted
+        // once here (not re-read per request): mint/gate and the retrieval probe must derive the same
+        // decoy-session payload, so mutating Config after construction cannot split their identity.
+        $this->deploySeed = $this->config->deploySeed();
+        $personaSeed = $this->deploySeed;
 
         // FP-0276 boot-time seed-health signal. NON-SERVED and material-only (never re-derives, never
         // touches $personaSeed's value). Fired once at construction; an Observer that also implements
@@ -253,12 +259,12 @@ final class Honeypot implements Engine
         }
 
         // Honeytoken-retrieval fold (delegates to foldOob, like the registry probes): iff a decoy-session key is
-        // configured AND the request presents a valid minted `s=1` cookie, the attacker walked the
+        // configured AND the request presents a valid minted authenticated cookie, the attacker walked the
         // mock-auth trap and is pulling loot — fold one high-signal, SIGNAL-ONLY match. An unset key
         // makes this a no-op, so a build that never enabled the decoy session is byte- and
         // signal-identical to before this seam existed.
         $decoyKey = (string) ($this->config->decoySessionKey ?? '');
-        if ($decoyKey !== '' && DecoySessionProbe::authenticated($r, $decoyKey)) {
+        if ($decoyKey !== '' && DecoySessionProbe::authenticated($r, $decoyKey, $this->deploySeed)) {
             $verdict = $this->foldHoneytoken($verdict);
         }
 
@@ -456,7 +462,7 @@ final class Honeypot implements Engine
 
     /**
      * Fold a decoy-session honeytoken RETRIEVAL into a content Verdict as a high-signal, SIGNAL-ONLY
-     * match — the attacker presented a minted `s=1` cookie and walked the mock-auth breached-DB trap.
+     * match — the attacker presented a minted authenticated cookie and walked the mock-auth breached-DB trap.
      * Delegates to foldOob() with its own TemplateMatch, so it carries the same decorator invariants
      * (all falsifiable in HoneytokenRetrievalSeamTest):
      *  - NEVER touches fakeHandle: the gate still renders the authed body via emulate() unchanged, so

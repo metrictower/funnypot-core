@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Funnypot\Core\Tests;
 
+use Funnypot\Core\Behavior\DecoySession;
+use Funnypot\Core\Behavior\DecoySessionPayloads;
 use Funnypot\Core\Config;
 use Funnypot\Core\Detection;
 use Funnypot\Core\Honeypot;
@@ -12,16 +14,18 @@ use Funnypot\Core\Observer;
 use Funnypot\Core\RequestContext;
 use Funnypot\Core\SiteProfile;
 use Funnypot\Core\Store\PhpArrayStore;
+use Funnypot\Core\Support\PersonaIdentity;
 use Funnypot\Core\SynthesizedResponse;
 use Funnypot\Core\Verdict;
 use PHPUnit\Framework\TestCase;
 
 /**
  * FP-0237 — the honeytoken-retrieval seam tests (modeled on OastSeamTest). DecoySessionProbeTest
- * covers the matcher; this file proves the signal-only fold into classify(): a minted `s=1` cookie
- * folds a high-signal `honeytoken-retrieval` Detection without changing a single served byte, is
+ * covers the matcher; this file proves the signal-only fold into classify(): a minted authenticated
+ * cookie folds a high-signal `honeytoken-retrieval` Detection without changing a single served byte, is
  * silent when no decoy-session key is configured, and bumps CLEAN -> SCANNER_PROBE only on a
- * null-handle miss.
+ * null-handle miss. The engine snapshots its deploy seed once, so a post-construction Config mutation
+ * cannot split the probe identity from the mint identity (FP-0296).
  */
 final class HoneytokenRetrievalSeamTest extends TestCase
 {
@@ -45,22 +49,45 @@ final class HoneytokenRetrievalSeamTest extends TestCase
         return $c;
     }
 
-    /** The name=value cookie pair a browser sends back for the given payload class. */
-    private function cookiePair(string $payload, string $name = 'phpMyAdmin'): string
+    /** The name=value pair for an authenticated cookie minted at a config's snapshotted deploy seed. */
+    private function authedCookie(Config $config, string $name = 'phpMyAdmin'): string
     {
-        $setCookie = (new Honeytoken(self::KEY))->cookie($name, $payload, '/phpmyadmin');
+        return $this->pairOf((new DecoySession(self::KEY, $config->deploySeed()))->mintCookie($name, '/phpmyadmin'));
+    }
+
+    /** The name=value pair for an authenticated cookie minted at a specific deploy seed. */
+    private function authedCookieAtSeed(int $seed, string $name = 'phpMyAdmin'): string
+    {
+        return $this->pairOf((new DecoySession(self::KEY, $seed))->mintCookie($name, '/phpmyadmin'));
+    }
+
+    /** The name=value pair for a pre-auth marker at a config's snapshotted deploy seed. */
+    private function preAuthCookie(Config $config, string $name = 'phpMyAdmin'): string
+    {
+        return $this->pairOf((new DecoySession(self::KEY, $config->deploySeed()))->preAuthCookie($name, '/phpmyadmin'));
+    }
+
+    /** The name=value pair for an arbitrary hand-signed payload (the retired literal token). */
+    private function legacyCookie(string $payload = 's=1', string $name = 'phpMyAdmin'): string
+    {
+        return $this->pairOf((new Honeytoken(self::KEY))->cookie($name, $payload, '/phpmyadmin'));
+    }
+
+    private function pairOf(string $setCookie): string
+    {
         $semi = strpos($setCookie, ';');
 
         return $semi === false ? $setCookie : substr($setCookie, 0, $semi);
     }
 
     /**
-     * Test #1: an s=1 cookie on a miss yields a high-signal, tagged, SCANNER_PROBE detection.
+     * Test #1: an authenticated cookie on a miss yields a high-signal, tagged, SCANNER_PROBE detection.
      */
-    public function test_s1_cookie_yields_high_signal_detection_with_tag(): void
+    public function test_authenticated_cookie_yields_high_signal_detection_with_tag(): void
     {
-        $engine = new Honeypot($this->store(), $this->keyedConfig());
-        $r = new RequestContext('GET', '/nope', 'table=secrets', ['Cookie' => $this->cookiePair('s=1')]);
+        $config = $this->keyedConfig();
+        $engine = new Honeypot($this->store(), $config);
+        $r = new RequestContext('GET', '/nope', 'table=secrets', ['Cookie' => $this->authedCookie($config)]);
         $verdict = $engine->classify($r, SiteProfile::empty());
 
         self::assertTrue($verdict->detection->matched);
@@ -76,30 +103,79 @@ final class HoneytokenRetrievalSeamTest extends TestCase
     }
 
     /**
-     * Test #2: silent when no key is configured, and silent for a non-authenticated cookie (garbage /
-     * s=0 / absent) even when the key is set.
+     * Test #2: silent when no key is configured, and silent for a non-authenticated cookie (garbage,
+     * pre-auth, legacy literal, a foreign deploy's authenticated token, absent) even when the key is set.
      */
     public function test_no_fold_without_a_valid_authenticated_cookie(): void
     {
-        // No decoy-session key configured: the seam is a no-op even with a real s=1 cookie.
+        // No decoy-session key configured: the seam is a no-op even with a real authenticated cookie.
         $unkeyed = new Config(
             'detect', null, 'matched-only', null, 'coherent',
             \Funnypot\Core\Response\Style::MINIMAL, 'high', 65536, 0, 0, false
         );
-        $r = new RequestContext('GET', '/nope', '', ['Cookie' => $this->cookiePair('s=1')]);
+        $r = new RequestContext('GET', '/nope', '', ['Cookie' => $this->authedCookie($unkeyed)]);
         $verdict = (new Honeypot($this->store(), $unkeyed))->classify($r, SiteProfile::empty());
         self::assertNotContains('honeytoken-retrieval', $verdict->detection->tags());
         self::assertSame(Verdict::CLEAN, $verdict->classification);
         self::assertTrue($verdict->detection->isEmpty());
 
-        // Key set, but the cookie is not an authenticated s=1: no fold.
-        $engine = new Honeypot($this->store(), $this->keyedConfig());
-        foreach ([null, 'phpMyAdmin=garbage', $this->cookiePair('s=0')] as $cookie) {
+        // Key set, but the cookie is not this deploy's authenticated value: no fold. Covers garbage, a
+        // pre-auth marker, the retired literal `s=1`, and an authenticated token from a DIFFERENT seed.
+        $config = $this->keyedConfig();
+        $engine = new Honeypot($this->store(), $config);
+        $foreignSeed = PersonaIdentity::seedFromMaterial('seam-foreign-deploy');
+        self::assertNotSame(
+            DecoySessionPayloads::authenticated($config->deploySeed()),
+            DecoySessionPayloads::authenticated($foreignSeed),
+            'the foreign seed must select a different pair or this case is vacuous'
+        );
+        foreach ([
+            null,
+            'phpMyAdmin=garbage',
+            $this->preAuthCookie($config),
+            $this->legacyCookie('s=1'),
+            $this->authedCookieAtSeed($foreignSeed),
+        ] as $cookie) {
             $headers = $cookie === null ? [] : ['Cookie' => $cookie];
             $v = $engine->classify(new RequestContext('GET', '/nope', '', $headers), SiteProfile::empty());
             self::assertNotContains('honeytoken-retrieval', $v->detection->tags());
             self::assertSame(Verdict::CLEAN, $v->classification);
         }
+    }
+
+    /**
+     * Test #2b: the deploy seed is snapshotted at construction — mutating Config afterwards cannot split
+     * the retrieval probe's identity from the mint identity the engine was built with. The engine keeps
+     * folding the seed-A token and never folds a seed-B token, regardless of the post-construction field.
+     */
+    public function test_post_construction_config_mutation_cannot_split_probe_identity(): void
+    {
+        $config = $this->keyedConfig();
+        $config->deploySeed = 'seam-deploy-A';
+        $engine = new Honeypot($this->store(), $config);
+        $seedA = PersonaIdentity::seedFromMaterial('seam-deploy-A');
+        $seedB = PersonaIdentity::seedFromMaterial('seam-deploy-B');
+        self::assertNotSame(
+            DecoySessionPayloads::authenticated($seedA),
+            DecoySessionPayloads::authenticated($seedB),
+            'the two materials must select different pairs'
+        );
+
+        // Mutate the public identity field AFTER construction.
+        $config->deploySeed = 'seam-deploy-B';
+
+        // The engine still uses its snapshot (seed A): the seed-A token folds, the seed-B token does not.
+        $vA = $engine->classify(
+            new RequestContext('GET', '/nope', '', ['Cookie' => $this->authedCookieAtSeed($seedA)]),
+            SiteProfile::empty()
+        );
+        self::assertContains('honeytoken-retrieval', $vA->detection->tags(), 'snapshot seed A still folds after mutation');
+
+        $vB = $engine->classify(
+            new RequestContext('GET', '/nope', '', ['Cookie' => $this->authedCookieAtSeed($seedB)]),
+            SiteProfile::empty()
+        );
+        self::assertNotContains('honeytoken-retrieval', $vB->detection->tags(), 'the mutated (seed B) identity must not fold');
     }
 
     /**
@@ -117,8 +193,9 @@ final class HoneytokenRetrievalSeamTest extends TestCase
             ->respond(new RequestContext('GET', '/multi', 'a=1'));
 
         $htSpy = $this->spy();
-        $ht = (new Honeypot($store, $this->respondConfig(), $htSpy))
-            ->respond(new RequestContext('GET', '/multi', 'a=1', ['Cookie' => $this->cookiePair('s=1')]));
+        $htConfig = $this->respondConfig();
+        $ht = (new Honeypot($store, $htConfig, $htSpy))
+            ->respond(new RequestContext('GET', '/multi', 'a=1', ['Cookie' => $this->authedCookie($htConfig)]));
 
         self::assertNotNull($plain);
         self::assertNotNull($ht);
@@ -134,7 +211,7 @@ final class HoneytokenRetrievalSeamTest extends TestCase
 
     /**
      * Test #4 (the CLEAN-with-route-handle seam): a root/homepage-class (sig=1) entry classifies CLEAN
-     * with a route handle. An s=1 cookie must fold the signal WITHOUT bumping to SCANNER_PROBE
+     * with a route handle. An authenticated cookie must fold the signal WITHOUT bumping to SCANNER_PROBE
      * (fakeHandle is non-null, so the bump is gated off) — so serve-gating is untouched. Mirrors
      * OastSeamTest's equivalent guard against a fold that bumps all CLEAN verdicts.
      */
@@ -150,7 +227,7 @@ final class HoneytokenRetrievalSeamTest extends TestCase
         self::assertNotContains('honeytoken-retrieval', $plain->detection->tags());
 
         $ht = $engine->classify(
-            new RequestContext('GET', '/home', 'a=1', ['Cookie' => $this->cookiePair('s=1')]),
+            new RequestContext('GET', '/home', 'a=1', ['Cookie' => $this->authedCookie($config)]),
             SiteProfile::empty()
         );
         self::assertSame(Verdict::CLEAN, $ht->classification, 'a CLEAN entry WITH a handle must NOT bump to SCANNER_PROBE');

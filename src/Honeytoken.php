@@ -76,8 +76,8 @@ final class Honeytoken
     /**
      * The verified payload from a raw cookie value, or null if it's missing, malformed, or
      * tampered. Unlike inspect() (which only classifies absent|ok|tampered), this returns the
-     * actual signed payload text so a caller can distinguish e.g. a signed `s=0` from `s=1`.
-     * Throw-free on any input.
+     * actual signed payload text so a caller can distinguish two validly-signed payload classes
+     * (e.g. the decoy session's pre-auth vs authenticated text). Throw-free on any input.
      */
     public function verifiedPayload(string $raw): ?string
     {

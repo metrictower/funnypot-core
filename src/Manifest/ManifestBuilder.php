@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Funnypot\Core\Manifest;
 
-use Funnypot\Core\Honeytoken;
+use Funnypot\Core\Behavior\DecoySession;
 use Funnypot\Core\RequestContext;
 use Funnypot\Core\Template\TemplateAttackEmulator;
 use Throwable;
@@ -439,9 +439,11 @@ final class ManifestBuilder
         }
         try {
             $emulator = new TemplateAttackEmulator(array($rule), array(), null, null, array(), self::STUB_SEED, self::STUB_KEY);
-            $cookie = (new Honeytoken(self::STUB_KEY))->cookie(
+            // Mint through DecoySession at the SAME stub seed the emulator gates with, so the gate
+            // authenticates and skinLinks scans the AUTHED dashboard; a seed mismatch would silently
+            // decline to the login page and derive the manifest from the wrong body.
+            $cookie = (new DecoySession(self::STUB_KEY, self::STUB_SEED))->mintCookie(
                 (string) ($config['cookie_name'] ?? 'session'),
-                's=1',
                 (string) ($config['cookie_path'] ?? '/')
             );
             $semi = strpos($cookie, ';');

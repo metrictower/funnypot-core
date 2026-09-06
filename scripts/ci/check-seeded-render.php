@@ -55,7 +55,7 @@ declare(strict_types=1);
  * AUTHED DECOY leg (FP-0282, the `authed:` kind). The attack loop renders every rule position-blind
  * ($r = null), where a decoy-session gate fails closed to its login page — so its seeded table story
  * (DecoyTables: tree/whitelist names, column convention, dropped table) is never rendered above. This
- * leg mints a fixed-key s=1 cookie and renders each gate rule WITH a request, so G1/G3/G4 see the authed
+ * leg mints a fixed-key authenticated cookie and renders each gate rule WITH a request, so G1/G3/G4 see the authed
  * body, plus:
  *   G-authed  servability   — the authed body must render (not the fail-closed login/base decline); a
  *                             seeded table name tripping the runtime FingerprintGuard at some seed is
@@ -77,9 +77,11 @@ declare(strict_types=1);
  */
 
 use Funnypot\Core\Behavior\DecoySession;
+use Funnypot\Core\Behavior\DecoySessionPayloads;
 use Funnypot\Core\Compiler\Crs\FingerprintGuard;
 use Funnypot\Core\Contracts\Clock;
 use Funnypot\Core\Detection;
+use Funnypot\Core\Honeytoken;
 use Funnypot\Core\RequestContext;
 use Funnypot\Core\Response\EmulatedContent;
 use Funnypot\Core\Response\RouteTemplateEmulator;
@@ -314,10 +316,11 @@ foreach ([['attack', $attackRules, $makeAttack], ['param', $paramRules, $makePar
 // AUTHED DECOY leg (FP-0282). The attack loop above renders every rule position-blind ($r = null), so a
 // decoy-session GATE rule fails CLOSED to its login page and its seeded table story is never rendered —
 // registering `attack:<gate>` alone would pass G4 for the wrong reason (the login page already varies
-// through {{persona.*}}). This leg mints a fixed-key s=1 cookie and renders each gate rule WITH a
-// request, so G1/G3/G4 actually see the table tree, the ?table= whitelist names, and the column
-// convention this deploy serves. Recorded as `authed:<id>` surfaces so the G4 loop + fleet-constant
-// inventory treat them like any rule surface.
+// through {{persona.*}}). This leg mints a fixed-key authenticated cookie at each deploy seed and renders
+// each gate rule WITH a request, so G1/G3/G4 actually see the table tree, the ?table= whitelist names, and
+// the column convention this deploy serves. Recorded as `authed:<id>` surfaces so the G4 loop +
+// fleet-constant inventory treat them like any rule surface; the decoded value token is recorded
+// separately as a `session:<id>` surface so its per-deploy variance is measured on its own.
 //   G-authed  servability — the authed body must render (not the fail-closed login/base decline); a
 //              seeded name tripping the runtime FingerprintGuard at some seed is caught here.
 // ---------------------------------------------------------------------------------------------------
@@ -355,15 +358,32 @@ foreach ($attackRules as $rule) {
         $emu = $makeAttack($deploySeed);
         foreach ($renderSeeds as $rlabel => $renderSeed) {
             $where = "authed {$id} [m={$material},{$rlabel}]";
-            // Resolve the cookie name exactly as handleDecoySession does (:1074-1078), then mint an s=1
-            // cookie for that name (the ManifestBuilder :442-448 split) and present it on the request.
+            // Resolve the cookie name exactly as handleDecoySession does (:1074-1078), then mint the
+            // decoy cookie at THIS deploy seed (the ManifestBuilder split) and present it on the
+            // request. Seeding the mint here mirrors the emulator's identitySeed() wiring, so the gate
+            // authenticates and the authed leg exercises the same value token production serves.
             $renderedName = (new DirectiveRenderer($deploySeed, $volatileProof, false))->render($cookieName, [], $renderSeed);
             if ($renderedName === '') {
                 $renderedName = $cookieName;
             }
-            $mint = (new DecoySession($FIXED_DECOY_KEY))->mintCookie($renderedName, $cookiePath);
+            $session = new DecoySession($FIXED_DECOY_KEY, $deploySeed);
+            $mint = $session->mintCookie($renderedName, $cookiePath);
+            // The complete Set-Cookie is byte-identical within a deploy (no per-request/clock entropy).
+            if ($mint !== $session->mintCookie($renderedName, $cookiePath)) {
+                $fail[] = "G-session: decoy mint is non-deterministic within a deploy at {$where}";
+            }
             $semi = strpos($mint, ';');
             $pair = $semi === false ? $mint : substr($mint, 0, $semi);
+            // The minted browser value must decode to THIS deploy's authenticated payload text.
+            $eqp = strpos($pair, '=');
+            $rawValue = $eqp === false ? '' : substr($pair, $eqp + 1);
+            $decoded = (new Honeytoken($FIXED_DECOY_KEY))->verifiedPayload($rawValue);
+            $expected = DecoySessionPayloads::authenticated($deploySeed);
+            if ($decoded !== $expected) {
+                $fail[] = "G-session: minted cookie does not decode to the seeded authenticated payload at {$where}";
+            }
+            // Scan the COMPLETE Set-Cookie header through G1 — the value token is a served byte too.
+            $scanLeaves($canon(new EmulatedContent('', ['Set-Cookie' => $mint], 200)), $id, "session {$id} [m={$material},{$rlabel}]");
             $r = new RequestContext('GET', $ownedPath, '', ['Cookie' => $pair]);
             $first = $emu->renderRule($rule, [], $renderSeed, $r);
             $second = $emu->renderRule($rule, [], $renderSeed, $r);
@@ -380,6 +400,10 @@ foreach ($attackRules as $rule) {
             }
             $scanLeaves($c1, $id, $where);
             $surfaceRuns[$surfaceKey][$material . '|' . $rlabel] = $c1;
+            // Record the DECODED value token (not the body) as a `session:` surface: it varies per
+            // deploy through the seeded payload alone, so G4 proves the wire token is de-fingerprinted
+            // independently of the authed body's persona variance.
+            $surfaceRuns['session:' . $id][$material . '|' . $rlabel] = (string) $decoded;
         }
     }
 }

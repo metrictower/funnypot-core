@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace Funnypot\Core\Tests;
 
+use Funnypot\Core\Behavior\DecoySession;
 use Funnypot\Core\Behavior\DecoyTables;
 use Funnypot\Core\Compiler\Crs\FingerprintGuard;
-use Funnypot\Core\Honeytoken;
 use Funnypot\Core\RequestContext;
 use Funnypot\Core\Support\PersonaIdentity;
 use Funnypot\Core\Support\VisualPersona;
@@ -14,8 +14,8 @@ use Funnypot\Core\Template\TemplateAttackEmulator;
 use PHPUnit\Framework\TestCase;
 
 /**
- * Phase B: the authed phpMyAdmin decoy dashboard. Once a request presents a verified `s=1` cookie the
- * gate renders a fabricated "breached database" through the shared core PhpMyAdminSkin. Pins:
+ * Phase B: the authed phpMyAdmin decoy dashboard. Once a request presents a verified authenticated
+ * cookie the gate renders a fabricated "breached database" through the shared core PhpMyAdminSkin. Pins:
  *  - the left tree lists THIS deploy's seeded table story (DecoyTables, FP-0282); the grid shows the
  *    selected one; the tree and the `?table=` whitelist are one seeded set (they cannot drift);
  *  - `?table=` accepts exactly this deploy's served names (unknown/absent/foreign -> the users-kind
@@ -63,19 +63,20 @@ final class PhpMyAdminAuthedDashboardTest extends TestCase
         return new TemplateAttackEmulator($rules, [], null, null, [], $personaSeed, self::KEY);
     }
 
-    /** The name=value pair a browser sends back, built directly from an s=1 cookie (no mint round-trip). */
-    private function authedCookie(): string
+    /** The name=value pair a browser sends back, minted at the SAME deploy seed the emulator gates with
+     *  (no mint round-trip). The seed must match the emulator's persona seed or the gate fails closed. */
+    private function authedCookie(int $seed = self::SEED): string
     {
-        $setCookie = (new Honeytoken(self::KEY))->cookie('phpMyAdmin', 's=1', '/phpmyadmin');
+        $setCookie = (new DecoySession(self::KEY, $seed))->mintCookie('phpMyAdmin', '/phpmyadmin');
         $semi = strpos($setCookie, ';');
 
         return $semi === false ? $setCookie : substr($setCookie, 0, $semi);
     }
 
     /** @return \Funnypot\Core\SynthesizedResponse|null */
-    private function authedGet(TemplateAttackEmulator $em, string $query = '')
+    private function authedGet(TemplateAttackEmulator $em, string $query = '', int $seed = self::SEED)
     {
-        return $em->emulate(new RequestContext('GET', '/phpmyadmin/index.php', $query, ['Cookie' => $this->authedCookie()]));
+        return $em->emulate(new RequestContext('GET', '/phpmyadmin/index.php', $query, ['Cookie' => $this->authedCookie($seed)]));
     }
 
     // --- table tree + selection -------------------------------------------------------------
@@ -234,7 +235,7 @@ final class PhpMyAdminAuthedDashboardTest extends TestCase
 
             // Every served name opens its own kind's grid.
             foreach (DecoyTables::forDeploy($seed) as $t) {
-                $r = $this->authedGet($em, 'table=' . $t['name']);
+                $r = $this->authedGet($em, 'table=' . $t['name'], $seed);
                 self::assertNotNull($r, "seed {$i} name {$t['name']}");
                 // The tree advertises exactly the served set.
                 foreach ($served as $n) {
@@ -250,7 +251,7 @@ final class PhpMyAdminAuthedDashboardTest extends TestCase
                 if (in_array($n, $served, true)) {
                     continue;
                 }
-                $r = $this->authedGet($em, 'table=' . $n);
+                $r = $this->authedGet($em, 'table=' . $n, $seed);
                 self::assertNotNull($r, "seed {$i} foreign {$n}");
                 self::assertStringContainsString('<th>username</th>', $r->body, "seed {$i}: foreign {$n} must fall back to users");
                 self::assertStringContainsString('>' . $default . '</h1>', $r->body, "seed {$i}: fallback heading = default name");
@@ -273,7 +274,7 @@ final class PhpMyAdminAuthedDashboardTest extends TestCase
     public function test_different_deploy_seed_diverges(): void
     {
         $a = $this->authedGet($this->emulator([$this->gateRule()], self::SEED));
-        $b = $this->authedGet($this->emulator([$this->gateRule()], self::SEED + 7));
+        $b = $this->authedGet($this->emulator([$this->gateRule()], self::SEED + 7), '', self::SEED + 7);
 
         self::assertNotNull($a);
         self::assertNotNull($b);

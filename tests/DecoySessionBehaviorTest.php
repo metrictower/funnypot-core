@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Funnypot\Core\Tests;
 
+use Funnypot\Core\Behavior\DecoySession;
+use Funnypot\Core\Behavior\DecoySessionPayloads;
 use Funnypot\Core\Behavior\DecoyTables;
 use Funnypot\Core\Honeytoken;
 use Funnypot\Core\RequestContext;
@@ -16,7 +18,7 @@ use PHPUnit\Framework\TestCase;
  * phpMyAdmin templates are authored in a later task):
  *  - the signing key is a hard kill switch, checked before any Honeytoken/DecoySession exists;
  *  - mint never reflects a submitted value into Location (no open redirect);
- *  - gate fails closed on anything but a verified `s=1` cookie;
+ *  - gate fails closed on anything but a verified authenticated cookie for THIS deploy;
  *  - an authored base `response` (the login page) is what every decline falls back to.
  */
 final class DecoySessionBehaviorTest extends TestCase
@@ -115,7 +117,7 @@ final class DecoySessionBehaviorTest extends TestCase
 
     // --- mint: success --------------------------------------------------------------------
 
-    public function test_mint_valid_creds_returns_302_with_signed_s1_cookie(): void
+    public function test_mint_valid_creds_returns_302_with_signed_authenticated_cookie(): void
     {
         $em = $this->emulator([$this->mintRule()]);
         $r = $em->emulate(new RequestContext('POST', '/phpmyadmin/index.php', '', [], $this->mintBody('alice', 'hunter2')));
@@ -126,14 +128,15 @@ final class DecoySessionBehaviorTest extends TestCase
         self::assertArrayHasKey('Set-Cookie', $r->headers);
         self::assertStringContainsString('path=/phpmyadmin; HttpOnly', $r->headers['Set-Cookie']);
 
-        // The token verifies and decodes to s=1 (mirrors DecoySession's own contract).
+        // The token verifies and decodes to this deploy's authenticated payload. The emulator is
+        // unwired (personaSeed null), so emulate()'s default seed 0 is the identity seed.
         $nameValue = $this->cookieHeaderFrom($r->headers['Set-Cookie']);
         $eq = strpos($nameValue, '=');
         self::assertNotFalse($eq);
         self::assertSame('phpMyAdmin', substr($nameValue, 0, $eq));
         $rawValue = substr($nameValue, $eq + 1);
         $payload = (new Honeytoken(self::KEY))->verifiedPayload($rawValue);
-        self::assertSame('s=1', $payload);
+        self::assertSame(DecoySessionPayloads::authenticated(0), $payload);
 
         // Key discipline: the signing key itself never appears in any emitted header/body.
         self::assertStringNotContainsString(self::KEY, $r->headers['Set-Cookie']);
@@ -208,7 +211,7 @@ final class DecoySessionBehaviorTest extends TestCase
 
     // --- gate: success/decline --------------------------------------------------------------
 
-    public function test_gate_valid_s1_cookie_returns_the_authed_dashboard(): void
+    public function test_gate_valid_authenticated_cookie_returns_the_authed_dashboard(): void
     {
         $mintEm = $this->emulator([$this->mintRule()]);
         $mint = $mintEm->emulate(new RequestContext('POST', '/phpmyadmin/index.php', '', [], $this->mintBody('alice', 'hunter2')));
@@ -235,21 +238,34 @@ final class DecoySessionBehaviorTest extends TestCase
         self::assertStringNotContainsString(self::KEY, $r->body);
     }
 
-    public function test_gate_valid_s0_cookie_is_not_authenticated(): void
+    public function test_gate_valid_pre_auth_cookie_is_not_authenticated(): void
     {
-        // A validly-signed s=0 (pre-auth marker) must NOT authenticate — different payload class,
-        // not a weaker s=1.
-        $mintEm = $this->emulator([$this->mintRule()]);
-        // Build an s=0 cookie the same way DecoySession would, without relying on a mint success.
-        $s0 = (new Honeytoken(self::KEY))->cookie('phpMyAdmin', 's=0', '/phpmyadmin');
-        $cookieHeader = $this->cookieHeaderFrom($s0);
+        // A validly-signed pre-auth marker must NOT authenticate — a different payload class, not a
+        // weaker authenticated token. Minted through DecoySession at the gate's identity seed (0, the
+        // unwired default), so it is a genuinely current pre-auth value, not a legacy literal.
+        $preAuth = (new DecoySession(self::KEY, 0))->preAuthCookie('phpMyAdmin', '/phpmyadmin');
+        $cookieHeader = $this->cookieHeaderFrom($preAuth);
 
         $gateEm = $this->emulator([$this->gateRule()]);
         $r = $gateEm->emulate(new RequestContext('GET', '/phpmyadmin/index.php', '', ['Cookie' => $cookieHeader]));
 
         self::assertNotNull($r);
         self::assertSame(self::LOGIN_STUB_GATE, $r->body);
-        self::assertStringNotContainsString('phpMyAdmin', $r->body, 's=0 must never render the authed dashboard');
+        self::assertStringNotContainsString('phpMyAdmin', $r->body, 'a pre-auth marker must never render the authed dashboard');
+    }
+
+    public function test_gate_legacy_literal_s1_cookie_is_not_authenticated(): void
+    {
+        // The retired fleet-constant token verifies under the key but is not this deploy's
+        // authenticated text, so it fails the exact-class comparison (no dual-accept for the old regex).
+        $legacy = (new Honeytoken(self::KEY))->cookie('phpMyAdmin', 's=1', '/phpmyadmin');
+        $cookieHeader = $this->cookieHeaderFrom($legacy);
+
+        $gateEm = $this->emulator([$this->gateRule()]);
+        $r = $gateEm->emulate(new RequestContext('GET', '/phpmyadmin/index.php', '', ['Cookie' => $cookieHeader]));
+
+        self::assertNotNull($r);
+        self::assertSame(self::LOGIN_STUB_GATE, $r->body);
     }
 
     public function test_gate_garbage_cookie_falls_back_to_login_page(): void

@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Funnypot\Core\Tests;
 
+use Funnypot\Core\Behavior\DecoySession;
+use Funnypot\Core\Behavior\DecoySessionPayloads;
 use Funnypot\Core\Behavior\DecoyTables;
 use Funnypot\Core\Compiler\Crs\FingerprintGuard;
 use Funnypot\Core\Honeytoken;
@@ -139,7 +141,7 @@ final class PhpMyAdminMockAuthTest extends TestCase
 
     // --- POST: mint on a plausible login -----------------------------------------------------
 
-    public function test_post_valid_credentials_mints_a_signed_s1_cookie_and_redirects(): void
+    public function test_post_valid_credentials_mints_a_signed_authenticated_cookie_and_redirects(): void
     {
         $r = $this->mintValidLogin();
 
@@ -151,8 +153,37 @@ final class PhpMyAdminMockAuthTest extends TestCase
         $eq = strpos($nameValue, '=');
         self::assertNotFalse($eq);
         self::assertSame('phpMyAdmin', substr($nameValue, 0, $eq));
+        // serve() drives the compiled rules unwired (personaSeed null), so emulate()'s default seed 0
+        // is the identity seed the cookie must decode to.
         $payload = (new Honeytoken(self::KEY))->verifiedPayload(substr($nameValue, $eq + 1));
-        self::assertSame('s=1', $payload, 'the minted cookie must decode to the authenticated payload class');
+        self::assertSame(DecoySessionPayloads::authenticated(0), $payload, 'the minted cookie must decode to the authenticated payload class');
+    }
+
+    public function test_minted_cookie_name_and_path_are_fixed_while_the_value_token_is_seeded(): void
+    {
+        // The fixed-name product proof (FP-0296): across deploys the phpMyAdmin cookie NAME and path stay
+        // constant while the signed value token (payload text + HMAC) varies — so a fixed cookie name can
+        // never make a variance check pass by accident. Within one deploy the mint is byte-identical.
+        $seedA = 0x5f0005;   // -> session=active
+        $seedB = 484348449122915112; // -> verified=yes
+        self::assertNotSame(DecoySessionPayloads::authenticated($seedA), DecoySessionPayloads::authenticated($seedB));
+
+        $a1 = (new DecoySession(self::KEY, $seedA))->mintCookie('phpMyAdmin', '/phpmyadmin');
+        $a2 = (new DecoySession(self::KEY, $seedA))->mintCookie('phpMyAdmin', '/phpmyadmin');
+        $b = (new DecoySession(self::KEY, $seedB))->mintCookie('phpMyAdmin', '/phpmyadmin');
+
+        self::assertSame($a1, $a2, 'one deploy mints a byte-identical Set-Cookie');
+        // Same fixed name and attribute tail.
+        self::assertStringStartsWith('phpMyAdmin=', $a1);
+        self::assertStringStartsWith('phpMyAdmin=', $b);
+        self::assertStringContainsString('; path=/phpmyadmin; HttpOnly', $a1);
+        self::assertStringContainsString('; path=/phpmyadmin; HttpOnly', $b);
+        // Different value token (payload + signature) across deploys.
+        self::assertNotSame(
+            $this->cookieHeaderFrom($a1),
+            $this->cookieHeaderFrom($b),
+            'the signed value token must differ across deploys under one fixed cookie name'
+        );
     }
 
     public function test_post_empty_password_declines_to_the_login_page_no_redirect(): void
@@ -235,12 +266,13 @@ final class PhpMyAdminMockAuthTest extends TestCase
         self::assertStringNotContainsString('Showing rows', $r->body);
     }
 
-    public function test_get_with_a_validly_signed_s0_cookie_is_not_authenticated(): void
+    public function test_get_with_a_validly_signed_pre_auth_cookie_is_not_authenticated(): void
     {
-        // A validly-signed s=0 (pre-auth marker class) must NOT authenticate — a different payload
-        // class, not a weaker s=1 (mirrors DecoySessionTest's own invariant).
-        $s0 = (new Honeytoken(self::KEY))->cookie('phpMyAdmin', 's=0', '/phpmyadmin');
-        $cookieHeader = $this->cookieHeaderFrom($s0);
+        // A validly-signed pre-auth marker must NOT authenticate — a different payload class, not a
+        // weaker authenticated token (mirrors DecoySessionTest's own invariant). Minted at seed 0, the
+        // unwired serve() identity seed.
+        $preAuth = (new DecoySession(self::KEY, 0))->preAuthCookie('phpMyAdmin', '/phpmyadmin');
+        $cookieHeader = $this->cookieHeaderFrom($preAuth);
 
         $r = $this->serve('GET', '/phpmyadmin/', '', ['Cookie' => $cookieHeader]);
 

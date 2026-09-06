@@ -7,12 +7,12 @@ owns_path: [/wp-admin, /wp-admin/]
 # 302s an unauthenticated request to wp-login.php?redirect_to=<self>&reauth=1 — it never 404s its own
 # admin entry point. 97-wp-login.yaml's mint 302s to exactly /wp-admin/, so the two are a linked pair.
 #
-# `behavior: decoy-session` mode `gate`, panel `wordpress`: a request carrying a verified `s=1` decoy
-# cookie (the one rule 97's mint set) renders the authed WordPress admin dashboard via
+# `behavior: decoy-session` mode `gate`, panel `wordpress`: a request carrying a verified authenticated
+# decoy cookie (the one rule 97's mint set) renders the authed WordPress admin dashboard via
 # WordpressSkin::renderAdmin (fabricated Users loot + planted API-key honeytoken). ANYTHING ELSE — no
-# cookie, a garbage value, a validly-signed but wrong-class s=0, a forged/wrong-key/truncated tag, the
+# cookie, a garbage value, a validly-signed but wrong-class pre-auth marker, a forged/wrong-key/truncated tag, the
 # signing key disabled, or a path/method variant this rule itself declines — falls back to the base
-# `response` below. Fail-closed by construction: the ONLY path to the authed body is a verified s=1
+# `response` below. Fail-closed by construction: the ONLY path to the authed body is a verified authenticated cookie
 # (DecoySession::isAuthenticated; see TemplateAttackEmulator::handleDecoySession's docblock).
 #
 # AC3 / DECLINE SHAPE (record so a reviewer doesn't "fix" it into a byte-drift): the gate's decline for

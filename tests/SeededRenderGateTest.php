@@ -116,9 +116,11 @@ final class SeededRenderGateTest extends TestCase
         self::assertStringContainsString('bundles synthesized', $text, 'the minimal-synth leg must run on the committed index');
         self::assertStringContainsString('authed gate renders', $text, 'the FP-0282 authed decoy leg must run on the committed rules');
         self::assertStringContainsString('seeded surfaces verified', $text);
-        // 26 rule-driven surfaces (FP-0284 added route-aws-cli-config + route-terraform-tfstate) + 2
-        // FP-0281 synth: aggregates + 2 FP-0282 authed: gates (phpMyAdmin + wp-admin) = 30.
-        self::assertMatchesRegularExpression('/(30|3[1-9]|[4-9]\d) seeded surfaces verified/', $text, 'the 26 rule surfaces + 2 synth aggregates + 2 authed gates must verify');
+        // 27 rule-driven surfaces (incl. FP-0284 route-aws-cli-config/route-terraform-tfstate + FP-0017
+        // route-web-inf-web-xml) + 2 FP-0281 synth: aggregates + 2 FP-0282 authed: gates (phpMyAdmin +
+        // wp-admin) + 1 FP-0296 session: value token = 32. Floor at 32 so a silently dropped surface
+        // (registry + authed-leg record removed together) fails the count, not just the stale-name check.
+        self::assertMatchesRegularExpression('/(3[2-9]|[4-9]\d) seeded surfaces verified/', $text, 'every registered seeded surface (incl. the FP-0296 session: value token) must verify');
         self::assertMatchesRegularExpression('/[1-9]\d* fleet-constant/', $text, 'the informational inventory must be non-empty');
         // FP-0287: any route-shadow line must follow the directional grammar. Transition-safe — this
         // does NOT require the committed corpus to still carry a shadow (FP-0320 may remove it), only

@@ -9,11 +9,13 @@ declare(strict_types=1);
  * ("the named surface varies per deploy") is machine-checked, and how a regression that silently
  * re-constants a surface is caught.
  *
- * Keys are '<kind>:<rule-id>' (kind ∈ attack|route|param|synth|authed); values are a short human note.
+ * Keys are '<kind>:<rule-id>' (kind ∈ attack|route|param|synth|authed|session); values are a short human note.
  * The `synth:` kind names an AGGREGATE surface over the whole nuclei index, rendered by the gate's
  * minimal-synth leg (--nuclei) rather than by a single rule. The `authed:` kind names a decoy-session
- * gate rendered WITH a minted s=1 cookie by the gate's authed leg (FP-0282), so its post-login table
- * story is checked (the attack loop renders gates position-blind, where they decline). TRACKED and
+ * gate rendered WITH a minted authenticated cookie by the gate's authed leg (FP-0282), so its post-login
+ * table story is checked (the attack loop renders gates position-blind, where they decline). The
+ * `session:` kind names the decoy-session VALUE TOKEN the same leg mints (FP-0296): its decoded
+ * authenticated payload text, which varies per deploy independently of the body. TRACKED and
  * APPEND-ONLY: FP-0277..FP-0284 each append the surface(s) they convert from fleet-constant to
  * per-deploy. The initial entries are surfaces that already vary through {{persona.*}} at a469c71 —
  * the regression baseline the siblings build on. The gate's fleet-constant inventory (informational)
@@ -87,6 +89,10 @@ return [
     // The phpMyAdmin authed dashboard's seeded table story: tree/whitelist names, column convention,
     // dropped optional table — one seeded set (DecoyTables) serving BOTH the tree and the ?table= set.
     'authed:attack-phpmyadmin-gate' => 'FP-0282 seeded decoy table story (tree/whitelist names, column convention, subset)',
+    // FP-0296: the decoy-session VALUE token minted for the phpMyAdmin gate — the decoded authenticated
+    // payload text. A fixed-name product (cookie `phpMyAdmin`), so this is the strongest proof G4 is
+    // measuring the seeded value token, not a separately seeded cookie NAME.
+    'session:attack-phpmyadmin-gate' => 'FP-0296 seeded decoy-session value token (decoded authenticated payload per deploy)',
     // The wp-admin authed dashboard's loot (the five persona WordPress users) varies per deploy; rendered
     // by the same authed leg (owns_path ["/wp-admin"] via the $owned[0] fallback).
     'authed:attack-wp-admin-redirect' => 'FP-0276-origin (persona users) — registered by FP-0282 authed leg',

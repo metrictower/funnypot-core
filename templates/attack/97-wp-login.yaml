@@ -17,7 +17,7 @@ owns_path: [/wp-login.php]
 # username `admin`, never the submitted one, so a crafted username can never surface in the response.
 #
 # MOCK-AUTH MINT (behavior: decoy-session, mode: mint) — the phpMyAdmin pair's exact pattern applied to
-# wp-login. A plausible non-empty log/pwd mints the signed `s=1` decoy cookie and 302s to the FIXED
+# wp-login. A plausible non-empty log/pwd mints the signed authenticated decoy cookie and 302s to the FIXED
 # literal /wp-admin/ (the authored `redirect`; never a submitted value, so no open redirect). An
 # empty/whitespace/implausible credential DECLINES to the base `response` below — this SAME login-error
 # page, HTTP 200, byte-identical to today (no 302, no session cookie). The mint is scoped to PARITY with
