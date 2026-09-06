@@ -1,0 +1,28 @@
+id: route-dirlist-wp-uploads
+priority: 180
+# Path-aware listing of /wp-content/uploads/. route_key-guarded to that key. Its links —
+# database-backups/ (a served sub-listing) and debug.log — resolve; the parent link resolves to the
+# /wp-content/ forbidden parent. The bundle's "Index of /" word sits in the title (FP-0316).
+match:
+  template_needle: [directory-listing]
+  route_key: ['GET /wp-content/uploads/']
+response:
+  headers:
+    Content-Type: "text/html; charset=utf-8"
+  body: |
+    <!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 3.2 Final//EN">
+    <html><head><title>Index of /wp-content/uploads</title></head>
+    <body>
+    <h1>Index of /wp-content/uploads</h1>
+    <pre><a href="?C=N;O=D">Name</a>  <a href="?C=M;O=A">Last modified</a>  <a href="?C=S;O=A">Size</a>
+    <hr>
+    <a href="../">Parent Directory</a>                                -
+    <a href="database-backups/">database-backups/</a>  2024-01-01 12:00    -
+    <a href="debug.log">debug.log</a>                  2024-01-01 12:00  771
+    <hr></pre>
+    <address>Apache Server at {{persona.company.domain}} Port 80</address>
+    </body></html>
+taunt: { mode: block, open: '<!--', close: '-->' }
+expect:
+  - 'Index of /wp-content/uploads'
+  - 'href="database-backups/"'

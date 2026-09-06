@@ -1,0 +1,26 @@
+id: route-sap-km-repository
+priority: 245
+# Brand-new page: the repository.xml the SAP KM navigation listing (route-dirlist-sap-km) links —
+# wiring it keeps that link live. Inert SAP NetWeaver KM repository-metadata XML. No secret, no I/O.
+new_page:
+  method: GET
+  paths: ['/irj/go/km/navigation/repository.xml']
+  sig: 0
+  status: 200
+  severity: medium
+  tags: [exposure, sap, netweaver, km]
+  name: 'Exposed SAP KM repository metadata'
+  body_words: ['<repository']
+response:
+  headers:
+    Content-Type: "text/xml; charset=utf-8"
+  body: |
+    <?xml version="1.0" encoding="utf-8"?>
+    <repository name="documents" active="true" prefix="/documents">
+      <property name="description" value="Knowledge Management document repository" />
+      <property name="rid.rootFolder" value="/documents" />
+      <property name="repositoryManager" value="com.sapportals.wcm.repository.manager.cm.CmRepositoryManager" />
+    </repository>
+expect:
+  - '<repository'
+  - '/documents'

@@ -1,0 +1,30 @@
+id: route-dirlist-glpi
+priority: 180
+# Path-aware listing of a /glpi/ install directory. route_key-guarded to GET /glpi/. Its links —
+# files/ (the existing GLPI files listing) and status.php (a served GLPI endpoint) — resolve. The
+# bundle's "glpi-project.org" project word rides in an HTML comment (FP-0316).
+match:
+  template_needle: [directory-listing]
+  route_key: ['GET /glpi/']
+response:
+  headers:
+    Content-Type: "text/html; charset=utf-8"
+  body: |
+    <!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 3.2 Final//EN">
+    <html><head><title>Index of /glpi</title></head>
+    <body>
+    <h1>Index of /glpi</h1>
+    <pre><a href="?C=N;O=D">Name</a>  <a href="?C=M;O=A">Last modified</a>  <a href="?C=S;O=A">Size</a>
+    <hr>
+    <a href="../">Parent Directory</a>              -
+    <a href="files/">files/</a>          2024-01-01 12:00    -
+    <a href="status.php">status.php</a>  2024-01-01 12:00   612
+    <hr></pre>
+    <address>Apache Server at {{persona.company.domain}} Port 80</address>
+    <!-- glpi-project.org -->
+    </body></html>
+taunt: { mode: block, open: '<!--', close: '-->' }
+expect:
+  - 'Index of /glpi'
+  - 'href="files/"'
+  - 'glpi-project.org'

@@ -1,0 +1,28 @@
+id: route-dirlist-wp-includes
+priority: 180
+# Path-aware listing of /wp-includes/. route_key-guarded to that key. Its links — rss-functions.php
+# and ALFA_DATA/ (a served sub-listing, a classic webshell drop) — resolve; the parent link resolves
+# to the site root. The bundle's "Index of /" word sits in the title (FP-0316).
+match:
+  template_needle: [directory-listing]
+  route_key: ['GET /wp-includes/']
+response:
+  headers:
+    Content-Type: "text/html; charset=utf-8"
+  body: |
+    <!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 3.2 Final//EN">
+    <html><head><title>Index of /wp-includes</title></head>
+    <body>
+    <h1>Index of /wp-includes</h1>
+    <pre><a href="?C=N;O=D">Name</a>  <a href="?C=M;O=A">Last modified</a>  <a href="?C=S;O=A">Size</a>
+    <hr>
+    <a href="../">Parent Directory</a>                              -
+    <a href="rss-functions.php">rss-functions.php</a>  2024-01-01 12:00  45
+    <a href="ALFA_DATA/">ALFA_DATA/</a>                2024-01-01 12:00   -
+    <hr></pre>
+    <address>Apache Server at {{persona.company.domain}} Port 80</address>
+    </body></html>
+taunt: { mode: block, open: '<!--', close: '-->' }
+expect:
+  - 'Index of /wp-includes'
+  - 'href="ALFA_DATA/"'

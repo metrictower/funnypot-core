@@ -1,0 +1,29 @@
+id: route-dirlist-sap-km
+priority: 180
+# Path-aware listing of an SAP NetWeaver KM /irj/go/km/navigation/ directory. route_key-guarded to
+# that key. Its one link, repository.xml, resolves to route-sap-km-repository; the parent link
+# resolves to the /irj/go/km/ forbidden parent. The bundle's SAP detector literals ride in an HTML
+# comment; its text/html header word is carried by the Content-Type (FP-0316).
+match:
+  template_needle: [directory-listing]
+  route_key: ['GET /irj/go/km/navigation/']
+response:
+  headers:
+    Content-Type: "text/html; charset=utf-8"
+  body: |
+    <!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 3.2 Final//EN">
+    <html><head><title>Index of /irj/go/km/navigation</title></head>
+    <body>
+    <h1>Index of /irj/go/km/navigation</h1>
+    <pre><a href="?C=N;O=D">Name</a>  <a href="?C=M;O=A">Last modified</a>  <a href="?C=S;O=A">Size</a>
+    <hr>
+    <a href="../">Parent Directory</a>                    -
+    <a href="repository.xml">repository.xml</a>  2024-01-01 12:00  3.7K
+    <hr></pre>
+    <address>Apache Server at {{persona.company.domain}} Port 80</address>
+    <!-- title="~system" NetWeaver -->
+    </body></html>
+taunt: { mode: block, open: '<!--', close: '-->' }
+expect:
+  - 'Index of /irj/go/km/navigation'
+  - 'href="repository.xml"'

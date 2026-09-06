@@ -1,0 +1,29 @@
+id: route-dirlist-app-plugins
+priority: 180
+# Path-aware listing of an ASP.NET /App_Plugins/ directory (Umbraco). route_key-guarded to GET
+# /App_Plugins/. Its one link, packages.config, resolves to route-app-plugins-packages. The
+# bundle's IIS detector literals (with the trailing-slash /App_Plugins/) ride in an HTML comment
+# (FP-0316).
+match:
+  template_needle: [directory-listing]
+  route_key: ['GET /App_Plugins/']
+response:
+  headers:
+    Content-Type: "text/html; charset=utf-8"
+  body: |
+    <!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 3.2 Final//EN">
+    <html><head><title>Index of /App_Plugins</title></head>
+    <body>
+    <h1>Index of /App_Plugins</h1>
+    <pre><a href="?C=N;O=D">Name</a>  <a href="?C=M;O=A">Last modified</a>  <a href="?C=S;O=A">Size</a>
+    <hr>
+    <a href="../">Parent Directory</a>                      -
+    <a href="packages.config">packages.config</a>  2024-01-01 12:00  1.2K
+    <hr></pre>
+    <address>Apache Server at {{persona.company.domain}} Port 80</address>
+    <!-- [To Parent Directory] /App_Plugins/ -->
+    </body></html>
+taunt: { mode: block, open: '<!--', close: '-->' }
+expect:
+  - 'Index of /App_Plugins'
+  - 'href="packages.config"'

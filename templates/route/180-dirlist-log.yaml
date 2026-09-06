@@ -1,0 +1,30 @@
+id: route-dirlist-log
+priority: 180
+# Path-aware listing of a /log/ directory. route_key-guarded to GET /log/. Its three links —
+# access.log, error.log, debug.log — resolve to served log lures. The bundle pins the exact
+# <title>Index of /log</title> element and the Parent Directory link text, both in the document
+# (FP-0316).
+match:
+  template_needle: [directory-listing]
+  route_key: ['GET /log/']
+response:
+  headers:
+    Content-Type: "text/html; charset=utf-8"
+  body: |
+    <!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 3.2 Final//EN">
+    <html><head><title>Index of /log</title></head>
+    <body>
+    <h1>Index of /log</h1>
+    <pre><a href="?C=N;O=D">Name</a>  <a href="?C=M;O=A">Last modified</a>  <a href="?C=S;O=A">Size</a>
+    <hr>
+    <a href="../">Parent Directory</a>                -
+    <a href="access.log">access.log</a>  2024-01-01 12:00  778
+    <a href="error.log">error.log</a>    2024-01-01 12:00  778
+    <a href="debug.log">debug.log</a>    2024-01-01 12:00  778
+    <hr></pre>
+    <address>Apache Server at {{persona.company.domain}} Port 80</address>
+    </body></html>
+taunt: { mode: block, open: '<!--', close: '-->' }
+expect:
+  - '<title>Index of /log</title>'
+  - 'href="access.log"'

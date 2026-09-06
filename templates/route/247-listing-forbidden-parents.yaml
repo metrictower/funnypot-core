@@ -1,0 +1,30 @@
+id: route-listing-forbidden-parents
+priority: 247
+# Brand-new pages: the three ../ parents the FP-0316 listings point at that no corpus route serves —
+# /irj/go/km/, /php/ and /wp-content/. Serving each a deliberate Apache 403 keeps every Parent
+# Directory link resolvable (a 404/LLM there would be a dead-link tell) while staying consistent with
+# a real server that denies indexing at those levels. Status is app-chosen (403), never model-chosen.
+new_page:
+  method: GET
+  paths: ['/irj/go/km/', '/php/', '/wp-content/']
+  sig: 0
+  status: 403
+  severity: info
+  tags: [exposure, forbidden, directory-parent]
+  name: 'Forbidden directory parent'
+  body_words: ['403 Forbidden']
+response:
+  headers:
+    Content-Type: "text/html; charset=utf-8"
+  body: |
+    <!DOCTYPE HTML PUBLIC "-//IETF//DTD HTML 2.0//EN">
+    <html><head><title>403 Forbidden</title></head>
+    <body>
+    <h1>Forbidden</h1>
+    <p>You don't have permission to access this resource.</p>
+    <hr>
+    <address>Apache Server at {{persona.company.domain}} Port 80</address>
+    </body></html>
+expect:
+  - '403 Forbidden'
+  - 'Forbidden'

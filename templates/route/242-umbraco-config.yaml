@@ -1,0 +1,33 @@
+id: route-umbraco-config
+priority: 242
+# Brand-new page: the umbraco.config the /App_Data/ listing (route-dirlist-app-data) links — wiring it
+# keeps that link live. Inert XML carrying the persona's own DB connection values (Npgsql, matching the
+# deploy's Postgres identity so every config-disclosure surface agrees). No real secret, no I/O.
+new_page:
+  method: GET
+  paths: ['/App_Data/umbraco.config']
+  sig: 0
+  status: 200
+  severity: high
+  tags: [exposure, cms, umbraco, config]
+  name: 'Exposed Umbraco config'
+  body_words: ['umbracoDbDSN']
+response:
+  headers:
+    Content-Type: "text/xml; charset=utf-8"
+  body: |
+    <?xml version="1.0" encoding="utf-8"?>
+    <umbraco>
+      <settings>
+        <content>
+          <MacroErrors>inline</MacroErrors>
+          <disallowedUploadFiles>ashx,aspx,ascx,config,cshtml,vbhtml,asmx,air,axd</disallowedUploadFiles>
+        </content>
+      </settings>
+      <connectionStrings>
+        <add name="umbracoDbDSN" connectionString="Host={{persona.db.host}};Port=5432;Database={{persona.db.name}};Username={{persona.db.user}};Password={{persona.db.password}}" providerName="Npgsql" />
+      </connectionStrings>
+    </umbraco>
+expect:
+  - '<umbraco>'
+  - 'umbracoDbDSN'

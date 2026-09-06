@@ -1,0 +1,31 @@
+id: route-php-backup-config
+priority: 246
+# Brand-new page: the config.php.bak the /php/backup/ listing (route-dirlist-php-backup) links —
+# wiring it keeps that link live. A raw PHP source leak (served text/plain, NEVER application/x-php)
+# carrying the persona's own Postgres DB credential, so it agrees with every other config-disclosure
+# surface on this deploy. No real secret, no I/O.
+new_page:
+  method: GET
+  paths: ['/php/backup/config.php.bak']
+  sig: 0
+  status: 200
+  severity: high
+  tags: [exposure, php, config, credentials]
+  name: 'Exposed PHP config backup'
+  body_words: ['db_pass', 'db_user']
+response:
+  headers:
+    Content-Type: "text/plain; charset=utf-8"
+  body: |
+    <?php
+    // database configuration — restore before deploy
+    $config = array(
+        'db_host' => '{{persona.db.host}}',
+        'db_port' => 5432,
+        'db_name' => '{{persona.db.name}}',
+        'db_user' => '{{persona.db.user}}',
+        'db_pass' => '{{persona.db.password}}',
+    );
+expect:
+  - "'db_user'"
+  - "'db_pass'"

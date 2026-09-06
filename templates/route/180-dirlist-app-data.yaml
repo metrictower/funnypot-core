@@ -1,0 +1,28 @@
+id: route-dirlist-app-data
+priority: 180
+# Path-aware listing of an ASP.NET /App_Data/ directory (Umbraco). route_key-guarded to GET
+# /App_Data/. Its one link, umbraco.config, resolves to route-umbraco-config. The bundle's IIS
+# detector literals ride in an HTML comment (FP-0316).
+match:
+  template_needle: [directory-listing]
+  route_key: ['GET /App_Data/']
+response:
+  headers:
+    Content-Type: "text/html; charset=utf-8"
+  body: |
+    <!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 3.2 Final//EN">
+    <html><head><title>Index of /App_Data</title></head>
+    <body>
+    <h1>Index of /App_Data</h1>
+    <pre><a href="?C=N;O=D">Name</a>  <a href="?C=M;O=A">Last modified</a>  <a href="?C=S;O=A">Size</a>
+    <hr>
+    <a href="../">Parent Directory</a>                    -
+    <a href="umbraco.config">umbraco.config</a>  2024-01-01 12:00  184K
+    <hr></pre>
+    <address>Apache Server at {{persona.company.domain}} Port 80</address>
+    <!-- [To Parent Directory] /App_Plugins/ -->
+    </body></html>
+taunt: { mode: block, open: '<!--', close: '-->' }
+expect:
+  - 'Index of /App_Data'
+  - 'href="umbraco.config"'

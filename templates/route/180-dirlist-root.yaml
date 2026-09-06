@@ -1,0 +1,31 @@
+id: route-dirlist-root
+priority: 180
+# Path-aware directory listing for the site root, replacing the old one-size "Index of /backup"
+# enrich. The route_key guard pins this body to GET / only (conjunctive with the directory-listing
+# needle), so no other listing key can ever receive it. Its links resolve to served management
+# endpoints. The bundle is a Tomcat autoindex + JK status; its awkward detector literals ride in an
+# HTML comment so the visible document stays a coherent Apache autoindex (FP-0316).
+match:
+  template_needle: [directory-listing]
+  route_key: ['GET /']
+response:
+  headers:
+    Content-Type: "text/html; charset=utf-8"
+  body: |
+    <!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 3.2 Final//EN">
+    <html><head><title>Index of /</title></head>
+    <body>
+    <h1>Index of /</h1>
+    <pre><a href="?C=N;O=D">Name</a>  <a href="?C=M;O=A">Last modified</a>  <a href="?C=S;O=A">Size</a>
+    <hr>
+    <a href="server-info">server-info</a>        2024-01-01 12:00    -
+    <a href="server-status">server-status</a>    2024-01-01 12:00    -
+    <a href="jkstatus">jkstatus</a>              2024-01-01 12:00    -
+    <hr></pre>
+    <address>Apache Server at {{persona.company.domain}} Port 80</address>
+    <!-- Directory Listing For / — JK Status Manager -->
+    </body></html>
+taunt: { mode: block, open: '<!--', close: '-->' }
+expect:
+  - 'Index of /'
+  - 'href="server-status"'

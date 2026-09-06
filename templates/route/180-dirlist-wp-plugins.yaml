@@ -1,0 +1,29 @@
+id: route-dirlist-wp-plugins
+priority: 180
+# Path-aware listing of /wp-content/plugins/. route_key-guarded to that key. Its links are the
+# resolvable plugin readme files (a bare akismet/ dir link would dangle — the corpus serves the
+# readme.txt, not the plugin index); the parent link resolves to the /wp-content/ forbidden parent.
+# The bundle's "Index of /" word sits in the title (FP-0316).
+match:
+  template_needle: [directory-listing]
+  route_key: ['GET /wp-content/plugins/']
+response:
+  headers:
+    Content-Type: "text/html; charset=utf-8"
+  body: |
+    <!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 3.2 Final//EN">
+    <html><head><title>Index of /wp-content/plugins</title></head>
+    <body>
+    <h1>Index of /wp-content/plugins</h1>
+    <pre><a href="?C=N;O=D">Name</a>  <a href="?C=M;O=A">Last modified</a>  <a href="?C=S;O=A">Size</a>
+    <hr>
+    <a href="../">Parent Directory</a>                                        -
+    <a href="akismet/readme.txt">akismet/readme.txt</a>          2024-01-01 12:00  8.7K
+    <a href="ad-inserter/readme.txt">ad-inserter/readme.txt</a>  2024-01-01 12:00   14K
+    <hr></pre>
+    <address>Apache Server at {{persona.company.domain}} Port 80</address>
+    </body></html>
+taunt: { mode: block, open: '<!--', close: '-->' }
+expect:
+  - 'Index of /wp-content/plugins'
+  - 'href="akismet/readme.txt"'

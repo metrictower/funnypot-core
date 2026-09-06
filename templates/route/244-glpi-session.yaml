@@ -1,0 +1,25 @@
+id: route-glpi-session
+priority: 244
+# Brand-new page: the PHP session file both GLPI _sessions listings link (route-dirlist-files-sessions
+# and route-dirlist-glpi-files-sessions) — one archetype serving both sess_ paths keeps those links
+# live. Inert PHP-serialized session with fabricated values; the s:N: length prefixes are hand-matched
+# to their literals, and the one variable slot is a fixed-width fake hex, so the dump stays parseable.
+new_page:
+  method: GET
+  paths:
+    - '/files/_sessions/sess_8f640be55b7e9080c1ad18f6d9'
+    - '/glpi/files/_sessions/sess_8f640be55b7e9080c1ad18f6d9'
+  sig: 0
+  status: 200
+  severity: high
+  tags: [exposure, glpi, session, pii]
+  name: 'Exposed GLPI PHP session'
+  body_words: ['glpi_currenttime', 'glpicookietest']
+response:
+  headers:
+    Content-Type: "text/plain; charset=utf-8"
+  body: |
+    glpiID|i:2;glpiname|s:5:"admin";glpiactiveprofile|i:4;glpiactiveprofile_interface|s:7:"central";glpi_currenttime|s:19:"2024-01-01 12:00:00";glpicookietest|s:32:"{{fake.glpicookie:hex:32}}";glpilanguage|s:5:"en_GB";
+expect:
+  - 'glpi_currenttime'
+  - 'glpicookietest'

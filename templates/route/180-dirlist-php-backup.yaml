@@ -1,0 +1,29 @@
+id: route-dirlist-php-backup
+priority: 180
+# Path-aware listing of a /php/backup/ directory. route_key-guarded to GET /php/backup/. Its one link,
+# config.php.bak, resolves to route-php-backup-config; the parent link resolves to the /php/ forbidden
+# parent. The bundle's regex witness ("Index of a/backup") is placed verbatim in an HTML comment so
+# the rich body serves instead of the bare-witness minimal fallback (FP-0316).
+match:
+  template_needle: [directory-listing]
+  route_key: ['GET /php/backup/']
+response:
+  headers:
+    Content-Type: "text/html; charset=utf-8"
+  body: |
+    <!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 3.2 Final//EN">
+    <html><head><title>Index of /php/backup</title></head>
+    <body>
+    <h1>Index of /php/backup</h1>
+    <pre><a href="?C=N;O=D">Name</a>  <a href="?C=M;O=A">Last modified</a>  <a href="?C=S;O=A">Size</a>
+    <hr>
+    <a href="../">Parent Directory</a>                    -
+    <a href="config.php.bak">config.php.bak</a>  2024-01-01 12:00  1.9K
+    <hr></pre>
+    <address>Apache Server at {{persona.company.domain}} Port 80</address>
+    <!-- Index of a/backup -->
+    </body></html>
+taunt: { mode: block, open: '<!--', close: '-->' }
+expect:
+  - 'Index of /php/backup'
+  - 'href="config.php.bak"'

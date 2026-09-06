@@ -1,0 +1,29 @@
+id: route-dirlist-wp-themes
+priority: 180
+# Path-aware listing of /wp-content/themes/. route_key-guarded to that key. Its links are the
+# resolvable theme source files (the corpus serves storefront/functions.php and header.php, not a
+# theme index); the parent link resolves to the /wp-content/ forbidden parent. The bundle's "Index
+# of /" word sits in the title (FP-0316).
+match:
+  template_needle: [directory-listing]
+  route_key: ['GET /wp-content/themes/']
+response:
+  headers:
+    Content-Type: "text/html; charset=utf-8"
+  body: |
+    <!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 3.2 Final//EN">
+    <html><head><title>Index of /wp-content/themes</title></head>
+    <body>
+    <h1>Index of /wp-content/themes</h1>
+    <pre><a href="?C=N;O=D">Name</a>  <a href="?C=M;O=A">Last modified</a>  <a href="?C=S;O=A">Size</a>
+    <hr>
+    <a href="../">Parent Directory</a>                                              -
+    <a href="storefront/functions.php">storefront/functions.php</a>  2024-01-01 12:00   39
+    <a href="storefront/header.php">storefront/header.php</a>        2024-01-01 12:00   39
+    <hr></pre>
+    <address>Apache Server at {{persona.company.domain}} Port 80</address>
+    </body></html>
+taunt: { mode: block, open: '<!--', close: '-->' }
+expect:
+  - 'Index of /wp-content/themes'
+  - 'href="storefront/functions.php"'

@@ -1,0 +1,28 @@
+id: route-app-plugins-packages
+priority: 243
+# Brand-new page: the packages.config the /App_Plugins/ listing (route-dirlist-app-plugins) links —
+# wiring it keeps that link live. Inert NuGet package-inventory XML (a real .NET restore manifest
+# shape). No secret, no I/O; deterministic per deploy/request seed.
+new_page:
+  method: GET
+  paths: ['/App_Plugins/packages.config']
+  sig: 0
+  status: 200
+  severity: medium
+  tags: [exposure, dotnet, nuget]
+  name: 'Exposed NuGet packages.config'
+  body_words: ['<packages>']
+response:
+  headers:
+    Content-Type: "text/xml; charset=utf-8"
+  body: |
+    <?xml version="1.0" encoding="utf-8"?>
+    <packages>
+      <package id="Umbraco.Cms" version="10.8.1" targetFramework="net6.0" />
+      <package id="Newtonsoft.Json" version="13.0.3" targetFramework="net6.0" />
+      <package id="Serilog" version="3.1.1" targetFramework="net6.0" />
+      <package id="Microsoft.Extensions.Configuration" version="6.0.1" targetFramework="net6.0" />
+    </packages>
+expect:
+  - '<packages>'
+  - 'Umbraco.Cms'

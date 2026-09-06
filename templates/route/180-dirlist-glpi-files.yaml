@@ -1,0 +1,27 @@
+id: route-dirlist-glpi-files
+priority: 180
+# Path-aware listing of /glpi/files/. route_key-guarded to GET /glpi/files/. Its one link, _sessions/,
+# resolves to the served /glpi/files/_sessions/ listing; the parent link resolves to /glpi/. All three
+# required product words (Index of / Parent Directory / glpi) sit in the visible document (FP-0316).
+match:
+  template_needle: [directory-listing]
+  route_key: ['GET /glpi/files/']
+response:
+  headers:
+    Content-Type: "text/html; charset=utf-8"
+  body: |
+    <!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 3.2 Final//EN">
+    <html><head><title>Index of /glpi/files</title></head>
+    <body>
+    <h1>Index of /glpi/files</h1>
+    <pre><a href="?C=N;O=D">Name</a>  <a href="?C=M;O=A">Last modified</a>  <a href="?C=S;O=A">Size</a>
+    <hr>
+    <a href="../">Parent Directory</a>          -
+    <a href="_sessions/">_sessions/</a>  2024-01-01 12:00    -
+    <hr></pre>
+    <address>Apache Server at {{persona.company.domain}} Port 80</address>
+    </body></html>
+taunt: { mode: block, open: '<!--', close: '-->' }
+expect:
+  - 'Index of /glpi/files'
+  - 'href="_sessions/"'
