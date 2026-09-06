@@ -15,7 +15,10 @@ declare(strict_types=1);
  *   G1  fingerprint-clean — no served byte carries an upstream-detector signature (the denylist, as-is).
  *   G2  markers present   — every YAML `expect:` marker is a substring of the rule's base render at
  *                            every grid point (base `response` render with empty captures, so a
- *                            behavior rule that picks a non-base body cannot false-fail this).
+ *                            behavior rule that picks a non-base body cannot false-fail this). This is
+ *                            AUTHORED-marker validation, independent of selector reachability: a route
+ *                            rule shadowed by a higher-priority sibling is still marker-checked here,
+ *                            but that is not proof runtime served it (G3/G4 over the SELECTED bytes is).
  *   G3  determinism       — the two renders at one (deploySeed, renderSeed) point are byte-identical,
  *                            modulo the ONE legitimate per-request variance these render paths carry:
  *                            the route Set-Cookie random value (E2). This gate renders BELOW the
@@ -57,6 +60,14 @@ declare(strict_types=1);
  *   G-authed  servability   — the authed body must render (not the fail-closed login/base decline); a
  *                             seeded table name tripping the runtime FingerprintGuard at some seed is
  *                             caught here rather than leaking as a silent decline.
+ *
+ * ROUTE PRIORITY SHADOWS. First-match route selection means a synthetic witness built from one rule's
+ * selector can be captured by a higher-priority sibling. The route leg keeps the requested and selected
+ * ids distinct: a normal selection is inventoried as `route:<requested>`, a shadow as the directional
+ * alias `route-shadow:<requested>-><selected>` with one deterministic `INFO: route shadow: …` line, and
+ * a null/id-less selection is a hard self-test failure. G3/G4 always scan the actual SELECTED bytes and
+ * classify binary-vs-text by the SELECTED rule, so a shadow never certifies the unreachable requested
+ * renderer under its own key.
  *
  *   php scripts/ci/check-seeded-render.php
  *     [--attack=PATH] [--routes=PATH] [--param=PATH] [--templates=DIR] [--surfaces=PATH] [--nuclei=PATH]
@@ -375,34 +386,61 @@ foreach ($attackRules as $rule) {
 
 // ---------------------------------------------------------------------------------------------------
 // ROUTE rules render through RouteTemplateEmulator with a synthetic bundle built from the rule's own
-// selector; the gate asserts the bundle re-selects that rule (a mis-selection is a gate error).
+// selector. First-match priority means the set can pick a HIGHER-priority rule than the one the bundle
+// was built from (a priority shadow); RouteTemplateEmulator then serves THAT selected rule's bytes. So
+// the gate keeps the requested and selected identities distinct: it scans the actual selected bytes and
+// inventories a normal selection under `route:<requested>`, a shadow under the directional alias
+// `route-shadow:<requested>-><selected>`. A shadow is never filed as coverage for the unreachable
+// requested renderer, so registering `route:<shadowed-requested>` fails closed as a stale entry.
+// Binary-vs-text scanning follows the SELECTED rule's `bin` (the served bytes are its render). A null or
+// id-less selection is a self-test failure (a config/selector regression), rendered and inventoried
+// nowhere. G2 (checkMarkers) stays REQUESTED-rule authored-marker validation — valuable even for an
+// unreachable rule, but not proof runtime served it — so it gates on the requested rule's own `bin`.
 // ---------------------------------------------------------------------------------------------------
 $routeSet = new RouteTemplateSet($routeRules);
+$routeShadows = []; // list<string> "<requested> -> <selected>" — one deterministic INFO line each
 foreach ($routeRules as $rule) {
     if (!is_array($rule)) {
         continue;
     }
-    $id = (string) ($rule['id'] ?? '?');
-    $surfaceKey = 'route:' . $id;
+    $requestedId = (string) ($rule['id'] ?? '?');
     $bundle = routeBundle((array) ($rule['match'] ?? []));
     if ($bundle === null) {
-        $fail[] = "G-selftest route '{$id}': no synthetic bundle could be built from its match selector";
+        $fail[] = "G-selftest route '{$requestedId}': no synthetic bundle could be built from its match selector";
         continue;
     }
     $selected = $routeSet->findRule($bundle);
-    if ($selected === null || (string) ($selected['id'] ?? '') !== $id) {
-        // A higher-priority rule legitimately shadows this one for the synthetic bundle: render the
-        // rule the set actually selects (so coverage is not lost) but note it.
-        $selectedId = $selected === null ? '<none>' : (string) ($selected['id'] ?? '?');
-        // Not a hard fail — priority shadowing is real — but the selected rule is what serves, so drive
-        // the emulator with the bundle and let it render whatever the set picks.
+    if ($selected === null) {
+        // Defense-in-depth: routeBundle() and RouteTemplateSet::selects() are symmetric over the same
+        // rule set, so a non-null bundle always selects at least its own rule — a null here is a
+        // selector regression, not coverage. Render nothing, inventory nothing.
+        $fail[] = "G-selftest route '{$requestedId}': synthetic bundle selected no rule";
+        continue;
     }
+    $selectedId = isset($selected['id']) ? (string) $selected['id'] : '';
+    if ($selectedId === '') {
+        // An id-less selected rule cannot be attributed truthfully; fail rather than mint a `?` key.
+        $fail[] = "G-selftest route '{$requestedId}': selected rule has no usable id";
+        continue;
+    }
+    if ($selectedId === $requestedId) {
+        $surfaceKey = 'route:' . $requestedId;
+        $diag = "route {$requestedId}";
+    } else {
+        $surfaceKey = 'route-shadow:' . $requestedId . '->' . $selectedId;
+        $diag = "route shadow {$requestedId} -> {$selectedId}";
+        $routeShadows[] = "{$requestedId} -> {$selectedId}";
+    }
+    // Selected-rule bin drives the served-byte scan; the requested rule's bin still gates its own G2
+    // authored-marker check, so a requested-text/selected-binary shadow neither skips a real marker
+    // check nor feeds opaque bytes to the text scan.
+    $selectedIsBin = !empty($selected['bin']);
     $isBin = !empty($rule['bin']);
 
     foreach ($materials as $material) {
         $emu = new RouteTemplateEmulator($routeSet, new DirectiveRenderer($deploySeeds[$material], $volatileProof, false));
         foreach ($renderSeeds as $rlabel => $renderSeed) {
-            $where = "route {$id} [m={$material},{$rlabel}]";
+            $where = "{$diag} [m={$material},{$rlabel}]";
             $first = $emu->render($bundle, Style::REALISTIC, $renderSeed);
             $second = $emu->render($bundle, Style::REALISTIC, $renderSeed);
             $rendered += 2;
@@ -411,19 +449,26 @@ foreach ($routeRules as $rule) {
             if ($c1 !== $c2) {
                 $fail[] = "G3 nondeterministic render: {$where} (" . firstDiff($c1, $c2) . ')';
             }
-            // A bin (favicon) body is opaque image bytes — scan headers only (parity with the static gate).
-            if ($c1 !== null && $isBin) {
+            // A bin (favicon) body is opaque image bytes — scan headers only (parity with the static
+            // gate). The SELECTED rule decides this: the served bytes are its render, not the requested
+            // rule's, so a shadow that serves a text body is fully leaf-scanned even when the requested
+            // rule was binary (and vice versa).
+            if ($c1 !== null && $selectedIsBin) {
                 $c1Headers = ['status' => $c1['status'], 'headers' => $c1['headers'], 'body' => ''];
-                $scanLeaves($c1Headers, $id, $where);
+                $scanLeaves($c1Headers, $selectedId, $where);
             } else {
-                $scanLeaves($c1, $id, $where);
+                $scanLeaves($c1, $selectedId, $where);
             }
             $surfaceRuns[$surfaceKey][$material . '|' . $rlabel] = $c1;
         }
         if (!$isBin) {
-            $checkMarkers($id, $deploySeeds[$material], "route {$id} [m={$material}]");
+            $checkMarkers($requestedId, $deploySeeds[$material], "authored route {$requestedId} [m={$material}]");
         }
     }
+}
+// One deterministic shadow line per requested rule (compiled-rule order), outside both nested loops.
+foreach ($routeShadows as $shadow) {
+    fwrite(STDOUT, "INFO: route shadow: {$shadow}\n");
 }
 
 // ---------------------------------------------------------------------------------------------------

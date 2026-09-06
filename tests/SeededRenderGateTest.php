@@ -98,6 +98,12 @@ final class SeededRenderGateTest extends TestCase
         return $env;
     }
 
+    /** Count non-overlapping occurrences of $needle in $haystack. */
+    private static function substrCount(string $haystack, string $needle): int
+    {
+        return substr_count($haystack, $needle);
+    }
+
     // --- the committed corpus ---------------------------------------------------------------------
 
     public function test_the_gate_passes_on_the_committed_artifacts(): void
@@ -114,6 +120,14 @@ final class SeededRenderGateTest extends TestCase
         // FP-0281 synth: aggregates + 2 FP-0282 authed: gates (phpMyAdmin + wp-admin) = 30.
         self::assertMatchesRegularExpression('/(30|3[1-9]|[4-9]\d) seeded surfaces verified/', $text, 'the 26 rule surfaces + 2 synth aggregates + 2 authed gates must verify');
         self::assertMatchesRegularExpression('/[1-9]\d* fleet-constant/', $text, 'the informational inventory must be non-empty');
+        // FP-0287: any route-shadow line must follow the directional grammar. Transition-safe — this
+        // does NOT require the committed corpus to still carry a shadow (FP-0320 may remove it), only
+        // that whatever shadows exist are reported truthfully.
+        foreach (preg_split('/\R/', $text) as $line) {
+            if (strpos((string) $line, 'INFO: route shadow:') === 0) {
+                self::assertMatchesRegularExpression('/^INFO: route shadow: \S+ -> \S+$/', (string) $line);
+            }
+        }
     }
 
     public function test_the_gate_is_deterministic_across_runs(): void
@@ -328,6 +342,176 @@ final class SeededRenderGateTest extends TestCase
         [$code, $out] = $this->runGate($env);
         self::assertSame(1, $code, $out);
         self::assertStringContainsString('names no rendered rule', $out);
+    }
+
+    // --- route priority shadows (FP-0287) ---------------------------------------------------------
+    //
+    // First-match route selection can capture one rule's synthetic witness with a higher-priority
+    // sibling. Each fixture below pairs an earlier "selected" rule and a later "requested" rule sharing
+    // one template_needle, so the requested witness is always shadowed by the selected rule. synthEnv()
+    // supplies the render floor; the doctored `routes` drives the route leg.
+
+    public function test_route_shadow_is_inventoried_under_a_directional_alias_with_one_info_line(): void
+    {
+        // A shadow is keyed `route-shadow:<requested>-><selected>` — NOT `route:<requested>` (which would
+        // falsely certify the unreachable requested renderer) — and prints exactly one deterministic
+        // INFO line. Constant bodies so both the normal and the alias surface land in the fleet-constant
+        // inventory, proving the alias key is real.
+        $env = $this->synthEnv();
+        $env['routes'] = $this->tmpPhp('rt', [
+            ['id' => 'route-fp-0287-sel', 'match' => ['template_needle' => ['fp0287alpha']],
+                'body' => 'STATIC SELECTED BODY', 'headers' => ['Content-Type' => 'text/plain']],
+            ['id' => 'route-fp-0287-req', 'match' => ['template_needle' => ['fp0287alpha']],
+                'body' => 'STATIC REQUESTED BODY', 'headers' => ['Content-Type' => 'text/plain']],
+        ]);
+
+        [$code, $out] = $this->runGate($env);
+        self::assertSame(0, $code, $out);
+        self::assertSame(
+            1,
+            self::substrCount($out, 'INFO: route shadow: route-fp-0287-req -> route-fp-0287-sel'),
+            'exactly one deterministic shadow line per requested rule'
+        );
+        self::assertStringContainsString('INFO: fleet-constant: route-shadow:route-fp-0287-req->route-fp-0287-sel', $out);
+        // The requested id is never inventoried as a `route:` surface — a shadow is not its coverage.
+        self::assertStringNotContainsString('route:route-fp-0287-req', $out);
+    }
+
+    public function test_route_shadow_registering_the_requested_key_fails_closed(): void
+    {
+        // The OLD gate stored a shadow's selected bytes under `route:<requested>`, so registering that
+        // key was silently "verified" against the WRONG rule's render. Now the requested key names no
+        // rendered surface and fails closed as a stale registry entry.
+        $env = $this->synthEnv();
+        $env['routes'] = $this->tmpPhp('rt', [
+            ['id' => 'route-fp-0287-sel', 'match' => ['template_needle' => ['fp0287bravo']],
+                'body' => 'STATIC SELECTED BODY', 'headers' => ['Content-Type' => 'text/plain']],
+            ['id' => 'route-fp-0287-req', 'match' => ['template_needle' => ['fp0287bravo']],
+                'body' => 'STATIC REQUESTED BODY', 'headers' => ['Content-Type' => 'text/plain']],
+        ]);
+        $env['surfaces'] = $this->tmpPhp('sf', ['route:route-fp-0287-req' => 'shadowed requested renderer']);
+
+        [$code, $out] = $this->runGate($env);
+        self::assertSame(1, $code, $out);
+        self::assertStringContainsString('route:route-fp-0287-req', $out);
+        self::assertStringContainsString('names no rendered rule', $out);
+    }
+
+    public function test_route_shadow_alias_g4_evaluates_the_selected_renderer(): void
+    {
+        // Registering the alias evaluates the SELECTED renderer's actual bytes. The selected body varies
+        // per deploy and the requested body is fleet-constant, so a G4 pass can only mean the selected
+        // (varying) body was scanned — had the requested body been rendered, G4 would fail as identical.
+        $env = $this->synthEnv();
+        $env['routes'] = $this->tmpPhp('rt', [
+            ['id' => 'route-fp-0287-sel', 'match' => ['template_needle' => ['fp0287charlie']],
+                'body' => 'company={{persona.company.name}}', 'headers' => ['Content-Type' => 'text/plain']],
+            ['id' => 'route-fp-0287-req', 'match' => ['template_needle' => ['fp0287charlie']],
+                'body' => 'FLEET CONSTANT REQUESTED BODY', 'headers' => ['Content-Type' => 'text/plain']],
+        ]);
+        $env['surfaces'] = $this->tmpPhp('sf', ['route-shadow:route-fp-0287-req->route-fp-0287-sel' => 'selected renderer varies per deploy']);
+
+        [$code, $out] = $this->runGate($env);
+        self::assertSame(0, $code, $out);
+        self::assertStringContainsString('1 seeded surfaces verified', $out);
+    }
+
+    public function test_route_shadow_g1_scan_names_both_ids(): void
+    {
+        // A denylisted token in the SELECTED text body is scanned under a diagnostic naming BOTH the
+        // requested and the selected id, so the leak can be attributed to the reachable renderer.
+        $env = $this->synthEnv();
+        $env['routes'] = $this->tmpPhp('rt', [
+            ['id' => 'route-fp-0287-sel', 'match' => ['template_needle' => ['fp0287delta']],
+                'body' => 'oops mod_security leaked', 'headers' => ['Content-Type' => 'text/plain']],
+            ['id' => 'route-fp-0287-req', 'match' => ['template_needle' => ['fp0287delta']],
+                'body' => 'clean requested body', 'headers' => ['Content-Type' => 'text/plain']],
+        ]);
+
+        [$code, $out] = $this->runGate($env);
+        self::assertSame(1, $code, $out);
+        self::assertMatchesRegularExpression(
+            '/G1 fingerprint leak in route shadow route-fp-0287-req -> route-fp-0287-sel/',
+            $out
+        );
+    }
+
+    public function test_route_shadow_selected_text_body_is_scanned_when_requested_is_binary(): void
+    {
+        // Body classification follows the SELECTED rule, not the requested one. Here the requested rule
+        // is binary but the selected rule serves text, so the selected text body still gets a full leaf
+        // scan (the OLD requested-`bin` lookup would have skipped it headers-only and missed the leak).
+        $env = $this->synthEnv();
+        $env['routes'] = $this->tmpPhp('rt', [
+            ['id' => 'route-fp-0287-sel', 'match' => ['template_needle' => ['fp0287echo']],
+                'body' => 'served text with mod_security token', 'headers' => ['Content-Type' => 'text/plain']],
+            ['id' => 'route-fp-0287-req', 'bin' => true, 'match' => ['template_needle' => ['fp0287echo']],
+                'body' => base64_encode('unreachable icon bytes'), 'headers' => ['Content-Type' => 'image/x-icon']],
+        ]);
+
+        [$code, $out] = $this->runGate($env);
+        self::assertSame(1, $code, $out);
+        self::assertMatchesRegularExpression(
+            '/G1 fingerprint leak in route shadow route-fp-0287-req -> route-fp-0287-sel/',
+            $out
+        );
+    }
+
+    public function test_route_shadow_selected_binary_body_is_headers_only_when_requested_is_text(): void
+    {
+        // The inverse direction: the requested rule is text but the selected rule serves opaque binary
+        // bytes, so the selected body is scanned headers-only (never fed to the text scan). A denylisted
+        // token embedded in the binary body is therefore NOT reported — proving classification follows
+        // the selected `bin` (the OLD requested-text lookup would have text-scanned the decoded bytes and
+        // falsely fired). The alias still renders non-null and is inventoried (fleet-constant binary).
+        $env = $this->synthEnv();
+        $env['routes'] = $this->tmpPhp('rt', [
+            ['id' => 'route-fp-0287-sel', 'bin' => true, 'match' => ['template_needle' => ['fp0287foxtrot']],
+                'body' => base64_encode('opaque bytes mod_security padding'), 'headers' => ['Content-Type' => 'image/x-icon']],
+            ['id' => 'route-fp-0287-req', 'match' => ['template_needle' => ['fp0287foxtrot']],
+                'body' => 'unreachable requested text', 'headers' => ['Content-Type' => 'text/plain']],
+        ]);
+
+        [$code, $out] = $this->runGate($env);
+        self::assertSame(0, $code, $out);
+        self::assertStringNotContainsString('G1 fingerprint leak', $out);
+        self::assertStringContainsString('INFO: fleet-constant: route-shadow:route-fp-0287-req->route-fp-0287-sel', $out);
+    }
+
+    public function test_route_selftest_fails_when_no_synthetic_bundle_can_be_built(): void
+    {
+        // A route rule whose match exposes no representable selector axis cannot be witness-tested; the
+        // self-test fails closed rather than silently skipping coverage, and no alias row is created.
+        $env = $this->synthEnv();
+        $env['routes'] = $this->tmpPhp('rt', [
+            ['id' => 'route-fp-0287-nobundle', 'match' => ['method' => ['GET']],
+                'body' => 'x', 'headers' => ['Content-Type' => 'text/plain']],
+        ]);
+
+        [$code, $out] = $this->runGate($env);
+        self::assertSame(1, $code, $out);
+        self::assertStringContainsString('route-fp-0287-nobundle', $out);
+        self::assertStringContainsString('no synthetic bundle could be built', $out);
+        self::assertStringNotContainsString('route-shadow', $out);
+    }
+
+    public function test_route_selftest_fails_when_selected_rule_has_no_usable_id(): void
+    {
+        // An earlier capturing rule with no id cannot be attributed truthfully, so the requested rule it
+        // shadows fails the self-test rather than minting an ambiguous alias key or a `?` surface.
+        $env = $this->synthEnv();
+        $env['routes'] = $this->tmpPhp('rt', [
+            ['match' => ['template_needle' => ['fp0287golf']],
+                'body' => 'idless capturing rule', 'headers' => ['Content-Type' => 'text/plain']],
+            ['id' => 'route-fp-0287-hasid', 'match' => ['template_needle' => ['fp0287golf']],
+                'body' => 'requested body', 'headers' => ['Content-Type' => 'text/plain']],
+        ]);
+
+        [$code, $out] = $this->runGate($env);
+        self::assertSame(1, $code, $out);
+        self::assertStringContainsString('route-fp-0287-hasid', $out);
+        self::assertStringContainsString('selected rule has no usable id', $out);
+        self::assertStringNotContainsString('route-shadow', $out);
     }
 
     // --- fail-closed floor ------------------------------------------------------------------------
