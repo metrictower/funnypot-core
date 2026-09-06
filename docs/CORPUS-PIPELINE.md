@@ -112,6 +112,12 @@ Both read `unknown` on a sidecar that predates the record; the next real `compil
   sits above "compile alone" (so it cannot rot into a no-op); the in-repo canaries `/.claude.json`,
   `/secrets.json`, `/api/tags` reached via folded `route-*` bundles; the sidecar contract (pin, field
   order, fingerprint, counts); and the `build-corpus` refusals.
+- **`build-corpus --verify`** (`artifact-law` workflow) — shallow-checks-out `nuclei-templates` at the
+  embedded pin and recompiles, asserting the committed `nuclei-index.full.php` is byte-identical (sha256)
+  to a clean rebuild. Closes the drift class `check-drift` cannot see: `check-drift` only re-folds
+  (`build`) + checks provenance, so a compiler change that shifts the compiled index without a fold is
+  invisible to it. Pins `core.abbrev` to the committed `upstream_tag` length so the shallow clone's
+  `git describe` reproduces the embedded provenance.
 
 ## manifest.json fields
 
