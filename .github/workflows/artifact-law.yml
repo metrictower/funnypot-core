@@ -5,6 +5,12 @@ name: artifact-law
 # safety, namespace-collisions). `build-manifest` runs inside `check-drift.sh` (via `funnypot
 # build`) and its output is drift-checked, so the manifest can never go stale unnoticed again.
 #
+# check-drift only runs `funnypot build` (the in-repo fold), never a full `build-corpus` recompile —
+# the nuclei-templates corpus is external and not bundled — so a compiler change that alters how the
+# corpus compiles (not the fold) is invisible to it. The corpus-verify steps below close that hole:
+# they shallow-fetch nuclei-templates at the committed pin and run `build-corpus --verify`, which
+# recompiles the corpus and fails unless the committed index reproduces byte-for-byte.
+#
 # TRIGGER: workflow_dispatch ONLY — operator decision (bobby, FP-0263). FP-0039 deliberately paused
 # all PR CI (tests.yml is workflow_dispatch-only, its pull_request block commented, "Do NOT add
 # push") to stop credit burn, and that pause STANDS. The law is enforced locally via `composer
@@ -56,3 +62,31 @@ jobs:
 
       - name: Namespace-collision gate
         run: php scripts/ci/check-namespace-collisions.php
+
+      # --- corpus reproducibility (the drift class check-drift structurally cannot see) ---------
+      # Read the pin the committed index was compiled from. `abbrev` is the length of the committed
+      # upstream_tag: it is `git describe --tags --always` of a no-tags checkout, i.e. a sha prefix
+      # whose length git auto-picked against the FULL object set. A shallow fetch has a smaller
+      # object set and would abbreviate that sha shorter, embedding a different provenance string and
+      # tripping a spurious byte mismatch — so the checkout below pins core.abbrev to this length.
+      - name: Read corpus pin
+        id: corpus_pin
+        run: php -r '$m=json_decode(file_get_contents("resources/compiled/manifest.json"),true);printf("sha=%s\nabbrev=%d\n",$m["upstream_sha"],strlen((string)$m["upstream_tag"]));' >> "$GITHUB_OUTPUT"
+
+      - name: Checkout pinned nuclei-templates
+        uses: actions/checkout@v4
+        with:
+          repository: projectdiscovery/nuclei-templates
+          ref: ${{ steps.corpus_pin.outputs.sha }}
+          path: .nuclei-templates
+          fetch-depth: 1
+          fetch-tags: false
+          persist-credentials: false
+
+      # Recompiles the corpus from the pin and folds the committed fragment; fails unless the result
+      # is byte-identical to the committed nuclei-index.full.php. This is the gate that would have
+      # caught the FP-0261 compiler change merged without a corpus regen.
+      - name: Corpus reproducibility (build-corpus --verify)
+        run: |
+          git -C .nuclei-templates config core.abbrev '${{ steps.corpus_pin.outputs.abbrev }}'
+          php -d memory_limit=2G bin/funnypot build-corpus "$GITHUB_WORKSPACE/.nuclei-templates" --verify
