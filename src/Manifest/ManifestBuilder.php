@@ -622,9 +622,10 @@ final class ManifestBuilder
      * alternation / character class / wildcard no one path represents. Handles both anchor shapes
      * the attack compiler emits: a root-anchored `^/x/?$`, and a segment-anchored
      * `(?:^|/)x(?:/|$)` (matches at any path boundary — its canonical claim is `/x`). Recording the
-     * segment-anchored literal is load-bearing for the route-integrity dangling-link resolver: a
-     * decoy whose login form posts to `/session_login.cgi` owns that path via such a regex, not
-     * owns_path, and without this it would read as a dangling self-link.
+     * segment-anchored literal lets the route-integrity dangling-link resolver surface a same-path
+     * candidate: a decoy whose login form posts to `/session_login.cgi` owns that path via such a
+     * regex, not owns_path, so the resolver reports a conditional match-regex candidate rather than
+     * "nothing" (the request-dependent match is not proven from the manifest alone).
      */
     private function reduceRegexPath(string $rx): ?string
     {

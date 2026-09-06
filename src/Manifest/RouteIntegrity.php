@@ -15,16 +15,17 @@ use Funnypot\Core\Support\PathNormalizer;
  *   (b) shadow         An owns_path rule silently masks a DIFFERENT-family static route with no
  *                      declared override intent (an intent tag or a same-family override is fine).
  *   (c) dangling link  A decoy's own emitted self-link (form action, href, redirect) that does not
- *                      resolve back into its own family — a relative link fails outright; a link
- *                      into the generic corpus or to nothing is a warning; a link to a different
- *                      authored family is a failure.
+ *                      resolve back into its own family — a relative link fails outright; a link to
+ *                      a different authored family is a failure; a link into the generic corpus, to a
+ *                      conditional match-regex candidate, or to nothing is a warning.
  *
  * Findings carry a severity: FAIL gates CI, WARN is reported but does not gate, INFO records a
  * designed override for visibility. The escape-hatch config (resources/route-integrity.php) can
  * disable a decoy, override an effective priority, or accept a specific finding with a reason.
  *
- * 7.3-clean (no enums/match/arrow-fns); mirrors the runtime resolution precedence
- * (Honeypot::classify / resolveEntry / ownsPath) against manifest data.
+ * 7.3-clean (no enums/match/arrow-fns); mirrors the runtime resolution precedence against manifest
+ * data — owns_path override (on an exact hit) → exact store → param prefix → conditional fixed-path
+ * match-regex → nothing (Honeypot::classify / resolveEntry / ownsPath).
  */
 final class RouteIntegrity
 {
@@ -52,8 +53,20 @@ final class RouteIntegrity
     /** @var array<string,array<string,mixed>> id => Band A record (disabled ids removed) */
     private $byId = array();
 
-    /** @var array<string,array<int,array<string,string>>> ownershipKey => list of {id,family,method,tier} */
+    /**
+     * The combined claim view for collision analysis: on an exact-store miss both provenances reach
+     * the same first-match linear scan, so a cross-family same-method overlap between them is still
+     * an ambiguity. Resolution consults the split maps below instead.
+     *
+     * @var array<string,array<int,array<string,string>>> ownershipKey => list of {id,family,method,tier,via}
+     */
     private $ownsPathOwners = array();
+
+    /** @var array<string,array<int,array<string,string>>> ownershipKey => list of {id,family,method} owns_path overrides */
+    private $overrideOwners = array();
+
+    /** @var array<string,array<int,array<string,string>>> ownershipKey => list of {id,family,method} conditional match-regex claims */
+    private $conditionalOwners = array();
 
     /** @var array<string,array<string,string>> "METHOD /path" => {id,family} for new-page exact keys */
     private $newPageExact = array();
@@ -120,6 +133,8 @@ final class RouteIntegrity
     {
         $this->byId = array();
         $this->ownsPathOwners = array();
+        $this->overrideOwners = array();
+        $this->conditionalOwners = array();
         $this->newPageExact = array();
         $this->paramPrefixes = array();
         $this->effectivePriority = array();
@@ -154,9 +169,20 @@ final class RouteIntegrity
                     continue;
                 }
                 if ($via === 'owns_path' || $via === 'match-regex') {
-                    $this->ownsPathOwners[PathNormalizer::ownershipKey($path)][] = array(
+                    $ok = PathNormalizer::ownershipKey($path);
+                    $claim = array(
                         'id' => $id, 'family' => $family, 'method' => $method, 'tier' => $tier, 'via' => $via,
                     );
+                    $this->ownsPathOwners[$ok][] = $claim;
+                    // Split resolution provenance: only a real owns_path claim overrides the exact
+                    // store at runtime; a fixed-path match-regex claim is a conditional candidate the
+                    // linear scan reaches after exact and param, and the manifest cannot prove its
+                    // query/body/header predicates.
+                    if ($via === 'owns_path') {
+                        $this->overrideOwners[$ok][] = $claim;
+                    } else {
+                        $this->conditionalOwners[$ok][] = $claim;
+                    }
                 } elseif ($via === 'route-key') {
                     $this->newPageExact[$method . ' ' . PathNormalizer::normalize($path)] = array(
                         'id' => $id, 'family' => $family,
@@ -345,19 +371,24 @@ final class RouteIntegrity
                     continue;
                 }
                 $r = $this->resolveLink($path, $source);
-                if (in_array($family, $r['families'], true)) {
-                    continue; // resolves back in-family
-                }
                 $winnerFamily = $r['families'] === array() ? '(none)' : $r['families'][0];
                 if ($r['band'] === 'authored') {
+                    // A definitive resolution: owns_path override, exact authored key, or param claim.
+                    // Only this band certifies in-family — a same-family win is the intended shape.
+                    if (in_array($family, $r['families'], true)) {
+                        continue;
+                    }
                     $out[] = $this->finding(self::CHECK_DANGLING, self::FAIL, $id, $r['winner'], $path,
                         sprintf('%s links to %s → resolves to different authored family %s (%s)', $id, $path, $winnerFamily, $r['winner']));
-                } elseif ($r['band'] === 'unanchored') {
-                    $out[] = $this->finding(self::CHECK_DANGLING, self::FAIL, $id, $r['winner'], $path,
-                        sprintf('%s links to %s → swallowed by an unanchored class detector', $id, $path));
                 } elseif ($r['band'] === 'corpus') {
                     $out[] = $this->finding(self::CHECK_DANGLING, self::WARN, $id, $r['winner'], $path,
                         sprintf('%s links to %s → resolves into the generic corpus family %s', $id, $path, $winnerFamily));
+                } elseif ($r['band'] === 'conditional') {
+                    // A fixed-path match-regex candidate shares the path but not the proven request:
+                    // WARN even when a candidate shares the source family, because the rule's
+                    // query/body/header predicate is not simulated from the manifest.
+                    $out[] = $this->finding(self::CHECK_DANGLING, self::WARN, $id, $r['winner'], $path,
+                        sprintf('%s links to %s → only a conditional match-regex candidate (%s, %s); the request-dependent match is not proven from the manifest', $id, $path, $winnerFamily, $r['winner']));
                 } else { // nothing
                     $out[] = $this->finding(self::CHECK_DANGLING, self::WARN, $id, '', $path,
                         sprintf('%s links to %s → resolves to nothing (404/LLM)', $id, $path));
@@ -369,11 +400,14 @@ final class RouteIntegrity
     }
 
     /**
-     * Resolve a self-link target the way the engine would (owns_path override → exact store → param),
-     * returning the band it lands in and the candidate winner families. A form action may POST, so it
-     * resolves method-agnostically; every other link source navigates as a GET.
+     * Resolve a self-link target at the lint's abstraction level, in the coarse precedence the runtime
+     * mirrors: owns_path override (on an exact hit) → exact store → param prefix → conditional
+     * fixed-path match-regex → nothing. Steps 1–3 are definitive (an `authored` or `corpus` band);
+     * step 4 is a `conditional` candidate that shares the path but whose query/body/header predicate
+     * the manifest cannot prove. A form action may POST, so it resolves method-agnostically; every
+     * other link source navigates as a GET.
      *
-     * @return array<string,mixed> {band: authored|corpus|param|unanchored|nothing, families: list<string>, winner: string}
+     * @return array<string,mixed> {band: authored|corpus|conditional|nothing, families: list<string>, winner: string}
      */
     private function resolveLink(string $path, string $source): array
     {
@@ -382,27 +416,16 @@ final class RouteIntegrity
         $norm = PathNormalizer::normalize($path);
         $ok = PathNormalizer::ownershipKey($path);
 
-        // owns_path / match-regex override — wins over the static store when a method-compatible rule
-        // owns the key (the runtime path-override behaviour).
-        if (isset($this->ownsPathOwners[$ok])) {
-            $families = array();
-            $winner = '';
-            foreach ($this->ownsPathOwners[$ok] as $c) {
-                if ($methodAgnostic || $c['method'] === '*' || in_array($c['method'], $navMethods, true)) {
-                    if (!in_array($c['family'], $families, true)) {
-                        $families[] = $c['family'];
-                    }
-                    if ($winner === '') {
-                        $winner = $c['id'];
-                    }
-                }
-            }
-            if ($families !== array()) {
-                return array('band' => 'authored', 'families' => $families, 'winner' => $winner);
+        // 1. owns_path override — the only claim the runtime lets win over the exact store, and only
+        //    on an exact hit. A method-compatible override resolves definitively in its family.
+        if (isset($this->overrideOwners[$ok])) {
+            $c = $this->compatibleClaims($this->overrideOwners[$ok], $methodAgnostic, $navMethods);
+            if ($c['families'] !== array()) {
+                return array('band' => 'authored', 'families' => $c['families'], 'winner' => $c['winner']);
             }
         }
 
-        // exact store: new-page authored keys, then corpus keys, over the resolveEntry variants.
+        // 2. exact store: new-page authored keys, then corpus keys, over the resolveEntry variants.
         foreach ($this->keyVariants($norm, $navMethods) as $key) {
             if (isset($this->newPageExact[$key])) {
                 return array('band' => 'authored', 'families' => array($this->newPageExact[$key]['family']), 'winner' => $this->newPageExact[$key]['id']);
@@ -412,16 +435,52 @@ final class RouteIntegrity
             }
         }
 
-        // param prefix bucket.
+        // 3. param prefix bucket.
         foreach ($this->paramPrefixes as $p) {
             if ($p['prefix'] !== '' && strncmp($norm, $p['prefix'], strlen($p['prefix'])) === 0) {
                 return array('band' => 'authored', 'families' => array($p['family']), 'winner' => $p['id']);
             }
         }
 
-        // Nothing owns it. An unanchored payload detector only fires on an attack payload, never on a
-        // benign self-link navigation, so a plain link that reaches here dead-ends at the 404/LLM.
+        // 4. conditional fixed-path match-regex candidate. The linear scan reaches it only after the
+        //    exact and param tiers miss; the manifest carries the path anchor but not the rest of the
+        //    rule, so this names a candidate without certifying it serves.
+        if (isset($this->conditionalOwners[$ok])) {
+            $c = $this->compatibleClaims($this->conditionalOwners[$ok], $methodAgnostic, $navMethods);
+            if ($c['families'] !== array()) {
+                return array('band' => 'conditional', 'families' => $c['families'], 'winner' => $c['winner']);
+            }
+        }
+
+        // 5. Nothing owns it. An unanchored payload detector only fires on an attack payload, never on
+        //    a benign self-link navigation, so a plain link that reaches here dead-ends at the 404/LLM.
         return array('band' => 'nothing', 'families' => array(), 'winner' => '(404)');
+    }
+
+    /**
+     * The method-compatible claims among $claims: ordered, deduplicated families and the first matching
+     * claim's id as winner. A method-agnostic navigation (a form action may POST) matches any method.
+     *
+     * @param array<int,array<string,string>> $claims
+     * @param array<int,string> $navMethods
+     * @return array<string,mixed> {families: list<string>, winner: string}
+     */
+    private function compatibleClaims(array $claims, bool $methodAgnostic, array $navMethods): array
+    {
+        $families = array();
+        $winner = '';
+        foreach ($claims as $c) {
+            if ($methodAgnostic || $c['method'] === '*' || in_array($c['method'], $navMethods, true)) {
+                if (!in_array($c['family'], $families, true)) {
+                    $families[] = $c['family'];
+                }
+                if ($winner === '') {
+                    $winner = $c['id'];
+                }
+            }
+        }
+
+        return array('families' => $families, 'winner' => $winner);
     }
 
     /**
