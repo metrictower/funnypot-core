@@ -141,6 +141,7 @@ $classes = [
     'Funnypot\\Core\\Synthesis\\SynthScaffold',
     'Funnypot\\Core\\Behavior\\DecoyTables',
     'Funnypot\\Core\\Response\\InjectionPayloads',
+    'Funnypot\\Core\\Ai\\ChatFloor',
     'Funnypot\\Core\\Attack\\AttackBodies',
     'Funnypot\\Core\\Support\\Chrome\\PageSlots',
     'Funnypot\\Core\\Support\\SurfaceGraph',

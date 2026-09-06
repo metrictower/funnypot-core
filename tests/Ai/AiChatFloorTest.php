@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Funnypot\Core\Tests\Ai;
 
+use Funnypot\Core\Ai\ChatFloor;
 use Funnypot\Core\Compiler\Crs\FingerprintGuard;
 use Funnypot\Core\Config;
 use Funnypot\Core\RequestContext;
@@ -34,7 +35,9 @@ final class AiChatFloorTest extends TestCase
     }
 
     /** The pre-FP-0238 benign nonsense answers — the exact corpus the chat floor served before, and the
-     *  fallback arm of {{misdirect | pick:...}} that gate-OFF must still resolve to byte-for-byte. */
+     *  fallback arm of {{misdirect | pick:...}} that gate-OFF must still resolve to byte-for-byte. Pinned
+     *  here independently; test_chatfloor_owns_the_benign_corpus asserts ChatFloor::NONSENSE equals it, so
+     *  a drift in the single source is caught. */
     private const NONSENSE = [
         'The capital of France is Berlin.',
         'Two plus two equals five.',
@@ -159,8 +162,9 @@ final class AiChatFloorTest extends TestCase
     {
         $off = $this->emulator();
         $renderer = new DirectiveRenderer(); // gate off, exactly as the compile-time marker check builds it
-        $pick = '{{pick:The capital of France is Berlin.,Two plus two equals five.,'
-            . 'Water boils at forty degrees Celsius.,The sun orbits the Earth once per day.}}';
+        // Built from ChatFloor::NONSENSE, the single source of truth `bin/funnypot` also compiles the
+        // `pick:` arm from — so this stays byte-accurate to the served fallback without a hand-copied list.
+        $pick = '{{pick:' . implode(',', ChatFloor::NONSENSE) . '}}';
 
         for ($seed = 0; $seed <= 40; $seed++) {
             $r = $off->emulate(new RequestContext('POST', $path, '', [], self::BODY), $seed);
@@ -168,8 +172,10 @@ final class AiChatFloorTest extends TestCase
             $content = $this->contentOf($path, $r->body);
             self::assertSame($renderer->render($pick, [], $seed), $content, "{$path} seed {$seed} gate-off content must equal the pre-change benign pick");
             self::assertContains($content, self::NONSENSE, "{$path} seed {$seed} gate-off content must be one of the pre-change nonsense answers");
-            self::assertStringNotContainsString('already-decommissioned', $r->body, "{$path} gate-off must not leak misdirection");
-            self::assertStringNotContainsString('out of scope', $r->body, "{$path} gate-off must not leak misdirection");
+            // No-leak: the WHOLE armed corpus must be absent from a gate-off body, not just two phrases.
+            foreach (InjectionPayloads::CHAT_MISDIRECTION as $line) {
+                self::assertStringNotContainsString($line, $r->body, "{$path} seed {$seed} gate-off must not leak any misdirection line");
+            }
         }
     }
 
@@ -246,6 +252,105 @@ final class AiChatFloorTest extends TestCase
                 self::assertNotNull($r, "{$path} seed {$seed} must serve");
                 self::assertSame([], $guard->scan($r->body), "{$path} seed {$seed} gate-on body must be fingerprint-clean");
             }
+        }
+    }
+
+    // ── FP-0275: usage counters track the served answer (no fixed-count tell) ─────────────────────
+
+    /** ChatFloor is the single source of the benign corpus — it must equal the pinned expectation. */
+    public function test_chatfloor_owns_the_benign_corpus(): void
+    {
+        self::assertSame(self::NONSENSE, ChatFloor::NONSENSE, 'ChatFloor::NONSENSE must be the exact benign corpus');
+    }
+
+    /** Decode the dialect's output-token usage fields from a floor body. */
+    private function usageOf(string $path, string $body): array
+    {
+        $j = json_decode($body, true);
+        self::assertIsArray($j, "{$path} body must decode to an object");
+        switch ($path) {
+            case '/api/chat':
+            case '/api/generate':
+                return ['output' => $j['eval_count']];
+            case '/v1/chat/completions':
+                return ['output' => $j['usage']['completion_tokens'], 'prompt' => $j['usage']['prompt_tokens'], 'total' => $j['usage']['total_tokens']];
+            case '/v1/messages':
+                return ['output' => $j['usage']['output_tokens'], 'input' => $j['usage']['input_tokens']];
+        }
+        self::fail("unknown dialect path {$path}");
+    }
+
+    /**
+     * Under BOTH gates, every dialect's reported output-token count equals ceil(bytes/4) of the answer
+     * actually extracted from the same body — the fixed 10/32 tell is gone — and OpenAI's total is
+     * exactly prompt + completion (reading the body's own prompt value, not a literal). Every usage
+     * field decodes as a JSON integer, never a string.
+     *
+     * @dataProvider dialects
+     */
+    public function test_usage_counters_track_extracted_content(string $path, string $marker, string $ct, string $shape): void
+    {
+        foreach ([$this->emulator(), $this->armedEmulator()] as $gate => $em) {
+            for ($seed = 0; $seed <= 40; $seed++) {
+                $r = $em->emulate(new RequestContext('POST', $path, '', [], self::BODY), $seed);
+                self::assertNotNull($r, "{$path} seed {$seed} must serve");
+                $content = $this->contentOf($path, $r->body);
+                $usage = $this->usageOf($path, $r->body);
+                $expected = max(1, (int) ceil(strlen($content) / 4));
+                self::assertSame($expected, $usage['output'], "{$path} gate{$gate} seed {$seed}: output tokens must be ceil(bytes/4) of the served answer");
+                self::assertIsInt($usage['output'], "{$path} gate{$gate} seed {$seed}: output tokens must be a JSON integer");
+                if ($path === '/v1/chat/completions') {
+                    self::assertIsInt($usage['prompt'], "{$path} gate{$gate} seed {$seed}: prompt_tokens must be an integer");
+                    self::assertIsInt($usage['total'], "{$path} gate{$gate} seed {$seed}: total_tokens must be an integer");
+                    self::assertSame($usage['prompt'] + $usage['output'], $usage['total'], "{$path} gate{$gate} seed {$seed}: total must equal prompt + completion");
+                }
+                if ($path === '/v1/messages') {
+                    self::assertIsInt($usage['input'], "{$path} gate{$gate} seed {$seed}: input_tokens must be an integer");
+                }
+            }
+        }
+    }
+
+    /**
+     * The estimate is a pure function of the SELECTED answer, not of the request: a long prompt / a
+     * long model name never inflates the output-token count, and the count for a given seed/gate is the
+     * same regardless of the request body. (Non-reflection is proven separately; this proves the count
+     * itself carries no request-derived bytes.)
+     *
+     * @dataProvider dialects
+     */
+    public function test_usage_estimate_is_independent_of_request(string $path, string $marker, string $ct, string $shape): void
+    {
+        $long = '{"model":"' . str_repeat('m', 120) . '","messages":[{"role":"user","content":"' . str_repeat('why ', 200) . '"}]}';
+        for ($seed = 0; $seed <= 20; $seed++) {
+            $a = $this->emulator()->emulate(new RequestContext('POST', $path, '', [], self::BODY), $seed);
+            $b = $this->emulator()->emulate(new RequestContext('POST', $path, '', [], $long), $seed);
+            self::assertNotNull($a);
+            self::assertNotNull($b);
+            self::assertSame($this->usageOf($path, $a->body)['output'], $this->usageOf($path, $b->body)['output'], "{$path} seed {$seed}: output-token count must not depend on the request body");
+        }
+    }
+
+    /**
+     * Across the bounded seed sweep BOTH corpora are fully exercised: gate-off reaches every benign
+     * NONSENSE line and gate-on reaches every CHAT_MISDIRECTION line — so the coherence assertions above
+     * are non-vacuous (they cover the whole corpus, not one lucky seed).
+     */
+    public function test_both_corpora_are_fully_selected_across_the_sweep(): void
+    {
+        $offSeen = [];
+        $onSeen = [];
+        $off = $this->emulator();
+        $on = $this->armedEmulator();
+        for ($seed = 0; $seed <= 40; $seed++) {
+            $offSeen[$this->contentOf('/api/chat', $off->emulate(new RequestContext('POST', '/api/chat', '', [], self::BODY), $seed)->body)] = true;
+            $onSeen[$this->contentOf('/api/chat', $on->emulate(new RequestContext('POST', '/api/chat', '', [], self::BODY), $seed)->body)] = true;
+        }
+        foreach (ChatFloor::NONSENSE as $line) {
+            self::assertArrayHasKey($line, $offSeen, 'gate-off sweep must reach every benign line');
+        }
+        foreach (InjectionPayloads::CHAT_MISDIRECTION as $line) {
+            self::assertArrayHasKey($line, $onSeen, 'gate-on sweep must reach every misdirection line');
         }
     }
 }
