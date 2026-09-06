@@ -77,7 +77,7 @@ final class ZapCoverageTest extends TestCase
     public function test_route_rule_count_is_128_plus_the_new_rules(): void
     {
         $rules = require __DIR__ . '/../resources/compiled/funnypot-routes.php';
-        self::assertCount(188, $rules, 'route rule count must be 128 (baseline) + 4 (css, listing, credentials, config) + 6 (.env family: development/staging/test/bak/php/laravel-subdir) + 12 (VCS-exposure pack: 3 enrich .git-logs/.bzr/.hg-hgrc + 9 new .git/.svn/.hg pages) + 3 (CVS/Entries + TYPO3 typo3conf listing + localconf.php) + 10 (WordPress REST wp/v2: users/posts/pages/comments/media/categories/tags/types/statuses/settings) + 1 (FP-0229 nextjs app-shell) + 5 (FP-0230 persona-coherent favicons: grafana/phpmyadmin/jenkins/catalina + neutral) + 13 (FP-0233 decoy surface graph: sitemap/robots/openid-config/jwks + api-root/collection/detail/admin-html/metrics/health/webhooks/graphql-get/auth archetypes) + 1 (FP-0233 review fix: POST /auth/token auth arm) + 2 (Spring Boot Actuator heapdump generated-HPROF new page + logfile enrich) + 1 (FP-0017 WEB-INF/web.xml Java deployment descriptor) + 2 (FP-0196 no-slash canonical-slash 301 redirects for /.aws and /typo3conf)');
+        self::assertCount(208, $rules, 'route rule count must be 128 (baseline) + 4 (css, listing, credentials, config) + 6 (.env family: development/staging/test/bak/php/laravel-subdir) + 12 (VCS-exposure pack: 3 enrich .git-logs/.bzr/.hg-hgrc + 9 new .git/.svn/.hg pages) + 3 (CVS/Entries + TYPO3 typo3conf listing + localconf.php) + 10 (WordPress REST wp/v2: users/posts/pages/comments/media/categories/tags/types/statuses/settings) + 1 (FP-0229 nextjs app-shell) + 5 (FP-0230 persona-coherent favicons: grafana/phpmyadmin/jenkins/catalina + neutral) + 13 (FP-0233 decoy surface graph: sitemap/robots/openid-config/jwks + api-root/collection/detail/admin-html/metrics/health/webhooks/graphql-get/auth archetypes) + 1 (FP-0233 review fix: POST /auth/token auth arm) + 2 (Spring Boot Actuator heapdump generated-HPROF new page + logfile enrich) + 1 (FP-0017 WEB-INF/web.xml Java deployment descriptor) + 2 (FP-0196 no-slash canonical-slash 301 redirects for /.aws and /typo3conf) + 20 (FP-0316 path-aware directory listings: retire the 1 generic route-directory-listing enrich, add 15 route-key-guarded listings + 6 companion pages)');
 
         $ids = array_map(static function (array $r): string { return (string) $r['id']; }, $rules);
         self::assertContains('route-web-inf-web-xml', $ids, 'the FP-0017 Java deployment-descriptor page');
@@ -151,6 +151,14 @@ final class ZapCoverageTest extends TestCase
         // FP-0233 review fix: the POST arm of the auth archetype, so POST /auth/token (advertised by
         // the OpenAPI docs) resolves to the same inert 401 decoy instead of 404-ing.
         self::assertContains('route-surface-auth-post', $ids);
+        // FP-0316 path-aware directory listings: the retired generic enrich is gone; each listing key
+        // now has its own route-key-guarded rule + the companion pages that keep its child links live.
+        self::assertNotContains('route-directory-listing', $ids, 'the one-size generic listing enrich is retired');
+        self::assertContains('route-dirlist-backup', $ids);
+        self::assertContains('route-dirlist-wp-includes', $ids);
+        self::assertContains('route-umbraco-config', $ids);
+        self::assertContains('route-glpi-session', $ids);
+        self::assertContains('route-listing-forbidden-parents', $ids);
     }
 
     // --- IMDS base listing (attack/91-imds-base.yaml) -----------------------------------------

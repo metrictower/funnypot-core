@@ -54,8 +54,29 @@ final class EmulatorBreadthTest extends TestCase
             'joomla administrator'             => ['GET /administrator/', 0, 'route-joomla'],
             'wordpress readme.html'            => ['GET /readme.html', 0, 'route-wp-readme'],
             'citrix gateway logon'             => ['GET /logon/LogonPoint/index.html', 0, 'route-citrix'],
-            'apache directory listing'         => ['GET /backup/', 0, 'route-directory-listing'],
             'django admin login'               => ['GET /admin/login/', 1, 'route-django-admin'],
+
+            // Path-aware directory listings (FP-0316) — the old one-size route-directory-listing enrich
+            // is retired; each of the 15 formerly-generic listing keys now selects its OWN route-key-
+            // guarded rule. The harness passes the route key (the target's first field), so the
+            // conjunctive guard resolves; without it (a null key) these rules deliberately decline.
+            // The root key (GET /) is proven end-to-end in DirectoryListingGraphTest instead: its
+            // directory-listing bundle carries an hw matcher the SYNTHESIZER satisfies via a witness
+            // header, so emulator-level BundleValidator (this provider) is the wrong altitude for it.
+            'dirlist App_Data'                 => ['GET /App_Data/', 0, 'route-dirlist-app-data'],
+            'dirlist App_Plugins'              => ['GET /App_Plugins/', 0, 'route-dirlist-app-plugins'],
+            'dirlist backup'                   => ['GET /backup/', 0, 'route-dirlist-backup'],
+            'dirlist files/_sessions'          => ['GET /files/_sessions/', 0, 'route-dirlist-files-sessions'],
+            'dirlist glpi'                     => ['GET /glpi/', 0, 'route-dirlist-glpi'],
+            'dirlist glpi/files'               => ['GET /glpi/files/', 0, 'route-dirlist-glpi-files'],
+            'dirlist glpi/files/_sessions'     => ['GET /glpi/files/_sessions/', 0, 'route-dirlist-glpi-files-sessions'],
+            'dirlist sap km navigation'        => ['GET /irj/go/km/navigation/', 0, 'route-dirlist-sap-km'],
+            'dirlist log'                      => ['GET /log/', 0, 'route-dirlist-log'],
+            'dirlist php/backup'               => ['GET /php/backup/', 0, 'route-dirlist-php-backup'],
+            'dirlist wp-content/plugins'       => ['GET /wp-content/plugins/', 0, 'route-dirlist-wp-plugins'],
+            'dirlist wp-content/themes'        => ['GET /wp-content/themes/', 0, 'route-dirlist-wp-themes'],
+            'dirlist wp-content/uploads'       => ['GET /wp-content/uploads/', 0, 'route-dirlist-wp-uploads'],
+            'dirlist wp-includes'              => ['GET /wp-includes/', 0, 'route-dirlist-wp-includes'],
 
             // Config-file disclosure pack (M8) enrich rules — each dresses a bundle the corpus
             // already routes to. A SPECIFIC needle (not a broad `config`) keeps the enrich from
@@ -553,7 +574,9 @@ final class EmulatorBreadthTest extends TestCase
      */
     public function test_route_set_selects_the_expected_template(string $route, int $i, string $id): void
     {
-        $rule = $this->set()->findRule($this->bundle($route, $i));
+        // The route key (the target's first field) is threaded so route-key-guarded rules resolve;
+        // an unguarded rule ignores it, so passing it uniformly is byte-compatible.
+        $rule = $this->set()->findRule($this->bundle($route, $i), $route);
 
         self::assertNotNull($rule, "{$route} #{$i} must select a route template");
         self::assertSame($id, $rule['id'], "{$route} #{$i} must be served by {$id}");
@@ -585,7 +608,7 @@ final class EmulatorBreadthTest extends TestCase
         $emulator = new RouteTemplateEmulator($this->set());
 
         foreach (self::seeds() as $seed) {
-            $content = $emulator->render($bundle, Style::REALISTIC, $seed);
+            $content = $emulator->render($bundle, Style::REALISTIC, $seed, $route);
             self::assertNotNull($content, "{$route} realistic render must not decline its own bundle (seed {$seed})");
             self::assertTrue(
                 BundleValidator::satisfies($content->body, $this->headers($bundle, $content), $bundle),
@@ -603,7 +626,7 @@ final class EmulatorBreadthTest extends TestCase
         $emulator = new RouteTemplateEmulator($this->set());
 
         foreach (self::seeds() as $seed) {
-            $content = $emulator->render($bundle, Style::TAUNT, $seed);
+            $content = $emulator->render($bundle, Style::TAUNT, $seed, $route);
             self::assertNotNull($content, "{$route} taunt render must not decline its own bundle (seed {$seed})");
             self::assertTrue(
                 BundleValidator::satisfies($content->body, $this->headers($bundle, $content), $bundle),
@@ -621,8 +644,8 @@ final class EmulatorBreadthTest extends TestCase
         $bundle = $this->bundle($route, $i);
         $emulator = new RouteTemplateEmulator($this->set());
 
-        $a = $emulator->render($bundle, Style::REALISTIC, 777);
-        $b = $emulator->render($bundle, Style::REALISTIC, 777);
+        $a = $emulator->render($bundle, Style::REALISTIC, 777, $route);
+        $b = $emulator->render($bundle, Style::REALISTIC, 777, $route);
         self::assertNotNull($a);
         self::assertNotNull($b);
         self::assertSame($a->body, $b->body, "{$route} must render identically for a fixed seed");

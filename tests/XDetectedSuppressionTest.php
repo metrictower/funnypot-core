@@ -154,12 +154,12 @@ final class XDetectedSuppressionTest extends TestCase
                 $this->headers = $headers;
             }
 
-            public function supports(array $bundle): bool
+            public function supports(array $bundle, ?string $routeKey = null): bool
             {
                 return in_array($this->marker, array_map('strval', (array) ($bundle['t'] ?? [])), true);
             }
 
-            public function render(array $bundle, string $style, int $seed): ?EmulatedContent
+            public function render(array $bundle, string $style, int $seed, ?string $routeKey = null): ?EmulatedContent
             {
                 return new EmulatedContent($this->body, $this->headers);
             }
