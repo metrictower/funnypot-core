@@ -73,4 +73,43 @@ YAML);
         self::assertArrayHasKey('GET /route-ok', $fragment['routes']);
         self::assertSame('route-ok', $fragment['routes']['GET /route-ok'][0]['pid']);
     }
+
+    public function test_new_page_serving_a_detector_signature_in_body_words_is_a_build_failure(): void
+    {
+        // A hand-authored bundle that serves an upstream-detector signature is a build failure, not a
+        // fold — the author must fix the source (FP-0262).
+        $this->write('leak', <<<'YAML'
+id: route-leak
+new_page:
+  method: GET
+  paths:
+    - /route-leak
+  name: Leaky page
+  body_words:
+    - "blocked by OWASP_CRS ruleset"
+YAML);
+
+        $this->expectException(RuntimeException::class);
+        $this->expectExceptionMessageMatches('/route-leak.*(body_words|typed_headers)/');
+        (new RouteBundleSynth())->fragment($this->dir);
+    }
+
+    public function test_new_page_serving_a_signature_in_a_typed_header_is_a_build_failure(): void
+    {
+        $this->write('th', <<<'YAML'
+id: route-th-leak
+new_page:
+  method: GET
+  paths:
+    - /route-th-leak
+  name: Leaky typed header
+  typed_headers:
+    Location:
+      - "https://interact.sh"
+YAML);
+
+        $this->expectException(RuntimeException::class);
+        $this->expectExceptionMessageMatches('/route-th-leak/');
+        (new RouteBundleSynth())->fragment($this->dir);
+    }
 }

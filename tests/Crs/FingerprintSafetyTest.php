@@ -39,6 +39,15 @@ final class FingerprintSafetyTest extends TestCase
             'paranoia level' => ['paranoia-level/1 triggered'],
             'bare rule id' => ['request matched rule 942100'],
             'anomaly score' => ['inbound_anomaly_score exceeded'],
+            // Scanner/OAST vocabulary (FP-0262).
+            'interactsh oob' => ['oob callback via interactsh'],
+            'interact.sh host' => ['<a href="http://interact.sh/x">'],
+            'projectdiscovery' => ['see projectdiscovery/nuclei-templates'],
+            'oast host' => ['https://abc.oast.fun/x'],
+            'oast.me host' => ['Location: https://oast.me'],
+            'nuclei word' => ['detected by nuclei'],
+            'honeypot word' => ['this is a honeypot'],
+            'wafw00f word' => ['wafw00f says cloudflare'],
         ];
     }
 
@@ -57,6 +66,13 @@ final class FingerprintSafetyTest extends TestCase
             'sql error' => ["You have an error in your SQL syntax; check the manual near '' at line 1"],
             'passwd' => ['root:x:0:0:root:/root:/bin/bash'],
             'html' => ['<h1>Search results</h1><p>No results found for your query.</p>'],
+            // The `\b`-bounded scanner-word patterns must not false-positive on prose or on a
+            // random generated token (FP-0262): "nucleic" is not the word "nuclei", and a hex
+            // digest / base64 run has no word boundary to trip `\bnuclei\b`.
+            'nucleic prose' => ['nucleic acid research summary'],
+            'nuclei mid-word' => ['panucleitis is a benign finding'],
+            'hex digest' => [str_repeat('a1b2c3d4', 4)],
+            'base64 run' => ['dGhlIHF1aWNrIGJyb3duIGZveCBqdW1wcyBvdmVyIHRoZSBsYXp5IGRvZw=='],
         ];
     }
 
@@ -165,8 +181,113 @@ final class FingerprintSafetyTest extends TestCase
         $script = $root . '/scripts/ci/check-fingerprint-safety.php';
         self::assertFileExists($script);
 
-        exec('php ' . escapeshellarg($script) . ' 2>&1', $out, $code);
+        // The default set now includes the ~6 MB nuclei index, so run with the same memory the
+        // composer/CI invocation uses.
+        exec('php -d memory_limit=1G ' . escapeshellarg($script) . ' 2>&1', $out, $code);
         self::assertSame(0, $code, implode("\n", $out));
+        self::assertStringContainsString('across 5 artifact(s)', implode("\n", $out), 'all five served artifacts must be scanned');
+    }
+
+    public function test_recursive_walk_catches_a_served_leaf_the_old_hand_enumerated_gate_missed(): void
+    {
+        // Invariant #1 (FP-0262): the gate must be STRICTLY more fail-closed. `expr-eval.response.body`
+        // is a served node the old descent-per-shape gate never enumerated, so a signature there
+        // escaped it; the recursive walk catches it and names the exact key-path.
+        $rule = [
+            'id' => 'expr-escape-probe',
+            'behavior' => 'expr-eval',
+            'response' => ['headers' => [], 'body' => 'clean top-level body'],
+            'expr-eval' => [
+                'expr' => 'expr', 'bind' => 'result',
+                'response' => ['headers' => [], 'body' => 'blocked by OWASP_CRS ruleset 942100'],
+            ],
+        ];
+        self::assertSame(1, $this->runGateOn([$rule]));
+    }
+
+    public function test_the_ci_gate_flags_a_leak_in_a_decoy_session_cookie_name(): void
+    {
+        // decoy-session.cookie_name is served verbatim in Set-Cookie — another node the old gate
+        // never descended. A detector signature there must fail the gate.
+        $rule = [
+            'id' => 'decoy-escape-probe',
+            'behavior' => 'decoy-session',
+            'response' => ['headers' => [], 'body' => 'clean'],
+            'decoy-session' => ['mode' => 'mint', 'cookie_name' => 'libinjection', 'cookie_path' => '/', 'redirect' => '/x'],
+        ];
+        self::assertSame(1, $this->runGateOn([$rule]));
+    }
+
+    public function test_the_ci_gate_fails_closed_on_a_novel_nested_shape(): void
+    {
+        // A served string under a brand-new shape the skip-list never enumerated must still be
+        // scanned (scan-by-default) — the property that stops the next nested shape from escaping.
+        $rule = [
+            'id' => 'novel',
+            'frobnicate' => ['deeply' => ['nested' => ['reply' => ['payload' => 'blocked by OWASP_CRS ruleset']]]],
+        ];
+        $out = [];
+        $code = $this->runGateOnCapturing([$rule], $out);
+        self::assertSame(1, $code, implode("\n", $out));
+        self::assertStringContainsString('frobnicate.deeply.nested.reply.payload', implode("\n", $out));
+    }
+
+    public function test_the_ci_gate_flags_a_leak_in_both_index_bundle_shapes(): void
+    {
+        // nuclei-index shape: routes[k]['b'][i]['bw'].
+        $nuclei = [
+            'schema' => 1,
+            'manifest' => ['schema' => 1],
+            'routes' => ['GET /x' => ['b' => [['pid' => 'p', 't' => ['t'], 'bw' => ['<a href="http://interact.sh/">']]]]],
+            'templates' => [],
+        ];
+        self::assertSame(1, $this->runGateOn($nuclei));
+
+        // flat routes-index shape: routes[k][i]['th'][name][].
+        $flat = [
+            'routes' => ['GET /y' => [['pid' => 'p', 't' => ['t'], 'th' => ['Location' => ['https://oast.pro']]]]],
+            'templates' => [],
+        ];
+        self::assertSame(1, $this->runGateOn($flat));
+    }
+
+    public function test_the_ci_gate_does_not_scan_forbidden_or_matcher_or_key_fields(): void
+    {
+        // A signature in a NON-served field must NOT trip the gate: forbidden (nf/hf, absent by
+        // construction), a matcher/id/tags field, a template-metadata id, or a route KEY. The gate
+        // scans served leaves only, so these are clean.
+        $nuclei = [
+            'schema' => 1,
+            'manifest' => ['schema' => 1, 'source' => 'projectdiscovery/nuclei-templates'],
+            'routes' => [
+                // route KEY carries the token; the bundle serves nothing leaky.
+                'GET //interact.sh/en' => ['b' => [['pid' => 'p', 't' => ['nuclei-detect'], 'bw' => ['clean'], 'nf' => ['blocked by ModSecurity']]]],
+            ],
+            'templates' => ['nuclei-detect' => ['sev' => 'info', 'tags' => ['nuclei'], 'name' => 'a honeypot detector']],
+        ];
+        self::assertSame(0, $this->runGatePass($nuclei));
+
+        $rule = [
+            'id' => 'attack-nuclei-detect',
+            'tags' => ['nuclei', 'oast.pro'],
+            'match' => [['in' => 'body', 'regex' => 'interactsh', 'contains' => 'oast.me']],
+            'response' => ['headers' => [], 'body' => 'clean served body'],
+        ];
+        self::assertSame(0, $this->runGatePass([$rule]));
+    }
+
+    public function test_scan_response_covers_body_and_header_names_and_values(): void
+    {
+        $guard = $this->guard();
+        self::assertNotEmpty($guard->scanResponse('blocked by OWASP_CRS', []));
+        self::assertNotEmpty($guard->scanResponse('ok', ['X-Note' => 'detected by nuclei']));
+        self::assertNotEmpty($guard->scanResponse('ok', ['Set-Cookie' => ['a=1', 'ModSecurity=2']]));
+        self::assertSame([], $guard->scanResponse('clean body', ['Content-Type' => 'text/html']));
+    }
+
+    public function test_try_from_package_loads_the_denylist(): void
+    {
+        self::assertInstanceOf(FingerprintGuard::class, FingerprintGuard::tryFromPackage());
     }
 
     public function test_the_ci_gate_flags_a_leak_in_a_branch_case_response(): void
@@ -280,5 +401,40 @@ final class FingerprintSafetyTest extends TestCase
         } finally {
             @unlink($tmp);
         }
+    }
+
+    /**
+     * Run the gate on a scratch artifact and return its exit code, capturing output for the caller
+     * to assert on (no built-in "fingerprint leak" assertion).
+     *
+     * @param array<int|string,mixed> $artifact
+     * @param string[] $out
+     */
+    private function runGateOnCapturing(array $artifact, array &$out): int
+    {
+        $script = dirname(__DIR__, 2) . '/scripts/ci/check-fingerprint-safety.php';
+        $tmp = tempnam(sys_get_temp_dir(), 'fp-novel-') . '.php';
+        file_put_contents($tmp, "<?php\n\nreturn " . var_export($artifact, true) . ";\n");
+        try {
+            exec('php ' . escapeshellarg($script) . ' --index=' . escapeshellarg($tmp) . ' 2>&1', $out, $code);
+
+            return $code;
+        } finally {
+            @unlink($tmp);
+        }
+    }
+
+    /**
+     * Run the gate on a scratch artifact expected to be CLEAN; assert exit 0 and return it.
+     *
+     * @param array<int|string,mixed> $artifact
+     */
+    private function runGatePass(array $artifact): int
+    {
+        $out = [];
+        $code = $this->runGateOnCapturing($artifact, $out);
+        self::assertSame(0, $code, 'expected a clean pass but the gate flagged: ' . implode("\n", $out));
+
+        return $code;
     }
 }

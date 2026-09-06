@@ -12,9 +12,14 @@ use RuntimeException;
  * tags, a bare CRS rule id, `ModSecurity`/`libinjection` mentions, etc. A hit is a leak of
  * the DETECTOR into what funnypot serves, which lets an attacker classify the reply as canned.
  *
- * This backs both the compile-time lint (CrsCompiler::assertResponseClean, mirroring
- * EmulatorCompiler's own "compiles but silently wrong = build failure" screens) and the CI
- * script scripts/ci/check-fingerprint-safety.php, so one denylist governs every path.
+ * This backs the compile-time lint (CrsCompiler::assertResponseClean, mirroring EmulatorCompiler's
+ * own "compiles but silently wrong = build failure" screens), the Gate-B witness fold
+ * (Classifier::finalize), the CI script scripts/ci/check-fingerprint-safety.php, and the runtime
+ * egress guard (Honeypot::buildFake) — so one denylist governs every path.
+ *
+ * Host-injected synthesizers (the app LLM tier can fabricate "blocked by ModSecurity/CRS") MUST
+ * route their output through scanResponse() before serving and fail CLOSED on any hit AND on a
+ * load failure: a fabricated body carrying a detector signature must never reach the wire.
  */
 final class FingerprintGuard
 {
@@ -59,6 +64,43 @@ final class FingerprintGuard
         }
 
         return new self($literals, $patterns);
+    }
+
+    /**
+     * Load the package denylist for a HOT-PATH caller, returning null instead of throwing on a
+     * missing/broken denylist. A runtime guard (egress scan, decoy-body verify) must not turn a
+     * would-be 404 into a 500 — a 500 is itself a tell — so it treats null as "cannot verify" and
+     * fails closed to the plain 404. The load-once/try-catch caching is the caller's (Honeypot,
+     * TemplateAttackEmulator), so a broken denylist is not re-required on every request.
+     */
+    public static function tryFromPackage(): ?self
+    {
+        try {
+            return self::fromPackage();
+        } catch (\Throwable $e) {
+            return null;
+        }
+    }
+
+    /**
+     * Scan a whole response (body + header names/values) WITHOUT throwing — the non-fatal twin of
+     * assertResponseClean, for the runtime egress guard where a throw would surface as a 500. A
+     * header value may be a single line or a list of lines (SynthesizedResponse allows both).
+     *
+     * @param array<string,string|string[]> $headers
+     * @return string[] the offending signatures across the whole response (empty ⇒ clean)
+     */
+    public function scanResponse(string $body, array $headers): array
+    {
+        $hits = $this->scan($body);
+        foreach ($headers as $name => $value) {
+            $hits = array_merge($hits, $this->scan((string) $name));
+            foreach (is_array($value) ? $value : [$value] as $line) {
+                $hits = array_merge($hits, $this->scan((string) $line));
+            }
+        }
+
+        return $hits;
     }
 
     /**

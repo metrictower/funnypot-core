@@ -71,7 +71,8 @@ php bin/funnypot compile-emulators
 
 # 4. Prove it.
 vendor/bin/phpunit
-php scripts/ci/check-fingerprint-safety.php            # no CRS signature in any served body
+php scripts/ci/check-fingerprint-safety.php            # no CRS/scanner signature in any served leaf
+php scripts/ci/check-runtime-fingerprint-safety.php   # same, over the RUNTIME-rendered corpus
 bash scripts/ci/check-license.sh /tmp/crs resources/upstream-licenses/coreruleset.LICENSE.md
 ```
 
@@ -84,11 +85,18 @@ never auto-merges.
 ## Safety gates
 
 - **Fingerprint-safety** (`scripts/ci/check-fingerprint-safety.php`, denylist at
-  `resources/fingerprint-denylist.php`). Fails the build if any compiled response body/header
-  carries an upstream-detector signature — `OWASP_CRS`, `ModSecurity`, `libinjection`,
-  `paranoia-level`, a bare CRS rule id, etc. CRS's `msg`/`logdata` text is never captured by the
-  parser, and generated templates never reflect attacker input (`{{match.*}}`/`capture` are
-  stripped), so only the attack **class**, never the detector, is ever exposed.
+  `resources/fingerprint-denylist.php`). Fails the build if any served string leaf of any compiled
+  artifact carries an upstream-detector signature — `OWASP_CRS`, `ModSecurity`, `libinjection`,
+  `paranoia-level`, a bare CRS rule id, a scanner name (`nuclei`, `wafw00f`), an OAST callback host
+  (`interact.sh`, `oast.pro`), etc. It is scan-by-default: `ServedStringWalker` enumerates every
+  served leaf of the attack, route and param rules AND the nuclei + flat route indexes, skipping
+  only matcher/identifier fields — so a new served shape is covered the moment it appears, and a
+  witness that would freeze a tell is folded out at Gate B (`fp:denylisted-witness`) rather than
+  served. `check-runtime-fingerprint-safety.php` extends the same denylist to the RUNTIME-rendered
+  corpus (every rule/route rendered across a seed spread with inert captures, plus an exhaustive
+  constant-table scan). CRS's `msg`/`logdata` text is never captured by the parser, and generated
+  templates never reflect attacker input (`{{match.*}}`/`capture` are stripped), so only the attack
+  **class**, never the detector, is ever exposed.
 - **License** (`scripts/ci/check-license.sh`, SPDX allow-list at
   `resources/ALLOWED-LICENSES.txt`). CRS is Apache-2.0 (allow-listed). The gate resolves the
   upstream SPDX id, fails on anything off the list, and commits the fetched license text into the

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Funnypot\Core\Compiler;
 
+use Funnypot\Core\Compiler\Crs\FingerprintGuard;
 use Funnypot\Core\Compiler\Matcher\BinaryMatcherInverter;
 use Funnypot\Core\Compiler\Matcher\DslInverter;
 use Funnypot\Core\Compiler\Matcher\MatcherResult;
@@ -43,10 +44,18 @@ final class Classifier
     /** @var DslInverter */
     private $dsl;
 
+    /** @var FingerprintGuard */
+    private $fingerprint;
+
     /** Preferred status when a template pins none but must avoid some. */
     private const STATUS_FALLBACKS = [200, 404, 403, 500, 301, 302, 401, 400];
 
-    public function __construct()
+    /**
+     * @param FingerprintGuard|null $guard the served-witness screen (defaults to the package
+     *   denylist, which fails closed on a missing/broken resource — a broken denylist must break
+     *   the compile, never silently admit a tell)
+     */
+    public function __construct(?FingerprintGuard $guard = null)
     {
         $this->word = new WordMatcherInverter();
         $this->status = new StatusMatcherInverter();
@@ -54,6 +63,7 @@ final class Classifier
         $this->binary = new BinaryMatcherInverter();
         $this->regex = new RegexWitnessGenerator();
         $this->dsl = new DslInverter();
+        $this->fingerprint = $guard ?? FingerprintGuard::fromPackage();
     }
 
     public function classify(LoadedTemplate $t): ClassifiedTemplate
@@ -162,6 +172,10 @@ final class Classifier
             return ClassifiedTemplate::out($reason);
         }
 
+        if ($this->hasDenylistedWitness($r)) {
+            return ClassifiedTemplate::out('fp:denylisted-witness');
+        }
+
         $plan = new SatisfyPlan(
             $t->id,
             $t->severity,
@@ -235,6 +249,33 @@ final class Classifier
         }
 
         return null;
+    }
+
+    /**
+     * Gate-B witness fold: a template whose satisfying witness would freeze an upstream-detector
+     * signature into a served leaf (`bw`/`hw`/`rx`/`th`) cannot be lured without serving a tell,
+     * so it folds OUT here (→ reason `fp:denylisted-witness` → skipped.json), exactly as any other
+     * "cannot satisfy without lying" case does. Only SERVED fields are screened — never `forbidden`/
+     * `headerForbidden` (`nf`/`hf` are guaranteed-ABSENT substrings; a template may legitimately
+     * forbid WAF block-page text). The screen runs on the final merged result so it sees the words
+     * exactly as freezeBundle will copy them; a co-template with no tell survives and re-partitions.
+     */
+    private function hasDenylistedWitness(MatcherResult $r): bool
+    {
+        $served = array_merge($r->bodyWords, $r->headerWords, $r->regexWitness);
+        foreach ($r->typedHeader as $name => $subs) {
+            $served[] = (string) $name;
+            foreach ($subs as $sub) {
+                $served[] = (string) $sub;
+            }
+        }
+        foreach ($served as $text) {
+            if ($this->fingerprint->scan((string) $text) !== []) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /**

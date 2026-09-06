@@ -329,6 +329,66 @@ final class RulesUpdaterTest extends TestCase
         self::assertNull($this->currentTarget(), 'a param traversal-read leak must not activate anything');
     }
 
+    public function test_ssti_render_served_leak_is_rejected(): void
+    {
+        // ssti-render serves its own nested `response`. The old hand-mirrored rescan walker never
+        // descended it (it was in the CI gate but not the updater — a drift), so a leak there could
+        // ride a fetched release. The shared ServedStringWalker descends it, closing the drift.
+        $rules = [[
+            'id' => 'attack-ssti-leak',
+            'match' => [['in' => 'query', 'contains' => 'x']],
+            'response' => ['headers' => [], 'body' => 'clean top-level'],
+            'behavior' => 'ssti-render',
+            'ssti-render' => [
+                'surface' => 'surface', 'bind' => 'rendered',
+                'response' => ['headers' => [], 'body' => 'blocked by OWASP_CRS ruleset'],
+            ],
+        ]];
+        $this->factory->publish($this->fetcher, 'v1', 1, $this->factory->engineFiles(100, 100, $rules));
+
+        $result = $this->updater('v1')->update();
+        self::assertFalse($result->success);
+        self::assertSame('fingerprint-leak', $result->status);
+        self::assertNull($this->currentTarget(), 'an ssti-render served leak must not activate anything');
+    }
+
+    public function test_nuclei_index_bundle_fingerprint_leak_is_rejected(): void
+    {
+        // The installed engine serves the nuclei index's bw/hw/th witnesses verbatim, so the rescan
+        // now covers the index too (FP-0262). A detector signature in a served bundle word must fail
+        // the update before activation.
+        $engine = $this->factory->engineFiles(100, 100);
+        $engine['nuclei-index.full.php'] = $this->factory->literal([
+            'schema' => 1,
+            'manifest' => ['schema' => 1],
+            'routes' => ['GET /leak' => ['b' => [['pid' => 'p', 't' => ['t'], 'bw' => ['blocked by OWASP_CRS ruleset']]]]],
+            'templates' => [],
+        ]);
+        $this->factory->publish($this->fetcher, 'v1', 1, $engine);
+
+        $result = $this->updater('v1')->update();
+        self::assertFalse($result->success);
+        self::assertSame('fingerprint-leak', $result->status);
+        self::assertNull($this->currentTarget(), 'a nuclei-index leak must not activate anything');
+    }
+
+    public function test_flat_routes_index_fingerprint_leak_is_rejected(): void
+    {
+        // The flat routes-index (folded new-page bundles) is served too; the rescan covers its FLAT
+        // bundle shape. A typed-header OAST domain there must fail the update before activation.
+        $engine = $this->factory->engineFiles(100, 100);
+        $engine['funnypot-routes-index.php'] = $this->factory->literal([
+            'routes' => ['GET /leak' => [['pid' => 'p', 't' => ['t'], 'th' => ['Location' => ['https://oast.pro']]]]],
+            'templates' => [],
+        ]);
+        $this->factory->publish($this->fetcher, 'v1', 1, $engine);
+
+        $result = $this->updater('v1')->update();
+        self::assertFalse($result->success);
+        self::assertSame('fingerprint-leak', $result->status);
+        self::assertNull($this->currentTarget(), 'a flat routes-index leak must not activate anything');
+    }
+
     public function test_non_array_param_artifact_is_rejected(): void
     {
         // A param artifact whose literal is not a top-level array can't be flattened + scanned;

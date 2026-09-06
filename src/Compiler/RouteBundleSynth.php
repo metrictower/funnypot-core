@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Funnypot\Core\Compiler;
 
+use Funnypot\Core\Compiler\Crs\FingerprintGuard;
 use Funnypot\Core\Support\PathNormalizer;
 use RuntimeException;
 use Symfony\Component\Yaml\Yaml;
@@ -25,10 +26,14 @@ final class RouteBundleSynth
     /** @var array<string,true> GET route keys of the curated ambient list */
     private $ambientKeys;
 
+    /** @var FingerprintGuard the served-witness screen (fails closed on a broken denylist) */
+    private $fingerprint;
+
     /** @param string[]|null $ambientPaths null = the package's resources/ambient-paths.php */
     public function __construct(?array $ambientPaths = null)
     {
         $this->ambientKeys = AmbientPaths::routeKeys($ambientPaths ?? AmbientPaths::fromPackage());
+        $this->fingerprint = FingerprintGuard::fromPackage();
     }
 
     /**
@@ -109,6 +114,12 @@ final class RouteBundleSynth
                 }
             }
 
+            // A hand-authored bundle carrying an upstream-detector signature in a SERVED leaf is a
+            // build failure, not a fold: the author must fix the source, so fail loudly like the
+            // compiler's other "compiles but silently wrong" screens. `nf` (forbidden = absent) is
+            // out of scope, same carve-out as the Gate-B fold.
+            $this->assertNoWitness($id, $file, $bundle);
+
             if (isset($templates[$id])) {
                 throw new RuntimeException("Duplicate new_page id '{$id}' in {$file}.");
             }
@@ -130,5 +141,34 @@ final class RouteBundleSynth
         }
 
         return ['templates' => $templates, 'routes' => $routes];
+    }
+
+    /**
+     * Fail the build if a frozen new_page bundle serves an upstream-detector signature. Scans the
+     * served leaves — `bw` (body words) and every typed-header NAME and VALUE (`th`). A `bin`
+     * bundle carries no body-word tell (its bytes come from the route rule), and `nf` is absent by
+     * construction, so neither is scanned.
+     *
+     * @param array<string,mixed> $bundle
+     */
+    private function assertNoWitness(string $id, string $file, array $bundle): void
+    {
+        $texts = array_map('strval', (array) ($bundle['bw'] ?? []));
+        foreach ((array) ($bundle['th'] ?? []) as $name => $subs) {
+            $texts[] = (string) $name;
+            foreach ((array) $subs as $sub) {
+                $texts[] = (string) $sub;
+            }
+        }
+        foreach ($texts as $text) {
+            $hits = $this->fingerprint->scan($text);
+            if ($hits !== []) {
+                throw new RuntimeException(
+                    "new_page '{$id}' in {$file} serves an upstream-detector signature ("
+                    . implode(', ', $hits) . ") in body_words/typed_headers — a hand-authored bundle "
+                    . 'must never serve one; fix the source.'
+                );
+            }
+        }
     }
 }

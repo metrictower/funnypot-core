@@ -1401,11 +1401,7 @@ final class TemplateAttackEmulator
     {
         if (!$this->fingerprintGuardLoaded) {
             $this->fingerprintGuardLoaded = true;
-            try {
-                $this->fingerprintGuard = FingerprintGuard::fromPackage();
-            } catch (\Throwable $e) {
-                $this->fingerprintGuard = null;
-            }
+            $this->fingerprintGuard = FingerprintGuard::tryFromPackage();
         }
 
         return $this->fingerprintGuard;

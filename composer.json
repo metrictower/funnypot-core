@@ -44,7 +44,8 @@
         "check": [
             "bash scripts/ci/check-drift.sh",
             "php -d memory_limit=1G bin/funnypot lint-routes",
-            "php scripts/ci/check-fingerprint-safety.php",
+            "php -d memory_limit=1G scripts/ci/check-fingerprint-safety.php",
+            "php -d memory_limit=1G scripts/ci/check-runtime-fingerprint-safety.php",
             "php scripts/ci/check-namespace-collisions.php"
         ]
     },
@@ -52,6 +53,6 @@
         "build": "Run the in-repo compile DAG (compile-ai -> emulators -> routes -> params -> merge-routes -> build-manifest).",
         "build-corpus": "The pinned FULL rebuild: compile the nuclei-templates checkout at the recorded upstream commit (manifest.json upstream_sha), then the in-repo build DAG. `-- <checkout-root> --bump` moves the pin deliberately and prints the route-key delta. See docs/CORPUS-PIPELINE.md.",
         "verify-corpus": "Prove the pinned checkout reproduces the committed nuclei-index.full.php byte-for-byte (compiles into a scratch dir; never writes into the tree).",
-        "check": "The zero-drift compiled-artifact law (FP-0263): recompile + drift gate + lint-routes + fingerprint-safety + namespace-collisions. Run before pushing — it runs the exact bytes CI's artifact-law workflow runs."
+        "check": "The zero-drift compiled-artifact law (FP-0263): recompile + drift gate + lint-routes + fingerprint-safety (static + runtime render-corpus) + namespace-collisions. Run before pushing — it runs the exact bytes CI's artifact-law workflow runs."
     }
 }

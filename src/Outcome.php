@@ -20,4 +20,5 @@ final class Outcome
     public const OVER_CAP = 'over-cap';         // synthesized body exceeded maxBodyBytes
     public const UNSYNTHESIZABLE = 'unsynthesizable'; // synth out of scope for this bundle
     public const REFLECTION_SUPPRESSED = 'reflection-suppressed'; // reflecting decoy withheld off a non-isolated origin
+    public const FINGERPRINT_LEAK = 'fingerprint-leak'; // egress guard found a detector signature in the built response
 }

@@ -111,6 +111,16 @@ Both read `unknown` on a sidecar that predates the record; the next real `compil
 
 ## Gates
 
+- **Fingerprint-safety** (`scripts/ci/check-fingerprint-safety.php` + `check-runtime-fingerprint-safety.php`)
+  — no served string leaf of any compiled artifact may carry an upstream-detector signature. At
+  Gate B a template whose satisfying witness (`bw`/`hw`/`rx`/`th`) would freeze such a tell into the
+  served bytes is folded OUT with reason `fp:denylisted-witness` (visible in `skipped.json` and
+  `funnypot coverage`) rather than served — precise (only the offending template folds; a clean
+  co-template re-partitions), so the regenerated index is clean by construction. The static gate then
+  walks every served leaf of the committed artifacts (attack/route/param rules + the nuclei + flat
+  route indexes) and the runtime gate re-checks the whole rendered corpus. Because the vocabulary + the
+  fold + the regenerated corpus must all land together (the static gate fails on the index otherwise),
+  they belong in one regeneration.
 - **`funnypot doctor --provenance`** — the sidecar must verify the index: sha256, size,
   `route_keys`, `templates_indexed`, and `upstream_sha` / `upstream_tag` / `source_tree` equal to
   the copies embedded in the index; `upstream_sha` must be a full commit sha (`unknown` is drift).

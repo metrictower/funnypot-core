@@ -43,7 +43,16 @@ one at every layer.
    cannot execute.* So even a compromised-but-trusted signer cannot ship code.
 10. **Fetch-time safety subset** (source-free defence-in-depth):
     - **fingerprint-denylist re-scan** — no upstream-detector signature (`OWASP_CRS`, a bare CRS
-      rule id, `ModSecurity`…) may reach a served response.
+      rule id, `ModSecurity`, a scanner name like `nuclei`, an OAST callback host like `interact.sh`…)
+      may reach a served response. It walks EVERY served string leaf of EVERY served artifact — the
+      attack, route and param rules *and* the nuclei + flat route indexes (`bw`/`hw`/`th` witnesses
+      are served verbatim) — through the SAME `ServedStringWalker` the CI gate uses, so a release
+      compiled by a core with the same denylist can never pass the gate yet fail the fetch (or vice
+      versa). A release is clean only relative to the denylist of the core that COMPILED it: **publish
+      a rules release from a core tag at least as new as the newest core in the fleet — the denylist
+      is versioned with core.** (The rules channel is forward-looking: `publish-rules.yml` is
+      dispatch-only and dormant until the funnypot-rules repo + signing keys exist, so there is no
+      live channel today; prod picks the corpus up via the core tag.)
     - **ReDoS budget** — every incoming regex is run against short adversarial inputs under a tight
       PCRE backtrack budget; a catastrophic (exponential) pattern fails the whole update. There is a
       live `preg_match` on attacker input in `TemplateAttackEmulator`.

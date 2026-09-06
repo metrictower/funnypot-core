@@ -4,11 +4,13 @@ declare(strict_types=1);
 
 namespace Funnypot\Core;
 
+use Funnypot\Core\Compiler\Crs\FingerprintGuard;
 use Funnypot\Core\Contracts\CompiledStore;
 use Funnypot\Core\Reaction\ParamIntent;
 use Funnypot\Core\Reaction\ParamReactionDecorator;
 use Funnypot\Core\Reaction\QueryIntentClassifier;
 use Funnypot\Core\Response\EmulatorRegistry;
+use Funnypot\Core\Rules\ServedStringWalker;
 use Funnypot\Core\Store\PhpArrayStore;
 use Funnypot\Core\Support\PathNormalizer;
 use Funnypot\Core\Support\PersonaSelector;
@@ -52,6 +54,15 @@ final class Honeypot implements Engine
 
     /** @var bool */
     private $nucleiEnabled;
+
+    /** @var FingerprintGuard|null runtime egress guard, loaded once (null ⇒ could not load ⇒ fail closed) */
+    private $runtimeGuard;
+
+    /** @var bool whether the runtime guard load has been attempted */
+    private $runtimeGuardLoaded = false;
+
+    /** @var array<string,bool> per-rule-id cache of ServedStringWalker::reflectsCaptures() */
+    private $reflectorCache = [];
 
     public function __construct(
         CompiledStore $store,
@@ -1470,6 +1481,75 @@ final class Honeypot implements Engine
     }
 
     /**
+     * The runtime egress fingerprint guard, lazily loaded once from the package denylist. null ⇒
+     * the denylist could not load; the caller treats that as "cannot verify" and fails closed to
+     * the plain 404 (never a 5xx — a 500 is itself a tell). The load-once result is cached so a
+     * broken denylist is not re-required per request.
+     */
+    private function runtimeGuard(): ?FingerprintGuard
+    {
+        if (!$this->runtimeGuardLoaded) {
+            $this->runtimeGuardLoaded = true;
+            $this->runtimeGuard = FingerprintGuard::tryFromPackage();
+        }
+
+        return $this->runtimeGuard;
+    }
+
+    /**
+     * Test seam: inject the runtime egress guard (or null to simulate an unavailable denylist so the
+     * fail-closed path can be exercised). Mirrors RulesUpdater::setNowForTesting().
+     */
+    public function setFingerprintGuardForTesting(?FingerprintGuard $guard): void
+    {
+        $this->runtimeGuardLoaded = true;
+        $this->runtimeGuard = $guard;
+    }
+
+    /**
+     * Egress fingerprint-safety screen: true ⇒ the built response is clean (or the scan is off, or
+     * the rule reflects attacker captures so scanning it would be a reflected-byte oracle). false ⇒
+     * a detector signature reached the built bytes, OR the rule is non-reflecting but the guard
+     * could not load — either way the caller declines with Outcome::FINGERPRINT_LEAK. A rule that
+     * reflects captures ($rule null for the route path, which never reflects request bytes) is
+     * always passed unscanned; its authored bytes are covered by the static gate and its runtime
+     * bytes by the render-corpus gate.
+     *
+     * @param array<string,mixed>|null $rule the attack rule (null on the route path)
+     */
+    private function egressClean(SynthesizedResponse $response, ?array $rule): bool
+    {
+        if (!$this->config->runtimeFingerprintScan) {
+            return true;
+        }
+        if ($rule !== null && $this->ruleReflects($rule)) {
+            return true;
+        }
+        $guard = $this->runtimeGuard();
+        if ($guard === null) {
+            return false; // cannot verify ⇒ fail closed
+        }
+
+        return $guard->scanResponse($response->body, $response->headers) === [];
+    }
+
+    /**
+     * @param array<string,mixed> $rule
+     */
+    private function ruleReflects(array $rule): bool
+    {
+        $id = (string) ($rule['id'] ?? '');
+        if ($id === '') {
+            return ServedStringWalker::reflectsCaptures($rule);
+        }
+        if (!isset($this->reflectorCache[$id])) {
+            $this->reflectorCache[$id] = ServedStringWalker::reflectsCaptures($rule);
+        }
+
+        return $this->reflectorCache[$id];
+    }
+
+    /**
      * @return array{r:?SynthesizedResponse,reason:string}
      */
     private function buildRouteFake(FakeHandle $handle, SiteProfile $profile, string $seed, ?RequestContext $r = null): array
@@ -1501,6 +1581,13 @@ final class Honeypot implements Engine
         $response = $this->synthesizer->synthesize($bundle, $satisfies, $seed);
         if ($response === null) {
             return ['r' => null, 'reason' => Outcome::UNSYNTHESIZABLE];
+        }
+
+        // Egress fingerprint screen on the BASE synthesized response (route synthesis never resolves
+        // request bytes, so it is non-reflecting and always scannable). The reflecting param reaction
+        // appended below carries its own guard, so it is deliberately screened there, not here.
+        if (!$this->egressClean($response, null)) {
+            return ['r' => null, 'reason' => Outcome::FINGERPRINT_LEAK];
         }
 
         // FP-0157: append an inert query reaction when the handle carries a validated intent and the
@@ -1558,6 +1645,12 @@ final class Honeypot implements Engine
         $response = $this->attackEmulator->renderRule($rule, $handle->captures, crc32($seed), $r);
         if ($response === null) {
             return ['r' => null, 'reason' => Outcome::UNSYNTHESIZABLE]; // CRLF header-split guard
+        }
+        // Egress fingerprint screen on the built body + headers, UNLESS the rule reflects attacker
+        // captures — scanning reflected bytes would make the guard a two-request oracle. A hit on a
+        // non-reflecting rule (or a guard that could not load) fails closed to the plain 404.
+        if (!$this->egressClean($response, $rule)) {
+            return ['r' => null, 'reason' => Outcome::FINGERPRINT_LEAK];
         }
         if (Severity::exceeds($response->satisfies->highestSeverity, $this->config->severityCeiling)) {
             return ['r' => null, 'reason' => Outcome::NO_CANDIDATE];

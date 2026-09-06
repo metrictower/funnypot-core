@@ -561,8 +561,10 @@ command; core itself is framework-free. With no
 before. Because the compiled artifacts are `require`d PHP, an update is verified in depth before
 anything is loaded: an **ed25519 signature** against a public key vendored *inside this package*
 (never fetched), a per-file **sha256** cross-check, a **pure-array-literal** proof of every `.php`
-(no code can execute on load), a **ReDoS** budget on every regex, a fingerprint-leak re-scan, and
-an **anti-blinding** coverage floor. Any failure keeps the current rules — the honeypot never
+(no code can execute on load), a **ReDoS** budget on every regex, a **fingerprint-leak re-scan** of
+every served string leaf in every served artifact — the attack, route and param rules **and** the
+nuclei + flat route indexes, against the scanner/OAST-aware denylist — and an **anti-blinding**
+coverage floor. Any failure keeps the current rules — the honeypot never
 serves empty. Full mechanism, trust model, and operator runbook:
 [`docs/RULES-UPDATE.md`](docs/RULES-UPDATE.md).
 
@@ -600,7 +602,7 @@ regenerated-and-committed whenever the templates change — nothing serves them 
 
 ```bash
 composer build                     # recompile the in-repo artifacts (the funnypot build DAG)
-composer check                     # the LAW: recompile + drift gate + lint-routes + fingerprint + namespace
+composer check                     # the LAW: recompile + drift gate + lint-routes + fingerprint (static + runtime render-corpus) + namespace
 ```
 
 Run `composer check` before pushing. It runs the exact bytes CI's `artifact-law` workflow runs

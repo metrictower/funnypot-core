@@ -80,7 +80,10 @@ jobs:
         run: bash scripts/ci/check-license.sh /tmp/nuclei-templates resources/upstream-licenses/nuclei-templates.LICENSE.md
 
       - name: Fingerprint-safety check
-        run: php scripts/ci/check-fingerprint-safety.php --index=resources/compiled/funnypot-attack.php --index=resources/compiled/funnypot-routes.php --index=resources/compiled/funnypot-param.php
+        run: php -d memory_limit=1G scripts/ci/check-fingerprint-safety.php --index=resources/compiled/funnypot-attack.php --index=resources/compiled/funnypot-routes.php --index=resources/compiled/funnypot-param.php --index=resources/compiled/nuclei-index.full.php --index=resources/compiled/funnypot-routes-index.php
+
+      - name: Runtime fingerprint-safety check (render corpus)
+        run: php -d memory_limit=1G scripts/ci/check-runtime-fingerprint-safety.php
 
       - name: Open PR with refreshed index
         uses: peter-evans/create-pull-request@v6

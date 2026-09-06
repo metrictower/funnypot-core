@@ -571,45 +571,43 @@ final class RulesUpdater
             throw new RulesUpdateException(RulesUpdateException::REASON_BAD_MANIFEST, 'Attack artifact did not return an array.');
         }
 
-        // (a) fingerprint-denylist re-scan of every SERVED artifact: no upstream-detector signature
-        //     may reach a response. The installed engine serves BOTH attack responses and route
-        //     responses, so the route artifact is re-scanned too — same dual-shape + set_cookie +
-        //     taunt extraction as the CI gate. Any hit is fail-closed: we throw before the swap.
-        $this->rescanFingerprints($rules);
         $routes = require $engineDir . '/funnypot-routes.php';
         if (!is_array($routes)) {
             throw new RulesUpdateException(RulesUpdateException::REASON_BAD_MANIFEST, 'Route artifact did not return an array.');
         }
-        $this->rescanFingerprints($routes);
-
-        // The param artifact is served content too, but bucketed (`buckets[<seg>][] = entry`);
-        // flatten to its entries so the same rescan (each entry carries a `response`) covers it.
         $params = require $engineDir . '/funnypot-param.php';
         if (!is_array($params)) {
             throw new RulesUpdateException(RulesUpdateException::REASON_BAD_MANIFEST, 'Param artifact did not return an array.');
         }
-        $paramEntries = [];
-        foreach ((array) ($params['buckets'] ?? []) as $entries) {
-            foreach ((array) $entries as $entry) {
-                $paramEntries[] = $entry;
-            }
+        $nuclei = require $engineDir . '/nuclei-index.full.php';
+        if (!is_array($nuclei)) {
+            throw new RulesUpdateException(RulesUpdateException::REASON_BAD_MANIFEST, 'Nuclei index did not return an array.');
         }
-        $this->rescanFingerprints($paramEntries);
+        $routesIndex = require $engineDir . '/funnypot-routes-index.php';
+        if (!is_array($routesIndex)) {
+            throw new RulesUpdateException(RulesUpdateException::REASON_BAD_MANIFEST, 'Routes-index artifact did not return an array.');
+        }
+
+        // (a) fingerprint-denylist re-scan of EVERY served artifact: no upstream-detector signature
+        //     may reach a response. The installed engine serves attack + route + param responses AND
+        //     both compiled indexes (their bw/hw/th witnesses are served verbatim), so all five are
+        //     re-scanned through ServedStringWalker — the same scan-by-default enumeration the CI
+        //     gate runs, so a release compiled by a core with the same denylist can never disagree
+        //     with the gate. Any hit is fail-closed: we throw before the swap.
+        $this->rescanFingerprints($rules, 'funnypot-attack.php');
+        $this->rescanFingerprints($routes, 'funnypot-routes.php');
+        $this->rescanFingerprints($params, 'funnypot-param.php');
+        $this->rescanFingerprints($nuclei, 'nuclei-index.full.php');
+        $this->rescanFingerprints($routesIndex, 'funnypot-routes-index.php');
 
         // (b) ReDoS budget on EVERY incoming regex, across every fetched artifact that can run PCRE
         //     on attacker bytes at runtime — not just an attack rule's top-level match. A poisoned
         //     signer can plant a catastrophic pattern in a param-bucket entry (matchParamRoute), a
         //     nested branch case `when.regex` (evalConditions), or a future shape; inspectArtifact
         //     walks each tree shape-agnostically so an un-screened regex cannot drift into coverage.
-        //     funnypot-routes-index.php is NOT otherwise loaded here, so it is require'd explicitly
-        //     (its .php was already proven a pure literal in step 8 before this runs).
         $this->redos->inspectArtifact($rules, 'funnypot-attack.php');
         $this->redos->inspectArtifact($routes, 'funnypot-routes.php');
         $this->redos->inspectArtifact($params, 'funnypot-param.php');
-        $routesIndex = require $engineDir . '/funnypot-routes-index.php';
-        if (!is_array($routesIndex)) {
-            throw new RulesUpdateException(RulesUpdateException::REASON_BAD_MANIFEST, 'Routes-index artifact did not return an array.');
-        }
         $this->redos->inspectArtifact($routesIndex, 'funnypot-routes-index.php');
 
         // (c) anti-blinding floor: a fetched set that guts coverage is an attack, not an update.
@@ -633,112 +631,26 @@ final class RulesUpdater
     }
 
     /**
-     * Fingerprint-denylist re-scan of one served-response artifact. Every served byte an attacker
-     * can see must be covered, and there are two compiled shapes — attack rules nest served content
-     * under `response`, route rules carry it at top level — so both are scanned. A hit throws,
-     * rejecting the update before activation (invariant: a detector signature must never be served).
+     * Fingerprint-denylist re-scan of one served artifact. Delegates to ServedStringWalker so the
+     * fetch-time rescan enumerates the SAME served string leaves the CI gate does (scan-by-default,
+     * every artifact shape), rather than a hand-mirrored walker that could drift from the gate. A
+     * hit throws, rejecting the update before activation (invariant: a detector signature must never
+     * be served); the message names the leaking key-path.
      *
-     * @param array<int,mixed> $rules
+     * @param array<int|string,mixed> $artifact
      */
-    private function rescanFingerprints(array $rules): void
+    private function rescanFingerprints(array $artifact, string $label): void
     {
-        foreach ($rules as $rule) {
-            if (!is_array($rule)) {
-                continue;
-            }
-            $texts = array_merge(
-                $this->servedTexts((array) ($rule['response'] ?? [])),
-                $this->servedTexts($rule)
-            );
-            foreach ($texts as $text) {
-                $hits = $this->fingerprint->scan($text);
-                if ($hits !== []) {
-                    throw new RulesUpdateException(
-                        RulesUpdateException::REASON_FINGERPRINT_LEAK,
-                        "Fingerprint leak in '" . (string) ($rule['id'] ?? '?') . "': " . implode(', ', $hits)
-                    );
-                }
+        $walker = new ServedStringWalker();
+        foreach ($walker->artifactLeaves($artifact, $label) as $path => $text) {
+            $hits = $this->fingerprint->scan($text);
+            if ($hits !== []) {
+                throw new RulesUpdateException(
+                    RulesUpdateException::REASON_FINGERPRINT_LEAK,
+                    "Fingerprint leak at {$path}: " . implode(', ', $hits)
+                );
             }
         }
-    }
-
-    /**
-     * Every scan-worthy served string in one rule-shaped array: the body, each header name/value,
-     * the Set-Cookie NAME emitted verbatim, and the taunt comment-syntax strings written into the
-     * body (see Response\RouteTemplateEmulator). A `branch` rule ALSO serves each case's response
-     * and the default's response when a case fires, and a `traversal-read` rule serves each allow
-     * entry's `content` when a path hits, so both are descended into (neither reaches the top-level
-     * body). Those nested nodes are themselves body+headers shaped, so the same extraction covers
-     * them; the recursion terminates because a branch response / traversal-read content carries
-     * neither `branch` nor `traversal-read`.
-     *
-     * @param array<string,mixed> $src
-     * @return string[]
-     */
-    private function servedTexts(array $src): array
-    {
-        $texts = [(string) ($src['body'] ?? '')];
-        foreach ((array) ($src['headers'] ?? []) as $name => $value) {
-            $texts[] = (string) $name;
-            $texts[] = (string) $value;
-        }
-        $texts[] = (string) ($src['set_cookie'] ?? '');
-        if (isset($src['taunt']) && is_array($src['taunt'])) {
-            foreach (['open', 'close', 'key'] as $part) {
-                $texts[] = (string) ($src['taunt'][$part] ?? '');
-            }
-        }
-        if (isset($src['branch']) && is_array($src['branch'])) {
-            foreach ((array) ($src['branch']['cases'] ?? []) as $case) {
-                if (is_array($case) && isset($case['response']) && is_array($case['response'])) {
-                    $texts = array_merge($texts, $this->servedTexts($case['response']));
-                }
-            }
-            if (isset($src['branch']['default']['response']) && is_array($src['branch']['default']['response'])) {
-                $texts = array_merge($texts, $this->servedTexts($src['branch']['default']['response']));
-            }
-        }
-        // A `traversal-read` rule serves each allow entry's `content` (and the default's) when a
-        // path hits — a synthesized file body under a nested key. Descend into every one so a fetched
-        // param artifact with a leak in a traversal-read body is rejected fetch-time, fail-closed like
-        // branch/route. A content carries no `traversal-read`, so the recursion terminates.
-        if (isset($src['traversal-read']) && is_array($src['traversal-read'])) {
-            foreach ((array) ($src['traversal-read']['allow'] ?? []) as $entry) {
-                if (is_array($entry) && isset($entry['content']) && is_array($entry['content'])) {
-                    $texts = array_merge($texts, $this->servedTexts($entry['content']));
-                }
-            }
-            if (isset($src['traversal-read']['default']['content']) && is_array($src['traversal-read']['default']['content'])) {
-                $texts = array_merge($texts, $this->servedTexts($src['traversal-read']['default']['content']));
-            }
-        }
-        // An `arith-eval` rule serves its `response` on a computed hit — a nested node the top-level
-        // body never carries, so descend into it. A response carries no `arith-eval`, so this ends.
-        if (isset($src['arith-eval']['response']) && is_array($src['arith-eval']['response'])) {
-            $texts = array_merge($texts, $this->servedTexts($src['arith-eval']['response']));
-        }
-        // An `iterate` rule serves the wrap open/close body, the per-sub-call `item`, the `response`
-        // headers on the multicall success path, and the `empty`/`fallback` responses — nested
-        // served shapes, descended into so a fetched artifact with a leak in any of them is rejected
-        // fetch-time. None carries `iterate`, so this ends.
-        if (isset($src['iterate']) && is_array($src['iterate'])) {
-            $it = $src['iterate'];
-            $texts[] = (string) ($it['wrap']['open'] ?? '');
-            $texts[] = (string) ($it['wrap']['close'] ?? '');
-            if (isset($it['item']) && is_array($it['item'])) {
-                $texts = array_merge($texts, $this->servedTexts($it['item']));
-            }
-            if (isset($it['response']) && is_array($it['response'])) {
-                $texts = array_merge($texts, $this->servedTexts($it['response']));
-            }
-            foreach (['empty', 'fallback'] as $k) {
-                if (isset($it[$k]['response']) && is_array($it[$k]['response'])) {
-                    $texts = array_merge($texts, $this->servedTexts($it[$k]['response']));
-                }
-            }
-        }
-
-        return $texts;
     }
 
     // ------------------------------------------------------- coverage counts

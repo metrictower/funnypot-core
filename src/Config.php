@@ -216,6 +216,17 @@ final class Config
      */
     public $paramReactivity;
 
+    /**
+     * @var bool egress fingerprint-safety scan of every built decoy response (FP-0262). true
+     * (default) ⇒ Honeypot re-scans the body + headers of a non-reflecting attack/route response
+     * through the runtime FingerprintGuard before serving; any hit — or a guard that could not load
+     * — declines to the plain 404 with Outcome::FINGERPRINT_LEAK (never a 5xx). false ⇒ the scan is
+     * skipped (the static gate still covers the authored bytes). The reflection exclusion is NOT a
+     * switch — a capture-reflecting rule is always excluded so the guard can never become a
+     * reflected-byte oracle. Off-switch only, for an operator who has other assurance.
+     */
+    public $runtimeFingerprintScan;
+
     public function __construct(
         string $mode = 'detect',
         ?Closure $gate = null,
@@ -246,7 +257,8 @@ final class Config
         bool $volatileProof = false,
         array $reflectClasses = [],
         ?Closure $reflectorAuthorizer = null,
-        bool $paramReactivity = false
+        bool $paramReactivity = false,
+        bool $runtimeFingerprintScan = true
     ) {
         $this->mode = $mode;
         $this->gate = $gate;
@@ -278,6 +290,7 @@ final class Config
         $this->reflectClasses = $reflectClasses;
         $this->reflectorAuthorizer = $reflectorAuthorizer;
         $this->paramReactivity = $paramReactivity;
+        $this->runtimeFingerprintScan = $runtimeFingerprintScan;
     }
 
     public function respondEnabled(): bool

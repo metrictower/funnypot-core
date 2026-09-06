@@ -58,7 +58,10 @@ jobs:
         run: php -d memory_limit=1G bin/funnypot lint-routes
 
       - name: Fingerprint-safety gate
-        run: php scripts/ci/check-fingerprint-safety.php
+        run: php -d memory_limit=1G scripts/ci/check-fingerprint-safety.php
+
+      - name: Runtime fingerprint-safety gate (render corpus)
+        run: php -d memory_limit=1G scripts/ci/check-runtime-fingerprint-safety.php
 
       - name: Namespace-collision gate
         run: php scripts/ci/check-namespace-collisions.php

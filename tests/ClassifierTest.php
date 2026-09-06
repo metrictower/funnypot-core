@@ -443,4 +443,74 @@ final class ClassifierTest extends TestCase
 
         self::assertFalse($this->classify($doc)->in);
     }
+
+    // ---- Gate-B denylisted-witness fold (FP-0262) ----
+
+    public function test_denylisted_body_word_witness_folds_out(): void
+    {
+        // A template whose satisfying witness would freeze an OAST domain into the served body cannot
+        // be lured without serving a tell, so it folds OUT with the fold reason.
+        $doc = [
+            'id' => 'witness-body',
+            'info' => ['severity' => 'high', 'tags' => 'test'],
+            'http' => [[
+                'method' => 'GET',
+                'path' => ['{{BaseURL}}/x'],
+                'matchers-condition' => 'and',
+                'matchers' => [
+                    ['type' => 'word', 'part' => 'body', 'words' => ['Location: https://interact.sh']],
+                    ['type' => 'status', 'status' => [200]],
+                ],
+            ]],
+        ];
+
+        $c = $this->classify($doc);
+        self::assertFalse($c->in, 'a served body-word tell must fold the template out');
+        self::assertSame('fp:denylisted-witness', $c->reason);
+    }
+
+    public function test_denylisted_typed_header_value_witness_folds_out(): void
+    {
+        $doc = [
+            'id' => 'witness-th',
+            'info' => ['severity' => 'high', 'tags' => 'test'],
+            'http' => [[
+                'method' => 'GET',
+                'path' => ['{{BaseURL}}/x'],
+                'matchers-condition' => 'and',
+                'matchers' => [
+                    ['type' => 'word', 'part' => 'location', 'words' => ['https://oast.pro']],
+                    ['type' => 'status', 'status' => [301]],
+                ],
+            ]],
+        ];
+
+        $c = $this->classify($doc);
+        self::assertFalse($c->in, 'a served typed-header value tell must fold the template out');
+        self::assertSame('fp:denylisted-witness', $c->reason);
+    }
+
+    public function test_denylisted_witness_in_a_forbidden_word_is_not_folded(): void
+    {
+        // `nf`/`hf` are guaranteed-ABSENT substrings — a template may legitimately forbid WAF or OAST
+        // text — so a NEGATIVE word carrying the token must NOT fold (forbidden is never screened).
+        $doc = [
+            'id' => 'witness-negative',
+            'info' => ['severity' => 'high', 'tags' => 'test'],
+            'http' => [[
+                'method' => 'GET',
+                'path' => ['{{BaseURL}}/x'],
+                'matchers-condition' => 'and',
+                'matchers' => [
+                    ['type' => 'word', 'part' => 'body', 'words' => ['welcome home']],
+                    ['type' => 'word', 'part' => 'body', 'words' => ['https://interact.sh'], 'negative' => true],
+                    ['type' => 'status', 'status' => [200]],
+                ],
+            ]],
+        ];
+
+        $c = $this->classify($doc);
+        self::assertTrue($c->in, 'a forbidden (negative) tell must NOT fold — nf is never served');
+        self::assertContains('https://interact.sh', $c->plan->forbidden);
+    }
 }

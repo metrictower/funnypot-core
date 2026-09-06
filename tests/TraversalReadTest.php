@@ -398,7 +398,9 @@ final class TraversalReadTest extends TestCase
         // removed the descent, this leak would slip through (exit 0) and the test fails.
         [$leakCode, $leakOut] = $this->runGate($this->paramFixture('blocked by OWASP_CRS ruleset'));
         self::assertSame(1, $leakCode, 'a leak in a traversal-read body must fail the gate');
-        self::assertStringContainsString('param-fixture-leak', $leakOut);
+        // FP-0262: the walker gate names the exact served key-path (more precise than the rule id),
+        // so the message pins the traversal-read content body the descent reached.
+        self::assertStringContainsString('traversal-read.allow.0.content.body', $leakOut);
         self::assertStringContainsString('OWASP_CRS', $leakOut);
     }
 
