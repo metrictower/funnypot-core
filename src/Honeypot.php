@@ -327,12 +327,28 @@ final class Honeypot implements Engine
 
             $handle = FakeHandle::route($key, $this->paramIntentFor($r, $bundles));
 
-            // A bare root/homepage entry (all bundles sig=1) is an ordinary-visitor path: classify
-            // clean natively (the probe-signature predicate is a policy input, not content). Keep
-            // the handle so the policy can still synthesize when it supplies one.
-            $classification = $this->isRootEntry($bundles) ? Verdict::CLEAN : Verdict::SCANNER_PROBE;
+            // A bare root/homepage entry (all bundles sig=1) is an ordinary-visitor path only under
+            // GET/HEAD: classify clean natively (the probe-signature predicate is a policy input,
+            // not content). Any other verb at a root route is method discovery, not navigation, so
+            // it keeps its scanner-probe classification and reachable handle. Keep the handle in
+            // both cases so the policy can still synthesize when it supplies one.
+            $classification = $this->homepageSafe($r->method, $bundles) ? Verdict::CLEAN : Verdict::SCANNER_PROBE;
 
             return new Verdict($classification, $detection, $detection->highestSeverity, $anomaly, $signals, $handle);
+        }
+
+        // Bounded HTTP method coverage (FP-0011). Only after an exact-route miss, and only for the
+        // three method-discovery verbs this responder implements, does a servable compiled path get
+        // a coherent OPTIONS/TRACE/PROPFIND answer instead of a blind 404. An exact authored method
+        // route (e.g. the shipped TRACE / or OPTIONS /wp-json/omapp/v1/support lures) already won at
+        // resolveEntry above, so this never shadows one; on a decline it falls through to the
+        // parameter/attack scan below, exactly as an uncovered miss does today.
+        $method = strtoupper($r->method);
+        if ($method === 'OPTIONS' || $method === 'TRACE' || $method === 'PROPFIND') {
+            $coverage = $this->methodCoverageVerdict($r, $method, $anomaly, $signals, $profile);
+            if ($coverage !== null) {
+                return $coverage;
+            }
         }
 
         if ($this->attackEmulator !== null) {
@@ -465,6 +481,28 @@ final class Honeypot implements Engine
         }
 
         return $bundles !== [];
+    }
+
+    /**
+     * Homepage-safe classification predicate (FP-0011): a root/homepage entry (all bundles sig=1) is
+     * an ordinary-visitor navigation only under GET or HEAD. Every other verb at a root route
+     * (POST/PUT/DELETE/OPTIONS/TRACE/PROPFIND/PURGE) is method discovery, not navigation, so it must
+     * keep its scanner-probe classification and reachable handle — this is what makes the authored
+     * TRACE / lure serve under the standalone open gate rather than being declined as an ordinary
+     * visitor. Used ONLY by classifyContent's root-CLEAN branch; the owns_path decline exemption
+     * deliberately keeps the method-blind isRootEntry(), so a gated owns_path rule on `/` is not
+     * newly subjected to the auth-success-witness degrade for a non-GET verb.
+     *
+     * @param array<int,array<string,mixed>> $bundles
+     */
+    private function homepageSafe(string $method, array $bundles): bool
+    {
+        $upper = strtoupper($method);
+        if ($upper !== 'GET' && $upper !== 'HEAD') {
+            return false;
+        }
+
+        return $this->isRootEntry($bundles);
     }
 
     /**
@@ -891,35 +929,25 @@ final class Honeypot implements Engine
     }
 
     /**
-     * Resolve a request to a route entry with cheap fallbacks, so the GET-only index
+     * Resolve a request to an EXACT route entry with cheap fallbacks, so the GET-only index
      * still answers the POST/HEAD and slash/case variants scanners send (a third of
      * probes are POST). Order: exact match; then the GET bundle for the same path (for
-     * POST/HEAD only — never OPTIONS/TRACE, which a real server answers differently);
-     * then trailing-slash and lower-cased path variants.
+     * POST/HEAD only — every other verb resolves exact-only here). OPTIONS/TRACE/PROPFIND
+     * get their bounded generic answer from the method-coverage seam, not this resolver.
      *
      * @return array{0:string,1:array<string,mixed>}|null [routing key, entry]
      */
     private function resolveEntry(string $method, string $path): ?array
     {
         $upper = strtoupper($method);
-        $norm = PathNormalizer::normalize($path);
 
         $methods = [$upper];
         if (($upper === 'POST' || $upper === 'HEAD') && !in_array('GET', $methods, true)) {
             $methods[] = 'GET';
         }
 
-        $paths = [$norm];
-        if ($norm !== '/') {
-            $paths[] = substr($norm, -1) === '/' ? rtrim($norm, '/') : $norm . '/';
-        }
-        $lower = strtolower($norm);
-        if ($lower !== $norm) {
-            $paths[] = $lower;
-        }
-
         foreach ($methods as $m) {
-            foreach ($paths as $p) {
+            foreach ($this->pathVariants($path) as $p) {
                 $key = $m . ' ' . $p;
                 $entry = $this->store->lookup($key);
                 if ($entry !== null) {
@@ -929,6 +957,240 @@ final class Honeypot implements Engine
         }
 
         return null;
+    }
+
+    /**
+     * The bounded, ordered path variants a request resolves against — shared by resolveEntry() and
+     * the method-coverage seam (FP-0011) so the two apply one path policy. In order: the normalized
+     * path, its single trailing-slash toggle (except root), then its lowercased form when distinct.
+     * No prefix, substring, recursive, decoded-second-pass or parameter matching — PathNormalizer's
+     * byte-identity contract holds. Deduplicated, order preserved.
+     *
+     * @return string[]
+     */
+    private function pathVariants(string $path): array
+    {
+        $norm = PathNormalizer::normalize($path);
+
+        $variants = [$norm];
+        if ($norm !== '/') {
+            $variants[] = substr($norm, -1) === '/' ? rtrim($norm, '/') : $norm . '/';
+        }
+        $lower = strtolower($norm);
+        if ($lower !== $norm) {
+            $variants[] = $lower;
+        }
+
+        return array_values(array_unique($variants));
+    }
+
+    /**
+     * Bounded HTTP method coverage for OPTIONS/TRACE/PROPFIND on a servable compiled path (FP-0011),
+     * or null when the path is uncovered, the host owns a real route, or the operator has silenced
+     * the synthetic evidence — in which case classifyContent falls through to the parameter/attack
+     * scan exactly as an uncovered miss does today.
+     */
+    private function methodCoverageVerdict(RequestContext $r, string $method, int $anomaly, BotSignalSet $signals, SiteProfile $profile): ?Verdict
+    {
+        // Asterisk-form OPTIONS * is server-wide negotiation, never a path — reject the raw target
+        // before PathNormalizer::normalize() prefixes a slash and turns it into /*.
+        if (trim($r->path) === '*') {
+            return null;
+        }
+
+        $cap = $this->methodCapability($r->path);
+        if ($cap === null) {
+            return null;
+        }
+        $canonical = $cap['path'];
+
+        // Never shadow a genuine host route: if the profile declares one for the incoming or the
+        // canonical path under the incoming method or any advertised method, decline. On the
+        // standalone/fallback position the profile is empty, so this never fires there.
+        $incomingNorm = PathNormalizer::normalize($r->path);
+        $probeMethods = array_values(array_unique(array_merge([$method], $cap['methods'])));
+        foreach (array_unique([$incomingNorm, $canonical]) as $p) {
+            foreach ($probeMethods as $m) {
+                if ($profile->hasRoute($m, $p)) {
+                    return null;
+                }
+            }
+        }
+
+        // Ignore-from-detection (Config->ignoreTemplates): the synthetic id or either tag silences
+        // both the evidence and the handle, so the request is no longer a probe here.
+        if ($this->methodIgnored($method)) {
+            return null;
+        }
+
+        $match = $this->methodMatch($method);
+        $detection = new Detection(true, [$match], $method . ' ' . $canonical, $match->severity);
+        $handle = FakeHandle::method($method . ' ' . $canonical);
+
+        // Root negotiation can be routine, so a generic OPTIONS / is the one CLEAN method verdict —
+        // it still carries its information detection and method handle. OPTIONS on every other
+        // covered path, and TRACE/PROPFIND everywhere, are scanner probes.
+        $classification = ($method === 'OPTIONS' && $canonical === '/') ? Verdict::CLEAN : Verdict::SCANNER_PROBE;
+
+        return new Verdict($classification, $detection, $match->severity, $anomaly, $signals, $handle);
+    }
+
+    /**
+     * The bounded method capability of a compiled path (FP-0011): the canonical path variant that
+     * carries coverage, its Allow header value and the advertised verb list, or null when no variant
+     * has an eligible non-OPTIONS route. Variant-major, mirroring "never union case/slash variants
+     * that could represent different resources": the FIRST path variant (normalized, trailing-slash
+     * toggle, lowercase) with a non-OPTIONS capability wins, and every verb is computed only at that
+     * one canonical variant.
+     *
+     * @return array{path:string,allow:string,methods:string[]}|null
+     */
+    private function methodCapability(string $path): ?array
+    {
+        foreach ($this->pathVariants($path) as $variant) {
+            $methods = $this->effectiveMethods($variant);
+            // OPTIONS alone is this responder's own verb and never, by itself, makes a path covered.
+            $nonOptions = array_filter($methods, static function (string $m): bool {
+                return $m !== 'OPTIONS';
+            });
+            if ($nonOptions !== []) {
+                return ['path' => $variant, 'allow' => implode(', ', $methods), 'methods' => $methods];
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * The canonical-ordered advertised methods at EXACTLY $path, always including OPTIONS (which this
+     * responder implements). Every other verb appears only when its exact route — or, for HEAD/POST,
+     * the documented GET fallback — is eligible. Final order per spec:
+     * GET, HEAD, POST, PUT, DELETE, PATCH, OPTIONS, TRACE, PURGE.
+     *
+     * @return string[]
+     */
+    private function effectiveMethods(string $path): array
+    {
+        $eligible = [];
+        // Probe order for eligibility (spec §2); OPTIONS is not probed, it is always advertised.
+        foreach (['GET', 'HEAD', 'POST', 'PUT', 'DELETE', 'PATCH', 'TRACE', 'PURGE'] as $verb) {
+            if ($this->verbEligible($verb, $path)) {
+                $eligible[$verb] = true;
+            }
+        }
+
+        $out = [];
+        foreach (['GET', 'HEAD', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS', 'TRACE', 'PURGE'] as $verb) {
+            if ($verb === 'OPTIONS' || isset($eligible[$verb])) {
+                $out[] = $verb;
+            }
+        }
+
+        return $out;
+    }
+
+    /**
+     * Whether $verb has an eligible route at EXACTLY $path. An exact key is eligible on its own
+     * merits; only HEAD/POST fall back to the GET bundle, mirroring resolveEntry — and only when no
+     * exact key exists for the verb, so an exact-but-ineligible HEAD/POST entry blocks the fallback
+     * (today's resolve-then-decline behavior) rather than silently borrowing GET.
+     */
+    private function verbEligible(string $verb, string $path): bool
+    {
+        $key = $verb . ' ' . $path;
+        $entry = $this->store->lookup($key);
+        if ($entry !== null) {
+            return $this->entryEligible($key, $entry);
+        }
+
+        if ($verb === 'HEAD' || $verb === 'POST') {
+            $getKey = 'GET ' . $path;
+            $get = $this->store->lookup($getKey);
+
+            return $get !== null && $this->entryEligible($getKey, $get);
+        }
+
+        return false;
+    }
+
+    /**
+     * An exact route entry is eligible when the current corpus flag / severity ceiling / exclude set
+     * leave at least one servable candidate AND its post-ignoreTemplates detection is non-empty — so
+     * a route the operator has fully excluded or ignored never advertises a method.
+     *
+     * @param array<string,mixed> $entry
+     */
+    private function entryEligible(string $key, array $entry): bool
+    {
+        if ($this->candidates($entry['b'] ?? []) === []) {
+            return false;
+        }
+
+        return !$this->detectionFor($key, $this->detectIds($entry))->isEmpty();
+    }
+
+    /**
+     * The fixed synthetic evidence for a method-coverage verb. Information severity; the id/name are
+     * telemetry only and never a served byte, so they carry no scanner-matcher signature. The cluster
+     * key (verb + canonical path) is set by the caller.
+     */
+    private function methodMatch(string $method): TemplateMatch
+    {
+        static $meta = [
+            'OPTIONS' => ['http-method-options', 'HTTP OPTIONS method discovery'],
+            'TRACE' => ['http-method-trace', 'HTTP TRACE method probe'],
+            'PROPFIND' => ['http-method-propfind', 'HTTP WebDAV method probe'],
+        ];
+        [$id, $name] = $meta[$method];
+
+        return new TemplateMatch($id, 'info', ['scanner-coverage', 'http-methods'], $name);
+    }
+
+    /**
+     * True when the operator has silenced this verb's synthetic evidence by id or by either tag.
+     * The synthetic id has no store meta, so membership is tested against the constant id/tag list
+     * directly — applyIgnore()/isExcluded() resolve tags through store->template() and would never
+     * match it.
+     */
+    private function methodIgnored(string $method): bool
+    {
+        if ($this->ignoreTemplates === []) {
+            return false;
+        }
+
+        return $this->methodDenied($this->methodMatch($method), $this->ignoreTemplates);
+    }
+
+    /**
+     * True when the serving exclude set names this verb's synthetic id or either tag — detection is
+     * permitted (classify still fires) but synthesis declines, matching the ignore/exclude split.
+     */
+    private function methodExcluded(string $method): bool
+    {
+        if ($this->effectiveExclude === []) {
+            return false;
+        }
+
+        return $this->methodDenied($this->methodMatch($method), array_flip($this->effectiveExclude));
+    }
+
+    /**
+     * Shared id-or-tag membership test for a synthetic method match against a flipped deny set.
+     *
+     * @param array<string,int> $deny
+     */
+    private function methodDenied(TemplateMatch $match, array $deny): bool
+    {
+        if (isset($deny[$match->id])) {
+            return true;
+        }
+        foreach ($match->tags as $tag) {
+            if (isset($deny[$tag])) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /**
@@ -954,7 +1216,7 @@ final class Honeypot implements Engine
         }
 
         $handle = $verdict->fakeHandle;
-        if ($handle === null || $handle->kind !== FakeHandle::KIND_ROUTE) {
+        if ($handle === null || ($handle->kind !== FakeHandle::KIND_ROUTE && $handle->kind !== FakeHandle::KIND_METHOD)) {
             // A genuine miss / real route / empty entry: the app serves its own 404. Exception: a
             // signal-only probe (OAST/SSRF or Log4Shell/JNDI) folds a detection onto a null-handle
             // verdict (SCANNER_PROBE, nothing to serve). Surface it so the app can score the spray.
@@ -975,9 +1237,13 @@ final class Honeypot implements Engine
             return $this->declined($r, Outcome::GATE_CLOSED);
         }
 
-        // Root / homepage-class entries (classified clean) never fake-vuln an ordinary visitor
-        // unless the app's probe-signature predicate says so.
-        if ($verdict->classification === Verdict::CLEAN && !$this->config->hasProbeSignature($r)) {
+        // Root / homepage-class ROUTE entries (classified clean) never fake-vuln an ordinary visitor
+        // unless the app's probe-signature predicate says so. A CLEAN method handle (generic
+        // OPTIONS /) is exempt: a 204 + honest Allow is protocol negotiation, not a fabricated
+        // vulnerability, so it may negotiate on a standalone honeypot without a probe signature.
+        if ($verdict->classification === Verdict::CLEAN
+            && $handle->kind === FakeHandle::KIND_ROUTE
+            && !$this->config->hasProbeSignature($r)) {
             return $this->declined($r, Outcome::NO_SIGNATURE);
         }
 
@@ -1109,6 +1375,8 @@ final class Honeypot implements Engine
             $built = $this->buildRouteFake($handle, $profile, $seed, $r);
         } elseif ($handle->kind === FakeHandle::KIND_ATTACK) {
             $built = $this->buildAttackFake($handle, $seed, $r);
+        } elseif ($handle->kind === FakeHandle::KIND_METHOD) {
+            $built = $this->buildMethodFake($handle, $profile);
         } else {
             // Unknown / llm kinds are host-injected synthesizers; core builds nothing.
             return ['r' => null, 'reason' => Outcome::UNSYNTHESIZABLE];
@@ -1247,6 +1515,73 @@ final class Honeypot implements Engine
         }
 
         return ['r' => $response, 'reason' => Outcome::SERVED];
+    }
+
+    /**
+     * Synthesize a bounded HTTP method-coverage response from a KIND_METHOD handle (FP-0011): a
+     * closed 204 (OPTIONS) or 405 (TRACE/PROPFIND) carrying only a canonical Allow list built from
+     * closed verb constants. Nothing is derived from the request headers, query, body or Host, so a
+     * malformed, tampered or stale handle can only fail closed to a 404 — never a 5xx and never a
+     * broadened response.
+     *
+     * @return array{r:?SynthesizedResponse,reason:string}
+     */
+    private function buildMethodFake(FakeHandle $handle, SiteProfile $profile): array
+    {
+        $key = (string) $handle->key;
+        $sp = strpos($key, ' ');
+        if ($sp === false) {
+            return ['r' => null, 'reason' => Outcome::UNSYNTHESIZABLE];
+        }
+        $method = substr($key, 0, $sp);
+        $path = substr($key, $sp + 1);
+
+        // Closed key grammar: one of the three implemented verbs, a rooted canonical path, never the
+        // asterisk form. Anything else is a tampered handle.
+        if (($method !== 'OPTIONS' && $method !== 'TRACE' && $method !== 'PROPFIND')
+            || $path === '' || $path[0] !== '/' || $path === '/*') {
+            return ['r' => null, 'reason' => Outcome::UNSYNTHESIZABLE];
+        }
+
+        // An exact authored route for this verb that appeared since classification owns the path; the
+        // generic fallback must never shadow it.
+        if ($this->store->lookup($key) !== null) {
+            return ['r' => null, 'reason' => Outcome::NO_CANDIDATE];
+        }
+
+        // Re-derive capability from the CURRENT store/config: a stale handle whose canonical path has
+        // lost its last eligible route (corpus off, ceiling lowered, templates excluded) or whose
+        // coverage now lands on a different variant is no longer covered.
+        $cap = $this->methodCapability($path);
+        if ($cap === null || $cap['path'] !== $path) {
+            return ['r' => null, 'reason' => Outcome::NO_CANDIDATE];
+        }
+
+        // Repeat the real-route veto so a route that went live after classification cannot be shadowed.
+        $probeMethods = array_values(array_unique(array_merge([$method], $cap['methods'])));
+        foreach ($probeMethods as $m) {
+            if ($profile->hasRoute($m, $path)) {
+                return ['r' => null, 'reason' => Outcome::NO_CANDIDATE];
+            }
+        }
+
+        // Exclude declines synthesis for the synthetic id/tags (detection was still permitted).
+        if ($this->methodExcluded($method)) {
+            return ['r' => null, 'reason' => Outcome::NO_CANDIDATE];
+        }
+
+        $match = $this->methodMatch($method);
+        $detection = new Detection(true, [$match], $method . ' ' . $path, $match->severity);
+
+        if ($method === 'OPTIONS') {
+            // 204: RFC 9110 §8.6 forbids Content-Length here, so it is deliberately omitted; the
+            // emitter suppresses a synthesized one for 204. No Content-Type/CORS/DAV/reflection byte.
+            return ['r' => new SynthesizedResponse(204, ['Allow' => $cap['allow']], '', $detection), 'reason' => Outcome::SERVED];
+        }
+
+        // TRACE/PROPFIND: method not allowed. Explicit Content-Length: 0 (never a synthesized one);
+        // the generic responder never fabricates WebDAV 207 behavior.
+        return ['r' => new SynthesizedResponse(405, ['Allow' => $cap['allow'], 'Content-Length' => '0'], '', $detection), 'reason' => Outcome::SERVED];
     }
 
     /**

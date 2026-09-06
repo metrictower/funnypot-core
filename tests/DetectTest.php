@@ -64,12 +64,17 @@ final class DetectTest extends TestCase
         self::assertSame(['git-config'], $d->templateIds());
     }
 
-    public function test_non_fallback_method_still_misses(): void
+    public function test_method_coverage_answers_options_trace_on_a_covered_path(): void
     {
-        // Only POST/HEAD fall back to GET; OPTIONS/TRACE must not (a real server answers
-        // those differently, so serving a fake would be a tell).
-        self::assertFalse($this->inverter()->detect(new RequestContext('OPTIONS', '/.git/config'))->matched);
-        self::assertFalse($this->inverter()->detect(new RequestContext('TRACE', '/.git/config'))->matched);
+        // OPTIONS/TRACE/PROPFIND do NOT fall back to GET (a real server answers them differently),
+        // but a servable compiled path now gets bounded method coverage (FP-0011): the request is
+        // recognized as a method-discovery probe carrying a stable synthetic id, not a route match.
+        self::assertSame(['http-method-options'], $this->inverter()->detect(new RequestContext('OPTIONS', '/.git/config'))->templateIds());
+        self::assertSame(['http-method-trace'], $this->inverter()->detect(new RequestContext('TRACE', '/.git/config'))->templateIds());
+        self::assertSame(['http-method-propfind'], $this->inverter()->detect(new RequestContext('PROPFIND', '/.git/config'))->templateIds());
+        // A genuinely unknown path stays a miss — coverage never invents a method surface there.
+        self::assertFalse($this->inverter()->detect(new RequestContext('OPTIONS', '/totally-unknown'))->matched);
+        self::assertFalse($this->inverter()->detect(new RequestContext('TRACE', '/totally-unknown'))->matched);
     }
 
     public function test_query_string_is_ignored_for_routing(): void

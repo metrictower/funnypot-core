@@ -226,24 +226,34 @@ final class KibanaAliasRoutingTest extends TestCase
 
     /**
      * Verbs a real server answers differently, encoded and nested spellings, and the login endpoint
-     * gain no alias ownership: respond() returns null for them exactly as before the fold.
+     * gain no alias ownership: they never serve the authored Kibana shell. Unmatched verbs and the
+     * variant spellings resolve to nothing; OPTIONS/TRACE on the bare mount get FP-0011's bounded
+     * generic method coverage (a closed 204/405), which is not the alias — it serves no body and
+     * never satisfies route-kibana.
      */
     public function test_negative_controls_gain_no_alias_ownership(): void
     {
         $inv = $this->engine('7', Style::REALISTIC);
-        $controls = [
+        $nullControls = [
             ['PUT', '/kibana'],
             ['DELETE', '/kibana'],
-            ['OPTIONS', '/kibana'],
-            ['TRACE', '/kibana'],
             ['GET', '/%6bibana'],
             ['GET', '/kibana%2f'],
             ['GET', '/foo/kibana'],
             ['GET', '/kibana/app'],
             ['GET', '/internal/security/login'],
         ];
-        foreach ($controls as [$method, $path]) {
+        foreach ($nullControls as [$method, $path]) {
             self::assertNull($inv->respond(new RequestContext($method, $path)), "{$method} {$path} must not resolve to the alias");
+        }
+
+        // OPTIONS/TRACE get generic method coverage, never the alias shell.
+        foreach ([['OPTIONS', 204], ['TRACE', 405]] as [$method, $status]) {
+            $r = $inv->respond(new RequestContext($method, '/kibana'));
+            self::assertNotNull($r, "{$method} /kibana is method-covered");
+            self::assertSame($status, $r->status, "{$method} /kibana");
+            self::assertSame('', $r->body, "{$method} /kibana must serve no body");
+            self::assertNotContains(self::ID, $r->satisfies->templateIds(), "{$method} /kibana must not satisfy the alias");
         }
     }
 
