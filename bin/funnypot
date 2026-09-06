@@ -15,6 +15,7 @@ declare(strict_types=1);
  * (compile + the in-repo `build` DAG); see docs/CORPUS-PIPELINE.md.
  */
 
+use Funnypot\Core\Ai\ChatFloor;
 use Funnypot\Core\Compiler\ArtifactWriter;
 use Funnypot\Core\Compiler\Compiler;
 use Funnypot\Core\Compiler\Crs\CrsCompiler;
@@ -236,8 +237,9 @@ function runCompileAi(string $root, array $argvv): int
     // no special ordering needed here.
     // The benign, deliberately-wrong answer — the SAME corpus as before, as a {{pick:...}} inner
     // (no outer braces) so it can be the fallback ARM of the gated {{misdirect | ...}} alternative.
-    $benignPick = 'pick:The capital of France is Berlin.,Two plus two equals five.,'
-        . 'Water boils at forty degrees Celsius.,The sun orbits the Earth once per day.';
+    // Built from ChatFloor::NONSENSE (the single source of truth) so the compiled `pick:` arm, the
+    // runtime {{misdirect}} fallback and the {{chat.output_tokens}} estimator can never drift apart.
+    $benignPick = 'pick:' . implode(',', ChatFloor::NONSENSE);
     // FP-0238: weaponize the chat floor as a Tier-U injection channel via a GATED alternative.
     // {{misdirect}} (DirectiveRenderer, armed by Config::$promptInjectionSeeding) seeds a first-person
     // assistant-voiced misdirection line ONLY when the operator opts in; OFF it resolves to '' and the
@@ -245,15 +247,22 @@ function runCompileAi(string $root, array $argvv): int
     // the same string). The benign pick stays baked into the compiled body, so the static CI
     // fingerprint gate still scans it; the misdirection corpus lives only in PHP (runtime).
     $nonsense = '{{misdirect | ' . $benignPick . '}}';
+    // FP-0275: the output-token usage counters are directives, not fixed constants, so each dialect's
+    // reported token count tracks the answer actually served (benign ~7-10, armed ~32-36) instead of a
+    // fixed 10/32 cross-deploy tell. {{chat.output_tokens}} is bytes/4 over the selected answer;
+    // {{chat.total_tokens:19}} is 19 (the OpenAI prompt_tokens constant) plus that, so total ==
+    // prompt + completion. Prompt/duration/input counters stay their existing plausible constants.
+    $outTok = '{{chat.output_tokens}}';
+    $totalTok = '{{chat.total_tokens:19}}';
     $chatFloors = [
         ['id' => 'attack-ai-ollama-chat', 'priority' => 36, 'path' => '/api/chat', 'ct' => $ct, 'expect' => ['"done":true'],
-            'body' => '{"model":"{{match.1}}","created_at":"2026-08-01T00:00:00Z","message":{"role":"assistant","content":"' . $nonsense . '"},"done":true,"done_reason":"stop","total_duration":4883583458,"load_duration":1334875,"prompt_eval_count":26,"prompt_eval_duration":342546000,"eval_count":32,"eval_duration":1200000000}'],
+            'body' => '{"model":"{{match.1}}","created_at":"2026-08-01T00:00:00Z","message":{"role":"assistant","content":"' . $nonsense . '"},"done":true,"done_reason":"stop","total_duration":4883583458,"load_duration":1334875,"prompt_eval_count":26,"prompt_eval_duration":342546000,"eval_count":' . $outTok . ',"eval_duration":1200000000}'],
         ['id' => 'attack-ai-ollama-generate', 'priority' => 37, 'path' => '/api/generate', 'ct' => $ct, 'expect' => ['"done":true'],
-            'body' => '{"model":"{{match.1}}","created_at":"2026-08-01T00:00:00Z","response":"' . $nonsense . '","done":true,"done_reason":"stop","context":[1,2,3],"total_duration":4883583458,"load_duration":1334875,"prompt_eval_count":26,"prompt_eval_duration":342546000,"eval_count":32,"eval_duration":1200000000}'],
+            'body' => '{"model":"{{match.1}}","created_at":"2026-08-01T00:00:00Z","response":"' . $nonsense . '","done":true,"done_reason":"stop","context":[1,2,3],"total_duration":4883583458,"load_duration":1334875,"prompt_eval_count":26,"prompt_eval_duration":342546000,"eval_count":' . $outTok . ',"eval_duration":1200000000}'],
         ['id' => 'attack-ai-openai-chat', 'priority' => 38, 'path' => '/v1/chat/completions', 'ct' => 'application/json', 'expect' => ['"chat.completion"'],
-            'body' => '{"id":"chatcmpl-B7kQw2ZfR3nT8xLmPa4Vd","object":"chat.completion","created":1769904000,"model":"{{match.1}}","choices":[{"index":0,"message":{"role":"assistant","content":"' . $nonsense . '","refusal":null},"logprobs":null,"finish_reason":"stop"}],"usage":{"prompt_tokens":19,"completion_tokens":10,"total_tokens":29}}'],
+            'body' => '{"id":"chatcmpl-B7kQw2ZfR3nT8xLmPa4Vd","object":"chat.completion","created":1769904000,"model":"{{match.1}}","choices":[{"index":0,"message":{"role":"assistant","content":"' . $nonsense . '","refusal":null},"logprobs":null,"finish_reason":"stop"}],"usage":{"prompt_tokens":19,"completion_tokens":' . $outTok . ',"total_tokens":' . $totalTok . '}}'],
         ['id' => 'attack-ai-anthropic-messages', 'priority' => 42, 'path' => '/v1/messages', 'ct' => 'application/json', 'expect' => ['"stop_reason"'],
-            'body' => '{"id":"msg_014kQw2ZfR3nT8xLmPa4VdRs","type":"message","role":"assistant","model":"{{match.1}}","content":[{"type":"text","text":"' . $nonsense . '"}],"stop_reason":"end_turn","stop_sequence":null,"usage":{"input_tokens":21,"output_tokens":10}}'],
+            'body' => '{"id":"msg_014kQw2ZfR3nT8xLmPa4VdRs","type":"message","role":"assistant","model":"{{match.1}}","content":[{"type":"text","text":"' . $nonsense . '"}],"stop_reason":"end_turn","stop_sequence":null,"usage":{"input_tokens":21,"output_tokens":' . $outTok . '}}'],
     ];
     foreach ($chatFloors as $c) {
         $attackDocs[$c['id']] = [

@@ -283,6 +283,13 @@ final class RouteEmulatorCompiler
                 if ($rsaErr !== null) {
                     throw new RuntimeException("Route template {$file}: {$rsaErr}");
                 }
+                // The chat-floor directives (FP-0275) are CLOSED: exact {{misdirect}}, {{chat.output_tokens}}
+                // and {{chat.total_tokens:19}} only, body-only. `misdirect`/`chat.` stay in KNOWN_PREFIXES so
+                // the exact forms clear the loop above; this shared predicate rejects every other shape.
+                $chatErr = DirectiveRenderer::chatFloorFormError($part, $inHeader);
+                if ($chatErr !== null) {
+                    throw new RuntimeException("Route template {$file}: {$chatErr}");
+                }
                 // persona.* is a CLOSED field set (unlike fake.NAME), so validate the whole path
                 // — a mistyped field would render '' at runtime and silently drop a marker.
                 if (strpos($part, 'persona.') === 0 && !in_array(substr($part, 8), PersonaIdentity::FIELDS, true)) {

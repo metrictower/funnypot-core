@@ -471,6 +471,13 @@ final class ParamRouteCompiler
                 if ($rsaErr !== null) {
                     throw new RuntimeException("Param template {$file}: {$rsaErr}");
                 }
+                // The chat-floor directives (FP-0275) are CLOSED: exact {{misdirect}}, {{chat.output_tokens}}
+                // and {{chat.total_tokens:19}} only, body-only. `misdirect`/`chat.` stay in KNOWN_PREFIXES so
+                // the exact forms clear the loop above; this shared predicate rejects every other shape.
+                $chatErr = DirectiveRenderer::chatFloorFormError($part, $inHeader);
+                if ($chatErr !== null) {
+                    throw new RuntimeException("Param template {$file}: {$chatErr}");
+                }
                 if (strpos($part, 'persona.') === 0 && !in_array(substr($part, 8), PersonaIdentity::FIELDS, true)) {
                     throw new RuntimeException("Param template {$file}: unknown persona field '{{{$part}}}'. Field set is closed — check for a typo.");
                 }

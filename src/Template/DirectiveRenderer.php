@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Funnypot\Core\Template;
 
+use Funnypot\Core\Ai\ChatFloor;
 use Funnypot\Core\Attack\AttackBodies;
 use Funnypot\Core\Attack\CannedData;
 use Funnypot\Core\Response\InjectionPayloads;
@@ -82,12 +83,35 @@ use Funnypot\Core\Support\SurfaceGraph;
  *                                    that the YAML \xNN transport can't carry byte-exact; non-hex
  *                                    chars are stripped, an odd digit count renders '' (never a
  *                                    partial byte). Lets a binary-protocol template be byte-exact.
+ *   {{misdirect}}                    the gated buffered-AI chat-floor misdirection directive — the EXACT
+ *                                    form only (a suffix/variant renders '' and fails the lint). OFF by
+ *                                    default (Config::$promptInjectionSeeding): resolves to '' so the
+ *                                    authored benign {{pick:...}} alternative wins and the body is
+ *                                    byte-identical to today. ON: a seeded first-person line from
+ *                                    InjectionPayloads::CHAT_MISDIRECTION (constants + seed only, never a
+ *                                    capture — non-reflecting), via Ai\ChatFloor. BODY-ONLY.
+ *   {{chat.output_tokens}}           the buffered-AI output-token estimate max(1,ceil(bytes/4)) over the
+ *                                    chat-floor answer THIS seed/gate selects (Ai\ChatFloor), so the usage
+ *                                    counter agrees with the served content instead of a fixed tell.
+ *                                    Renders an unquoted decimal integer; BODY-ONLY.
+ *   {{chat.total_tokens:19}}         the OpenAI usage total: the fixed 19-token prompt estimate plus
+ *                                    {{chat.output_tokens}}. Only this exact `:19` form is valid (19
+ *                                    tracks the template's prompt_tokens constant); unquoted integer,
+ *                                    BODY-ONLY. Deliberately closed so the renderer never becomes arithmetic.
  *   {{{{ … }}}}                      literal braces (escape) — for pages that must contain real {{ }}
  */
 final class DirectiveRenderer
 {
-    /** The closed directive prefixes — used by the compile-time lint. */
-    public const KNOWN_PREFIXES = ['canned.', 'fake.', 'volatile.', 'misdirect', 'fakeHex:', 'hex:', 'match.', 'urldecode:match.', 'urldecode-ascii:match.', 'xml:match.', 'html:match.', 'compute.md5:', 'compute.crc32:', 'pick:', 'canary.', 'persona.', 'surface.', 'attack.'];
+    /** The closed directive prefixes — used by the compile-time lint. `misdirect` and `chat.` stay
+     *  prefix members so their exact forms pass the generic prefix loop; chatFloorFormError() then
+     *  closes them to the exact shapes (every other misdirect / chat. shape is rejected). */
+    public const KNOWN_PREFIXES = ['canned.', 'fake.', 'volatile.', 'misdirect', 'chat.', 'fakeHex:', 'hex:', 'match.', 'urldecode:match.', 'urldecode-ascii:match.', 'xml:match.', 'html:match.', 'compute.md5:', 'compute.crc32:', 'pick:', 'canary.', 'persona.', 'surface.', 'attack.'];
+
+    /** The two exact buffered-AI chat usage directives (FP-0275) — the ONLY `chat.` forms that compile.
+     *  The `:19` in the total tracks the OpenAI templates' prompt_tokens constant; a change there must
+     *  change this literal too (the AC-required total==prompt+completion test guards the coupling). */
+    public const CHAT_OUTPUT_TOKENS_DIRECTIVE = 'chat.output_tokens';
+    public const CHAT_TOTAL_TOKENS_DIRECTIVE = 'chat.total_tokens:19';
 
     /** Decoded-byte ceiling of {{urldecode-ascii:match.*}}: a longer value renders '' (no partial). */
     public const ASCII_REFLECT_MAX_BYTES = 512;
@@ -170,14 +194,30 @@ final class DirectiveRenderer
             return $template;
         }
 
-        // Escape: {{{{ }}}} -> literal {{ }} (protect before directive parsing, restore after).
-        $template = strtr($template, ['{{{{' => "\x00L\x00", '}}}}' => "\x00R\x00"]);
+        // One left-to-right pass over the CLOSED grammar: either a literal-brace escape {{{{ … }}}}
+        // OR a directive {{ … }}. The escape is matched as a whole four-brace span (tried first), so a
+        // directive whose value ends a JSON object — {{chat.output_tokens}} right before the closing }} —
+        // is read as the directive plus two literal braces, never mistaken for an escaped }}}}. A
+        // replacement is inserted once and never re-scanned, so an attacker-reflected {{ … }} stays inert
+        // literal text. isset($m[2]) distinguishes the branches: the escape's inner is group 1 and leaves
+        // group 2 unset; a directive populates group 2 (stable across PHP 7.3+).
+        return (string) preg_replace_callback(
+            '/\{\{\{\{(.*?)\}\}\}\}|\{\{\s*([^}]+?)\s*\}\}/s',
+            function (array $m) use ($captures, $seed, $canary): string {
+                if (!isset($m[2])) {
+                    // Escaped literal braces: emit the inner between real {{ }}, still resolving any
+                    // directive nested inside it (no shipped template nests one; kept for parity).
+                    $inner = (string) preg_replace_callback('/\{\{\s*([^}]+?)\s*\}\}/', function (array $mm) use ($captures, $seed, $canary): string {
+                        return $this->resolve(trim($mm[1]), $captures, $seed, $canary);
+                    }, $m[1]);
 
-        $out = (string) preg_replace_callback('/\{\{\s*([^}]+?)\s*\}\}/', function (array $m) use ($captures, $seed, $canary): string {
-            return $this->resolve(trim($m[1]), $captures, $seed, $canary);
-        }, $template);
+                    return '{{' . $inner . '}}';
+                }
 
-        return strtr($out, ["\x00L\x00" => '{{', "\x00R\x00" => '}}']);
+                return $this->resolve(trim($m[2]), $captures, $seed, $canary);
+            },
+            $template
+        );
     }
 
     /**
@@ -212,6 +252,35 @@ final class DirectiveRenderer
     }
 
     /**
+     * Compile-time closure for the chat-floor directives (FP-0275), shared by all three compilers so the
+     * rule lives once. `misdirect` and `chat.` stay in KNOWN_PREFIXES so the exact forms clear the
+     * generic prefix loop, but only the closed shapes are legal: exact `misdirect`, `chat.output_tokens`
+     * and `chat.total_tokens:19`. Every near-miss (a `misdirect` suffix, any other `chat.` base or count)
+     * is rejected. These are body-only JSON usage fields — a header use is rejected too, since admitting
+     * them in a header would be a needless new surface. Returns an error phrase for the caller to wrap in
+     * its file-scoped message, or null when $part is not a misdirect/chat.* directive (nothing to check).
+     */
+    public static function chatFloorFormError(string $part, bool $inHeader): ?string
+    {
+        $isMisdirect = strpos($part, 'misdirect') === 0;
+        $isChat = strpos($part, 'chat.') === 0;
+        if (!$isMisdirect && !$isChat) {
+            return null;
+        }
+        if ($inHeader) {
+            return "'{{{$part}}}' — the chat-floor directives are body-only and must not appear in a header value.";
+        }
+        if ($isMisdirect && $part !== 'misdirect') {
+            return "'{{{$part}}}' — the chat-floor misdirection directive is exactly '{{misdirect}}'; no suffix or variant is valid.";
+        }
+        if ($isChat && $part !== self::CHAT_OUTPUT_TOKENS_DIRECTIVE && $part !== self::CHAT_TOTAL_TOKENS_DIRECTIVE) {
+            return "'{{{$part}}}' — the only chat usage forms are '{{" . self::CHAT_OUTPUT_TOKENS_DIRECTIVE . "}}' and '{{" . self::CHAT_TOTAL_TOKENS_DIRECTIVE . "}}'.";
+        }
+
+        return null;
+    }
+
+    /**
      * @param array<int|string,string> $captures
      * @param array<string,string>     $canary
      */
@@ -234,22 +303,37 @@ final class DirectiveRenderer
      */
     private function resolveOne(string $part, array $captures, int $seed, array $canary): ?string
     {
-        if (strpos($part, 'misdirect') === 0) {
+        if ($part === 'misdirect') {
             // {{misdirect}} — the gated chat-floor misdirection directive (FP-0238), same OFF/ON shape as
-            // {{volatile.*}}. OFF (the default arm): resolve to '' so the authored alternative — the
+            // {{volatile.*}}. EXACT form only (FP-0275): a near-miss (misdirectX, misdirect:foo …) is not
+            // this branch and falls to the unknown-directive fail-safe below — '' — so it can never enter
+            // the armed branch. OFF (the default arm): resolve to '' so the authored alternative — the
             // benign nonsense {{pick:...}} — wins, and the served body is byte-identical to today (the
-            // fail-safe for package-embedded hosts). ON: a seeded pick from CHAT_MISDIRECTION, built from
-            // the constant corpus + seed ONLY (never a capture), so it is non-reflecting. The corpus is
-            // inert English with no `"`/`\`/`{{`, so the pick lands byte-safe inside the JSON content
-            // string it fills; a returned value is inserted once and never re-scanned (its single `{` in
-            // FLAG{...} stays literal). Returns '' when the arm is off OR the corpus is empty so resolve()
-            // falls through to the next alternative in both cases.
+            // fail-safe for package-embedded hosts). ON: a seeded pick from CHAT_MISDIRECTION via
+            // ChatFloor::answer (the single source of truth the usage estimate also reads), built from the
+            // constant corpus + seed ONLY (never a capture), so it is non-reflecting. The corpus is inert
+            // English with no `"`/`\`/`{{`, so the pick lands byte-safe inside the JSON content string it
+            // fills; a returned value is inserted once and never re-scanned (its single `{` in FLAG{...}
+            // stays literal). Returns '' when the arm is off OR the corpus is empty so resolve() falls
+            // through to the next alternative in both cases.
             if (!$this->promptInjectionSeeding) {
                 return '';
             }
-            $corpus = InjectionPayloads::CHAT_MISDIRECTION;
 
-            return $corpus === [] ? '' : $corpus[SeededIndex::pick($seed . '|misdirect', count($corpus))];
+            return InjectionPayloads::CHAT_MISDIRECTION === [] ? '' : ChatFloor::answer($seed, true);
+        }
+        if ($part === self::CHAT_OUTPUT_TOKENS_DIRECTIVE) {
+            // {{chat.output_tokens}} — the bytes/4 estimate over the SAME chat-floor answer this seed/gate
+            // selects (benign when off, armed misdirection when on), so the buffered-AI usage counter
+            // agrees with the served content instead of a fixed cross-deploy tell. Unquoted integer.
+            return (string) ChatFloor::outputTokens($seed, $this->promptInjectionSeeding);
+        }
+        if ($part === self::CHAT_TOTAL_TOKENS_DIRECTIVE) {
+            // {{chat.total_tokens:19}} — the OpenAI usage total: the template's fixed 19-token prompt
+            // estimate plus the output estimate, so total == prompt_tokens + completion_tokens. The `:19`
+            // is the only accepted form (the compilers reject any other), so this stays a closed lookup,
+            // never general arithmetic on attacker-supplied numbers.
+            return (string) (19 + ChatFloor::outputTokens($seed, $this->promptInjectionSeeding));
         }
         if (strpos($part, 'canned.') === 0) {
             // Per-deploy seeded canned surface (FP-0277). identitySeed() folds to the injected deploy
