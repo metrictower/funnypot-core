@@ -65,6 +65,63 @@ final class RouteIntegrityTest extends TestCase
         return $out;
     }
 
+    // --- synthetic-manifest fixtures --------------------------------------------------------
+
+    /**
+     * Analyze a minimal schema-1 manifest (no corpus unless given) with empty escape hatches.
+     *
+     * @param array<int,array<string,mixed>> $bandA
+     * @param array<string,array<string,string>> $corpusIndex
+     * @return array<int,array<string,mixed>>
+     */
+    private function synth(array $bandA, array $corpusIndex = array()): array
+    {
+        $manifest = array('bandA' => $bandA, 'corpus' => array('index' => $corpusIndex));
+        $result = (new RouteIntegrity())->analyze($manifest, array(
+            'disabled' => array(), 'priority_overrides' => array(), 'accepted' => array(),
+        ));
+
+        return $result['findings'];
+    }
+
+    /**
+     * @param array<int,array<string,string>> $routes  owned_routes
+     * @param array<int,array<string,mixed>> $links   outbound_links
+     * @return array<string,mixed>
+     */
+    private function rec(string $id, string $family, array $routes, array $links = array()): array
+    {
+        return array('id' => $id, 'family' => $family, 'tier' => 'attack', 'tags' => array(),
+            'owned_routes' => $routes, 'outbound_links' => $links);
+    }
+
+    /** @return array<string,string> */
+    private function route(string $method, string $path, string $via): array
+    {
+        return array('method' => $method, 'path' => $path, 'via' => $via);
+    }
+
+    /** @return array<string,mixed> */
+    private function link(string $path, string $source): array
+    {
+        return array('path' => $path, 'source' => $source, 'relative' => false);
+    }
+
+    /**
+     * @param array<int,array<string,mixed>> $findings
+     * @return array<string,mixed>|null the first dangling finding for $id at $path
+     */
+    private function danglingAt(array $findings, string $id, string $path): ?array
+    {
+        foreach ($findings as $f) {
+            if ($f['check'] === RouteIntegrity::CHECK_DANGLING && $f['a'] === $id && $f['path'] === $path) {
+                return $f;
+            }
+        }
+
+        return null;
+    }
+
     // --- the checks -------------------------------------------------------------------------
 
     public function test_phpmyadmin_gate_and_login_do_not_collide_by_disjoint_methods(): void
@@ -152,6 +209,117 @@ final class RouteIntegrityTest extends TestCase
         $code = 0;
         exec($cmd, $out, $code);
         self::assertSame(0, $code, "lint-routes must exit 0:\n" . implode("\n", $out));
+    }
+
+    // --- synthetic-manifest resolver + collision proofs -------------------------------------
+
+    public function test_true_owns_path_disjoint_methods_do_not_collide(): void
+    {
+        // Different-family owns_path claims on one path by DISJOINT methods (GET vs POST) co-own
+        // legitimately — the phpMyAdmin gate/login shape, proven here without the production fixture.
+        $findings = $this->synth(array(
+            $this->rec('decoy-a', 'fam-a', array($this->route('GET', '/x', 'owns_path'))),
+            $this->rec('decoy-b', 'fam-b', array($this->route('POST', '/x', 'owns_path'))),
+        ));
+        self::assertSame(array(), $this->only($findings, RouteIntegrity::CHECK_COLLISION, RouteIntegrity::FAIL));
+    }
+
+    public function test_overlapping_method_owns_path_produces_one_collision_fail(): void
+    {
+        // The disjoint control flipped to an overlap (both GET) is a real leak: order alone decides
+        // which family serves. Exactly one FAIL naming both ids and the path.
+        $findings = $this->synth(array(
+            $this->rec('decoy-a', 'fam-a', array($this->route('GET', '/x', 'owns_path'))),
+            $this->rec('decoy-b', 'fam-b', array($this->route('GET', '/x', 'owns_path'))),
+        ));
+        $collisions = $this->only($findings, RouteIntegrity::CHECK_COLLISION, RouteIntegrity::FAIL);
+        self::assertCount(1, $collisions);
+        self::assertSame('decoy-a', $collisions[0]['a']);
+        self::assertSame('decoy-b', $collisions[0]['b']);
+        self::assertSame('/x', $collisions[0]['path']);
+        self::assertStringContainsString('overlapping method', $collisions[0]['message']);
+    }
+
+    public function test_conditional_over_corpus_key_resolves_as_corpus_not_authored(): void
+    {
+        // A cross-family match-regex claim no longer overrides the exact store: the corpus key at the
+        // same path wins (a corpus WARN), never an authored FAIL naming the match-regex owner. This is
+        // the runtime-precedence divergence the ticket fixes.
+        $findings = $this->synth(
+            array(
+                $this->rec('decoy-a', 'fam-a', array(), array($this->link('/shared', 'href'))),
+                $this->rec('decoy-b', 'fam-b', array($this->route('GET', '/shared', 'match-regex'))),
+            ),
+            array('GET /shared' => array('family' => 'corpus-fam', 'pid' => 'p1', 'tier' => 'exact-route'))
+        );
+        self::assertSame(array(), $this->only($findings, RouteIntegrity::CHECK_DANGLING, RouteIntegrity::FAIL));
+        $f = $this->danglingAt($findings, 'decoy-a', '/shared');
+        self::assertNotNull($f);
+        self::assertSame(RouteIntegrity::WARN, $f['severity']);
+        self::assertSame('GET /shared', $f['b'], 'winner is the corpus key, not the match-regex owner');
+        self::assertStringContainsString('corpus family corpus-fam', $f['message']);
+    }
+
+    public function test_conditional_on_store_miss_produces_one_conditional_warn(): void
+    {
+        // With no exact/corpus/param owner, a fixed-path match-regex claim is surfaced as a conditional
+        // candidate WARN — never certified as a serve, because the manifest cannot prove the rule's
+        // query/body/header predicate.
+        $findings = $this->synth(array(
+            $this->rec('decoy-a', 'fam-a', array(), array($this->link('/shared', 'href'))),
+            $this->rec('decoy-b', 'fam-b', array($this->route('GET', '/shared', 'match-regex'))),
+        ));
+        self::assertSame(array(), $this->only($findings, RouteIntegrity::CHECK_DANGLING, RouteIntegrity::FAIL));
+        $warns = $this->only($findings, RouteIntegrity::CHECK_DANGLING, RouteIntegrity::WARN);
+        self::assertCount(1, $warns);
+        self::assertSame('decoy-a', $warns[0]['a']);
+        self::assertSame('decoy-b', $warns[0]['b'], 'winner is the match-regex candidate');
+        self::assertStringContainsString('conditional match-regex candidate', $warns[0]['message']);
+        self::assertStringContainsString('not proven', $warns[0]['message']);
+    }
+
+    public function test_same_family_conditional_still_warns_never_certified(): void
+    {
+        // Even when the match-regex candidate shares the source family, the link is a conditional WARN,
+        // not a silent same-family pass: a plain navigation does not submit the field the rule needs.
+        $findings = $this->synth(array(
+            $this->rec('decoy-a', 'fam-a', array(
+                $this->route('POST', '/login.cgi', 'match-regex'),
+            ), array($this->link('/login.cgi', 'form-action'))),
+        ));
+        $f = $this->danglingAt($findings, 'decoy-a', '/login.cgi');
+        self::assertNotNull($f);
+        self::assertSame(RouteIntegrity::WARN, $f['severity']);
+        self::assertStringContainsString('conditional match-regex candidate', $f['message']);
+    }
+
+    public function test_true_owns_path_at_corpus_path_still_wins_as_authored_fail(): void
+    {
+        // The override still precedes the static store: an owns_path claim at a corpus path resolves
+        // authored (its family), so a cross-family link there is the existing authored FAIL — proving
+        // step 1 was not demoted along with the match-regex demotion.
+        $findings = $this->synth(
+            array(
+                $this->rec('decoy-a', 'fam-a', array(), array($this->link('/shared', 'href'))),
+                $this->rec('decoy-b', 'fam-b', array($this->route('GET', '/shared', 'owns_path'))),
+            ),
+            array('GET /shared' => array('family' => 'corpus-fam', 'pid' => 'p1', 'tier' => 'exact-route'))
+        );
+        $f = $this->danglingAt($findings, 'decoy-a', '/shared');
+        self::assertNotNull($f);
+        self::assertSame(RouteIntegrity::FAIL, $f['severity']);
+        self::assertSame('decoy-b', $f['b'], 'owns_path owner wins over the corpus key');
+        self::assertStringContainsString('different authored family fam-b', $f['message']);
+    }
+
+    public function test_dead_unanchored_band_is_removed(): void
+    {
+        // The resolver never returns an `unanchored` band (a plain self-link carries no attack
+        // payload), so the dead FAIL branch and its return-shape entry must not reappear. The bare
+        // word survives in the step-5 comment; only the band string literal is asserted gone.
+        $src = file_get_contents(self::$root . '/src/Manifest/RouteIntegrity.php');
+        self::assertNotFalse($src);
+        self::assertStringNotContainsString("'unanchored'", $src);
     }
 
     // --- per-family precedence smoke (check d) ----------------------------------------------
