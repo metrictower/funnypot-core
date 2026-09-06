@@ -38,6 +38,12 @@ final class PersonaIdentity
         'secret.jwt',
         'php.version',
         'phpmyadmin.version',
+        // The Tomcat servlet-container and JVM versions this host claims — the single source of truth
+        // for every Java-stack surface (the manager server table, the catalina.out banner, the Actuator
+        // info block, the WEB-INF/web.xml descriptor). Tomcat stays entirely 9.0.x and Java entirely
+        // 17.0.x: Tomcat 9 is the `javax.servlet` line (Tomcat 10+ moved to `jakarta.servlet`), so a
+        // 10.x banner beside a `javax` stack trace / Servlet 4.0 descriptor is an impossible mix.
+        'tomcat.version', 'java.version',
         // The Next.js framework version this host claims — placed in the App-Router shell + the RSC
         // flight as the affected-side version for the React2Shell RSC family (CVE-2025-55182/-55183/
         // -55184). Derived like php.version so every Next.js surface on the deploy agrees.
@@ -224,6 +230,14 @@ final class PersonaIdentity
             // are two different products and a real phpMyAdmin shows both, so they need not be equal.
             'phpmyadmin.version' => self::pickProductVersion($slug, $domain, 'phpmyadmin'),
 
+            // The Tomcat + JVM versions this host claims, one source of truth for every Java-stack
+            // surface. Derived like php.version so field() and productVersion('tomcat'|'java') agree.
+            // Tomcat is 9.0.x only (keeps the whole stack on the `javax.servlet`/Servlet 4.0 line) and
+            // Java is 17.0.x only, one simple X.Y.Z form used verbatim by every surface (no `+NN` build
+            // suffix on one surface and not another).
+            'tomcat.version' => self::pickProductVersion($slug, $domain, 'tomcat'),
+            'java.version' => self::pickProductVersion($slug, $domain, 'java'),
+
             // The Next.js version this host claims — the single source of truth for the version shown
             // in the App-Router shell + the RSC flight. Derived like phpmyadmin.version so field() and
             // productVersion('nextjs') never drift. Every entry in the pool is strictly BELOW its
@@ -341,6 +355,27 @@ final class PersonaIdentity
             '5.2.0',
             '5.1.4',
             '5.1.3',
+        ],
+        // Apache Tomcat 9.0.x patch releases only — the whole Java persona stays on the Servlet 4.0 /
+        // `javax.servlet` line (Tomcat 10+ is `jakarta.servlet`), so mixing a 10.x major in would
+        // contradict the descriptor/stack-trace namespace. Dots break every value into <=2-digit runs,
+        // so no entry can carry the denied bare 6-digit token.
+        'tomcat' => [
+            '9.0.85',
+            '9.0.83',
+            '9.0.80',
+            '9.0.75',
+            '9.0.71',
+        ],
+        // OpenJDK/Temurin 17.0.x LTS releases only — one simple X.Y.Z form shared by every Java surface
+        // (HTML manager column, catalina.out JVM line, Actuator JSON), never a `+NN` build suffix on one
+        // surface and not another. Dots break every value into <=2-digit runs (denylist-safe).
+        'java' => [
+            '17.0.11',
+            '17.0.10',
+            '17.0.9',
+            '17.0.8',
+            '17.0.7',
         ],
         // Next.js releases for the App-Router "React2Shell" RSC CVE family — CVE-2025-55182 (RCE,
         // CVSS 10.0), -55184 (DoS), -55183 (Server-Function source exposure). Each entry is strictly

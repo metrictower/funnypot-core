@@ -3,7 +3,9 @@ priority: 318
 # Enrich: the corpus routes /actuator/info (+ /info, /management/info, /management) to the
 # `springboot-info` bundle (body words `"java"`, `"version"`, `"os"`; typed Content-Type
 # application/json). Minimal synth would emit the bare words; here we serve a real Actuator /info
-# build+java+os block. Versions are literals; the git commit id is hex (letters break any run).
+# build+java+os block. The Java version is the shared persona field (17.0.x, one source of truth with
+# the manager table, catalina.out and the WEB-INF/web.xml descriptor); the app build version and OS
+# are literals; the git commit id is hex (letters break any run).
 match:
   template_needle: [springboot-info]
 response:
@@ -18,7 +20,7 @@ response:
         "version": "1.8.2"
       },
       "git": {"branch": "main", "commit": {"id": "{{fake.gitsha:hex:7}}"}},
-      "java": {"version": "17.0.10", "vendor": "Eclipse Adoptium"},
+      "java": {"version": "{{persona.java.version}}", "vendor": "Eclipse Adoptium"},
       "os": {"name": "Linux", "version": "5.15.0-105-generic", "arch": "amd64"}
     }
 taunt: { mode: inline_field, key: '_comment' }

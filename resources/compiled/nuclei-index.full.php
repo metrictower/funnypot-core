@@ -13,11 +13,11 @@ return array (
     'license' => 'MIT (c) 2025 ProjectDiscovery, Inc.',
     'upstream_tag' => '2ec9141',
     'upstream_sha' => '2ec914123864439c3618e7e9ae72d32d0eb56df7',
-    'source_tree' => '48c8abcca5a9d0fee40c9a1a49afa6dd547098baadc1f9cba12fd98161c594cd',
+    'source_tree' => 'fbd7e7a83d9363292a3cf63dbed044506e7c163ac428521036d60fb01e9e56fb',
     'templates_seen' => 11196,
     'templates_in' => 6343,
-    'templates_indexed' => 6447,
-    'route_keys' => 5313,
+    'templates_indexed' => 6448,
+    'route_keys' => 5314,
     'multi_bundle_keys' => 276,
     'largest_bundle_count' => 1325,
     'persona_cap' => 
@@ -84408,6 +84408,19 @@ return array (
         2 => 'information-disclosure',
       ),
       'name' => 'Exposed Tomcat log (catalina.out)',
+    ),
+    'route-web-inf-web-xml' => 
+    array (
+      'sev' => 'medium',
+      'tags' => 
+      array (
+        0 => 'tomcat',
+        1 => 'java',
+        2 => 'web-inf',
+        3 => 'exposure',
+        4 => 'information-disclosure',
+      ),
+      'name' => 'Exposed Java deployment descriptor (WEB-INF/web.xml)',
     ),
     'route-actuator-heapdump' => 
     array (
@@ -300951,6 +300964,32 @@ a</title>',
           't' => 
           array (
             0 => 'route-catalina-out',
+          ),
+        ),
+      ),
+    ),
+    'GET /WEB-INF/web.xml' => 
+    array (
+      'b' => 
+      array (
+        0 => 
+        array (
+          's' => 200,
+          'bw' => 
+          array (
+            0 => '<web-app',
+            1 => '<servlet-class>',
+            2 => '<url-pattern>',
+          ),
+          'nf' => 
+          array (
+          ),
+          'pid' => 'route-web-inf-web-xml',
+          'sev' => 'medium',
+          'sig' => 0,
+          't' => 
+          array (
+            0 => 'route-web-inf-web-xml',
           ),
         ),
       ),

@@ -97,4 +97,8 @@ return [
     // 231 terraform.tfstate — already varied through {{persona.cloud.aws.accessKeyId}}; FP-0284 moved
     // the RDS identifier/region/username/password onto the persona so the DB story matches /.env's.
     'route:route-terraform-tfstate' => 'FP-0276-origin (persona AWS key) — registered by FP-0284 (region/identifier/db.user/db.password now persona)',
+    // 309 WEB-INF/web.xml — the leaked Java deployment descriptor. The display name, application
+    // package and JNDI datasource name derive from the persona company name/slug, so the served
+    // descriptor differs between deploys (cross-deploy variation is the machine-checked AC here).
+    'route:route-web-inf-web-xml' => 'FP-0017 persona-derived Java descriptor (display-name/package/JNDI datasource per deploy)',
 ];

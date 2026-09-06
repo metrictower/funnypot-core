@@ -1,6 +1,8 @@
 id: route-tomcat-manager
 priority: 200
-# Exposed Tomcat Web Application Manager — dresses the existing nuclei tomcat bundle.
+# Exposed Tomcat Web Application Manager — dresses the existing nuclei tomcat bundle. Tomcat/JVM
+# versions are the shared persona fields, so this table, catalina.out, the Actuator info block and the
+# WEB-INF/web.xml descriptor tell one Tomcat 9 / Java 17 story (Tomcat 9 is the `javax.servlet` line).
 match:
   template_needle: [apache-tomcat-exposed, tomcat-default-login, tomcat]
 set_cookie: JSESSIONID
@@ -20,7 +22,7 @@ response:
     <h2>Server Information</h2>
     <table>
     <tr><th>Tomcat Version</th><th>JVM Version</th><th>OS Name</th></tr>
-    <tr><td>Apache Tomcat/{{pick:9.0.71,8.5.87,10.1.7}}</td><td>17.0.6+10</td><td>Linux</td></tr>
+    <tr><td>Apache Tomcat/{{persona.tomcat.version}}</td><td>{{persona.java.version}}</td><td>Linux</td></tr>
     </table>
     </body></html>
 taunt: { mode: block, open: '<!--', close: '-->' }
