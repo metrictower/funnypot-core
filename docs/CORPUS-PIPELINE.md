@@ -23,6 +23,15 @@ composer build-corpus -- /path/to/checkout     # explicit checkout root
 `build-corpus` = pin check → `compile <checkout>/http` → `build`, then prints the upstream
 revision, the compiler record, the sha256 and the route-key delta (`before -> after (±n)`).
 
+**Editing `resources/ambient-paths.php` needs a full `build-corpus`, not just `build`.** The
+ambient stamp (`amb=1`, the AMBIENT classification) is written on BOTH halves from that one list
+(`Compiler\AmbientPaths`): the corpus half in `compile`, the fold half in `merge-routes`. `build`
+alone re-runs only the in-repo half, so a list edit followed by `build` restamps the folded bundles
+but leaves the corpus bundles at the same key on their old stamp — a mixed-stamp key that classifies
+SCANNER_PROBE (the safe direction) until `build-corpus` recompiles the corpus half. Two artifact
+tests catch that stale state (`CompiledIndexSmokeTest::test_no_route_key_has_mixed_ambient_stamps`
+and `test_folded_bundles_in_the_index_match_the_committed_fragment`).
+
 ## The pin
 
 `resources/compiled/manifest.json` → `upstream_sha` **is the pin**: the exact

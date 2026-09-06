@@ -81,6 +81,7 @@ heads have several):
     'pid'=> 'git',                   // product/stack identity (persona axis, §5)
     'sev'=> 'high',
     'sig'=> 0,                       // 1 = root/homepage-class; respond only on probe signature
+    'amb'=> 0,                       // 1 = curated ambient path (resources/ambient-paths.php); AMBIENT unless an OOB/honeytoken witness
     't'  => ['git-config'] ],        // provenance -> detect-mode template ids
 ]],
 ```
@@ -164,6 +165,34 @@ interface Engine {
     public function respond(RequestContext $r): ?SynthesizedResponse; // null => app serves its own 404
 }
 ```
+
+The `Engine` port is the back-compat facade; new consumers use the two-phase `Contracts\Evaluator`
+port (content-detection separated from deception content, so one engine serves every
+position×action combo — two-phase design §4):
+
+```php
+interface Evaluator {
+    public function classify(RequestContext $r, SiteProfile $profile): Verdict;                 // what is this request, as content? no I/O, no gates
+    public function synthesize(Verdict $verdict, SiteProfile $profile, string $seed): ?SynthesizedResponse;      // build the fake, or null => caller's 404
+    public function synthesizeFromHandle(?FakeHandle $handle, SiteProfile $profile, string $seed): ?SynthesizedResponse; // same, from the handle alone
+}
+```
+
+`classify()` returns a `Verdict` whose `->classification` is one of five constant strings:
+
+| `Verdict::` | string | meaning |
+|---|---|---|
+| `CLEAN` | `clean` | a miss, a real host route, or a bare root/homepage GET/HEAD — not evidence |
+| `AMBIENT` | `ambient` | a path fetched unprompted by browsers/crawlers/platforms (`resources/ambient-paths.php`); a bare corpus match is not evidence. Bumps to `SCANNER_PROBE` when an OOB/honeytoken witness proves this request was not unprompted |
+| `SCANNER_PROBE` | `scanner-probe` | a request for a compiled recon path (the report signal) |
+| `ATTACK_CLASS` | `attack-class` | an attack payload matched a rule/param route |
+| `SUSPICIOUS` | `suspicious` | reserved: request-shape anomaly, never classified alone (the composite bot call is the policy's) |
+
+`Verdict` carries `->detection`, `->severity`, `->anomaly`, `->signals` and `->fakeHandle` (public,
+serializable) plus `isClean()` / `isAmbient()`. `Detection`, the route handle and the served bytes
+are identical on `AMBIENT` and `SCANNER_PROBE` — the classification is a policy input, not a content
+change. `SiteProfile(array $declaredStack = [], ?callable $routeExists = null)` (with `::empty()`)
+supplies the host's declared stack and a real-route oracle so a live endpoint is never shadowed.
 
 DTOs (standard constructors, PHP 7.3+ compatible):
 - `RequestContext(string $method, string $path, string $query='', array $headers=[], ?string $rawBody=null, string $host='', string $scheme='https')`: primitives only; **core never

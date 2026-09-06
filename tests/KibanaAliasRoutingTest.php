@@ -48,6 +48,7 @@ final class KibanaAliasRoutingTest extends TestCase
             'pid' => 'kibana',
             'sev' => 'medium',
             'sig' => 0,
+            'amb' => 0,
             't' => ['exposed-kibana', 'kibana-panel'],
         ]],
         'GET /app/kibana/' => [[
@@ -61,6 +62,7 @@ final class KibanaAliasRoutingTest extends TestCase
             'pid' => 'kibana',
             'sev' => 'medium',
             'sig' => 0,
+            'amb' => 0,
             't' => ['exposed-kibana'],
         ]],
     ];
