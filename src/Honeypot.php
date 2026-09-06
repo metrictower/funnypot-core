@@ -1584,7 +1584,10 @@ final class Honeypot implements Engine
         }
 
         $satisfies = $this->detectionFor($key, $bundle['t'] ?? []);
-        $response = $this->synthesizer->synthesize($bundle, $satisfies, $seed);
+        // Thread the resolved store key so a route-key-guarded template dresses only its own route
+        // (path-aware directory listings). The key is the handle's, never request-derived, so facade
+        // and position-blind port stay byte-equivalent.
+        $response = $this->synthesizer->synthesize($bundle, $satisfies, $seed, $key);
         if ($response === null) {
             return ['r' => null, 'reason' => Outcome::UNSYNTHESIZABLE];
         }

@@ -62,14 +62,14 @@ final class RouteTemplateEmulator extends AbstractEmulator
         $this->generators = $generators ?? BinaryBodyGeneratorRegistry::default();
     }
 
-    public function supports(array $bundle): bool
+    public function supports(array $bundle, ?string $routeKey = null): bool
     {
-        return $this->set->findRule($bundle) !== null;
+        return $this->set->findRule($bundle, $routeKey) !== null;
     }
 
-    public function render(array $bundle, string $style, int $seed): ?EmulatedContent
+    public function render(array $bundle, string $style, int $seed, ?string $routeKey = null): ?EmulatedContent
     {
-        $rule = $this->set->findRule($bundle);
+        $rule = $this->set->findRule($bundle, $routeKey);
         if ($rule === null) {
             return null;
         }

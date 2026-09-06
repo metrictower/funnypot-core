@@ -20,8 +20,10 @@ interface EndpointEmulator
      * True when this emulator recognises the served bundle (by template id or product).
      *
      * @param array<string,mixed> $bundle
+     * @param string|null         $routeKey the resolved store key ('<METHOD> <path>') for a
+     *                                    route-key-guarded rule; null preserves unguarded selection
      */
-    public function supports(array $bundle): bool;
+    public function supports(array $bundle, ?string $routeKey = null): bool;
 
     /**
      * Render rich content for the given style. MUST embed every required body word and
@@ -32,6 +34,7 @@ interface EndpointEmulator
      * @param string              $style  Style::REALISTIC | Style::TAUNT
      * @param int                 $seed   deterministic per attacker+path — vary fake
      *                                    values with it so re-scans stay byte-identical
+     * @param string|null         $routeKey the resolved store key for a route-key-guarded rule
      */
-    public function render(array $bundle, string $style, int $seed): ?EmulatedContent;
+    public function render(array $bundle, string $style, int $seed, ?string $routeKey = null): ?EmulatedContent;
 }

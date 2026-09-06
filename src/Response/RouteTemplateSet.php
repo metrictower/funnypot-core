@@ -48,13 +48,19 @@ final class RouteTemplateSet
      *   - pid:             exact bundle pid match
      *   - body_word_contains: any bw word contains the needle (the ssh "PRIVATE KEY" axis)
      *
+     * A rule may additionally declare `match.route_key`: a conjunctive GUARD (never a fourth OR
+     * axis). When present, the resolved route key must equal one entry exactly AND one of the three
+     * axes must still match. $routeKey is the store key Honeypot resolved before synthesis ('<METHOD>
+     * <path>'); null (a direct unit test / embedded call) can never satisfy a guarded rule, so
+     * unguarded rules keep their first-match behaviour and guarded ones simply decline.
+     *
      * @param array<string,mixed> $bundle
      * @return array<string,mixed>|null
      */
-    public function findRule(array $bundle): ?array
+    public function findRule(array $bundle, ?string $routeKey = null): ?array
     {
         foreach ($this->rules as $rule) {
-            if ($this->selects($bundle, (array) ($rule['match'] ?? []))) {
+            if ($this->selects($bundle, (array) ($rule['match'] ?? []), $routeKey)) {
                 return $rule;
             }
         }
@@ -66,8 +72,15 @@ final class RouteTemplateSet
      * @param array<string,mixed> $bundle
      * @param array<string,mixed> $match
      */
-    private function selects(array $bundle, array $match): bool
+    private function selects(array $bundle, array $match, ?string $routeKey): bool
     {
+        // route_key is a conjunctive guard consulted first: a rule that declares it only applies to
+        // an exact resolved key, so a wrong or null key declines before any body/pid axis is read.
+        if (isset($match['route_key'])
+            && ($routeKey === null || !in_array($routeKey, (array) $match['route_key'], true))) {
+            return false;
+        }
+
         $pid = (string) ($bundle['pid'] ?? '');
         $ids = array_map('strval', (array) ($bundle['t'] ?? []));
 

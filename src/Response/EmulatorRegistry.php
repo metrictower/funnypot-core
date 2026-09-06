@@ -53,11 +53,12 @@ final class EmulatorRegistry
 
     /**
      * @param array<string,mixed> $bundle
+     * @param string|null         $routeKey the resolved store key threaded to route-key-guarded rules
      */
-    public function find(array $bundle): ?EndpointEmulator
+    public function find(array $bundle, ?string $routeKey = null): ?EndpointEmulator
     {
         foreach ($this->emulators as $emulator) {
-            if ($emulator->supports($bundle)) {
+            if ($emulator->supports($bundle, $routeKey)) {
                 return $emulator;
             }
         }

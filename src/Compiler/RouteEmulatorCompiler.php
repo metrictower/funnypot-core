@@ -224,14 +224,59 @@ final class RouteEmulatorCompiler
      */
     private function normalizeMatch(array $match, string $file): array
     {
+        // The match vocabulary is closed: an unknown key is a typo that would silently widen or
+        // narrow selection (normalizeMatch used to ignore it). template_needle/pid/body_word_contains
+        // are OR selector axes; route_key is a conjunctive guard.
+        foreach (array_keys($match) as $key) {
+            if (!in_array((string) $key, ['template_needle', 'pid', 'body_word_contains', 'route_key'], true)) {
+                throw new RuntimeException("Route template {$file}: unknown match key '{$key}'. The set is closed: template_needle | pid | body_word_contains | route_key.");
+            }
+        }
+
         $out = [];
         foreach (['template_needle', 'pid', 'body_word_contains'] as $axis) {
             if (isset($match[$axis]) && (array) $match[$axis] !== []) {
                 $out[$axis] = array_values(array_map('strval', (array) $match[$axis]));
             }
         }
+        // route_key is a GUARD, never a standalone selector — a route-key-only rule would dress every
+        // bundle that ever resolves at that key. Require a selector axis before adding the guard.
         if ($out === []) {
             throw new RuntimeException("Route template {$file}: match needs at least one of template_needle / pid / body_word_contains.");
+        }
+        if (isset($match['route_key']) && (array) $match['route_key'] !== []) {
+            $out['route_key'] = $this->normalizeRouteKeys((array) $match['route_key'], $file);
+        }
+
+        return $out;
+    }
+
+    /**
+     * Validate `match.route_key`: each entry is an exact compiled store key — an uppercase supported
+     * method, one ASCII space, an absolute path, no query/fragment/control byte — deduplicated and
+     * non-empty. This is the '<METHOD> <path>' shape Honeypot resolves before synthesis, so a
+     * malformed entry could never match a real handle and is rejected at build time.
+     *
+     * @param array<int,mixed> $keys
+     * @return array<int,string>
+     */
+    private function normalizeRouteKeys(array $keys, string $file): array
+    {
+        $out = [];
+        $seen = [];
+        foreach ($keys as $raw) {
+            $key = (string) $raw;
+            if ($key === '') {
+                throw new RuntimeException("Route template {$file}: match.route_key entries must be non-empty.");
+            }
+            if (preg_match('~^(GET|HEAD|POST|PUT|DELETE|PATCH|OPTIONS|TRACE) /[^\s?#\x00-\x1f]*$~', $key) !== 1) {
+                throw new RuntimeException("Route template {$file}: match.route_key '{$key}' must be '<METHOD> /path' — an uppercase supported method, one space, an absolute path, no query/fragment/control byte.");
+            }
+            if (isset($seen[$key])) {
+                throw new RuntimeException("Route template {$file}: duplicate match.route_key '{$key}'.");
+            }
+            $seen[$key] = true;
+            $out[] = $key;
         }
 
         return $out;

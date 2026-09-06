@@ -428,12 +428,16 @@ foreach ($routeRules as $rule) {
         continue;
     }
     $requestedId = (string) ($rule['id'] ?? '?');
-    $bundle = routeBundle((array) ($rule['match'] ?? []));
+    $match = (array) ($rule['match'] ?? []);
+    $bundle = routeBundle($match);
     if ($bundle === null) {
         $fail[] = "G-selftest route '{$requestedId}': no synthetic bundle could be built from its match selector";
         continue;
     }
-    $selected = $routeSet->findRule($bundle);
+    // A route-key-guarded rule only selects under its exact resolved key, so thread the rule's own
+    // first key through findRule + render — null for an unguarded rule, unchanged behaviour there.
+    $selfRouteKey = isset($match['route_key'][0]) ? (string) $match['route_key'][0] : null;
+    $selected = $routeSet->findRule($bundle, $selfRouteKey);
     if ($selected === null) {
         // Defense-in-depth: routeBundle() and RouteTemplateSet::selects() are symmetric over the same
         // rule set, so a non-null bundle always selects at least its own rule — a null here is a
@@ -465,8 +469,8 @@ foreach ($routeRules as $rule) {
         $emu = new RouteTemplateEmulator($routeSet, new DirectiveRenderer($deploySeeds[$material], $volatileProof, false));
         foreach ($renderSeeds as $rlabel => $renderSeed) {
             $where = "{$diag} [m={$material},{$rlabel}]";
-            $first = $emu->render($bundle, Style::REALISTIC, $renderSeed);
-            $second = $emu->render($bundle, Style::REALISTIC, $renderSeed);
+            $first = $emu->render($bundle, Style::REALISTIC, $renderSeed, $selfRouteKey);
+            $second = $emu->render($bundle, Style::REALISTIC, $renderSeed, $selfRouteKey);
             $rendered += 2;
             $c1 = $canon($first);
             $c2 = $canon($second);

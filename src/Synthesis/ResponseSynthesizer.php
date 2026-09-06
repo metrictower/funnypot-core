@@ -84,9 +84,13 @@ final class ResponseSynthesizer
     /**
      * @param array<string,mixed> $bundle a single compiled bundle (entry['b'][i])
      * @param string              $seed   persona seed for deterministic fake values
+     * @param string|null         $routeKey the resolved store key ('<METHOD> <path>') Honeypot
+     *                            resolved before synthesis; threaded to the emulator so a
+     *                            route-key-guarded rule dresses only its own route. Null (a direct
+     *                            call / embedded host) keeps unguarded selection unchanged.
      * @return SynthesizedResponse|null null => this bundle is out of minimal-synth scope
      */
-    public function synthesize(array $bundle, Detection $satisfies, string $seed = ''): ?SynthesizedResponse
+    public function synthesize(array $bundle, Detection $satisfies, string $seed = '', ?string $routeKey = null): ?SynthesizedResponse
     {
         $this->lastSkipReason = '';
 
@@ -108,12 +112,12 @@ final class ResponseSynthesizer
                 return null;
             }
 
-            return $this->tryEmulator($bundle, $satisfies, $seed, $ident);
+            return $this->tryEmulator($bundle, $satisfies, $seed, $ident, $routeKey);
         }
 
         // Rich emulator layer (validated; falls through to minimal on any mismatch).
         if ($this->style !== Style::MINIMAL && $this->emulators !== null) {
-            $rich = $this->tryEmulator($bundle, $satisfies, $seed, $ident);
+            $rich = $this->tryEmulator($bundle, $satisfies, $seed, $ident, $routeKey);
             if ($rich !== null) {
                 return $rich;
             }
@@ -309,14 +313,14 @@ final class ResponseSynthesizer
      *
      * @param array<string,mixed> $bundle
      */
-    private function tryEmulator(array $bundle, Detection $satisfies, string $seed, int $ident): ?SynthesizedResponse
+    private function tryEmulator(array $bundle, Detection $satisfies, string $seed, int $ident, ?string $routeKey): ?SynthesizedResponse
     {
-        $emulator = $this->emulators->find($bundle);
+        $emulator = $this->emulators->find($bundle, $routeKey);
         if ($emulator === null) {
             return null;
         }
 
-        $content = $emulator->render($bundle, $this->style, crc32($seed));
+        $content = $emulator->render($bundle, $this->style, crc32($seed), $routeKey);
         if ($content === null) {
             return null;
         }
