@@ -107,6 +107,9 @@ Verdict {
   a bundle blob) that lets `synthesize()` deterministically rebuild the fake. Shape:
   - nuclei route: `{ kind: 'route', key: '<METHOD> <normalized-path>' }` — the resolved routing key.
   - attack class: `{ kind: 'attack', ruleId: '<id>' }` — the matched attack rule id.
+  - method coverage: `{ kind: 'method', key: '<OPTIONS|TRACE|PROPFIND> <canonical-path>' }` — bounded
+    OPTIONS/TRACE/PROPFIND coverage of a servable compiled path (FP-0011). Carries no request bytes;
+    `synthesize()` re-derives the `Allow` list from the current store/config and fails closed to a 404.
   - `null` when the classification could never produce a fake (clean).
   This keeps `Verdict` serializable (it can cross the policy boundary / be cached / logged) and makes
   `synthesize()` a pure function of `(handle, profile, seed) + store`.

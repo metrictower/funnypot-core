@@ -15,6 +15,9 @@ use Funnypot\Core\Reaction\ParamIntent;
  *  - attack: a matched attack rule id, plus the request captures the render reflects
  *            ({{match.N}}). The captures ride here because synthesize() gets no request —
  *            they are the request-derived data needed to rebuild the fake byte-identically.
+ *  - method: a bounded HTTP method-coverage key ('<OPTIONS|TRACE|PROPFIND> <canonical-path>'),
+ *            reusing the `key` field. Carries no request bytes: synthesize() re-derives the Allow
+ *            list from the current store/config, so a tampered key can only fail closed to a 404.
  *  - llm:    reserved. The app-side LLM fake is a host-injected synthesizer named by this
  *            kind; core never builds it (design §1 tension).
  *
@@ -29,6 +32,7 @@ final class FakeHandle
 {
     public const KIND_ROUTE = 'route';
     public const KIND_ATTACK = 'attack';
+    public const KIND_METHOD = 'method';
     public const KIND_LLM = 'llm';
 
     /** @var string one of the KIND_* constants */
@@ -71,6 +75,16 @@ final class FakeHandle
     public static function attack(string $ruleId, array $captures = []): self
     {
         return new self(self::KIND_ATTACK, null, $ruleId, $captures);
+    }
+
+    /**
+     * A bounded HTTP method-coverage handle. $key is exactly '<OPTIONS|TRACE|PROPFIND>
+     * <canonical-path>'; the closed grammar and the Allow list are re-validated at synthesis, so no
+     * request byte rides here.
+     */
+    public static function method(string $key): self
+    {
+        return new self(self::KIND_METHOD, $key);
     }
 
     /**

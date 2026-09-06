@@ -74,6 +74,24 @@ final class ValueTypesTest extends TestCase
         self::assertEquals($h, FakeHandle::fromArray(json_decode(json_encode($h->toArray()), true)));
     }
 
+    public function test_fakehandle_method_round_trips(): void
+    {
+        // FP-0011: a bounded method-coverage handle reuses the `key` field, carries no captures or
+        // intent, and survives the JSON telemetry hop unchanged.
+        $h = FakeHandle::method('OPTIONS /wp-login.php');
+
+        self::assertSame(FakeHandle::KIND_METHOD, $h->kind);
+        self::assertSame('OPTIONS /wp-login.php', $h->key);
+        self::assertNull($h->ruleId);
+        self::assertNull($h->paramIntent);
+        self::assertSame(
+            ['kind' => 'method', 'key' => 'OPTIONS /wp-login.php', 'ruleId' => null, 'captures' => []],
+            $h->toArray()
+        );
+        self::assertEquals($h, FakeHandle::fromArray($h->toArray()));
+        self::assertEquals($h, FakeHandle::fromArray(json_decode(json_encode($h->toArray()), true)));
+    }
+
     public function test_fakehandle_route_without_intent_serializes_exactly_as_before(): void
     {
         // The paramIntent key is absent unless present, so legacy route arrays are byte-identical.
