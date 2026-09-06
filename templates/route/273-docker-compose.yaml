@@ -3,6 +3,13 @@ priority: 273
 # Brand-new page: a leaked docker-compose.yml left in the webroot. The service environment blocks
 # carry the DB password and cloud secrets (persona-seeded, coherent with the host's other configs),
 # exactly where a scanner harvests them.
+#
+# A generic corpus template ('docker-compose-config') keys this same exact path with a sparse
+# detect-only bundle (bare `services:`/`version: `), whose minimal synth carries none of the
+# persona-seeded secrets or DATABASE_URL this page discloses — a worse tell than the rich decoy. The
+# heavy weight makes THIS bundle the one the persona pick lands on (same fix route-aws-cli-config
+# uses for the same class of corpus collision); detection of the corpus template is unaffected. That
+# corpus template still keys the docker-compose.* variant paths, which have no authored decoy.
 new_page:
   method: GET
   paths: ['/docker-compose.yml']
@@ -12,6 +19,7 @@ new_page:
   tags: [exposure, config-disclosure, secrets]
   name: 'Exposed docker-compose.yml'
   body_words: ['services:']
+  weight: 100000
 response:
   headers:
     Content-Type: "text/yaml; charset=utf-8"
