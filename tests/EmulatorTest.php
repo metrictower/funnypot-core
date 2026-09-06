@@ -10,6 +10,7 @@ use Funnypot\Core\RequestContext;
 use Funnypot\Core\Response\BundleValidator;
 use Funnypot\Core\Response\Style;
 use Funnypot\Core\Store\PhpArrayStore;
+use Funnypot\Core\Support\PersonaIdentity;
 
 use PHPUnit\Framework\TestCase;
 
@@ -32,14 +33,31 @@ final class EmulatorTest extends TestCase
         ));
     }
 
+    /** The company domain the coherent persona projects for this suite's deploy seed. */
+    private function personaDomain(): string
+    {
+        $config = new Config(
+            'respond',
+            static function (RequestContext $r): bool { return true; },
+            'matched-only',
+            static function (RequestContext $r): string { return 'fixed'; },
+            'coherent',
+            Style::REALISTIC
+        );
+
+        return (string) PersonaIdentity::fromSeed($config->deploySeed())->field('company.domain');
+    }
+
     public function test_realistic_git_config_is_rich_but_still_satisfies(): void
     {
         $r = $this->inverter(Style::REALISTIC)->respond(new RequestContext('GET', '/.git/config'));
 
         self::assertNotNull($r);
-        // Rich: a full config, not just the bare token.
+        // Rich: a full config, not just the bare token — the decoy remote is on the persona domain,
+        // never a fixed placeholder (a lure naming another company than the host is a fingerprint).
         self::assertStringContainsString('[remote "origin"]', $r->body);
-        self::assertStringContainsString('git.example.com', $r->body);
+        self::assertStringContainsString('git.' . $this->personaDomain() . '/internal/', $r->body);
+        self::assertStringNotContainsStringIgnoringCase('git.example.com', $r->body);
         // Still satisfies the matcher: required token present, forbidden absent.
         self::assertStringContainsString('[core]', $r->body);
         self::assertStringNotContainsStringIgnoringCase('<html', $r->body);
