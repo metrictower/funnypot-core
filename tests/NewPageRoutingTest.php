@@ -9,6 +9,7 @@ use Funnypot\Core\Compiler\Crs\FingerprintGuard;
 use Funnypot\Core\Config;
 use Funnypot\Core\Honeypot;
 use Funnypot\Core\RequestContext;
+use Funnypot\Core\Response\RouteTemplateSet;
 use Funnypot\Core\Store\PhpArrayStore;
 use Funnypot\Core\Support\PersonaIdentity;
 use Funnypot\Core\SynthesizedResponse;
@@ -219,6 +220,12 @@ final class NewPageRoutingTest extends TestCase
             'apache access.log' => ['/var/log/apache2/access.log', 200, 'xmlrpc.php', 'text/plain; charset=utf-8'],
             'generic app.log'   => ['/app.log', 200, 'connection pool exhausted', 'text/plain; charset=utf-8'],
             'catalina.out'      => ['/catalina.out', 200, 'NullPointerException', 'text/plain; charset=utf-8'],
+
+            // Java deployment-descriptor disclosure — the exact /WEB-INF/web.xml page. The marker is
+            // the resource-ref DataSource type authored only in the descriptor (not a bundle body word),
+            // so its presence proves the full web.xml served, not a minimal synth of the bare witnesses.
+            // Served application/xml (a descriptor's real type; text/html would be a tell).
+            'WEB-INF/web.xml'   => ['/WEB-INF/web.xml', 200, 'javax.sql.DataSource', 'application/xml'],
 
             // Framework debug-page disclosure pack — enrich rules that dress a corpus-routed
             // detection endpoint (Ignition / Symfony profiler / Spring actuator / Telescope). The
@@ -1061,6 +1068,9 @@ final class NewPageRoutingTest extends TestCase
             '/wp-content/debug.log', '/error_log', '/laravel.log',
             '/var/log/nginx/error.log', '/var/log/nginx/access.log',
             '/var/log/apache2/error.log', '/var/log/apache2/access.log', '/app.log', '/catalina.out',
+            // Java descriptor disclosure — the web.xml carries the persona display-name/package/JNDI
+            // islands plus the Tomcat/Java version strings, so the \b9\d{5}\b run is a hazard here too.
+            '/WEB-INF/web.xml',
             // Framework debug-page disclosure pack — enrich surfaces. Debug/actuator pages are dense
             // with ports, PIDs, byte counts, thread ids, versions and seed-derived tokens, so the
             // \b9\d{5}\b run is the acute hazard here. /console sweeps all three co-bundles.
@@ -1284,6 +1294,166 @@ final class NewPageRoutingTest extends TestCase
 
         self::assertNotNull($resp);
         self::assertStringContainsString('Tomcat Web Application Manager', $resp->body);
+    }
+
+    public function test_web_inf_web_xml_is_a_well_formed_inert_java_descriptor(): void
+    {
+        // The exact /WEB-INF/web.xml page must serve a well-formed, INERT Servlet 4.0 descriptor: it
+        // parses with libxml (no network, no DTD load), carries the javaee namespace + version 4.0, an
+        // application servlet under com.<slug>.web with an /api/* mapping, and a jdbc/<slug>DataSource
+        // resource-ref of javax.sql.DataSource with Container auth. It must carry NO DTD/DOCTYPE/entity/
+        // system-or-public identifier, no remote URL beyond the standard namespace/XSD identifiers, no
+        // credential and no unresolved directive, and it must parse identically under the taunt style
+        // (the block XML comment is valid misc-after-root). The three standard namespace/schema URIs are
+        // inert identifiers, never fetched (LIBXML_NONET). The persona identity is deploy-stable, so the
+        // per-render-seed sweep proves the structure is render-invariant; the saltedInverter sweep below
+        // proves the persona-derived fields and cross-deploy variation.
+        $allowedUrls = [
+            'http://xmlns.jcp.org/xml/ns/javaee',
+            'http://xmlns.jcp.org/xml/ns/javaee/web-app_4_0.xsd',
+            'http://www.w3.org/2001/XMLSchema-instance',
+        ];
+        foreach (['realistic', 'taunt'] as $style) {
+            for ($seed = 0; $seed <= 30; $seed++) {
+                $resp = $this->seededInverter((string) $seed, $style)->respond(new RequestContext('GET', '/WEB-INF/web.xml'));
+                self::assertNotNull($resp, "/WEB-INF/web.xml [{$style}] seed {$seed} must serve a fake");
+                self::assertSame(200, $resp->status, "seed {$seed} status");
+                self::assertSame('application/xml', $resp->headers['Content-Type'] ?? null, "seed {$seed} Content-Type must be application/xml");
+                $body = $resp->body;
+
+                // No unresolved directive, no DTD/entity/external-identifier surface.
+                self::assertStringNotContainsString('{{', $body, "seed {$seed} carries an unrendered directive");
+                foreach (['<!DOCTYPE', '<!ENTITY', ' SYSTEM ', ' PUBLIC '] as $forbidden) {
+                    self::assertStringNotContainsStringIgnoringCase($forbidden, $body, "seed {$seed} must not carry '{$forbidden}'");
+                }
+                // The only URLs allowed are the standard namespace/schema identifiers — never a remote
+                // callback, an internal host, or a credential-bearing URL.
+                preg_match_all('#https?://[^\s"\'<>]+#', $body, $urls);
+                foreach ($urls[0] as $url) {
+                    self::assertContains($url, $allowedUrls, "seed {$seed} carries a non-namespace URL: {$url}");
+                }
+
+                // Parses as XML with the network + DTD loading off.
+                $prev = libxml_use_internal_errors(true);
+                $doc = new \DOMDocument();
+                $parsed = $doc->loadXML($body, LIBXML_NONET);
+                libxml_clear_errors();
+                libxml_use_internal_errors($prev);
+                self::assertTrue($parsed, "seed {$seed} [{$style}] must be well-formed XML");
+
+                $root = $doc->documentElement;
+                self::assertNotNull($root, "seed {$seed} must have a root element");
+                self::assertSame('web-app', $root->localName, "seed {$seed} root must be <web-app>");
+                self::assertSame('http://xmlns.jcp.org/xml/ns/javaee', $root->namespaceURI, "seed {$seed} must be the javaee namespace (Servlet 4.0 / javax)");
+                self::assertSame('4.0', $root->getAttribute('version'), "seed {$seed} must declare Servlet version 4.0");
+
+                // Structure (slug-agnostic): a display name, the dispatcher + /api/* app servlet under
+                // com.<slug>.web, and a jdbc DataSource resource-ref of javax.sql.DataSource / Container.
+                self::assertSame(1, preg_match('#<display-name>[^<]+</display-name>#', $body), "seed {$seed} must carry a display-name");
+                self::assertSame(1, preg_match('#<servlet-class>com\.[a-z0-9]+\.web\.ApiServlet</servlet-class>#', $body), "seed {$seed} app servlet must be under com.<slug>.web");
+                self::assertStringContainsString('<url-pattern>/api/*</url-pattern>', $body, "seed {$seed} must map the app servlet at /api/*");
+                self::assertStringContainsString('<url-pattern>/</url-pattern>', $body, "seed {$seed} must map the dispatcher at /");
+                self::assertSame(1, preg_match('#<res-ref-name>jdbc/[a-z0-9]+DataSource</res-ref-name>#', $body), "seed {$seed} must declare a jdbc/<slug>DataSource resource-ref");
+                self::assertStringContainsString('<res-type>javax.sql.DataSource</res-type>', $body, "seed {$seed} resource-ref must be javax.sql.DataSource (Tomcat 9 / javax)");
+                self::assertStringContainsString('<res-auth>Container</res-auth>', $body, "seed {$seed} resource-ref must use Container auth");
+                // No jakarta.* type may appear beside the javax stack (an impossible Tomcat 9 mix), and
+                // no follow-up config path this pack does not serve is advertised.
+                self::assertStringNotContainsString('jakarta.', $body, "seed {$seed} must not leak a jakarta.* type under a javax/Servlet-4.0 descriptor");
+                self::assertStringNotContainsString('applicationContext.xml', $body, "seed {$seed} must not advertise an unserved applicationContext.xml");
+                self::assertStringNotContainsString('jetty-env.xml', $body, "seed {$seed} must not advertise an unserved jetty-env.xml");
+            }
+        }
+
+        // Deterministic per deploy: the same seed renders byte-identical descriptors.
+        $a = $this->seededInverter('11', 'realistic')->respond(new RequestContext('GET', '/WEB-INF/web.xml'));
+        $b = $this->seededInverter('11', 'realistic')->respond(new RequestContext('GET', '/WEB-INF/web.xml'));
+        self::assertNotNull($a);
+        self::assertNotNull($b);
+        self::assertSame($a->body, $b->body, 'the descriptor must be deterministic for one deploy');
+
+        // Per-deploy identity + cross-deploy variation: the display-name is the persona company name, and
+        // the package/JNDI carry its slug, so two deploys differ. seedSalt drives the deploy identity;
+        // seedFromMaterial($salt) reproduces exactly what the render must have used.
+        $descriptors = [];
+        for ($s = 0; $s <= 20; $s++) {
+            $salt = 'web-xml-persona-' . $s;
+            $resp = $this->saltedInverter($salt)->respond(new RequestContext('GET', '/WEB-INF/web.xml'));
+            self::assertNotNull($resp, "salt {$s}: /WEB-INF/web.xml must serve a fake");
+            $persona = PersonaIdentity::fromSeed(PersonaIdentity::seedFromMaterial($salt));
+            $slug = (string) $persona->field('company.slug');
+            self::assertStringContainsString('<display-name>' . $persona->field('company.name') . '</display-name>', $resp->body, "salt {$s} display-name must be the persona company");
+            self::assertStringContainsString('<servlet-class>com.' . $slug . '.web.ApiServlet</servlet-class>', $resp->body, "salt {$s} app servlet must carry the persona slug");
+            self::assertStringContainsString('<res-ref-name>jdbc/' . $slug . 'DataSource</res-ref-name>', $resp->body, "salt {$s} JNDI name must carry the persona slug");
+            $descriptors[$resp->body] = true;
+        }
+        self::assertGreaterThan(1, count($descriptors), 'the descriptor must vary across deploys (not a fleet-constant)');
+    }
+
+    public function test_java_surfaces_agree_on_one_tomcat9_java17_persona(): void
+    {
+        // One host, one Java story: the Tomcat/JVM versions the manager table, catalina.out and the
+        // Actuator info block disclose must be byte-identical to each other AND to the PersonaIdentity
+        // fields for the same deploy — a cross-path scan must never expose an impossible Tomcat-major mix
+        // or two different JVM versions. Tomcat stays 9.0.x (coherent with the javax web.xml descriptor)
+        // and Java 17.0.x. Vary the deploy identity via seedSalt and require at least two distinct
+        // Tomcat and JVM values across the sweep (so the surfaces are not one fleet-wide constant).
+        $tomcats = [];
+        $javas = [];
+        for ($s = 0; $s <= 40; $s++) {
+            $salt = 'java-persona-' . $s;
+            $inv = $this->saltedInverter($salt);
+            $persona = PersonaIdentity::fromSeed(PersonaIdentity::seedFromMaterial($salt));
+            $expectTomcat = (string) $persona->field('tomcat.version');
+            $expectJava = (string) $persona->field('java.version');
+            self::assertStringStartsWith('9.0.', $expectTomcat, "salt {$s}: persona Tomcat must be 9.0.x");
+            self::assertStringStartsWith('17.0.', $expectJava, "salt {$s}: persona Java must be 17.0.x");
+
+            $mgr = $inv->respond(new RequestContext('GET', '/manager/html'));
+            $cat = $inv->respond(new RequestContext('GET', '/catalina.out'));
+            $act = $inv->respond(new RequestContext('GET', '/actuator/info'));
+            self::assertNotNull($mgr, "salt {$s}: /manager/html must serve a fake");
+            self::assertNotNull($cat, "salt {$s}: /catalina.out must serve a fake");
+            self::assertNotNull($act, "salt {$s}: /actuator/info must serve a fake");
+
+            self::assertSame(1, preg_match('#Apache Tomcat/([0-9.]+)</td><td>([0-9.]+)</td><td>Linux#', $mgr->body, $m), "salt {$s}: manager must show a Tomcat + JVM version");
+            self::assertSame($expectTomcat, $m[1], "salt {$s}: manager Tomcat must equal persona.tomcat.version");
+            self::assertSame($expectJava, $m[2], "salt {$s}: manager JVM must equal persona.java.version");
+
+            self::assertSame(1, preg_match('#Server version name:\s+Apache Tomcat/([0-9.]+)#', $cat->body, $ct), "salt {$s}: catalina must log a Tomcat version");
+            self::assertSame($expectTomcat, $ct[1], "salt {$s}: catalina Tomcat must equal persona.tomcat.version");
+            self::assertSame(1, preg_match('#JVM Version:\s+([0-9.]+)#', $cat->body, $cj), "salt {$s}: catalina must log a JVM version");
+            self::assertSame($expectJava, $cj[1], "salt {$s}: catalina JVM must equal persona.java.version");
+            self::assertStringContainsString('javax.servlet', $cat->body, "salt {$s}: catalina must keep the javax.servlet frame (Tomcat 9)");
+
+            self::assertSame(1, preg_match('#"version":\s*"([0-9.]+)",\s*"vendor":\s*"Eclipse Adoptium"#', $act->body, $aj), "salt {$s}: actuator must report a Java version");
+            self::assertSame($expectJava, $aj[1], "salt {$s}: actuator Java must equal persona.java.version");
+
+            $tomcats[$expectTomcat] = true;
+            $javas[$expectJava] = true;
+        }
+        self::assertGreaterThan(1, count($tomcats), 'the Tomcat version must vary across deploys');
+        self::assertGreaterThan(1, count($javas), 'the JVM version must vary across deploys');
+    }
+
+    public function test_web_inf_web_xml_route_reselects_itself(): void
+    {
+        // FP-0320 regression guard: RouteTemplateSet::findRule() selects by first-match over a substring
+        // scan of the bundle's template ids, so a new_page id that contains an earlier-priority
+        // template_needle would be silently captured by that other rule. Build the synthetic bundle for
+        // this page against the REAL compiled route set and require it re-selects its own rule — the id
+        // 'route-web-inf-web-xml' must stay clear of every earlier needle for the descriptor to serve.
+        $rules = require __DIR__ . '/../resources/compiled/funnypot-routes.php';
+        $set = new RouteTemplateSet($rules);
+        $bundle = [
+            'pid' => 'route-web-inf-web-xml',
+            't' => ['route-web-inf-web-xml'],
+            's' => 200,
+            'bw' => ['<web-app', '<servlet-class>', '<url-pattern>'],
+            'sig' => 0,
+        ];
+        $selected = $set->findRule($bundle);
+        self::assertNotNull($selected, 'the web.xml bundle must select a route rule');
+        self::assertSame('route-web-inf-web-xml', $selected['id'] ?? null, 'the web.xml bundle must re-select its own rule, not a substring-shadowing one');
     }
 
     public function test_jenkins_surfaces_carry_the_x_jenkins_version_header(): void

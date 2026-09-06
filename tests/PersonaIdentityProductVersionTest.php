@@ -124,6 +124,60 @@ final class PersonaIdentityProductVersionTest extends TestCase
         self::assertGreaterThan(1, count(array_unique($versions)), 'the phpMyAdmin version must not collapse to one fixed value across deployments');
     }
 
+    public function test_tomcat_version_field_equals_product_version(): void
+    {
+        // Same one-derivation guarantee as php.version: the tomcat.version field and
+        // productVersion('tomcat') come from one helper, so the manager table, catalina.out and the
+        // web.xml descriptor can never advertise two different Tomcat versions for the same host.
+        for ($seed = 0; $seed < 40; $seed++) {
+            $id = PersonaIdentity::fromSeed($seed);
+            $field = $id->field('tomcat.version');
+            self::assertNotNull($field, "seed {$seed}: tomcat.version field must exist");
+            self::assertSame($id->productVersion('tomcat'), $field, "seed {$seed}: field and productVersion('tomcat') must agree");
+            self::assertMatchesRegularExpression('/^\d+\.\d+\.\d+$/', (string) $field, "seed {$seed}: Tomcat version is an X.Y.Z release");
+        }
+    }
+
+    public function test_tomcat_version_is_always_9_0_x(): void
+    {
+        // The whole Java persona stays on the Servlet 4.0 / javax.servlet line — a Tomcat 10.x major
+        // beside a javax stack trace / descriptor is an impossible combination — so every pool entry
+        // must be 9.0.x.
+        $pool = ['9.0.85', '9.0.83', '9.0.80', '9.0.75', '9.0.71'];
+        for ($seed = 0; $seed < 40; $seed++) {
+            $version = PersonaIdentity::fromSeed($seed)->productVersion('tomcat');
+            self::assertContains($version, $pool, "seed {$seed} must pick a 9.0.x Tomcat version");
+            self::assertStringStartsWith('9.0.', $version, "seed {$seed}: Tomcat must stay on the 9.0.x line");
+        }
+    }
+
+    public function test_java_version_field_equals_product_version(): void
+    {
+        // The java.version field and productVersion('java') come from one helper, so the manager JVM
+        // column, the catalina.out JVM line and the Actuator info block can never advertise two
+        // different JVM versions for the same host. One simple X.Y.Z form (no +NN build suffix).
+        for ($seed = 0; $seed < 40; $seed++) {
+            $id = PersonaIdentity::fromSeed($seed);
+            $field = $id->field('java.version');
+            self::assertNotNull($field, "seed {$seed}: java.version field must exist");
+            self::assertSame($id->productVersion('java'), $field, "seed {$seed}: field and productVersion('java') must agree");
+            self::assertMatchesRegularExpression('/^17\.0\.\d+$/', (string) $field, "seed {$seed}: Java is a 17.0.x X.Y.Z release, no +NN build suffix");
+        }
+    }
+
+    public function test_tomcat_and_java_versions_diverge_across_seeds(): void
+    {
+        $tomcat = [];
+        $java = [];
+        for ($seed = 0; $seed < 40; $seed++) {
+            $id = PersonaIdentity::fromSeed($seed);
+            $tomcat[] = $id->field('tomcat.version');
+            $java[] = $id->field('java.version');
+        }
+        self::assertGreaterThan(1, count(array_unique($tomcat)), 'the Tomcat version must not collapse to one value across deployments');
+        self::assertGreaterThan(1, count(array_unique($java)), 'the Java version must not collapse to one value across deployments');
+    }
+
     public function test_wordpress_version_field_equals_product_version(): void
     {
         // Same one-derivation guarantee as php.version: the wordpress.version field and
