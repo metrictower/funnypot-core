@@ -508,6 +508,88 @@ final class SurfaceGraphRoutingTest extends TestCase
     }
 
     /**
+     * FP-0274 — the authored POST auth arm. Both POST /auth/login and POST /auth/token must serve the
+     * SAME inert 401 problem+json decoy as the GET arm. POST /auth/login previously fell through to a
+     * corpus login decoy that returned 200 with a fake `username`/`roles` body (a fake auth SUCCESS the
+     * rest of the graph never grants); authoring it in route 406 REPLACES that with the coherent 401.
+     * Asserts the FLIP (200→401), a valid problem+json object with status 401 and the required fields,
+     * across the seed sweep, and that no request byte (method/path/query/header/body) is reflected.
+     */
+    public function test_authored_post_auth_serves_the_inert_401_family(): void
+    {
+        $marker = 'ZZauthMARKER8241';
+        for ($seed = 0; $seed <= 30; $seed++) {
+            $inv = $this->seededInverter((string) $seed);
+            foreach (['/auth/login', '/auth/token'] as $path) {
+                foreach (['GET', 'POST'] as $method) {
+                    $resp = $inv->respond(new RequestContext(
+                        $method,
+                        $path,
+                        'q=' . $marker,
+                        ['X-Probe' => $marker],
+                        'body=' . $marker
+                    ));
+                    self::assertNotNull($resp, "seed {$seed}: {$method} {$path} must resolve");
+                    self::assertSame(401, $resp->status, "seed {$seed}: {$method} {$path} must be the authored 401 (not a fake 200 success)");
+                    self::assertSame('application/problem+json', $resp->headers['Content-Type'] ?? '', "seed {$seed}: {$method} {$path} must serve problem+json");
+                    $doc = json_decode($resp->body, true);
+                    self::assertIsArray($doc, "seed {$seed}: {$method} {$path} body must decode to a JSON object");
+                    self::assertSame(401, $doc['status'] ?? null, "seed {$seed}: {$method} {$path} problem body status must be 401");
+                    self::assertArrayHasKey('title', $doc, "seed {$seed}: {$method} {$path} must carry a problem title");
+                    self::assertArrayHasKey('detail', $doc, "seed {$seed}: {$method} {$path} must carry a problem detail");
+                    self::assertStringNotContainsString($marker, $resp->body, "seed {$seed}: {$method} {$path} must not reflect a request byte");
+                    self::assertStringNotContainsString('{{', $resp->body, "seed {$seed}: {$method} {$path} must be fully rendered");
+                }
+            }
+        }
+    }
+
+    /**
+     * The POST /auth/login flip is byte-coherent with the token arm: at a fixed seed the authored 401
+     * body served for POST /auth/login is identical to POST /auth/token and the GET arm — one decoy
+     * family, no fake auth success anywhere on the auth surface.
+     */
+    public function test_post_auth_login_flips_to_the_shared_401_decoy(): void
+    {
+        $inv = $this->seededInverter('7');
+        $postLogin = $inv->respond(new RequestContext('POST', '/auth/login'));
+        self::assertNotNull($postLogin);
+        self::assertSame(401, $postLogin->status, 'POST /auth/login must serve the authored 401, not the corpus 200 decoy');
+        self::assertStringNotContainsString('"roles"', $postLogin->body, 'the corpus login-success body must no longer win');
+
+        $tokenBody = $inv->respond(new RequestContext('POST', '/auth/token'))->body;
+        $getBody = $inv->respond(new RequestContext('GET', '/auth/login'))->body;
+        self::assertSame($tokenBody, $postLogin->body, 'POST /auth/login and POST /auth/token must share one authored 401 decoy');
+        self::assertSame($getBody, $postLogin->body, 'the POST and GET auth arms must serve one 401 decoy family');
+    }
+
+    /**
+     * The advertised failure outcome is coherent: every OpenAPI/Swagger/YAML mirror that declares
+     * POST /auth/login now advertises a 401 response for it (the authored server answer), so an agent
+     * reading the doc and replaying the operation is not told success-only for an endpoint that 401s.
+     */
+    public function test_openapi_docs_advertise_401_for_post_auth_login(): void
+    {
+        $checked = 0;
+        $docs = [
+            ['/openapi.json', 'json'],
+            ['/swagger.json', 'json'],
+            ['/openapi.yaml', 'yaml'],
+        ];
+        foreach ($docs as [$path, $kind]) {
+            $doc = $kind === 'yaml' ? Yaml::parse($this->body($path)) : json_decode($this->body($path), true);
+            self::assertIsArray($doc, "{$path} must parse");
+            $op = $doc['paths']['/auth/login']['post'] ?? null;
+            if ($op === null) {
+                continue; // this mirror does not carry the operation
+            }
+            self::assertArrayHasKey('401', (array) ($op['responses'] ?? []), "{$path}: POST /auth/login must advertise a 401 response");
+            $checked++;
+        }
+        self::assertGreaterThanOrEqual(2, $checked, 'at least the OpenAPI 3.0 JSON + YAML mirrors must declare POST /auth/login');
+    }
+
+    /**
      * Harvest every (METHOD, path) operation the OpenAPI 3.0 / Swagger 2.0 / OpenAPI-YAML docs
      * declare: for each `paths` entry, each HTTP-verb key under it is one operation, resolved against
      * that doc's server base. Asserts no operation path carries a `{` placeholder (it could never be

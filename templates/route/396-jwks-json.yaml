@@ -3,10 +3,13 @@ priority: 396
 # Brand-new page (FP-0233): the JSON Web Key Set the OIDC discovery document (395) points its
 # jwks_uri at — so that link is not dangling. One inert RSA public JWK: shape only, no private
 # material and no honeytoken beyond the existing persona-seeded token shapes. The modulus `n` and
-# the `kid` are seed-derived (a b64url token and a hex id) so two deploys never share a key and the
-# value never fingerprints a fixed scaffold. `e` is the standard AQAB (F4 public exponent). Served
-# application/json (the endpoint's real type). Opens with a lone `{` so the inline-field JSON taunt
-# keeps the document parseable. `n` is glued to no bare digit run (b64url mixes letters + digits).
+# the `kid` are seed-derived (the closed rsa2048 form and a hex id) so two deploys never share a key
+# and the value never fingerprints a fixed scaffold. The rsa2048 form (FP-0274) decodes to a 256-byte
+# 2048-bit ODD integer — the two boundary bits a real RSA modulus always carries — so it survives a
+# crypto-literate parse where a plain b64url run could decode even or sub-2048. `e` is the standard
+# AQAB (F4 public exponent). Served application/json (the endpoint's real type). Opens with a lone `{`
+# so the inline-field JSON taunt keeps the document parseable. `n` is glued to no bare digit run
+# (b64url alphabet mixes letters + digits).
 new_page:
   method: GET
   paths: ['/.well-known/jwks.json']
@@ -28,7 +31,7 @@ response:
         "use": "sig",
         "alg": "RS256",
         "kid": "{{fake.jwks_kid:hex:16}}",
-        "n": "{{fake.jwks_n:b64url:342}}",
+        "n": "{{fake.jwks_n:rsa2048:342}}",
         "e": "AQAB"
       }
     ]

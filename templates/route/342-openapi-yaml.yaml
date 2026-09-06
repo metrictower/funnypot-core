@@ -72,6 +72,7 @@ response:
           responses:
             "200": { description: OK }
             "400": { description: Bad Request }
+            "401": { description: Unauthorized }
       /auth/token:
         post:
           summary: Exchange credentials for a bearer token

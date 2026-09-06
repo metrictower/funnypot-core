@@ -73,7 +73,7 @@ response:
       "/auth/login": {
         "post": {
           "summary": "Authenticate and receive a bearer token",
-          "responses": { "200": { "description": "OK" }, "400": { "description": "Bad Request" } }
+          "responses": { "200": { "description": "OK" }, "400": { "description": "Bad Request" }, "401": { "description": "Unauthorized" } }
         }
       },
       "/auth/token": {

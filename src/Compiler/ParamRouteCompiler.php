@@ -464,6 +464,13 @@ final class ParamRouteCompiler
                 if (!$known) {
                     throw new RuntimeException("Param template {$file}: unknown directive '{{{$part}}}'. Vocabulary is closed — check for a typo.");
                 }
+                // rsa2048 is the closed JWKS modulus encoding (FP-0274): legal only as the exact
+                // {{fake.jwks_n:rsa2048:342}} form; every other name/length and all volatile use is
+                // rejected. The predicate is shared across all three compilers (one source of truth).
+                $rsaErr = DirectiveRenderer::rsa2048FormError($part);
+                if ($rsaErr !== null) {
+                    throw new RuntimeException("Param template {$file}: {$rsaErr}");
+                }
                 if (strpos($part, 'persona.') === 0 && !in_array(substr($part, 8), PersonaIdentity::FIELDS, true)) {
                     throw new RuntimeException("Param template {$file}: unknown persona field '{{{$part}}}'. Field set is closed — check for a typo.");
                 }

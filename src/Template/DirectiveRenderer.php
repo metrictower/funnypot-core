@@ -98,6 +98,14 @@ final class DirectiveRenderer
     public const PERSON_FIELDS = ['full', 'username', 'email'];
 
     /**
+     * The one closed JWKS RSA-modulus directive — the ONLY {{...}} that may carry the `rsa2048`
+     * encoding. The renderer produces a 256-byte / 2048-bit odd modulus for exactly this name and
+     * length; the compilers reject every other rsa2048 shape and all volatile use (rsa2048FormError),
+     * so it can never spread to another cell or become a general encoding.
+     */
+    public const JWKS_MODULUS_DIRECTIVE = 'fake.jwks_n:rsa2048:342';
+
+    /**
      * One PersonaIdentity per seed. A renderer instance is long-lived and reused across many
      * requests, so the memo is keyed by seed (not a single cached identity) — different seeds in
      * flight must each resolve their own coherent identity.
@@ -170,6 +178,37 @@ final class DirectiveRenderer
         }, $template);
 
         return strtr($out, ["\x00L\x00" => '{{', "\x00R\x00" => '}}']);
+    }
+
+    /**
+     * Compile-time closure for the `rsa2048` encoding (FP-0274), shared by all three compilers so the
+     * rule lives once. That encoding is legal ONLY as the exact {{fake.jwks_n:rsa2048:342}} form (the
+     * JWKS modulus); every other name/length/segment and any {{volatile.*:rsa2048:*}} use is rejected.
+     * The volatile reject is load-bearing: with the proof arm off, {{volatile.X:ENC:N}} delegates to
+     * {{fake.X:ENC:N}} at render time (resolveOne), so an unguarded volatile form would mint the modulus
+     * outside its one registered template. Returns an error phrase for the caller to wrap in its
+     * file-scoped message, or null when $part carries no `rsa2048` encoding segment (nothing to check).
+     */
+    public static function rsa2048FormError(string $part): ?string
+    {
+        $isFake = strpos($part, 'fake.') === 0;
+        $isVolatile = strpos($part, 'volatile.') === 0;
+        if (!$isFake && !$isVolatile) {
+            return null;
+        }
+        // The encoding is the 2nd colon-segment of a fake./volatile. spec (NAME:ENC:N).
+        $bits = explode(':', substr($part, $isFake ? 5 : 9));
+        if (($bits[1] ?? '') !== 'rsa2048') {
+            return null;
+        }
+        if ($isVolatile) {
+            return "'{{{$part}}}' — the rsa2048 JWKS modulus is not available as a volatile proof token.";
+        }
+        if ($part !== self::JWKS_MODULUS_DIRECTIVE) {
+            return "'{{{$part}}}' — rsa2048 is the closed JWKS modulus encoding; only '{{" . self::JWKS_MODULUS_DIRECTIVE . "}}' is valid.";
+        }
+
+        return null;
     }
 
     /**
@@ -264,8 +303,9 @@ final class DirectiveRenderer
             return FakeSecrets::flag($seed, substr($part, 10));
         }
         if (strpos($part, 'fake.') === 0) {
-            // fake.NAME:ENC:N — ENC in {hex (default), hexupper, b64, b64url, dec}. Seed+name derived,
-            // so a NAME reused in a template renders the same fabricated value in both places.
+            // fake.NAME:ENC:N — ENC in {hex (default), hexupper, b64, b64url, dec}, plus the closed
+            // rsa2048 form for the one JWKS modulus (jwks_n:342 only). Seed+name derived, so a NAME
+            // reused in a template renders the same fabricated value in both places.
             $bits = explode(':', substr($part, 5));
             $name = $bits[0] ?? '';
             $enc = $bits[1] ?? 'hex';
@@ -299,10 +339,11 @@ final class DirectiveRenderer
             }
             if ($enc === 'b64url') {
                 // URL-safe base64, unpadded — the alphabet a JWT/JWK segment must use ([A-Za-z0-9_-],
-                // no '+', '/', '='). One 32-byte digest gives 43 chars; for a length beyond that
-                // (e.g. :342 for a plausible RSA-2048 modulus `n`) chain raw sha256 to extend the byte
-                // material — exactly like the `dec` encoder below — so the cap is no longer a no-op.
-                // For any len <= 43 the loop never runs, so existing values stay byte-identical.
+                // no '+', '/', '='). One 32-byte digest gives 43 chars; for a longer length chain raw
+                // sha256 to extend the byte material — exactly like the `dec` encoder below — so the
+                // cap is no longer a no-op. For any len <= 43 the loop never runs, so existing values
+                // stay byte-identical. (A JWKS RSA modulus uses the boundary-bit `rsa2048` form below,
+                // not a plain b64url run.)
                 $material = (string) hex2bin($digest);
                 while (strlen(rtrim(strtr(base64_encode($material), '+/', '-_'), '=')) < $len) {
                     $material .= hash('sha256', $material, true);
@@ -337,6 +378,13 @@ final class DirectiveRenderer
                 }
 
                 return $digits;
+            }
+            if ($enc === 'rsa2048' && $name === 'jwks_n' && $len === 342) {
+                // The one closed JWKS RSA-modulus form (FP-0274): a plausible RSA-2048 public modulus
+                // `n` for /.well-known/jwks.json. See jwksModulus(). Scoped to exactly this name+length
+                // so it can never act as a general encoding; the compilers reject every other rsa2048
+                // shape and all volatile use, and a stray shape here falls through to the default below.
+                return $this->jwksModulus($digest);
             }
 
             return substr($digest, 0, $len);
@@ -540,6 +588,27 @@ final class DirectiveRenderer
         }
 
         return substr($digest, 0, $len);
+    }
+
+    /**
+     * The 342-char URL-safe base64 of a 256-byte / 2048-bit odd modulus (FP-0274) — the {{fake.jwks_n:
+     * rsa2048:342}} value. Extends the seeded digest chain to exactly 256 bytes the way the b64url
+     * encoder does, then forces the two boundary bits a real RSA modulus always carries: the top bit
+     * (0x80 in byte 0) so the unsigned big-endian integer is a full 2048 bits, and the low bit (0x01 in
+     * byte 255) so it is odd. Unpadded URL-safe base64 of 256 bytes is exactly 342 chars. Pure and
+     * inert: shape only — no private material, not a usable keypair.
+     */
+    private function jwksModulus(string $digest): string
+    {
+        $material = (string) hex2bin($digest);
+        while (strlen($material) < 256) {
+            $material .= hash('sha256', $material, true);
+        }
+        $material = substr($material, 0, 256);
+        $material[0] = $material[0] | "\x80";
+        $material[255] = $material[255] | "\x01";
+
+        return rtrim(strtr(base64_encode($material), '+/', '-_'), '=');
     }
 
     /**

@@ -13,7 +13,7 @@ return array (
     'license' => 'MIT (c) 2025 ProjectDiscovery, Inc.',
     'upstream_tag' => '2ec91412386',
     'upstream_sha' => '2ec914123864439c3618e7e9ae72d32d0eb56df7',
-    'source_tree' => '310970033ecf34d22448d6dbe79152c5be3ab30152956fd280747d90a0cc72e3',
+    'source_tree' => '9ff45e311f57a9342fb7aa789e81575657b354d7192f35d92dd067436b162429',
     'templates_seen' => 11196,
     'templates_in' => 6363,
     'templates_indexed' => 6470,
@@ -288821,6 +288821,27 @@ a</title>',
           array (
             0 => 'dbgate-anonymous-access',
           ),
+        ),
+        3 => 
+        array (
+          's' => 401,
+          'bw' => 
+          array (
+            0 => '"title":',
+            1 => '"detail":',
+          ),
+          'nf' => 
+          array (
+          ),
+          'pid' => 'route-surface-auth-post',
+          'sev' => 'info',
+          'sig' => 0,
+          'amb' => 0,
+          't' => 
+          array (
+            0 => 'route-surface-auth-post',
+          ),
+          'w' => 100000,
         ),
       ),
     ),
