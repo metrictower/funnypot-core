@@ -704,7 +704,7 @@ function runBuildCorpus(string $root, array $argvv): int
     }
 
     $before = isset($sidecar['route_keys']) ? (int) $sidecar['route_keys'] : null;
-    fwrite(STDOUT, "== build-corpus: compile {$http} @ {$up['tag']} ({$up['sha']}) ==\n");
+    fwrite(STDOUT, "== build-corpus: compile {$http} @ {$up['sha']} ==\n");
     $code = runCompile($root, [$http, '--out=' . $compiled . '/nuclei-index.full.php']);
     if ($code !== 0) {
         return $code;
@@ -718,7 +718,7 @@ function runBuildCorpus(string $root, array $argvv): int
     $fresh = is_array($fresh) ? $fresh : [];
     $after = (int) ($fresh['route_keys'] ?? 0);
     fwrite(STDOUT, "== build-corpus: OK ==\n");
-    fwrite(STDOUT, "  upstream   : {$up['tag']} {$up['sha']}\n");
+    fwrite(STDOUT, "  upstream   : {$up['sha']}\n");
     fwrite(STDOUT, "  compiled by: core " . ($fresh['core_commit'] ?? '?') . " / php " . ($fresh['php_version'] ?? '?') . "\n");
     fwrite(STDOUT, "  sha256     : " . ($fresh['sha256'] ?? '?') . "\n");
     if ($before === null) {
@@ -759,7 +759,7 @@ function verifyCorpusRebuild(string $root, string $http, array $up): int
         return 2;
     }
 
-    fwrite(STDOUT, "== build-corpus --verify: compile {$http} @ {$up['tag']} ({$up['sha']}) -> {$tmp} ==\n");
+    fwrite(STDOUT, "== build-corpus --verify: compile {$http} @ {$up['sha']} -> {$tmp} ==\n");
     $code = runCompile($root, [$http, '--out=' . $tmp . '/nuclei-index.full.php']);
     if ($code !== 0) {
         return $code;

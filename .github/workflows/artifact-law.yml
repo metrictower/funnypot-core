@@ -67,14 +67,10 @@ jobs:
         run: php scripts/ci/check-namespace-collisions.php
 
       # --- corpus reproducibility (the drift class check-drift structurally cannot see) ---------
-      # Read the pin the committed index was compiled from. `abbrev` is the length of the committed
-      # upstream_tag: it is `git describe --tags --always` of a no-tags checkout, i.e. a sha prefix
-      # whose length git auto-picked against the FULL object set. A shallow fetch has a smaller
-      # object set and would abbreviate that sha shorter, embedding a different provenance string and
-      # tripping a spurious byte mismatch — so the checkout below pins core.abbrev to this length.
+      # Read the pin the committed index was compiled from.
       - name: Read corpus pin
         id: corpus_pin
-        run: php -r '$m=json_decode(file_get_contents("resources/compiled/manifest.json"),true);printf("sha=%s\nabbrev=%d\n",$m["upstream_sha"],strlen((string)$m["upstream_tag"]));' >> "$GITHUB_OUTPUT"
+        run: php -r '$m=json_decode(file_get_contents("resources/compiled/manifest.json"),true);printf("sha=%s\n",$m["upstream_sha"]);' >> "$GITHUB_OUTPUT"
 
       - name: Checkout pinned nuclei-templates
         uses: actions/checkout@v4
@@ -90,6 +86,4 @@ jobs:
       # is byte-identical to the committed nuclei-index.full.php. This is the gate that would have
       # caught the FP-0261 compiler change merged without a corpus regen.
       - name: Corpus reproducibility (build-corpus --verify)
-        run: |
-          git -C .nuclei-templates config core.abbrev '${{ steps.corpus_pin.outputs.abbrev }}'
-          php -d memory_limit=2G bin/funnypot build-corpus "$GITHUB_WORKSPACE/.nuclei-templates" --verify
+        run: php -d memory_limit=2G bin/funnypot build-corpus "$GITHUB_WORKSPACE/.nuclei-templates" --verify

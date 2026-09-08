@@ -139,8 +139,7 @@ Both read `unknown` on a sidecar that predates the record; the next real `compil
   (`build`) + checks provenance, so a compiler change that shifts the compiled index without a fold is
   invisible to it. Nuclei compilation derives `upstream_tag` from the full `upstream_sha`, so a
   shallow/no-tags checkout and a tagged/full-history checkout reproduce the same provenance without
-  `core.abbrev` configuration. The workflow's abbreviation compatibility step remains only until the
-  committed corpus is regenerated under this rule; remove it with that canonical artifact migration.
+  `core.abbrev` configuration.
 
 ## manifest.json fields
 

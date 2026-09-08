@@ -11,7 +11,7 @@ return array (
     'schema' => 1,
     'source' => 'projectdiscovery/nuclei-templates',
     'license' => 'MIT (c) 2025 ProjectDiscovery, Inc.',
-    'upstream_tag' => '2ec91412386',
+    'upstream_tag' => '2ec914123864439c3618e7e9ae72d32d0eb56df7',
     'upstream_sha' => '2ec914123864439c3618e7e9ae72d32d0eb56df7',
     'source_tree' => 'beac2e9a03cc7200e496d36ba9e61fc170d709b9bb0ef35ef7e73b51d8841935',
     'templates_seen' => 11196,
