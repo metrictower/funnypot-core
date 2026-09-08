@@ -135,6 +135,16 @@ final class HoneytokenTest extends TestCase
         self::assertNull($h->verifiedPayload(''));
     }
 
+    public function test_direct_oversized_value_fails_before_decode_or_hmac(): void
+    {
+        $h = new Honeytoken('server-side-secret');
+        $oversized = str_repeat('%41', 1366);
+
+        self::assertGreaterThan(4096, strlen($oversized));
+        self::assertNull($h->verifiedPayload($oversized));
+        self::assertSame('tampered', $h->inspect($oversized));
+    }
+
     public function test_verified_payload_null_on_garbage_input(): void
     {
         $h = new Honeytoken('server-side-secret');

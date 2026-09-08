@@ -19,6 +19,7 @@ use Funnypot\Core\Support\Chrome\Esc;
 use Funnypot\Core\Support\Chrome\PageSlots;
 use Funnypot\Core\Support\Chrome\PhpMyAdminSkin;
 use Funnypot\Core\Support\Chrome\WordpressSkin;
+use Funnypot\Core\Support\BoundedInspection;
 use Funnypot\Core\Support\Fake\FakeRecords;
 use Funnypot\Core\Support\Fake\FakeSecrets;
 use Funnypot\Core\Support\PathNormalizer;
@@ -219,6 +220,10 @@ final class TemplateAttackEmulator
 
     public function emulate(RequestContext $r, int $seed = 0): ?SynthesizedResponse
     {
+        if (!BoundedInspection::targetAccepted($r)) {
+            return null;
+        }
+
         $matched = $this->matchRule($r);
         if ($matched === null) {
             return null;
@@ -236,6 +241,10 @@ final class TemplateAttackEmulator
      */
     public function matchRule(RequestContext $r): ?array
     {
+        if (!BoundedInspection::targetAccepted($r)) {
+            return null;
+        }
+
         foreach ($this->rules as $rule) {
             if ($this->disabled !== [] && isset($this->disabled[(string) ($rule['id'] ?? '')])) {
                 continue;
@@ -265,6 +274,10 @@ final class TemplateAttackEmulator
      */
     public function ownsPath(string $requestPath): bool
     {
+        if (strlen($requestPath) > BoundedInspection::TARGET_BYTES) {
+            return false;
+        }
+
         return isset($this->overridePaths[PathNormalizer::ownershipKey($requestPath)]);
     }
 
@@ -279,6 +292,10 @@ final class TemplateAttackEmulator
      */
     public function matchParamRoute(RequestContext $r): ?array
     {
+        if (!BoundedInspection::targetAccepted($r)) {
+            return null;
+        }
+
         $buckets = $this->paramBuckets['buckets'] ?? null;
         if (!is_array($buckets) || $buckets === []) {
             return null;
@@ -289,9 +306,6 @@ final class TemplateAttackEmulator
         }
 
         $path = $r->path;
-        if (strlen($path) > self::MAX_SURFACE) {
-            $path = substr($path, 0, self::MAX_SURFACE);
-        }
         foreach ($buckets[$seg] as $entry) {
             if ($this->disabled !== [] && isset($this->disabled[(string) ($entry['id'] ?? '')])) {
                 continue;
@@ -339,6 +353,10 @@ final class TemplateAttackEmulator
      */
     public function renderRule(array $rule, array $captures, int $seed, ?RequestContext $r = null): ?SynthesizedResponse
     {
+        if ($r !== null && !BoundedInspection::targetAccepted($r)) {
+            return null;
+        }
+
         $behavior = isset($rule['behavior']) ? (string) $rule['behavior'] : '';
         $content = null;
         if ($behavior !== '' && isset($this->behaviors[$behavior])) {
@@ -1131,15 +1149,7 @@ final class TemplateAttackEmulator
             }
         }
 
-        $cookieHeader = null;
-        if ($r !== null) {
-            foreach ($r->headers as $key => $value) {
-                if (strcasecmp((string) $key, 'Cookie') === 0) {
-                    $cookieHeader = (string) $value;
-                    break;
-                }
-            }
-        }
+        $cookieHeader = $r === null ? null : BoundedInspection::cookieHeader($r->headers);
         if (!$session->isAuthenticated($cookieHeader, $name)) {
             return null;
         }
@@ -1450,10 +1460,10 @@ final class TemplateAttackEmulator
      */
     private function canonicalizeTraversalPath(string $raw): string
     {
-        $path = rawurldecode($raw);
-        if (strlen($path) > self::MAX_SURFACE) {
-            $path = substr($path, 0, self::MAX_SURFACE);
-        }
+        $path = strlen($raw) > BoundedInspection::SUBJECT_BYTES
+            ? substr($raw, 0, BoundedInspection::SUBJECT_BYTES)
+            : $raw;
+        $path = rawurldecode($path);
         if ($path !== '' && $path[0] === '/') {
             $path = substr($path, 1);
         }
@@ -1578,9 +1588,6 @@ final class TemplateAttackEmulator
         return $status === 204 || $status === 304;
     }
 
-    /** Attacker-controlled surfaces are capped before regex to bound catastrophic backtracking. */
-    private const MAX_SURFACE = 32768;
-
     /** Upper bound on segments the traversal-read canonicalizer walks — bounds the resolve loop. */
     private const MAX_TRAVERSAL_SEGMENTS = 4096;
 
@@ -1603,9 +1610,6 @@ final class TemplateAttackEmulator
     private function literalAbsent(RequestContext $r, array $rule): bool
     {
         $surface = $this->surface($r, (string) ($rule['lit_in'] ?? 'request'));
-        if (strlen($surface) > self::MAX_SURFACE) {
-            $surface = substr($surface, 0, self::MAX_SURFACE);
-        }
         $lit = (string) $rule['lit'];
         $ci = ($rule['lit_ci'] ?? true) !== false;
         $hit = $ci ? stripos($surface, $lit) : strpos($surface, $lit);
@@ -1643,9 +1647,6 @@ final class TemplateAttackEmulator
         $captures = null;
         foreach ($conds as $cond) {
             $surface = $this->surface($r, (string) ($cond['in'] ?? 'request'), $priorCaptures);
-            if (strlen($surface) > self::MAX_SURFACE) {
-                $surface = substr($surface, 0, self::MAX_SURFACE);
-            }
             $ci = ($cond['ci'] ?? true) !== false;
 
             if (isset($cond['regex'])) {
@@ -1678,53 +1679,6 @@ final class TemplateAttackEmulator
      */
     private function surface(RequestContext $r, string $in, array $priorCaptures = []): string
     {
-        if (strncmp($in, 'header:', 7) === 0) {
-            $name = substr($in, 7);
-            foreach ($r->headers as $key => $value) {
-                if (strcasecmp((string) $key, $name) === 0) {
-                    return (string) $value;
-                }
-            }
-
-            return '';
-        }
-
-        // `match.N` / `match.NAME` — a top-level capture group, so a branch case can dispatch on the
-        // ONE method the rule parsed instead of re-scanning the body. Empty for the top-level match
-        // (no prior captures) and for an absent group.
-        if (strncmp($in, 'match.', 6) === 0) {
-            $ref = substr($in, 6);
-            $key = is_numeric($ref) ? (int) $ref : $ref;
-
-            return (string) ($priorCaptures[$key] ?? '');
-        }
-
-        switch ($in) {
-            case 'header':
-            case 'headers':
-                return implode(' ', array_map('strval', $r->headers));
-            case 'path':
-                return $r->path;
-            case 'query':
-                return $r->query;
-            case 'method':
-                // The HTTP verb, so a rule can branch on it — e.g. tell a true GET from an empty
-                // POST when the body surface is '' for both.
-                return $r->method;
-            case 'body':
-                return (string) ($r->rawBody ?? '');
-            case 'request':
-            default:
-                $raw = $r->path . ' ' . $r->query . ' ' . (string) ($r->rawBody ?? '');
-                // A second decode pass recovers double-encoded WAF-evasion payloads (%253b -> %3b
-                // -> ;), added only when an encoded octet survived the first pass. Callers cap the
-                // result at MAX_SURFACE, so the extra copy cannot amplify backtracking cost.
-                $once = rawurldecode($raw);
-                if (preg_match('~%[0-9A-Fa-f]{2}~', $once) !== 1) {
-                    return $raw . ' ' . $once;
-                }
-
-                return $raw . ' ' . $once . ' ' . rawurldecode($once);
-        }
+        return BoundedInspection::surface($r, $in, $priorCaptures);
     }
 }

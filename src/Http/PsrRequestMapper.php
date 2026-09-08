@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Funnypot\Core\Http;
 
 use Funnypot\Core\RequestContext;
+use Funnypot\Core\Support\BoundedInspection;
 use Psr\Http\Message\ServerRequestInterface;
 
 /**
@@ -23,11 +24,30 @@ final class PsrRequestMapper
 
     public static function map(ServerRequestInterface $request): RequestContext
     {
-        $uri = $request->getUri();
+        try {
+            $target = $request->getRequestTarget();
+        } catch (\Throwable $e) {
+            return self::rejected();
+        }
+        if (!BoundedInspection::rawTargetAccepted($target)) {
+            return self::rejected();
+        }
 
-        $headers = [];
-        foreach ($request->getHeaders() as $name => $values) {
-            $headers[$name] = implode(', ', $values);
+        try {
+            $uri = $request->getUri();
+            $path = $uri->getPath();
+            $query = $uri->getQuery();
+        } catch (\Throwable $e) {
+            return self::rejected();
+        }
+        if (!BoundedInspection::targetComponentsAccepted($path, $query)) {
+            return self::rejected();
+        }
+
+        try {
+            $headers = BoundedInspection::canonicalPsrHeaders($request->getHeaders());
+        } catch (\Throwable $e) {
+            $headers = [];
         }
 
         // PSR-7 header access is case-insensitive by contract, so a lowercase h2 `host` and an h1
@@ -36,13 +56,19 @@ final class PsrRequestMapper
         // versions. strtolower() the fallback because Uri::getHost() is normalized lowercase but a
         // header line keeps its wire casing, so EXAMPLE.com (h1) and example.com (h2) must not seed
         // differently on a relative-URI request. The URI host still wins when present.
-        $host = $uri->getHost() !== '' ? $uri->getHost() : strtolower($request->getHeaderLine('Host'));
-        $scheme = $uri->getScheme() !== '' ? $uri->getScheme() : 'https';
+        try {
+            $uriHost = BoundedInspection::host($uri->getHost());
+            $scheme = $uri->getScheme() !== '' ? $uri->getScheme() : 'https';
+        } catch (\Throwable $e) {
+            $uriHost = '';
+            $scheme = 'https';
+        }
+        $host = $uriHost !== '' ? $uriHost : strtolower(self::headerValue($headers, 'Host'));
 
         return new RequestContext(
             $request->getMethod(),
-            $uri->getPath(),
-            $uri->getQuery(),
+            $path,
+            $query,
             $headers,
             self::readBody($request),
             $host,
@@ -52,6 +78,23 @@ final class PsrRequestMapper
             // '2' / '2.0'; Honeypot::isHttp2() normalizes any of them.
             $request->getProtocolVersion()
         );
+    }
+
+    private static function rejected(): RequestContext
+    {
+        return new RequestContext('GET', '/', '', [], null, '', 'https', '', false);
+    }
+
+    /** @param array<string,string> $headers */
+    private static function headerValue(array $headers, string $wanted): string
+    {
+        foreach ($headers as $name => $value) {
+            if (strcasecmp($name, $wanted) === 0) {
+                return BoundedInspection::host($value);
+            }
+        }
+
+        return '';
     }
 
     /**

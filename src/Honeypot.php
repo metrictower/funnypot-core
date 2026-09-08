@@ -12,6 +12,7 @@ use Funnypot\Core\Reaction\QueryIntentClassifier;
 use Funnypot\Core\Response\EmulatorRegistry;
 use Funnypot\Core\Rules\ServedStringWalker;
 use Funnypot\Core\Store\PhpArrayStore;
+use Funnypot\Core\Support\BoundedInspection;
 use Funnypot\Core\Support\PathNormalizer;
 use Funnypot\Core\Support\PersonaSelector;
 use Funnypot\Core\Support\Severity;
@@ -248,6 +249,10 @@ final class Honeypot implements Engine
      */
     public function classify(RequestContext $r, SiteProfile $profile): Verdict
     {
+        if (!BoundedInspection::targetAccepted($r)) {
+            return Verdict::clean();
+        }
+
         $verdict = $this->classifyContent($r, $profile);
 
         // OOB signal-probe registry (FP-0256): every registered signal-only probe (OAST/SSRF
@@ -718,7 +723,8 @@ final class Honeypot implements Engine
 
     private function botSignals(RequestContext $r): BotSignalSet
     {
-        $h = $this->lowercaseHeaders($r->headers);
+        $boundedHeaders = BoundedInspection::genericHeaders($r->headers);
+        $h = $this->lowercaseHeaders($boundedHeaders);
         $ua = isset($h['user-agent']) ? trim($h['user-agent']) : '';
         $uaClass = $this->classifyUserAgent($ua);
 
@@ -812,13 +818,13 @@ final class Honeypot implements Engine
             $weight += 10;
         }
 
-        $host = $r->host !== '' ? $r->host : (isset($h['host']) ? $h['host'] : '');
+        $host = $r->host !== '' ? $r->host : (isset($h['host']) ? BoundedInspection::host($h['host']) : '');
         if ($this->isBareIpHost($host)) {
             $flags[BotSignalSet::HOST_IS_BARE_IP] = true;
             $weight += 10;
         }
 
-        return new BotSignalSet($flags, $weight, $uaClass, $this->structuralFingerprint($r->headers));
+        return new BotSignalSet($flags, $weight, $uaClass, $this->structuralFingerprint($boundedHeaders));
     }
 
     /**
@@ -982,7 +988,7 @@ final class Honeypot implements Engine
      */
     private function structuralFingerprint(array $headers): string
     {
-        $parts = [];
+        $fingerprint = count($headers) . ':';
         foreach ($headers as $name => $value) {
             $lname = strtolower((string) $name);
             $v = preg_replace('/\d+/', '', (string) $value);
@@ -991,10 +997,15 @@ final class Honeypot implements Engine
                 sort($tokens);
                 $v = implode(',', $tokens);
             }
-            $parts[] = $lname . '=' . $v;
+            $piece = ($fingerprint === count($headers) . ':' ? '' : '&') . $lname . '=' . $v;
+            $remaining = BoundedInspection::FINGERPRINT_BYTES - strlen($fingerprint);
+            if ($remaining <= 0) {
+                break;
+            }
+            $fingerprint .= strlen($piece) > $remaining ? substr($piece, 0, $remaining) : $piece;
         }
 
-        return count($headers) . ':' . implode('&', $parts);
+        return $fingerprint;
     }
 
     /**
@@ -1270,6 +1281,10 @@ final class Honeypot implements Engine
      */
     public function respond(RequestContext $r): ?SynthesizedResponse
     {
+        if (!BoundedInspection::targetAccepted($r)) {
+            return null;
+        }
+
         // Ground-truth switches first: a tripped kill switch or a trusted scanner must NEVER see a
         // fake, and respond mode must be explicitly enabled. No observer, no work (as before).
         if ($this->config->killSwitchTripped() || !$this->config->respondEnabled() || $this->config->isTrusted($r)) {

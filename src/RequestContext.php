@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Funnypot\Core;
 
+use Funnypot\Core\Support\BoundedInspection;
+
 /**
  * Framework-agnostic snapshot of an incoming HTTP request.
  *
@@ -40,6 +42,9 @@ final class RequestContext
      */
     public $httpVersion;
 
+    /** @var bool false when an exact adapter request target was rejected before mapping */
+    public $targetAdmitted;
+
     /** @param array<string,string> $headers */
     public function __construct(
         string $method,
@@ -49,16 +54,18 @@ final class RequestContext
         ?string $rawBody = null,
         string $host = '',
         string $scheme = 'https',
-        string $httpVersion = ''
+        string $httpVersion = '',
+        bool $targetAdmitted = true
     ) {
         $this->method = $method;
         $this->path = $path;
         $this->query = $query;
         $this->headers = $headers;
         $this->rawBody = $rawBody;
-        $this->host = $host;
+        $this->host = BoundedInspection::host($host);
         $this->scheme = $scheme;
         $this->httpVersion = $httpVersion;
+        $this->targetAdmitted = $targetAdmitted;
     }
 
     /**
@@ -68,6 +75,12 @@ final class RequestContext
     {
         $method = $_SERVER['REQUEST_METHOD'] ?? 'GET';
         $target = $_SERVER['REQUEST_URI'] ?? '/';
+        if (!is_string($target)) {
+            $target = '/';
+        }
+        if (!BoundedInspection::rawTargetAccepted($target)) {
+            return new self((string) $method, '/', '', [], null, '', 'https', '', false);
+        }
 
         $path = $target;
         $query = '';
@@ -77,13 +90,7 @@ final class RequestContext
             $query = substr($target, $qpos + 1);
         }
 
-        $headers = [];
-        foreach ($_SERVER as $key => $value) {
-            if (strncmp($key, 'HTTP_', 5) === 0) {
-                $name = str_replace(' ', '-', ucwords(strtolower(str_replace('_', ' ', substr($key, 5)))));
-                $headers[$name] = (string) $value;
-            }
-        }
+        $headers = BoundedInspection::canonicalServerHeaders($_SERVER);
 
         $scheme = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
 
@@ -105,9 +112,21 @@ final class RequestContext
             $query,
             $headers,
             $rawBody,
-            (string) ($_SERVER['HTTP_HOST'] ?? ''),
+            self::headerValue($headers, 'Host'),
             $scheme,
             $httpVersion
         );
+    }
+
+    /** @param array<string,string> $headers */
+    private static function headerValue(array $headers, string $wanted): string
+    {
+        foreach ($headers as $name => $value) {
+            if (strcasecmp($name, $wanted) === 0) {
+                return $value;
+            }
+        }
+
+        return '';
     }
 }

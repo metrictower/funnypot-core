@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Funnypot\Core;
 
 use Funnypot\Core\Behavior\DecoySession;
+use Funnypot\Core\Support\BoundedInspection;
 
 /**
  * Detect that a request presents a valid, minted decoy-session cookie — i.e. the client walked the
@@ -35,35 +36,22 @@ final class DecoySessionProbe
             return false;
         }
 
-        $header = self::cookieHeader($r);
-        if ($header === '') {
+        $header = BoundedInspection::cookieHeader($r->headers);
+        if ($header === null || $header === '') {
             return false;
         }
 
+        $pairs = BoundedInspection::cookiePairs($header);
+        if ($pairs === null) {
+            return false;
+        }
         $session = new DecoySession($key, $deploySeed);
-        foreach (explode(';', $header) as $pair) {
-            $pair = trim($pair);
-            $eq = strpos($pair, '=');
-            if ($eq === false) {
-                continue;
-            }
-            if ($session->isAuthenticatedValue(substr($pair, $eq + 1))) {
+        foreach ($pairs as $pair) {
+            if ($session->isAuthenticatedValue($pair[1])) {
                 return true;
             }
         }
 
         return false;
-    }
-
-    /** The raw Cookie header, matched case-insensitively (HTTP header names are case-insensitive). */
-    private static function cookieHeader(RequestContext $r): string
-    {
-        foreach ($r->headers as $name => $value) {
-            if (strcasecmp((string) $name, 'Cookie') === 0) {
-                return (string) $value;
-            }
-        }
-
-        return '';
     }
 }

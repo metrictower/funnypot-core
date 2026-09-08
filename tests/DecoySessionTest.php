@@ -153,6 +153,19 @@ final class DecoySessionTest extends TestCase
         self::assertFalse($verifier->isAuthenticated($header, 'phpMyAdmin'));
     }
 
+    public function test_cookie_pair_budget_exhaustion_fails_closed_even_when_valid_cookie_is_first(): void
+    {
+        $session = new DecoySession(self::KEY);
+        $value = $this->extractCookieValue($session->mintCookie('phpMyAdmin', '/phpmyadmin'), 'phpMyAdmin');
+        $pairs = ['phpMyAdmin=' . $value];
+        for ($i = 0; $i < 64; $i++) {
+            $pairs[] = 'padding' . $i . '=x';
+        }
+
+        self::assertFalse($session->isAuthenticated(implode(';', $pairs), 'phpMyAdmin'));
+        self::assertFalse($session->isAuthenticated('phpMyAdmin=' . $value . '; malformed', 'phpMyAdmin'));
+    }
+
     public function test_mint_cookie_payload_and_attributes(): void
     {
         $session = new DecoySession(self::KEY);

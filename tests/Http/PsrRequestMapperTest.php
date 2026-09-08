@@ -11,10 +11,145 @@ use Funnypot\Core\RequestContext;
 use Funnypot\Core\Store\PhpArrayStore;
 use Nyholm\Psr7\ServerRequest;
 use Nyholm\Psr7\Stream;
+use Nyholm\Psr7\Uri;
 use PHPUnit\Framework\TestCase;
 
 final class PsrRequestMapperTest extends TestCase
 {
+    public function test_rejects_exact_overlong_target_before_uri_headers_or_body(): void
+    {
+        $request = new class('GET', '/') extends ServerRequest {
+            public function getRequestTarget(): string
+            {
+                return str_repeat('x', 4097);
+            }
+
+            public function getUri(): \Psr\Http\Message\UriInterface
+            {
+                throw new \RuntimeException('URI must not be read');
+            }
+
+            public function getHeaders(): array
+            {
+                throw new \RuntimeException('headers must not be read');
+            }
+
+            public function getBody(): \Psr\Http\Message\StreamInterface
+            {
+                throw new \RuntimeException('body must not be read');
+            }
+        };
+
+        $context = PsrRequestMapper::map($request);
+
+        self::assertFalse($context->targetAdmitted);
+        self::assertSame('/', $context->path);
+        self::assertSame([], $context->headers);
+        self::assertNull($context->rawBody);
+    }
+
+    public function test_throwing_exact_target_fails_closed_before_other_accessors(): void
+    {
+        $request = new class('GET', '/') extends ServerRequest {
+            public function getRequestTarget(): string
+            {
+                throw new \RuntimeException('target unavailable');
+            }
+
+            public function getUri(): \Psr\Http\Message\UriInterface
+            {
+                throw new \RuntimeException('URI must not be read');
+            }
+        };
+
+        self::assertFalse(PsrRequestMapper::map($request)->targetAdmitted);
+    }
+
+    public function test_rejects_inverse_short_target_oversized_uri_before_headers_or_body(): void
+    {
+        $uri = new class('/') extends Uri {
+            public function getPath(): string
+            {
+                return str_repeat('p', 4097);
+            }
+        };
+        $request = new class('GET', $uri) extends ServerRequest {
+            public function getRequestTarget(): string
+            {
+                return '/short';
+            }
+
+            public function getHeaders(): array
+            {
+                throw new \RuntimeException('headers must not be read');
+            }
+
+            public function getBody(): \Psr\Http\Message\StreamInterface
+            {
+                throw new \RuntimeException('body must not be read');
+            }
+        };
+
+        self::assertFalse(PsrRequestMapper::map($request)->targetAdmitted);
+    }
+
+    public function test_exact_4096_custom_target_is_accepted(): void
+    {
+        $request = (new ServerRequest('GET', 'https://example.test/ok'))
+            ->withRequestTarget(str_repeat('t', 4096));
+
+        $context = PsrRequestMapper::map($request);
+
+        self::assertTrue($context->targetAdmitted);
+        self::assertSame('/ok', $context->path);
+    }
+
+    public function test_caps_uri_host_before_context_and_never_reads_unbounded_header_line(): void
+    {
+        $uri = new class('/') extends Uri {
+            public function getHost(): string
+            {
+                return str_repeat('h', 4096);
+            }
+        };
+        $request = new class('GET', $uri) extends ServerRequest {
+            public function getHeaderLine($name): string
+            {
+                throw new \RuntimeException('getHeaderLine must not be used');
+            }
+        };
+
+        $context = PsrRequestMapper::map($request);
+
+        self::assertSame(512, strlen($context->host));
+    }
+
+    public function test_mapper_canonical_header_snapshot_stops_after_128_fields(): void
+    {
+        $request = new class('GET', '/') extends ServerRequest {
+            public function getHeaders(): array
+            {
+                $headers = [];
+                for ($i = 0; $i < 200; $i++) {
+                    $headers['X-' . $i] = [str_repeat('v', 9000)];
+                }
+
+                return $headers;
+            }
+
+            public function getHeaderLine($name): string
+            {
+                throw new \RuntimeException('getHeaderLine must not be used');
+            }
+        };
+
+        $context = PsrRequestMapper::map($request);
+
+        self::assertLessThanOrEqual(128, count($context->headers));
+        self::assertLessThanOrEqual(65536, array_sum(array_map('strlen', $context->headers)));
+        self::assertArrayNotHasKey('X-128', $context->headers);
+    }
+
     public function test_maps_method_path_query_and_host(): void
     {
         $request = new ServerRequest('GET', 'https://example.test/.git/config?v=1');

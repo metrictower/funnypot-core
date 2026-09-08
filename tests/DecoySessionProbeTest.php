@@ -123,6 +123,17 @@ final class DecoySessionProbeTest extends TestCase
         ));
     }
 
+    public function test_direct_cookie_parser_exhaustion_fails_closed(): void
+    {
+        $pairs = [$this->mintedPair(0)];
+        for ($i = 0; $i < 64; $i++) {
+            $pairs[] = 'padding' . $i . '=x';
+        }
+
+        self::assertFalse(DecoySessionProbe::authenticated($this->req(implode(';', $pairs)), self::KEY));
+        self::assertFalse(DecoySessionProbe::authenticated($this->req(str_repeat('x', 8193)), self::KEY));
+    }
+
     public function test_detect_path_source_has_no_network_primitive(): void
     {
         $needles = [

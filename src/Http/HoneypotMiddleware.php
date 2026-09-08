@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace Funnypot\Core\Http;
 
 use Funnypot\Core\Engine;
+use Funnypot\Core\Detection;
+use Funnypot\Core\Support\BoundedInspection;
 use Psr\Http\Message\ResponseFactoryInterface;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
@@ -44,7 +46,30 @@ final class HoneypotMiddleware implements MiddlewareInterface
 
     public function process(ServerRequestInterface $request, RequestHandlerInterface $handler): ResponseInterface
     {
+        try {
+            $target = $request->getRequestTarget();
+        } catch (\Throwable $e) {
+            return $this->decline($request, $handler);
+        }
+        if (!BoundedInspection::rawTargetAccepted($target)) {
+            return $this->decline($request, $handler);
+        }
+
+        try {
+            $uri = $request->getUri();
+            $path = $uri->getPath();
+            $query = $uri->getQuery();
+        } catch (\Throwable $e) {
+            return $this->decline($request, $handler);
+        }
+        if (!BoundedInspection::targetComponentsAccepted($path, $query)) {
+            return $this->decline($request, $handler);
+        }
+
         $context = PsrRequestMapper::map($request);
+        if (!BoundedInspection::targetAccepted($context)) {
+            return $this->decline($request, $handler);
+        }
 
         $detection = $this->inverter->detect($context);
         $request = $request->withAttribute(self::ATTRIBUTE_DETECTION, $detection);
@@ -62,5 +87,10 @@ final class HoneypotMiddleware implements MiddlewareInterface
         }
 
         return PsrResponseMapper::map($synthesized, $this->responseFactory, $this->streamFactory);
+    }
+
+    private function decline(ServerRequestInterface $request, RequestHandlerInterface $handler): ResponseInterface
+    {
+        return $handler->handle($request->withAttribute(self::ATTRIBUTE_DETECTION, Detection::none()));
     }
 }

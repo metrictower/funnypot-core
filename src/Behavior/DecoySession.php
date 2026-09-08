@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Funnypot\Core\Behavior;
 
 use Funnypot\Core\Honeytoken;
+use Funnypot\Core\Support\BoundedInspection;
 
 /**
  * A stateless, self-verifying mock-auth decoy session. Two payload classes domain-separate pre-auth
@@ -59,24 +60,20 @@ final class DecoySession
             return false;
         }
 
-        $rawValue = null;
-        foreach (explode(';', $cookieHeader) as $pair) {
-            $pair = trim($pair);
-            $eq = strpos($pair, '=');
-            if ($eq === false) {
-                continue;
-            }
-            if (substr($pair, 0, $eq) === $name) {
-                $rawValue = substr($pair, $eq + 1);
-                break;
-            }
-        }
-
-        if ($rawValue === null) {
+        if (strlen($name) > BoundedInspection::COOKIE_NAME_BYTES) {
             return false;
         }
+        $pairs = BoundedInspection::cookiePairs($cookieHeader);
+        if ($pairs === null) {
+            return false;
+        }
+        foreach ($pairs as $pair) {
+            if ($pair[0] === $name && $this->isAuthenticatedValue($pair[1])) {
+                return true;
+            }
+        }
 
-        return $this->isAuthenticatedValue($rawValue);
+        return false;
     }
 
     /**
@@ -87,6 +84,10 @@ final class DecoySession
      */
     public function isAuthenticatedValue(string $rawValue): bool
     {
+        if (strlen($rawValue) > BoundedInspection::COOKIE_VALUE_BYTES) {
+            return false;
+        }
+
         return $this->token->verifiedPayload($rawValue) === DecoySessionPayloads::authenticated($this->deploySeed);
     }
 }

@@ -224,6 +224,21 @@ final class BotSignalTest extends TestCase
         self::assertNotSame($python, $browser);
     }
 
+    public function test_fingerprint_and_bot_header_projection_have_hard_windows(): void
+    {
+        $headers = [];
+        for ($i = 0; $i < 80; $i++) {
+            $headers['X-Shape-' . $i] = str_repeat('v' . $i, 3000);
+        }
+        $signals = $this->signals($headers);
+
+        self::assertSame(4096, strlen($signals->fingerprint));
+
+        $headers['User-Agent'] = 'sqlmap/late';
+        $late = $this->signals($headers);
+        self::assertNotSame(BotSignalSet::UA_SCANNER, $late->uaClass, 'a field after the 64-field window is not inspected');
+    }
+
     public function test_signals_only_request_stays_clean_with_nonzero_anomaly(): void
     {
         // A request that fires only bot signals (no route, no attack) classifies clean — the
@@ -623,4 +638,3 @@ final class BotSignalTest extends TestCase
         self::assertTrue($verdict->signals->has(BotSignalSet::HOST_IS_BARE_IP));
     }
 }
-

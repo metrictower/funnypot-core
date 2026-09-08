@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Funnypot\Core;
 
 use Funnypot\Core\Support\HoneytokenEnvelope;
+use Funnypot\Core\Support\BoundedInspection;
 
 /**
  * A tamper-evident bait cookie. The honeypot plants a signed low-privilege cookie carrying a seeded
@@ -62,6 +63,9 @@ final class Honeytoken
         if ($raw === null || $raw === '') {
             return 'absent';
         }
+        if (strlen($raw) > BoundedInspection::COOKIE_VALUE_BYTES) {
+            return 'tampered';
+        }
         $value = rawurldecode($raw);
         $dot = strrpos($value, '.');
         if ($dot === false) {
@@ -81,7 +85,7 @@ final class Honeytoken
      */
     public function verifiedPayload(string $raw): ?string
     {
-        if ($raw === '') {
+        if ($raw === '' || strlen($raw) > BoundedInspection::COOKIE_VALUE_BYTES) {
             return null;
         }
         $value = rawurldecode($raw);
