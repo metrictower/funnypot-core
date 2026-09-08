@@ -309,7 +309,15 @@ final class Config
      */
     public function serveDelayMicros(): int
     {
-        $jitter = $this->latencyJitterMs > 0 ? random_int(0, $this->latencyJitterMs) : 0;
+        $jitter = 0;
+        if ($this->latencyJitterMs > 0) {
+            try {
+                $jitter = random_int(0, $this->latencyJitterMs);
+            } catch (\Throwable $e) {
+                // Jitter is optional: entropy failure preserves the base delay and response delivery.
+                $jitter = 0;
+            }
+        }
 
         return max(0, ($this->latencyMs + $jitter) * 1000);
     }
