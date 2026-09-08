@@ -9,6 +9,7 @@ use Funnypot\Core\Compiler\Crs\FingerprintGuard;
 use Funnypot\Core\Config;
 use Funnypot\Core\Honeypot;
 use Funnypot\Core\RequestContext;
+use Funnypot\Core\Response\BundleValidator;
 use Funnypot\Core\Response\RouteTemplateSet;
 use Funnypot\Core\Store\PhpArrayStore;
 use Funnypot\Core\Support\PersonaIdentity;
@@ -1441,6 +1442,132 @@ final class NewPageRoutingTest extends TestCase
         }
         self::assertGreaterThan(1, count($tomcats), 'the Tomcat version must vary across deploys');
         self::assertGreaterThan(1, count($javas), 'the JVM version must vary across deploys');
+    }
+
+    /**
+     * @dataProvider sqlBackupRoutes
+     */
+    public function test_bare_sql_backups_use_the_exact_backup_renderer(string $route, string $path): void
+    {
+        $index = require __DIR__ . '/../resources/compiled/nuclei-index.full.php';
+        self::assertCount(5349, $index['routes'], 'the priority-only repair must not alter the corpus route-key set');
+        self::assertCount(1, $index['routes'][$route]['b'] ?? [], "{$route} must keep its one authored bundle");
+        $bundle = $index['routes'][$route]['b'][0];
+        self::assertSame('route-sql-backup', $bundle['pid'] ?? null, "{$route} exact pid");
+        self::assertSame(['route-sql-backup'], $bundle['t'] ?? null, "{$route} exact template id");
+
+        $set = RouteTemplateSet::fromFile(__DIR__ . '/../resources/compiled/funnypot-routes.php');
+        $selected = $set->findRule($bundle, $route);
+        self::assertNotNull($selected, "{$route} must select a route renderer");
+        self::assertSame('route-sql-backup', $selected['id'] ?? null, "{$route} must not be shadowed by route-sql-dump");
+
+        $bodies = [];
+        $guard = FingerprintGuard::fromPackage();
+        foreach (['fp-0320-a', 'fp-0320-b'] as $material) {
+            $request = new RequestContext('GET', $path, 'fp0320sentinel=must-not-reflect');
+            $response = $this->saltedInverter($material)->respond($request);
+            self::assertNotNull($response, "{$path} must serve for {$material}");
+            self::assertSame(200, $response->status, "{$path} status for {$material}");
+            self::assertSame('application/sql', $response->headers['Content-Type'] ?? null, "{$path} Content-Type for {$material}");
+            self::assertStringContainsString('DROP TABLE IF EXISTS `users`', $response->body, "{$path} users schema for {$material}");
+            self::assertStringContainsString('CREATE TABLE `api_keys`', $response->body, "{$path} api_keys schema for {$material}");
+            self::assertStringNotContainsString('panel_admins', $response->body, "{$path} must not serve the generic users schema");
+            self::assertStringNotContainsString('api_credentials', $response->body, "{$path} must not serve the generic API schema");
+            self::assertStringNotContainsString('{{', $response->body, "{$path} must resolve every directive");
+            self::assertStringNotContainsString('must-not-reflect', $response->body, "{$path} must not reflect the request sentinel");
+            self::assertSame([], $guard->scan($response->body), "{$path} body must be fingerprint-clean for {$material}");
+            self::assertTrue(BundleValidator::satisfies($response->body, $response->headers, $bundle), "{$path} must satisfy its real bundle for {$material}");
+
+            $repeat = $this->saltedInverter($material)->respond($request);
+            self::assertNotNull($repeat);
+            self::assertSame($response->body, $repeat->body, "{$path} must be deterministic for {$material}");
+            $persona = PersonaIdentity::fromSeed(PersonaIdentity::seedFromMaterial($material));
+            self::assertStringContainsString($persona->field('user.admin.email'), $response->body, "{$path} admin identity for {$material}");
+            self::assertStringContainsString($persona->field('cloud.aws.accessKeyId'), $response->body, "{$path} AWS identity for {$material}");
+            self::assertStringContainsString($persona->field('cloud.stripe.secretKey'), $response->body, "{$path} Stripe identity for {$material}");
+            self::assertStringContainsString($persona->field('cloud.sendgrid.apiKey'), $response->body, "{$path} SendGrid identity for {$material}");
+            $bodies[] = $response->body;
+        }
+        self::assertNotSame($bodies[0], $bodies[1], "{$path} must vary across deploy persona materials");
+    }
+
+    /**
+     * @return array<string,array{0:string,1:string}>
+     */
+    public static function sqlBackupRoutes(): array
+    {
+        return [
+            'backup.sql' => ['GET /backup.sql', '/backup.sql'],
+            'database.sql' => ['GET /database.sql', '/database.sql'],
+            'dump.sql' => ['GET /dump.sql', '/dump.sql'],
+            'db_backup.sql' => ['GET /db_backup.sql', '/db_backup.sql'],
+        ];
+    }
+
+    public function test_sql_backup_priority_is_narrow_and_owns_only_four_bundles(): void
+    {
+        $index = require __DIR__ . '/../resources/compiled/nuclei-index.full.php';
+        $rules = require __DIR__ . '/../resources/compiled/funnypot-routes.php';
+        $set = new RouteTemplateSet($rules);
+        $positions = [];
+        foreach ($rules as $position => $rule) {
+            $id = (string) ($rule['id'] ?? '');
+            if ($id === 'route-sql-backup' || $id === 'route-sql-dump') {
+                $positions[$id] = $position;
+            }
+        }
+        self::assertArrayHasKey('route-sql-backup', $positions);
+        self::assertArrayHasKey('route-sql-dump', $positions);
+        self::assertLessThan($positions['route-sql-dump'], $positions['route-sql-backup'], 'the exact-pid rule must precede the generic substring rule');
+        self::assertSame(['pid' => ['route-sql-backup']], $rules[$positions['route-sql-backup']]['match'] ?? null);
+
+        $owned = [];
+        foreach ($index['routes'] as $route => $entry) {
+            foreach (($entry['b'] ?? []) as $bundleIndex => $bundle) {
+                $pid = (string) ($bundle['pid'] ?? '');
+                $ids = array_map('strval', (array) ($bundle['t'] ?? []));
+                if ($pid !== 'route-sql-backup' && strpos($pid . '|' . implode('|', $ids), 'sql-backup') === false) {
+                    continue;
+                }
+                $selected = $set->findRule($bundle, (string) $route);
+                self::assertNotNull($selected, "{$route}#{$bundleIndex} must select a route renderer");
+                if ($pid === 'route-sql-backup') {
+                    $owned[] = $route . '#' . $bundleIndex;
+                    self::assertSame('route-sql-backup', $selected['id'] ?? null, "{$route}#{$bundleIndex} exact-pid ownership");
+                } else {
+                    self::assertNotSame('route-sql-backup', $selected['id'] ?? null, "{$route}#{$bundleIndex} substring-only bundle must remain generic");
+                }
+            }
+        }
+        sort($owned, SORT_STRING);
+        self::assertSame([
+            'GET /backup.sql#0',
+            'GET /database.sql#0',
+            'GET /db_backup.sql#0',
+            'GET /dump.sql#0',
+        ], $owned, 'the exact-pid renderer must own only the four authored bare paths');
+    }
+
+    public function test_froxlor_sql_backup_control_keeps_the_generic_renderer(): void
+    {
+        $index = require __DIR__ . '/../resources/compiled/nuclei-index.full.php';
+        $set = RouteTemplateSet::fromFile(__DIR__ . '/../resources/compiled/funnypot-routes.php');
+        $route = 'GET /install/froxlor.sql';
+        self::assertCount(1, $index['routes'][$route]['b'] ?? [], 'the Froxlor control bundle must remain present');
+        $bundle = $index['routes'][$route]['b'][0];
+        self::assertSame('froxlor', $bundle['pid'] ?? null);
+        $selected = $set->findRule($bundle, $route);
+        self::assertNotNull($selected);
+        self::assertSame('route-sql-dump', $selected['id'] ?? null, 'the corpus Froxlor bundle must retain the generic renderer');
+        $response = $this->saltedInverter('fp-0320-control')->respond(new RequestContext('GET', '/install/froxlor.sql'));
+        self::assertNotNull($response);
+        self::assertSame(200, $response->status);
+        self::assertSame('application/sql', $response->headers['Content-Type'] ?? null);
+        self::assertStringContainsString('CREATE TABLE `panel_admins`', $response->body);
+        self::assertStringContainsString('CREATE TABLE `api_credentials`', $response->body);
+        self::assertStringNotContainsString('CREATE TABLE `users`', $response->body);
+        self::assertStringNotContainsString('CREATE TABLE `api_keys`', $response->body);
+        self::assertTrue(BundleValidator::satisfies($response->body, $response->headers, $bundle));
     }
 
     public function test_web_inf_web_xml_route_reselects_itself(): void
