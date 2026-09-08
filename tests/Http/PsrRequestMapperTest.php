@@ -289,6 +289,23 @@ final class PsrRequestMapperTest extends TestCase
         self::assertSame($upperCtx->host, $lowerCtx->host);
     }
 
+    public function test_numeric_header_name_does_not_break_the_host_fallback(): void
+    {
+        // PSR-7 implementations store an all-digit header name as an int array key; the relative-URI
+        // Host fallback walks every key and must treat it as its string name, not throw.
+        $request = new class('GET', '/probe') extends ServerRequest {
+            public function getHeaders(): array
+            {
+                return [123 => ['x'], 'Host' => ['example.test']];
+            }
+        };
+
+        $context = PsrRequestMapper::map($request);
+
+        self::assertSame('example.test', $context->host);
+        self::assertSame('x', $context->headers[123]);
+    }
+
     public function test_mixed_case_host_header_is_lowercased_for_a_stable_seed(): void
     {
         // Uri::getHost() is normalized lowercase; a raw header line is not. Without strtolower an

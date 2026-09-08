@@ -83,6 +83,23 @@ namespace Funnypot\Core\Tests {
             self::assertSame(1, InputCeilingBodyReadSpy::$calls);
         }
 
+        public function test_numeric_header_name_before_host_still_resolves_host(): void
+        {
+            // `123: x` is a valid header token; nginx forwards it as HTTP_123 and PHP stores the
+            // all-digit canonical name as an int array key. The Host lookup must skip past it.
+            $_SERVER = [
+                'REQUEST_METHOD' => 'GET',
+                'REQUEST_URI' => '/probe',
+                'HTTP_123' => 'x',
+                'HTTP_HOST' => 'example.test',
+            ];
+
+            $context = RequestContext::fromGlobals();
+
+            self::assertSame('example.test', $context->host);
+            self::assertSame('x', $context->headers[123]);
+        }
+
         public function test_non_string_global_target_uses_safe_root_fallback(): void
         {
             $_SERVER = ['REQUEST_URI' => ['invalid']];

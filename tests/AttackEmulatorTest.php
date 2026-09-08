@@ -243,6 +243,29 @@ final class AttackEmulatorTest extends TestCase
         self::assertStringContainsString('root:x:0:0', $resp->body);
     }
 
+    public function test_numeric_header_name_does_not_break_header_matched_emulation(): void
+    {
+        // `123: x` is a valid header token that PHP stores as an int array key. The struts rule's
+        // first condition reads header:Content-Type, so the lookup walks that key on the hot path;
+        // it must resolve normally rather than escape as a 500 (a fingerprint tell).
+        $request = new RequestContext('POST', '/struts2-showcase/index.action', '', [
+            123 => 'x',
+            'Host' => 'example.test',
+            'User-Agent' => 'curl/8.0',
+            'Content-Type' => "%{(#_='multipart/form-data').(#cmd='id').(#p=new java.lang.ProcessBuilder(#cmd))}",
+        ], 'a=b');
+        // struts-ognl is 'critical'; raise the ceiling so respond() renders rather than declines.
+        $engine = $this->inverter(['severityCeiling' => 'critical']);
+
+        $detection = $engine->detect($request);
+        self::assertTrue($detection->matched);
+        self::assertSame(['attack-struts-ognl'], $detection->templateIds());
+
+        $resp = $engine->respond($request);
+        self::assertNotNull($resp);
+        self::assertStringContainsString('uid=0(root)', $resp->body);
+    }
+
     public function test_attack_emulation_off_by_default(): void
     {
         $store = new PhpArrayStore(require __DIR__ . '/../resources/compiled/nuclei-index.php');

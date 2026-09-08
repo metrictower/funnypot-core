@@ -72,6 +72,30 @@ final class BoundedInspectionTest extends TestCase
         self::assertSame(BoundedInspection::SUBJECT_BYTES, strlen($full));
     }
 
+    public function test_percent_free_request_subject_is_the_raw_line_alone(): void
+    {
+        // No percent octet means no decode layer to append: the subject is exactly path, query and
+        // body joined by single spaces, with no once-decoded copy after it.
+        $subject = BoundedInspection::requestSubject(new RequestContext('POST', '/x', 'a=b', [], 'tail'));
+
+        self::assertSame('/x a=b tail', $subject);
+
+        // A '%' not followed by two hex digits is still percent-free.
+        self::assertSame('/x q=% ', BoundedInspection::requestSubject(new RequestContext('GET', '/x', 'q=%')));
+        self::assertSame('/x q=%zz ', BoundedInspection::requestSubject(new RequestContext('GET', '/x', 'q=%zz')));
+    }
+
+    public function test_header_lookup_treats_a_numeric_header_name_as_its_string_form(): void
+    {
+        // An all-digit header name is a valid token that PHP stores as an int array key.
+        $request = new RequestContext('GET', '/', '', [123 => 'x', 'X-Wanted' => 'y']);
+
+        self::assertSame('y', BoundedInspection::surface($request, 'header:X-Wanted'));
+        self::assertSame('x', BoundedInspection::surface($request, 'header:123'));
+        self::assertSame('', BoundedInspection::surface($request, 'header:Missing'));
+        self::assertSame('x y', BoundedInspection::headerSurface($request->headers));
+    }
+
     public function test_canonical_psr_headers_enforce_value_field_and_aggregate_windows(): void
     {
         $manyValues = [];

@@ -122,7 +122,8 @@ final class RequestContext
     private static function headerValue(array $headers, string $wanted): string
     {
         foreach ($headers as $name => $value) {
-            if (strcasecmp($name, $wanted) === 0) {
+            // An all-digit header name (a valid token) arrives as an int array key.
+            if (strcasecmp((string) $name, $wanted) === 0) {
                 return $value;
             }
         }

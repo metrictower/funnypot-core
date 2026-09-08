@@ -182,8 +182,11 @@ final class BoundedInspection
     /** @param array<mixed,mixed> $headers */
     public static function headerValue(array $headers, string $wanted): string
     {
-        foreach (self::genericHeaders($headers) as $name => $value) {
-            if (strcasecmp($name, self::clip($wanted, self::HEADER_NAME_BYTES)) === 0) {
+        $wanted = self::clip($wanted, self::HEADER_NAME_BYTES);
+        foreach (self::genericHeaders($headers) as $rawName => $value) {
+            // An all-digit header name (a valid token) comes back as an int array key.
+            $name = self::stringValue($rawName);
+            if ($name !== null && strcasecmp($name, $wanted) === 0) {
                 return $value;
             }
         }
@@ -255,6 +258,7 @@ final class BoundedInspection
             }
             $equals = strpos($header, '=', $offset);
             if ($equals === false || $equals >= $end) {
+                // A nameless (`=`-less) segment fails the whole header closed rather than guessing.
                 return null;
             }
 
@@ -292,6 +296,7 @@ final class BoundedInspection
         $layer = $raw;
         for ($pass = 0; $pass < self::DECODE_PASSES; $pass++) {
             if (!self::hasPercentOctet($layer) || strlen($subject) >= self::SUBJECT_BYTES) {
+                // Deliberate: percent-free input has no decode layer to append, so the subject is raw alone.
                 break;
             }
             $decoded = rawurldecode($layer);
@@ -351,7 +356,7 @@ final class BoundedInspection
     {
         $length = strlen($value);
         for ($i = 0; $i + 2 < $length; $i++) {
-            if ($value[$i] === '%' && ctype_xdigit($value[$i + 1]) && ctype_xdigit($value[$i + 2])) {
+            if ($value[$i] === '%' && strspn($value, '0123456789abcdefABCDEF', $i + 1, 2) === 2) {
                 return true;
             }
         }
