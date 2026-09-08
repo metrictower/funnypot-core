@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace Funnypot\Core;
 
-use Funnypot\Core\Support\HoneytokenEnvelope;
 use Funnypot\Core\Support\BoundedInspection;
+use Funnypot\Core\Support\HoneytokenEnvelope;
 
 /**
  * A tamper-evident bait cookie. The honeypot plants a signed low-privilege cookie carrying a seeded

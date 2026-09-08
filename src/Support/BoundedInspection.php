@@ -79,31 +79,7 @@ final class BoundedInspection
      */
     public static function canonicalServerHeaders(array $server): array
     {
-        $entries = [];
-        $examined = 0;
-        $overlongName = null;
-        foreach ($server as $key => $value) {
-            if (!is_string($key) || strncmp($key, 'HTTP_', 5) !== 0) {
-                continue;
-            }
-            if ($examined >= self::CANONICAL_HEADER_FIELDS) {
-                break;
-            }
-            $examined++;
-
-            if (strlen($key) > 5 + self::HEADER_NAME_BYTES) {
-                if ($overlongName === null) {
-                    $overlongName = str_repeat('x', self::HEADER_NAME_BYTES + 1);
-                }
-                $entries[] = [$overlongName, [$value]];
-                continue;
-            }
-            $rawName = substr($key, 5);
-            $name = str_replace(' ', '-', ucwords(strtolower(str_replace('_', ' ', $rawName))));
-            $entries[] = [$name, [$value]];
-        }
-
-        return self::canonicalEntries($entries);
+        return self::canonicalEntries(self::serverEntries($server));
     }
 
     /**
@@ -114,17 +90,7 @@ final class BoundedInspection
      */
     public static function canonicalPsrHeaders(array $headers): array
     {
-        $entries = [];
-        $examined = 0;
-        foreach ($headers as $name => $values) {
-            if ($examined >= self::CANONICAL_HEADER_FIELDS) {
-                break;
-            }
-            $examined++;
-            $entries[] = [$name, is_array($values) ? $values : [$values]];
-        }
-
-        return self::canonicalEntries($entries);
+        return self::canonicalEntries(self::psrEntries($headers));
     }
 
     /**
@@ -200,9 +166,11 @@ final class BoundedInspection
     public static function headerSurface(array $headers): string
     {
         $surface = '';
+        $joined = 0;
         foreach (self::genericHeaders($headers) as $value) {
-            self::append($surface, $surface === '' ? '' : ' ', self::GENERIC_HEADER_BYTES);
+            self::append($surface, $joined > 0 ? ' ' : '', self::GENERIC_HEADER_BYTES);
             self::append($surface, $value, self::GENERIC_HEADER_BYTES);
+            $joined++;
             if (strlen($surface) >= self::GENERIC_HEADER_BYTES) {
                 break;
             }
@@ -272,10 +240,12 @@ final class BoundedInspection
         $pairs = [];
         $offset = 0;
         $length = strlen($header);
+        $examined = 0;
         while ($offset < $length) {
-            if (count($pairs) >= self::COOKIE_PAIRS) {
+            if ($examined >= self::COOKIE_PAIRS) {
                 return null;
             }
+            $examined++;
             $separator = strpos($header, ';', $offset);
             $end = $separator === false ? $length : $separator;
             $segmentLength = $end - $offset;
@@ -334,6 +304,12 @@ final class BoundedInspection
         }
 
         return $subject;
+    }
+
+    /** One bounded decode for capture-specific normalizers outside the generic request builder. */
+    public static function decodeOnce(string $value): string
+    {
+        return rawurldecode(self::clip($value, self::SUBJECT_BYTES));
     }
 
     /**
@@ -415,10 +391,10 @@ final class BoundedInspection
     }
 
     /**
-     * @param array<int,array{0:mixed,1:array<mixed>}> $entries
+     * @param \Generator<int,array{0:mixed,1:array<mixed>}> $entries
      * @return array<string,string>
      */
-    private static function canonicalEntries(array $entries): array
+    private static function canonicalEntries(\Generator $entries): array
     {
         $out = [];
         $case = [];
@@ -427,10 +403,9 @@ final class BoundedInspection
         $fields = 0;
         $valuesTotal = 0;
 
-        foreach ($entries as $entry) {
-            if ($fields >= self::CANONICAL_HEADER_FIELDS || $valuesTotal >= self::CANONICAL_HEADER_VALUES) {
-                break;
-            }
+        $entries->rewind();
+        while ($entries->valid()) {
+            $entry = $entries->current();
             $fields++;
             $name = self::stringValue($entry[0]);
             $validName = $name !== null && $name !== '' && strlen($name) <= self::HEADER_NAME_BYTES;
@@ -481,8 +456,51 @@ final class BoundedInspection
                     break 2;
                 }
             }
+
+            if ($fields >= self::CANONICAL_HEADER_FIELDS || $valuesTotal >= self::CANONICAL_HEADER_VALUES) {
+                break;
+            }
+            $entries->next();
         }
 
         return $out;
+    }
+
+    /**
+     * Laziness is load-bearing: canonicalEntries stops advancing this source as soon as either the
+     * field or value budget is spent.
+     *
+     * @param array<mixed,mixed> $headers
+     * @return \Generator<int,array{0:mixed,1:array<mixed>}>
+     */
+    private static function psrEntries(array $headers): \Generator
+    {
+        foreach ($headers as $name => $values) {
+            yield [$name, is_array($values) ? $values : [$values]];
+        }
+    }
+
+    /**
+     * @param array<mixed,mixed> $server
+     * @return \Generator<int,array{0:mixed,1:array<mixed>}>
+     */
+    private static function serverEntries(array $server): \Generator
+    {
+        $overlongName = null;
+        foreach ($server as $key => $value) {
+            if (!is_string($key) || strncmp($key, 'HTTP_', 5) !== 0) {
+                continue;
+            }
+            if (strlen($key) > 5 + self::HEADER_NAME_BYTES) {
+                if ($overlongName === null) {
+                    $overlongName = str_repeat('x', self::HEADER_NAME_BYTES + 1);
+                }
+                yield [$overlongName, [$value]];
+                continue;
+            }
+            $rawName = substr($key, 5);
+            $name = str_replace(' ', '-', ucwords(strtolower(str_replace('_', ' ', $rawName))));
+            yield [$name, [$value]];
+        }
     }
 }

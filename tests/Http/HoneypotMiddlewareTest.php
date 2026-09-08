@@ -30,22 +30,24 @@ final class HoneypotMiddlewareTest extends TestCase
         $engine = $this->countingEngine();
         $factory = new Psr17Factory();
         $middleware = new HoneypotMiddleware($engine, $factory, $factory);
-        $body = \Nyholm\Psr7\Stream::create('abcdef');
-        $body->read(2);
-        $request = (new ServerRequest('POST', 'https://example.test/short', ['X-Test' => 'value'], $body))
-            ->withRequestTarget(str_repeat('x', 4097));
-        $handler = $this->capturingHandler();
+        foreach ([4097, 65536] as $targetBytes) {
+            $body = \Nyholm\Psr7\Stream::create('abcdef');
+            $body->read(2);
+            $request = (new ServerRequest('POST', 'https://example.test/short', ['X-Test' => 'value'], $body))
+                ->withRequestTarget(str_repeat('x', $targetBytes));
+            $handler = $this->capturingHandler();
 
-        $response = $middleware->process($request, $handler);
+            $response = $middleware->process($request, $handler);
 
-        self::assertSame(0, $engine->calls);
-        self::assertSame(404, $response->getStatusCode());
-        self::assertSame($request->getRequestTarget(), $handler->received->getRequestTarget());
-        self::assertSame($request->getUri(), $handler->received->getUri());
-        self::assertSame($request->getHeaders(), $handler->received->getHeaders());
-        self::assertSame($body, $handler->received->getBody());
-        self::assertSame(2, $body->tell());
-        self::assertTrue($handler->received->getAttribute(HoneypotMiddleware::ATTRIBUTE_DETECTION)->isEmpty());
+            self::assertSame(0, $engine->calls);
+            self::assertSame(404, $response->getStatusCode());
+            self::assertSame($request->getRequestTarget(), $handler->received->getRequestTarget());
+            self::assertSame($request->getUri(), $handler->received->getUri());
+            self::assertSame($request->getHeaders(), $handler->received->getHeaders());
+            self::assertSame($body, $handler->received->getBody());
+            self::assertSame(2, $body->tell());
+            self::assertTrue($handler->received->getAttribute(HoneypotMiddleware::ATTRIBUTE_DETECTION)->isEmpty());
+        }
     }
 
     public function test_throwing_exact_target_declines_without_engine_or_uri_access(): void

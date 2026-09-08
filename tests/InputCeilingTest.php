@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Funnypot\Core\Template {
+namespace Funnypot\Core\Tests {
     final class InputCeilingPregSpy
     {
         /** @var int */
@@ -15,18 +15,18 @@ namespace Funnypot\Core\Template {
         public static $errors = [];
     }
 
-    function preg_match($pattern, $subject, &$matches = null, $flags = 0, $offset = 0)
+    final class InputCeilingHostSpy
     {
-        InputCeilingPregSpy::$calls++;
-        InputCeilingPregSpy::$subjectLengths[] = strlen($subject);
-        $result = \preg_match($pattern, $subject, $matches, $flags, $offset);
-        InputCeilingPregSpy::$errors[] = \preg_last_error();
+        /** @var int[] */
+        public static $trimLengths = [];
 
-        return $result;
+        /** @var int[] */
+        public static $lowerLengths = [];
+
+        /** @var int[] */
+        public static $filterLengths = [];
     }
-}
 
-namespace Funnypot\Core\Tests {
     use Funnypot\Core\Config;
     use Funnypot\Core\Contracts\CompiledStore;
     use Funnypot\Core\Detection;
@@ -35,7 +35,6 @@ namespace Funnypot\Core\Tests {
     use Funnypot\Core\RequestContext;
     use Funnypot\Core\SiteProfile;
     use Funnypot\Core\SynthesizedResponse;
-    use Funnypot\Core\Template\InputCeilingPregSpy;
     use Funnypot\Core\Template\TemplateAttackEmulator;
     use Funnypot\Core\Verdict;
     use PHPUnit\Framework\TestCase;
@@ -104,20 +103,28 @@ namespace Funnypot\Core\Tests {
                 }
             };
             $engine = new Honeypot($store, $config, $observer);
-            $request = new RequestContext('GET', '/.git/config' . str_repeat('x', 4097));
+            foreach ([4097, 65536] as $targetBytes) {
+                $prefix = '/.git/config';
+                $request = new RequestContext('GET', $prefix . str_repeat('x', $targetBytes - strlen($prefix)));
 
-            $verdict = $engine->classify($request, SiteProfile::empty());
-            self::assertSame(Verdict::CLEAN, $verdict->classification);
-            self::assertTrue($verdict->detection->isEmpty());
-            self::assertFalse($engine->detect($request)->matched);
-            self::assertNull($engine->respond($request));
+                $verdict = $engine->classify($request, SiteProfile::empty());
+                self::assertSame(Verdict::CLEAN, $verdict->classification);
+                self::assertTrue($verdict->detection->isEmpty());
+                self::assertFalse($engine->detect($request)->matched);
+                self::assertNull($engine->respond($request));
+            }
             self::assertSame(0, $store->lookups);
             self::assertSame(['gate' => 0, 'trusted' => 0, 'kill' => 0, 'seed' => 0], (array) $configCalls);
             self::assertSame(0, $observer->calls);
         }
 
+        /**
+         * @runInSeparateProcess
+         * @preserveGlobalState disabled
+         */
         public function test_every_request_aware_emulator_entry_point_declines_before_regex_or_render(): void
         {
+            $this->installPregSpy();
             $rule = [
                 'id' => 'bounded-rule',
                 'owns_path' => ['/known'],
@@ -136,16 +143,16 @@ namespace Funnypot\Core\Tests {
                 ],
             ];
             $emulator = new TemplateAttackEmulator([$rule], [], null, null, $param);
-            $request = new RequestContext('GET', '/known', str_repeat('q', 4091));
-            InputCeilingPregSpy::$calls = 0;
-            InputCeilingPregSpy::$subjectLengths = [];
-            InputCeilingPregSpy::$errors = [];
+            $this->resetPregSpy();
+            foreach ([4097, 65536] as $targetBytes) {
+                $request = new RequestContext('GET', '/known', str_repeat('q', $targetBytes - strlen('/known') - 1));
 
-            self::assertNull($emulator->matchRule($request));
-            self::assertNull($emulator->matchParamRoute($request));
-            self::assertNull($emulator->emulate($request));
-            self::assertFalse($emulator->ownsPath('/known' . str_repeat('x', 4096)));
-            self::assertNull($emulator->renderRule($rule, [], 0, $request));
+                self::assertNull($emulator->matchRule($request));
+                self::assertNull($emulator->matchParamRoute($request));
+                self::assertNull($emulator->emulate($request));
+                self::assertFalse($emulator->ownsPath('/known' . str_repeat('x', $targetBytes - strlen('/known'))));
+                self::assertNull($emulator->renderRule($rule, [], 0, $request));
+            }
             self::assertSame(0, InputCeilingPregSpy::$calls);
             self::assertSame([], InputCeilingPregSpy::$subjectLengths);
         }
@@ -163,20 +170,22 @@ namespace Funnypot\Core\Tests {
             $emulator = new TemplateAttackEmulator([$rule]);
 
             self::assertNotNull($emulator->matchRule(new RequestContext('GET', $path, $query)));
-            self::assertGreaterThan(0, InputCeilingPregSpy::$calls);
         }
 
+        /**
+         * @runInSeparateProcess
+         * @preserveGlobalState disabled
+         */
         public function test_every_attack_pcre_subject_and_error_is_observed_within_the_window(): void
         {
+            $this->installPregSpy();
             $rule = [
                 'id' => 'bounded-subject',
                 'match' => [['in' => 'request', 'regex' => 'needle']],
                 'response' => ['body' => 'ok', 'headers' => []],
                 'status' => 200,
             ];
-            InputCeilingPregSpy::$calls = 0;
-            InputCeilingPregSpy::$subjectLengths = [];
-            InputCeilingPregSpy::$errors = [];
+            $this->resetPregSpy();
 
             $matched = (new TemplateAttackEmulator([$rule]))->matchRule(new RequestContext(
                 'POST',
@@ -190,6 +199,85 @@ namespace Funnypot\Core\Tests {
             self::assertNotEmpty(InputCeilingPregSpy::$subjectLengths);
             self::assertLessThanOrEqual(32768, max(InputCeilingPregSpy::$subjectLengths));
             self::assertSame(array_fill(0, InputCeilingPregSpy::$calls, PREG_NO_ERROR), InputCeilingPregSpy::$errors);
+        }
+
+        /**
+         * @runInSeparateProcess
+         * @preserveGlobalState disabled
+         */
+        public function test_direct_host_is_capped_before_policy_and_bot_operations(): void
+        {
+            $this->installHostSpies();
+            $seenByPolicy = 0;
+            $request = new RequestContext('GET', '/ordinary', '', [
+                'User-Agent' => 'curl/8.0',
+                'Accept' => '*/*',
+                'Accept-Encoding' => 'gzip',
+            ], null, str_repeat('H', 1024 * 1024));
+            $config = new Config('detect', null, 'matched-only', static function (RequestContext $r) use (&$seenByPolicy): string {
+                $seenByPolicy = strlen($r->host);
+
+                return $r->host;
+            });
+
+            self::assertSame(512, strlen($request->host));
+            $config->seedFor($request);
+            self::assertSame(512, $seenByPolicy);
+
+            $store = new class implements CompiledStore {
+                public function lookup(string $key): ?array { return null; }
+                public function template(string $id): ?array { return null; }
+                public function version(): array { return []; }
+            };
+            (new Honeypot($store, $config))->classify($request, SiteProfile::empty());
+
+            self::assertNotEmpty(InputCeilingHostSpy::$trimLengths);
+            self::assertLessThanOrEqual(512, max(InputCeilingHostSpy::$trimLengths));
+            self::assertNotEmpty(InputCeilingHostSpy::$lowerLengths);
+            self::assertLessThanOrEqual(512, max(InputCeilingHostSpy::$lowerLengths));
+            self::assertSame([512], InputCeilingHostSpy::$filterLengths);
+        }
+
+        private function resetPregSpy(): void
+        {
+            InputCeilingPregSpy::$calls = 0;
+            InputCeilingPregSpy::$subjectLengths = [];
+            InputCeilingPregSpy::$errors = [];
+        }
+
+        private function installPregSpy(): void
+        {
+            eval(<<<'PHP'
+namespace Funnypot\Core\Template;
+function preg_match($pattern, $subject, &$matches = null, $flags = 0, $offset = 0) {
+    \Funnypot\Core\Tests\InputCeilingPregSpy::$calls++;
+    \Funnypot\Core\Tests\InputCeilingPregSpy::$subjectLengths[] = strlen($subject);
+    $result = \preg_match($pattern, $subject, $matches, $flags, $offset);
+    \Funnypot\Core\Tests\InputCeilingPregSpy::$errors[] = \preg_last_error();
+    return $result;
+}
+PHP
+            );
+        }
+
+        private function installHostSpies(): void
+        {
+            eval(<<<'PHP'
+namespace Funnypot\Core;
+function trim($value, $characters = " \t\n\r\0\x0B") {
+    \Funnypot\Core\Tests\InputCeilingHostSpy::$trimLengths[] = strlen($value);
+    return \trim($value, $characters);
+}
+function strtolower($value) {
+    \Funnypot\Core\Tests\InputCeilingHostSpy::$lowerLengths[] = strlen($value);
+    return \strtolower($value);
+}
+function filter_var($value, $filter = FILTER_DEFAULT, $options = 0) {
+    \Funnypot\Core\Tests\InputCeilingHostSpy::$filterLengths[] = strlen($value);
+    return \filter_var($value, $filter, $options);
+}
+PHP
+            );
         }
     }
 }

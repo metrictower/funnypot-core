@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace Funnypot\Core\Http;
 
-use Funnypot\Core\Engine;
 use Funnypot\Core\Detection;
+use Funnypot\Core\Engine;
 use Funnypot\Core\Support\BoundedInspection;
 use Psr\Http\Message\ResponseFactoryInterface;
 use Psr\Http\Message\ResponseInterface;

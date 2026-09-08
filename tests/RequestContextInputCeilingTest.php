@@ -2,25 +2,15 @@
 
 declare(strict_types=1);
 
-namespace Funnypot\Core {
+namespace Funnypot\Core\Tests {
+    use Funnypot\Core\RequestContext;
+    use PHPUnit\Framework\TestCase;
+
     final class InputCeilingBodyReadSpy
     {
         /** @var int */
         public static $calls = 0;
     }
-
-    function file_get_contents(...$args)
-    {
-        InputCeilingBodyReadSpy::$calls++;
-
-        return \file_get_contents(...$args);
-    }
-}
-
-namespace Funnypot\Core\Tests {
-    use Funnypot\Core\InputCeilingBodyReadSpy;
-    use Funnypot\Core\RequestContext;
-    use PHPUnit\Framework\TestCase;
 
     final class RequestContextInputCeilingTest extends TestCase
     {
@@ -38,31 +28,43 @@ namespace Funnypot\Core\Tests {
             $_SERVER = $this->server;
         }
 
+        /**
+         * @runInSeparateProcess
+         * @preserveGlobalState disabled
+         */
         public function test_overlong_global_target_declines_before_headers_and_body_read(): void
         {
-            $_SERVER = [
-                'REQUEST_METHOD' => 'POST',
-                'REQUEST_URI' => str_repeat('x', 4097),
-                'HTTP_X_THROW' => new class {
-                    public function __toString(): string
-                    {
-                        throw new \RuntimeException('header must not be converted');
-                    }
-                },
-            ];
+            $this->installBodyReadSpy();
+            foreach ([4097, 65536] as $targetBytes) {
+                $_SERVER = [
+                    'REQUEST_METHOD' => 'POST',
+                    'REQUEST_URI' => str_repeat('x', $targetBytes),
+                    'HTTP_X_THROW' => new class {
+                        public function __toString(): string
+                        {
+                            throw new \RuntimeException('header must not be converted');
+                        }
+                    },
+                ];
 
-            $context = RequestContext::fromGlobals();
+                $context = RequestContext::fromGlobals();
 
-            self::assertFalse($context->targetAdmitted);
-            self::assertSame('/', $context->path);
-            self::assertSame('', $context->query);
-            self::assertSame([], $context->headers);
-            self::assertNull($context->rawBody);
+                self::assertFalse($context->targetAdmitted);
+                self::assertSame('/', $context->path);
+                self::assertSame('', $context->query);
+                self::assertSame([], $context->headers);
+                self::assertNull($context->rawBody);
+            }
             self::assertSame(0, InputCeilingBodyReadSpy::$calls);
         }
 
+        /**
+         * @runInSeparateProcess
+         * @preserveGlobalState disabled
+         */
         public function test_exact_4096_global_target_maps_bounded_headers_host_and_body(): void
         {
+            $this->installBodyReadSpy();
             $_SERVER = [
                 'REQUEST_METHOD' => 'POST',
                 'REQUEST_URI' => str_repeat('p', 4096),
@@ -89,6 +91,18 @@ namespace Funnypot\Core\Tests {
 
             self::assertTrue($context->targetAdmitted);
             self::assertSame('/', $context->path);
+        }
+
+        private function installBodyReadSpy(): void
+        {
+            eval(<<<'PHP'
+namespace Funnypot\Core;
+function file_get_contents(...$args) {
+    \Funnypot\Core\Tests\InputCeilingBodyReadSpy::$calls++;
+    return \file_get_contents(...$args);
+}
+PHP
+            );
         }
     }
 }

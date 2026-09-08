@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Funnypot\Core\Support {
+namespace Funnypot\Core\Tests {
     final class BoundedInspectionOperationSpy
     {
         /** @var int[] */
@@ -12,25 +12,8 @@ namespace Funnypot\Core\Support {
         public static $lowerLengths = [];
     }
 
-    function rawurldecode($value)
-    {
-        BoundedInspectionOperationSpy::$decodeLengths[] = strlen($value);
-
-        return \rawurldecode($value);
-    }
-
-    function strtolower($value)
-    {
-        BoundedInspectionOperationSpy::$lowerLengths[] = strlen($value);
-
-        return \strtolower($value);
-    }
-}
-
-namespace Funnypot\Core\Tests {
     use Funnypot\Core\RequestContext;
     use Funnypot\Core\Support\BoundedInspection;
-    use Funnypot\Core\Support\BoundedInspectionOperationSpy;
     use PHPUnit\Framework\TestCase;
 
     final class BoundedInspectionOperationTest extends TestCase
@@ -42,8 +25,13 @@ namespace Funnypot\Core\Tests {
             StringConversionCounter::$calls = 0;
         }
 
+        /**
+         * @runInSeparateProcess
+         * @preserveGlobalState disabled
+         */
         public function test_decode_and_lowercase_only_receive_bounded_inputs(): void
         {
+            $this->installOperationSpies();
             $body = str_repeat('%2525', 2000);
             $subject = BoundedInspection::requestSubject(new RequestContext('POST', '/', '', [], $body));
             BoundedInspection::canonicalPsrHeaders([
@@ -60,7 +48,7 @@ namespace Funnypot\Core\Tests {
         public function test_header_iteration_converts_only_the_hard_examined_windows(): void
         {
             $canonical = [];
-            for ($i = 0; $i < 200; $i++) {
+            for ($i = 0; $i < 2000; $i++) {
                 $canonical['X-' . $i] = [new StringConversionCounter('v')];
             }
             BoundedInspection::canonicalPsrHeaders($canonical);
@@ -68,26 +56,39 @@ namespace Funnypot\Core\Tests {
 
             StringConversionCounter::$calls = 0;
             $generic = [];
-            for ($i = 0; $i < 100; $i++) {
+            for ($i = 0; $i < 2000; $i++) {
                 $generic['Y-' . $i] = new StringConversionCounter('v');
             }
             BoundedInspection::genericHeaders($generic);
             self::assertSame(64, StringConversionCounter::$calls);
         }
 
+        /**
+         * @runInSeparateProcess
+         * @preserveGlobalState disabled
+         */
         public function test_plain_php_overlong_header_name_is_rejected_before_normalization(): void
         {
+            $this->installOperationSpies();
             BoundedInspection::canonicalServerHeaders([
                 'HTTP_' . str_repeat('A', 1024 * 1024) => 'value',
             ]);
 
             self::assertSame([], BoundedInspectionOperationSpy::$lowerLengths);
+
+            $server = [];
+            for ($i = 0; $i < 1000; $i++) {
+                $server['HTTP_X_' . $i] = 'value';
+            }
+            BoundedInspection::canonicalServerHeaders($server);
+            self::assertCount(256, BoundedInspectionOperationSpy::$lowerLengths, 'two bounded normalizations per examined field');
+            self::assertLessThanOrEqual(128, max(BoundedInspectionOperationSpy::$lowerLengths));
         }
 
         public function test_psr_value_iteration_stops_at_256_and_16_per_field(): void
         {
             $headers = [];
-            for ($field = 0; $field < 20; $field++) {
+            for ($field = 0; $field < 200; $field++) {
                 $headers['X-' . $field] = [];
                 for ($value = 0; $value < 20; $value++) {
                     $headers['X-' . $field][] = new StringConversionCounter('v');
@@ -101,6 +102,7 @@ namespace Funnypot\Core\Tests {
 
         /**
          * @runInSeparateProcess
+         * @preserveGlobalState disabled
          */
         public function test_large_preallocated_context_adds_only_a_bounded_working_set(): void
         {
@@ -115,6 +117,22 @@ namespace Funnypot\Core\Tests {
             self::assertSame(32768, strlen($subject));
             self::assertSame(4096, strlen($headers['X-Large']));
             self::assertLessThan(2 * 1024 * 1024, $delta);
+        }
+
+        private function installOperationSpies(): void
+        {
+            eval(<<<'PHP'
+namespace Funnypot\Core\Support;
+function rawurldecode($value) {
+    \Funnypot\Core\Tests\BoundedInspectionOperationSpy::$decodeLengths[] = strlen($value);
+    return \rawurldecode($value);
+}
+function strtolower($value) {
+    \Funnypot\Core\Tests\BoundedInspectionOperationSpy::$lowerLengths[] = strlen($value);
+    return \strtolower($value);
+}
+PHP
+            );
         }
     }
 

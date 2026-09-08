@@ -989,6 +989,7 @@ final class Honeypot implements Engine
     private function structuralFingerprint(array $headers): string
     {
         $fingerprint = count($headers) . ':';
+        $joined = false;
         foreach ($headers as $name => $value) {
             $lname = strtolower((string) $name);
             $v = preg_replace('/\d+/', '', (string) $value);
@@ -997,12 +998,13 @@ final class Honeypot implements Engine
                 sort($tokens);
                 $v = implode(',', $tokens);
             }
-            $piece = ($fingerprint === count($headers) . ':' ? '' : '&') . $lname . '=' . $v;
+            $piece = ($joined ? '&' : '') . $lname . '=' . $v;
             $remaining = BoundedInspection::FINGERPRINT_BYTES - strlen($fingerprint);
             if ($remaining <= 0) {
                 break;
             }
             $fingerprint .= strlen($piece) > $remaining ? substr($piece, 0, $remaining) : $piece;
+            $joined = true;
         }
 
         return $fingerprint;

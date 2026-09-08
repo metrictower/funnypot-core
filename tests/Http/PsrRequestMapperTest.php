@@ -18,34 +18,45 @@ final class PsrRequestMapperTest extends TestCase
 {
     public function test_rejects_exact_overlong_target_before_uri_headers_or_body(): void
     {
-        $request = new class('GET', '/') extends ServerRequest {
-            public function getRequestTarget(): string
-            {
-                return str_repeat('x', 4097);
-            }
+        foreach ([4097, 65536] as $targetBytes) {
+            $request = new class('GET', '/', $targetBytes) extends ServerRequest {
+                /** @var int */
+                private $targetBytes;
 
-            public function getUri(): \Psr\Http\Message\UriInterface
-            {
-                throw new \RuntimeException('URI must not be read');
-            }
+                public function __construct(string $method, string $uri, int $targetBytes)
+                {
+                    parent::__construct($method, $uri);
+                    $this->targetBytes = $targetBytes;
+                }
 
-            public function getHeaders(): array
-            {
-                throw new \RuntimeException('headers must not be read');
-            }
+                public function getRequestTarget(): string
+                {
+                    return str_repeat('x', $this->targetBytes);
+                }
 
-            public function getBody(): \Psr\Http\Message\StreamInterface
-            {
-                throw new \RuntimeException('body must not be read');
-            }
-        };
+                public function getUri(): \Psr\Http\Message\UriInterface
+                {
+                    throw new \RuntimeException('URI must not be read');
+                }
 
-        $context = PsrRequestMapper::map($request);
+                public function getHeaders(): array
+                {
+                    throw new \RuntimeException('headers must not be read');
+                }
 
-        self::assertFalse($context->targetAdmitted);
-        self::assertSame('/', $context->path);
-        self::assertSame([], $context->headers);
-        self::assertNull($context->rawBody);
+                public function getBody(): \Psr\Http\Message\StreamInterface
+                {
+                    throw new \RuntimeException('body must not be read');
+                }
+            };
+
+            $context = PsrRequestMapper::map($request);
+
+            self::assertFalse($context->targetAdmitted);
+            self::assertSame('/', $context->path);
+            self::assertSame([], $context->headers);
+            self::assertNull($context->rawBody);
+        }
     }
 
     public function test_throwing_exact_target_fails_closed_before_other_accessors(): void
@@ -106,22 +117,33 @@ final class PsrRequestMapperTest extends TestCase
 
     public function test_caps_uri_host_before_context_and_never_reads_unbounded_header_line(): void
     {
-        $uri = new class('/') extends Uri {
-            public function getHost(): string
-            {
-                return str_repeat('h', 4096);
-            }
-        };
-        $request = new class('GET', $uri) extends ServerRequest {
-            public function getHeaderLine($name): string
-            {
-                throw new \RuntimeException('getHeaderLine must not be used');
-            }
-        };
+        foreach ([511, 512, 513, 1024 * 1024] as $hostBytes) {
+            $uri = new class('/', $hostBytes) extends Uri {
+                /** @var int */
+                private $hostBytes;
 
-        $context = PsrRequestMapper::map($request);
+                public function __construct(string $uri, int $hostBytes)
+                {
+                    parent::__construct($uri);
+                    $this->hostBytes = $hostBytes;
+                }
 
-        self::assertSame(512, strlen($context->host));
+                public function getHost(): string
+                {
+                    return str_repeat('h', $this->hostBytes);
+                }
+            };
+            $request = new class('GET', $uri) extends ServerRequest {
+                public function getHeaderLine($name): string
+                {
+                    throw new \RuntimeException('getHeaderLine must not be used');
+                }
+            };
+
+            $context = PsrRequestMapper::map($request);
+
+            self::assertSame(min(512, $hostBytes), strlen($context->host));
+        }
     }
 
     public function test_mapper_canonical_header_snapshot_stops_after_128_fields(): void

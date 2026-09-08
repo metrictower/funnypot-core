@@ -15,11 +15,11 @@ use Funnypot\Core\Detection;
 use Funnypot\Core\RequestContext;
 use Funnypot\Core\Response\EmulatedContent;
 use Funnypot\Core\Rules\RulesLocator;
+use Funnypot\Core\Support\BoundedInspection;
 use Funnypot\Core\Support\Chrome\Esc;
 use Funnypot\Core\Support\Chrome\PageSlots;
 use Funnypot\Core\Support\Chrome\PhpMyAdminSkin;
 use Funnypot\Core\Support\Chrome\WordpressSkin;
-use Funnypot\Core\Support\BoundedInspection;
 use Funnypot\Core\Support\Fake\FakeRecords;
 use Funnypot\Core\Support\Fake\FakeSecrets;
 use Funnypot\Core\Support\PathNormalizer;
@@ -1460,10 +1460,7 @@ final class TemplateAttackEmulator
      */
     private function canonicalizeTraversalPath(string $raw): string
     {
-        $path = strlen($raw) > BoundedInspection::SUBJECT_BYTES
-            ? substr($raw, 0, BoundedInspection::SUBJECT_BYTES)
-            : $raw;
-        $path = rawurldecode($path);
+        $path = BoundedInspection::decodeOnce($raw);
         if ($path !== '' && $path[0] === '/') {
             $path = substr($path, 1);
         }

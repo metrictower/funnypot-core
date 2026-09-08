@@ -25,6 +25,22 @@ final class BoundedInspectionTest extends TestCase
         self::assertFalse(BoundedInspection::rawTargetAccepted(str_repeat("\xc3\xa9", 2049)));
     }
 
+    public function test_raw_target_admission_never_decodes_or_normalizes_wire_forms(): void
+    {
+        $prefixes = [
+            '/%2e%2e/',
+            '/%252e%252e/',
+            "/%00/",
+            '/%zz/',
+            '///???&&&',
+        ];
+        foreach ($prefixes as $prefix) {
+            $boundary = $prefix . str_repeat('x', BoundedInspection::TARGET_BYTES - strlen($prefix));
+            self::assertTrue(BoundedInspection::rawTargetAccepted($boundary), $prefix);
+            self::assertFalse(BoundedInspection::rawTargetAccepted($boundary . 'x'), $prefix);
+        }
+    }
+
     public function test_context_admission_requires_flag_and_reconstructed_target_to_fit(): void
     {
         self::assertTrue(BoundedInspection::targetAccepted(new RequestContext('GET', '/ok')));
@@ -79,7 +95,8 @@ final class BoundedInspectionTest extends TestCase
         self::assertArrayNotHasKey(str_repeat('N', 129), $headers);
         self::assertSame(8192, strlen($headers['X-Large']));
         self::assertLessThanOrEqual(BoundedInspection::CANONICAL_HEADER_BYTES, $this->serializedHeaderBytes($headers));
-        self::assertArrayNotHasKey('X-125', $headers, 'the 128 examined-field stop must count skipped/duplicate fields');
+        self::assertArrayHasKey('X-123', $headers);
+        self::assertArrayNotHasKey('X-124', $headers, 'the 128 examined-field stop must count skipped/duplicate fields');
     }
 
     public function test_canonical_psr_value_counter_stops_after_256_examined_values(): void
@@ -99,6 +116,7 @@ final class BoundedInspectionTest extends TestCase
     {
         self::assertSame(', b', BoundedInspection::canonicalPsrHeaders(['X-Test' => ['', 'b']])['X-Test']);
         self::assertSame(', b', BoundedInspection::genericHeaders(['X-Test' => '', 'x-test' => 'b'])['X-Test']);
+        self::assertSame(' b', BoundedInspection::headerSurface(['X-Empty' => '', 'X-Next' => 'b']));
     }
 
     public function test_generic_projection_stops_after_64_examined_fields_and_16kb(): void
@@ -114,6 +132,13 @@ final class BoundedInspectionTest extends TestCase
         self::assertLessThanOrEqual(BoundedInspection::GENERIC_HEADER_BYTES, $this->serializedHeaderBytes($projection));
         self::assertArrayNotHasKey('X-64', $projection);
         self::assertLessThanOrEqual(BoundedInspection::GENERIC_HEADER_BYTES, strlen(BoundedInspection::headerSurface($headers)));
+
+        $invalid = [];
+        for ($i = 0; $i < 64; $i++) {
+            $invalid[str_repeat('N', 129) . $i] = 'skip';
+        }
+        $invalid['X-Late'] = 'must-not-be-enumerated';
+        self::assertSame([], BoundedInspection::genericHeaders($invalid));
     }
 
     public function test_generic_projection_does_not_replace_oob_canonical_window(): void
@@ -134,11 +159,15 @@ final class BoundedInspectionTest extends TestCase
 
     public function test_host_and_cookie_windows_fail_closed(): void
     {
-        self::assertSame(str_repeat('h', 512), BoundedInspection::host(str_repeat('h', 513)));
+        foreach ([511, 512, 513, 1024 * 1024] as $hostBytes) {
+            $context = new RequestContext('GET', '/', '', [], null, str_repeat('h', $hostBytes));
+            self::assertSame(min(512, $hostBytes), strlen($context->host));
+        }
         self::assertNull(BoundedInspection::cookiePairs(str_repeat('x', 8193)));
         self::assertNull(BoundedInspection::cookiePairs(str_repeat('n', 257) . '=v'));
         self::assertNull(BoundedInspection::cookiePairs('n=' . str_repeat('v', 4097)));
         self::assertNull(BoundedInspection::cookiePairs(implode(';', array_fill(0, 65, 'n=v'))));
+        self::assertNull(BoundedInspection::cookiePairs(str_repeat(';', 64) . 'a=1'));
         self::assertSame([['a', '1'], ['b', 'two=parts']], BoundedInspection::cookiePairs('a=1; b=two=parts'));
 
         $session = new DecoySession('key');

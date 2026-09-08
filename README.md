@@ -351,6 +351,27 @@ Want detection **and** IP reporting without assembling it yourself?
 **[metrictower/funnypot](https://github.com/metrictower/funnypot)** wires this engine to the mainnet
 reporting SDK and enforces the request-path invariants for you.
 
+### Request and inspection ceilings
+
+Core accepts a complete request target only when it is at most **4,096 raw bytes**. The target is
+never decoded or clipped into a route: an oversized `RequestContext` produces an empty detection and
+no fake. The PSR-15 adapter checks `getRequestTarget()` before the injected engine, URI mapping,
+headers or body, attaches an empty detection and passes the host request downstream unchanged. It
+also declines when separately exposed URI path/query primitives reconstruct beyond the same limit.
+Plain-PHP mapping applies the equivalent check to `REQUEST_URI` before headers or `php://input`.
+
+Accepted adapter snapshots keep up to 65,536 bytes of canonical headers (at most 128 fields and 256
+values) and the existing 65,536-byte captured-body ceiling. Attack and bot classifiers derive a
+smaller view: 16,384 header bytes over at most 64 fields, a 32,768-byte body contribution, at most two
+URL-decode passes, and a final 32,768-byte regex subject. Header values and body bytes beyond those
+documented inspection windows are deliberately not classified. OOB probes retain their separate
+65,536-byte header-first layout, reserved 16,384-byte body tail and three decode passes. Direct
+contexts also cap Host at 512 bytes and cookie/session parsing at 8,192 bytes/64 pairs.
+
+The standalone app owns the wire policy: its edge and pre-bootstrap guard return 414 for an
+oversized raw target. An embedded host remains in control of its response; core only declines and
+never aliases an oversized prefix onto a real decoy route.
+
 ## Response styles
 
 Set at init with `responseStyle`:
