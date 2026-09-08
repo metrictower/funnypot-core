@@ -620,9 +620,12 @@ drifts, run `composer build` and commit the result.
 sidecars (`manifest.json` / `crs-manifest.json`), which are refresh-workflow records, never rewritten
 by the in-repo `build`. In its place each artifact carries a reproducible `source-tree` sha256
 provenance stamp (`SourceTreeStamp` over exactly the `*.yaml` set the step globbed, repo-relative and
-`SORT_STRING`-ordered), and the index keeps `upstream_tag`/`upstream_sha` for the pinned corpus. File
-globs sort `SORT_STRING` (cross-PHP-stable for the digit-prefixed filenames) and all compile writes go
-through one atomic writer. `merge-routes` owns the index's reproducible fields: it synchronizes the
+`SORT_STRING`-ordered), and the nuclei index stores the complete source commit in both
+`upstream_tag` and `upstream_sha`. Using the full sha for the display field keeps corpus bytes
+independent of local Git tags, history and abbreviation settings; CRS compilation retains its
+descriptive Git tag in the separate CRS manifest. File globs sort `SORT_STRING` (cross-PHP-stable
+for the digit-prefixed filenames) and all compile writes go through one atomic writer.
+`merge-routes` owns the index's reproducible fields: it synchronizes the
 owned `route-*` fold (removes every `route-*` template/bundle/detection, drops a key left empty, then
 folds the current fragment — a removed or changed page cannot linger), recomputes `source_tree`,
 refreshes the post-fold `route_keys`/`templates_indexed` counts (which `RulesUpdater`/
@@ -667,7 +670,9 @@ composer verify-corpus                               # prove the pinned checkout
 `nuclei -update-templates` dir is scratch, not a source) or that is not at the pin. The checkout
 root comes from the argument, `NUCLEI_TEMPLATES_DIR`, or `../nuclei-templates`. The sidecar also
 records which compiler produced the corpus (`core_commit`, `php_version`) and a reproducible
-`built_at` (`SOURCE_DATE_EPOCH`, else the upstream commit date). `tests/CorpusProvenanceTest.php`
+`built_at` (`SOURCE_DATE_EPOCH`, else the upstream commit date). The nuclei `upstream_tag` display
+value is the same complete commit sha as the pin, so `build-corpus --verify` does not depend on
+Git's configured abbreviation length or on which tags are present. `tests/CorpusProvenanceTest.php`
 holds a route-key floor so a rebuild that loses coverage fails loudly instead of shipping — running
 `compile` without the fold would drop every in-repo new-page key and still exit 0. The pipeline, the
 pin, and the refresh procedure: [`docs/CORPUS-PIPELINE.md`](docs/CORPUS-PIPELINE.md).

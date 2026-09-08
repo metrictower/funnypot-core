@@ -36,9 +36,11 @@ and `test_folded_bundles_in_the_index_match_the_committed_fragment`).
 
 `resources/compiled/manifest.json` → `upstream_sha` **is the pin**: the exact
 projectdiscovery/nuclei-templates commit the committed index was compiled from. `upstream_tag` is
-`git describe --tags --always` of that checkout — a release tag when built from one, a short sha
-otherwise. Both are also embedded in the index's own `manifest`, and `doctor` checks the two copies
-agree, so the 6 MB file and its readable sidecar can never describe different sources.
+the same complete commit sha for the nuclei corpus. It is intentionally independent of local tags,
+history and `core.abbrev`; `compile-crs` retains its descriptive `git describe --tags --always`
+value in the separate CRS manifest. Both nuclei fields are also embedded in the index's own
+`manifest`, and `doctor` checks the two copies agree, so the 6 MB file and its readable sidecar can
+never describe different sources.
 
 `build-corpus` refuses to compile from:
 
@@ -135,14 +137,16 @@ Both read `unknown` on a sidecar that predates the record; the next real `compil
   embedded pin and recompiles, asserting the committed `nuclei-index.full.php` is byte-identical (sha256)
   to a clean rebuild. Closes the drift class `check-drift` cannot see: `check-drift` only re-folds
   (`build`) + checks provenance, so a compiler change that shifts the compiled index without a fold is
-  invisible to it. Pins `core.abbrev` to the committed `upstream_tag` length so the shallow clone's
-  `git describe` reproduces the embedded provenance.
+  invisible to it. Nuclei compilation derives `upstream_tag` from the full `upstream_sha`, so a
+  shallow/no-tags checkout and a tagged/full-history checkout reproduce the same provenance without
+  `core.abbrev` configuration. The workflow's abbreviation compatibility step remains only until the
+  committed corpus is regenerated under this rule; remove it with that canonical artifact migration.
 
 ## manifest.json fields
 
 | field | written by | meaning |
 |---|---|---|
-| `upstream_tag`, `upstream_sha` | `compile` | the pin (also embedded in the index) |
+| `upstream_tag`, `upstream_sha` | `compile` | the same full nuclei source commit sha; the pin (also embedded in the index) |
 | `source_tree` | `merge-routes` | sha256 over `templates/route` + `templates/generated` |
 | `templates_seen`, `templates_in`, `templates_indexed`, `route_keys`, `multi_bundle_keys`, `largest_bundle_count`, `persona_cap` | `compile`; the two counts refreshed by `merge-routes` | table sizes — `route_keys` / `templates_indexed` are post-fold |
 | `built_at` | `compile` | reproducible stamp (see above); preserved by `build` |

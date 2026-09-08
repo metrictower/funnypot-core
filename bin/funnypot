@@ -563,8 +563,9 @@ exit($command === '' || $command === 'help' || $command === '--help' ? 0 : 2);
  * `funnypot compile` — the external corpus step: parse a nuclei-templates `http/` dir into the
  * schema-1 index plus its manifest.json / skipped.json sidecars. The sidecar records which compiler
  * produced the corpus half (core commit + PHP version) and a reproducible built_at; the index
- * itself carries only the upstream tag/sha. Run through `build-corpus`, which enforces the pin —
- * this raw step compiles whatever it is pointed at.
+ * itself carries only the upstream tag/sha. Nuclei corpus provenance uses the full sha for both
+ * fields so local tags and Git abbreviation settings cannot change the compiled bytes. Run through
+ * `build-corpus`, which enforces the pin — this raw step compiles whatever it is pointed at.
  *
  * @param string[] $argvv
  */
@@ -586,7 +587,7 @@ function runCompile(string $root, array $argvv): int
         return 2;
     }
 
-    $meta = resolveUpstream($dir);
+    $meta = resolveUpstream($dir, true);
 
     $start = microtime(true);
     $compiler = new Compiler();
@@ -671,7 +672,7 @@ function runBuildCorpus(string $root, array $argvv): int
         return 2;
     }
 
-    $up = resolveUpstream($dir);
+    $up = resolveUpstream($dir, true);
     if ($up['sha'] === 'unknown') {
         fwrite(STDERR, "error: {$dir} is not a git checkout, so its upstream revision cannot be recorded and the\n"
             . "  compiled corpus would be untraceable. Compile only from a git clone of\n"
@@ -1421,15 +1422,16 @@ function renderLintRoutes(array $result, string $format): int
 
 /**
  * Best-effort upstream tag + sha from the templates repo (or an ancestor), plus the sidecar
- * `built_at`. That stamp is reproducible on purpose: SOURCE_DATE_EPOCH when set (the
- * reproducible-builds convention), else the upstream HEAD's committer date, else wall-clock for a
- * dir with no revision — so two compiles of the same pinned checkout emit the same sidecar.
- * Always UTC. Shared by `compile` and `compile-crs`; the compilers themselves never read the
- * environment.
+ * `built_at`. Nuclei corpus callers request the canonical mode, where tag equals the full resolved
+ * sha and `git describe` is deliberately not consulted; compile-crs retains the default descriptive
+ * tag. The timestamp is reproducible on purpose: SOURCE_DATE_EPOCH when set (the reproducible-builds
+ * convention), else the upstream HEAD's committer date, else wall-clock for a dir with no revision
+ * — so two compiles of the same pinned checkout emit the same sidecar. Always UTC. The compilers
+ * themselves never read the environment.
  *
  * @return array<string,string>
  */
-function resolveUpstream(string $dir): array
+function resolveUpstream(string $dir, bool $canonicalCorpusTag = false): array
 {
     $git = static function (string $dir, string $args): string {
         $cmd = 'git -C ' . escapeshellarg($dir) . ' ' . $args . ' 2>/dev/null';
@@ -1439,7 +1441,7 @@ function resolveUpstream(string $dir): array
     };
 
     $sha = $git($dir, 'rev-parse HEAD');
-    $tag = $git($dir, 'describe --tags --always');
+    $tag = $canonicalCorpusTag ? $sha : $git($dir, 'describe --tags --always');
 
     $epoch = getenv('SOURCE_DATE_EPOCH');
     if (!is_string($epoch) || !ctype_digit($epoch)) {
