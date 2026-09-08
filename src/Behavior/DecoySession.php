@@ -68,8 +68,8 @@ final class DecoySession
             return false;
         }
         foreach ($pairs as $pair) {
-            if ($pair[0] === $name && $this->isAuthenticatedValue($pair[1])) {
-                return true;
+            if ($pair[0] === $name) {
+                return $this->isAuthenticatedValue($pair[1]);
             }
         }
 

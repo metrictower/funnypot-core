@@ -142,6 +142,17 @@ final class DecoySessionTest extends TestCase
         self::assertTrue($session->isAuthenticated($header, 'phpMyAdmin'));
     }
 
+    public function test_duplicate_named_cookie_keeps_first_value_precedence(): void
+    {
+        $session = new DecoySession(self::KEY, self::SEED_A);
+        $valid = $this->extractCookieValue($session->mintCookie('sess', '/'), 'sess');
+        $preAuth = $this->extractCookieValue($session->preAuthCookie('sess', '/'), 'sess');
+
+        self::assertFalse($session->isAuthenticated('sess=invalid; sess=' . $valid, 'sess'));
+        self::assertTrue($session->isAuthenticated('sess=' . $valid . '; sess=invalid', 'sess'));
+        self::assertFalse($session->isAuthenticated('sess=' . $preAuth . '; sess=' . $valid, 'sess'));
+    }
+
     public function test_cross_key_token_does_not_authenticate(): void
     {
         $signer = new DecoySession('key-a');

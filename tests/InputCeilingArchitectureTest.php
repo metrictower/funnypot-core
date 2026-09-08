@@ -11,6 +11,7 @@ final class InputCeilingArchitectureTest extends TestCase
     public function test_operation_spies_are_not_installed_during_test_discovery(): void
     {
         require_once __DIR__ . '/BoundedInspectionOperationTest.php';
+        require_once __DIR__ . '/DecoySessionProbeTest.php';
         require_once __DIR__ . '/InputCeilingTest.php';
         require_once __DIR__ . '/RequestContextInputCeilingTest.php';
 
@@ -18,6 +19,8 @@ final class InputCeilingArchitectureTest extends TestCase
         self::assertFalse(function_exists('Funnypot\\Core\\Support\\strtolower'));
         self::assertFalse(function_exists('Funnypot\\Core\\Template\\preg_match'));
         self::assertFalse(function_exists('Funnypot\\Core\\file_get_contents'));
+        self::assertFalse(function_exists('Funnypot\\Core\\rawurldecode'));
+        self::assertFalse(function_exists('Funnypot\\Core\\hash_equals'));
         self::assertFalse(function_exists('Funnypot\\Core\\trim'));
         self::assertFalse(function_exists('Funnypot\\Core\\strtolower'));
         self::assertFalse(function_exists('Funnypot\\Core\\filter_var'));

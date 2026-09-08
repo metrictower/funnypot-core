@@ -134,6 +134,50 @@ final class DecoySessionProbeTest extends TestCase
         self::assertFalse(DecoySessionProbe::authenticated($this->req(str_repeat('x', 8193)), self::KEY));
     }
 
+    /**
+     * @runInSeparateProcess
+     * @preserveGlobalState disabled
+     */
+    public function test_direct_probe_applies_target_admission_before_cookie_or_signature_work(): void
+    {
+        $this->installOperationSpies();
+        $pair = $this->mintedPair(self::SEED_A, 'sess');
+        $acceptedPath = new RequestContext('GET', str_repeat('p', 4096), '', [
+            'Cookie' => new DecoySessionProbeCookieValue($pair),
+        ]);
+        $acceptedCombined = new RequestContext('GET', '/ok', str_repeat('q', 4092), [
+            'Cookie' => new DecoySessionProbeCookieValue($pair),
+        ]);
+
+        self::assertTrue(DecoySessionProbe::authenticated($acceptedPath, self::KEY, self::SEED_A));
+        self::assertTrue(DecoySessionProbe::authenticated($acceptedCombined, self::KEY, self::SEED_A));
+        self::assertSame(2, DecoySessionProbeOperationSpy::$cookieConversions);
+        self::assertSame(2, DecoySessionProbeOperationSpy::$decodes);
+        self::assertSame(2, DecoySessionProbeOperationSpy::$signatureComparisons);
+
+        DecoySessionProbeOperationSpy::reset();
+        $rejected = [
+            new RequestContext('GET', str_repeat('p', 4097), '', [
+                'Cookie' => new DecoySessionProbeCookieValue($pair),
+            ]),
+            new RequestContext('GET', '/ok', str_repeat('q', 4093), [
+                'Cookie' => new DecoySessionProbeCookieValue($pair),
+            ]),
+            new RequestContext('GET', str_repeat('p', 65536), '', [
+                'Cookie' => new DecoySessionProbeCookieValue($pair),
+            ]),
+            new RequestContext('GET', '/', '', [
+                'Cookie' => new DecoySessionProbeCookieValue($pair),
+            ], null, '', 'https', '', false),
+        ];
+        foreach ($rejected as $request) {
+            self::assertFalse(DecoySessionProbe::authenticated($request, self::KEY, self::SEED_A));
+        }
+        self::assertSame(0, DecoySessionProbeOperationSpy::$cookieConversions);
+        self::assertSame(0, DecoySessionProbeOperationSpy::$decodes);
+        self::assertSame(0, DecoySessionProbeOperationSpy::$signatureComparisons);
+    }
+
     public function test_detect_path_source_has_no_network_primitive(): void
     {
         $needles = [
@@ -145,5 +189,58 @@ final class DecoySessionProbeTest extends TestCase
         foreach ($needles as $needle) {
             self::assertStringNotContainsString($needle, $src, "DecoySessionProbe must not reference {$needle}");
         }
+    }
+
+    private function installOperationSpies(): void
+    {
+        eval(<<<'PHP'
+namespace Funnypot\Core;
+function rawurldecode($value) {
+    \Funnypot\Core\Tests\DecoySessionProbeOperationSpy::$decodes++;
+    return \rawurldecode($value);
+}
+function hash_equals($known, $user) {
+    \Funnypot\Core\Tests\DecoySessionProbeOperationSpy::$signatureComparisons++;
+    return \hash_equals($known, $user);
+}
+PHP
+        );
+    }
+}
+
+final class DecoySessionProbeOperationSpy
+{
+    /** @var int */
+    public static $cookieConversions = 0;
+
+    /** @var int */
+    public static $decodes = 0;
+
+    /** @var int */
+    public static $signatureComparisons = 0;
+
+    public static function reset(): void
+    {
+        self::$cookieConversions = 0;
+        self::$decodes = 0;
+        self::$signatureComparisons = 0;
+    }
+}
+
+final class DecoySessionProbeCookieValue
+{
+    /** @var string */
+    private $value;
+
+    public function __construct(string $value)
+    {
+        $this->value = $value;
+    }
+
+    public function __toString(): string
+    {
+        DecoySessionProbeOperationSpy::$cookieConversions++;
+
+        return $this->value;
     }
 }

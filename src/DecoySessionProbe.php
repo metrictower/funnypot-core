@@ -32,7 +32,7 @@ final class DecoySessionProbe
      */
     public static function authenticated(RequestContext $r, string $key, ?int $deploySeed = null): bool
     {
-        if ($key === '') {
+        if ($key === '' || !BoundedInspection::targetAccepted($r)) {
             return false;
         }
 
