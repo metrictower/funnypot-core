@@ -107,7 +107,7 @@ final class CorpusGitMetadataTest extends TestCase
         self::assertSame(201, $routeTamperedIndex['routes']['GET /fixture-status']['b'][0]['s']);
         [$code, $output] = $this->runCli('build-corpus --verify ' . escapeshellarg($this->source), false);
         self::assertSame(1, $code, $output);
-        self::assertStringContainsString('MISMATCH', $output);
+        $this->assertFixtureMismatchScratch($output);
 
         file_put_contents($this->package . '/resources/compiled/nuclei-index.full.php', $originalIndex);
         $tagField = "'upstream_tag' => '" . $this->sha . "'";
@@ -122,7 +122,7 @@ final class CorpusGitMetadataTest extends TestCase
         self::assertNotSame($this->sha, $tamperedIndex['manifest']['upstream_tag']);
         [$code, $output] = $this->runCli('build-corpus --verify ' . escapeshellarg($this->source), false);
         self::assertSame(1, $code, $output);
-        self::assertStringContainsString('MISMATCH', $output);
+        $this->assertFixtureMismatchScratch($output);
 
         file_put_contents($this->package . '/resources/compiled/nuclei-index.full.php', $originalIndex);
         file_put_contents($this->package . '/resources/compiled/manifest.json', $originalSidecar);
@@ -177,7 +177,7 @@ final class CorpusGitMetadataTest extends TestCase
 
     private function stagePackage(): void
     {
-        foreach (['bin', 'vendor', 'resources/compiled', 'templates/route', 'templates/generated'] as $dir) {
+        foreach (['bin', 'vendor', 'resources/compiled', 'templates/route', 'templates/generated', 'tmp'] as $dir) {
             mkdir($this->package . '/' . $dir, 0777, true);
         }
         copy(__DIR__ . '/../bin/funnypot', $this->package . '/bin/funnypot');
@@ -248,7 +248,8 @@ YAML
     /** @return array{0:int,1:string} */
     private function runCli(string $args, bool $mustPass = true): array
     {
-        $command = 'GIT_CONFIG_NOSYSTEM=1 GIT_CONFIG_GLOBAL=/dev/null GIT_CONFIG_COUNT=0 SOURCE_DATE_EPOCH=1706933106 '
+        $command = 'GIT_CONFIG_NOSYSTEM=1 GIT_CONFIG_GLOBAL=/dev/null GIT_CONFIG_COUNT=0 '
+            . 'SOURCE_DATE_EPOCH=1706933106 TMPDIR=' . escapeshellarg($this->package . '/tmp') . ' '
             . escapeshellarg(PHP_BINARY)
             . ' -d memory_limit=512M ' . escapeshellarg($this->package . '/bin/funnypot')
             . ' ' . $args . ' 2>&1';
@@ -261,6 +262,18 @@ YAML
         }
 
         return [$code, $output];
+    }
+
+    private function assertFixtureMismatchScratch(string $output): void
+    {
+        self::assertStringContainsString('MISMATCH', $output);
+        self::assertMatchesRegularExpression(
+            '~rebuilt copy kept at '
+                . preg_quote($this->package . '/tmp/fp-verify-', '~')
+                . '[0-9]+/folded/nuclei-index\.full\.php~',
+            $output,
+            'an intentional mismatch must retain scratch only below the fixture package'
+        );
     }
 
     private function git(string $args): string
