@@ -48,6 +48,40 @@ final class SubSeedTest extends TestCase
         }
     }
 
+    public function test_app_namespace_registry_and_digest_contract(): void
+    {
+        self::assertSame('app', SubSeed::NS_APP);
+
+        $seen = [];
+        $constants = (new \ReflectionClass(SubSeed::class))->getConstants();
+        foreach ($constants as $name => $value) {
+            if (strncmp($name, 'NS_', 3) !== 0) {
+                continue;
+            }
+            self::assertIsString($value, "{$name} must be a string namespace");
+            self::assertStringNotContainsString('|', $value, "{$name} must not contain the digest delimiter");
+            self::assertArrayNotHasKey($value, $seen, "{$name} must not alias another namespace");
+            $seen[$value] = $name;
+        }
+
+        $vectors = [
+            [0, 'app-persona/v1|filesystem-host|0', '591ece0d7bce5b41a79677aec2beba139131b7a73460ad7f1442c52a0bc144c9'],
+            [4242, 'app-persona/v1|search|recent|0', 'd20b525d737629b81d84259797c0ea09893a3606efca19300199acd74dba648c'],
+        ];
+        foreach ($vectors as $vector) {
+            [$seed, $field, $expected] = $vector;
+            self::assertSame($expected, hash('sha256', $seed . '|app|' . $field));
+            self::assertSame($expected, SubSeed::digest($seed, SubSeed::NS_APP, $field));
+        }
+
+        $field = 'app-persona/v1|filesystem-host|0';
+        self::assertNotSame(
+            SubSeed::digest(0, SubSeed::NS_SURFACE, $field),
+            SubSeed::digest(0, SubSeed::NS_APP, $field),
+            'the app namespace must be domain-separated from the surface namespace'
+        );
+    }
+
     /** index() must equal `hexdec(substr(digest,0,8)) % n` on 64-bit — the PersonaIdentity/VisualPersona pick formula. */
     public function test_index_matches_the_legacy_hexdec_modulo_on_64bit(): void
     {
@@ -272,7 +306,7 @@ final class SubSeedTest extends TestCase
     {
         $allowed = [
             // SubSeed NS_* registry
-            'persona', 'fake', 'visual', 'canned', 'surface', 'attack', 'witness', 'scaffold', 'honeytoken', 'decoy', 'reaction',
+            'persona', 'fake', 'visual', 'canned', 'surface', 'attack', 'witness', 'scaffold', 'honeytoken', 'decoy', 'reaction', 'app',
             // documented legacy tags (not de-triplicated by this ticket)
             'pick', 'token', 'awskey', 'product-version', 'secret', 'person', 'record', 'labelorder',
         ];

@@ -160,6 +160,10 @@ Two independent conditions matter: `deploySeed` (identity material) and `seedSal
 Setting one persisted secret for both is the simplest safe configuration. **The core never generates
 or persists the secret** — it does no I/O; provisioning a per-install secret is the host app's job.
 
+The `SubSeed` registry reserves `SubSeed::NS_APP` (`app`) for downstream app-owned persona fields.
+This registration supplies namespace ownership only: it does not define the app's field vocabulary
+or mean that downstream persona adoption has shipped.
+
 The visual skin the `deploySeed` drives is seeded end to end: the CSS class-name prefix **word** (a
 neutral `<word>-XXXX` namespace, never the old fleet-constant `fp-`) and the full text **palette**
 (including the foreground/muted greys) vary per deploy too (FP-0283), so two deploys never share one

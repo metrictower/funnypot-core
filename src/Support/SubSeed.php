@@ -53,6 +53,7 @@ final class SubSeed
     public const NS_HONEYTOKEN = 'honeytoken'; // FP-0282
     public const NS_DECOY = 'decoy';        // FP-0282
     public const NS_REACTION = 'reaction';  // FP-0157 (param-reaction closed-family cosmetics)
+    public const NS_APP = 'app';            // FP-0129 app-owned persona fields
 
     private function __construct()
     {
