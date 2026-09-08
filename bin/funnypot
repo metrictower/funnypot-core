@@ -29,12 +29,31 @@ use Symfony\Component\Yaml\Yaml;
 
 $root = dirname(__DIR__);
 
-$autoload = $root . '/vendor/autoload.php';
-if (!is_file($autoload)) {
-    fwrite(STDERR, "Missing vendor/autoload.php — run `composer install` in the package.\n");
+$explicitAutoload = array_key_exists('_composer_autoload_path', $GLOBALS);
+if ($explicitAutoload) {
+    // Composer >=2.2 proxies may supply this; this package does not declare a bin proxy itself.
+    $autoload = $GLOBALS['_composer_autoload_path'];
+} else {
+    $autoload = $root . '/vendor/autoload.php';
+    if (!is_file($autoload) && basename($root) === 'funnypot-core' && basename(dirname($root)) === 'metrictower') {
+        // Only the conventional vendor/package depth, including a custom vendor-directory name.
+        // Never search CWD or arbitrary ancestors for executable PHP.
+        $autoload = dirname($root, 2) . '/autoload.php';
+    }
+}
+if (!is_string($autoload) || $autoload === '' || strpos($autoload, '://') !== false
+    || !is_file($autoload) || !is_readable($autoload)) {
+    fwrite(STDERR, $explicitAutoload ? "Invalid Composer proxy autoloader.\n"
+        : "Missing Composer autoloader — run `composer install` in the package or consuming project.\n");
     exit(2);
 }
-require $autoload;
+try {
+    // A selected loader's failure must not execute a different candidate or print a PHP trace.
+    @require $autoload;
+} catch (\Throwable $error) {
+    fwrite(STDERR, "Unable to load the selected Composer autoloader.\n");
+    exit(2);
+}
 
 $argvv = $argv;
 array_shift($argvv);
@@ -850,6 +869,9 @@ function checkCorpusProvenance(string $compiledDir): array
     }
     if ((int) ($embedded['route_keys'] ?? -1) !== $routeKeys) {
         $out['problems'][] = 'embedded route_keys ' . var_export($embedded['route_keys'] ?? null, true) . " != actual {$routeKeys} (run `funnypot build`)";
+    }
+    if ((int) ($embedded['templates_indexed'] ?? -1) !== $templates) {
+        $out['problems'][] = 'embedded templates_indexed ' . var_export($embedded['templates_indexed'] ?? null, true) . " != actual {$templates} (run `funnypot build`)";
     }
     $pin = (string) ($sidecar['upstream_sha'] ?? '');
     if (preg_match('/^[0-9a-f]{40}$/', $pin) !== 1) {

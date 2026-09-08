@@ -77,14 +77,19 @@ composer build-corpus -- ../nuclei-templates --bump
 `--bump` prints `route keys : before -> after (±n)` and `pin moved : old -> new`. Then:
 
 1. review the delta — `git diff --stat resources/compiled`, the route-key count, `skipped.json`;
-2. if the count fell, lower `ROUTE_KEY_FLOOR` in `tests/CorpusProvenanceTest.php` **in the same
-   commit** — that edit is the reviewable record of accepted coverage loss, and the suite fails
-   until it is made;
+2. investigate lost routes. A decrease still above `ROUTE_KEY_FLOOR` needs review but no floor edit.
+   Only if the count falls below the floor and the loss is deliberately accepted, lower
+   `ROUTE_KEY_FLOOR` in `tests/CorpusProvenanceTest.php` **in the same reviewed commit** as the
+   refresh; never lower it automatically or just to make a rebuild pass;
 3. `composer check` and `vendor/bin/phpunit`;
 4. commit `resources/compiled` + `templates/generated` + `templates/attack-ai`.
 
-The `update-templates` workflow is exactly this procedure at a release tag (dispatch-only while the
-CI pause stands).
+The `update-templates` workflow performs a pinned refresh at a release tag (dispatch-only while the
+CI pause stands), but its unit/floor, real-nuclei acceptance and fingerprint gates run **before PR
+creation**. A below-floor result therefore stops without opening a PR. Use the manual procedure
+above to investigate and record any deliberately accepted loss, rerun all CI/operator gates
+(including real acceptance, licence and fingerprint checks), then open the reviewed change.
+Do not bypass or reorder workflow tests to create a green-looking PR from a failed refresh.
 
 ## Proving a rebuild reproduces the committed bytes
 

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Funnypot\Core\Tests;
 
 use Funnypot\Core\Compiler\RouteIndexFold;
+use Funnypot\Core\Tests\Support\CliProcess;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -230,6 +231,37 @@ final class CorpusProvenanceTest extends TestCase
         [$code, $out] = $this->funnypot('doctor --provenance --compiled-dir=' . escapeshellarg($dir));
         self::assertSame(1, $code, $out);
         self::assertStringContainsString('unpinned', $out);
+    }
+
+    /** @dataProvider embeddedTemplateClaims */
+    public function test_doctor_provenance_rejects_wrong_or_missing_embedded_template_count(bool $missing): void
+    {
+        $dir = $this->copyOfPair();
+        $run = static function () use ($dir): array {
+            return CliProcess::run([PHP_BINARY, '-d', 'memory_limit=1G', '-d', 'max_execution_time=60',
+                __DIR__ . '/../bin/funnypot', 'doctor', '--provenance', '--compiled-dir=' . $dir], __DIR__);
+        };
+        [$code, $out, $err] = $run();
+        self::assertSame(0, $code, $out . $err);
+        $index = self::index();
+        if ($missing) { unset($index['manifest']['templates_indexed']); }
+        else { $index['manifest']['templates_indexed'] = count($index['templates']) + 1; }
+        $bytes = "<?php\nreturn " . var_export($index, true) . ";\n";
+        file_put_contents($dir . '/nuclei-index.full.php', $bytes);
+        $sidecar = self::sidecar();
+        $sidecar['sha256'] = hash('sha256', $bytes);
+        $sidecar['artifact_bytes'] = strlen($bytes);
+        file_put_contents($dir . '/manifest.json', json_encode($sidecar));
+        [$code, $out, $err] = $run();
+        self::assertSame(1, $code, $out . $err);
+        self::assertStringContainsString('embedded templates_indexed', $out);
+        self::assertStringNotContainsString('sha256: manifest.json says', $out);
+        self::assertStringNotContainsString('artifact_bytes: manifest.json says', $out);
+    }
+
+    public static function embeddedTemplateClaims(): array
+    {
+        return [[false], [true]];
     }
 
     // --- build-corpus refuses an untraceable or off-pin source ----------------------------------

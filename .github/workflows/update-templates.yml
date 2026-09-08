@@ -71,6 +71,8 @@ jobs:
         run: php -d memory_limit=2G bin/funnypot lint-routes
 
       - name: Unit + compiler tests
+        # A below-floor refresh fails here, before PR creation. Investigate via the manual pinned
+        # refresh in docs/CORPUS-PIPELINE.md#refreshing-the-corpus-moving-the-pin; never skip the floor.
         run: vendor/bin/phpunit
 
       - name: Golden acceptance (real nuclei)
@@ -99,8 +101,11 @@ jobs:
             refreshed index still satisfies every asserted template.
 
             The upstream pin (`manifest.json` `upstream_sha`) moved to this tag. Review the
-            route-key delta in the build log; if the count fell, `tests/CorpusProvenanceTest.php`
-            `ROUTE_KEY_FLOOR` must be lowered in this PR as the reviewed record of accepted loss.
+            route-key delta in the build log. A decrease still above `ROUTE_KEY_FLOOR` requires
+            review, not a floor edit. A below-floor refresh fails before PR creation; investigate
+            it with the [manual pinned-refresh procedure](docs/CORPUS-PIPELINE.md#refreshing-the-corpus-moving-the-pin).
+            Only deliberately accepted below-floor loss warrants a floor change in that same
+            reviewed manual refresh, followed by all CI/operator gates. Never bypass the floor test.
           add-paths: |
             resources/compiled/nuclei-index.full.php
             resources/compiled/manifest.json
