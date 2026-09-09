@@ -38,6 +38,7 @@ RUN find /workspace/src /workspace/resources/compiled -type f -print0 \
     | sha256sum \
     | cut -d ' ' -f 1 > /opt/reflector/core-tree.sha256 \
     && cp /workspace/tests/acceptance/reflector/ReceiptVerifier.php /opt/reflector/ReceiptVerifier.php \
+    && cp /workspace/tests/acceptance/reflector/EvidenceFiles.php /opt/reflector/EvidenceFiles.php \
     && cp /workspace/tests/acceptance/reflector/collect.php /opt/reflector/collect.php \
     && chmod -R a-w /workspace /opt/reflector
 

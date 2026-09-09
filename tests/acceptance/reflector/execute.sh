@@ -55,7 +55,12 @@ cleanup_children() {
     scanner_pid=''
     server_pid=''
 }
-trap cleanup_children EXIT INT TERM
+on_signal() {
+    cleanup_children
+    exit 143
+}
+trap cleanup_children EXIT
+trap on_signal INT TERM
 
 run_one() {
     local scanner=$1
@@ -72,7 +77,7 @@ run_one() {
     printf '%s' "$start" > "$directory/started-at"
 
     (
-        ulimit -f 32768
+        ulimit -f 512
         REFLECT_MODE="$mode" REFLECT_RUN_DIR="$directory" \
             php -d memory_limit=256M -d max_execution_time=0 -S 127.0.0.1:8898 "$router"
     ) > "$directory/server.log" 2>&1 &
@@ -107,7 +112,7 @@ run_one() {
             "$directory/invocation.json" "${command[@]}"
 
         (
-            ulimit -f 32768
+            ulimit -f 512
             timeout --signal=TERM --kill-after=3 90 "${command[@]}"
         ) > "$directory/scanner-console.log" 2>&1 &
         scanner_pid=$!

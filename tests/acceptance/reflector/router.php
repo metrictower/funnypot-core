@@ -6,13 +6,14 @@ use Funnypot\Core\Config;
 use Funnypot\Core\Honeypot;
 use Funnypot\Core\Http\ResponseEmitter;
 use Funnypot\Core\RequestContext;
+use Funnypot\Core\Tests\Acceptance\EvidenceFiles;
 
 const REFLECT_PATH = '/products/quick-search';
 const REFLECT_REQUEST_LIMIT = 512;
-const REFLECT_RECORD_LIMIT = 8388608;
+const REFLECT_RECORD_LIMIT = 262144;
 
-$root = dirname(__DIR__, 3);
-require $root . '/vendor/autoload.php';
+require __DIR__ . '/autoload.php';
+require __DIR__ . '/EvidenceFiles.php';
 
 $runDirectory = getenv('REFLECT_RUN_DIR');
 $mode = getenv('REFLECT_MODE');
@@ -41,14 +42,25 @@ $question = strpos($target, '?');
 $path = $question === false ? $target : substr($target, 0, $question);
 $query = $question === false ? '' : substr($target, $question + 1);
 $method = isset($_SERVER['REQUEST_METHOD']) ? (string) $_SERVER['REQUEST_METHOD'] : 'GET';
+try {
+    $path = EvidenceFiles::boundedRequestField($path, 4096, 'request path');
+    $query = EvidenceFiles::boundedRequestField($query, 4096, 'request query');
+} catch (InvalidArgumentException $error) {
+    @file_put_contents($runDirectory . '/evidence-overflow', "1\n", LOCK_EX);
+    http_response_code(413);
+    header('Content-Type: text/plain');
+    echo "request evidence boundary exceeded\n";
+
+    return true;
+}
 
 if ($method !== 'GET' || ($path !== REFLECT_PATH && $path !== REFLECT_PATH . '/')) {
     $record = [
         'kind' => 'router-reject',
         'sequence' => $sequence,
         'method' => $method,
-        'path' => bounded($path, 4096),
-        'query' => bounded($query, 4096),
+        'path' => $path,
+        'query' => $query,
     ];
     requireRecord($runDirectory, $record);
     http_response_code(404);
@@ -58,7 +70,16 @@ if ($method !== 'GET' || ($path !== REFLECT_PATH && $path !== REFLECT_PATH . '/'
     return true;
 }
 
-$queryValue = queryValue($query, 'q');
+try {
+    $queryValue = queryValue($query, 'q');
+} catch (InvalidArgumentException $error) {
+    @file_put_contents($runDirectory . '/evidence-overflow', "1\n", LOCK_EX);
+    http_response_code(413);
+    header('Content-Type: text/plain');
+    echo "request evidence boundary exceeded\n";
+
+    return true;
+}
 $config = new Config('respond');
 $config->gate = static function (RequestContext $request): bool { return true; };
 $config->personaSeed = static function (RequestContext $request): string { return 'reflector-acceptance-fixed-persona'; };
@@ -74,7 +95,7 @@ $base = [
     'sequence' => $sequence,
     'method' => $method,
     'path' => $path,
-    'query' => bounded($query, 4096),
+    'query' => $query,
     'query_value' => $queryValue,
 ];
 
@@ -154,15 +175,10 @@ function requireRecord(string $directory, array $record): void
     fclose($handle);
 }
 
-function bounded(string $value, int $limit): string
-{
-    return strlen($value) <= $limit ? $value : substr($value, 0, $limit);
-}
-
 function queryValue(string $query, string $wanted): string
 {
     $examined = 0;
-    foreach (explode('&', bounded($query, 4096), 65) as $pair) {
+    foreach (explode('&', $query, 65) as $pair) {
         $examined++;
         if ($examined > 64) {
             break;
@@ -173,7 +189,11 @@ function queryValue(string $query, string $wanted): string
             continue;
         }
 
-        return bounded(urldecode($equals === false ? '' : substr($pair, $equals + 1)), 2048);
+        return EvidenceFiles::boundedRequestField(
+            urldecode($equals === false ? '' : substr($pair, $equals + 1)),
+            2048,
+            'decoded query value'
+        );
     }
 
     return '';

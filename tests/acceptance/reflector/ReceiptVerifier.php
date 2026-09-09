@@ -67,12 +67,16 @@ final class ReceiptVerifier
     {
         self::validatePins($pins);
         self::keys($packet, [
-            'schema', 'pins_sha256', 'core_tree_sha256', 'template_sha256',
-            'started_at', 'ended_at', 'elapsed_seconds', 'total_output_bytes', 'runs',
+            'schema', 'pins_sha256', 'core_tree_sha256', 'compiled_index_sha256',
+            'attack_artifact_sha256', 'template_sha256',
+            'started_at', 'ended_at', 'elapsed_seconds', 'source_output_bytes',
+            'total_output_bytes', 'runs',
         ], 'packet');
         self::check($packet['schema'] === self::SCHEMA, 'wrong receipt schema');
         self::check($packet['pins_sha256'] === self::PINS_SHA256, 'stale pin file hash');
         self::hex($packet['core_tree_sha256'], 'core tree hash');
+        self::hex($packet['compiled_index_sha256'], 'compiled index hash');
+        self::hex($packet['attack_artifact_sha256'], 'attack artifact hash');
         self::check($packet['template_sha256'] === $pins['template']['sha256'], 'stale template pin');
         self::nonNegativeInt($packet['started_at'], 'packet start');
         self::nonNegativeInt($packet['ended_at'], 'packet end');
@@ -81,6 +85,7 @@ final class ReceiptVerifier
         self::check($packet['elapsed_seconds'] <= self::PACKET_SECONDS, 'packet timeout');
         self::nonNegativeInt($packet['total_output_bytes'], 'total output bytes');
         self::check($packet['total_output_bytes'] <= self::OUTPUT_LIMIT, 'evidence output overflow');
+        self::nonNegativeInt($packet['source_output_bytes'], 'source output bytes');
         self::check(is_array($packet['runs']), 'runs must be an object');
         self::keys($packet['runs'], [
             'nuclei-authorized', 'nuclei-unauthorized', 'dalfox-authorized', 'dalfox-unauthorized',
@@ -90,23 +95,32 @@ final class ReceiptVerifier
         foreach ($packet['runs'] as $key => $run) {
             self::check(is_array($run), 'run malformed: ' . $key);
             self::verifyRun((string) $key, $run, $pins);
+            foreach (['core_tree_sha256', 'compiled_index_sha256', 'attack_artifact_sha256', 'template_sha256'] as $hashField) {
+                self::check($run[$hashField] === $packet[$hashField], 'run/packet hash mismatch: ' . $hashField);
+            }
             $sum += $run['output_bytes'];
         }
-        self::check($sum === $packet['total_output_bytes'], 'total output byte count mismatch');
+        self::check($sum === $packet['source_output_bytes'], 'source output byte count mismatch');
 
         self::verifyNuclei($packet['runs']['nuclei-authorized'], true);
         self::verifyNuclei($packet['runs']['nuclei-unauthorized'], false);
         self::verifyDalfox($packet['runs']['dalfox-authorized'], true);
         self::verifyDalfox($packet['runs']['dalfox-unauthorized'], false);
+        $encoded = json_encode($packet, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
+        self::check(is_string($encoded), 'receipt cannot be encoded');
+        self::check($packet['total_output_bytes'] === $packet['source_output_bytes'] + strlen($encoded) + 1, 'receipt-inclusive output byte count mismatch');
     }
 
     /** @param array<string,mixed> $run @param array<string,mixed> $pins */
     private static function verifyRun(string $key, array $run, array $pins): void
     {
         self::keys($run, [
-            'mode', 'scanner', 'scanner_version', 'target', 'invocation', 'started_at', 'ended_at',
+            'mode', 'scanner', 'scanner_version', 'scanner_archive_sha256', 'core_tree_sha256',
+            'compiled_index_sha256', 'attack_artifact_sha256', 'template_sha256',
+            'target', 'invocation', 'started_at', 'ended_at',
             'elapsed_seconds', 'exit_status', 'timed_out', 'request_count', 'request_overflow',
-            'output_bytes', 'output_truncated', 'errors', 'scanner_output', 'records',
+            'output_bytes', 'output_truncated', 'errors', 'scanner_error_log_present',
+            'scanner_trace', 'scanner_output', 'records',
         ], 'run ' . $key);
         $parts = explode('-', $key, 2);
         self::check(count($parts) === 2, 'bad run key');
@@ -115,6 +129,11 @@ final class ReceiptVerifier
         self::check($run['scanner'] === $scanner, 'scanner/key mismatch');
         self::check($run['mode'] === $mode, 'mode/key mismatch');
         self::check($run['scanner_version'] === $pins[$scanner]['version'], 'stale scanner version');
+        self::check($run['scanner_archive_sha256'] === $pins[$scanner]['archive_sha256'], 'stale scanner archive hash');
+        self::hex($run['core_tree_sha256'], 'run core tree hash');
+        self::hex($run['compiled_index_sha256'], 'run compiled index hash');
+        self::hex($run['attack_artifact_sha256'], 'run attack artifact hash');
+        self::check($run['template_sha256'] === $pins['template']['sha256'], 'run template hash mismatch');
         self::check($run['target'] === self::TARGET, 'wrong target');
         self::check(is_array($run['invocation']) && self::isList($run['invocation']), 'invocation must be a list');
         self::check($run['invocation'] === self::expectedInvocation($scanner, $key), 'scanner invocation drift');
@@ -132,6 +151,7 @@ final class ReceiptVerifier
         self::check($run['output_bytes'] <= self::OUTPUT_LIMIT, 'run output overflow');
         self::check($run['output_truncated'] === false, 'scanner output truncated');
         self::check(is_array($run['errors']) && self::isList($run['errors']) && $run['errors'] === [], 'scanner errors present');
+        self::check(is_array($run['scanner_trace']) && self::isList($run['scanner_trace']), 'scanner trace malformed');
         self::check(is_array($run['records']) && self::isList($run['records']), 'records must be a list');
         self::check(count($run['records']) === $run['request_count'], 'request count/record mismatch');
         foreach ($run['records'] as $index => $record) {
@@ -156,13 +176,17 @@ final class ReceiptVerifier
             self::keys($record, ['kind', 'sequence', 'method', 'path', 'query', 'query_value'], 'core-null record');
         } elseif ($record['kind'] === 'router-reject') {
             self::keys($record, ['kind', 'sequence', 'method', 'path', 'query'], 'router-reject record');
-            self::check($record['path'] !== self::PATH && $record['path'] !== self::PATH . '/', 'owned path mislabeled router reject');
+            $owned = $record['path'] === self::PATH || $record['path'] === self::PATH . '/';
+            self::check(!$owned || $record['method'] !== 'GET', 'owned GET mislabeled router reject');
         } else {
             throw new InvalidArgumentException('unknown record kind');
         }
         self::nonNegativeInt($record['sequence'], 'record sequence');
         self::check($record['sequence'] === $index + 1, 'record order mismatch');
-        self::check($record['method'] === 'GET', 'unexpected request method');
+        self::check(is_string($record['method']), 'request method malformed');
+        if ($record['kind'] !== 'router-reject') {
+            self::check($record['method'] === 'GET', 'unexpected request method');
+        }
         self::check(is_string($record['path']) && is_string($record['query']), 'record request malformed');
 
         if ($record['kind'] !== 'router-reject') {
@@ -175,8 +199,8 @@ final class ReceiptVerifier
         }
         $value = $record['query_value'];
         if ($record['owner'] === 'attack-xss-baseline') {
-            self::check(preg_match('/dlx[0-9a-f]{8}dlxmid[0-9a-f]{8}xld[0-9a-f]{8}/', $value, $m) === 1, 'baseline owner/payload mismatch');
-            self::check(strpos($record['body'], $m[0]) !== false, 'baseline marker not reflected');
+            self::check(preg_match('/^[A-Za-z0-9]{1,64}$/', $value) === 1, 'baseline owner/payload mismatch');
+            self::check(strpos($record['body'], $value) !== false, 'baseline value not reflected');
         } elseif ($record['owner'] === 'attack-xss') {
             self::check(preg_match('/<[^>]*dlx[0-9a-f]{8}[^>]*>/i', $value, $m) === 1, 'legacy owner/payload mismatch');
             self::check(strpos($record['body'], $m[0]) !== false, 'legacy matched tag not reflected');
@@ -191,6 +215,29 @@ final class ReceiptVerifier
     private static function verifyNuclei(array $run, bool $authorized): void
     {
         self::check(is_array($run['scanner_output']) && self::isList($run['scanner_output']), 'nuclei output must be JSONL records');
+        self::check($run['scanner_error_log_present'] === true, 'nuclei error log missing');
+        self::check(count($run['scanner_trace']) > 0, 'nuclei trace missing');
+        self::check(count($run['scanner_trace']) === $run['request_count'], 'nuclei trace/request count mismatch');
+        foreach ($run['scanner_trace'] as $trace) {
+            self::check(is_array($trace), 'nuclei trace record malformed');
+            self::check(($trace['error'] ?? null) === 'none', 'nuclei trace contains request error');
+            self::check(($trace['address'] ?? null) === '127.0.0.1:8898', 'nuclei trace escaped loopback target');
+            $input = isset($trace['input']) && is_string($trace['input']) ? parse_url($trace['input']) : false;
+            self::check(is_array($input)
+                && ($input['scheme'] ?? null) === 'http'
+                && ($input['host'] ?? null) === '127.0.0.1'
+                && ($input['port'] ?? null) === 8898, 'nuclei trace target malformed');
+            self::check(($trace['template'] ?? null) === '/opt/reflector/template/reflected-xss.yaml', 'nuclei trace template drift');
+            $correlated = false;
+            foreach ($run['records'] as $record) {
+                if (($input['path'] ?? null) === $record['path']
+                    && (isset($input['query']) ? $input['query'] : '') === $record['query']) {
+                    $correlated = true;
+                    break;
+                }
+            }
+            self::check($correlated, 'nuclei trace lacks responder record');
+        }
         if ($authorized) {
             self::check($run['exit_status'] === 0, 'nuclei hard error');
             self::check(count($run['scanner_output']) > 0, 'nuclei produced no pinned finding');
@@ -202,6 +249,12 @@ final class ReceiptVerifier
                 self::check(($finding['matcher-status'] ?? null) === true, 'nuclei matcher did not pass');
                 self::check(($finding['is_fuzzing_result'] ?? null) === true, 'nuclei result is not fuzzing evidence');
                 self::check(is_string($finding['request'] ?? null) && is_string($finding['response'] ?? null), 'nuclei request/response missing');
+                $matched = isset($finding['matched-at']) && is_string($finding['matched-at']) ? parse_url($finding['matched-at']) : false;
+                self::check(is_array($matched)
+                    && ($matched['scheme'] ?? null) === 'http'
+                    && ($matched['host'] ?? null) === '127.0.0.1'
+                    && ($matched['port'] ?? null) === 8898
+                    && (($matched['path'] ?? null) === self::PATH || ($matched['path'] ?? null) === self::PATH . '/'), 'nuclei matched-at escaped target');
                 $payload = self::numericBreakout(rawurldecode($finding['request']));
                 self::check($payload !== null, 'nuclei numeric breakout missing');
                 self::check(strpos($finding['response'], $payload) !== false, 'nuclei output response lacks breakout');
@@ -217,9 +270,7 @@ final class ReceiptVerifier
             self::check($correlated, 'nuclei finding lacks responder correlation');
         } else {
             self::check($run['exit_status'] === 0, 'unauthorized nuclei hard error');
-            foreach ($run['scanner_output'] as $finding) {
-                self::check(!is_array($finding) || self::numericBreakout(rawurldecode((string) ($finding['request'] ?? ''))) === null, 'unauthorized nuclei raw finding');
-            }
+            self::check($run['scanner_output'] === [], 'unauthorized nuclei output not empty');
             self::check(self::hasClosedRawProbe($run), 'unauthorized nuclei control did not exercise the raw gate');
         }
     }
@@ -228,6 +279,8 @@ final class ReceiptVerifier
     private static function verifyDalfox(array $run, bool $authorized): void
     {
         $output = $run['scanner_output'];
+        self::check($run['scanner_error_log_present'] === false, 'unexpected dalfox error-log claim');
+        self::check($run['scanner_trace'] === [], 'unexpected dalfox trace claim');
         self::check(is_array($output), 'dalfox output malformed');
         self::keys($output, ['meta', 'findings'], 'dalfox output');
         self::check(is_array($output['meta']) && is_array($output['findings']), 'dalfox output fields malformed');
@@ -242,9 +295,26 @@ final class ReceiptVerifier
         self::check(($meta['findings_count'] ?? null) === count($output['findings']), 'dalfox finding count mismatch');
         foreach ($output['findings'] as $finding) {
             self::check(is_array($finding), 'dalfox finding malformed');
-            self::check(is_string($finding['type'] ?? null) && $finding['type'] !== '', 'dalfox finding type missing');
-            self::check(is_string($finding['detection_method'] ?? null) && $finding['detection_method'] !== '', 'dalfox detection method missing');
-            self::check(isset($finding['confidence']) && (is_int($finding['confidence']) || is_float($finding['confidence']) || is_string($finding['confidence'])), 'dalfox confidence missing');
+            self::check(in_array($finding['type'] ?? null, ['R', 'V'], true), 'dalfox finding type missing');
+            self::check(in_array($finding['detection_method'] ?? null, ['reflection', 'dom-verification'], true), 'dalfox detection method missing');
+            self::check(array_key_exists('confidence', $finding)
+                && in_array($finding['confidence'], [null, 'low', 'high'], true), 'dalfox confidence missing');
+            self::check(is_string($finding['request'] ?? null) && is_string($finding['response'] ?? null), 'dalfox finding request/response missing');
+            self::check(preg_match('/dlx[0-9a-f]{8}/', rawurldecode($finding['request']), $marker) === 1, 'dalfox finding marker missing');
+            self::check(strpos($finding['response'], $marker[0]) !== false, 'dalfox finding response lacks marker');
+            $correlated = false;
+            foreach ($run['records'] as $record) {
+                if ($record['kind'] === 'response'
+                    && strpos($record['query_value'], $marker[0]) !== false
+                    && strpos($record['body'], $marker[0]) !== false) {
+                    $correlated = true;
+                    break;
+                }
+            }
+            self::check($correlated, 'dalfox finding lacks responder correlation');
+        }
+        if ($authorized) {
+            self::check(count($output['findings']) > 0, 'dalfox produced no final R/V evidence');
         }
         if (count($output['findings']) > 0) {
             self::check($run['exit_status'] === 1, 'dalfox findings exit mismatch');

@@ -38,7 +38,12 @@ cleanup() {
         fi
     fi
 }
-trap cleanup EXIT INT TERM
+on_signal() {
+    cleanup
+    exit 143
+}
+trap cleanup EXIT
+trap on_signal INT TERM
 
 # This is the only online phase. Dockerfile verifies exact archive sizes/hashes before extraction.
 docker build --platform linux/amd64 --file "$here/Dockerfile" --tag "$image" "$root"

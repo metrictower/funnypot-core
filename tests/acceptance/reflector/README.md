@@ -42,7 +42,8 @@ as a response with missing owner metadata.
 ## Bounds and receipt
 
 The container enforces independent 90-second scanner/mode deadlines, a 512-request responder ceiling,
-an aggregate 16 MiB evidence ceiling and per-file size limits. It terminates only its recorded child
+an aggregate 16 MiB receipt-inclusive evidence ceiling, 512 KiB process file limits and a tighter
+256 KiB responder-record limit. It terminates only its recorded child
 PIDs with bounded grace. Timeout, overflow, truncation, missing tools, wrong versions, scanner hard
 errors, malformed output, request errors or a dead responder fail the job. Dalfox exits 0 for clean,
 1 for findings and 2 for hard error; Nuclei findings retain its normal zero exit, while request/error

@@ -8,10 +8,12 @@ use Funnypot\Core\Config;
 use Funnypot\Core\Honeypot;
 use Funnypot\Core\RequestContext;
 use Funnypot\Core\Tests\Acceptance\ReceiptVerifier;
+use Funnypot\Core\Tests\Acceptance\EvidenceFiles;
 use InvalidArgumentException;
 use PHPUnit\Framework\TestCase;
 
 require_once __DIR__ . '/acceptance/reflector/ReceiptVerifier.php';
+require_once __DIR__ . '/acceptance/reflector/EvidenceFiles.php';
 
 final class ReflectorAcceptanceContractTest extends TestCase
 {
@@ -141,12 +143,40 @@ final class ReflectorAcceptanceContractTest extends TestCase
             'path' => '/off-path', 'query' => 'q=x',
         ];
         $packet['runs']['nuclei-unauthorized']['request_count'] = 2;
-        ReceiptVerifier::verifyPacket($packet, $this->pins);
+        $packet['runs']['nuclei-unauthorized']['scanner_trace'][] = [
+            'template' => '/opt/reflector/template/reflected-xss.yaml',
+            'type' => 'http', 'input' => 'http://127.0.0.1:8898/off-path?q=x',
+            'address' => '127.0.0.1:8898', 'error' => 'none',
+        ];
+        ReceiptVerifier::verifyPacket($this->withInclusiveTotal($packet), $this->pins);
         self::addToAssertionCount(1);
 
         $bad = $packet;
         $bad['runs']['nuclei-unauthorized']['records'][1]['owner'] = null;
         $this->rejects($bad, 'router-reject record keys mismatch');
+    }
+
+    public function test_dalfox_head_preflight_is_an_explicit_method_rejection(): void
+    {
+        $packet = $this->packet();
+        array_unshift(
+            $packet['runs']['dalfox-authorized']['records'],
+            [
+                'kind' => 'router-reject', 'sequence' => 1, 'method' => 'HEAD',
+                'path' => ReceiptVerifier::PATH, 'query' => 'q=probe',
+            ],
+            $this->response(2, 'probe', 'attack-xss-baseline', 'page probe', ['Content-Type' => 'text/html; charset=utf-8'])
+        );
+        foreach ($packet['runs']['dalfox-authorized']['records'] as $index => &$record) {
+            $record['sequence'] = $index + 1;
+        }
+        unset($record);
+        $packet['runs']['dalfox-authorized']['request_count'] += 2;
+        ReceiptVerifier::verifyPacket($this->withInclusiveTotal($packet), $this->pins);
+
+        $wrong = $packet;
+        $wrong['runs']['dalfox-authorized']['records'][0]['method'] = 'GET';
+        $this->rejects($wrong, 'owned GET mislabeled router reject');
     }
 
     public function test_legacy_tag_correlates_only_its_real_matched_substring(): void
@@ -168,6 +198,101 @@ final class ReflectorAcceptanceContractTest extends TestCase
         $template = $this->packet();
         $template['template_sha256'] = str_repeat('0', 64);
         $this->rejects($template, 'stale template pin');
+    }
+
+    public function test_missing_or_malformed_nuclei_evidence_cannot_look_clean(): void
+    {
+        $missingOutput = $this->packet();
+        $missingOutput['runs']['nuclei-unauthorized']['scanner_output'] = [['malformed_jsonl' => true]];
+        $this->rejects($missingOutput, 'unauthorized nuclei output not empty');
+
+        $missingTrace = $this->packet();
+        $missingTrace['runs']['nuclei-unauthorized']['scanner_trace'] = [];
+        $this->rejects($missingTrace, 'nuclei trace missing');
+
+        $traceError = $this->packet();
+        $traceError['runs']['nuclei-unauthorized']['scanner_trace'][0]['error'] = 'connection reset';
+        $this->rejects($traceError, 'nuclei trace contains request error');
+
+        $escaped = $this->packet();
+        $escaped['runs']['nuclei-unauthorized']['scanner_trace'][0]['address'] = 'example.invalid:80';
+        $this->rejects($escaped, 'nuclei trace escaped loopback target');
+
+        $missingErrors = $this->packet();
+        $missingErrors['runs']['nuclei-unauthorized']['scanner_error_log_present'] = false;
+        $this->rejects($missingErrors, 'nuclei error log missing');
+    }
+
+    public function test_dalfox_final_fields_and_responder_correlation_are_required(): void
+    {
+        $missing = $this->packet();
+        unset($missing['runs']['dalfox-authorized']['scanner_output']['findings'][0]['confidence']);
+        $this->rejects($missing, 'dalfox confidence missing');
+
+        $uncorrelated = $this->packet();
+        $uncorrelated['runs']['dalfox-authorized']['scanner_output']['findings'][0]['response'] = 'HTTP/1.1 200 OK';
+        $this->rejects($uncorrelated, 'dalfox finding response lacks marker');
+
+        $empty = $this->packet();
+        $empty['runs']['dalfox-authorized']['scanner_output']['findings'] = [];
+        $empty['runs']['dalfox-authorized']['scanner_output']['meta']['findings_count'] = 0;
+        $empty['runs']['dalfox-authorized']['scanner_output']['meta']['target_summary'][0]['findings_count'] = 0;
+        $empty['runs']['dalfox-authorized']['scanner_output']['meta']['target_summary'][0]['status'] = 'clean';
+        $empty['runs']['dalfox-authorized']['exit_status'] = 0;
+        $this->rejects($empty, 'dalfox produced no final R/V evidence');
+    }
+
+    public function test_total_evidence_count_includes_the_receipt_itself(): void
+    {
+        $packet = $this->packet();
+        $encoded = json_encode($packet, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
+        self::assertIsString($encoded);
+        self::assertSame($packet['source_output_bytes'] + strlen($encoded) + 1, $packet['total_output_bytes']);
+
+        $packet['total_output_bytes']--;
+        $this->rejects($packet, 'receipt-inclusive output byte count mismatch');
+    }
+
+    public function test_actual_evidence_file_parsers_fail_closed_at_file_boundaries(): void
+    {
+        $directory = sys_get_temp_dir() . '/fp0338-evidence-' . bin2hex(random_bytes(8));
+        self::assertTrue(mkdir($directory, 0700));
+        try {
+            self::assertSame([['malformed_jsonl' => true]], EvidenceFiles::jsonLines($directory . '/missing.jsonl'));
+            self::assertSame(8, file_put_contents($directory . '/partial.jsonl', "{\"ok\":1}"));
+            self::assertSame([['ok' => 1]], EvidenceFiles::jsonLines($directory . '/partial.jsonl'));
+            self::assertSame(6, file_put_contents($directory . '/partial.jsonl', '{"ok":'));
+            self::assertSame([['malformed_jsonl' => true]], EvidenceFiles::jsonLines($directory . '/partial.jsonl'));
+
+            self::assertSame(16, file_put_contents($directory . '/trace.log', '{"ok":1}{"ok":2}'));
+            self::assertSame([['ok' => 1], ['ok' => 2]], EvidenceFiles::jsonSequence($directory . '/trace.log'));
+            self::assertSame(7, file_put_contents($directory . '/trace.log', '{"ok":1'));
+            self::assertSame([['malformed_trace' => true]], EvidenceFiles::jsonSequence($directory . '/trace.log'));
+            self::assertSame(13, EvidenceFiles::evidenceBytes($directory));
+        } finally {
+            foreach (new \DirectoryIterator($directory) as $file) {
+                if (!$file->isDot() && $file->isFile()) {
+                    unlink($file->getPathname());
+                }
+            }
+            rmdir($directory);
+        }
+    }
+
+    public function test_router_evidence_fields_reject_instead_of_truncate_at_boundaries(): void
+    {
+        self::assertSame(str_repeat('x', 4096), EvidenceFiles::boundedRequestField(str_repeat('x', 4096), 4096, 'path'));
+        try {
+            EvidenceFiles::boundedRequestField(str_repeat('x', 4097), 4096, 'path');
+            self::fail('overlong request evidence was accepted');
+        } catch (InvalidArgumentException $error) {
+            self::assertSame('path exceeds evidence boundary', $error->getMessage());
+        }
+
+        $router = (string) file_get_contents(__DIR__ . '/acceptance/reflector/router.php');
+        self::assertStringContainsString("'/evidence-overflow'", $router);
+        self::assertStringContainsString('EvidenceFiles::boundedRequestField($path, 4096', $router);
+        self::assertStringContainsString('EvidenceFiles::boundedRequestField($query, 4096', $router);
     }
 
     public function test_readme_configuration_is_php73_safe_and_authorization_is_request_bound(): void
@@ -281,9 +406,17 @@ final class ReflectorAcceptanceContractTest extends TestCase
         self::assertStringContainsString('--security-opt no-new-privileges', $runner);
         self::assertStringContainsString('--pids-limit 128', $runner);
         self::assertStringContainsString('timeout --signal=TERM --kill-after=3 90', $execute);
-        self::assertStringContainsString('REFLECT_REQUEST_LIMIT = 512', (string) file_get_contents($root . '/tests/acceptance/reflector/router.php'));
+        self::assertStringContainsString('ulimit -f 512', $execute);
+        $collector = (string) file_get_contents($root . '/tests/acceptance/reflector/collect.php');
+        self::assertStringContainsString('source_output_bytes', $collector);
+        self::assertStringContainsString('strlen($encoded) + 1', $collector);
+        $router = (string) file_get_contents($root . '/tests/acceptance/reflector/router.php');
+        self::assertStringContainsString("require __DIR__ . '/autoload.php';", $router);
+        self::assertStringNotContainsString('/vendor/autoload.php', $router);
+        self::assertStringContainsString('REFLECT_REQUEST_LIMIT = 512', $router);
         self::assertStringContainsString('http://127.0.0.1:8898/products/quick-search?q=probe', $all);
         self::assertStringContainsString('php@sha256:172e13bc72d4fe6503db39b3ecad301406492ae661e1803138fa45eafc7491f2', $dockerfile);
+        self::assertStringContainsString('EvidenceFiles.php /opt/reflector/EvidenceFiles.php', $dockerfile);
         foreach (['0.0.0.0', 'host.docker.internal', '--network host', '/var/run/docker.sock', '--privileged', '--publish'] as $forbidden) {
             self::assertStringNotContainsString($forbidden, $all);
         }
@@ -310,17 +443,20 @@ final class ReflectorAcceptanceContractTest extends TestCase
             'dalfox-unauthorized' => $this->fixtureRun('dalfox', 'unauthorized'),
         ];
 
-        return [
+        return $this->withInclusiveTotal([
             'schema' => ReceiptVerifier::SCHEMA,
             'pins_sha256' => hash_file('sha256', __DIR__ . '/acceptance/reflector/versions.json'),
             'core_tree_sha256' => str_repeat('a', 64),
+            'compiled_index_sha256' => str_repeat('b', 64),
+            'attack_artifact_sha256' => str_repeat('c', 64),
             'template_sha256' => $this->pins['template']['sha256'],
             'started_at' => 1000,
             'ended_at' => 1100,
             'elapsed_seconds' => 100,
-            'total_output_bytes' => array_sum(array_column($runs, 'output_bytes')),
+            'source_output_bytes' => array_sum(array_column($runs, 'output_bytes')),
+            'total_output_bytes' => 0,
             'runs' => $runs,
-        ];
+        ]);
     }
 
     /** @return array<string,mixed> */
@@ -334,6 +470,11 @@ final class ReflectorAcceptanceContractTest extends TestCase
             'mode' => $mode,
             'scanner' => $scanner,
             'scanner_version' => $this->pins[$scanner]['version'],
+            'scanner_archive_sha256' => $this->pins[$scanner]['archive_sha256'],
+            'core_tree_sha256' => str_repeat('a', 64),
+            'compiled_index_sha256' => str_repeat('b', 64),
+            'attack_artifact_sha256' => str_repeat('c', 64),
+            'template_sha256' => $this->pins['template']['sha256'],
             'target' => ReceiptVerifier::TARGET,
             'invocation' => $this->invocation($scanner, $key),
             'started_at' => 1010,
@@ -346,6 +487,14 @@ final class ReflectorAcceptanceContractTest extends TestCase
             'output_bytes' => 100,
             'output_truncated' => false,
             'errors' => [],
+            'scanner_error_log_present' => $scanner === 'nuclei',
+            'scanner_trace' => $scanner === 'nuclei' ? [[
+                'template' => '/opt/reflector/template/reflected-xss.yaml',
+                'type' => 'http',
+                'input' => 'http://127.0.0.1:8898' . $records[0]['path'] . '?' . $records[0]['query'],
+                'address' => '127.0.0.1:8898',
+                'error' => 'none',
+            ]] : [],
             'scanner_output' => $output,
             'records' => $records,
         ];
@@ -437,8 +586,9 @@ final class ReflectorAcceptanceContractTest extends TestCase
     private function dalfoxOutput(string $mode): array
     {
         $findings = $mode === 'authorized' ? [[
-            'type' => 'R', 'detection_method' => 'injection-reflection', 'confidence' => 0.9,
-            'request' => 'GET ...', 'response' => 'HTTP/1.1 200 OK ...',
+            'type' => 'R', 'detection_method' => 'reflection', 'confidence' => 'low',
+            'request' => 'GET /products/quick-search?q=%3CIMG+class%3Ddlx0123abcd%3E HTTP/1.1',
+            'response' => 'HTTP/1.1 200 OK page <IMG class=dlx0123abcd>',
         ]] : [];
 
         return [
@@ -483,5 +633,21 @@ final class ReflectorAcceptanceContractTest extends TestCase
             '--skip-waf-probe', '--waf-bypass', 'off', '--timeout', '5',
             '--scan-timeout', '60', '--retries', '0', '--max-payloads-per-param', '64',
         ];
+    }
+
+    /** @param array<string,mixed> $packet @return array<string,mixed> */
+    private function withInclusiveTotal(array $packet): array
+    {
+        for ($attempt = 0; $attempt < 4; $attempt++) {
+            $encoded = json_encode($packet, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
+            self::assertIsString($encoded);
+            $total = $packet['source_output_bytes'] + strlen($encoded) + 1;
+            if ($packet['total_output_bytes'] === $total) {
+                return $packet;
+            }
+            $packet['total_output_bytes'] = $total;
+        }
+
+        return $packet;
     }
 }
