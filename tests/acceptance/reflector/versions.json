@@ -1,0 +1,57 @@
+{
+    "schema": "funnypot.reflector-acceptance-pins.v1",
+    "platform": "linux/amd64",
+    "php_image": {
+        "reference": "php:8.3-cli-bookworm",
+        "index_digest": "sha256:177529735599a8244b2c903522f029839dce1c2ac4be122fdc00ada4b45a20e4",
+        "manifest_digest": "sha256:172e13bc72d4fe6503db39b3ecad301406492ae661e1803138fa45eafc7491f2",
+        "metadata_url": "https://hub.docker.com/v2/repositories/library/php/tags/8.3-cli-bookworm"
+    },
+    "nuclei": {
+        "version": "3.11.1",
+        "source_ref": "a8c88feb4a1c8e961b7902534ce3af97e9d524a4",
+        "source_url": "https://github.com/projectdiscovery/nuclei/tree/a8c88feb4a1c8e961b7902534ce3af97e9d524a4",
+        "archive_name": "nuclei_3.11.1_linux_amd64.zip",
+        "archive_url": "https://github.com/projectdiscovery/nuclei/releases/download/v3.11.1/nuclei_3.11.1_linux_amd64.zip",
+        "archive_bytes": 46148343,
+        "archive_sha256": "ea63d4ae232808cd7c6bc00d0142428e231fab59dae01042246097d195835ab6",
+        "archive_member": "nuclei"
+    },
+    "dalfox": {
+        "version": "3.2.2",
+        "source_ref": "7bb684fdf48959d10c6a6ac24d4a190361c58c8f",
+        "source_url": "https://github.com/hahwul/dalfox/tree/7bb684fdf48959d10c6a6ac24d4a190361c58c8f",
+        "archive_name": "dalfox-v3.2.2-linux-x86_64-musl.tar.gz",
+        "archive_url": "https://github.com/hahwul/dalfox/releases/download/v3.2.2/dalfox-v3.2.2-linux-x86_64-musl.tar.gz",
+        "archive_bytes": 6223173,
+        "archive_sha256": "9ade9e1215553826e15273741931011fbc5b9e17ea1ea485e714389b8cfbb50d",
+        "archive_member": "dalfox-v3.2.2-linux-x86_64-musl/dalfox"
+    },
+    "template": {
+        "source_ref": "ca9197a381d96099b4ffbe36367e35c6a38d253f",
+        "source_path": "dast/vulnerabilities/xss/reflected-xss.yaml",
+        "source_url": "https://raw.githubusercontent.com/projectdiscovery/nuclei-templates/ca9197a381d96099b4ffbe36367e35c6a38d253f/dast/vulnerabilities/xss/reflected-xss.yaml",
+        "bytes": 1268,
+        "sha256": "f2b84b2f05859230ad6ad76c6a8774fea7cad552cb6f532883332ae21d48b960"
+    },
+    "notices": [
+        {
+            "component": "nuclei",
+            "path": "notices/NUCLEI-LICENSE.md",
+            "bytes": 1079,
+            "sha256": "5fa6644d2dd1987a79c06f4af210d2cf8cfc4ee799999029d0f9980c9cf95a2c"
+        },
+        {
+            "component": "dalfox",
+            "path": "notices/DALFOX-LICENSE.txt",
+            "bytes": 1073,
+            "sha256": "ffb8b51dc4186526fa4cc8226e458f8655dcfa2feed8e90a8543d77441b8e572"
+        },
+        {
+            "component": "nuclei-templates",
+            "path": "notices/NUCLEI-TEMPLATES-LICENSE.md",
+            "bytes": 1079,
+            "sha256": "5fa6644d2dd1987a79c06f4af210d2cf8cfc4ee799999029d0f9980c9cf95a2c"
+        }
+    ]
+}

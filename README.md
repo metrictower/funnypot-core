@@ -229,14 +229,17 @@ any ordinary request header is **not** evidence (a client controls all of those)
 a reflector. A standalone honeypot opts in with both terms:
 
 ```php
-$funnypot = Honeypot::default(new Config(
-    mode: 'respond',
-    gate: fn (RequestContext $r) => isSuspicious($r),
-    attackEmulation: true,
-    isolatedOrigin: true,                        // intent: this box owns its origin
-    // ... reflectorAuthorizer is the LAST positional arg; usually set as a property:
-));
-$config->reflectorAuthorizer = fn (RequestContext $r, string $class) => edgeAttestsDeceptionOrigin();
+$config = new Config('respond');
+$config->gate = static function (RequestContext $request): bool {
+    return isSuspicious($request);
+};
+$config->attackEmulation = true;
+$config->isolatedOrigin = true; // intent: this box owns its origin
+// Adapter pseudocode: this function must read host-supplied, server-only attestation.
+$config->reflectorAuthorizer = static function (RequestContext $request, string $class): bool {
+    return edgeAttestsDeceptionOrigin($request, $class);
+};
+$funnypot = Honeypot::default($config);
 ```
 
 > **v0.7.0 migration (breaking, safe-off).** An `isolatedOrigin: true` install that does nothing
@@ -260,12 +263,18 @@ override map (`array<string, bool>`, default `[]`) that lets an **isolated-origi
 single class off without disabling the others:
 
 ```php
-$funnypot = Honeypot::default(new Config(
-    mode: 'respond',
-    attackEmulation: true,
-    isolatedOrigin: true,                    // this box owns its origin
-    reflectClasses: ['xss' => false],        // ... but keep reflected-XSS bait off
-));
+$config = new Config('respond');
+$config->gate = static function (RequestContext $request): bool {
+    return isSuspicious($request);
+};
+$config->attackEmulation = true;
+$config->isolatedOrigin = true; // this box owns its origin
+$config->reflectClasses = ['xss' => false]; // keep reflected-XSS bait off
+// The same host-supplied attestation keeps the other reflector classes eligible.
+$config->reflectorAuthorizer = static function (RequestContext $request, string $class): bool {
+    return edgeAttestsDeceptionOrigin($request, $class);
+};
+$funnypot = Honeypot::default($config);
 ```
 
 A **missing** key defaults to enabled, so the default `[]` neither adds nor removes a class. The map
@@ -620,6 +629,14 @@ composer install
 vendor/bin/phpunit                 # unit + compiler suite
 bash tests/acceptance/run.sh       # real nuclei (Docker) vs a php -S server (golden test)
 ```
+
+The reflector-specific scanner proof is a separate, manual-only pre-release gate. An operator runs
+`bash tests/acceptance/reflector/run-reflect.sh`; it builds pinned Nuclei/Dalfox tooling online, then
+runs the actual full core against one fixed loopback target in a network-disabled container. Its
+closed receipt and containment contract are documented in
+[`tests/acceptance/reflector/README.md`](tests/acceptance/reflector/README.md). The committed harness
+is not itself a successful scanner receipt: the live job and `composer check` must both pass before
+the v0.7.0 candidate is selected.
 
 ### Zero-drift compiled-artifact law
 

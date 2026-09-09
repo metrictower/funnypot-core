@@ -1,0 +1,27 @@
+name: reflector acceptance
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  pinned-reflector:
+    name: Pinned offline reflector receipt
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build online, execute with no network
+        run: bash tests/acceptance/reflector/run-reflect.sh
+
+      - name: Preserve bounded receipt or failure evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: reflector-acceptance-${{ github.run_id }}
+          path: .reflector-acceptance-output/
+          if-no-files-found: error
+          retention-days: 3
