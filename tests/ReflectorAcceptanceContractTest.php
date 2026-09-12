@@ -6,6 +6,7 @@ namespace Funnypot\Core\Tests;
 
 use Funnypot\Core\Config;
 use Funnypot\Core\Honeypot;
+use Funnypot\Core\Http\ResponseEmitter;
 use Funnypot\Core\RequestContext;
 use Funnypot\Core\Tests\Acceptance\ReceiptVerifier;
 use Funnypot\Core\Tests\Acceptance\EvidenceFiles;
@@ -67,7 +68,7 @@ final class ReflectorAcceptanceContractTest extends TestCase
         $record['status'] = 200;
         $record['owner'] = 'attack-xss-escalation';
         $record['headers'] = $this->escalationHeaders();
-        $record['body'] = $record['query_value'];
+        $record['body'] = '<span>' . $record['query_value'] . '</span>';
         $raw['runs']['dalfox-unauthorized']['records'][1] = $record;
         $this->rejects($raw, 'unauthorized gated owner served');
     }
@@ -185,8 +186,86 @@ final class ReflectorAcceptanceContractTest extends TestCase
         $legacy = $packet['runs']['dalfox-authorized']['records'][2];
         self::assertStringStartsWith("'\">", $legacy['query_value']);
         self::assertStringNotContainsString("'\">", $legacy['body']);
-        self::assertStringContainsString('<IMG src=x class=dlx0123abcd>', $legacy['body']);
+        self::assertStringContainsString('<IMG src=x onerror=alert(1) class=dlx0123abcd>', $legacy['body']);
         ReceiptVerifier::verifyPacket($packet, $this->pins);
+    }
+
+    public function test_real_escalation_tags_and_other_bounded_values_pass_the_verifier(): void
+    {
+        foreach (["'\"><IMG src=x class=dlx0123abcd>", 'onfocus=dlx0123abcd', '%0a', "dlx0123abcd\t", str_repeat('~', 513)] as $value) {
+            $packet = $this->packet();
+            $record = $this->actualRecord(4, $value, true);
+            self::assertSame('attack-xss-escalation', $record['owner']);
+            $packet['runs']['dalfox-authorized']['records'][] = $record;
+            $packet['runs']['dalfox-authorized']['request_count']++;
+            ReceiptVerifier::verifyPacket($this->withInclusiveTotal($packet), $this->pins);
+        }
+    }
+
+    public function test_form_encoded_dalfox_tag_correlates_to_real_escalation_response(): void
+    {
+        $packet = $this->packet();
+        $record = $this->actualRecord(3, "'\"><IMG src=x onerror=alert(1) class=dlx0123abcd>", true, true);
+        self::assertSame('attack-xss-escalation', $record['owner']);
+        self::assertStringContainsString('+', $record['query']);
+        $packet['runs']['dalfox-authorized']['records'][2] = $record;
+        $packet['runs']['dalfox-authorized']['scanner_output'] = $this->dalfoxOutput('authorized', $record);
+        ReceiptVerifier::verifyPacket($this->withInclusiveTotal($packet), $this->pins);
+    }
+
+    public function test_non_handler_tag_cannot_claim_legacy_ownership(): void
+    {
+        $packet = $this->packet();
+        $record = $this->actualRecord(4, '<IMG src=x class=dlx0123abcd>', true);
+        $record['owner'] = 'attack-xss';
+        $packet['runs']['dalfox-authorized']['records'][] = $record;
+        $packet['runs']['dalfox-authorized']['request_count']++;
+        $this->rejects($this->withInclusiveTotal($packet), 'legacy owner/payload mismatch');
+    }
+
+    public function test_query_value_cannot_fabricate_a_scanner_stage(): void
+    {
+        $packet = $this->packet();
+        $packet['runs']['dalfox-authorized']['records'][0]['query'] = 'q=unrelated';
+        $this->rejects($this->withInclusiveTotal($packet), 'query value does not match recorded query');
+    }
+
+    public function test_every_dalfox_finding_requires_its_exact_observed_exchange(): void
+    {
+        foreach (['route', 'payload', 'body', 'method'] as $change) {
+            $packet = $this->packet();
+            $finding = &$packet['runs']['dalfox-authorized']['scanner_output']['findings'][0];
+            if ($change === 'route') {
+                $finding['request'] = str_replace(ReceiptVerifier::PATH, '/not-observed', $finding['request']);
+            } elseif ($change === 'payload') {
+                $finding['request'] = str_replace('src%3Dx', 'src%3Dy', $finding['request']);
+            } elseif ($change === 'method') {
+                $finding['request'] = 'POST' . substr($finding['request'], 3);
+            } else {
+                $finding['response'] .= ' unobserved dlx0123abcd';
+            }
+            unset($finding);
+            $this->rejects($this->withInclusiveTotal($packet), 'dalfox finding lacks responder correlation');
+        }
+    }
+
+    public function test_a_good_nuclei_finding_cannot_excuse_an_unobserved_finding(): void
+    {
+        foreach (['route', 'payload', 'body', 'status'] as $change) {
+            $packet = $this->packet();
+            $finding = $packet['runs']['nuclei-authorized']['scanner_output'][0];
+            if ($change === 'route') {
+                $finding['request'] = str_replace(ReceiptVerifier::PATH, '/not-observed', $finding['request']);
+            } elseif ($change === 'payload') {
+                $finding['request'] = str_replace('q=probe', 'q=other', $finding['request']);
+            } elseif ($change === 'status') {
+                $finding['response'] = str_replace('200 OK', '500 Error', $finding['response']);
+            } else {
+                $finding['response'] .= ' unobserved';
+            }
+            $packet['runs']['nuclei-authorized']['scanner_output'][] = $finding;
+            $this->rejects($this->withInclusiveTotal($packet), 'nuclei finding lacks responder correlation');
+        }
     }
 
     public function test_invocation_and_pin_drift_are_rejected(): void
@@ -464,7 +543,7 @@ final class ReflectorAcceptanceContractTest extends TestCase
     {
         $key = $scanner . '-' . $mode;
         $records = $this->records($scanner, $mode);
-        $output = $scanner === 'nuclei' ? $this->nucleiOutput($mode) : $this->dalfoxOutput($mode);
+        $output = $scanner === 'nuclei' ? $this->nucleiOutput($mode, $records[0]) : $this->dalfoxOutput($mode, $records[2]);
 
         return [
             'mode' => $mode,
@@ -506,28 +585,60 @@ final class ReflectorAcceptanceContractTest extends TestCase
         $numeric = "probe'\"><12345>";
         if ($scanner === 'nuclei') {
             if ($mode === 'authorized') {
-                return [$this->response(1, $numeric, 'attack-xss-escalation', 'page ' . $numeric, $this->escalationHeaders())];
+                return [$this->actualRecord(1, $numeric, true)];
             }
 
-            return [$this->closed(1, $numeric)];
+            return [$this->actualRecord(1, $numeric, false)];
         }
 
         $marker = 'dlx0123abcddlxmid89abcdefxld4567cdef';
         $special = 'dlx0123abcd' . ReceiptVerifier::DALFOX_SPECIALS . 'xld4567cdef';
-        $tag = "'\"><IMG src=x class=dlx0123abcd>";
+        $tag = "'\"><IMG src=x onerror=alert(1) class=dlx0123abcd>";
         if ($mode === 'authorized') {
             return [
-                $this->response(1, $marker, 'attack-xss-baseline', 'page ' . $marker, ['Content-Type' => 'text/html; charset=utf-8']),
-                $this->response(2, $special, 'attack-xss-escalation', 'page ' . $special, $this->escalationHeaders()),
-                $this->response(3, $tag, 'attack-xss', 'page <IMG src=x class=dlx0123abcd>', ['Content-Type' => 'text/html; charset=utf-8']),
+                $this->actualRecord(1, $marker, true),
+                $this->actualRecord(2, $special, true),
+                $this->actualRecord(3, $tag, true),
             ];
         }
 
         return [
-            $this->response(1, $marker, 'attack-xss-baseline', 'page ' . $marker, ['Content-Type' => 'text/html; charset=utf-8']),
-            $this->closed(2, $special),
-            $this->closed(3, $tag),
+            $this->actualRecord(1, $marker, false),
+            $this->actualRecord(2, $special, false),
+            $this->actualRecord(3, $tag, false),
         ];
+    }
+
+    /** Real owning-engine records; scanner envelopes below remain synthetic contract fixtures. */
+    private function actualRecord(int $sequence, string $value, bool $authorized, bool $formEncoded = false): array
+    {
+        $config = new Config('respond');
+        $config->gate = static function (RequestContext $request): bool { return true; };
+        $config->personaSeed = static function (RequestContext $request): string { return 'reflector-acceptance-fixed-persona'; };
+        $config->attackEmulation = true;
+        $config->isolatedOrigin = true;
+        if ($authorized) {
+            $config->reflectorAuthorizer = static function (RequestContext $request, string $class): bool { return true; };
+        }
+        $query = 'q=' . ($formEncoded ? urlencode($value) : rawurlencode($value));
+        $response = Honeypot::default($config)->respond(new RequestContext(
+            'GET', ReceiptVerifier::PATH, $query, [], null, '127.0.0.1:8898', 'http', '1.1'
+        ));
+        if ($response === null) {
+            return $this->closed($sequence, $value);
+        }
+        $headers = [];
+        foreach (ResponseEmitter::headerLines($response) as $header) {
+            $colon = strpos($header[0], ':');
+            if ($colon !== false) {
+                $headers[substr($header[0], 0, $colon)] = ltrim(substr($header[0], $colon + 1));
+            }
+        }
+        $record = $this->response($sequence, $value, $response->servedBy->ruleId, $response->body, $headers);
+        $record['query'] = $query;
+        $record['status'] = $response->status;
+
+        return $record;
     }
 
     /** @param array<string,string> $headers @return array<string,mixed> */
@@ -566,29 +677,27 @@ final class ReflectorAcceptanceContractTest extends TestCase
     }
 
     /** @return array<int,array<string,mixed>>|array<string,mixed> */
-    private function nucleiOutput(string $mode): array
+    private function nucleiOutput(string $mode, array $record): array
     {
         if ($mode !== 'authorized') {
             return [];
         }
-        $payload = "'\"><12345>";
-
         return [[
             'template-id' => 'reflected-xss', 'type' => 'http', 'matcher-status' => true,
             'is_fuzzing_result' => true,
             'matched-at' => ReceiptVerifier::TARGET,
-            'request' => 'GET /products/quick-search?q=probe' . rawurlencode($payload) . " HTTP/1.1\r\n\r\n",
-            'response' => "HTTP/1.1 200 OK\r\n\r\npage " . $payload,
+            'request' => 'GET ' . $record['path'] . '?' . $record['query'] . " HTTP/1.1\r\nHost: 127.0.0.1:8898\r\n\r\n",
+            'response' => "HTTP/1.1 200 OK\r\nContent-Type: text/html; charset=utf-8\r\n\r\n" . $record['body'],
         ]];
     }
 
     /** @return array<string,mixed> */
-    private function dalfoxOutput(string $mode): array
+    private function dalfoxOutput(string $mode, array $record): array
     {
         $findings = $mode === 'authorized' ? [[
             'type' => 'R', 'detection_method' => 'reflection', 'confidence' => 'low',
-            'request' => 'GET /products/quick-search?q=%3CIMG+class%3Ddlx0123abcd%3E HTTP/1.1',
-            'response' => 'HTTP/1.1 200 OK page <IMG class=dlx0123abcd>',
+            'request' => 'GET ' . $record['path'] . '?' . $record['query'] . " HTTP/1.1\r\nHost: 127.0.0.1\r\n",
+            'response' => $record['body'],
         ]] : [];
 
         return [

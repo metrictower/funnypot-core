@@ -188,27 +188,65 @@ final class ReceiptVerifier
             self::check($record['method'] === 'GET', 'unexpected request method');
         }
         self::check(is_string($record['path']) && is_string($record['query']), 'record request malformed');
+        self::check(strlen($record['path']) <= 4096 && strlen($record['query']) <= 4096, 'record request overflow');
 
         if ($record['kind'] !== 'router-reject') {
             self::check($record['path'] === self::PATH || $record['path'] === self::PATH . '/', 'wrong owned route');
             self::check(is_string($record['query_value']), 'query value missing');
+            $value = '';
+            foreach (array_slice(explode('&', $record['query'], 65), 0, 64) as $pair) {
+                $parts = explode('=', $pair, 2);
+                if (urldecode($parts[0]) === 'q') {
+                    $value = urldecode($parts[1] ?? '');
+                    break;
+                }
+            }
+            self::check($record['query_value'] === $value, 'query value does not match recorded query');
         }
 
         if ($record['kind'] !== 'response') {
             return;
         }
-        $value = $record['query_value'];
+        self::check($record['status'] === 200, 'unexpected reflector status');
+        self::check(strlen($record['path']) + ($record['query'] === '' ? 0 : strlen($record['query']) + 1) <= 4096,
+            'response exceeded core target boundary');
+        // These are response contracts, not scanner-stage recognizers. The escalation rule also
+        // handles ordinary generated tags/attribute probes and deliberately empties invalid slots.
+        $baseline = preg_match('/(?:^|&)q=([A-Za-z0-9]{1,64})(?:&|$)/i', $record['query'], $base) === 1;
+        $legacy = self::legacyMatch($record['path'], $record['query']);
         if ($record['owner'] === 'attack-xss-baseline') {
-            self::check(preg_match('/^[A-Za-z0-9]{1,64}$/', $value) === 1, 'baseline owner/payload mismatch');
-            self::check(strpos($record['body'], $value) !== false, 'baseline value not reflected');
+            self::check($baseline, 'baseline owner/payload mismatch');
+            self::check(strpos($record['body'], $base[1]) !== false, 'baseline value not reflected');
         } elseif ($record['owner'] === 'attack-xss') {
-            self::check(preg_match('/<[^>]*dlx[0-9a-f]{8}[^>]*>/i', $value, $m) === 1, 'legacy owner/payload mismatch');
-            self::check(strpos($record['body'], $m[0]) !== false, 'legacy matched tag not reflected');
+            self::check(!$baseline && $legacy !== null, 'legacy owner/payload mismatch');
+            self::check(strpos($record['body'], $legacy) !== false, 'legacy matched tag not reflected');
         } else {
-            self::check(self::isSpecialProbe($value) || self::numericBreakout($value) !== null, 'escalation owner/payload mismatch');
-            self::check(strpos($record['body'], $value) !== false, 'escalation payload not reflected whole');
+            self::check(!$baseline && $legacy === null
+                && preg_match('/(?:^|&)q=([^&\r\n\x00]{1,1536})(?:&|$)/i', $record['query'], $capture) === 1,
+                'escalation owner/payload mismatch');
+            $decoded = urldecode($capture[1]);
+            $slot = preg_match('/\A[\x20-\x7e]{1,512}\z/', $decoded) === 1 ? $decoded : '';
+            self::check(strpos($record['body'], '<span>' . $slot . '</span>') !== false, 'escalation payload not reflected whole');
             self::verifyEscalationHeaders($record['headers']);
         }
+    }
+
+    /** The existing legacy rule sees raw plus two percent-decoded request layers, not form decoding. */
+    private static function legacyMatch(string $path, string $query): ?string
+    {
+        $layer = $path . ' ' . $query . ' ';
+        $subject = $layer;
+        for ($pass = 0; $pass < 2; $pass++) {
+            $decoded = rawurldecode($layer);
+            if ($decoded === $layer) {
+                break;
+            }
+            $subject .= ' ' . $decoded;
+            $layer = $decoded;
+        }
+        $pattern = '~<script[^>]*>.*?</script>|<svg[^>]*>.*?</svg>|<img[^>]*\son\w+\s*=[^>]*>|<[a-z][a-z0-9]*[^>]*\son(?:error|load|mouseover|focus)\s*=[^>]*>~is';
+
+        return preg_match($pattern, $subject, $match) === 1 ? $match[0] : null;
     }
 
     /** @param array<string,mixed> $run */
@@ -241,7 +279,6 @@ final class ReceiptVerifier
         if ($authorized) {
             self::check($run['exit_status'] === 0, 'nuclei hard error');
             self::check(count($run['scanner_output']) > 0, 'nuclei produced no pinned finding');
-            $correlated = false;
             foreach ($run['scanner_output'] as $finding) {
                 self::check(is_array($finding), 'malformed nuclei result');
                 self::check(($finding['template-id'] ?? null) === 'reflected-xss', 'wrong nuclei template');
@@ -258,16 +295,19 @@ final class ReceiptVerifier
                 $payload = self::numericBreakout(rawurldecode($finding['request']));
                 self::check($payload !== null, 'nuclei numeric breakout missing');
                 self::check(strpos($finding['response'], $payload) !== false, 'nuclei output response lacks breakout');
+                $correlated = false;
                 foreach ($run['records'] as $record) {
                     if ($record['kind'] === 'response'
                         && $record['owner'] === 'attack-xss-escalation'
                         && strpos($record['query_value'], $payload) !== false
-                        && strpos($record['body'], $payload) !== false) {
+                        && strpos($record['body'], $payload) !== false
+                        && self::matchesExchange($finding, $record, true)) {
                         $correlated = true;
+                        break;
                     }
                 }
+                self::check($correlated, 'nuclei finding lacks responder correlation');
             }
-            self::check($correlated, 'nuclei finding lacks responder correlation');
         } else {
             self::check($run['exit_status'] === 0, 'unauthorized nuclei hard error');
             self::check($run['scanner_output'] === [], 'unauthorized nuclei output not empty');
@@ -306,7 +346,8 @@ final class ReceiptVerifier
             foreach ($run['records'] as $record) {
                 if ($record['kind'] === 'response'
                     && strpos($record['query_value'], $marker[0]) !== false
-                    && strpos($record['body'], $marker[0]) !== false) {
+                    && strpos($record['body'], $marker[0]) !== false
+                    && self::matchesExchange($finding, $record, false)) {
                     $correlated = true;
                     break;
                 }
@@ -350,6 +391,36 @@ final class ReceiptVerifier
         self::check($special !== null, 'dalfox special-character stage missing');
         self::check($tag !== null, 'dalfox generated-tag stage missing');
         self::check($discovery < $special && $special < $tag, 'dalfox request stages out of order');
+    }
+
+    /**
+     * Bind every finding to one observed exchange, never a process-stable marker elsewhere.
+     * Dalfox reconstructs the request (Host omits the port) and stores body-only evidence;
+     * Nuclei stores a raw HTTP response. Keep the raw path/query bytes exact in both cases.
+     *
+     * @param array<string,mixed> $finding @param array<string,mixed> $record
+     */
+    private static function matchesExchange(array $finding, array $record, bool $rawResponse): bool
+    {
+        if (preg_match('/\A([A-Z]+) ([^\x00-\x20\x7f]+) HTTP\/1\.[01](?:\r?\n|\z)/', $finding['request'], $line) !== 1) {
+            return false;
+        }
+        $target = $record['path'] . ($record['query'] === '' ? '' : '?' . $record['query']);
+        if ($line[1] !== $record['method'] || $line[2] !== $target) {
+            return false;
+        }
+        if (!$rawResponse) {
+            // The pinned producer bounds evidence at 64 KiB. Our small canned bodies must be
+            // present in full; no substring/window or line-ending normalization can prove them.
+            return $finding['response'] === $record['body'];
+        }
+        if (preg_match('/\AHTTP\/1\.[01] ([0-9]{3})[^\r\n]*\r?\n/', $finding['response'], $status) !== 1
+            || (int) $status[1] !== $record['status']) {
+            return false;
+        }
+        $parts = preg_split('/\r?\n\r?\n/', $finding['response'], 2);
+
+        return count($parts) === 2 && $parts[1] === $record['body'];
     }
 
     /** @param array<string,mixed> $run */

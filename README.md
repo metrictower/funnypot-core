@@ -635,6 +635,8 @@ The reflector-specific scanner proof is a separate, manual-only pre-release gate
 runs the actual full core against one fixed loopback target in a network-disabled container. Its
 closed receipt and containment contract are documented in
 [`tests/acceptance/reflector/README.md`](tests/acceptance/reflector/README.md). The committed harness
+binds each finding to an observed request and complete response body, rather than a shared scanner
+marker, and checks ownership against baseline, legacy and bounded escalation response contracts. It
 is not itself a successful scanner receipt: the live job and `composer check` must both pass before
 the v0.7.0 candidate is selected.
 

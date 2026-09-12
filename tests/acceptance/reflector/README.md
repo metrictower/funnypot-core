@@ -54,7 +54,8 @@ logs are checked separately. No failure is converted to success.
 the pin file, core tree and template hashes; exact invocation; start/end/exit; request and output counts;
 parsed scanner output; and bounded request/response records. The verifier requires:
 
-- an authorized Nuclei `reflected-xss` finding correlated to its numeric breakout in the actual
+- every authorized Nuclei `reflected-xss` finding correlated to its exact recorded method, raw
+  path/query, response status and complete body, with its numeric breakout in the actual
   escalation-owned response, and a null-authorizer raw-gate control;
 - ordered Dalfox discovery, exact special-character and generated-tag requests, with discovery owned
   by the baseline and special-character reflection owned by escalation; final `type`,
@@ -62,9 +63,16 @@ parsed scanner output; and bounded request/response records. The verifier requir
 - all seven exact FP-0286 headers on escalation responses. Baseline and legacy `attack-xss` responses
   retain their real precedence and bytes; a legacy generated tag correlates only the matched tag
   substring, not an attribute-breakout prefix that core did not reflect;
+- every Dalfox finding bound to its exact recorded method and raw path/query plus complete body.
+  Its pinned producer stores body-only response evidence and reconstructs a request whose Host
+  omits the port; Nuclei instead reports a dumped HTTP response. A shared process marker cannot
+  substitute for a matching exchange. Generated non-handler tags, form-encoded spaces and
+  attribute-only probes can legitimately belong to escalation; invalid decoded slots remain empty;
 - no gated raw response in unauthorized mode, and no unknown, spoofed, absent or impossible owner.
 
-The pure `tests/ReflectorAcceptanceContractTest.php` exercises the verifier and actual core without
+The pure `tests/ReflectorAcceptanceContractTest.php` feeds actual full-core records through the
+verifier with synthetic scanner envelopes (not a live receipt). It exercises positive ownership
+and negative per-finding correlation, including an extra invalid finding after a valid one, without
 opening sockets or starting tools. Locally it is safe to run that file alone. Do not run this live
 harness on a development agent: Docker/scanner execution is reserved for the manual CI/operator gate.
 
@@ -75,3 +83,10 @@ static-musl x86_64 asset, the linux/amd64 child of `php:8.3-cli-bookworm`, and t
 `reflected-xss.yaml`. Its URLs, source commits, archive byte counts and hashes were checked against
 the corresponding release/source metadata before this packet was written. The image build verifies
 the actual archive bytes; the still-required manual run verifies executable compatibility and behavior.
+
+The evidence-format contract is grounded in the pinned Dalfox
+[`build_request_text` and finding producers](https://github.com/hahwul/dalfox/blob/7bb684fdf48959d10c6a6ac24d4a190361c58c8f/src/scanning/mod.rs)
+and [64 KiB evidence bound](https://github.com/hahwul/dalfox/blob/7bb684fdf48959d10c6a6ac24d4a190361c58c8f/src/scanning/result.rs),
+plus Nuclei's [dumped request/response fields](https://github.com/projectdiscovery/nuclei/blob/a8c88feb4a1c8e961b7902534ce3af97e9d524a4/pkg/output/output.go).
+These are format references, not vendored implementations. Our small responder bodies must match in
+full; truncated evidence is not proof and cannot turn the manual release gate green.
