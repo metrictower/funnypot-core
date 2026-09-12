@@ -81,6 +81,8 @@ final class FiberhomeLoginFollowthroughTest extends TestCase
         $benignRule = $rules[array_search(self::BENIGN_ID, $ids, true)];
         self::assertSame(['/boaform/admin/formlogin'], $benignRule['owns_path']);
         self::assertSame('info', $benignRule['severity']);
+        self::assertFalse($benignRule['match'][0]['ci']);
+        self::assertFalse($benignRule['lit_ci']);
 
         $index = require self::INDEX_FILE;
         self::assertArrayHasKey(self::ROUTE_KEY, $index['routes']);
@@ -169,8 +171,8 @@ final class FiberhomeLoginFollowthroughTest extends TestCase
         self::assertSame($benign->body, $response->body, 'original critical and new companion keep one canonical form');
     }
 
-    /** @dataProvider ownedAliases */
-    public function test_owned_aliases_reach_the_benign_companion(string $method, string $path): void
+    /** @dataProvider supportedAliases */
+    public function test_supported_canonical_case_aliases_reach_the_benign_companion(string $method, string $path): void
     {
         $response = $this->engine()->respond($this->request($method, $path));
         self::assertNotNull($response, $method . ' ' . $path);
@@ -178,15 +180,46 @@ final class FiberhomeLoginFollowthroughTest extends TestCase
     }
 
     /** @return array<string,array{0:string,1:string}> */
-    public function ownedAliases(): array
+    public function supportedAliases(): array
     {
         return [
             'canonical' => ['POST', self::PATH],
             'lowercase method' => ['post', self::PATH],
-            'mixed path' => ['POST', '/BOAForm/Admin/FormLogin'],
             'one slash' => ['POST', self::PATH . '/'],
             'two slashes' => ['POST', self::PATH . '//'],
-            'three slashes mixed' => ['post', '/BOAFORM/ADMIN/FORMLOGIN///'],
+            'three slashes lower method' => ['post', self::PATH . '///'],
+        ];
+    }
+
+    /** @dataProvider rejectedCaseAliases */
+    public function test_lowercase_and_mixed_case_aliases_decline_with_empty_and_real_profiles(string $path): void
+    {
+        $request = $this->request('POST', $path);
+        foreach ([
+            SiteProfile::empty(),
+            new SiteProfile([], static function (string $method, string $candidate) use ($path): bool {
+                return strtoupper($method) === 'POST' && $candidate === $path;
+            }),
+        ] as $profile) {
+            $engine = $this->engine();
+            $verdict = $engine->classify($request, $profile);
+            self::assertSame(Verdict::CLEAN, $verdict->classification, $path);
+            self::assertNull($verdict->fakeHandle, $path);
+            self::assertNull($engine->synthesize($verdict, $profile, 'fiberhome-login-test'), $path);
+        }
+        self::assertNull($this->engine()->respond($request), $path);
+    }
+
+    /** @return array<string,array{0:string}> */
+    public function rejectedCaseAliases(): array
+    {
+        return [
+            'lowercase' => ['/boaform/admin/formlogin'],
+            'lowercase slash' => ['/boaform/admin/formlogin/'],
+            'lowercase many slashes' => ['/boaform/admin/formlogin///'],
+            'mixed case' => ['/BOAForm/Admin/FormLogin'],
+            'mixed case slash' => ['/BoaForm/Admin/formLogin/'],
+            'uppercase many slashes' => ['/BOAFORM/ADMIN/FORMLOGIN///'],
         ];
     }
 
@@ -294,16 +327,58 @@ final class FiberhomeLoginFollowthroughTest extends TestCase
         self::assertNull(Honeypot::default($lowCeiling)->respond($this->request('POST', self::PATH, 'username=x;telnetd&psd=y')));
     }
 
-    public function test_real_site_profile_guards_classification_and_synthesis(): void
+    /** @dataProvider supportedProfileAliases */
+    public function test_real_site_profile_guards_each_supported_alias(string $path): void
     {
-        $profile = new SiteProfile([], static function (string $method, string $path): bool {
-            return strtoupper($method) === 'POST' && $path === self::PATH;
+        $profile = new SiteProfile([], static function (string $method, string $candidate) use ($path): bool {
+            return strtoupper($method) === 'POST' && $candidate === $path;
         });
         $engine = $this->engine();
-        $verdict = $engine->classify($this->request(), $profile);
+        $verdict = $engine->classify($this->request('POST', $path), $profile);
         self::assertSame(Verdict::CLEAN, $verdict->classification);
         self::assertNull($verdict->fakeHandle);
         self::assertNull($engine->synthesize($verdict, $profile, 'fiberhome-login-test'));
+    }
+
+    /** @return array<string,array{0:string}> */
+    public function supportedProfileAliases(): array
+    {
+        return [
+            'canonical' => [self::PATH],
+            'one slash' => [self::PATH . '/'],
+            'three slashes' => [self::PATH . '///'],
+        ];
+    }
+
+    public function test_case_flags_are_both_required_to_reproduce_the_rejected_alias_bug(): void
+    {
+        $path = '/boaform/admin/formlogin';
+        $rules = $this->rules();
+        foreach ($rules as &$rule) {
+            if (($rule['id'] ?? '') === self::BENIGN_ID) {
+                $rule['match'][0]['ci'] = true;
+            }
+        }
+        unset($rule);
+
+        $regexOnly = $this->engineWith($rules)->classify($this->request('POST', $path), SiteProfile::empty());
+        self::assertSame(Verdict::CLEAN, $regexOnly->classification, 'case-sensitive literal prefilter still rejects');
+        self::assertNull($regexOnly->fakeHandle);
+
+        foreach ($rules as &$rule) {
+            if (($rule['id'] ?? '') === self::BENIGN_ID) {
+                $rule['lit_ci'] = true;
+            }
+        }
+        unset($rule);
+        $profile = new SiteProfile([], static function (string $method, string $candidate) use ($path): bool {
+            return strtoupper($method) === 'POST' && $candidate === $path;
+        });
+        $engine = $this->engineWith($rules);
+        $reproduced = $engine->classify($this->request('POST', $path), $profile);
+        self::assertSame(Verdict::ATTACK_CLASS, $reproduced->classification);
+        self::assertSame(self::BENIGN_ID, $reproduced->fakeHandle->ruleId);
+        self::assertNotNull($engine->synthesize($reproduced, $profile, 'fiberhome-login-test'));
     }
 
     public function test_owns_path_is_required_to_preserve_original_critical_precedence(): void

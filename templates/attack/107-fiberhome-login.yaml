@@ -9,7 +9,7 @@ owns_path: ['/boaform/admin/formLogin']
 match:
   - in: path
     regex: '^/boaform/admin/formLogin/*$'
-    ci: true
+    ci: false
   - in: method
     regex: '^POST$'
     ci: true

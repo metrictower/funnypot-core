@@ -568,9 +568,13 @@ ordinary or malformed submission receives the same inert failed-login page, with
 reflected or accepted. With attack emulation enabled, the existing priority-63 CVE-2021-27973 rule
 still wins for its injection payload and the lower-severity informational companion handles the
 remaining POSTs. With attack emulation disabled, the exact static informational route handles the
-same target. Under the legacy `respond()` facade, an attack-class match is intentionally its own
-signal and bypasses the suspicion gate; the gate suppresses the static-route form when attack
-emulation is disabled, while mode, kill-switch and trusted-bypass still apply before both branches.
+same target. The companion deliberately accepts only the form's emitted canonical path case (plus
+any number of terminal slashes and case-insensitive `POST`); lowercase or mixed-case path aliases
+decline, ensuring every served companion request first reaches the single exact store key and its
+real-route collision guard. Under the legacy `respond()` facade, an attack-class match is
+intentionally its own signal and bypasses the suspicion gate; the gate suppresses the static-route
+form when attack emulation is disabled, while mode, kill-switch and trusted-bypass still apply
+before both branches.
 Embedders protect genuine host routes through `classify(request, realProfile)` followed by
 `synthesize(verdict, sameProfile, seed)`; the legacy `respond()` facade intentionally uses an empty
 profile because it represents a fallback position with no real app route behind it.
