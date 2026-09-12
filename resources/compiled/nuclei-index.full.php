@@ -13,11 +13,11 @@ return array (
     'license' => 'MIT (c) 2025 ProjectDiscovery, Inc.',
     'upstream_tag' => '2ec914123864439c3618e7e9ae72d32d0eb56df7',
     'upstream_sha' => '2ec914123864439c3618e7e9ae72d32d0eb56df7',
-    'source_tree' => 'beac2e9a03cc7200e496d36ba9e61fc170d709b9bb0ef35ef7e73b51d8841935',
+    'source_tree' => '0146d44728b4505a9f0f38e28dc21a362daa270e21f8e68ed3af2a5de56e4ecf',
     'templates_seen' => 11196,
     'templates_in' => 6363,
-    'templates_indexed' => 6476,
-    'route_keys' => 5349,
+    'templates_indexed' => 6477,
+    'route_keys' => 5350,
     'multi_bundle_keys' => 277,
     'largest_bundle_count' => 1324,
     'persona_cap' => 
@@ -85408,6 +85408,18 @@ return array (
         2 => 'discovery',
       ),
       'name' => 'Exposed auth endpoint (401)',
+    ),
+    'route-fiberhome-login' => 
+    array (
+      'sev' => 'info',
+      'tags' => 
+      array (
+        0 => 'fiberhome',
+        1 => 'panel',
+        2 => 'login',
+        3 => 'exposure',
+      ),
+      'name' => 'Fiberhome failed login',
     ),
     'route-phpinfo' => 
     array (
@@ -312323,6 +312335,33 @@ a</title>',
           't' => 
           array (
             0 => 'route-surface-auth',
+          ),
+          'w' => 100000,
+        ),
+      ),
+    ),
+    'POST /boaform/admin/formLogin' => 
+    array (
+      'b' => 
+      array (
+        0 => 
+        array (
+          's' => 200,
+          'bw' => 
+          array (
+            0 => 'Web User Login',
+            1 => 'Authentication failed',
+          ),
+          'nf' => 
+          array (
+          ),
+          'pid' => 'route-fiberhome-login',
+          'sev' => 'info',
+          'sig' => 0,
+          'amb' => 0,
+          't' => 
+          array (
+            0 => 'route-fiberhome-login',
           ),
           'w' => 100000,
         ),

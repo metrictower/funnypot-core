@@ -57,7 +57,7 @@ final class ZapCoverageTest extends TestCase
     public function test_attack_rule_count_is_59_plus_the_two_new_rules(): void
     {
         $rules = require self::ATTACK_COMPILED;
-        self::assertCount(77, $rules, 'attack rule count must be 59 (baseline) + 2 (imds-base, wp-admin-redirect) + 2 (lfi-sshkey, lfi-hostname) + 1 (imds-identity-doc) + 1 (FP-0229 nextjs-rsc) + 1 (FP-0232 verbose-error-volatile) + 1 (FP-0234 ssti-multifence) + 1 (FP-0235 crlfuzz-echo) + 7 (FP-0143 knock-knock IoT/edge rules) + 1 (FP-0259 xss-baseline) + 1 (FP-0286 xss-escalation)');
+        self::assertCount(78, $rules, 'attack rule count must be the prior 77 rules + exactly 1 FP-0335 Fiberhome benign-login companion');
 
         $ids = array_map(static function (array $r): string { return (string) $r['id']; }, $rules);
         self::assertContains('attack-verbose-error-volatile', $ids, 'the FP-0232 volatile-proof demonstrator');
@@ -74,10 +74,10 @@ final class ZapCoverageTest extends TestCase
         self::assertContains('attack-wp-login', $ids, 'the wp-login credential oracle must be untouched');
     }
 
-    public function test_route_rule_count_is_128_plus_the_new_rules(): void
+    public function test_route_rule_count_tracks_the_fiberhome_followthrough(): void
     {
         $rules = require __DIR__ . '/../resources/compiled/funnypot-routes.php';
-        self::assertCount(208, $rules, 'route rule count must be 128 (baseline) + 4 (css, listing, credentials, config) + 6 (.env family: development/staging/test/bak/php/laravel-subdir) + 12 (VCS-exposure pack: 3 enrich .git-logs/.bzr/.hg-hgrc + 9 new .git/.svn/.hg pages) + 3 (CVS/Entries + TYPO3 typo3conf listing + localconf.php) + 10 (WordPress REST wp/v2: users/posts/pages/comments/media/categories/tags/types/statuses/settings) + 1 (FP-0229 nextjs app-shell) + 5 (FP-0230 persona-coherent favicons: grafana/phpmyadmin/jenkins/catalina + neutral) + 13 (FP-0233 decoy surface graph: sitemap/robots/openid-config/jwks + api-root/collection/detail/admin-html/metrics/health/webhooks/graphql-get/auth archetypes) + 1 (FP-0233 review fix: POST /auth/token auth arm) + 2 (Spring Boot Actuator heapdump generated-HPROF new page + logfile enrich) + 1 (FP-0017 WEB-INF/web.xml Java deployment descriptor) + 2 (FP-0196 no-slash canonical-slash 301 redirects for /.aws and /typo3conf) + 20 (FP-0316 path-aware directory listings: retire the 1 generic route-directory-listing enrich, add 15 route-key-guarded listings + 6 companion pages)');
+        self::assertCount(209, $rules, 'route rule count must be the prior 208 rules + exactly 1 FP-0335 Fiberhome POST form route');
 
         $ids = array_map(static function (array $r): string { return (string) $r['id']; }, $rules);
         self::assertContains('route-web-inf-web-xml', $ids, 'the FP-0017 Java deployment-descriptor page');

@@ -136,6 +136,26 @@ final class ManifestBuilderTest extends TestCase
         self::assertSame('param', $byId['param-vite-fs']['tier']);
     }
 
+    public function test_fiberhome_attack_pair_and_post_route_share_one_family(): void
+    {
+        $byId = $this->bandAById();
+        foreach (['attack-fiberhome-27973', 'attack-fiberhome-login', 'POST /boaform/admin/formLogin'] as $id) {
+            self::assertArrayHasKey($id, $byId);
+            self::assertSame('fiberhome', $byId[$id]['family']);
+        }
+        self::assertSame('attack', $byId['attack-fiberhome-27973']['tier']);
+        self::assertSame('attack', $byId['attack-fiberhome-login']['tier']);
+        self::assertSame('new-page', $byId['POST /boaform/admin/formLogin']['tier']);
+        self::assertSame(
+            ['POST'],
+            $this->methodsOwning($byId['attack-fiberhome-login'], '/boaform/admin/formlogin')
+        );
+        self::assertSame(
+            ['POST'],
+            $this->methodsOwning($byId['POST /boaform/admin/formLogin'], '/boaform/admin/formLogin')
+        );
+    }
+
     public function test_unanchored_class_detector_is_flagged(): void
     {
         $byId = $this->bandAById();

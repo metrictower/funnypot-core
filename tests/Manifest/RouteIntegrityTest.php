@@ -158,6 +158,30 @@ final class RouteIntegrityTest extends TestCase
         );
     }
 
+    public function test_fiberhome_form_links_resolve_without_fail_warn_or_escape_hatch(): void
+    {
+        foreach ($this->rawFindings() as $finding) {
+            if (strpos(json_encode($finding), 'fiberhome') !== false) {
+                self::assertNotContains($finding['severity'], [RouteIntegrity::FAIL, RouteIntegrity::WARN]);
+            }
+        }
+        self::assertNull($this->danglingAt(
+            $this->rawFindings(),
+            'attack-fiberhome-27973',
+            '/boaform/admin/formLogin'
+        ));
+        self::assertNull($this->danglingAt(
+            $this->rawFindings(),
+            'attack-fiberhome-login',
+            '/boaform/admin/formLogin'
+        ));
+
+        $config = require self::$root . '/resources/route-integrity.php';
+        foreach ((array) ($config['accepted'] ?? []) as $accepted) {
+            self::assertStringNotContainsString('fiberhome', strtolower(json_encode($accepted)));
+        }
+    }
+
     public function test_relative_self_link_fails_outright(): void
     {
         // A relative form action (the phpMyAdmin failure mode) is a FAIL independent of where it
