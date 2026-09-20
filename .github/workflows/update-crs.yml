@@ -123,4 +123,5 @@ jobs:
             docs/DECOY-MAP.md
             README.md
             templates/generated/
+            templates/generated-wp/
             templates/attack-ai/

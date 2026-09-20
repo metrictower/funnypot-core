@@ -13,11 +13,11 @@ return array (
     'license' => 'MIT (c) 2025 ProjectDiscovery, Inc.',
     'upstream_tag' => '2ec914123864439c3618e7e9ae72d32d0eb56df7',
     'upstream_sha' => '2ec914123864439c3618e7e9ae72d32d0eb56df7',
-    'source_tree' => '14bba7b5ea0c2f5397a47aa143cf40139fc57e7c8f3cb17f9c4cfb9b345477d3',
+    'source_tree' => '98333272f07e52073b3c3aa8ca9e54d5f13817ac175974604643516d67922355',
     'templates_seen' => 11196,
     'templates_in' => 6363,
-    'templates_indexed' => 6476,
-    'route_keys' => 5349,
+    'templates_indexed' => 6488,
+    'route_keys' => 5353,
     'multi_bundle_keys' => 277,
     'largest_bundle_count' => 1324,
     'persona_cap' => 
@@ -84110,6 +84110,138 @@ return array (
         2 => 'vuln',
       ),
       'name' => 'Zzzcms 1.75 - Cross-Site Scripting',
+    ),
+    'route-wp-plugin-all-in-one-wp-migration' => 
+    array (
+      'sev' => 'medium',
+      'tags' => 
+      array (
+        0 => 'wp-plugin-enum',
+        1 => 'exposure',
+        2 => 'cve-2026-19949',
+      ),
+      'name' => 'All-in-One WP Migration readme',
+    ),
+    'route-wp-plugin-contact-form-7' => 
+    array (
+      'sev' => 'medium',
+      'tags' => 
+      array (
+        0 => 'wp-plugin-enum',
+        1 => 'exposure',
+        2 => 'cve-2020-35489',
+      ),
+      'name' => 'Contact Form 7 readme',
+    ),
+    'route-wp-plugin-elementor' => 
+    array (
+      'sev' => 'medium',
+      'tags' => 
+      array (
+        0 => 'wp-plugin-enum',
+        1 => 'exposure',
+        2 => 'cve-2022-1329',
+      ),
+      'name' => 'Elementor readme',
+    ),
+    'route-wp-plugin-fusion-builder' => 
+    array (
+      'sev' => 'medium',
+      'tags' => 
+      array (
+        0 => 'wp-plugin-enum',
+        1 => 'exposure',
+        2 => 'cve-2022-1386',
+      ),
+      'name' => 'Fusion Builder readme',
+    ),
+    'route-wp-plugin-really-simple-ssl' => 
+    array (
+      'sev' => 'medium',
+      'tags' => 
+      array (
+        0 => 'wp-plugin-enum',
+        1 => 'exposure',
+        2 => 'cve-2024-10924',
+      ),
+      'name' => 'Really Simple SSL readme',
+    ),
+    'route-wp-plugin-tutor' => 
+    array (
+      'sev' => 'medium',
+      'tags' => 
+      array (
+        0 => 'wp-plugin-enum',
+        1 => 'exposure',
+        2 => 'cve-2026-0548',
+      ),
+      'name' => 'Tutor LMS readme',
+    ),
+    'route-wp-plugin-woocommerce' => 
+    array (
+      'sev' => 'medium',
+      'tags' => 
+      array (
+        0 => 'wp-plugin-enum',
+        1 => 'exposure',
+        2 => 'cve-2021-32789',
+      ),
+      'name' => 'WooCommerce readme',
+    ),
+    'route-wp-plugin-wordpress-seo' => 
+    array (
+      'sev' => 'medium',
+      'tags' => 
+      array (
+        0 => 'wp-plugin-enum',
+        1 => 'exposure',
+        2 => 'cve-2026-1293',
+      ),
+      'name' => 'Yoast SEO readme',
+    ),
+    'route-wp-plugin-wp-file-manager' => 
+    array (
+      'sev' => 'medium',
+      'tags' => 
+      array (
+        0 => 'wp-plugin-enum',
+        1 => 'exposure',
+        2 => 'cve-2020-25213',
+      ),
+      'name' => 'File Manager readme',
+    ),
+    'route-wp-plugin-wpforms-lite' => 
+    array (
+      'sev' => 'medium',
+      'tags' => 
+      array (
+        0 => 'wp-plugin-enum',
+        1 => 'exposure',
+        2 => 'cve-2025-3794',
+      ),
+      'name' => 'WPForms Lite readme',
+    ),
+    'route-wp-theme-bricks' => 
+    array (
+      'sev' => 'medium',
+      'tags' => 
+      array (
+        0 => 'wp-theme-enum',
+        1 => 'exposure',
+        2 => 'cve-2024-25600',
+      ),
+      'name' => 'Bricks style.css',
+    ),
+    'route-wp-theme-flatsome' => 
+    array (
+      'sev' => 'medium',
+      'tags' => 
+      array (
+        0 => 'wp-theme-enum',
+        1 => 'exposure',
+        2 => 'cve-2023-40555',
+      ),
+      'name' => 'Flatsome style.css',
     ),
     'route-ai-ollama-ps' => 
     array (
@@ -257013,6 +257145,26 @@ a</title>',
             0 => 'wordpress-all-in-one-wp-migration',
           ),
         ),
+        1 => 
+        array (
+          's' => 200,
+          'bw' => 
+          array (
+            0 => 'Stable tag:',
+          ),
+          'nf' => 
+          array (
+          ),
+          'pid' => 'route-wp-plugin-all-in-one-wp-migration',
+          'sev' => 'medium',
+          'sig' => 0,
+          'amb' => 0,
+          't' => 
+          array (
+            0 => 'route-wp-plugin-all-in-one-wp-migration',
+          ),
+          'w' => 1000,
+        ),
       ),
     ),
     'GET /wp-content/plugins/all-in-one-wp-security-and-firewall/readme.txt' => 
@@ -259365,6 +259517,26 @@ a</title>',
             0 => 'wordpress-contact-form-7',
           ),
         ),
+        1 => 
+        array (
+          's' => 200,
+          'bw' => 
+          array (
+            0 => 'Stable tag:',
+          ),
+          'nf' => 
+          array (
+          ),
+          'pid' => 'route-wp-plugin-contact-form-7',
+          'sev' => 'medium',
+          'sig' => 0,
+          'amb' => 0,
+          't' => 
+          array (
+            0 => 'route-wp-plugin-contact-form-7',
+          ),
+          'w' => 1000,
+        ),
       ),
     ),
     'GET /wp-content/plugins/contact-form-cfdb7/readme.txt' => 
@@ -261057,6 +261229,26 @@ a</title>',
           array (
             0 => 'wordpress-elementor',
           ),
+        ),
+        1 => 
+        array (
+          's' => 200,
+          'bw' => 
+          array (
+            0 => 'Stable tag:',
+          ),
+          'nf' => 
+          array (
+          ),
+          'pid' => 'route-wp-plugin-elementor',
+          'sev' => 'medium',
+          'sig' => 0,
+          'amb' => 0,
+          't' => 
+          array (
+            0 => 'route-wp-plugin-elementor',
+          ),
+          'w' => 1000,
         ),
       ),
     ),
@@ -267734,6 +267926,26 @@ a</title>',
             0 => 'wordpress-really-simple-ssl',
           ),
         ),
+        1 => 
+        array (
+          's' => 200,
+          'bw' => 
+          array (
+            0 => 'Stable tag:',
+          ),
+          'nf' => 
+          array (
+          ),
+          'pid' => 'route-wp-plugin-really-simple-ssl',
+          'sev' => 'medium',
+          'sig' => 0,
+          'amb' => 0,
+          't' => 
+          array (
+            0 => 'route-wp-plugin-really-simple-ssl',
+          ),
+          'w' => 1000,
+        ),
       ),
     ),
     'GET /wp-content/plugins/redirection/' => 
@@ -272413,6 +272625,26 @@ a</title>',
             0 => 'wordpress-woocommerce',
           ),
         ),
+        1 => 
+        array (
+          's' => 200,
+          'bw' => 
+          array (
+            0 => 'Stable tag:',
+          ),
+          'nf' => 
+          array (
+          ),
+          'pid' => 'route-wp-plugin-woocommerce',
+          'sev' => 'medium',
+          'sig' => 0,
+          'amb' => 0,
+          't' => 
+          array (
+            0 => 'route-wp-plugin-woocommerce',
+          ),
+          'w' => 1000,
+        ),
       ),
     ),
     'GET /wp-content/plugins/woosidebars/readme.txt' => 
@@ -272845,6 +273077,26 @@ a</title>',
             0 => 'wordpress-wordpress-seo',
           ),
         ),
+        1 => 
+        array (
+          's' => 200,
+          'bw' => 
+          array (
+            0 => 'Stable tag:',
+          ),
+          'nf' => 
+          array (
+          ),
+          'pid' => 'route-wp-plugin-wordpress-seo',
+          'sev' => 'medium',
+          'sig' => 0,
+          'amb' => 0,
+          't' => 
+          array (
+            0 => 'route-wp-plugin-wordpress-seo',
+          ),
+          'w' => 1000,
+        ),
       ),
     ),
     'GET /wp-content/plugins/wordpress-seo/src/main.php' => 
@@ -273275,6 +273527,26 @@ a</title>',
           array (
             0 => 'wordpress-wp-file-manager',
           ),
+        ),
+        1 => 
+        array (
+          's' => 200,
+          'bw' => 
+          array (
+            0 => 'Stable tag:',
+          ),
+          'nf' => 
+          array (
+          ),
+          'pid' => 'route-wp-plugin-wp-file-manager',
+          'sev' => 'medium',
+          'sig' => 0,
+          'amb' => 0,
+          't' => 
+          array (
+            0 => 'route-wp-plugin-wp-file-manager',
+          ),
+          'w' => 1000,
         ),
       ),
     ),
@@ -274800,6 +275072,26 @@ a</title>',
           array (
             0 => 'wordpress-wpforms-lite',
           ),
+        ),
+        1 => 
+        array (
+          's' => 200,
+          'bw' => 
+          array (
+            0 => 'Stable tag:',
+          ),
+          'nf' => 
+          array (
+          ),
+          'pid' => 'route-wp-plugin-wpforms-lite',
+          'sev' => 'medium',
+          'sig' => 0,
+          'amb' => 0,
+          't' => 
+          array (
+            0 => 'route-wp-plugin-wpforms-lite',
+          ),
+          'w' => 1000,
         ),
       ),
     ),
@@ -306715,6 +307007,110 @@ a</title>',
           array (
             0 => 'cross-site-tracing-xss',
           ),
+        ),
+      ),
+    ),
+    'GET /wp-content/plugins/fusion-builder/readme.txt' => 
+    array (
+      'b' => 
+      array (
+        0 => 
+        array (
+          's' => 200,
+          'bw' => 
+          array (
+            0 => 'Stable tag:',
+          ),
+          'nf' => 
+          array (
+          ),
+          'pid' => 'route-wp-plugin-fusion-builder',
+          'sev' => 'medium',
+          'sig' => 0,
+          'amb' => 0,
+          't' => 
+          array (
+            0 => 'route-wp-plugin-fusion-builder',
+          ),
+          'w' => 1000,
+        ),
+      ),
+    ),
+    'GET /wp-content/plugins/tutor/readme.txt' => 
+    array (
+      'b' => 
+      array (
+        0 => 
+        array (
+          's' => 200,
+          'bw' => 
+          array (
+            0 => 'Stable tag:',
+          ),
+          'nf' => 
+          array (
+          ),
+          'pid' => 'route-wp-plugin-tutor',
+          'sev' => 'medium',
+          'sig' => 0,
+          'amb' => 0,
+          't' => 
+          array (
+            0 => 'route-wp-plugin-tutor',
+          ),
+          'w' => 1000,
+        ),
+      ),
+    ),
+    'GET /wp-content/themes/bricks/style.css' => 
+    array (
+      'b' => 
+      array (
+        0 => 
+        array (
+          's' => 200,
+          'bw' => 
+          array (
+            0 => 'Version:',
+          ),
+          'nf' => 
+          array (
+          ),
+          'pid' => 'route-wp-theme-bricks',
+          'sev' => 'medium',
+          'sig' => 0,
+          'amb' => 0,
+          't' => 
+          array (
+            0 => 'route-wp-theme-bricks',
+          ),
+          'w' => 1000,
+        ),
+      ),
+    ),
+    'GET /wp-content/themes/flatsome/style.css' => 
+    array (
+      'b' => 
+      array (
+        0 => 
+        array (
+          's' => 200,
+          'bw' => 
+          array (
+            0 => 'Version:',
+          ),
+          'nf' => 
+          array (
+          ),
+          'pid' => 'route-wp-theme-flatsome',
+          'sev' => 'medium',
+          'sig' => 0,
+          'amb' => 0,
+          't' => 
+          array (
+            0 => 'route-wp-theme-flatsome',
+          ),
+          'w' => 1000,
         ),
       ),
     ),

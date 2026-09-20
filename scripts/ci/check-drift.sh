@@ -28,10 +28,11 @@ cd "$(dirname "$0")/../.."
 ROOT="$(pwd)"
 
 # Paths the law governs: the compiled artifacts AND the generated template inputs (a stale
-# compile-ai regeneration is drift just as much as a stale compiled artifact), plus the two
-# generated Markdown outputs of the final `map` step (docs/DECOY-MAP.md + the README inventory
-# block) — a stale decoy map is drift just as much as a stale compiled artifact.
-PATHS=(resources/compiled templates/generated templates/attack-ai docs/DECOY-MAP.md README.md)
+# compile-ai regeneration is drift just as much as a stale compiled artifact; compile-wp writes the
+# separate templates/generated-wp dir), plus the two generated Markdown outputs of the final `map`
+# step (docs/DECOY-MAP.md + the README inventory block) — a stale decoy map is drift just as much as
+# a stale compiled artifact.
+PATHS=(resources/compiled templates/generated templates/generated-wp templates/attack-ai docs/DECOY-MAP.md README.md)
 
 echo "== check-drift: funnypot build =="
 # The DAG loads the ~6 MB index twice (merge-routes + build-manifest); give it headroom regardless
@@ -48,7 +49,7 @@ if [ -n "$STATUS" ]; then
     echo "--- first 100 diff lines ---" >&2
     git diff -- "${PATHS[@]}" | head -100 >&2 || true
     echo "" >&2
-    echo "Fix: run \`composer build\` (or \`php bin/funnypot build\`) and commit resources/compiled + templates/generated + templates/attack-ai + docs/DECOY-MAP.md + README.md." >&2
+    echo "Fix: run \`composer build\` (or \`php bin/funnypot build\`) and commit resources/compiled + templates/generated + templates/generated-wp + templates/attack-ai + docs/DECOY-MAP.md + README.md." >&2
     exit 1
 fi
 echo "clean."

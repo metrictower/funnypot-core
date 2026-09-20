@@ -4,7 +4,7 @@
 > The manifest is the sole inventory authority; friendly names, categories and behavior
 > prose live in the README taxonomy, not here.
 
-Manifest schema 1. Authored records: 328 across 79 families. Corpus: 2611 families / 5134 route keys (summarized, not enumerated). Enrichers: 209.
+Manifest schema 1. Authored records: 340 across 81 families. Corpus: 2611 families / 5134 route keys (summarized, not enumerated). Enrichers: 221.
 
 ```mermaid
 mindmap
@@ -85,11 +85,13 @@ mindmap
     fam0074["whm: 1"]
     fam0075["windows: 2"]
     fam0076["wordpress: 10"]
-    fam0077["xdebug: 1"]
-    fam0078["xss: 2"]
-    fam0079["xxe: 1"]
+    fam0077["wp-plugin-enum: 10"]
+    fam0078["wp-theme-enum: 2"]
+    fam0079["xdebug: 1"]
+    fam0080["xss: 2"]
+    fam0081["xxe: 1"]
     corpus["corpus: 2611 families / 5134 keys"]
-    enrichers["content enrichers #40;not route claimers#41;: 209"]
+    enrichers["content enrichers #40;not route claimers#41;: 221"]
 ```
 
 | Family | Authored records | Tier mix | Owned routes | Outbound links | Max severity | Integrity |
@@ -170,10 +172,12 @@ mindmap
 | whm | 1 | new-page:1 | 1 | 0 | low | &mdash; |
 | windows | 2 | attack:2 | 0 | 0 | critical | &mdash; |
 | wordpress | 10 | attack:10 | 12 | 1 | critical | accepted, info |
+| wp-plugin-enum | 10 | new-page:10 | 10 | 0 | medium | &mdash; |
+| wp-theme-enum | 2 | new-page:2 | 2 | 0 | medium | &mdash; |
 | xdebug | 1 | attack:1 | 0 | 0 | critical | &mdash; |
 | xss | 2 | attack:1 attack-crs:1 | 0 | 0 | high | &mdash; |
 | xxe | 1 | attack:1 | 0 | 0 | high | &mdash; |
 | _corpus (nuclei-inversion)_ | 2611 families / 5134 keys | &mdash; | &mdash; | &mdash; | &mdash; | &mdash; |
-| _content enrichers (not route claimers)_ | 209 | &mdash; | &mdash; | &mdash; | &mdash; | &mdash; |
+| _content enrichers (not route claimers)_ | 221 | &mdash; | &mdash; | &mdash; | &mdash; | &mdash; |
 
 Per-family detail: `bin/funnypot map --family=NAME --format=md` (or `--format=mermaid` for the raw flowchart).

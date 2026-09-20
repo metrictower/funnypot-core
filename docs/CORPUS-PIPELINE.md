@@ -10,7 +10,7 @@ The committed index is a **merged product**, not a plain `compile`:
 | half | inputs | step | provenance |
 |---|---|---|---|
 | corpus | `<nuclei-templates>/http/*.yaml` at the pinned commit | `funnypot compile` | `upstream_tag` / `upstream_sha` (in the index and the sidecar) + `core_commit` / `php_version` / `built_at` (sidecar only) |
-| in-repo | `templates/route` + `templates/generated` (and attack / param / crs for the other artifacts) | `funnypot build` — `compile-ai` → `compile-emulators` → `compile-routes` → `compile-params` → `merge-routes` → `build-manifest` | `source_tree`: a sha256 over exactly the `*.yaml` set each step globbed |
+| in-repo | `templates/route` + `templates/generated` + `templates/generated-wp` (and attack / param / crs for the other artifacts) | `funnypot build` — `compile-ai` → `compile-wp` → `compile-emulators` → `compile-routes` → `compile-params` → `merge-routes` → `build-manifest` | `source_tree`: a sha256 over exactly the `*.yaml` set each step globbed |
 
 `compile` alone exits 0 and silently drops every folded new-page key — all of `templates/route`
 and `templates/generated`, 194 keys at the time of writing. That is why the one full rebuild is:
@@ -81,7 +81,7 @@ composer build-corpus -- ../nuclei-templates --bump
    commit** — that edit is the reviewable record of accepted coverage loss, and the suite fails
    until it is made;
 3. `composer check` and `vendor/bin/phpunit`;
-4. commit `resources/compiled` + `templates/generated` + `templates/attack-ai`.
+4. commit `resources/compiled` + `templates/generated` + `templates/generated-wp` + `templates/attack-ai`.
 
 The `update-templates` workflow is exactly this procedure at a release tag (dispatch-only while the
 CI pause stands).
@@ -93,7 +93,8 @@ composer verify-corpus                         # == bin/funnypot build-corpus --
 ```
 
 Compiles the pinned checkout and folds the **committed** fragment (`funnypot-routes-index.php`,
-which the drift gate already proves matches `templates/route` + `templates/generated`) into a
+which the drift gate already proves matches `templates/route` + `templates/generated` +
+`templates/generated-wp`) into a
 scratch dir, then compares sha256 with the committed index. Exit 0 = byte-identical; exit 1 keeps
 the rebuilt copy for diffing. It never writes into the tree, and it refuses an off-pin checkout —
 verify never bumps.
@@ -149,7 +150,7 @@ Both read `unknown` on a sidecar that predates the record; the next real `compil
 | field | written by | meaning |
 |---|---|---|
 | `upstream_tag`, `upstream_sha` | `compile` | the same full nuclei source commit sha; the pin (also embedded in the index) |
-| `source_tree` | `merge-routes` | sha256 over `templates/route` + `templates/generated` |
+| `source_tree` | `merge-routes` | sha256 over `templates/route` + `templates/generated` + `templates/generated-wp` |
 | `templates_seen`, `templates_in`, `templates_indexed`, `route_keys`, `multi_bundle_keys`, `largest_bundle_count`, `persona_cap` | `compile`; the two counts refreshed by `merge-routes` | table sizes — `route_keys` / `templates_indexed` are post-fold |
 | `built_at` | `compile` | reproducible stamp (see above); preserved by `build` |
 | `core_commit`, `php_version` | `compile` | the compiler that produced the corpus half; preserved by `build` |
