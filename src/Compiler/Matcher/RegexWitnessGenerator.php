@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace Funnypot\Core\Compiler\Matcher;
 
+use Funnypot\Core\Compiler\Crs\FingerprintGuard;
 use Funnypot\Core\Compiler\DynamicLiteralScreen;
+use Funnypot\Core\Support\SubSeed;
 
 /**
  * Inverts a `regex` matcher block (match.go `MatchRegex`, which fires on
@@ -28,6 +30,30 @@ use Funnypot\Core\Compiler\DynamicLiteralScreen;
  */
 final class RegexWitnessGenerator
 {
+    /** @var FingerprintGuard|null the alternate screen; null ⇒ not yet resolved. */
+    private $guard;
+
+    /** @var bool whether {@see $guard} has been resolved (may resolve to null on a broken denylist). */
+    private $guardResolved;
+
+    /** @var (callable(string,string,string[]):void)|null observer for the RE2 dev/operator audit. */
+    private $auditObserver;
+
+    /**
+     * @param FingerprintGuard|null $guard   the served-alternate screen; a null default is resolved
+     *   lazily from the package denylist and treated as "cannot verify ⇒ drop every alternate" when
+     *   the denylist is broken (fail closed — the canonical is screened downstream by Classifier).
+     * @param (callable(string,string,string[]):void)|null $auditObserver called with
+     *   (originalPattern, canonical, validatedAlternates) after each successful inversion, for the
+     *   committed RE2 corpus audit. No-op by default; never touched on the compile/serve path.
+     */
+    public function __construct(?FingerprintGuard $guard = null, ?callable $auditObserver = null)
+    {
+        $this->guard = $guard;
+        $this->guardResolved = $guard !== null;
+        $this->auditObserver = $auditObserver;
+    }
+
     /**
      * @param array<string,mixed> $m
      */
@@ -64,9 +90,14 @@ final class RegexWitnessGenerator
      * {@see invert()} (the nuclei @regex matcher) and the DSL `regex(part, …)` function inversion
      * (FP-0261). Patterns combine as AND when $allRequired, else OR (one witness suffices).
      *
+     * Each body witness carries an aligned per-deploy MENU of alternates (FP-0280): regexWitness[j] is
+     * the canonical and regexWitnessMenu[j] its validated alternates. $lowercaseInput marks a
+     * `regex(pattern, tolower(body))` DSL call — the served witness is lowercased and revalidated so the
+     * real tolower expression can match it. Header witnesses carry no menu.
+     *
      * @param string[] $patterns
      */
-    public function invertRegion(string $region, array $patterns, bool $negative, bool $allRequired): MatcherResult
+    public function invertRegion(string $region, array $patterns, bool $negative, bool $allRequired, bool $lowercaseInput = false): MatcherResult
     {
         if ($region !== PartRouter::BODY && $region !== PartRouter::HEADER) {
             return MatcherResult::out('regex-region-unsupported');
@@ -80,22 +111,24 @@ final class RegexWitnessGenerator
         }
 
         $witnesses = [];
+        $menus = [];
         $exclusive = false;
         $lastReason = 'regex-unwitnessable';
 
         foreach ($patterns as $pattern) {
-            $w = $this->witnessFor($pattern, $anchoredEnd, $anchoredStart);
+            $menu = $this->menuForPattern($pattern, $lowercaseInput);
+            $w = $menu['canonical'];
             if ($w === null) {
                 if ($allRequired) {
-                    return MatcherResult::out($this->reasonFor($pattern));
+                    return MatcherResult::out($menu['reason']);
                 }
-                $lastReason = $this->reasonFor($pattern);
+                $lastReason = $menu['reason'];
                 continue;
             }
             if ($region === PartRouter::HEADER) {
                 // A header-block witness must be an anchor-free, CRLF/NUL-free substring:
                 // it is emitted as a header value and matched anywhere in the block.
-                if ($anchoredStart || $anchoredEnd || !$this->headerSafe($w)) {
+                if ($menu['anchoredStart'] || $menu['anchoredEnd'] || !$this->headerSafe($w)) {
                     if ($allRequired) {
                         return MatcherResult::out('regex-header-unsafe');
                     }
@@ -104,8 +137,10 @@ final class RegexWitnessGenerator
                 }
             }
             $witnesses[] = $w;
+            // Header witnesses carry no menu; body witnesses carry their aligned alternate list.
+            $menus[] = $region === PartRouter::HEADER ? [] : $menu['alternates'];
             // Body: only an end-anchor ($) makes the whole body exclusive (A1, unchanged).
-            $exclusive = $exclusive || $anchoredEnd;
+            $exclusive = $exclusive || $menu['anchoredEnd'];
             if (!$allRequired) {
                 break; // OR: one witness is enough
             }
@@ -123,32 +158,128 @@ final class RegexWitnessGenerator
             return $r;
         }
         $r->regexWitness = $witnesses;
+        $r->regexWitnessMenu = $menus;
         $r->wholeBodyExclusive = $exclusive;
 
         return $r;
     }
 
     /**
-     * Generate + validate a witness for one pattern, reporting its start (`^…`) and end
-     * (`…$`) anchoring separately.
+     * Generate + validate the canonical witness and its alternate menu for one pattern, reporting
+     * its start (`^…`) and end (`…$`) anchoring and a typed fold reason. Every candidate is
+     * PCRE-revalidated against the ORIGINAL pattern and screened for fingerprint tells / denied
+     * digits; a bad canonical folds the pattern (canonical null), a bad alternate is dropped.
+     *
+     * @return array{canonical: string|null, alternates: string[], anchoredStart: bool, anchoredEnd: bool, reason: string}
      */
-    private function witnessFor(string $pattern, ?bool &$anchoredEnd, ?bool &$anchoredStart): ?string
+    public function menuForPattern(string $pattern, bool $lowercaseInput = false): array
     {
-        $anchoredEnd = false;
-        $anchoredStart = false;
+        $fold = static function (string $reason): array {
+            return ['canonical' => null, 'alternates' => [], 'anchoredStart' => false, 'anchoredEnd' => false, 'reason' => $reason];
+        };
 
         if (!DynamicLiteralScreen::isResolvable($pattern)) {
-            return null;
+            return $fold('regex-dynamic-literal');
         }
 
-        [$core, $flags, $anchoredEnd, $anchoredStart] = $this->strip($pattern);
+        [$core, , $anchoredEnd, $anchoredStart] = $this->strip($pattern);
 
-        $witness = RegexWitness::generate($core);
-        if ($witness === null || $witness === '') {
-            return null;
+        $candidates = RegexWitness::generateMenu($core, RegexWitness::MENU_K);
+        if ($candidates === []) {
+            return $fold('regex-unwitnessable');
         }
 
-        return $this->validate($pattern, $witness) ? $witness : null;
+        // For a tolower()-wrapped input the served byte is the LOWERCASED witness, matched against the
+        // original pattern; re-dedup because lowercasing can collapse two candidates into one.
+        if ($lowercaseInput) {
+            $candidates = $this->lowercaseCandidates($candidates);
+        }
+
+        // Canonical admission is PCRE-only, exactly as the historical single-witness path — so the
+        // committed rx set and every fold decision are byte-identical and an operator regen adds only
+        // sparse rxm. A denylisted canonical still folds its template downstream via
+        // Classifier::hasDenylistedWitness (unchanged). Alternates get the full fingerprint/denied screen
+        // here (and again defensively at freeze), since they are NOT covered by that Classifier fold.
+        $canonical = $candidates[0];
+        if ($canonical === '' || !$this->validate($pattern, $canonical)) {
+            return $fold('regex-unwitnessable');
+        }
+
+        $alternates = [];
+        foreach (array_slice($candidates, 1) as $alt) {
+            if ($alt === '' || $alt === $canonical || in_array($alt, $alternates, true)) {
+                continue;
+            }
+            if ($this->admissible($pattern, $alt)) {
+                $alternates[] = $alt;
+            }
+        }
+
+        if ($this->auditObserver !== null) {
+            ($this->auditObserver)($pattern, $canonical, $alternates);
+        }
+
+        return [
+            'canonical' => $canonical,
+            'alternates' => $alternates,
+            'anchoredStart' => (bool) $anchoredStart,
+            'anchoredEnd' => (bool) $anchoredEnd,
+            'reason' => '',
+        ];
+    }
+
+    /**
+     * A candidate is admissible when it satisfies the original pattern under PCRE, carries no
+     * fingerprint-denylist tell, and holds no denied bare-digit token.
+     */
+    private function admissible(string $pattern, string $witness): bool
+    {
+        if (!$this->validate($pattern, $witness)) {
+            return false;
+        }
+        if (SubSeed::hitsDeniedDigits($witness)) {
+            return false;
+        }
+        $guard = $this->guard();
+        if ($guard === null) {
+            // Broken denylist: fail closed — an alternate we cannot verify is dropped, and the
+            // canonical is screened downstream by Classifier's witness fold.
+            return false;
+        }
+
+        return $guard->scan($witness) === [];
+    }
+
+    /**
+     * Lowercase each candidate (the tolower(body) served byte) and re-dedup while preserving order.
+     *
+     * @param list<string> $candidates
+     * @return list<string>
+     */
+    private function lowercaseCandidates(array $candidates): array
+    {
+        $seen = [];
+        $out = [];
+        foreach ($candidates as $c) {
+            $lc = strtolower($c);
+            if (!isset($seen[$lc])) {
+                $seen[$lc] = true;
+                $out[] = $lc;
+            }
+        }
+
+        return $out;
+    }
+
+    /** Lazily resolve the alternate screen from the package denylist (null on a broken denylist). */
+    private function guard(): ?FingerprintGuard
+    {
+        if (!$this->guardResolved) {
+            $this->guard = FingerprintGuard::tryFromPackage();
+            $this->guardResolved = true;
+        }
+
+        return $this->guard;
     }
 
     /** A header value may hold no CR, LF, or NUL (C8). */
@@ -215,14 +346,5 @@ final class RegexWitnessGenerator
         }
 
         return null;
-    }
-
-    private function reasonFor(string $pattern): string
-    {
-        if (!DynamicLiteralScreen::isResolvable($pattern)) {
-            return 'regex-dynamic-literal';
-        }
-
-        return 'regex-unwitnessable';
     }
 }

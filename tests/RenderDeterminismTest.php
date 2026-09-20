@@ -271,6 +271,76 @@ final class RenderDeterminismTest extends TestCase
         self::assertSame($la, $lb, 'the word multiset is deploy-invariant (permutation only)');
     }
 
+    /**
+     * A controlled minimal-synth index whose one route carries a regex-witness menu (rxm), so the
+     * facade serves the FP-0280 per-deploy witness selection. Distinct canonicals per slot make the
+     * across-deploy collision vanishingly unlikely.
+     */
+    private function minimalSynthRxmInverter(string $deploySeed): Honeypot
+    {
+        $rx = [];
+        $rxm = [];
+        foreach (['ka', 'kb', 'kc', 'kd', 'ke'] as $n) {
+            $rx[] = $n . '=0';
+            $rxm[] = [$n . '=1', $n . '=2', $n . '=3']; // every option matches /k[a-e]=[0-9]/
+        }
+        $index = [
+            'schema' => 1,
+            'templates' => ['fp-0280-marker' => ['sev' => 'medium', 'tags' => ['exposure'], 'name' => 'FP-0280 rxm probe']],
+            'routes' => ['GET /fp-0280-rxm' => ['b' => [[
+                's' => 200,
+                'bw' => [],
+                'rx' => $rx,
+                'rxm' => $rxm,
+                'h' => ['Content-Type' => 'text/plain'],
+                'pid' => 'fp-0280',
+                'sev' => 'medium',
+                'sig' => 0,
+                't' => ['fp-0280-marker'],
+            ]]]],
+        ];
+        $config = new Config(
+            'respond',
+            static function (RequestContext $r): bool { return true; },
+            'matched-only',
+            null,
+            'coherent',
+            Style::REALISTIC,
+            'high',
+            65536,
+            0,
+            0,
+            true
+        );
+        $config->seedSalt = 'render-salt';
+        $config->deploySeed = $deploySeed;
+        $config->isolatedOrigin = true;
+
+        return new Honeypot(new PhpArrayStore($index), $config);
+    }
+
+    public function test_rxm_witness_selection_is_stable_within_a_deploy_and_varies_across(): void
+    {
+        $probe = new RequestContext('GET', '/fp-0280-rxm', '', [], null, 'vic.example');
+
+        $ra1 = $this->minimalSynthRxmInverter('deploy-a')->respond($probe);
+        $ra2 = $this->minimalSynthRxmInverter('deploy-a')->respond($probe);
+        $rb = $this->minimalSynthRxmInverter('deploy-b')->respond($probe);
+        self::assertNotNull($ra1, '/fp-0280-rxm should serve via minimal synthesis');
+        self::assertNotNull($ra2);
+        self::assertNotNull($rb);
+
+        self::assertSame($this->canon($ra1), $this->canon($ra2), 're-scan on one deploy is byte-identical (X-Request-Id masked)');
+        self::assertNotSame($ra1->body, $rb->body, 'the selected witnesses must differ across deploy seeds');
+
+        // Every served witness on both deploys satisfies the source pattern.
+        foreach ([$ra1->body, $rb->body] as $body) {
+            foreach (explode("\n", $body) as $line) {
+                self::assertSame(1, preg_match('/^k[a-e]=[0-9]$/', $line), "served witness must match the pattern: {$line}");
+            }
+        }
+    }
+
     public function test_the_canonicalization_is_not_vacuous(): void
     {
         // A negative control: two responses differing only in body are NOT equal after masking, so the

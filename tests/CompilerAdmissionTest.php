@@ -175,6 +175,129 @@ YAML);
         self::assertSame([], $result['index']['routes'], 'a reserved-prefix corpus template must not route');
     }
 
+    // --- FP-0280: frozen per-deploy regex-witness menu (rxm) --------------------------------------
+
+    public function test_regex_bundle_freezes_a_sparse_alternates_only_menu(): void
+    {
+        $this->write('rxm-basic', <<<'YAML'
+id: fp0280-basic
+info:
+  name: rxm basic
+  severity: info
+  tags: test
+http:
+  - method: GET
+    path:
+      - "{{BaseURL}}/fp0280-basic"
+    matchers:
+      - type: regex
+        part: body
+        regex:
+          - "token=[0-9]{3}"
+YAML);
+
+        $bundle = $this->compile()['index']['routes']['GET /fp0280-basic']['b'][0];
+        self::assertSame(['token=000'], $bundle['rx'], 'the canonical rx is unchanged');
+        self::assertArrayHasKey('rxm', $bundle, 'a witnessable pattern freezes a menu');
+        self::assertArrayHasKey(0, $bundle['rxm'], 'rxm is keyed by the rx index');
+        foreach ($bundle['rxm'][0] as $alt) {
+            self::assertNotSame('token=000', $alt, 'the canonical is never in the menu (alternates-only)');
+            self::assertSame(1, preg_match('~token=[0-9]{3}~', $alt), "alternate must satisfy the pattern: {$alt}");
+        }
+    }
+
+    public function test_shared_canonical_across_templates_intersects_the_menu(): void
+    {
+        // x[a-c]y and x[a-b]y both collapse to canonical 'xay' on one route but generate different
+        // alternates; the frozen menu is their intersection, so it satisfies BOTH source patterns.
+        $this->write('rxm-shared-a', <<<'YAML'
+id: fp0280-shared-a
+info: {name: A, severity: info, tags: test}
+http:
+  - method: GET
+    path: ["{{BaseURL}}/fp0280-shared"]
+    matchers:
+      - {type: regex, part: body, regex: ["x[a-c]y"]}
+YAML);
+        $this->write('rxm-shared-b', <<<'YAML'
+id: fp0280-shared-b
+info: {name: B, severity: info, tags: test}
+http:
+  - method: GET
+    path: ["{{BaseURL}}/fp0280-shared"]
+    matchers:
+      - {type: regex, part: body, regex: ["x[a-b]y"]}
+YAML);
+
+        $bundle = $this->compile()['index']['routes']['GET /fp0280-shared']['b'][0];
+        self::assertSame(['xay'], $bundle['rx']);
+        self::assertSame([0 => ['xby']], $bundle['rxm'], 'only the shared alternate survives the intersection');
+        foreach ($bundle['rxm'][0] as $alt) {
+            self::assertSame(1, preg_match('~x[a-c]y~', $alt), 'alternate satisfies template A');
+            self::assertSame(1, preg_match('~x[a-b]y~', $alt), 'alternate satisfies template B');
+        }
+    }
+
+    public function test_forbidden_substring_alternate_is_dropped_at_freeze(): void
+    {
+        // The 'vzw' alternate of v[a-z]w is a forbidden substring (nf); it is filtered before freeze.
+        $this->write('rxm-nf', <<<'YAML'
+id: fp0280-nf
+info: {name: NF, severity: info, tags: test}
+http:
+  - method: GET
+    path: ["{{BaseURL}}/fp0280-nf"]
+    matchers-condition: and
+    matchers:
+      - {type: regex, part: body, regex: ["v[a-z]w"]}
+      - {type: dsl, dsl: ["!contains(body, 'vzw')"]}
+YAML);
+
+        $bundle = $this->compile()['index']['routes']['GET /fp0280-nf']['b'][0];
+        self::assertContains('vzw', $bundle['nf']);
+        self::assertArrayHasKey('rxm', $bundle);
+        foreach ($bundle['rxm'][0] as $alt) {
+            self::assertStringNotContainsString('vzw', $alt, 'a forbidden-substring alternate must be dropped');
+        }
+    }
+
+    public function test_literal_regex_has_no_menu(): void
+    {
+        $this->write('rxm-literal', <<<'YAML'
+id: fp0280-literal
+info: {name: L, severity: info, tags: test}
+http:
+  - method: GET
+    path: ["{{BaseURL}}/fp0280-literal"]
+    matchers:
+      - {type: regex, part: body, regex: ["exactliteral"]}
+YAML);
+
+        $bundle = $this->compile()['index']['routes']['GET /fp0280-literal']['b'][0];
+        self::assertSame(['exactliteral'], $bundle['rx']);
+        self::assertArrayNotHasKey('rxm', $bundle, 'a no-alternate pattern emits no rxm key (sparse)');
+    }
+
+    public function test_frozen_rxm_is_a_pure_literal_and_deterministic(): void
+    {
+        $this->write('rxm-det', <<<'YAML'
+id: fp0280-det
+info: {name: D, severity: info, tags: test}
+http:
+  - method: GET
+    path: ["{{BaseURL}}/fp0280-det"]
+    matchers:
+      - {type: regex, part: body, regex: ["id-[A-F0-9]{4}"]}
+YAML);
+
+        $first = $this->compile()['index']['routes'];
+        $second = $this->compile()['index']['routes'];
+        self::assertSame($first, $second, 'two compiles of the same fixture produce identical arrays');
+        array_walk_recursive($first, static function ($v): void {
+            self::assertFalse(is_object($v), 'the frozen menu contains no objects/closures');
+        });
+    }
+
     public function test_method_variety_is_carried_through(): void
     {
         $this->write('put-raw', <<<'YAML'

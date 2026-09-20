@@ -32,6 +32,14 @@ use InvalidArgumentException;
  *     'templates' => [ 'git-config' => ['sev'=>'medium','tags'=>[...],'name'=>...], ... ],
  *     'routes'    => [ 'GET /.git/config' => ['b' => [ ...bundles... ]], ... ],
  *   ]
+ *
+ * A bundle is a flat literal map: 's' status, 'bw'/'hw' body/header words, 'nf'/'hf' forbidden
+ * substrings, 'sz' size, 'rx' canonical regex witnesses, 'h' invented headers, 'th' typed headers,
+ * 'pid'/'sev'/'sig'/'amb'/'t' metadata, optional 'x' whole-body-exclusive. Optional (FP-0280) 'rxm'
+ * is the per-deploy regex-witness menu: a SPARSE, integer-keyed map rxIndex => [alternate, …] of
+ * alternates-only witnesses for that 'rx' slot. It is additive named data — schema stays 1: an old
+ * engine ignores the unknown key and serves 'rx'; a new engine over an old artifact sees no 'rxm' and
+ * serves 'rx'. The render-time choice is made by {@see \Funnypot\Core\Synthesis\RegexWitnessMenu}.
  */
 final class PhpArrayStore implements CompiledStore
 {

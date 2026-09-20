@@ -54,15 +54,18 @@ final class Classifier
      * @param FingerprintGuard|null $guard the served-witness screen (defaults to the package
      *   denylist, which fails closed on a missing/broken resource — a broken denylist must break
      *   the compile, never silently admit a tell)
+     * @param RegexWitnessGenerator|null $regexGen the shared witness engine for BOTH the raw @regex
+     *   matcher and DSL regex() inversion; injecting one (e.g. with an audit observer) lets a caller
+     *   observe every menu across both paths. Defaults to a fresh generator.
      */
-    public function __construct(?FingerprintGuard $guard = null)
+    public function __construct(?FingerprintGuard $guard = null, ?RegexWitnessGenerator $regexGen = null)
     {
         $this->word = new WordMatcherInverter();
         $this->status = new StatusMatcherInverter();
         $this->size = new SizeMatcherInverter();
         $this->binary = new BinaryMatcherInverter();
-        $this->regex = new RegexWitnessGenerator();
-        $this->dsl = new DslInverter();
+        $this->regex = $regexGen ?? new RegexWitnessGenerator();
+        $this->dsl = new DslInverter($this->regex);
         $this->fingerprint = $guard ?? FingerprintGuard::fromPackage();
     }
 
@@ -176,6 +179,10 @@ final class Classifier
             return ClassifiedTemplate::out('fp:denylisted-witness');
         }
 
+        // Collapse equal canonicals through the intersection law, carrying the aligned menu with them
+        // (replaces the bare array_unique so a shared canonical keeps only alternates valid for all).
+        [$regexWitness, $regexWitnessMenu] = RegexWitnessSet::normalize($r->regexWitness, $r->regexWitnessMenu);
+
         $plan = new SatisfyPlan(
             $t->id,
             $t->severity,
@@ -187,10 +194,11 @@ final class Classifier
             array_values(array_unique($r->headerWords)),
             array_values(array_unique($r->forbidden)),
             array_values(array_unique($r->headerForbidden)),
-            array_values(array_unique($r->regexWitness)),
+            $regexWitness,
             $r->size,
             $r->wholeBodyExclusive,
-            $this->dedupeTypedHeaders($r->typedHeader)
+            $this->dedupeTypedHeaders($r->typedHeader),
+            $regexWitnessMenu
         );
 
         return ClassifiedTemplate::in($plan);

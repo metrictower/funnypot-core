@@ -122,7 +122,10 @@ Both read `unknown` on a sidecar that predates the record; the next real `compil
   walks every served leaf of the committed artifacts (attack/route/param rules + the nuclei + flat
   route indexes) and the runtime gate re-checks the whole rendered corpus. Because the vocabulary + the
   fold + the regenerated corpus must all land together (the static gate fails on the index otherwise),
-  they belong in one regeneration.
+  they belong in one regeneration. The optional per-deploy witness-menu (`rxm`, FP-0280) alternates are
+  NOT covered by the `bw`/`hw`/`rx`/`th` witness fold, so they are screened separately — fingerprint- and
+  denied-digit-filtered at freeze, walked per entry by `CompiledIndexSmokeTest`, scanned as served bytes
+  by the seeded-render gate's minimal-synth leg, and proven against Go RE2 by the committed corpus audit.
 - **`funnypot doctor --provenance`** — the sidecar must verify the index: sha256, size,
   `route_keys`, `templates_indexed`, and `upstream_sha` / `upstream_tag` / `source_tree` equal to
   the copies embedded in the index; `upstream_sha` must be a full commit sha (`unknown` is drift).
