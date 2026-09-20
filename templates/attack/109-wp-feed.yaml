@@ -1,0 +1,53 @@
+id: attack-wp-feed
+severity: info
+# Priority 13: a free low slot that sorts ahead of the broad `in: request` archetypes (44-65) so this
+# specific responder is reached first (mirrors 106-nextjs-rsc's rationale). owns /feed/.
+priority: 13
+tags: [wordpress, feed, rss, version-disclosure]
+# WordPress /feed/ RSS responder (version disclosure). The store bundle at GET /feed/ carries a
+# DEGENERATE versionless witness `<generator>https://wordpress.orga</generator>` (rx), so a route-tier
+# template's real-version body fails richBodyFitsExtras (every rx must appear verbatim) and falls back to
+# the versionless minimal synth. The attack tier authors the whole response instead — its detection comes
+# from detectionForRule, never richBodyFitsExtras — so /feed/ can disclose the coherent
+# {{persona.wordpress.version}} that a core fingerprinter's version_by_generator extractor reads.
+#
+# UNCONDITIONAL (no persona_gate): /feed/ is a dedicated WP path served fleet-wide today, so disclosing
+# the real version is a strict improvement on every deploy that receives the request. Gated by
+# attackEmulation (off by default; on in prod/harness); off-deploys keep today's degenerate bundle.
+#
+# Inert: every dynamic byte is a seeded {{persona.*}}; no request byte is reflected. PATH/METHOD match is
+# kept as permissive as owns_path (case/trailing-slash tolerant) so a variant never declines back to the
+# degenerate bundle and OwnsPathVariantGuard stays clean. A POST/other verb declines ⇒ static fallback.
+owns_path: [/feed/]
+match:
+  - in: path
+    regex: '^/feed/*$'
+    ci: true
+  - in: method
+    regex: '^(?:GET|HEAD)$'
+    ci: true
+status: 200
+response:
+  headers:
+    Content-Type: "application/rss+xml; charset=UTF-8"
+  body: |
+    <?xml version="1.0" encoding="UTF-8"?>
+    <rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+    <channel>
+    <title>{{persona.company.name}}</title>
+    <atom:link href="https://{{persona.company.domain}}/feed/" rel="self" type="application/rss+xml" />
+    <link>https://{{persona.company.domain}}</link>
+    <description>Just another WordPress site</description>
+    <language>en-US</language>
+    <generator>https://wordpress.org/?v={{persona.wordpress.version}}</generator>
+    <item>
+    <title>Hello world!</title>
+    <link>https://{{persona.company.domain}}/hello-world/</link>
+    <guid isPermaLink="false">https://{{persona.company.domain}}/?p=1</guid>
+    <description>Welcome to WordPress.</description>
+    </item>
+    </channel>
+    </rss>
+expect:
+  - 'https://wordpress.org/?v='
+  - '<generator>https://wordpress.org/?v='

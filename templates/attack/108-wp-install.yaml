@@ -1,0 +1,61 @@
+id: attack-wp-install
+severity: critical
+# Priority 18: a free low slot that sorts ahead of the broad `in: request` archetypes (44-65). owns the
+# install path.
+priority: 18
+tags: [wordpress, install, setup, version-disclosure]
+# WordPress /wp-admin/install.php responder (version disclosure). The store bundle carries a DEGENERATE
+# versionless witness `<generator>https://wordpress.orga</generator>` (rx) that fails richBodyFitsExtras
+# for a real-version route-tier body, so the attack tier authors the whole response (detection from
+# detectionForRule). Serves the real FRESH SETUP step-1 form — NOT an "already installed" page — which
+# preserves the existing wp-install (critical) detection witnesses (`<title>WordPress &rsaquo;
+# Installation</title>` + `Site Title`) and legitimately links install.min.css?ver=, the version_by_css
+# channel a core fingerprinter reads. An exposed installable WP is accepted poly-stack bait.
+#
+# UNCONDITIONAL (no persona_gate): a dedicated WP path served fleet-wide today; the real version is a
+# strict improvement on every deploy. Gated by attackEmulation (off by default; on in prod/harness).
+#
+# Inert: static bytes only; no POST/credential capture (stateful ⇒ app/store follow-up, out of scope).
+# A POST/other verb declines ⇒ static bundle fallback. PATH/METHOD match kept as permissive as owns_path.
+owns_path: [/wp-admin/install.php]
+match:
+  - in: path
+    regex: '^/wp-admin/install\.php/*$'
+    ci: true
+  - in: method
+    regex: '^(?:GET|HEAD)$'
+    ci: true
+status: 200
+response:
+  headers:
+    Content-Type: "text/html; charset=UTF-8"
+  body: |
+    <!DOCTYPE html>
+    <html lang="en-US">
+    <head>
+    <meta name="viewport" content="width=device-width" />
+    <meta name="robots" content="noindex,nofollow" />
+    <title>WordPress &rsaquo; Installation</title>
+    <link rel="stylesheet" href="/wp-admin/css/install.min.css?ver={{persona.wordpress.version}}" type="text/css" />
+    </head>
+    <body class="wp-core-ui">
+    <p id="logo">WordPress</p>
+    <h1>Welcome</h1>
+    <p>Welcome to the famous five-minute WordPress installation process! Just fill in the information below and you&#8217;ll be on your way to using the most extendable and powerful personal publishing platform in the world.</p>
+    <h2>Information needed</h2>
+    <p>Please provide the following information. Don&#8217;t worry, you can always change these settings later.</p>
+    <form id="setup" method="post" action="/wp-admin/install.php?step=2">
+    <table class="form-table">
+    <tr><th scope="row"><label for="weblog_title">Site Title</label></th><td><input name="weblog_title" type="text" id="weblog_title" size="25" value="" /></td></tr>
+    <tr><th scope="row"><label for="user_login">Username</label></th><td><input name="user_name" type="text" id="user_login" size="25" value="" /></td></tr>
+    <tr class="form-field form-required"><th scope="row"><label for="pass1">Password</label></th><td><input type="password" name="admin_password" id="pass1" size="25" value="" /></td></tr>
+    <tr><th scope="row"><label for="admin_email">Your Email</label></th><td><input name="admin_email" type="email" id="admin_email" size="25" value="" /></td></tr>
+    </table>
+    <p class="step"><input type="submit" name="Submit" id="submit" class="button button-large" value="Install WordPress" /></p>
+    </form>
+    </body>
+    </html>
+expect:
+  - 'install.min.css?ver='
+  - '<title>WordPress &rsaquo; Installation</title>'
+  - 'Site Title'
