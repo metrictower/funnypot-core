@@ -1,0 +1,58 @@
+id: attack-woo-wp-json-index
+severity: info
+# Priority 112: a free slot above every broad `in: request` archetype (44-65). Those key on injection
+# content a plain `GET /wp-json` never carries, so ordering is not load-bearing here — but keeping the
+# woo rules in one contiguous band (112-119) keeps them easy to reason about.
+priority: 112
+tags: [attack, woocommerce, wordpress, rest-api, discovery, exposure]
+# The wc-augmented WordPress REST index. owns_path claims /wp-json so classify() runs the attack tier
+# ahead of the static route-tier 344 index; PERSONA-GATED (persona_gate: route-woo-store) so it fires
+# ONLY where the deploy's served `/` persona is the store. A closed gate falls through to serve the
+# base 344 index (Honeypot.php:335 does not suppress a non-root, non-auth-witness owned path), so a
+# non-store WordPress deploy keeps its unmodified REST index — no fleet-wide wc/* leak.
+#
+# Inert: a canned index. No request byte is reflected into the body or a header. Every dynamic byte is
+# a seeded {{persona.*}} value. The wc/* namespaces + the wp/v2 set mirror what a real store's REST
+# root advertises, so the index agrees with the store home, the readme version, and the wc/store +
+# wc/v3 rules on the same deploy.
+owns_path: ['/wp-json']
+persona_gate: route-woo-store
+match:
+  - in: path
+    regex: '^/wp-json/*$'
+    ci: true
+  - in: method
+    regex: '^GET$'
+    ci: true
+status: 200
+response:
+  headers:
+    Content-Type: "application/json"
+  body: |
+    {
+    "name": "{{persona.company.name}}",
+    "description": "Just another WordPress site",
+    "url": "https://{{persona.company.domain}}",
+    "home": "https://{{persona.company.domain}}",
+    "gmt_offset": 0,
+    "timezone_string": "",
+    "namespaces": [ "oembed/1.0", "wp/v2", "wp-site-health/v1", "wc/store/v1", "wc/v3", "wc/v2", "wc/v1", "wc-analytics", "wc-admin" ],
+    "authentication": [],
+    "routes": {
+      "/": { "namespace": "", "methods": [ "GET" ], "endpoints": [ { "methods": [ "GET" ], "args": {} } ], "_links": { "self": [ { "href": "https://{{persona.company.domain}}/wp-json/" } ] } },
+      "/wp/v2": { "namespace": "wp/v2", "methods": [ "GET" ], "endpoints": [ { "methods": [ "GET" ], "args": {} } ], "_links": { "self": [ { "href": "https://{{persona.company.domain}}/wp-json/wp/v2" } ] } },
+      "/wp/v2/users": { "namespace": "wp/v2", "methods": [ "GET", "POST" ], "endpoints": [ { "methods": [ "GET" ], "args": {} }, { "methods": [ "POST" ], "args": {} } ], "_links": { "self": [ { "href": "https://{{persona.company.domain}}/wp-json/wp/v2/users" } ] } },
+      "/wc/store/v1": { "namespace": "wc/store/v1", "methods": [ "GET" ], "endpoints": [ { "methods": [ "GET" ], "args": {} } ], "_links": { "self": [ { "href": "https://{{persona.company.domain}}/wp-json/wc/store/v1" } ] } },
+      "/wc/store/v1/products": { "namespace": "wc/store/v1", "methods": [ "GET" ], "endpoints": [ { "methods": [ "GET" ], "args": {} } ], "_links": { "self": [ { "href": "https://{{persona.company.domain}}/wp-json/wc/store/v1/products" } ] } },
+      "/wc/v3": { "namespace": "wc/v3", "methods": [ "GET" ], "endpoints": [ { "methods": [ "GET" ], "args": {} } ], "_links": { "self": [ { "href": "https://{{persona.company.domain}}/wp-json/wc/v3" } ] } },
+      "/wc/v3/customers": { "namespace": "wc/v3", "methods": [ "GET", "POST" ], "endpoints": [ { "methods": [ "GET" ], "args": {} }, { "methods": [ "POST" ], "args": {} } ], "_links": { "self": [ { "href": "https://{{persona.company.domain}}/wp-json/wc/v3/customers" } ] } },
+      "/wc/v3/orders": { "namespace": "wc/v3", "methods": [ "GET", "POST" ], "endpoints": [ { "methods": [ "GET" ], "args": {} }, { "methods": [ "POST" ], "args": {} } ], "_links": { "self": [ { "href": "https://{{persona.company.domain}}/wp-json/wc/v3/orders" } ] } }
+    },
+    "_links": {
+      "help": [ { "href": "https://developer.wordpress.org/rest-api/" } ]
+    }
+    }
+expect:
+  - '"wc/store/v1"'
+  - '"wc/v3"'
+  - '"namespaces":'

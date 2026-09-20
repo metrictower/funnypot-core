@@ -1,0 +1,65 @@
+id: route-woo-store
+priority: 369
+# WooCommerce storefront homepage — the persona-selectable root for the store surface. It enters the
+# `GET /` lottery exactly like route-nextjs (360-nextjs-app-shell.yaml): a route new_page whose id IS
+# the pid (RouteBundleSynth sets pid=id verbatim), so the deploys the lottery assigns to this pid ARE
+# the store deploys. Every OTHER WooCommerce surface (the wc-augmented /wp-json, wc/store products, the
+# wc/v3 401s, the plugin readmes, and both CVE decoys) is an attack-tier rule carrying
+# `persona_gate: route-woo-store`, so it fires ONLY where the served `/` persona is this pid — the
+# FP-0229 pattern. Route new_page surfaces cannot be persona-gated (they fold into the index for every
+# deploy), which is why the STORE is the persona and everything else keys off its pid.
+#
+# sig: 1 keeps `GET /` an all-sig=1 root/homepage entry (an ordinary-visitor path), so folding this
+# bundle never flips the homepage's classification. NO `weight:` — `GET /` is a PersonaCap-capped key,
+# so merge-routes overwrites any weight with the fleet-fixed fold tier (w=8); a weight here would be
+# dead YAML. Every dynamic byte is a seeded {{persona.*}} value; woocommerce.version is the single
+# source of truth shared with the readme `Stable tag:` and the wc-augmented REST index.
+new_page:
+  method: GET
+  paths: ['/']
+  sig: 1
+  status: 200
+  severity: info
+  tags: [woocommerce, wordpress, ecommerce, store, discovery]
+  name: 'WooCommerce storefront'
+  body_words: ['woocommerce', 'WooCommerce']
+response:
+  headers:
+    Content-Type: "text/html; charset=utf-8"
+  body: |
+    <!DOCTYPE html>
+    <html lang="en-US">
+    <head>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1"/>
+    <title>{{persona.company.name}} &#8211; Shop</title>
+    <meta name="description" content="Shop online at {{persona.company.name}}."/>
+    <meta name="generator" content="WooCommerce {{persona.woocommerce.version}}"/>
+    <link rel="stylesheet" id="woocommerce-general-css" href="/wp-content/plugins/woocommerce/assets/css/woocommerce.css?ver={{persona.woocommerce.version}}" media="all"/>
+    <link rel="stylesheet" id="woocommerce-layout-css" href="/wp-content/plugins/woocommerce/assets/css/woocommerce-layout.css?ver={{persona.woocommerce.version}}" media="all"/>
+    <link rel="stylesheet" id="wc-blocks-style-css" href="/wp-content/plugins/woocommerce/assets/client/blocks/wc-blocks.css?ver={{persona.woocommerce.version}}" media="all"/>
+    <link rel="stylesheet" id="storefront-style-css" href="/wp-content/themes/storefront/style.css?ver=4.5.4" media="all"/>
+    <script src="/wp-content/plugins/woocommerce/assets/js/frontend/woocommerce.min.js?ver={{persona.woocommerce.version}}" defer></script>
+    </head>
+    <body class="home page-template-default page woocommerce-page woocommerce-js theme-storefront woocommerce-no-js">
+    <div id="page" class="site">
+    <header id="masthead" class="site-header"><div class="col-full"><div class="site-branding"><h1 class="site-title"><a href="https://{{persona.company.domain}}/" rel="home">{{persona.company.name}}</a></h1></div>
+    <nav class="site-navigation"><ul id="menu-primary" class="menu"><li class="menu-item"><a href="/shop/">Shop</a></li><li class="menu-item"><a href="/cart/">Cart</a></li><li class="menu-item"><a href="/my-account/">My account</a></li></ul></nav></div></header>
+    <main id="main" class="site-main">
+    <div class="woocommerce columns-3">
+    <h2 class="woocommerce-loop-heading">Shop</h2>
+    <ul class="products columns-3">
+    <li class="product"><a class="woocommerce-LoopProduct-link" href="/product/aurora-desk-lamp/"><h2 class="woocommerce-loop-product__title">Aurora Desk Lamp</h2><span class="price"><span class="woocommerce-Price-amount">&pound;29.99</span></span></a></li>
+    <li class="product"><a class="woocommerce-LoopProduct-link" href="/product/meridian-tote-bag/"><h2 class="woocommerce-loop-product__title">Meridian Tote Bag</h2><span class="price"><span class="woocommerce-Price-amount">&pound;18.50</span></span></a></li>
+    <li class="product"><a class="woocommerce-LoopProduct-link" href="/product/harbor-ceramic-mug/"><h2 class="woocommerce-loop-product__title">Harbor Ceramic Mug</h2><span class="price"><span class="woocommerce-Price-amount">&pound;12.00</span></span></a></li>
+    </ul>
+    </div>
+    </main>
+    <footer id="colophon" class="site-footer"><div class="col-full"><p>&copy; {{persona.company.name}} &#8212; powered by WooCommerce</p></div></footer>
+    </div>
+    </body>
+    </html>
+expect:
+  - 'woocommerce'
+  - 'WooCommerce'
+  - 'wc-blocks'

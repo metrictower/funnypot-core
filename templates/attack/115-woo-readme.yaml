@@ -1,0 +1,45 @@
+id: attack-woo-readme
+severity: info
+priority: 115
+tags: [attack, woocommerce, version-disclosure, readme, exposure]
+# The WooCommerce core plugin readme.txt, enriched with a persona-coherent `Stable tag:` — the version
+# a scanner reads to fingerprint the store. owns_path claims the readme path so the attack tier overrides
+# the bare bundled corpus detection on store deploys; PERSONA-GATED so on a non-store deploy the closed
+# gate falls through to that unchanged corpus detection. Version is the one seeded woocommerce.version,
+# shared with the store home + the wc-augmented index — one deploy, one version. Canned, no reflection.
+owns_path: ['/wp-content/plugins/woocommerce/readme.txt']
+persona_gate: route-woo-store
+match:
+  - in: path
+    regex: '^/wp-content/plugins/woocommerce/readme\.txt/*$'
+    ci: true
+  - in: method
+    regex: '^GET$'
+    ci: true
+status: 200
+response:
+  headers:
+    Content-Type: "text/plain; charset=utf-8"
+  body: |
+    === WooCommerce ===
+    Contributors: automattic, woocommerce, mikejolley, jameskoster, claudiosanches
+    Tags: online store, ecommerce, shop, shopping cart, sell online
+    Requires at least: 6.4
+    Tested up to: 6.5
+    Requires PHP: 7.4
+    Stable tag: {{persona.woocommerce.version}}
+    License: GPLv3
+    License URI: https://www.gnu.org/licenses/gpl-3.0.html
+
+    Everything you need to launch an online store in days and keep it growing for years. From your first sale to millions in revenue, Woo is with you.
+
+    == Description ==
+
+    WooCommerce is the open-source ecommerce platform for WordPress.
+
+    == Changelog ==
+
+    See the Releases page for the full changelog.
+expect:
+  - 'Stable tag:'
+  - 'WooCommerce'

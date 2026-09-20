@@ -13,10 +13,10 @@ return array (
     'license' => 'MIT (c) 2025 ProjectDiscovery, Inc.',
     'upstream_tag' => '2ec914123864439c3618e7e9ae72d32d0eb56df7',
     'upstream_sha' => '2ec914123864439c3618e7e9ae72d32d0eb56df7',
-    'source_tree' => 'beac2e9a03cc7200e496d36ba9e61fc170d709b9bb0ef35ef7e73b51d8841935',
+    'source_tree' => '7d9d36603592d41fe30b5c6bed56729c419253ebc0cece9e745623570987757a',
     'templates_seen' => 11196,
     'templates_in' => 6363,
-    'templates_indexed' => 6476,
+    'templates_indexed' => 6477,
     'route_keys' => 5349,
     'multi_bundle_keys' => 277,
     'largest_bundle_count' => 1324,
@@ -85027,6 +85027,19 @@ return array (
       ),
       'name' => 'Next.js App Router site',
     ),
+    'route-woo-store' => 
+    array (
+      'sev' => 'info',
+      'tags' => 
+      array (
+        0 => 'woocommerce',
+        1 => 'wordpress',
+        2 => 'ecommerce',
+        3 => 'store',
+        4 => 'discovery',
+      ),
+      'name' => 'WooCommerce storefront',
+    ),
     'route-kibana' => 
     array (
       'sev' => 'medium',
@@ -87096,6 +87109,7 @@ return array (
         1590 => 'yii-error-page',
         1591 => 'switch-protocol',
         1592 => 'route-nextjs',
+        1593 => 'route-woo-store',
       ),
       'b' => 
       array (
@@ -88729,6 +88743,27 @@ return array (
           't' => 
           array (
             0 => 'route-nextjs',
+          ),
+          'w' => 8,
+        ),
+        41 => 
+        array (
+          's' => 200,
+          'bw' => 
+          array (
+            0 => 'woocommerce',
+            1 => 'WooCommerce',
+          ),
+          'nf' => 
+          array (
+          ),
+          'pid' => 'route-woo-store',
+          'sev' => 'info',
+          'sig' => 1,
+          'amb' => 0,
+          't' => 
+          array (
+            0 => 'route-woo-store',
           ),
           'w' => 8,
         ),

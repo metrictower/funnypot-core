@@ -1,0 +1,28 @@
+id: attack-woo-wc-v3-cannot-view
+severity: info
+# Priority 114. Greenfield wc/v3 management paths, reached on the linear attack scan.
+priority: 114
+tags: [attack, woocommerce, rest-api, auth-required]
+# The REAL unauthenticated response of the WooCommerce management REST API (wc/v3, wc/v2, the legacy
+# /wc-api alias): HTTP 401 `woocommerce_rest_cannot_view`. This is exactly what a real store returns to
+# an anonymous caller, and the 401 + the `woocommerce_rest_cannot_view` code themselves confirm
+# WooCommerce to a scanner — so no PII is served here (real WC never leaks customers/orders unauthed;
+# the PII decoys ride the two CVE shapes instead). PERSONA-GATED to store deploys; a closed gate falls
+# through to the app's plain 404. Canned body, no reflection. Mirrors the shipped 354 wp/v2/settings 401.
+persona_gate: route-woo-store
+match:
+  - in: path
+    regex: '^/(?:wp-json/wc/v3/(?:customers|orders|coupons|system-status)|wp-json/wc/v2/orders|wc-api/v3/orders)/?$'
+    ci: true
+  - in: method
+    regex: '^GET$'
+    ci: true
+status: 401
+response:
+  headers:
+    Content-Type: "application/json"
+  body: |
+    {"code":"woocommerce_rest_cannot_view","message":"Sorry, you cannot list resources.","data":{"status":401}}
+expect:
+  - '"woocommerce_rest_cannot_view"'
+  - '"status":401'

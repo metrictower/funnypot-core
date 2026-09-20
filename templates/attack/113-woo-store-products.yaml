@@ -1,0 +1,35 @@
+id: attack-woo-store-products
+severity: info
+# Priority 113. Greenfield path (no exact-store entry), so it is reached on the linear attack scan.
+priority: 113
+tags: [attack, woocommerce, store-api, products, discovery]
+# The genuinely PUBLIC WooCommerce Store API products list — the block-storefront surface that IS
+# unauthenticated by design. PERSONA-GATED (persona_gate: route-woo-store) so it fires only on store
+# deploys; a closed gate falls through to the app's plain 404 (this path has no base route to serve).
+#
+# Store API restraint: products expose NO customer/order PII — real wc/store/v1 never does. Every value
+# is a canned, seed-stable {{persona.*}} value; no request byte is reflected. Prices are decimal-minor
+# strings the way the Store API emits them (currency_minor_unit=2), kept small so no total can form the
+# denied bare 6-digit run.
+persona_gate: route-woo-store
+match:
+  - in: path
+    regex: '^/wp-json/wc/store/v1/products/?$'
+    ci: true
+  - in: method
+    regex: '^GET$'
+    ci: true
+status: 200
+response:
+  headers:
+    Content-Type: "application/json"
+  body: |
+    [
+    {"id":14,"name":"Aurora Desk Lamp","slug":"aurora-desk-lamp","permalink":"https://{{persona.company.domain}}/product/aurora-desk-lamp/","type":"simple","short_description":"<p>Warm LED desk lamp with a brushed-aluminium arm.</p>","prices":{"price":"2999","regular_price":"2999","sale_price":"2999","currency_code":"GBP","currency_symbol":"£","currency_minor_unit":2,"currency_decimal_separator":".","currency_thousand_separator":","},"images":[{"id":31,"src":"https://{{persona.company.domain}}/wp-content/uploads/aurora-desk-lamp.jpg","name":"aurora-desk-lamp","alt":"Aurora Desk Lamp"}],"is_in_stock":true},
+    {"id":15,"name":"Meridian Tote Bag","slug":"meridian-tote-bag","permalink":"https://{{persona.company.domain}}/product/meridian-tote-bag/","type":"simple","short_description":"<p>Heavy canvas tote with an interior pocket.</p>","prices":{"price":"1850","regular_price":"1850","sale_price":"1850","currency_code":"GBP","currency_symbol":"£","currency_minor_unit":2,"currency_decimal_separator":".","currency_thousand_separator":","},"images":[{"id":32,"src":"https://{{persona.company.domain}}/wp-content/uploads/meridian-tote-bag.jpg","name":"meridian-tote-bag","alt":"Meridian Tote Bag"}],"is_in_stock":true},
+    {"id":16,"name":"Harbor Ceramic Mug","slug":"harbor-ceramic-mug","permalink":"https://{{persona.company.domain}}/product/harbor-ceramic-mug/","type":"simple","short_description":"<p>Stoneware mug, 350ml, dishwasher safe.</p>","prices":{"price":"1200","regular_price":"1200","sale_price":"1200","currency_code":"GBP","currency_symbol":"£","currency_minor_unit":2,"currency_decimal_separator":".","currency_thousand_separator":","},"images":[{"id":33,"src":"https://{{persona.company.domain}}/wp-content/uploads/harbor-ceramic-mug.jpg","name":"harbor-ceramic-mug","alt":"Harbor Ceramic Mug"}],"is_in_stock":true}
+    ]
+expect:
+  - '"prices":'
+  - '"currency_code":"GBP"'
+  - '"permalink":'
