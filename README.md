@@ -469,6 +469,13 @@ so a deploy step can gate on it:
 php vendor/metrictower/funnypot-core/bin/funnypot doctor
 ```
 
+This direct installed-package command loads the consuming project's Composer autoloader; replace
+`vendor` with your custom vendor-directory name if configured. In a development checkout use
+`php bin/funnypot doctor` after the package's own `composer install`. No `vendor/bin/funnypot` proxy
+is declared by this package. An explicit Composer wrapper can supply `$_composer_autoload_path`;
+otherwise only the package-local or conventional `metrictower/funnypot-core` install layout is used,
+never an autoloader discovered from your current working directory or arbitrary ancestors.
+
 ```
 index shared : yes
 reason       : interned into opcache shared memory
