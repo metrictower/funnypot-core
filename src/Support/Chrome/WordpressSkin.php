@@ -2,6 +2,7 @@
 declare(strict_types=1);
 namespace Funnypot\Core\Support\Chrome;
 
+use Funnypot\Core\Support\SeededIndex;
 use Funnypot\Core\Support\VisualPersona;
 
 /**
@@ -151,6 +152,55 @@ final class WordpressSkin extends AbstractSkin
                 . $this->wpMarkers($persona),
             ' class="wp-admin wp-core-ui"'
         );
+    }
+
+    /**
+     * The login page carrying a "too many failed attempts" lockout notice — a NEW public method for
+     * the same reason renderAdmin() is separate: the LLM-tier skin router calls render() for every
+     * wp-* path, so branching render() would silently move that output. A stateful consumer (the
+     * plugin, counting per-IP login failures) chooses to call this in place of the normal login
+     * response once a threshold is crossed; core stays stateless and never counts or blocks.
+     *
+     * Byte-coherent with render() by construction: it does NOT reassemble the login card. It builds a
+     * fresh PageSlots (PageSlots is immutable) carrying the caller's login-card slots plus the lockout
+     * notice in the heading slot — heading wins render()'s notice slot (WordpressSkin::render()) — then
+     * delegates to render(). So the lockout page is the login page with only the #login_error text
+     * changed; the sole novelty is lockoutNotice().
+     *
+     * The notice is generic re-derived defender copy (learn-not-vendor) at HTTP 200: no lockout status,
+     * no live countdown, no plugin-specific markup or ids. $countdownSeed is the per-request (per-IP)
+     * render seed the consumer already computes, so the "N minutes" is deterministic per attacker and
+     * stable on re-scan without any time or state read. $taunt swaps to a taunting-but-plausible
+     * variant for the taunt response mode. Inert: the notice is skin-authored literal text routed
+     * through render()'s esc(); nothing attacker-controlled is reflected.
+     */
+    public function renderLockout(PageSlots $slots, VisualPersona $persona, string $escapedPath, int $countdownSeed, bool $taunt = false, string $path = ''): string
+    {
+        $lockoutSlots = PageSlots::fromArray([
+            'app_name' => $slots->appName(),
+            'heading' => $this->lockoutNotice($countdownSeed, $taunt),
+            'intro' => $slots->intro(),
+            'footer_note' => $slots->footerNote(),
+        ]);
+
+        return $this->render($lockoutSlots, $persona, $escapedPath, $path);
+    }
+
+    /**
+     * The generic lockout wording plus a plausible "N minutes", deterministic from the seed alone.
+     * The minute list is small 1-2 digit integers (never a six-digit CRS rule id), keyed with a
+     * distinct material tag so the pick never correlates with other seeded picks on the page.
+     */
+    private function lockoutNotice(int $countdownSeed, bool $taunt): string
+    {
+        $minutes = [5, 7, 9, 11, 13, 15, 17, 19, 23];
+        $n = $minutes[SeededIndex::pick((string) $countdownSeed . '|wp_lockout|minutes', count($minutes))];
+
+        if ($taunt) {
+            return 'Nice try. Too many failed login attempts from your address — please wait ' . $n . ' minutes before trying again.';
+        }
+
+        return 'Too many failed login attempts. Please try again in ' . $n . ' minutes.';
     }
 
     /** wp-admin-flavoured chrome CSS: a top admin bar, a dark left menu column, and card `postbox`
