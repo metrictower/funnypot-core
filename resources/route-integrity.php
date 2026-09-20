@@ -118,5 +118,26 @@ return array(
             'path' => '/wp-json/eventin/v2/speakers/import',
             'reason' => 'owns_path override of the Eventin CVE-2025-47539 detection stub: adds the inert "Successfully imported speaker" 200 JSON the corpus has no page for; classification is unchanged, only the response is new',
         ),
+        // FP-0394: the /?feed=rss2 responder and the Next.js RSC responder both own '/', so the lint
+        // sees a same-tier collision. They are mutually exclusive by query (feed=rss2 vs _rsc=) and a
+        // plain GET / matches neither, so matchRule (first full match wins) never double-serves. The
+        // manifest cannot prove the query disambiguation, so the overlap is accepted here.
+        array(
+            'check' => 'collision',
+            'a' => 'attack-wp-feed-rss2',
+            'b' => 'attack-nextjs-rsc',
+            'path' => '/',
+            'reason' => 'both own / but are mutually exclusive by query (feed=rss2 vs _rsc=); a plain GET / matches neither, so matchRule never double-serves — the manifest cannot prove the query gate',
+        ),
+        // FP-0394: the install decoy links its versioned install.min.css — the version_by_css
+        // disclosure channel a core fingerprinter READS the version from, not one it fetches. The
+        // href is root-absolute (correct, base-independent shape); the honeypot serves no such asset
+        // so a follow-up GET 404s, as with the other login-decoy asset links above.
+        array(
+            'check' => 'dangling',
+            'a' => 'attack-wp-install',
+            'path' => '/wp-admin/css/install.min.css',
+            'reason' => 'root-absolute versioned asset href — the version_by_css disclosure channel a scanner reads the version from; the honeypot serves no such asset so a follow-up GET 404s — correct link shape, owning the asset would be a separate decoy',
+        ),
     ),
 );

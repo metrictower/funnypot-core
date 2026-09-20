@@ -1,0 +1,59 @@
+id: attack-wp-feed-rss2
+severity: info
+# Priority 14: a free low slot that sorts ahead of the broad `in: request` archetypes (44-65). owns /.
+priority: 14
+tags: [wordpress, feed, rss, version-disclosure, exposure]
+# `exposure` is a route-integrity intent tag: it declares this owns_path ['/'] rule a deliberate
+# override of the static GET / lottery (same posture as 106-nextjs-rsc), not a silent shadow.
+# WordPress /?feed=rss2 RSS responder (version disclosure) — the query-parameter feed URL a core
+# fingerprinter hits alongside /feed/. Has no store bundle of its own (a query on /, and resolveEntry is
+# path-keyed), so it must be attack-tier. Copies the RSC responder's shape (owns_path ['/'] + a query
+# gate that declines a plain GET /) but is UNCONDITIONAL — NO persona_gate.
+#
+# Why no persona_gate: after this ticket there are TWO WordPress `/` personas — the corpus's existing
+# `wordpress` variant (w=100) and the new `route-wordpress` new_page (w=8). personaGateAllows() compares
+# the served-`/` pick's pid to a SINGLE persona_gate string, so no gate value can express
+# "wordpress OR route-wordpress"; v1's `persona_gate: route-wordpress` declined exactly on the dominant
+# existing-`wordpress` deploys. The correct union is no gate on a rule whose OWN match already declines
+# the non-WP request shape: the AND-list requires feed=rss2, so a plain GET / matches neither this rule
+# nor 106-nextjs-rsc (_rsc=) ⇒ matchRule returns null ⇒ the root-entry exemption sends `/` to the persona
+# lottery, untouched. Only a /?feed=rss2 probe is served, matching the fleet-wide dedicated-path WP claim.
+#
+# Inert: identical RSS body to 109-wp-feed; the feed=rss2 value is a match gate, never reflected. Gated by
+# attackEmulation (off by default; on in prod/harness).
+owns_path: ['/']
+match:
+  - in: path
+    regex: '^/$'
+    ci: false
+  - in: query
+    regex: '(^|&)feed=rss2'
+    ci: false
+  - in: method
+    regex: '^GET$'
+    ci: false
+status: 200
+response:
+  headers:
+    Content-Type: "application/rss+xml; charset=UTF-8"
+  body: |
+    <?xml version="1.0" encoding="UTF-8"?>
+    <rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+    <channel>
+    <title>{{persona.company.name}}</title>
+    <atom:link href="https://{{persona.company.domain}}/feed/" rel="self" type="application/rss+xml" />
+    <link>https://{{persona.company.domain}}</link>
+    <description>Just another WordPress site</description>
+    <language>en-US</language>
+    <generator>https://wordpress.org/?v={{persona.wordpress.version}}</generator>
+    <item>
+    <title>Hello world!</title>
+    <link>https://{{persona.company.domain}}/hello-world/</link>
+    <guid isPermaLink="false">https://{{persona.company.domain}}/?p=1</guid>
+    <description>Welcome to WordPress.</description>
+    </item>
+    </channel>
+    </rss>
+expect:
+  - 'https://wordpress.org/?v='
+  - '<generator>https://wordpress.org/?v='

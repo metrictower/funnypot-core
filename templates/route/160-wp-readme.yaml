@@ -1,6 +1,8 @@
 id: route-wp-readme
 priority: 160
 # WordPress readme.html (version disclosure) — dresses the wordpress-readme-file bundle.
+# Renders the single deploy-stable {{persona.wordpress.version}} so this channel agrees with every
+# other WP version-disclosure surface (feed/opml/install/homepage) on one host.
 match:
   template_needle: [wordpress-readme-file]
 response:
@@ -11,7 +13,7 @@ response:
     <html><head><title>WordPress &#8250; ReadMe</title></head>
     <body>
     <h1 id="logo">WordPress</h1>
-    <p>Version {{pick:6.4.2,6.3.1,5.9.3,6.2.2}}</p>
+    <p>Version {{persona.wordpress.version}}</p>
     <h2>Installation</h2>
     <p>Famous 5-minute install.</p>
     </body></html>

@@ -1,0 +1,52 @@
+id: route-wordpress
+priority: 368
+# WordPress front-page shell — a persona-selectable root that carries the homepage core-version markers a
+# WP fingerprinter reads at `/`: the generator meta and the versioned wp-emoji-release.min.js asset link,
+# both rendered from the single deploy-stable {{persona.wordpress.version}} so `/` agrees with the
+# readme/opml/feed/install channels.
+#
+# id MUST be `route-wordpress` (the `route-*` convention): RouteBundleSynth sets pid=id verbatim, and
+# candidates() keeps route-* pids even when nucleiReflection is off. sig: 1 keeps `GET /` an all-sig=1
+# root/homepage entry, so folding this bundle never flips the homepage's classification.
+#
+# This ADDS a coherent WP homepage variant to the `GET /` lottery ALONGSIDE the corpus's existing
+# degenerate `wordpress` `/` variant (w=100, a compiled fold of real WP-detection templates that cannot
+# be hand-repointed). merge-routes forces this fold to the fleet-fixed capped-key tier (w=8), so a plain
+# GET / lands on it only on the minority of deploys the lottery assigns to it; on the dominant existing-
+# `wordpress` slice the homepage stays degenerate (a bounded non-disclosure, never a conflicting version —
+# the degenerate generator does not match the ?v= extractor). No POST/cred handling; every dynamic byte
+# is a seeded {{persona.*}}.
+new_page:
+  method: GET
+  paths: ['/']
+  sig: 1
+  status: 200
+  severity: info
+  tags: [wordpress, cms, discovery]
+  name: 'WordPress site'
+  body_words: ['<meta name="generator" content="WordPress', 'wp-emoji-release.min.js']
+response:
+  headers:
+    Content-Type: "text/html; charset=UTF-8"
+    Link: '</wp-json/>; rel="https://api.w.org/"'
+  body: |
+    <!DOCTYPE html>
+    <html lang="en-US">
+    <head>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1"/>
+    <meta name="generator" content="WordPress {{persona.wordpress.version}}" />
+    <title>{{persona.company.name}}</title>
+    <link rel="stylesheet" href="/wp-content/themes/{{persona.wordpress.theme}}/style.css?ver={{persona.wordpress.version}}" media="all"/>
+    <script src="/wp-includes/js/wp-emoji-release.min.js?ver={{persona.wordpress.version}}" defer></script>
+    </head>
+    <body class="home blog">
+    <header><h1>{{persona.company.name}}</h1></header>
+    <main>
+    <article><h2>Welcome to {{persona.company.domain}}</h2><p>Just another WordPress site.</p></article>
+    </main>
+    </body>
+    </html>
+expect:
+  - '<meta name="generator" content="WordPress'
+  - 'wp-emoji-release.min.js'

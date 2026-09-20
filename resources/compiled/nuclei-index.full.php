@@ -13,10 +13,10 @@ return array (
     'license' => 'MIT (c) 2025 ProjectDiscovery, Inc.',
     'upstream_tag' => '2ec914123864439c3618e7e9ae72d32d0eb56df7',
     'upstream_sha' => '2ec914123864439c3618e7e9ae72d32d0eb56df7',
-    'source_tree' => '98333272f07e52073b3c3aa8ca9e54d5f13817ac175974604643516d67922355',
+    'source_tree' => 'dbcaf8d0a429e0b9056b87cb0a0da2f5de079cd8a7f746cb7f73e4993ffe1f0d',
     'templates_seen' => 11196,
     'templates_in' => 6363,
-    'templates_indexed' => 6488,
+    'templates_indexed' => 6489,
     'route_keys' => 5353,
     'multi_bundle_keys' => 277,
     'largest_bundle_count' => 1324,
@@ -85159,6 +85159,17 @@ return array (
       ),
       'name' => 'Next.js App Router site',
     ),
+    'route-wordpress' => 
+    array (
+      'sev' => 'info',
+      'tags' => 
+      array (
+        0 => 'wordpress',
+        1 => 'cms',
+        2 => 'discovery',
+      ),
+      'name' => 'WordPress site',
+    ),
     'route-kibana' => 
     array (
       'sev' => 'medium',
@@ -87228,6 +87239,7 @@ return array (
         1590 => 'yii-error-page',
         1591 => 'switch-protocol',
         1592 => 'route-nextjs',
+        1593 => 'route-wordpress',
       ),
       'b' => 
       array (
@@ -88861,6 +88873,27 @@ return array (
           't' => 
           array (
             0 => 'route-nextjs',
+          ),
+          'w' => 8,
+        ),
+        41 => 
+        array (
+          's' => 200,
+          'bw' => 
+          array (
+            0 => '<meta name="generator" content="WordPress',
+            1 => 'wp-emoji-release.min.js',
+          ),
+          'nf' => 
+          array (
+          ),
+          'pid' => 'route-wordpress',
+          'sev' => 'info',
+          'sig' => 1,
+          'amb' => 0,
+          't' => 
+          array (
+            0 => 'route-wordpress',
           ),
           'w' => 8,
         ),

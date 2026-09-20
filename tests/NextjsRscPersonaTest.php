@@ -199,17 +199,21 @@ final class NextjsRscPersonaTest extends TestCase
 
     public function test_c_gate_coheres_under_nuclei_reflection_off(): void
     {
-        // nucleiReflection:false drops every non-route-* bundle, so the ONLY GET / candidate is
-        // route-nextjs ⇒ served `/` is nextjs for every seed. A raw-set gate would still pick over all
-        // 41 bundles and mostly say "not nextjs" (the false-CLOSE dual leak). Our gate uses the same
-        // filtered candidates ⇒ OPEN for every seed. raw != filtered here too.
+        // nucleiReflection:false drops every non-route-* bundle, so the only GET / candidates are the
+        // route-* homepages (route-nextjs and, since FP-0394, route-wordpress). A raw-set gate would
+        // still pick over all bundles and mostly say "not nextjs" (the false-CLOSE dual leak); our gate
+        // uses the same filtered candidates, so gate-open ⟺ served-nextjs holds. raw != filtered here too.
+        $servedNextCount = 0;
         for ($s = 0; $s <= 60; $s++) {
             $e = $this->engine((string) $s, [], false);
-            self::assertTrue($this->servedNextjs($e), "seed {$s}: only route-* survives, served must be nextjs");
+            $servedNext = $this->servedNextjs($e);
+            $servedNextCount += $servedNext ? 1 : 0;
             $flight = $this->engine((string) $s, [], false)->respond($this->rscReq());
-            self::assertNotNull($flight, "seed {$s}: gate must be OPEN (no false-close)");
-            self::assertSame('text/x-component', $flight->headers['Content-Type'] ?? null);
+            $gateOpen = $flight !== null && ($flight->headers['Content-Type'] ?? null) === 'text/x-component';
+            self::assertSame($servedNext, $gateOpen, "seed {$s}: gate-open must equal served-nextjs (nuclei-reflection-off cfg)");
         }
+        // The route-* filtered set still serves nextjs on some seeds, so the OPEN branch is exercised.
+        self::assertGreaterThan(0, $servedNextCount, 'no seed served route-nextjs under nuclei-reflection-off — the OPEN branch is untested');
     }
 
     public function test_c_plain_get_root_declines_to_the_lottery_not_the_rsc(): void

@@ -1,0 +1,29 @@
+id: route-wp-links-opml
+priority: 161
+# WordPress /wp-links-opml.php (version disclosure) — dresses the wp-links-opml bundle, which otherwise
+# minimal-synths to the bare witness words with no version. route_key-guarded so it dresses only its own
+# path. The OPML head comment carries generator="WordPress/<v>", the version_by_generator-style channel a
+# core fingerprinter reads here. Renders the one deploy-stable {{persona.wordpress.version}} so it agrees
+# with the readme/feed/install/homepage surfaces. No rx on the bundle ⇒ the route template renders (no
+# richBodyFitsExtras gate). Unconditional: this is a dedicated WP path served fleet-wide today, so
+# disclosing the real version is a strict improvement on every deploy.
+match:
+  template_needle: [wp-links-opml]
+  route_key: ['GET /wp-links-opml.php']
+response:
+  headers:
+    Content-Type: "text/xml; charset=UTF-8"
+  body: |
+    <?xml version="1.0"?>
+    <!-- generator="WordPress/{{persona.wordpress.version}}" created="2024-01-01T12:00:00Z" -->
+    <opml version="1.0">
+    <head>
+    <title>Links for {{persona.company.name}}</title>
+    <dateCreated>Mon, 01 Jan 2024 12:00:00 GMT</dateCreated>
+    </head>
+    <body>
+    </body>
+    </opml>
+expect:
+  - 'generator="WordPress/'
+  - 'WordPress/'
