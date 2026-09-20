@@ -1,0 +1,30 @@
+id: attack-eventin-speakers-import
+severity: critical
+# Priority 36 — MUST stay < 40 for the same reason as 35-wp-admin-ajax.yaml: a multipart CSV import
+# body can carry shell-metachar/recon tokens that the cmdi rules (40/41, `in: request`) would match
+# first at any priority >= 40. 36 sorts ahead of both cmdi rules and never collides with 35 (distinct
+# owned path). A later bump to >= 40 silently re-breaks this decoy — do not move it.
+priority: 36
+tags: [attack, wordpress, eventin, privilege-escalation, csv-import]
+owns_path: [/wp-json/eventin/v2/speakers/import]
+# Eventin <= 4.0.26 unauthenticated privilege escalation (CVE-2025-47539): the speaker CSV import
+# route misses a capability check, so a CSV row with role=administrator creates an admin. This decoy
+# emulates only the believable INERT success envelope the exploit tool confirms on — HTTP 200 JSON
+# containing "Successfully imported speaker" (the plugin's genuine message; also the detection witness
+# in nuclei-index.full.php). INERT: nothing is imported and no user is created; the body is fully
+# canned/synthetic and reflects nothing attacker-supplied. Gated to POST — any other verb declines and
+# falls through unchanged.
+#
+# PATH MATCH stays as permissive as owns_path (ci + tolerant of trailing slashes) — see 97-wp-login.yaml.
+match:
+  - in: path
+    regex: '(?:^|/)wp-json/eventin/v2/speakers/import(?:/|$)'
+    ci: true
+  - in: method
+    regex: '^POST$'
+    ci: true
+status: 200
+response:
+  headers: { Content-Type: "application/json; charset=UTF-8" }
+  body: '{"success":true,"message":"Successfully imported speaker","data":{"imported":1,"failed":0}}'
+expect: ['Successfully imported speaker']

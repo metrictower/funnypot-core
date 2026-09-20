@@ -1,0 +1,98 @@
+id: attack-wp-admin-ajax
+severity: critical
+# Priority 35 — MUST stay < 40. Runtime is first-match-wins in _priority-then-id array order
+# (TemplateAttackEmulator::matchRule), and owns_path does NOT reorder the scan — it only lets
+# classify() override the static exact-store. Rules 40 (attack-cmdi-windows) and 41
+# (attack-cmdi-unix) match `in: request` on shell-metachar recon tokens (`;id`/`whoami`/`uname`/
+# `&pwd`). A real nf_fu_upload is a MULTIPART webshell payload that routinely carries those exact
+# tokens, and a change_password_ajax body carries `&pwd=`, so at any priority >= 40 the cmdi rules
+# would shadow this one on precisely the requests it exists to answer. 35 sorts ahead of both.
+# A later bump to >= 40 silently re-breaks the upload/change-password branches — do not move it.
+# It intentionally sits ABOVE the 21-31 LFI classifiers (same accepted trade-off as 97-wp-login/39):
+# an upload body literally carrying `/etc/passwd`/`id_rsa` is an LFI-shaped payload and legitimately
+# classifies as LFI; dropping below 21 would preempt genuine LFI classification, which is worse.
+priority: 35
+tags: [attack, wordpress, admin-ajax, file-upload, privilege-escalation]
+owns_path: [/wp-admin/admin-ajax.php]
+# Request-aware WordPress admin-ajax.php — POST body dispatch on the plugin `action`. Emulates the
+# believable INERT plugin JSON for the mass-exploited actions Mephisto-class scanners drive:
+#   - Ninja Forms File Uploads nonce + upload (CVE-2026-0740)
+#   - iSnapshot Restore/Migrate upload (CVE-2024-56064)
+#   - LaStudioKit unauth admin registration (CVE-2026-0920)
+#   - user password-reset AJAX (CVE-2025-4606)
+#
+# DECLINE-BY-GATE: the top-level `in: body` condition is the union of exactly the actions handled
+# below, so any OTHER admin-ajax request (an unknown/benign `action`) fails the match and falls
+# through unchanged to the rest of the scan — this rule never claims generic admin-ajax traffic.
+# Because the gate == the branch cases, a matched request always reaches a case; the base `response`
+# (WordPress's authentic `die('0')` for an unhandled action) is a defensive fallback only.
+#
+# ZERO REFLECTION / FULLY CANNED: no `{{json:}}` escaper exists, so nothing attacker-supplied is
+# woven into these JSON bodies. The nonce/id fields are synthetic seeded `{{fake.*}}` values, never a
+# fixed fleet constant and never a scanner signature. INERT: nothing is uploaded, executed, or
+# stored, and no user is created — the cross-request upload-quarantine + reflect-own-bytes half is a
+# separate stateful app follow-on (FP-0496), not this stateless-core rule.
+#
+# PATH/METHOD MATCH stays as permissive as owns_path (ownershipKey lower-cases + strips ALL trailing
+# slashes), so the path regex is ci + tolerant of any trailing-slash count — see 97-wp-login.yaml.
+match:
+  - in: path
+    regex: '(?:^|/)wp-admin/admin-ajax\.php(?:/|$)'
+    ci: true
+  - in: method
+    regex: '^POST$'
+    ci: true
+  - in: body
+    # Gate == union of the handled actions. An unknown action never matches, so the rule declines
+    # (falls through) rather than answering unrelated admin-ajax traffic. Matched literally against
+    # the raw body, so it catches both urlencoded `action=nf_fu_upload` and the multipart part shape
+    # `name="action"\r\n\r\nnf_fu_upload` (the token itself is distinctive either way).
+    regex: '(?:nf_fu_get_new_nonce|ninja_forms_upload_nonce|get_ninja_nonce|nf_fu_upload|ibk_restore_migrate_action|lakit_ajax|change_password_ajax)'
+    ci: false
+status: 200
+behavior: branch
+branch:
+  cases:
+    # Ninja Forms File Uploads — nonce hand-out. Real plugin: {"success":true,"data":{"nonce":"<10>"}}.
+    # The nonce is a synthetic seeded hex value (plausible WP 10-char nonce shape), never a constant.
+    - when: { in: body, regex: '(?:nf_fu_get_new_nonce|ninja_forms_upload_nonce|get_ninja_nonce)', ci: false }
+      response:
+        status: 200
+        headers: { Content-Type: "application/json; charset=UTF-8" }
+        body: '{"success":true,"data":{"nonce":"{{fake.nffu_nonce:hex:10}}"}}'
+    # Ninja Forms File Uploads — upload accept (multipart). Plausible uploads-success shape; echoes
+    # NO attacker filename or bytes. Request-blind accept: core stores nothing (32 KB body cap), so
+    # the later reflect-own-bytes GET is the app follow-on (FP-0496), not here.
+    - when: { in: body, regex: 'nf_fu_upload', ci: false }
+      response:
+        status: 200
+        headers: { Content-Type: "application/json; charset=UTF-8" }
+        body: '{"success":true,"data":{"upload_id":"{{fake.nffu_uid:hex:12}}","new_user_filename":"{{fake.nffu_name:hex:16}}"}}'
+    # iSnapshot Restore/Migrate — upload accept (multipart, `ibk_restore_migrate_action`). Request-
+    # blind plausible accept; nothing stored or executed.
+    - when: { in: body, regex: 'ibk_restore_migrate_action', ci: false }
+      response:
+        status: 200
+        headers: { Content-Type: "application/json; charset=UTF-8" }
+        body: '{"success":true,"data":{"message":"Migration package processed."}}'
+    # LaStudioKit — unauth admin registration dispatcher. Real plugin answers a successful register
+    # with {"success":true,"message":"created successfully"}. INERT: no user is created; the existing
+    # 97-wp-login.yaml mock-auth mint already lets any plausible credential "log in" for v1.
+    - when: { in: body, regex: 'lakit_ajax', ci: false }
+      response:
+        status: 200
+        headers: { Content-Type: "application/json; charset=UTF-8" }
+        body: '{"success":true,"message":"created successfully"}'
+    # User password-reset AJAX (CVE-2025-4606). Real plugin: {"success":true,"message":"Please, re-login!"}.
+    # INERT: no password is changed; the target username/new password are never read or reflected.
+    - when: { in: body, regex: 'change_password_ajax', ci: false }
+      response:
+        status: 200
+        headers: { Content-Type: "application/json; charset=UTF-8" }
+        body: '{"success":true,"message":"Please, re-login!"}'
+# Base response = WordPress's authentic admin-ajax "no handler" output: die('0'), HTTP 200,
+# text/html. Effectively unreachable (the top-level gate == the branch cases), so it only guards the
+# theoretical no-case-fired path — never a 5xx, never an empty tell.
+response:
+  headers: { Content-Type: "text/html; charset=UTF-8" }
+  body: "0"
