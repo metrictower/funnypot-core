@@ -1,0 +1,62 @@
+id: attack-wp-batch-v1
+severity: high
+# Priority 32: the first free slot after the WP/xmlrpc (26/27) + LFI (28-31) cluster, and — load-
+# bearing — it sorts BEFORE the broad `in: request` archetypes (43-65: SSTI/XSS/SQLi). matchRule()
+# returns the first rule in priority order whose match holds, and the query-form surface fires
+# through the owns_path override scan (below), so this rule must be reached before any broad
+# archetype could pre-empt on the batch JSON body. Do not push it past 42.
+priority: 32
+# `exposure` is the RouteIntegrity intent tag that declares this owns-`/` override deliberate (same
+# marker 106-nextjs-rsc carries) — without it the shadow check FAILs the cross-family mask of GET /.
+tags: [attack, wordpress, rest, batch, exposure]
+# WordPress Core REST batch-router desynchronization decoy (CVE-2026-63030, "wp2shell"). A scanner
+# posts a batch envelope to /wp-json/batch/v1 (or the ?rest_route=/batch/v1 query alias) whose first
+# sub-request path is malformed to desync the batch handler; a vulnerable core leaks a 207 Multi-
+# Status body carrying block_cannot_read while omitting rest_term_invalid. This decoy presents that
+# exact confirmation shape so the scanner "confirms" a target that is not real.
+#
+# TWO SURFACES, TWO ENGINE SITES:
+#   - Canonical POST /wp-json/batch/v1 is a store MISS (no corpus entry) → fires via the linear
+#     attack scan after resolveEntry() returns null. It needs NO owns_path (nothing static to
+#     override at that path).
+#   - Query alias POST /?rest_route=/batch/v1 has request path `/`, which resolveEntry() falls
+#     POST→GET onto the live `GET /` homepage entry → the classify() owns_path override site runs
+#     ONLY because this rule claims `/`. Hence owns_path: ['/']. This joins the existing owns-`/`
+#     claimant (106-nextjs-rsc); the two never match each other's probe.
+#
+# The decline gate MUST live in the top-level `match` (not a branch default): once matchRule()
+# returns a rule, classify() commits ATTACK_CLASS before any branch render, so a branch fallback
+# cannot decline. A plain `GET /` or a non-batch `POST /` fails the match below → matchRule returns
+# null → the root-entry exemption (Honeypot.php isRootEntry) lets the homepage lottery serve
+# untouched. Same shape as 106-nextjs-rsc.yaml.
+#
+# INERT / NO-DISPATCH (SSRF-safe): the requests[].path values are attacker-controlled and SSRF-
+# shaped ("http://:"). This rule serves a SINGLE static authored Multi-Status envelope — it never
+# parses, resolves, fetches, loops, or reflects any sub-request path/method/header/body. No HTTP or
+# socket primitive on the render path; the response is byte-identical regardless of the payload.
+#
+# MATCH: evalConditions ANDs every top-level clause, so the two surfaces cannot be expressed as
+# separate in:path / in:query clauses (they would AND and never match). One `in: request`
+# alternation over BoundedInspection::requestSubject (path + ' ' + query + ' ' + clipped body)
+# spans both forms: the batch discriminator (path or query) always precedes "requests" (body) in
+# the subject, so the dotall `.*?"requests"` bridges them. The ^POST$ method clause declines GET.
+match:
+  - in: method
+    regex: '^POST$'
+    ci: false
+  - in: request
+    regex: '(?:wp-json/batch/v1|rest_route=/?batch/v1).*?"requests"'
+    dotall: true
+    ci: false
+owns_path: ['/']
+status: 207
+# Content-Type mirrors the request's application/json (a mismatch would be a tell). The witness
+# codes are genuine WordPress REST error keys (facts, not scanner signatures): the body MUST carry
+# block_cannot_read and MUST NOT carry rest_term_invalid to satisfy the scanner predicate
+# (?s)(?=.*block_cannot_read)(?!.*rest_term_invalid). Single-quoted flow scalar so no trailing
+# newline alters the served bytes; compact JSON matches real WP batch output.
+response:
+  headers:
+    Content-Type: "application/json; charset=UTF-8"
+  body: '{"responses":[{"status":400,"body":{"code":"rest_invalid_url","message":"Invalid URL.","data":{"status":400}}},{"status":400,"body":{"code":"rest_no_route","message":"No route was found matching the URL and request method.","data":{"status":400}}},{"status":403,"body":{"code":"block_cannot_read","message":"Sorry, you are not allowed to read blocks of this post.","data":{"status":403}}}]}'
+expect: ['block_cannot_read', 'responses']
