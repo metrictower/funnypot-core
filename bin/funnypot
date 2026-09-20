@@ -24,6 +24,7 @@ use Funnypot\Core\Compiler\RouteIndexFold;
 use Funnypot\Core\Compiler\SourceTreeStamp;
 use Funnypot\Core\Compiler\TemplateGlob;
 use Funnypot\Core\Manifest\ManifestBuilder;
+use Funnypot\Core\Manifest\MapRenderer;
 use Funnypot\Core\Manifest\RouteIntegrity;
 use Symfony\Component\Yaml\Yaml;
 
@@ -406,6 +407,10 @@ if ($command === 'build-manifest') {
     exit(runBuildManifest($root, $argvv));
 }
 
+if ($command === 'map') {
+    exit(runMap($root, $argvv));
+}
+
 if ($command === 'lint-routes') {
     // Route-integrity gate: build the manifest in-memory, run the collision / shadow / dangling-link
     // checks against it under resources/route-integrity.php, print the findings, and exit non-zero on
@@ -551,7 +556,8 @@ fwrite(STDERR, "       funnypot compile-params [<param-template-dir>] [--out=PAT
 fwrite(STDERR, "       funnypot merge-routes [<index>] [--fragment=PATH] [--out=PATH]\n");
 fwrite(STDERR, "       funnypot compile-crs <coreruleset-rules-dir> [--out=PATH] [--pl=N]\n");
 fwrite(STDERR, "       funnypot build-manifest [--out=PATH]  (derive the two-band decoy registry)\n");
-fwrite(STDERR, "       funnypot build  (in-repo compile DAG: compile-ai->emulators->routes->params->merge-routes->build-manifest)\n");
+fwrite(STDERR, "       funnypot map [--format=md|mermaid] [--family=NAME]  (decoy map: no args = write docs/DECOY-MAP.md + README block; any option = stdout preview)\n");
+fwrite(STDERR, "       funnypot build  (in-repo compile DAG: compile-ai->emulators->routes->params->merge-routes->build-manifest->map)\n");
 fwrite(STDERR, "       funnypot lint-routes [--format=table|json] [--config=PATH]  (route-integrity gate)\n");
 fwrite(STDERR, "       funnypot rules:update [--data-dir=PATH] [--channel=stable] [--version=vX]\n");
 fwrite(STDERR, "       funnypot rules:status [--data-dir=PATH]\n");
@@ -1252,15 +1258,168 @@ function runBuildManifest(string $root, array $argvv): int
 }
 
 /**
+ * `funnypot map` — render the reviewable decoy map from the committed manifest (FP-0004).
+ *
+ * Two disjoint modes:
+ *   - no arguments: canonical WRITE. Regenerate docs/DECOY-MAP.md and the marker-bounded README
+ *     inventory block. Validate the README markers and fully render both outputs BEFORE any write,
+ *     then atomically write each fixed path. No arbitrary output path exists.
+ *   - any `--format=md|mermaid` and/or `--family=NAME`: stdout-only PREVIEW; writes nothing.
+ *
+ * The renderer is pure — this loads the committed manifest and the RouteIntegrity findings and hands
+ * plain arrays in. It serves no bytes; build/CI-time only.
+ *
+ * @param string[] $argvv
+ */
+function runMap(string $root, array $argvv): int
+{
+    $format = null;   // null until an explicit --format is parsed
+    $family = null;   // null = overview
+    $preview = false; // any option selects stdout-only preview
+
+    foreach ($argvv as $arg) {
+        if (strncmp($arg, '--format=', 9) === 0) {
+            if ($format !== null) {
+                return mapUsage('duplicate --format');
+            }
+            $format = substr($arg, 9);
+            if ($format !== 'md' && $format !== 'mermaid') {
+                return mapUsage('invalid --format (want md|mermaid)');
+            }
+            $preview = true;
+        } elseif (strncmp($arg, '--family=', 9) === 0) {
+            if ($family !== null) {
+                return mapUsage('duplicate --family');
+            }
+            $family = substr($arg, 9);
+            if ($family === '') {
+                return mapUsage('empty --family');
+            }
+            $preview = true;
+        } else {
+            return mapUsage('unknown argument: ' . $arg);
+        }
+    }
+
+    ensureBuildMemory();
+    try {
+        $manifest = mapLoadManifest($root);
+        // An unknown family name is a caller usage error (exit 2), distinct from a malformed
+        // manifest (exit 1) which the renderer raises. Check membership before rendering.
+        if ($family !== null && !mapFamilyExists($manifest, $family)) {
+            return mapUsage('unknown family: ' . $family);
+        }
+        $findings = mapLoadFindings($root, $manifest);
+        $renderer = new MapRenderer();
+
+        if ($preview) {
+            $fmt = $format === null ? 'md' : $format;
+            $output = $fmt === 'mermaid'
+                ? $renderer->renderMermaid($manifest, $findings, $family)
+                : $renderer->renderMarkdown($manifest, $findings, $family);
+            fwrite(STDOUT, $output);
+
+            return 0;
+        }
+
+        // Write mode: render + validate everything before touching the tree.
+        $mapPath = $root . '/docs/DECOY-MAP.md';
+        $readmePath = $root . '/README.md';
+        $mapBody = $renderer->renderMarkdown($manifest, $findings, null);
+        $inventory = $renderer->renderReadmeInventory($manifest);
+        $readme = @file_get_contents($readmePath);
+        if ($readme === false) {
+            fwrite(STDERR, "map: cannot read {$readmePath}\n");
+
+            return 1;
+        }
+        $newReadme = $renderer->replaceReadmeInventory($readme, $inventory);
+
+        GeneratedPhp::atomicWrite($mapPath, $mapBody);
+        GeneratedPhp::atomicWrite($readmePath, $newReadme);
+        fwrite(STDOUT, "map: wrote {$mapPath} + README inventory block\n");
+
+        return 0;
+    } catch (Throwable $e) {
+        // Bounded message only — never print manifest contents or a stack trace by default.
+        fwrite(STDERR, 'map: ' . $e->getMessage() . "\n");
+
+        return 1;
+    }
+}
+
+/**
+ * @return array<string,mixed>
+ */
+function mapLoadManifest(string $root): array
+{
+    $path = $root . '/resources/compiled/funnypot-manifest.php';
+    if (!is_file($path)) {
+        throw new RuntimeException("manifest not found: {$path} (run `funnypot build-manifest`)");
+    }
+    $manifest = require $path;
+    if (!is_array($manifest)) {
+        throw new RuntimeException('manifest did not return an array');
+    }
+
+    return $manifest;
+}
+
+/**
+ * @param array<string,mixed> $manifest
+ * @return array<int,array<string,mixed>>
+ */
+function mapLoadFindings(string $root, array $manifest): array
+{
+    $configPath = $root . '/resources/route-integrity.php';
+    $config = is_file($configPath) ? require $configPath : array();
+    if (!is_array($config)) {
+        $config = array();
+    }
+    $result = (new RouteIntegrity())->analyze($manifest, $config);
+
+    return isset($result['findings']) && is_array($result['findings']) ? $result['findings'] : array();
+}
+
+/**
+ * @param array<string,mixed> $manifest
+ */
+function mapFamilyExists(array $manifest, string $family): bool
+{
+    if (!isset($manifest['bandA']) || !is_array($manifest['bandA'])) {
+        return false;
+    }
+    foreach ($manifest['bandA'] as $rec) {
+        if (is_array($rec) && isset($rec['family']) && $rec['family'] === $family) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+function mapUsage(string $why): int
+{
+    fwrite(STDERR, "map: {$why}\n");
+    fwrite(STDERR, "usage: funnypot map                       (write docs/DECOY-MAP.md + README inventory block)\n");
+    fwrite(STDERR, "       funnypot map --format=md|mermaid   (stdout overview preview)\n");
+    fwrite(STDERR, "       funnypot map --family=NAME         (stdout family drill-down, md default)\n");
+    fwrite(STDERR, "       funnypot map --family=NAME --format=mermaid\n");
+
+    return 2;
+}
+
+/**
  * `funnypot build` — the canonical in-repo compile DAG, one entrypoint so CI, the refresh
  * workflows, and contributors all invoke the SAME step order and it can never silently diverge:
  *
  *   compile-ai  ->  compile-emulators  ->  compile-routes  ->  compile-params
- *               ->  merge-routes        ->  build-manifest
+ *               ->  merge-routes        ->  build-manifest   ->  map
  *
  * Edges: compile-ai first (its templates/generated + templates/attack-ai feed the route + emulator
  * compiles); compile-params after compile-emulators (reserved-id collision check); merge-routes
- * after compile-routes (the fragment); build-manifest last (derives from the compiled artifacts).
+ * after compile-routes (the fragment); build-manifest before map (map reads the manifest bytes it
+ * just wrote); map last (regenerates docs/DECOY-MAP.md + the README inventory block from the manifest).
  * Stops on the first non-zero step. This does NOT run the external `compile` (that needs a
  * nuclei-templates checkout) — it folds the committed index, so it is fully in-repo + deterministic.
  *
@@ -1276,6 +1435,7 @@ function runBuild(string $root, array $argvv): int
         'compile-params' => 'runCompileParams',
         'merge-routes' => 'runMergeRoutes',
         'build-manifest' => 'runBuildManifest',
+        'map' => 'runMap',
     ];
     foreach ($steps as $name => $fn) {
         fwrite(STDOUT, "== funnypot build: {$name} ==\n");
