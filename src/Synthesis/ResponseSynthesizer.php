@@ -45,6 +45,16 @@ final class ResponseSynthesizer
     /** @var string */
     private $lastSkipReason = '';
 
+    /**
+     * The regex-witness vector actually placed in the last successful response (FP-0280), aligned with
+     * the bundle's `rx`. Reset at the start of every synthesize() call; empty on a null/binary output.
+     * Read-only diagnostic for tests and the seeded-render gate — it never changes a served byte, and
+     * lets the gate measure the ACTUAL fallback-aware selection instead of reimplementing it.
+     *
+     * @var list<string>
+     */
+    private $lastRegexWitnesses = [];
+
     /** @var EmulatorRegistry|null */
     private $emulators;
 
@@ -93,11 +103,17 @@ final class ResponseSynthesizer
     public function synthesize(array $bundle, Detection $satisfies, string $seed = '', ?string $routeKey = null): ?SynthesizedResponse
     {
         $this->lastSkipReason = '';
+        $this->lastRegexWitnesses = [];
 
         // The per-deploy identity for every SynthScaffold derivation on this render (FP-0281); computed
         // once so the whole response shares one deploy identity. Fixed for a deploy, so re-scans are
         // byte-identical; differs across deploys, so the scaffold order + witness-header names vary.
         $ident = $this->identitySeed($seed);
+
+        // Select the per-deploy witness vector ONCE (FP-0280), before any binary/rich/minimal branching,
+        // so every path serves the same deploy-consistent choice. Canonical is the fallback vector.
+        $canonicalWitnesses = array_values(array_map('strval', (array) ($bundle['rx'] ?? [])));
+        $selectedWitnesses = RegexWitnessMenu::pick($bundle, $ident);
 
         // Binary rule (FP-0230): a `bin` bundle (favicon/image) carries empty bw/nf/rx/hw/sz, so
         // minimal-synth would emit an EMPTY body. Route it to the rich emulator (which base64-decodes
@@ -111,21 +127,60 @@ final class ResponseSynthesizer
             if ($this->emulators === null) {
                 return null;
             }
+            $rich = $this->tryEmulator($bundle, $satisfies, $seed, $ident, $routeKey, $selectedWitnesses);
+            if ($rich !== null) {
+                $this->lastRegexWitnesses = $selectedWitnesses;
+            }
 
-            return $this->tryEmulator($bundle, $satisfies, $seed, $ident, $routeKey);
+            return $rich;
         }
 
-        // Rich emulator layer (validated; falls through to minimal on any mismatch).
+        // Rich emulator layer (validated; falls through to minimal on any mismatch). A rich body that
+        // already carries the SELECTED witness is served; one that only fits the canonical falls through
+        // to minimal so the alternate is actually placed.
         if ($this->style !== Style::MINIMAL && $this->emulators !== null) {
-            $rich = $this->tryEmulator($bundle, $satisfies, $seed, $ident, $routeKey);
+            $rich = $this->tryEmulator($bundle, $satisfies, $seed, $ident, $routeKey, $selectedWitnesses);
             if ($rich !== null) {
+                $this->lastRegexWitnesses = $selectedWitnesses;
+
                 return $rich;
             }
         }
 
+        // Minimal synthesis with the selected vector; on failure, retry ONCE with the canonical vector
+        // (never a second alternate). A seeded alternate that cannot survive final synthesis therefore
+        // degrades to the guaranteed-correct canonical rather than turning a servable decoy into a miss.
+        $resp = $this->minimalAttempt($bundle, $satisfies, $selectedWitnesses, $ident);
+        if ($resp !== null) {
+            $this->lastRegexWitnesses = $selectedWitnesses;
+
+            return $resp;
+        }
+        if ($selectedWitnesses !== $canonicalWitnesses) {
+            $resp = $this->minimalAttempt($bundle, $satisfies, $canonicalWitnesses, $ident);
+            if ($resp !== null) {
+                $this->lastRegexWitnesses = $canonicalWitnesses;
+
+                return $resp;
+            }
+        }
+
+        // Both attempts failed; the canonical attempt's skip reason is retained.
+        return null;
+    }
+
+    /**
+     * One minimal-synthesis attempt with a given witness vector (the selected menu choice, or the
+     * canonical on retry). Returns the response, or null with lastSkipReason set. The B6/size/forbidden/
+     * header/BundleValidator behavior is exactly the historical minimal path.
+     *
+     * @param array<string,mixed> $bundle
+     * @param string[]            $witnesses the body regex witnesses to place
+     */
+    private function minimalAttempt(array $bundle, Detection $satisfies, array $witnesses, int $ident): ?SynthesizedResponse
+    {
         $bodyWords = array_values(array_map('strval', (array) ($bundle['bw'] ?? [])));
         $forbidden = array_values(array_map('strval', (array) ($bundle['nf'] ?? [])));
-        $witnesses = array_values(array_map('strval', (array) ($bundle['rx'] ?? [])));
         $size = $this->normalizeSize($bundle['sz'] ?? null);
         $exclusive = !empty($bundle['x']);
 
@@ -308,12 +363,24 @@ final class ResponseSynthesizer
     }
 
     /**
+     * The regex-witness vector placed in the last successful response (FP-0280), aligned with the
+     * bundle's `rx`. Empty on a null/binary output. Read-only diagnostic — it changes no served byte.
+     *
+     * @return list<string>
+     */
+    public function lastRegexWitnesses(): array
+    {
+        return $this->lastRegexWitnesses;
+    }
+
+    /**
      * Render rich content from a matching emulator, validated against the bundle. Any
      * mismatch returns null so the caller falls back to guaranteed-correct minimal synth.
      *
      * @param array<string,mixed> $bundle
+     * @param string[]            $witnesses the selected witness vector (FP-0280) the rich body must carry
      */
-    private function tryEmulator(array $bundle, Detection $satisfies, string $seed, int $ident, ?string $routeKey): ?SynthesizedResponse
+    private function tryEmulator(array $bundle, Detection $satisfies, string $seed, int $ident, ?string $routeKey, array $witnesses): ?SynthesizedResponse
     {
         $emulator = $this->emulators->find($bundle, $routeKey);
         if ($emulator === null) {
@@ -348,7 +415,7 @@ final class ResponseSynthesizer
         if (!$this->typedHeadersSatisfied($headers, $bundle)) {
             return null;
         }
-        if (!$this->richBodyFitsExtras($content->body, $bundle)) {
+        if (!$this->richBodyFitsExtras($content->body, $bundle, $witnesses)) {
             return null;
         }
 
@@ -356,16 +423,17 @@ final class ResponseSynthesizer
     }
 
     /**
-     * True when a rich emulator body already carries every regex witness and respects the
-     * size constraint; a miss sends the caller back to minimal synthesis (which pads /
-     * places witnesses deterministically).
+     * True when a rich emulator body already carries every SELECTED regex witness and respects the
+     * size constraint; a miss sends the caller back to minimal synthesis (which pads / places the
+     * selected witnesses deterministically).
      *
      * @param array<string,mixed> $bundle
+     * @param string[]            $witnesses the selected witness vector (FP-0280)
      */
-    private function richBodyFitsExtras(string $body, array $bundle): bool
+    private function richBodyFitsExtras(string $body, array $bundle, array $witnesses): bool
     {
-        foreach (array_map('strval', (array) ($bundle['rx'] ?? [])) as $witness) {
-            if ($witness !== '' && strpos($body, $witness) === false) {
+        foreach ($witnesses as $witness) {
+            if ($witness !== '' && strpos($body, (string) $witness) === false) {
                 return false;
             }
         }

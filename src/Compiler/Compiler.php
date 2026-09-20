@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace Funnypot\Core\Compiler;
 
+use Funnypot\Core\Compiler\Crs\FingerprintGuard;
 use Funnypot\Core\Support\PathNormalizer;
+use Funnypot\Core\Support\SubSeed;
 
 /**
  * Orchestrates the offline build:
@@ -31,13 +33,22 @@ final class Compiler
     /** @var PersonaCap */
     private $cap;
 
-    public function __construct()
+    /** @var FingerprintGuard the defensive rxm-alternate screen applied before freeze. */
+    private $fingerprint;
+
+    /**
+     * @param Classifier|null $classifier the Gate-B classifier; injecting one (e.g. carrying an
+     *   audit-observing witness generator) lets a caller observe every menu. Defaults to a fresh one.
+     */
+    public function __construct(?Classifier $classifier = null)
     {
         $this->loader = new TemplateLoader();
         $this->gateA = new ClusterableFilter();
-        $this->gateB = new Classifier();
+        $this->gateB = $classifier ?? new Classifier();
         $this->partitioner = new BundlePartitioner();
         $this->cap = new PersonaCap();
+        // Fail closed at compile time if the denylist is broken — a rxm alternate must never ship a tell.
+        $this->fingerprint = FingerprintGuard::fromPackage();
     }
 
     /**
@@ -283,6 +294,13 @@ final class Compiler
             't' => $bundle->templateIds,
         ];
 
+        // Per-deploy regex-witness menu (FP-0280): sparse, integer-keyed, alternates-only. Omitted when
+        // no slot retains an alternate. Additive named data — old engines ignore it and serve rx.
+        $rxm = $this->freezeRegexMenu($bundle);
+        if ($rxm !== []) {
+            $out['rxm'] = $rxm;
+        }
+
         // Carry header-region forbidden only when present (keeps the artifact lean).
         if ($bundle->headerForbidden !== []) {
             $out['hf'] = $bundle->headerForbidden;
@@ -313,6 +331,84 @@ final class Compiler
         }
 
         return [$size['op'] => $size['n']];
+    }
+
+    /**
+     * Freeze the bundle's sparse regex-witness menu: for each rx slot with surviving alternates, the
+     * defensively-filtered alternate list keyed by the rx index. The filter (spec §5) runs after the
+     * per-candidate generator screening, so it is belt-and-braces:
+     *   - drop empty, canonical-equal and duplicate alternates;
+     *   - drop any fingerprint-denylist or denied-digit hit;
+     *   - drop any value containing a bundle `nf` forbidden substring (case-insensitively);
+     *   - sz:eq requires the alternate's byte length to equal the canonical's; sz:max rejects a longer
+     *     value (a shorter one is safe — the canonical already fit and the rest of the body is unchanged);
+     *     sz:min needs no length equality (padding restores the lower bound).
+     *
+     * @return array<int,string[]>
+     */
+    private function freezeRegexMenu(Bundle $bundle): array
+    {
+        $rxm = [];
+        foreach ($bundle->regexWitness as $i => $canonical) {
+            $menu = $bundle->regexWitnessMenu[$i] ?? [];
+            $filtered = $this->filterMenu((string) $canonical, is_array($menu) ? $menu : [], $bundle->forbidden, $bundle->size);
+            if ($filtered !== []) {
+                $rxm[$i] = $filtered;
+            }
+        }
+
+        return $rxm;
+    }
+
+    /**
+     * @param string[]                     $menu
+     * @param string[]                     $forbidden
+     * @param array{op:string,n:int}|null  $size
+     * @return list<string>
+     */
+    private function filterMenu(string $canonical, array $menu, array $forbidden, ?array $size): array
+    {
+        $canonLen = strlen($canonical);
+        $out = [];
+        $seen = [];
+        foreach ($menu as $alt) {
+            $alt = (string) $alt;
+            if ($alt === '' || $alt === $canonical || isset($seen[$alt])) {
+                continue;
+            }
+            if (SubSeed::hitsDeniedDigits($alt) || $this->fingerprint->scan($alt) !== []) {
+                continue;
+            }
+            if ($this->containsForbidden($alt, $forbidden)) {
+                continue;
+            }
+            if ($size !== null) {
+                if ($size['op'] === 'eq' && strlen($alt) !== $canonLen) {
+                    continue;
+                }
+                if ($size['op'] === 'max' && strlen($alt) > $canonLen) {
+                    continue;
+                }
+            }
+            $seen[$alt] = true;
+            $out[] = $alt;
+        }
+
+        return $out;
+    }
+
+    /**
+     * @param string[] $forbidden
+     */
+    private function containsForbidden(string $value, array $forbidden): bool
+    {
+        foreach ($forbidden as $bad) {
+            if ($bad !== '' && stripos($value, (string) $bad) !== false) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /**

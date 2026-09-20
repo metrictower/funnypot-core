@@ -28,7 +28,14 @@ final class ConstraintMerge
         $r->headerWords = array_merge($a->headerWords, $b->headerWords);
         $r->forbidden = array_merge($a->forbidden, $b->forbidden);
         $r->headerForbidden = array_merge($a->headerForbidden, $b->headerForbidden);
-        $r->regexWitness = array_merge($a->regexWitness, $b->regexWitness);
+        // Witness canonicals/menus merge through the one intersection law: an equal canonical from
+        // both sides keeps only alternates valid for BOTH source patterns.
+        [$r->regexWitness, $r->regexWitnessMenu] = RegexWitnessSet::merge(
+            $a->regexWitness,
+            $a->regexWitnessMenu,
+            $b->regexWitness,
+            $b->regexWitnessMenu
+        );
         $r->typedHeader = self::mergeTypedHeaders($a->typedHeader, $b->typedHeader);
         $r->statusForbidden = array_values(array_unique(array_merge($a->statusForbidden, $b->statusForbidden)));
         $r->wholeBodyExclusive = $a->wholeBodyExclusive || $b->wholeBodyExclusive;

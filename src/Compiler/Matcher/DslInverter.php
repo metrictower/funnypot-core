@@ -462,7 +462,8 @@ final class DslInverter
         $patternArg = $aStr ? $args[0] : $args[1];
         $regionArg = $aStr ? $args[1] : $args[0];
 
-        $region = $this->regionOfArg($regionArg);
+        $lowered = false;
+        $region = $this->regionOfArg($regionArg, $lowered);
         if ($region === PartRouter::UNSUPPORTED) {
             throw new DslUnsupported('dsl-regex-region-unsupported');
         }
@@ -471,7 +472,9 @@ final class DslInverter
             throw new DslUnsupported('dsl-regex-typed-header');
         }
 
-        $res = $this->regexGen->invertRegion($region, [(string) $patternArg['v']], $neg, false);
+        // regex(pattern, tolower(body)) matches the pattern against the LOWERCASED input, so the served
+        // witness must be lowercased and revalidated; fold if it then no longer matches.
+        $res = $this->regexGen->invertRegion($region, [(string) $patternArg['v']], $neg, false, $lowered);
         if (!$res->ok) {
             throw new DslUnsupported($res->reason !== '' ? $res->reason : 'dsl-regex-unwitnessable');
         }
@@ -481,15 +484,18 @@ final class DslInverter
 
     /**
      * @param array{kind:string,name?:string,args?:array,v?:string}|null $arg
+     * @param bool|null $lowered set true when a tolower()/to_lower() wrapper was unwrapped, so a
+     *   regex() caller can lowercase-and-revalidate the served witness.
      */
-    private function regionOfArg($arg): string
+    private function regionOfArg($arg, ?bool &$lowered = null): string
     {
         if (!is_array($arg)) {
             throw new DslUnsupported('dsl-region-missing');
         }
 
-        // Unwrap tolower(...) / to_lower(...) wrappers.
+        // Unwrap tolower(...) / to_lower(...) wrappers, recording that the input is lowercased.
         while (($arg['kind'] ?? '') === 'func' && in_array($arg['name'] ?? '', ['tolower', 'to_lower'], true)) {
+            $lowered = true;
             $inner = $arg['args'][0] ?? null;
             if (!is_array($inner)) {
                 throw new DslUnsupported('dsl-region-wrap');

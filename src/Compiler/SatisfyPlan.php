@@ -54,6 +54,13 @@ final class SatisfyPlan
     /** @var string[] */
     public $regexWitness;
 
+    /**
+     * Aligned one-for-one with {@see $regexWitness}: each canonical's alternate menu (FP-0280).
+     *
+     * @var array<int,string[]>
+     */
+    public $regexWitnessMenu;
+
     /** @var array{op:string,n:int}|null */
     public $size;
 
@@ -77,7 +84,8 @@ final class SatisfyPlan
         array $regexWitness,
         ?array $size,
         bool $wholeBodyExclusive,
-        array $typedHeader = []
+        array $typedHeader = [],
+        array $regexWitnessMenu = []
     ) {
         $this->id = $id;
         $this->severity = $severity;
@@ -93,5 +101,6 @@ final class SatisfyPlan
         $this->size = $size;
         $this->wholeBodyExclusive = $wholeBodyExclusive;
         $this->typedHeader = $typedHeader;
+        $this->regexWitnessMenu = $regexWitnessMenu;
     }
 }

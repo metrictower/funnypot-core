@@ -28,6 +28,12 @@ final class Bundle
     public $headerForbidden = [];
     /** @var string[] */
     public $regexWitness = [];
+    /**
+     * Aligned one-for-one with {@see $regexWitness}: each canonical's alternate menu (FP-0280).
+     *
+     * @var array<int,string[]>
+     */
+    public $regexWitnessMenu = [];
     /** @var array<string,string[]> canonical header name → required substrings in that header */
     public $typedHeader = [];
     /** @var array{op:string,n:int}|null */
@@ -57,7 +63,15 @@ final class Bundle
         }
 
         $this->bodyWords = $this->capMerge($this->bodyWords, $plan->bodyWords);
-        $this->regexWitness = $this->capMerge($this->regexWitness, $plan->regexWitness);
+        // Witness canonicals/menus merge through the intersection law: the cap bounds only NEW
+        // canonicals, so a shared canonical arriving after the cap still narrows its menu.
+        [$this->regexWitness, $this->regexWitnessMenu] = RegexWitnessSet::merge(
+            $this->regexWitness,
+            $this->regexWitnessMenu,
+            $plan->regexWitness,
+            $plan->regexWitnessMenu,
+            self::BODY_WORD_CAP
+        );
         $this->headerWords = $this->capMerge($this->headerWords, $plan->headerWords);
         $this->forbidden = $this->union($this->forbidden, $plan->forbidden);
         $this->headerForbidden = $this->union($this->headerForbidden, $plan->headerForbidden);

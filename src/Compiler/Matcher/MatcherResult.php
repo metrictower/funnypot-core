@@ -49,6 +49,16 @@ final class MatcherResult
     /** @var string[] regex witnesses (validated) to place in the body */
     public $regexWitness = [];
 
+    /**
+     * Aligned one-for-one with {@see $regexWitness}: for each canonical witness, its list of
+     * validated ALTERNATE witnesses (canonical excluded) that a deploy may serve in its place
+     * (FP-0280). regexWitnessMenu[j] is the alternates for regexWitness[j]; an empty list means
+     * that slot has no alternates. The two arrays always have equal length.
+     *
+     * @var array<int,string[]>
+     */
+    public $regexWitnessMenu = [];
+
     /** @var bool A1/A4: this matcher constrains the entire body, so its bundle holds nothing else. */
     public $wholeBodyExclusive = false;
 

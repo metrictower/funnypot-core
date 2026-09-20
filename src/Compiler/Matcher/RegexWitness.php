@@ -5,22 +5,40 @@ declare(strict_types=1);
 namespace Funnypot\Core\Compiler\Matcher;
 
 /**
- * Generates ONE string that a simple regular expression matches, offline.
+ * Generates strings that a simple regular expression matches, offline.
  *
  * This is a deliberately small recursive generator over a SAFE subset of regex
  * (literals, common escapes, character classes, groups, alternation, bounded
  * quantifiers). It bails to null on anything it does not fully understand
  * (lookaround, backreferences, word boundaries, unicode classes, unbounded nesting).
  *
- * The generated witness is only a CANDIDATE: the caller re-validates it with PHP
- * `preg_match`, and the true correctness gate is the Phase 6 nuclei golden test. Go's
- * RE2 and PCRE can diverge (e.g. POSIX classes, `\z` vs `$`), so when the two disagree
- * the matcher must be folded OUT rather than shipped.
+ * generate() emits ONE canonical witness (the fixed-first representative). generateMenu()
+ * (FP-0280) emits that canonical PLUS up to MENU_K-1 alternate witnesses of the same pattern,
+ * so a deploy can serve a DIFFERENT-but-equally-valid witness per compiled slot and the
+ * fleet stops sharing one constant body byte. Each variable choice point (alternation branch,
+ * dot/class/escape representative, repetition count) becomes a pool the variant chooser draws
+ * from; variant zero always draws option zero, so generateMenu(core)[0] === generate(core)
+ * byte-for-byte. The choice stream is a pure function of (core, variant) and is pinned by
+ * fixture tests — a change to it is an artifact migration.
+ *
+ * The generated witness is only a CANDIDATE: {@see RegexWitnessGenerator} re-validates every
+ * one with PHP `preg_match` against the original pattern and screens it for fingerprint tells.
+ * Go's RE2 and PCRE can diverge (e.g. POSIX classes, `\z` vs `$`), so when the two disagree the
+ * matcher/alternate is dropped rather than shipped.
  */
 final class RegexWitness
 {
     private const MAX_LEN = 512;
     private const MAX_DEPTH = 40;
+
+    /** Menu size: the canonical plus up to three alternates. */
+    public const MENU_K = 4;
+
+    /** Highest variant tried when filling a menu. Variant 0 is the canonical. */
+    private const MAX_VARIANT = 16;
+
+    /** The dot / word-escape representative pool, in the exact order generate() has always used. */
+    private const DOT_ALPHABET = 'abcdefghijklmnopqrstuvwxyz0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ';
 
     /** @var string */
     private $s;
@@ -34,6 +52,12 @@ final class RegexWitness
     /** @var bool */
     private $failed = false;
 
+    /** @var int the variant being generated; 0 is the canonical (always option 0). */
+    private $variant = 0;
+
+    /** @var int choice ordinal — advances only past a genuine multi-option choice. */
+    private $q = 0;
+
     private function __construct(string $pattern)
     {
         $this->s = $pattern;
@@ -42,7 +66,8 @@ final class RegexWitness
 
     /**
      * Return a witness for the pattern's CORE (anchors already stripped by the caller),
-     * or null if the pattern is outside the safe subset.
+     * or null if the pattern is outside the safe subset. Byte-identical to the historical
+     * fixed-first generator (it is generateMenu()'s variant-zero pass).
      */
     public static function generate(string $core): ?string
     {
@@ -58,6 +83,86 @@ final class RegexWitness
         return $out;
     }
 
+    /**
+     * Return up to $k distinct, non-empty witnesses for $core — the canonical first, then
+     * alternates from variants 1..MAX_VARIANT. Empty, duplicate and canonical-equal alternates
+     * are dropped. Returns [] when the canonical itself cannot be generated. Pure function of
+     * ($core, $k): no deploy material, clock or randomness enters.
+     *
+     * @return list<string> canonical at index 0
+     */
+    public static function generateMenu(string $core, int $k): array
+    {
+        if ($core === '' || strlen($core) > self::MAX_LEN) {
+            return [];
+        }
+        $k = max(1, min($k, self::MENU_K));
+
+        $menu = [];
+        $seen = [];
+        for ($variant = 0; $variant <= self::MAX_VARIANT; $variant++) {
+            $g = new self($core);
+            $g->variant = $variant;
+            $w = $g->parseAlternation(0);
+            if ($g->failed || $g->i !== $g->n) {
+                if ($variant === 0) {
+                    return []; // canonical ungeneratable ⇒ no menu
+                }
+                continue;
+            }
+            if ($variant === 0) {
+                if ($w === '') {
+                    return []; // empty canonical ⇒ no menu
+                }
+                $menu[] = $w;
+                $seen[$w] = true;
+                continue;
+            }
+            if ($w === '' || isset($seen[$w])) {
+                continue; // empty / duplicate / canonical-equal alternate
+            }
+            $menu[] = $w;
+            $seen[$w] = true;
+            if (count($menu) >= $k) {
+                break;
+            }
+        }
+
+        return $menu;
+    }
+
+    /**
+     * Pick option 0 for the canonical, or a variant-derived option for an alternate. A
+     * single-option point (count <= 1) consumes no choice window; every genuine multi-option
+     * choice reads two hex digits at offset (q % 32)*2 of the block-floor(q/32) digest of
+     * (core, variant), reduces that byte modulo the option count, then advances q.
+     */
+    private function chooseIndex(int $count): int
+    {
+        if ($count <= 1 || $this->variant === 0) {
+            return 0;
+        }
+        $block = intdiv($this->q, 32);
+        $offset = ($this->q % 32) * 2;
+        $digest = hash('sha256', $this->s . '|' . $this->variant . '|' . $block);
+        $byte = (int) hexdec(substr($digest, $offset, 2));
+        $this->q++;
+
+        return $byte % $count;
+    }
+
+    /**
+     * @param list<string> $options
+     */
+    private function pick(array $options): string
+    {
+        if ($options === []) {
+            return $this->fail();
+        }
+
+        return $options[$this->chooseIndex(count($options))];
+    }
+
     private function fail(): string
     {
         $this->failed = true;
@@ -67,28 +172,22 @@ final class RegexWitness
 
     private function parseAlternation(int $depth): string
     {
-        // Take the FIRST branch of a top-level alternation; skip the rest.
-        $branch = $this->parseSequence($depth);
+        // Alternation branches are a choice pool in source order. Variant zero takes the first
+        // branch (byte-identical to the historical generator); a later variant may take another.
+        // Every branch is parsed either way, so a malformed non-first branch still fails the pass.
+        $branches = [$this->parseSequence($depth)];
         if ($this->failed) {
             return '';
         }
-        if ($this->i < $this->n && $this->s[$this->i] === '|') {
-            // Consume remaining alternatives without emitting them.
-            $this->skipRemainingAlternatives($depth);
-        }
-
-        return $branch;
-    }
-
-    private function skipRemainingAlternatives(int $depth): void
-    {
         while ($this->i < $this->n && $this->s[$this->i] === '|') {
             $this->i++; // consume '|'
-            $this->parseSequence($depth); // parse & discard
+            $branches[] = $this->parseSequence($depth);
             if ($this->failed) {
-                return;
+                return '';
             }
         }
+
+        return $branches[$this->chooseIndex(count($branches))];
     }
 
     private function parseSequence(int $depth): string
@@ -130,7 +229,7 @@ final class RegexWitness
             case '.':
                 $this->i++;
 
-                return 'a';
+                return $this->pick(str_split(self::DOT_ALPHABET));
             case '\\':
                 return $this->parseEscape();
             case '^':
@@ -229,23 +328,58 @@ final class RegexWitness
         }
         $this->i++; // consume ']'
 
-        if (!$negated) {
-            if ($members !== []) {
-                return $members[0];
-            }
-            if ($ranges !== []) {
-                return $ranges[0][0];
-            }
+        $pool = $negated
+            ? $this->negatedClassPool($members, $ranges)
+            : $this->positiveClassPool($members, $ranges);
 
-            return $this->fail();
+        return $this->pick($pool);
+    }
+
+    /**
+     * A positive class pool: the historical representative first (members[0], else the first
+     * range's low byte), then explicit members in source order, then per range its low byte,
+     * high byte and floor midpoint. De-duplicated without sorting, so option 0 is unchanged.
+     *
+     * @param list<string>          $members
+     * @param list<array{0:string,1:string}> $ranges
+     * @return list<string>
+     */
+    private function positiveClassPool(array $members, array $ranges): array
+    {
+        $pool = [];
+        if ($members !== []) {
+            $pool[] = $members[0];
+        } elseif ($ranges !== []) {
+            $pool[] = $ranges[0][0];
+        }
+        foreach ($members as $m) {
+            $pool[] = $m;
+        }
+        foreach ($ranges as [$lo, $hi]) {
+            $pool[] = $lo;
+            $pool[] = $hi;
+            $pool[] = chr(intdiv(ord($lo) + ord($hi), 2));
         }
 
-        // Negated: pick a printable char not excluded.
+        return $this->dedupe($pool);
+    }
+
+    /**
+     * A negated class pool: the printable alphabet filtered against every excluded member and
+     * range, in alphabet order — so option 0 is the first non-excluded char (unchanged).
+     *
+     * @param list<string>          $members
+     * @param list<array{0:string,1:string}> $ranges
+     * @return list<string>
+     */
+    private function negatedClassPool(array $members, array $ranges): array
+    {
         $excluded = [];
-        foreach ($members as $mch) {
-            $excluded[$mch] = true;
+        foreach ($members as $m) {
+            $excluded[$m] = true;
         }
-        foreach (str_split('abcdefghijklmnopqrstuvwxyz0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ') as $cand) {
+        $pool = [];
+        foreach (str_split(self::DOT_ALPHABET) as $cand) {
             if (isset($excluded[$cand])) {
                 continue;
             }
@@ -257,11 +391,29 @@ final class RegexWitness
                 }
             }
             if (!$inRange) {
-                return $cand;
+                $pool[] = $cand;
             }
         }
 
-        return $this->fail();
+        return $pool;
+    }
+
+    /**
+     * @param list<string> $values
+     * @return list<string>
+     */
+    private function dedupe(array $values): array
+    {
+        $seen = [];
+        $out = [];
+        foreach ($values as $v) {
+            if (!isset($seen[$v])) {
+                $seen[$v] = true;
+                $out[] = $v;
+            }
+        }
+
+        return $out;
     }
 
     /** Escape inside a character class — returns the representative char. */
@@ -304,6 +456,15 @@ final class RegexWitness
         }
 
         $this->i++;
+
+        // A digit/word escape as a standalone atom is a choice pool; every other escape keeps
+        // its single fixed representative and consumes no choice window.
+        if ($c === 'd') {
+            return $this->pick(str_split('0123456789'));
+        }
+        if ($c === 'w') {
+            return $this->pick(str_split(self::DOT_ALPHABET . '_'));
+        }
 
         return $this->escapeChar($c);
     }
@@ -351,8 +512,18 @@ final class RegexWitness
             $this->i++;
             $this->consumeLazyPossessive();
 
-            // One copy satisfies *, +, and ? alike (and keeps the witness non-empty).
-            return $atom;
+            // `?` may also drop the atom (count 0); `*`/`+` add extra copies. Option 0 keeps one
+            // copy, so the canonical is byte-identical to the historical one-copy behavior.
+            $counts = ($q === '?') ? [1, 0] : [1, 2, 3];
+            $count = $counts[$this->chooseIndex(count($counts))];
+            if ($count === 0) {
+                return '';
+            }
+            if ($count * max(1, strlen($atom)) > self::MAX_LEN) {
+                return $this->fail();
+            }
+
+            return str_repeat($atom, $count);
         }
 
         if ($q === '{') {
@@ -377,13 +548,44 @@ final class RegexWitness
         $this->consumeLazyPossessive();
 
         $min = (int) $mm[1];
-        $count = max($min, 1);
+        $base = max($min, 1);
+        // Option 0 is the historical count max(min,1). A bounded/open range adds the next valid
+        // counts through min(maximum, minimum + 2); an exact {n} offers no extra count.
+        $counts = [$base];
+        if (isset($mm[2]) && $mm[2] !== '') {
+            $maxBound = (isset($mm[3]) && $mm[3] !== '') ? (int) $mm[3] : null;
+            $upper = $maxBound === null ? $min + 2 : min($maxBound, $min + 2);
+            for ($v = $base + 1; $v <= $upper; $v++) {
+                $counts[] = $v;
+            }
+        }
+        $counts = $this->dedupeCounts($counts);
+
+        $count = $counts[$this->chooseIndex(count($counts))];
         // Guard against pathological expansion.
         if ($count * max(1, strlen($atom)) > self::MAX_LEN) {
             return $this->fail();
         }
 
         return str_repeat($atom, $count);
+    }
+
+    /**
+     * @param list<int> $counts
+     * @return list<int>
+     */
+    private function dedupeCounts(array $counts): array
+    {
+        $seen = [];
+        $out = [];
+        foreach ($counts as $c) {
+            if (!isset($seen[$c])) {
+                $seen[$c] = true;
+                $out[] = $c;
+            }
+        }
+
+        return $out;
     }
 
     private function consumeLazyPossessive(): void
