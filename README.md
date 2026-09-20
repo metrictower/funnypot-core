@@ -186,6 +186,19 @@ dangles. Because it is seed-derived, **upgrading the package re-rolls a deploy's
 (a returning scanner sees the site's map change), exactly as it re-rolls the persona identity; the seed
 derivation itself never changes.
 
+The `deploySeed` also picks the **body regex witnesses** the minimal synthesizer serves (FP-0280). A
+scanner matcher like `regex("token=[0-9]{3}", body)` used to be satisfied with one fleet-constant witness
+(`token=000`); now the compiler freezes a small deterministic MENU of equally-valid witnesses per slot
+(`token=000` plus e.g. `token=999`, `token=444`) as an optional sparse `rxm` bundle field, and the
+runtime picks one per deploy keyed on the deploy identity (`SubSeed::NS_WITNESS`). So two deploys serve
+different-but-valid witness bytes while each deploy stays self-consistent across re-scans. The choice is
+a pure function of the deploy seed — no per-request variance — and a seeded alternate that cannot survive
+final synthesis falls back once to the canonical witness, so selection never turns a servable decoy into
+a miss. Every alternate is PCRE-revalidated against its source pattern, fingerprint-screened, and proven
+against Go RE2 by the committed corpus audit (`scripts/dev/dump-regex-witness-menus.php` →
+`scripts/dev/re2-witness-check/main.go`). The `rxm` field is additive named data: the compiled schema
+stays 1, so an old engine ignores it and serves the canonical `rx`.
+
 Ask the engine what it sees, without changing a single served byte:
 
 ```php

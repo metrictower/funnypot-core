@@ -105,4 +105,47 @@ final class DslRegexInversionTest extends TestCase
         self::assertFalse($r->ok, 'two string literals give no region → fold');
         self::assertStringContainsString('dsl-regex-args', $r->reason);
     }
+
+    // --- FP-0280: aligned per-deploy menu + tolower correctness -----------------------------------
+
+    public function test_body_regex_carries_an_aligned_alternate_menu(): void
+    {
+        $r = $this->invert('regex("token=[0-9]{3}", body)');
+        self::assertTrue($r->ok);
+        self::assertCount(count($r->regexWitness), $r->regexWitnessMenu, 'the menu aligns one-for-one with the witnesses');
+        self::assertNotEmpty($r->regexWitnessMenu[0], 'the token pattern yields alternates');
+        foreach ($r->regexWitnessMenu[0] as $alt) {
+            self::assertNotSame($r->regexWitness[0], $alt, 'an alternate is never the canonical');
+            self::assertSame(1, preg_match('~token=[0-9]{3}~', $alt), "alternate must satisfy the pattern: {$alt}");
+        }
+    }
+
+    public function test_header_regex_carries_no_menu(): void
+    {
+        $r = $this->invert('regex("sessionid=[a-f0-9]{4}", all_headers)');
+        self::assertTrue($r->ok);
+        self::assertSame([], $r->regexWitnessMenu, 'header-block witnesses carry no per-deploy menu');
+    }
+
+    public function test_tolower_wrapped_regex_serves_lowercased_witnesses(): void
+    {
+        // regex(pattern, tolower(body)) matches against the LOWERCASED input, so every served witness
+        // (canonical and alternates) must itself be lowercase and still satisfy the pattern.
+        $r = $this->invert('regex("foo.bar", tolower(body))');
+        self::assertTrue($r->ok);
+        $all = array_merge($r->regexWitness, $r->regexWitnessMenu[0] ?? []);
+        self::assertNotEmpty($all);
+        foreach ($all as $w) {
+            self::assertSame(strtolower($w), $w, "served witness must be lowercase: {$w}");
+            self::assertSame(1, preg_match('~foo.bar~', $w), "lowercased witness must still match: {$w}");
+        }
+    }
+
+    public function test_tolower_wrapped_uppercase_only_pattern_folds(): void
+    {
+        // The canonical witness 'AAA' lowercases to 'aaa', which cannot match [A-Z]{3}; fold rather than
+        // serve an input the real tolower expression can never match.
+        $r = $this->invert('regex("[A-Z]{3}", tolower(body))');
+        self::assertFalse($r->ok, 'an uppercase-only pattern under tolower() folds');
+    }
 }

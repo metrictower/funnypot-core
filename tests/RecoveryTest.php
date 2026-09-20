@@ -10,6 +10,7 @@ use Funnypot\Core\Compiler\Matcher\RegexWitnessGenerator;
 use Funnypot\Core\Compiler\TemplateLoader;
 use Funnypot\Core\Detection;
 use Funnypot\Core\Response\BundleValidator;
+use Funnypot\Core\Support\PersonaIdentity;
 use Funnypot\Core\Synthesis\ResponseSynthesizer;
 use PHPUnit\Framework\TestCase;
 
@@ -265,6 +266,93 @@ final class RecoveryTest extends TestCase
         self::assertGreaterThanOrEqual(60, strlen($resp->body));
         foreach ([' ', '.', '-', '#', '/'] as $bad) {
             self::assertStringNotContainsString($bad, $resp->body);
+        }
+    }
+
+    // ---- FP-0280: per-deploy witness menu selection + bounded canonical retry ----
+
+    /** A synthesizer bound to a specific deploy identity, so witness selection is exercised. */
+    private function synthFor(string $material): ResponseSynthesizer
+    {
+        return new ResponseSynthesizer(null, \Funnypot\Core\Response\Style::MINIMAL, null, null, PersonaIdentity::seedFromMaterial($material));
+    }
+
+    public function test_absent_rxm_serves_exactly_the_canonical(): void
+    {
+        $bundle = ['s' => 200, 'rx' => ['token=000'], 'nf' => [], 't' => ['a']];
+        $resp = $this->synthFor('deploy-a')->synthesize($bundle, Detection::none(), 'seed');
+        self::assertNotNull($resp);
+        self::assertStringContainsString('token=000', $resp->body);
+    }
+
+    public function test_two_deploys_serve_different_valid_witnesses(): void
+    {
+        $rx = [];
+        $rxm = [];
+        foreach (['ka', 'kb', 'kc', 'kd', 'ke'] as $n) {
+            $rx[] = $n . '=0';
+            $rxm[] = [$n . '=1', $n . '=2', $n . '=3'];
+        }
+        $bundle = ['s' => 200, 'rx' => $rx, 'rxm' => $rxm, 't' => ['a']];
+
+        $ra = $this->synthFor('deploy-a')->synthesize($bundle, Detection::none(), 'seed');
+        $rb = $this->synthFor('deploy-b')->synthesize($bundle, Detection::none(), 'seed');
+        self::assertNotNull($ra);
+        self::assertNotNull($rb);
+        self::assertNotSame($ra->body, $rb->body, 'different deploys select different witness vectors');
+        foreach ([$ra->body, $rb->body] as $body) {
+            foreach (explode("\n", $body) as $line) {
+                self::assertSame(1, preg_match('/^k[a-e]=[0-9]$/', $line));
+            }
+        }
+    }
+
+    public function test_same_deploy_rescan_is_byte_identical(): void
+    {
+        $bundle = ['s' => 200, 'rx' => ['a0', 'b0'], 'rxm' => [['a1', 'a2'], ['b1', 'b2']], 't' => ['a']];
+        $synth = $this->synthFor('deploy-a');
+        $r1 = $synth->synthesize($bundle, Detection::none(), 'seed');
+        $r2 = $synth->synthesize($bundle, Detection::none(), 'seed');
+        self::assertNotNull($r1);
+        self::assertNotNull($r2);
+        self::assertSame($r1->body, $r2->body, 're-scan on one deploy is byte-identical');
+    }
+
+    public function test_whole_body_exclusive_serves_exactly_the_selected_witness(): void
+    {
+        // A single anchored witness with a menu: the served body is EXACTLY the deploy-selected witness.
+        $bundle = ['s' => 200, 'rx' => ['foo0'], 'rxm' => [['foo1', 'foo2']], 'x' => true, 't' => ['a']];
+        $synth = $this->synthFor('deploy-a');
+        $resp = $synth->synthesize($bundle, Detection::none(), 'seed');
+        self::assertNotNull($resp);
+        self::assertContains($resp->body, ['foo0', 'foo1', 'foo2'], 'the exclusive body is one of the menu options');
+        self::assertSame([$resp->body], $synth->lastRegexWitnesses(), 'the diagnostic reflects the served witness');
+    }
+
+    public function test_a_forbidden_alternate_retries_and_serves_the_canonical(): void
+    {
+        // A malformed bundle (alternate not filtered at freeze) whose alternate is a forbidden substring:
+        // any deploy that selects it must retry ONCE with the canonical and serve that, never a miss.
+        $bundle = ['s' => 200, 'rx' => ['ok'], 'rxm' => [['bad']], 'nf' => ['bad'], 't' => ['a']];
+        for ($i = 0; $i < 32; $i++) {
+            $synth = $this->synthFor('retry-' . $i);
+            $resp = $synth->synthesize($bundle, Detection::none(), 'seed');
+            self::assertNotNull($resp, "deploy {$i} must fall back to the canonical, never miss");
+            self::assertSame('ok', $resp->body, 'the forbidden alternate is never served');
+            self::assertSame(['ok'], $synth->lastRegexWitnesses(), 'the diagnostic records the canonical fallback');
+        }
+    }
+
+    public function test_an_unsatisfiable_canonical_still_returns_null(): void
+    {
+        // Both the canonical and its alternate are forbidden substrings, so neither attempt can serve —
+        // the bounded retry is a fallback, not a bypass.
+        $bundle = ['s' => 200, 'rx' => ['xok'], 'rxm' => [['yok']], 'nf' => ['ok'], 't' => ['a']];
+        for ($i = 0; $i < 8; $i++) {
+            self::assertNull(
+                $this->synthFor('none-' . $i)->synthesize($bundle, Detection::none(), 'seed'),
+                "deploy {$i}: an unsatisfiable canonical must not be bypassed by an alternate"
+            );
         }
     }
 

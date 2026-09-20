@@ -4,10 +4,13 @@ declare(strict_types=1);
 
 namespace Funnypot\Core\Tests;
 
+use Funnypot\Core\Compiler\Crs\FingerprintGuard;
+use Funnypot\Core\Compiler\Matcher\RegexWitness;
 use Funnypot\Core\Honeypot;
 use Funnypot\Core\RequestContext;
 use Funnypot\Core\SiteProfile;
 use Funnypot\Core\Store\PhpArrayStore;
+use Funnypot\Core\Support\SubSeed;
 use Funnypot\Core\Verdict;
 use PHPUnit\Framework\TestCase;
 
@@ -192,5 +195,51 @@ final class CompiledIndexSmokeTest extends TestCase
         $verdict = $this->inverter()->classify(new RequestContext('GET', '/'), SiteProfile::empty());
 
         self::assertSame(Verdict::CLEAN, $verdict->classification);
+    }
+
+    public function test_every_committed_rxm_entry_is_shape_and_fingerprint_safe(): void
+    {
+        // FP-0280: exhaustive per-entry proof over the real artifact. Skips (with the exact message)
+        // while the index carries zero rxm — the source commit ships before the operator regeneration.
+        $index = require self::INDEX;
+        $rxmBundles = 0;
+        foreach ($index['routes'] as $entry) {
+            foreach ($entry['b'] ?? [] as $b) {
+                if (!empty($b['rxm'])) {
+                    $rxmBundles++;
+                }
+            }
+        }
+        if ($rxmBundles === 0) {
+            self::markTestSkipped('no bundle carries rxm — index not yet regenerated');
+        }
+
+        $guard = FingerprintGuard::fromPackage();
+        foreach ($index['routes'] as $key => $entry) {
+            foreach ($entry['b'] ?? [] as $b) {
+                if (empty($b['rxm'])) {
+                    continue;
+                }
+                $rx = array_values(array_map('strval', (array) ($b['rx'] ?? [])));
+                foreach ($b['rxm'] as $i => $alts) {
+                    self::assertIsInt($i, "{$key}: rxm key must be an integer");
+                    self::assertGreaterThanOrEqual(0, $i);
+                    self::assertArrayHasKey($i, $rx, "{$key}: rxm key {$i} must index an existing rx element");
+                    self::assertIsArray($alts);
+                    self::assertGreaterThanOrEqual(1, count($alts), "{$key}: a frozen rxm slot has at least one alternate");
+                    self::assertLessThanOrEqual(RegexWitness::MENU_K - 1, count($alts), "{$key}: a menu holds at most MENU_K-1 alternates");
+                    $seen = [];
+                    foreach ($alts as $alt) {
+                        self::assertIsString($alt);
+                        self::assertNotSame('', $alt, "{$key}: no empty alternate");
+                        self::assertNotSame($rx[$i], $alt, "{$key}: no canonical-equal alternate");
+                        self::assertArrayNotHasKey($alt, $seen, "{$key}: no duplicate alternate");
+                        $seen[$alt] = true;
+                        self::assertSame([], $guard->scan($alt), "{$key}: alternate carries a fingerprint tell: {$alt}");
+                        self::assertFalse(SubSeed::hitsDeniedDigits($alt), "{$key}: alternate carries a denied digit token: {$alt}");
+                    }
+                }
+            }
+        }
     }
 }

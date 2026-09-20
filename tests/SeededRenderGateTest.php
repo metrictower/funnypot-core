@@ -346,6 +346,114 @@ final class SeededRenderGateTest extends TestCase
         self::assertStringContainsString('names no rendered rule', $out);
     }
 
+    // --- FP-0280: the regex-witness-menu (rxm) leg ------------------------------------------------
+
+    /** A multi-slot rxm bundle whose selection differs across the two sample deploys. */
+    private function varyingRxmBundle(): array
+    {
+        $rx = [];
+        $rxm = [];
+        foreach (['ka', 'kb', 'kc', 'kd', 'ke'] as $n) {
+            $rx[] = $n . '=0';
+            $rxm[] = [$n . '=1', $n . '=2', $n . '=3'];
+        }
+
+        return [
+            's' => 200, 'bw' => [], 'nf' => [], 'sz' => null, 'rx' => $rx, 'rxm' => $rxm,
+            'h' => [], 't' => ['x'], 'pid' => '', 'sev' => 'info', 'sig' => 1,
+        ];
+    }
+
+    /** A single-option rxm bundle (alternate == canonical): its vector is fleet-constant. */
+    private function constantRxmBundle(string $canonical): array
+    {
+        return [
+            's' => 200, 'bw' => [], 'nf' => [], 'sz' => null, 'rx' => [$canonical], 'rxm' => [[$canonical]],
+            'h' => [], 't' => ['x'], 'pid' => '', 'sev' => 'info', 'sig' => 1,
+        ];
+    }
+
+    public function test_rxm_leg_variance_and_floor_pass_when_selection_varies(): void
+    {
+        $env = $this->synthEnv();
+        $env['nuclei'] = $this->tmpPhp('nx', ['schema' => 1, 'routes' => [
+            'GET /fp-0280-vary' => ['b' => [$this->varyingRxmBundle()]],
+        ]]);
+        $env['surfaces'] = $this->tmpPhp('sf', ['synth:regex-witness-menu' => 'FP-0280 per-deploy witness selection']);
+
+        [$code, $out] = $this->runGate($env);
+        self::assertSame(0, $code, $out);
+        self::assertStringContainsString('1 seeded surfaces verified', $out);
+        self::assertStringContainsString('INFO: synth rxm bundles=1', $out);
+    }
+
+    public function test_rxm_leg_constant_menu_fails_g4(): void
+    {
+        // A single-option menu selects the same vector on every deploy; a registered surface then fails
+        // G4 as identical-across-deploys (proves the surface is armed and non-vacuous).
+        $env = $this->synthEnv();
+        $env['nuclei'] = $this->tmpPhp('nx', ['schema' => 1, 'routes' => [
+            'GET /fp-0280-const' => ['b' => [$this->constantRxmBundle('cc')]],
+        ]]);
+        $env['surfaces'] = $this->tmpPhp('sf', ['synth:regex-witness-menu' => 'must vary per deploy']);
+
+        [$code, $out] = $this->runGate($env);
+        self::assertSame(1, $code, $out);
+        self::assertStringContainsString('synth:regex-witness-menu', $out);
+        self::assertStringContainsString('identical across deploy seeds', $out);
+    }
+
+    public function test_rxm_leg_floor_fails_below_25pct(): void
+    {
+        // Five served rxm bundles, only one of which selects a differing vector across deploys (20%),
+        // so the aggregate varies (G4 passes) but the dedicated floor (≥25%) fails.
+        $bundles = [
+            $this->varyingRxmBundle(),
+            $this->constantRxmBundle('c0'),
+            $this->constantRxmBundle('c1'),
+            $this->constantRxmBundle('c2'),
+            $this->constantRxmBundle('c3'),
+        ];
+        $env = $this->synthEnv();
+        $env['nuclei'] = $this->tmpPhp('nx', ['schema' => 1, 'routes' => ['GET /fp-0280-floor' => ['b' => $bundles]]]);
+        $env['surfaces'] = $this->tmpPhp('sf', ['synth:regex-witness-menu' => 'FP-0280 floor']);
+
+        [$code, $out] = $this->runGate($env);
+        self::assertSame(1, $code, $out);
+        self::assertStringContainsString('witness-menu floor', $out);
+    }
+
+    public function test_rxm_leg_stale_registry_key_fails_closed_on_empty_index(): void
+    {
+        // The registered key with a zero-rxm index records no surface ⇒ stale-registry guard fires (the
+        // floor is never computed — no div-by-zero). Mirrors the pre-regeneration source-commit state.
+        $env = $this->synthEnv();
+        $env['surfaces'] = $this->tmpPhp('sf', ['synth:regex-witness-menu' => 'registered but nothing rendered']);
+
+        [$code, $out] = $this->runGate($env);
+        self::assertSame(1, $code, $out);
+        self::assertStringContainsString('names no rendered rule', $out);
+    }
+
+    public function test_rxm_leg_canonical_fallback_records_actual_served_vector(): void
+    {
+        // A forbidden alternate means every deploy falls back to the canonical, so the recorded vector is
+        // the ACTUAL served canonical on both deploys — a registered surface then fails G4 as identical,
+        // proving the metric measures real output, not the theoretical selection.
+        $bundle = [
+            's' => 200, 'bw' => [], 'nf' => ['bad'], 'sz' => null,
+            'rx' => ['ok'], 'rxm' => [['bad']],
+            'h' => [], 't' => ['x'], 'pid' => '', 'sev' => 'info', 'sig' => 1,
+        ];
+        $env = $this->synthEnv();
+        $env['nuclei'] = $this->tmpPhp('nx', ['schema' => 1, 'routes' => ['GET /fp-0280-fallback' => ['b' => [$bundle]]]]);
+        $env['surfaces'] = $this->tmpPhp('sf', ['synth:regex-witness-menu' => 'actual served vector']);
+
+        [$code, $out] = $this->runGate($env);
+        self::assertSame(1, $code, $out);
+        self::assertStringContainsString('identical across deploy seeds', $out);
+    }
+
     // --- route priority shadows (FP-0287) ---------------------------------------------------------
     //
     // First-match route selection can capture one rule's synthetic witness with a higher-priority
