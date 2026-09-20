@@ -2,6 +2,7 @@
 declare(strict_types=1);
 namespace Funnypot\Core\Tests\Support\Chrome;
 
+use Funnypot\Core\Compiler\Crs\FingerprintGuard;
 use Funnypot\Core\Support\Chrome\PageSlots;
 use Funnypot\Core\Support\Chrome\WordpressSkin;
 use Funnypot\Core\Support\VisualPersona;
@@ -169,5 +170,101 @@ final class WordpressSkinTest extends TestCase
         // The login card is not the admin shell.
         self::assertStringNotContainsString('id="wpadminbar"', $login);
         self::assertStringNotContainsString('id="adminmenu"', $login);
+    }
+
+    // --- FP-0491: renderLockout() — the login page carrying a fake lockout notice (NOT render()) --
+
+    /** The lockout page is the login card plus a generic "too many attempts / try again in N minutes"
+     *  notice — fails if the notice is absent (i.e. it rendered the plain login page). */
+    public function test_lockout_page_served(): void
+    {
+        $html = (new WordpressSkin())->renderLockout(
+            PageSlots::fromArray(['app_name' => 'Blog']), VisualPersona::fromSeed(4), '/wp-login.php', 4
+        );
+
+        $lower = strtolower($html);
+        self::assertStringStartsWith('<!doctype html>', $html);
+        self::assertStringContainsString('name="loginform"', $html);           // still the login card
+        self::assertStringContainsString('id="login_error"', $html);           // the notice slot is filled
+        self::assertStringContainsString('too many failed login attempts', $lower);
+        self::assertStringContainsString('try again in', $lower);
+        self::assertMatchesRegularExpression('/try again in \d+ minutes/', $lower);
+    }
+
+    /** Countdown is deterministic from the seed alone (stateless): same seed -> same N, and different
+     *  seeds vary within the fixed list. Fails if the countdown reads time/state (e.g. rand()). */
+    public function test_countdown_deterministic(): void
+    {
+        $skin = new WordpressSkin();
+        $extract = static function (string $html): int {
+            self::assertSame(1, preg_match('/try again in (\d+) minutes/', strtolower($html), $m));
+            return (int) $m[1];
+        };
+
+        $a = $extract($skin->renderLockout(PageSlots::fromArray([]), VisualPersona::fromSeed(4), '/wp-login.php', 4));
+        $b = $extract($skin->renderLockout(PageSlots::fromArray([]), VisualPersona::fromSeed(4), '/wp-login.php', 4));
+        self::assertSame($a, $b, 'same seed must yield the same countdown');
+
+        // Different seeds de-correlate: sweep a range and confirm at least two distinct values appear,
+        // and every value comes from the fixed plausible-minutes list.
+        $allowed = [5, 7, 9, 11, 13, 15, 17, 19, 23];
+        $seen = [];
+        for ($seed = 0; $seed < 40; $seed++) {
+            $n = $extract($skin->renderLockout(PageSlots::fromArray([]), VisualPersona::fromSeed($seed), '/wp-login.php', $seed));
+            self::assertContains($n, $allowed, "seed {$seed}: countdown outside the fixed list");
+            $seen[$n] = true;
+        }
+        self::assertGreaterThan(1, count($seen), 'different seeds must produce more than one countdown value');
+    }
+
+    /** The lockout body is a text/html login document and still escapes hostile slot values. */
+    public function test_lockout_content_type_and_escaping(): void
+    {
+        $html = (new WordpressSkin())->renderLockout(
+            PageSlots::fromArray(['app_name' => '<x onerror=1>']), VisualPersona::fromSeed(6), '/wp-login.php', 6
+        );
+
+        self::assertStringStartsWith('<!doctype html>', $html);
+        self::assertStringContainsString('charset', strtolower($html));
+        self::assertStringNotContainsString('<x onerror', $html);   // esc() holds on the login card
+    }
+
+    /** Fingerprint-safe: FingerprintGuard clean AND explicitly no `llar` token (not denylisted) and no
+     *  bare six-digit CRS rule id. Covers realistic and taunt copy. */
+    public function test_lockout_fingerprint_safe(): void
+    {
+        $guard = FingerprintGuard::fromPackage();
+        $skin = new WordpressSkin();
+        $headers = ['Content-Type' => 'text/html; charset=UTF-8'];
+
+        foreach ([false, true] as $taunt) {
+            for ($seed = 0; $seed < 12; $seed++) {
+                $html = $skin->renderLockout(PageSlots::fromArray(['app_name' => 'Blog']), VisualPersona::fromSeed($seed), '/wp-login.php', $seed, $taunt);
+                $guard->assertResponseClean($html, $headers, 'wp-lockout');
+                self::assertStringNotContainsString('llar', strtolower($html), "seed {$seed} taunt=" . ($taunt ? '1' : '0'));
+                self::assertDoesNotMatchRegularExpression('/\b9\d{5}\b/', $html, "seed {$seed} taunt=" . ($taunt ? '1' : '0'));
+            }
+        }
+    }
+
+    /** The taunt variant still renders a login-card lockout page with a notice and passes the guard. */
+    public function test_lockout_taunt_variant(): void
+    {
+        $html = (new WordpressSkin())->renderLockout(
+            PageSlots::fromArray(['app_name' => 'Blog']), VisualPersona::fromSeed(8), '/wp-login.php', 8, true
+        );
+
+        self::assertStringContainsString('name="loginform"', $html);
+        self::assertStringContainsString('id="login_error"', $html);
+        self::assertMatchesRegularExpression('/\d+ minutes/', strtolower($html));
+        FingerprintGuard::fromPackage()->assertResponseClean($html, ['Content-Type' => 'text/html; charset=UTF-8'], 'wp-lockout-taunt');
+    }
+
+    /** renderLockout() is a SEPARATE method: it must not disturb the plain login-card render() output. */
+    public function test_lockout_does_not_change_the_login_card_render(): void
+    {
+        $skin = new WordpressSkin();
+        $login = $skin->render(PageSlots::fromArray(['app_name' => 'Blog']), VisualPersona::fromSeed(5), '/wp-login.php');
+        self::assertStringNotContainsString('too many failed login attempts', strtolower($login));
     }
 }
