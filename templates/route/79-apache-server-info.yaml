@@ -1,0 +1,60 @@
+id: route-apache-server-info
+priority: 79
+# Apache mod_info (/server-info) — a DISTINCT page from mod_status (/server-status, rule 80).
+# Both paths resolve to the same corpus bundle (pid=apache, t=[apache-server-status]), so the
+# `server-info` word once carried in rule 80's needle list was a dead no-op — a needle axis cannot
+# separate the two paths. Only the resolved route key can, so this rule guards on route_key and is
+# checked (priority 79) before rule 80. `/server-status` has no key here, so it declines to rule 80
+# unchanged. The bundle AND-matches the body words 'Apache Server Status' and 'Server Version'
+# (BundleValidator strpos on body); a real mod_info page shows 'Server Version' but never the
+# mod_status page title, so 'Apache Server Status' is carried as an in-<head> HTML comment (a
+# well-formed document — never a trailing token appended after </html>, which reads as a raw-body
+# tell). The version uses the shared {{pick}} set so it agrees with every other Apache surface.
+match:
+  template_needle: [apache-server-status]          # positive axis: a route_key-only match never fires
+  route_key: ['GET /server-info']
+response:
+  headers:
+    Content-Type: "text/html; charset=utf-8"
+  body: |
+    <!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+    <html><head>
+    <title>Server Information</title>
+    <!-- Apache Server Status -->
+    </head><body>
+    <h1>Apache Server Information</h1>
+    <dl><dt><a href="#server">Server Settings</a>, <a href="#startup">Startup Configuration</a>
+    <dt><a href="#core">Module core.c</a>, <a href="#mod_so">Module mod_so.c</a>,
+    <a href="#http_core">Module http_core.c</a>, <a href="#mod_ssl">Module mod_ssl.c</a>
+    </dl><hr>
+    <h2><a name="server">Server Settings</a></h2>
+    <dl><dt><strong>Server Version:</strong> <tt>Apache/{{pick:2.4.58,2.4.52,2.4.41}} (Unix) OpenSSL/3.0</tt>
+    <dt><strong>Server Built:</strong> <tt>Jan  1 2024 00:00:00</tt>
+    <dt><strong>Server loaded APR Version:</strong> <tt>1.7.0</tt>
+    <dt><strong>Server MPM:</strong> <tt>event</tt>
+    <dt><strong>Server Root:</strong> <tt>/etc/apache2</tt>
+    <dt><strong>Config File:</strong> <tt>/etc/apache2/apache2.conf</tt>
+    </dl><hr>
+    <h2><a name="core">Module Name: <tt>core.c</tt></a></h2>
+    <dl><dt><strong>Current Configuration:</strong>
+    <dd><pre>
+    #ServerName www.{{persona.company.domain}}
+    &lt;Directory /var/www/html&gt;
+        Options Indexes FollowSymLinks
+        AllowOverride None
+        Require all granted
+    &lt;/Directory&gt;
+    </pre>
+    </dl><hr>
+    <h2><a name="mod_ssl">Module Name: <tt>mod_ssl.c</tt></a></h2>
+    <dl><dt><strong>Current Configuration:</strong>
+    <dd><pre>
+    &lt;VirtualHost *:443&gt;
+        ServerName www.{{persona.company.domain}}
+        SSLEngine on
+    &lt;/VirtualHost&gt;
+    </pre>
+    </dl><hr>
+    </body></html>
+taunt: { mode: block, open: '<!--', close: '-->' }
+expect: ['Apache Server Information', 'Server Version', 'Module Name']

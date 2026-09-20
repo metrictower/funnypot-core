@@ -1,8 +1,10 @@
 id: route-apache-server-status
 priority: 80
-# Apache mod_status (/server-status, /server-info) — RFC-5737 client rows, persona-domain vhost.
+# Apache mod_status (/server-status) — RFC-5737 client rows, persona-domain vhost. /server-info is a
+# distinct mod_info page served by rule 79 (route_key-guarded); the old `server-info` needle here was a
+# dead no-op (it is not a substring of apache-server-status, so it never matched independently).
 match:
-  template_needle: [apache-server-status, server-status, server-info]
+  template_needle: [apache-server-status, server-status]
 response:
   headers:
     Content-Type: "text/html; charset=utf-8"
