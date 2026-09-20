@@ -57,8 +57,12 @@ return [
         // of a hash name and "0000" — a digest value that happens to begin 0000 is legitimate.
         'startsWith\s*\(\s*["\x27]0{3,}',
         '(?:substring|substr|slice)\s*\([^)]{0,24}\)\s*={2,3}\s*["\x27]0{3,}',
-        // A client-side redirect (JS or meta-refresh) INTO a /challenge interstitial — distinct from
-        // a plain URL that merely contains the word.
-        '(?:location\.href|window\.location|http-equiv=[^>]{0,12}refresh)[^;>]{0,80}challenge',
+        // A client-side JS redirect INTO a /challenge interstitial — distinct from a plain URL that
+        // merely contains the word. Covers href/replace/assign and bare window.location assignment.
+        '(?:window\.location|location\.(?:href|replace|assign))[^>]{0,80}challenge',
+        // A meta-refresh or HTTP Refresh-header redirect INTO a /challenge interstitial. Uses [^>]
+        // (not [^;>]) so the `content="0; url=/challenge"` form — whose `;` would otherwise stop the
+        // scan before the path — is caught.
+        '(?:http-equiv=[^>]{0,16}refresh|Refresh:\s*\d)[^>]{0,80}challenge',
     ],
 ];

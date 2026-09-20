@@ -47,6 +47,9 @@ final class WafLookalikeGuardTest extends TestCase
             'proof of work' => ['Please complete the proof of work to continue'],
             'pow loop shape' => ['while(true){ if(sha256(nonce).startsWith("0000")) break; }'],
             'challenge redirect' => ['<script>window.location = "/challenge?id=1"</script>'],
+            'challenge location.replace' => ['<script>location.replace("/challenge")</script>'],
+            'challenge meta refresh' => ['<meta http-equiv="refresh" content="0; url=/challenge?id=1">'],
+            'challenge refresh header' => ['Refresh: 0; url=/challenge'],
         ];
     }
 
@@ -74,6 +77,17 @@ final class WafLookalikeGuardTest extends TestCase
             'sql error' => ["You have an error in your SQL syntax near '' at line 1"],
             'challenge word in url only' => ['<a href="/api/v2/challenge/list">challenges</a>'],
         ];
+    }
+
+    public function test_every_pattern_compiles(): void
+    {
+        // A malformed regex makes @preg_match return false, which scan() treats as "no match" — a
+        // silent efficacy hole. Assert every shipped pattern compiles so a bad edit fails HERE, not
+        // silently in production CI.
+        $tells = require dirname(__DIR__, 2) . '/resources/waf-lookalike-tells.php';
+        foreach ((array) ($tells['patterns'] ?? []) as $pattern) {
+            self::assertNotFalse(@preg_match('~' . $pattern . '~i', ''), "pattern must compile: {$pattern}");
+        }
     }
 
     public function test_from_package_builds_a_non_empty_guard(): void
