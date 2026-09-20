@@ -90,6 +90,55 @@ final class WordpressSkin extends AbstractSkin
     }
 
     /**
+     * The 2FA code-entry card (FP-0492) — a NEW public method for the same reason renderAdmin() is
+     * separate: the LLM-tier skin router calls render() for every wp-* path, so branching render() would
+     * silently move that output. The decoy-session challenge handler news up this concrete class and
+     * calls renderTwoFactor() directly (mirroring renderAdmin()).
+     *
+     * Byte-coherent with render() by construction: the SAME #login card chrome, css() and wpMarkers(),
+     * so the challenge page reads as one more step of the same WP host. The only difference is the card
+     * body — a single verification-code input instead of user/pass. Copy is generic re-authored defender
+     * wording (no plugin-specific 2FA marker, no QR, no seed, no real/backup code value); nothing
+     * attacker-controlled is reflected. $escapedAction is the pre-escaped, compiler-validated static
+     * form target the code posts back to (never a capture), so there is no open redirect.
+     */
+    public function renderTwoFactor(VisualPersona $persona, string $escapedAction): string
+    {
+        $siteRaw = $persona->company();
+        $site = $this->esc($siteRaw);
+        $domain = $this->esc($persona->domain());
+
+        $html = '<div id="login">';
+        $html .= '<h1><a href="#">' . $site . '</a></h1>';
+        $html .= '<p class="message">Enter the verification code from your authentication app to continue.</p>';
+
+        // action is the pre-escaped static form target; the hrefs below are trusted literals.
+        $html .= '<form name="loginform" id="loginform" class="login" action="' . $escapedAction . '" method="post">'
+            . '<p class="login-username">'
+            . '<label for="authcode">Authentication Code</label>'
+            . '<input type="text" name="code" id="authcode" class="input" size="20" inputmode="numeric" autocomplete="one-time-code" autofocus>'
+            . '</p>'
+            . '<p class="submit">'
+            . '<input type="submit" name="wp-submit" id="wp-submit" class="button button-primary button-large" value="Log In">'
+            . '</p>'
+            . '</form>';
+
+        $html .= '<p id="nav"><a href="#">Back to sign in</a></p>';
+        $html .= '</div>';
+        $html .= '<p class="footer">' . $domain . '</p>';
+
+        return $this->document(
+            $siteRaw . ' - Verify',
+            $this->css(),
+            $html,
+            ' lang="en-US"',
+            '<meta charset="utf-8"><meta name="viewport" content="width=device-width">'
+                . $this->wpMarkers($persona),
+            ' class="login no-js"'
+        );
+    }
+
+    /**
      * The authed wp-admin dashboard shell — a NEW public method, deliberately NOT a branch inside
      * render(): the LLM-tier skin router (app-side) calls render() for every wp-* path, so changing
      * render()'s semantics would silently move LLM-tier output. The decoy-session gate news up this

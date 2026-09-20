@@ -148,4 +148,108 @@ YAML;
         $this->expectException(RuntimeException::class);
         $this->compileOne($this->gateRule('', "'x_{{persona.wordpress.bogus}}'"));
     }
+
+    // --- FP-0492: two_factor (mint) + challenge mode -----------------------------------------
+
+    private function mintRuleLines(string $lines): string
+    {
+        return <<<YAML
+id: decoy-mint-2fa-fixture
+priority: 39
+owns_path: [/wp-login.php]
+match:
+  - in: path
+    regex: '(?:^|/)wp-login\\.php/*\$'
+    ci: true
+  - in: method
+    regex: '^POST\$'
+response:
+  body: base-login-page
+behavior: decoy-session
+decoy-session:
+  mode: mint
+  cookie_name: sess
+  cookie_path: /
+  redirect: /wp-admin/
+{$lines}
+YAML;
+    }
+
+    private function challengeRule(string $lines): string
+    {
+        return <<<YAML
+id: decoy-challenge-fixture
+priority: 35
+match:
+  - in: path
+    regex: '(?:^|/)wp-login\\.php/*\$'
+    ci: true
+  - in: method
+    regex: '^(?:GET|HEAD)\$'
+    ci: true
+  - in: query
+    regex: '(?:^|&)action=2fa(?:&|\$)'
+    ci: true
+response:
+  body: base-login-page
+behavior: decoy-session
+decoy-session:
+  mode: challenge
+  cookie_name: sess
+  cookie_path: /
+{$lines}
+YAML;
+    }
+
+    public function test_mint_two_factor_defaults_to_false(): void
+    {
+        $rules = $this->compileOne($this->mintRuleLines(''));
+        self::assertFalse($rules[0]['decoy-session']['two_factor']);
+        self::assertArrayNotHasKey('two_factor_redirect', $rules[0]['decoy-session']);
+    }
+
+    public function test_mint_two_factor_on_requires_a_two_factor_redirect(): void
+    {
+        $this->expectException(RuntimeException::class);
+        $this->compileOne($this->mintRuleLines('  two_factor: true'));
+    }
+
+    public function test_mint_two_factor_on_stores_the_challenge_redirect(): void
+    {
+        $rules = $this->compileOne($this->mintRuleLines("  two_factor: true\n  two_factor_redirect: /wp-login.php?action=2fa"));
+        self::assertTrue($rules[0]['decoy-session']['two_factor']);
+        self::assertSame('/wp-login.php?action=2fa', $rules[0]['decoy-session']['two_factor_redirect']);
+    }
+
+    public function test_mint_two_factor_redirect_rejects_an_absolute_target(): void
+    {
+        $this->expectException(RuntimeException::class);
+        $this->compileOne($this->mintRuleLines("  two_factor: true\n  two_factor_redirect: 'https://evil.example/'"));
+    }
+
+    public function test_challenge_form_action_defaults_when_absent(): void
+    {
+        $rules = $this->compileOne($this->challengeRule('  panel: wordpress'));
+        self::assertSame('challenge', $rules[0]['decoy-session']['mode']);
+        self::assertSame('/wp-login.php?action=2fa', $rules[0]['decoy-session']['form_action']);
+        self::assertSame('wordpress', $rules[0]['decoy-session']['panel']);
+    }
+
+    public function test_challenge_form_action_accepts_a_rooted_relative_literal(): void
+    {
+        $rules = $this->compileOne($this->challengeRule('  form_action: /wp-login.php?action=2fa'));
+        self::assertSame('/wp-login.php?action=2fa', $rules[0]['decoy-session']['form_action']);
+    }
+
+    public function test_challenge_form_action_rejects_an_absolute_target(): void
+    {
+        $this->expectException(RuntimeException::class);
+        $this->compileOne($this->challengeRule("  form_action: 'https://evil.example/'"));
+    }
+
+    public function test_challenge_panel_rejects_unknown_value(): void
+    {
+        $this->expectException(RuntimeException::class);
+        $this->compileOne($this->challengeRule('  panel: grafana'));
+    }
 }

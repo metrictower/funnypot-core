@@ -1,0 +1,91 @@
+id: attack-wp-2fa-challenge
+severity: low
+# Priority 35 (a free slot below the mint's 39), NOT the 95 the filename suggests — the NN- prefix is
+# cosmetic; priority is the real key. This GET rule is method-disjoint from the mint (rule 97, POST) so
+# there is no mint/challenge collision; the < 39 slot only keeps it ahead of the mint in the linear
+# scan for tidiness. See 97-wp-login.yaml for the priority-vs-filename convention.
+priority: 35
+tags: [attack, wordpress, login, mock-auth, decoy-session, two-factor]
+# The FP-0492 fake 2FA code-entry page. GET /wp-login.php?action=2fa. It does NOT declare owns_path —
+# rule 97 already claims /wp-login.php via owns_path, so the request-aware attack tier is consulted for
+# this path and this rule is reached in the linear scan; adding a second owns_path entry would only
+# duplicate the route-integrity note without changing behavior.
+#
+# `behavior: decoy-session` mode `challenge`, panel `wordpress`: a request carrying a verified
+# 2fa-pending cookie (the one rule 97's mint set when two_factor is on) renders the generic code-entry
+# form. ANYTHING ELSE — no cookie, a garbage/forged/wrong-key value, a pre-auth or authenticated cookie
+# (wrong class), the signing key disabled, or two_factor never enabled (so no pending cookie ever
+# exists) — declines to the base `response` below (the login page). Fail-closed by construction: the
+# ONLY path to the code form is DecoySession::isTwoFactorPending (see
+# TemplateAttackEmulator::decoySessionChallenge).
+#
+# DORMANT DEFAULT = byte-plausible: with the key off or two_factor off no pending cookie is ever minted,
+# so this rule always declines to the login-page base — a real WordPress wp-login.php serves the login
+# form for an unknown `action` too, so this is WP-faithful, not a new tell. The base page names the SAME
+# persona company as rule 97 / route 50 so GET and POST stay one coherent host.
+#
+# PATH MATCH tolerates any count of trailing slashes (`/*$`) and any case, matching how ownsPath()
+# collapses /wp-login.php variants (see 97-wp-login.yaml). HEAD is accepted alongside GET (a real server
+# gives it the same page with no body). The `action=2fa` query gate keeps a bare login GET on route 50.
+match:
+  - in: path
+    regex: '(?:^|/)wp-login\.php/*$'
+    ci: true
+  - in: method
+    regex: '^(?:GET|HEAD)$'
+    ci: true
+  - in: query
+    regex: '(?:^|&)action=2fa(?:&|$)'
+    ci: true
+status: 200
+response:
+  headers:
+    Content-Type: "text/html; charset=UTF-8"
+    Expires: "Wed, 11 Jan 1984 05:00:00 GMT"
+    Cache-Control: "no-cache, must-revalidate, max-age=0"
+  body: |
+    <!DOCTYPE html>
+    <html lang="en-US">
+    <head>
+    <meta charset="UTF-8" />
+    <title>Log In &lsaquo; {{persona.company.name}} &#8212; WordPress</title>
+    <link rel='stylesheet' href='https://blog.{{persona.company.domain}}/wp-includes/css/dist/block-library/style.min.css' />
+    </head>
+    <body class="login no-js login-action-login wp-core-ui">
+    <div id="login">
+    <h1><a href="https://blog.{{persona.company.domain}}/">{{persona.company.name}}</a></h1>
+    <p class="message register">Register For This Site</p>
+    <form name="loginform" id="loginform" action="https://blog.{{persona.company.domain}}/wp-login.php" method="post">
+    <p><label for="user_login">Username or Email Address<br />
+    <input type="text" name="log" id="user_login" class="input" value="" size="20" autocapitalize="off" /></label></p>
+    <div class="user-pass-wrap">
+    <label for="user_pass">Password<br />
+    <div class="wp-pwd">
+    <input type="password" name="pwd" id="user_pass" class="input password-input" value="" size="20" autocomplete="current-password" />
+    </div>
+    </label>
+    </div>
+    <p class="submit">
+    <input type="submit" name="wp-submit" id="wp-submit" class="button button-primary button-large" value="Log In" />
+    <input type="hidden" name="testcookie" value="1" />
+    </p>
+    </form>
+    <p id="nav">
+    <a href="https://blog.{{persona.company.domain}}/wp-login.php?action=register">Register</a> |
+    <a href="https://blog.{{persona.company.domain}}/wp-login.php?action=lostpassword">Lost your password?</a>
+    </p>
+    </div>
+    </body>
+    </html>
+behavior: decoy-session
+decoy-session:
+  mode: challenge
+  panel: wordpress
+  # SAME per-deploy name rule 97's mint sets, so a browser's 2fa-pending cookie round-trips to this
+  # rule. Deploy-stable via the persona seed.
+  cookie_name: 'wordpress_logged_in_{{persona.wordpress.cookieHash}}'
+  cookie_path: /
+  # The code form posts back here (a static rooted-relative literal, no open redirect) — the same
+  # query-shaped path the mint's two_factor_redirect points at, so the verify POST reaches rule 97.
+  form_action: /wp-login.php?action=2fa
+expect: ['Register For This Site', 'wp-login.php']
