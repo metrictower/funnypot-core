@@ -5,6 +5,16 @@ priority: 50
 # deploy-stable company the POST credential oracle (attack rule 97) and the /wp-admin dashboard show —
 # GET and POST on this path stay one coherent host (FP-0271 §2.6 N2; route-tier {{persona.*}} is
 # already rendered at request time, as the pre-existing {{pick}} title was).
+#
+# INVISIBLE DECOY FIELD (FP-0495): the extra contact <input> is a honeypot. It is hidden by the
+# `display:none` wrapper, out of the tab order (tabindex=-1), out of the a11y tree (aria-hidden) and
+# out of autofill (autocomplete=off), so no real browser/user ever fills it — but a dumb form-filling
+# bot does. Inert static HTML: core only RENDERS it; detection (a non-empty submit -> scripted-bot
+# signal) is a separate serve-neutral concern (Support\LoginDecoyField), so this page is byte-identical
+# whether or not the field is later tripped. The name is a {{pick:login_decoy_field:...}} off the render
+# seed (crc32(seedFor($r)) — per-client-IP in prod / per-host by default), so it is NOT a fleet-wide
+# constant and reads as an ordinary contact field, never a honeypot tell. It must stay byte-identical to
+# attack rule 97's copy (same {{pick}} KEY + list) so a bot's GET-render name equals the POST detect name.
 match:
   template_needle: [wordpress-login, wp-enabled-registration, wp-registration-enabled]
 set_cookie: PHPSESSID
@@ -18,6 +28,7 @@ response:
     <meta charset="UTF-8" />
     <title>Log In &lsaquo; {{persona.company.name}} &#8212; WordPress</title>
     <link rel='stylesheet' href='https://blog.{{persona.company.domain}}/wp-includes/css/dist/block-library/style.min.css' />
+    <style>.{{persona.classPrefix}}-field-row{display:none}</style>
     </head>
     <body class="login no-js login-action-login wp-core-ui">
     <div id="login">
@@ -28,6 +39,8 @@ response:
     <input type="text" name="log" class="input" /></label></p>
     <p><label>Password<br />
     <input type="password" name="pwd" class="input" /></label></p>
+    <p class="{{persona.classPrefix}}-field-row"><label for="{{persona.classPrefix}}_ct">Contact</label>
+    <input type="text" name="{{pick:login_decoy_field:contact_phone,company_fax,alt_email,secondary_email,office_ext,mobile_alt}}" id="{{persona.classPrefix}}_ct" value="" tabindex="-1" autocomplete="off" aria-hidden="true" /></p>
     <p class="submit"><input type="submit" name="wp-submit" value="Log In" /></p>
     </form>
     <p id="nav">

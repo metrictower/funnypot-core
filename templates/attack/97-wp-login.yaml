@@ -16,6 +16,14 @@ owns_path: [/wp-login.php]
 # for the decoy-session mint — NEVER reflected. The login-error page always names the FIXED persona
 # username `admin`, never the submitted one, so a crafted username can never surface in the response.
 #
+# INVISIBLE DECOY FIELD (FP-0495): the extra contact <input> is a honeypot, byte-identical to route 50's
+# copy (same {{pick}} KEY + list) so a bot's GET-render field name equals its POST field name from the
+# same source. Hidden by `display:none` wrapper + tabindex=-1 + aria-hidden + autocomplete=off, so no real
+# user fills it; a dumb form-filler does. Its value is NEVER matched here or reflected — detection lives in
+# the serve-neutral Support\LoginDecoyField helper the store-owning tier calls OUTSIDE the serve decision,
+# so this page is byte-identical whether or not the field is filled. The name is a {{pick}} off the render
+# seed (crc32(seedFor($r))), not a fleet constant, and reads as an ordinary contact field, never a tell.
+#
 # MOCK-AUTH MINT (behavior: decoy-session, mode: mint) — the phpMyAdmin pair's exact pattern applied to
 # wp-login. A plausible non-empty log/pwd mints the signed authenticated decoy cookie and 302s to the FIXED
 # literal /wp-admin/ (the authored `redirect`; never a submitted value, so no open redirect). An
@@ -75,6 +83,7 @@ response:
     <meta charset="UTF-8" />
     <title>Log In &lsaquo; {{persona.company.name}} &#8212; WordPress</title>
     <link rel='stylesheet' href='https://blog.{{persona.company.domain}}/wp-includes/css/dist/block-library/style.min.css' />
+    <style>.{{persona.classPrefix}}-field-row{display:none}</style>
     </head>
     <body class="login no-js login-action-login wp-core-ui">
     <div id="login">
@@ -91,6 +100,8 @@ response:
     </div>
     </label>
     </div>
+    <p class="{{persona.classPrefix}}-field-row"><label for="{{persona.classPrefix}}_ct">Contact</label>
+    <input type="text" name="{{pick:login_decoy_field:contact_phone,company_fax,alt_email,secondary_email,office_ext,mobile_alt}}" id="{{persona.classPrefix}}_ct" value="" tabindex="-1" autocomplete="off" aria-hidden="true" /></p>
     <p class="forgetmenot"><input name="rememberme" type="checkbox" id="rememberme" value="forever" /> <label for="rememberme">Remember Me</label></p>
     <p class="submit">
     <input type="submit" name="wp-submit" id="wp-submit" class="button button-primary button-large" value="Log In" />
