@@ -62,7 +62,7 @@ jobs:
           # `build-corpus` is the ONE full rebuild: compile http/ at the checkout's revision, then the
           # `funnypot build` DAG (recompile attack + route + param templates, fold brand-new product
           # pages into the fresh index, refresh source_tree/counts + the manifest.json fingerprint,
-          # rebuild the decoy manifest last). Same orchestrator as `composer check` / the artifact-law
+          # rebuild the decoy manifest then regenerate the decoy map). Same orchestrator as `composer check` / the artifact-law
           # gate, so this PR can never trip its own drift gate. `--bump` is what makes moving the
           # recorded upstream pin deliberate; the route-key delta is printed for the PR reviewer.
           php -d memory_limit=2G bin/funnypot build-corpus /tmp/nuclei-templates --bump
@@ -110,6 +110,8 @@ jobs:
             resources/compiled/funnypot-routes-index.php
             resources/compiled/funnypot-param.php
             resources/compiled/funnypot-manifest.php
+            docs/DECOY-MAP.md
+            README.md
             templates/generated
             templates/attack-ai
             resources/upstream-licenses/nuclei-templates.LICENSE.md
