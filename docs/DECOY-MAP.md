@@ -4,7 +4,7 @@
 > The manifest is the sole inventory authority; friendly names, categories and behavior
 > prose live in the README taxonomy, not here.
 
-Manifest schema 1. Authored records: 343 across 81 families. Corpus: 2611 families / 5134 route keys (summarized, not enumerated). Enrichers: 223.
+Manifest schema 1. Authored records: 344 across 81 families. Corpus: 2611 families / 5134 route keys (summarized, not enumerated). Enrichers: 224.
 
 ```mermaid
 mindmap
@@ -84,14 +84,14 @@ mindmap
     fam0073["webshell: 1"]
     fam0074["whm: 1"]
     fam0075["windows: 2"]
-    fam0076["wordpress: 13"]
+    fam0076["wordpress: 14"]
     fam0077["wp-plugin-enum: 10"]
     fam0078["wp-theme-enum: 2"]
     fam0079["xdebug: 1"]
     fam0080["xss: 2"]
     fam0081["xxe: 1"]
     corpus["corpus: 2611 families / 5134 keys"]
-    enrichers["content enrichers #40;not route claimers#41;: 223"]
+    enrichers["content enrichers #40;not route claimers#41;: 224"]
 ```
 
 | Family | Authored records | Tier mix | Owned routes | Outbound links | Max severity | Integrity |
@@ -171,13 +171,13 @@ mindmap
 | webshell | 1 | attack:1 | 0 | 0 | critical | &mdash; |
 | whm | 1 | new-page:1 | 1 | 0 | low | &mdash; |
 | windows | 2 | attack:2 | 0 | 0 | critical | &mdash; |
-| wordpress | 13 | attack:13 | 17 | 3 | critical | accepted, info |
+| wordpress | 14 | attack:14 | 18 | 4 | critical | accepted, info |
 | wp-plugin-enum | 10 | new-page:10 | 10 | 0 | medium | &mdash; |
 | wp-theme-enum | 2 | new-page:2 | 2 | 0 | medium | &mdash; |
 | xdebug | 1 | attack:1 | 0 | 0 | critical | &mdash; |
 | xss | 2 | attack:1 attack-crs:1 | 0 | 0 | high | &mdash; |
 | xxe | 1 | attack:1 | 0 | 0 | high | &mdash; |
 | _corpus (nuclei-inversion)_ | 2611 families / 5134 keys | &mdash; | &mdash; | &mdash; | &mdash; | &mdash; |
-| _content enrichers (not route claimers)_ | 223 | &mdash; | &mdash; | &mdash; | &mdash; | &mdash; |
+| _content enrichers (not route claimers)_ | 224 | &mdash; | &mdash; | &mdash; | &mdash; | &mdash; |
 
 Per-family detail: `bin/funnypot map --family=NAME --format=md` (or `--format=mermaid` for the raw flowchart).

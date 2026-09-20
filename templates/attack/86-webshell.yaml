@@ -19,4 +19,38 @@ response:
     uid=33(www-data) gid=33(www-data) groups=33(www-data)
     $ </pre>
     </body></html>
+# Family-aware skin: pick a family-accurate body by the matched filename so a scanner grepping for the
+# family's own self-identifying marker (a WSO login form, the c99/b374k title) confirms the backdoor.
+# A path with no family match (shell/cmd/alfa, uploads/*.php, cmd= params) has no case, so handleBranch
+# returns null and renderRule serves the base generic panel above BYTE-IDENTICAL - no regression. Every
+# body is canned; nothing is executed. c99/b374k retain the uid=33(www-data) marker (the base expect).
+behavior: branch
+branch:
+  cases:
+    # WSO / FilesMan unauth view = a bare password prompt (no generic panel, so no uid=33 here).
+    - when: { in: path, regex: '(?:^|/)[^/]*wso[^/]*\.php/*$', ci: true }
+      response:
+        headers: { Content-Type: "text/html; charset=utf-8" }
+        body: |
+          <html><head><title>Login</title></head><body>
+          <form method="post"><input type="password" name="pass" autofocus /><input type="submit" value="&gt;&gt;" /></form>
+          </body></html>
+    # c99shell self-identifies by name; keep the uid=33 recon line.
+    - when: { in: path, regex: '(?:^|/)[^/]*c99[^/]*\.php/*$', ci: true }
+      response:
+        headers: { Content-Type: "text/html; charset=utf-8" }
+        body: |
+          <html><head><title>c99shell</title></head><body bgcolor="black" text="green">
+          <b>!C99Shell v.1.0</b><br><b>Safe-mode:</b> OFF<br>
+          <b>uname:</b> Linux web01 5.15.0 x86_64<br>
+          <pre>uid=33(www-data) gid=33(www-data) groups=33(www-data)</pre>
+          </body></html>
+    # b374k self-identifies by name; keep the uid=33 recon line.
+    - when: { in: path, regex: '(?:^|/)[^/]*b374k[^/]*\.php/*$', ci: true }
+      response:
+        headers: { Content-Type: "text/html; charset=utf-8" }
+        body: |
+          <html><head><title>b374k</title></head><body bgcolor="black" text="green">
+          <b>b374k shell</b><br><pre>uid=33(www-data) gid=33(www-data) groups=33(www-data)</pre>
+          </body></html>
 expect: ['uid=33(www-data)']

@@ -1,0 +1,58 @@
+id: attack-wp-emergency-post
+severity: high
+# Priority 36, NOT the number the filename band suggests: the broad injection archetypes carry no path
+# constraint (40/41-cmdi, 43-45-ssti, 46-glastopf, 50-sqli), so an injection-laced `pass=` value (e.g.
+# pass=x' OR '1'='1) would otherwise reach one of THOSE first and answer with a generic attack body
+# instead of this oracle re-rendering the reset page. 36 is a free slot below all of them (31 then 37).
+# Being path-anchored via owns_path, a low priority here only intercepts /emergency.php POSTs — it does
+# NOT shadow those archetypes on any other path. Same fix 97-wp-login.yaml / 98-cpsrvd-login.yaml apply.
+priority: 36
+tags: [attack, wordpress, emergency, credential-oracle]
+owns_path: [/emergency.php]
+# Request-aware POST credential ORACLE for the WordPress emergency reset script. Route 162 keys the
+# GET /emergency.php page (the wordpress-emergency-script bundle); this rule claims the same path via
+# owns_path so a POST reaches the attack tier ahead of the static GET bundle. A GET misses the POST
+# condition below and falls through to the GET page unchanged.
+#
+# ZERO EXECUTION: the only body reads are the bounded user_login/pass fields, captured purely as
+# match-gates - NEVER reflected, NEVER written anywhere. A crafted username/password can never surface
+# in the response (no reflected XSS), and no password is ever hashed or stored (core is stateless).
+# NO success path: a real dropped script that fails to write re-shows the form, so the oracle
+# re-renders the same reset page at HTTP 200 - no "password updated" message and no redirect (that is
+# the app-tier decoy-session mint, deferred). A synthesis fault degrades to plain 404, never a 500.
+#
+# PATH/METHOD MATCH MUST STAY AS PERMISSIVE AS owns_path: ownsPath() claims any case/trailing-slash
+# variant of /emergency.php, so the path regex tolerates any COUNT of trailing slashes (`/*$`, not
+# `/?$`). Both user_login/pass captures are OPTIONAL lookaheads so the rule matches EVERY POST - even
+# an empty body or one missing a field - preserving the never-fall-through property.
+match:
+  - in: path
+    regex: '(?:^|/)emergency\.php/*$'
+    ci: true
+  - in: method
+    regex: '^POST$'
+    ci: true
+  - in: body
+    # Optional lookaheads (mirrors 97-wp-login): find user_login/pass wherever they sit, in any order.
+    # Match-gates only - the captures are NEVER reflected.
+    regex: '^(?:(?=(?:.*&)?user_login=(?P<user>[^&]{0,64})))?(?:(?=(?:.*&)?pass=(?P<pass>[^&]{0,64})))?'
+    capture: true
+    ci: false
+status: 200
+response:
+  headers:
+    Content-Type: "text/html; charset=UTF-8"
+  body: |
+    <!-- Emergency Password Reset - helper uses wp_hash_password( ) / update_user_meta( ) -->
+    <!DOCTYPE html>
+    <html><head><title>WordPress &rsaquo; Emergency Password Reset</title></head>
+    <body>
+    <h1>WordPress Administrator</h1>
+    <p>Your use of this script is at your sole risk. When you are done, delete this file.</p>
+    <form method="POST" action="/emergency.php">
+    <p><label>Username<br /><input type="text" name="user_login" value="{{persona.user.admin.username}}" /></label></p>
+    <p><label>New Password<br /><input type="password" name="pass" /></label></p>
+    <p><input type="submit" name="submit" value="Update Options" /></p>
+    </form>
+    </body></html>
+expect: ['Your use of this script is at your sole risk', 'Update Options']

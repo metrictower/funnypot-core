@@ -1,0 +1,28 @@
+id: route-wp-emergency-script
+priority: 162
+# Dresses the bundled wordpress-emergency-script detection (a bare 200 + body_words) with a believable
+# rendered Emergency Password Reset page. The leading comment carries the real Plecost body[:512]
+# witnesses (wp_hash_password( / update_user_meta() and the body carries the three rendered body_words.
+# Username is the one deploy-stable admin identity so the compromise story agrees with wp-login /
+# wp-admin / wp-json users. Keep this body in sync with attack/36-wp-emergency-post.yaml (the POST
+# oracle re-renders the same page) — both must carry the witnesses in the first 512 bytes.
+match:
+  template_needle: [wordpress-emergency-script]
+response:
+  headers:
+    Content-Type: "text/html; charset=UTF-8"
+  body: |
+    <!-- Emergency Password Reset - helper uses wp_hash_password( ) / update_user_meta( ) -->
+    <!DOCTYPE html>
+    <html><head><title>WordPress &rsaquo; Emergency Password Reset</title></head>
+    <body>
+    <h1>WordPress Administrator</h1>
+    <p>Your use of this script is at your sole risk. When you are done, delete this file.</p>
+    <form method="POST" action="/emergency.php">
+    <p><label>Username<br /><input type="text" name="user_login" value="{{persona.user.admin.username}}" /></label></p>
+    <p><label>New Password<br /><input type="password" name="pass" /></label></p>
+    <p><input type="submit" name="submit" value="Update Options" /></p>
+    </form>
+    </body></html>
+taunt: { mode: block, open: '<!--', close: '-->' }
+expect: ['Your use of this script is at your sole risk', 'WordPress Administrator', 'Update Options']
