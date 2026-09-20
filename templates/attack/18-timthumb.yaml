@@ -1,0 +1,56 @@
+id: attack-timthumb
+severity: high
+# One rule → one severity: the per-case severity keys the compiler drops (normalizeBranch keeps only
+# when+response), so both reaching a vulnerable TimThumb and the exploit query are one high finding.
+# Low priority (rules sort lower-first): this path-anchored rule must be scanned BEFORE the broad
+# in:request/in:query archetypes (sqli/xss/webshell/open-redirect, 40-86) so a /timthumb.php?src=…
+# probe is served the TimThumb page, not the generic reflection page. Path match keeps it thumb.php-only.
+priority: 18
+tags: [attack, wordpress, timthumb, rce, ssrf]
+# One rule owns every timthumb.php / thumb.php path variant (theme/plugin/scripts dirs) via the path
+# regex — no persona-theme coupling. SSRF-safe by construction: src/webshot are only CAPTURED and
+# reflected HTML-ESCAPED; the rule does no DNS/HTTP/socket/file I/O and never emulates the classic
+# cache-write-then-execute step.
+match:
+  - in: path
+    contains: 'thumb.php'          # cheap case-insensitive pre-filter (may over-select)
+  - in: path
+    regex: '(?:^|/)(?:timthumb|thumb)\.php(?:/|$)'
+    ci: false                      # authoritative segment-boundary check (first regex; NOT the capture)
+  - in: query
+    regex: '^(.*)$'                # always matches (empty query included) so the bare-path baseline
+    capture: true                  #   still matches; capture:true overrides captures → match.1 = query
+status: 200
+behavior: branch
+branch:
+  cases:
+    # Exploit attempt: classic ?src=http(s):// remote-file-fetch or ?webshot=1 command-injection probe.
+    # `when` only DISPATCHES (its own captures are discarded); the reflected query comes from match.1.
+    - when: { in: query, regex: '(?:^|&)(?:src=https?%3A|src=https?:|webshot=1)' }
+      response:
+        status: 200
+        headers: { Content-Type: "text/html; charset=UTF-8" }
+        body: |
+          <html><head><title>TimThumb</title></head><body>
+          <h1>A TimThumb error has occured</h1>
+          <p>The following error(s) occured:</p>
+          <p>You are not allowed to fetch images from an external website.</p>
+          <p>Query String : {{html:match.1}}</p>
+          <p>TimThumb version : 2.8.13</p>
+          </body></html>
+# No branch default: a bare GET (no src/webshot) falls through to this base — the accessible +
+# vulnerable-version audit finding. Mirrors 27-wp-xmlrpc-get's base-as-fallback idiom; also the
+# port-path (request-free synthesize) render.
+response:
+  headers: { Content-Type: "text/html; charset=UTF-8" }
+  body: |
+    <html><head><title>TimThumb</title></head><body>
+    <h1>A TimThumb error has occured</h1>
+    <p>The following error(s) occured:</p>
+    <p>No image specified</p>
+    <p>Query String : {{html:match.1}}</p>
+    <p>TimThumb version : 2.8.13</p>
+    </body></html>
+expect:
+  - 'A TimThumb error has occured'
+  - 'TimThumb version : 2.8.13'
