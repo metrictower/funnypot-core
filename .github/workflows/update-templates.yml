@@ -111,5 +111,6 @@ jobs:
             resources/compiled/funnypot-param.php
             resources/compiled/funnypot-manifest.php
             templates/generated
+            templates/generated-wp
             templates/attack-ai
             resources/upstream-licenses/nuclei-templates.LICENSE.md

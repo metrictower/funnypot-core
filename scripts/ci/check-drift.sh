@@ -29,7 +29,7 @@ ROOT="$(pwd)"
 
 # Paths the law governs: the compiled artifacts AND the generated template inputs (a stale
 # compile-ai regeneration is drift just as much as a stale compiled artifact).
-PATHS=(resources/compiled templates/generated templates/attack-ai)
+PATHS=(resources/compiled templates/generated templates/generated-wp templates/attack-ai)
 
 echo "== check-drift: funnypot build =="
 # The DAG loads the ~6 MB index twice (merge-routes + build-manifest); give it headroom regardless
@@ -46,7 +46,7 @@ if [ -n "$STATUS" ]; then
     echo "--- first 100 diff lines ---" >&2
     git diff -- "${PATHS[@]}" | head -100 >&2 || true
     echo "" >&2
-    echo "Fix: run \`composer build\` (or \`php bin/funnypot build\`) and commit resources/compiled + templates/generated + templates/attack-ai." >&2
+    echo "Fix: run \`composer build\` (or \`php bin/funnypot build\`) and commit resources/compiled + templates/generated + templates/generated-wp + templates/attack-ai." >&2
     exit 1
 fi
 echo "clean."

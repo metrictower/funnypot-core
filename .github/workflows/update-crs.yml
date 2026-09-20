@@ -120,4 +120,5 @@ jobs:
             resources/skipped-crs.json
             resources/upstream-licenses/coreruleset.LICENSE.md
             templates/generated/
+            templates/generated-wp/
             templates/attack-ai/
