@@ -20,12 +20,11 @@ response:
     <!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
     <html><head>
     <title>Server Information</title>
-    <!-- Apache Server Status -->
+    <!-- see also: Apache Server Status (/server-status) -->
     </head><body>
     <h1>Apache Server Information</h1>
-    <dl><dt><a href="#server">Server Settings</a>, <a href="#startup">Startup Configuration</a>
-    <dt><a href="#core">Module core.c</a>, <a href="#mod_so">Module mod_so.c</a>,
-    <a href="#http_core">Module http_core.c</a>, <a href="#mod_ssl">Module mod_ssl.c</a>
+    <dl><dt><a href="#server">Server Settings</a>
+    <dt><a href="#core">Module core.c</a>, <a href="#mod_ssl">Module mod_ssl.c</a>
     </dl><hr>
     <h2><a name="server">Server Settings</a></h2>
     <dl><dt><strong>Server Version:</strong> <tt>Apache/{{pick:2.4.58,2.4.52,2.4.41}} (Unix) OpenSSL/3.0</tt>
