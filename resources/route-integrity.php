@@ -97,5 +97,26 @@ return array(
             'path' => '/products/quick-search',
             'reason' => 'form action owned by the reflection-baseline match-regex rule (query predicate q=); both reflection decoys submit q= via this search form, satisfying it, so a browser submit resolves in-family — the lint cannot prove the query match from the manifest, so it warns conditionally',
         ),
+
+        // FP-0421 Part A: two request-aware WordPress mass-exploit decoys deliberately override the
+        // detection-tier corpus stub at their path to add a believable INERT response the corpus has
+        // no page for. The corpus entries stay the classifier signal; the owns_path rule only supplies
+        // the served body (the exact "detection recognises, no response yet" gap the ticket fills).
+        // These are attack-response decoys, not login/panel/exposure surfaces, so no intent tag fits —
+        // recorded here with a reason instead of mislabelling the rule's tags.
+        array(
+            'check' => 'shadow',
+            'a' => 'attack-wp-admin-ajax',
+            'b' => 'corpus:cve2025',
+            'path' => '/wp-admin/admin-ajax.php',
+            'reason' => 'owns_path override of the admin-ajax detection stub: the rule dispatches on the plugin action (Ninja Forms/LaStudioKit/iSnapshot/password-reset) to serve believable canned plugin JSON; classification is unchanged, only the response is new',
+        ),
+        array(
+            'check' => 'shadow',
+            'a' => 'attack-eventin-speakers-import',
+            'b' => 'corpus:eventin',
+            'path' => '/wp-json/eventin/v2/speakers/import',
+            'reason' => 'owns_path override of the Eventin CVE-2025-47539 detection stub: adds the inert "Successfully imported speaker" 200 JSON the corpus has no page for; classification is unchanged, only the response is new',
+        ),
     ),
 );
