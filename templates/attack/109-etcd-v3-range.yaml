@@ -1,0 +1,31 @@
+id: attack-etcd-v3-range
+severity: high
+priority: 109
+tags: [attack, etcd, kubernetes, unauth, honeytoken, cloud-native, exposure]
+owns_path: [/v3/kv/range]
+# etcd v3 gRPC-gateway keyspace read (POST/GET /v3/kv/range). A genuine NEW surface — the folded
+# corpus serves nothing on this path — so the rule fires on the store-miss linear scan; owns_path
+# has no store key to override here and only keeps a query-laced probe off a generic archetype.
+#
+# v3 vs v2 encoding: etcd v3 treats keys and values as BYTE ARRAYS, so kvs[].key and kvs[].value
+# are base64 (the v2 API at /v2/keys returns raw strings). The two encodings must stay distinct.
+# Integer fields (revision/*_revision/version/cluster_id/member_id/raft_term) are protobuf int64,
+# which the JSON gateway serializes as quoted STRINGS — reproduced here.
+#
+# INERT: the request body (key/range_end) is never decoded, read, or reflected — the canned kvs
+# are returned for any query. kvs[].value is a synthetic per-attacker fake.* blob that decodes to
+# random bytes, never a working secret; kvs[].key is a fixed base64 of a plausible k8s secret path.
+match:
+  - in: path
+    regex: '^/v3/kv/range/*$'
+    ci: true
+  - in: method
+    regex: '^(GET|POST)$'
+    ci: true
+status: 200
+response:
+  headers:
+    Content-Type: "application/json"
+  body: |
+    {"header":{"cluster_id":"{{fake.etcd_cluster:dec:19}}","member_id":"{{fake.etcd_member:dec:19}}","revision":"{{pick:1,2,3,4,5,6,7,8,9}}{{fake.etcd_rev:dec:4}}","raft_term":"{{pick:1,2,3,4,5,6,7,8,9}}"},"kvs":[{"key":"L3JlZ2lzdHJ5L3NlY3JldHMvZGVmYXVsdC9jbHVzdGVyLWFkbWluLXRva2Vu","value":"{{fake.k8s_secret:b64:400}}","create_revision":"{{pick:1,2,3,4,5,6,7,8,9}}{{fake.etcd_cr:dec:3}}","mod_revision":"{{pick:1,2,3,4,5,6,7,8,9}}{{fake.etcd_mr:dec:4}}","version":"{{pick:1,2,3,4,5,6,7,8,9}}","lease":"0"}],"count":"1"}
+expect: ['"kvs"', '"count"']

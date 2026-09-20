@@ -1,0 +1,76 @@
+id: attack-etcd-v2-keyspace
+severity: high
+priority: 108
+tags: [attack, etcd, kubernetes, unauth, honeytoken, cloud-native, exposure]
+owns_path: [/v2/keys]
+# Unauthenticated etcd v2 keyspace dump (GET /v2/keys*). This rule is served by TWO distinct engine
+# paths — do not collapse them:
+#
+#   1. owns_path OVERRIDE of the exact store key `GET /v2/keys/`. The folded corpus already serves
+#      that key with a SINGLE template (unauth-etcd-server) whose scanner witness is `"node":` +
+#      `"key":` + Content-Type application/json + status 200. owns_path fires the attack tier ahead
+#      of that static stub, superseding it — safe precisely because it is a single-template key, so
+#      no other detection is lost. The base `response` below REPRODUCES that witness (`"action":"get"`
+#      + `"node":` + `"key":`, application/json, 200), compile-gated by `expect`, so the override is a
+#      net upgrade with zero coverage loss. ownershipKey lower-cases + strips trailing slashes, so
+#      `owns_path:[/v2/keys]` claims `/v2/keys/` and `/v2/keys/?recursive=true` (query is not path).
+#
+#   2. LEAF SUBPATHS (e.g. /v2/keys/registry/secrets/default/cluster-admin-token) are store MISSES
+#      and are NOT owned by owns_path — ownsPath is an exact isset on the ownership key, not a prefix.
+#      They serve via the general linear matchRule scan on the store miss, which fires because the
+#      `match` path regex is an UNANCHORED PREFIX (`^/v2/keys`) and the rule is ungated. Do NOT anchor
+#      the match with `/?$` — that would stop matching the leaves and break the branch below.
+#
+# INERT: leaf `value` payloads embed synthetic ServiceAccount tokens (fake.* per-attacker blobs) that
+# authenticate nowhere; the requested subpath is never reflected into the response. A render/branch
+# fault falls back to the base tree (never a 500); a method/path variant the match misses declines to
+# the corpus stub (worst case = today's behaviour).
+match:
+  - in: path
+    regex: '^/v2/keys'
+    ci: true
+  - in: method
+    regex: '^GET$'
+    ci: true
+status: 200
+# Base (recursive root) response: the v2 directory tree served for /v2/keys/ and ?recursive=true, and
+# the branch fallback when no leaf case matches. Believable Kubernetes registry hierarchy; secret
+# leaves carry an escaped Secret JSON with an inert honeytoken. This body carries the compile-gated
+# witness markers below.
+response:
+  headers:
+    Content-Type: "application/json"
+  body: |
+    {"action":"get","node":{"key":"/","dir":true,"nodes":[
+      {"key":"/registry","dir":true,"nodes":[
+        {"key":"/registry/namespaces","dir":true,"nodes":[
+          {"key":"/registry/namespaces/default","dir":true},
+          {"key":"/registry/namespaces/kube-system","dir":true},
+          {"key":"/registry/namespaces/kube-public","dir":true}
+        ]},
+        {"key":"/registry/secrets","dir":true,"nodes":[
+          {"key":"/registry/secrets/default","dir":true,"nodes":[
+            {"key":"/registry/secrets/default/cluster-admin-token","value":"{\"apiVersion\":\"v1\",\"kind\":\"Secret\",\"type\":\"kubernetes.io/service-account-token\",\"data\":{\"token\":\"{{fake.satoken:b64url:180}}\",\"ca.crt\":\"{{fake.k8s_cacrt:b64:392}}\"}}"},
+            {"key":"/registry/secrets/default/default-token-{{fake.k8s_tokid:hex:5}}","value":"{\"apiVersion\":\"v1\",\"kind\":\"Secret\",\"type\":\"kubernetes.io/service-account-token\",\"data\":{\"token\":\"{{fake.dfltsatoken:b64url:180}}\"}}"}
+          ]}
+        ]},
+        {"key":"/registry/configmaps","dir":true,"nodes":[
+          {"key":"/registry/configmaps/kube-system/kube-proxy","dir":false}
+        ]},
+        {"key":"/registry/pods","dir":true,"nodes":[
+          {"key":"/registry/pods/kube-system/kube-apiserver-master","dir":false}
+        ]}
+      ]}
+    ]}}
+expect: ['"action":"get"', '"node":', '"key":']
+behavior: branch
+branch:
+  cases:
+    # Single-leaf read of the well-known admin-token secret. Serves the one node, not the recursive
+    # root, proving the subpath resolves via the linear-scan path documented in the header.
+    - when: { in: path, regex: '/registry/secrets/default/cluster-admin-token', ci: true }
+      response:
+        headers:
+          Content-Type: "application/json"
+        body: |
+          {"action":"get","node":{"key":"/registry/secrets/default/cluster-admin-token","value":"{\"apiVersion\":\"v1\",\"kind\":\"Secret\",\"type\":\"kubernetes.io/service-account-token\",\"data\":{\"token\":\"{{fake.satoken:b64url:180}}\",\"ca.crt\":\"{{fake.k8s_cacrt:b64:392}}\"}}","modifiedIndex":{{pick:1,2,3,4,5,6,7,8,9}}{{fake.etcd_mi:dec:3}},"createdIndex":{{pick:1,2,3,4,5,6,7,8,9}}{{fake.etcd_ci:dec:3}}}}
