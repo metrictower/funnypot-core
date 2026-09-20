@@ -555,6 +555,11 @@ rebuild). A full rebuild from the external corpus
 is `composer build-corpus`, pinned to the recorded upstream commit — see
 [`docs/CORPUS-PIPELINE.md`](docs/CORPUS-PIPELINE.md).
 
+Route enrichment is first-match by compiled priority. The four authored bare SQL-backup pages
+(`/backup.sql`, `/database.sql`, `/dump.sql`, `/db_backup.sql`) use their exact-pid rule ahead of the
+generic SQL-dump substring rule, while corpus routes such as `/install/froxlor.sql` retain the generic
+renderer.
+
 The interactive streaming chat and the actual LLM live in the funnypot **app**, not here — this
 package only floors the buffered, non-streaming chat shapes, so those four paths still answer
 believably when the app's LLM is off.

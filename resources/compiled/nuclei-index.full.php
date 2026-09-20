@@ -13,7 +13,7 @@ return array (
     'license' => 'MIT (c) 2025 ProjectDiscovery, Inc.',
     'upstream_tag' => '2ec914123864439c3618e7e9ae72d32d0eb56df7',
     'upstream_sha' => '2ec914123864439c3618e7e9ae72d32d0eb56df7',
-    'source_tree' => '958e1489b9388c8f5346b5d16e8f1df1acdf3d80be199030ade3752c4f4eb4df',
+    'source_tree' => 'be72fe18d487d99c322688ef78ff4b4aab91cd1a682b8eb8c7b39fa502ae79c4',
     'templates_seen' => 11196,
     'templates_in' => 6363,
     'templates_indexed' => 6490,
@@ -84265,6 +84265,17 @@ return array (
       ),
       'name' => 'Exposed Ollama model list',
     ),
+    'route-sql-backup' => 
+    array (
+      'sev' => 'high',
+      'tags' => 
+      array (
+        0 => 'exposure',
+        1 => 'database',
+        2 => 'backup',
+      ),
+      'name' => 'Exposed SQL backup',
+    ),
     'route-vcs-head' => 
     array (
       'sev' => 'medium',
@@ -84416,17 +84427,6 @@ return array (
         2 => 'credentials',
       ),
       'name' => 'Exposed users.csv',
-    ),
-    'route-sql-backup' => 
-    array (
-      'sev' => 'high',
-      'tags' => 
-      array (
-        0 => 'exposure',
-        1 => 'database',
-        2 => 'backup',
-      ),
-      'name' => 'Exposed SQL backup',
     ),
     'route-dotaws-listing' => 
     array (
@@ -307208,6 +307208,106 @@ a</title>',
         ),
       ),
     ),
+    'GET /backup.sql' => 
+    array (
+      'b' => 
+      array (
+        0 => 
+        array (
+          's' => 200,
+          'bw' => 
+          array (
+            0 => 'CREATE TABLE',
+          ),
+          'nf' => 
+          array (
+          ),
+          'pid' => 'route-sql-backup',
+          'sev' => 'high',
+          'sig' => 0,
+          'amb' => 0,
+          't' => 
+          array (
+            0 => 'route-sql-backup',
+          ),
+        ),
+      ),
+    ),
+    'GET /database.sql' => 
+    array (
+      'b' => 
+      array (
+        0 => 
+        array (
+          's' => 200,
+          'bw' => 
+          array (
+            0 => 'CREATE TABLE',
+          ),
+          'nf' => 
+          array (
+          ),
+          'pid' => 'route-sql-backup',
+          'sev' => 'high',
+          'sig' => 0,
+          'amb' => 0,
+          't' => 
+          array (
+            0 => 'route-sql-backup',
+          ),
+        ),
+      ),
+    ),
+    'GET /dump.sql' => 
+    array (
+      'b' => 
+      array (
+        0 => 
+        array (
+          's' => 200,
+          'bw' => 
+          array (
+            0 => 'CREATE TABLE',
+          ),
+          'nf' => 
+          array (
+          ),
+          'pid' => 'route-sql-backup',
+          'sev' => 'high',
+          'sig' => 0,
+          'amb' => 0,
+          't' => 
+          array (
+            0 => 'route-sql-backup',
+          ),
+        ),
+      ),
+    ),
+    'GET /db_backup.sql' => 
+    array (
+      'b' => 
+      array (
+        0 => 
+        array (
+          's' => 200,
+          'bw' => 
+          array (
+            0 => 'CREATE TABLE',
+          ),
+          'nf' => 
+          array (
+          ),
+          'pid' => 'route-sql-backup',
+          'sev' => 'high',
+          'sig' => 0,
+          'amb' => 0,
+          't' => 
+          array (
+            0 => 'route-sql-backup',
+          ),
+        ),
+      ),
+    ),
     'GET /.git/HEAD' => 
     array (
       'b' => 
@@ -307684,106 +307784,6 @@ a</title>',
           't' => 
           array (
             0 => 'route-users-csv',
-          ),
-        ),
-      ),
-    ),
-    'GET /backup.sql' => 
-    array (
-      'b' => 
-      array (
-        0 => 
-        array (
-          's' => 200,
-          'bw' => 
-          array (
-            0 => 'CREATE TABLE',
-          ),
-          'nf' => 
-          array (
-          ),
-          'pid' => 'route-sql-backup',
-          'sev' => 'high',
-          'sig' => 0,
-          'amb' => 0,
-          't' => 
-          array (
-            0 => 'route-sql-backup',
-          ),
-        ),
-      ),
-    ),
-    'GET /database.sql' => 
-    array (
-      'b' => 
-      array (
-        0 => 
-        array (
-          's' => 200,
-          'bw' => 
-          array (
-            0 => 'CREATE TABLE',
-          ),
-          'nf' => 
-          array (
-          ),
-          'pid' => 'route-sql-backup',
-          'sev' => 'high',
-          'sig' => 0,
-          'amb' => 0,
-          't' => 
-          array (
-            0 => 'route-sql-backup',
-          ),
-        ),
-      ),
-    ),
-    'GET /dump.sql' => 
-    array (
-      'b' => 
-      array (
-        0 => 
-        array (
-          's' => 200,
-          'bw' => 
-          array (
-            0 => 'CREATE TABLE',
-          ),
-          'nf' => 
-          array (
-          ),
-          'pid' => 'route-sql-backup',
-          'sev' => 'high',
-          'sig' => 0,
-          'amb' => 0,
-          't' => 
-          array (
-            0 => 'route-sql-backup',
-          ),
-        ),
-      ),
-    ),
-    'GET /db_backup.sql' => 
-    array (
-      'b' => 
-      array (
-        0 => 
-        array (
-          's' => 200,
-          'bw' => 
-          array (
-            0 => 'CREATE TABLE',
-          ),
-          'nf' => 
-          array (
-          ),
-          'pid' => 'route-sql-backup',
-          'sev' => 'high',
-          'sig' => 0,
-          'amb' => 0,
-          't' => 
-          array (
-            0 => 'route-sql-backup',
           ),
         ),
       ),

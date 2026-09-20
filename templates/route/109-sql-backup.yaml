@@ -1,5 +1,5 @@
 id: route-sql-backup
-priority: 233
+priority: 109
 # Brand-new page: a downloadable SQL backup at a bare path (no nuclei template routes here).
 # api_keys table exists so the dump also trips AWS/Stripe/SendGrid secret scanners.
 new_page:
