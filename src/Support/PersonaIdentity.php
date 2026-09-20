@@ -55,6 +55,13 @@ final class PersonaIdentity
         // staying denylist-safe (no bare `\b9\d{5}\b`) and inert. buildId is the 21-char nanoid shape;
         // assetHash/appHash are the 16-hex content-hash shape (css+webpack chunk / main-app chunk).
         'nextjs.buildId', 'nextjs.assetHash', 'nextjs.appHash',
+        // The WooCommerce core + payment-plugin versions this host claims — one source of truth for
+        // every store surface (the storefront generator meta, the readme `Stable tag:`, the wc-augmented
+        // REST index). paymentsVersion and stripeVersion are held on the vulnerable side of their CVEs so
+        // the version-fingerprint story agrees with the exploit decoys on the same deploy: WooCommerce
+        // Payments 4.8.0–5.6.1 (CVE-2023-28121) and Stripe Gateway <= 7.4.0 (CVE-2023-34000). Dots break
+        // every value into <=2-digit runs, so no entry can carry the denied bare 6-digit token.
+        'woocommerce.version', 'woocommerce.paymentsVersion', 'woocommerce.stripeVersion',
         // The deploy-stable presentation class prefix, shape `<word>-XXXX`: a seed-picked word from
         // CLASS_PREFIX_WORDS (FP-0283 — no fleet-wide `fp-` regex) plus the historical `|visual|prefix`
         // hex tail. Derived from the SAME NS_VISUAL material VisualPersona uses, so the phpMyAdmin
@@ -251,6 +258,14 @@ final class PersonaIdentity
             'nextjs.assetHash' => self::nextAssetHash($seed, 'nextjs_asset'),
             'nextjs.appHash' => self::nextAssetHash($seed, 'nextjs_app'),
 
+            // The WooCommerce core + payment-plugin versions this host claims — the single source of
+            // truth for every store surface. Derived like php.version so field() and productVersion()
+            // never drift. The payments/stripe pools sit entirely on the vulnerable side of their CVEs
+            // (see the pool comments), so a version fingerprinter and the CVE decoys agree per deploy.
+            'woocommerce.version' => self::pickProductVersion($slug, $domain, 'woocommerce'),
+            'woocommerce.paymentsVersion' => self::pickProductVersion($slug, $domain, 'woocommerce-payments'),
+            'woocommerce.stripeVersion' => self::pickProductVersion($slug, $domain, 'woocommerce-stripe'),
+
             // The deploy-stable class prefix, identical to VisualPersona's, so the phpMyAdmin login
             // page and the authed dashboard render one coherent class vocabulary. See classPrefix().
             'classPrefix' => self::classPrefix($seed),
@@ -408,6 +423,37 @@ final class PersonaIdentity
             '1.9',
             '2.0',
             '4.6',
+        ],
+        // WooCommerce core releases in the 8.x–9.x era — advertised on the storefront generator meta,
+        // the readme `Stable tag:`, and the wc-augmented REST index. One per deploy; a real version
+        // number is not a detector signature (same posture as the wordpress/php pools).
+        'woocommerce' => [
+            '8.5.1',
+            '8.6.1',
+            '8.7.0',
+            '9.0.2',
+            '9.1.4',
+        ],
+        // WooCommerce Payments releases held STRICTLY inside the CVE-2023-28121 affected range
+        // (4.8.0–5.6.1) and never a patched sub-release (4.8.2/4.9.1/5.0.4/5.1.3/5.2.2/5.3.1/5.4.1/
+        // 5.5.2/5.6.2 are excluded), so the payments-plugin readme version agrees with the auth-bypass
+        // decoy on the same deploy. Dots keep every value <=2-digit-run (denylist-safe).
+        'woocommerce-payments' => [
+            '5.6.1',
+            '5.5.1',
+            '5.4.0',
+            '4.9.0',
+            '4.8.1',
+        ],
+        // WooCommerce Stripe Gateway releases at or below 7.4.0 — the CVE-2023-34000 affected side
+        // (patched 7.4.1), so the stripe-plugin readme version backs the pay-for-order IDOR decoy on
+        // the same deploy. Dots keep every value <=2-digit-run (denylist-safe).
+        'woocommerce-stripe' => [
+            '7.4.0',
+            '7.3.0',
+            '7.2.0',
+            '7.1.0',
+            '7.0.0',
         ],
     ];
 

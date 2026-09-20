@@ -1,0 +1,45 @@
+id: attack-woo-payments-readme
+severity: info
+priority: 117
+tags: [attack, woocommerce, payments, version-disclosure, readme, cve-2023-28121, exposure]
+# The WooCommerce Payments plugin readme.txt, enriched with a `Stable tag:` held strictly inside
+# 4.8.0–5.6.1 (persona.woocommerce.paymentsVersion) — the CVE-2023-28121 affected range — so a version
+# fingerprinter and the auth-bypass decoy (118) agree on the same deploy. owns_path overrides the bare
+# bundled corpus detection on store deploys; a closed gate falls through to it on non-store deploys.
+# Canned, no reflection.
+owns_path: ['/wp-content/plugins/woocommerce-payments/readme.txt']
+persona_gate: route-woo-store
+match:
+  - in: path
+    regex: '^/wp-content/plugins/woocommerce-payments/readme\.txt/*$'
+    ci: true
+  - in: method
+    regex: '^GET$'
+    ci: true
+status: 200
+response:
+  headers:
+    Content-Type: "text/plain; charset=utf-8"
+  body: |
+    === WooCommerce Payments ===
+    Contributors: woocommerce, automattic
+    Tags: woocommerce, payments, credit card, stripe, deposits
+    Requires at least: 6.0
+    Tested up to: 6.5
+    Requires PHP: 7.3
+    Stable tag: {{persona.woocommerce.paymentsVersion}}
+    License: GPLv2 or later
+    License URI: https://www.gnu.org/licenses/gpl-2.0.html
+
+    Securely accept credit and debit cards on your site. Manage transactions without leaving your WordPress dashboard.
+
+    == Description ==
+
+    WooCommerce Payments is a fully integrated payment solution built and supported by Woo.
+
+    == Changelog ==
+
+    See the Releases page for the full changelog.
+expect:
+  - 'Stable tag:'
+  - 'WooCommerce Payments'

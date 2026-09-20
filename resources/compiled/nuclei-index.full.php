@@ -13,10 +13,10 @@ return array (
     'license' => 'MIT (c) 2025 ProjectDiscovery, Inc.',
     'upstream_tag' => '2ec914123864439c3618e7e9ae72d32d0eb56df7',
     'upstream_sha' => '2ec914123864439c3618e7e9ae72d32d0eb56df7',
-    'source_tree' => '45cd8fe247ea5f1b09384ea63fe52b9f1958708779914d9521bd9e13a1808ddb',
+    'source_tree' => '958e1489b9388c8f5346b5d16e8f1df1acdf3d80be199030ade3752c4f4eb4df',
     'templates_seen' => 11196,
     'templates_in' => 6363,
-    'templates_indexed' => 6489,
+    'templates_indexed' => 6490,
     'route_keys' => 5353,
     'multi_bundle_keys' => 277,
     'largest_bundle_count' => 1324,
@@ -85170,6 +85170,19 @@ return array (
       ),
       'name' => 'WordPress site',
     ),
+    'route-woo-store' => 
+    array (
+      'sev' => 'info',
+      'tags' => 
+      array (
+        0 => 'woocommerce',
+        1 => 'wordpress',
+        2 => 'ecommerce',
+        3 => 'store',
+        4 => 'discovery',
+      ),
+      'name' => 'WooCommerce storefront',
+    ),
     'route-kibana' => 
     array (
       'sev' => 'medium',
@@ -87240,6 +87253,7 @@ return array (
         1591 => 'switch-protocol',
         1592 => 'route-nextjs',
         1593 => 'route-wordpress',
+        1594 => 'route-woo-store',
       ),
       'b' => 
       array (
@@ -88894,6 +88908,27 @@ return array (
           't' => 
           array (
             0 => 'route-wordpress',
+          ),
+          'w' => 8,
+        ),
+        42 => 
+        array (
+          's' => 200,
+          'bw' => 
+          array (
+            0 => 'woocommerce',
+            1 => 'WooCommerce',
+          ),
+          'nf' => 
+          array (
+          ),
+          'pid' => 'route-woo-store',
+          'sev' => 'info',
+          'sig' => 1,
+          'amb' => 0,
+          't' => 
+          array (
+            0 => 'route-woo-store',
           ),
           'w' => 8,
         ),

@@ -200,9 +200,11 @@ final class NextjsRscPersonaTest extends TestCase
     public function test_c_gate_coheres_under_nuclei_reflection_off(): void
     {
         // nucleiReflection:false drops every non-route-* bundle, so the only GET / candidates are the
-        // route-* homepages (route-nextjs and, since FP-0394, route-wordpress). A raw-set gate would
-        // still pick over all bundles and mostly say "not nextjs" (the false-CLOSE dual leak); our gate
-        // uses the same filtered candidates, so gate-open ⟺ served-nextjs holds. raw != filtered here too.
+        // route-* homepages — route-nextjs plus, as later personas landed, route-wordpress (FP-0394)
+        // and route-woo-store (FP-0413). A raw-set gate would still pick over all bundles and mostly
+        // say "not nextjs" (the false-CLOSE dual leak); our gate uses the same filtered candidates, so
+        // gate-open ⟺ served-nextjs holds for every seed (a wordpress- or woo-store-served seed is
+        // gate-CLOSED, not a leak). raw != filtered here too.
         $servedNextCount = 0;
         for ($s = 0; $s <= 60; $s++) {
             $e = $this->engine((string) $s, [], false);

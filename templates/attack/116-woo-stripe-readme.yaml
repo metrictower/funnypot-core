@@ -1,0 +1,45 @@
+id: attack-woo-stripe-readme
+severity: info
+priority: 116
+tags: [attack, woocommerce, stripe, version-disclosure, readme, cve-2023-34000, exposure]
+# The WooCommerce Stripe Gateway plugin readme.txt, enriched with a `Stable tag:` held at or below
+# 7.4.0 (persona.woocommerce.stripeVersion) — the CVE-2023-34000 affected side — so a version
+# fingerprinter and the pay-for-order IDOR decoy (119) agree on the same deploy. owns_path overrides the
+# bare bundled corpus detection on store deploys; a closed gate falls through to it on non-store deploys.
+# Canned, no reflection.
+owns_path: ['/wp-content/plugins/woocommerce-gateway-stripe/readme.txt']
+persona_gate: route-woo-store
+match:
+  - in: path
+    regex: '^/wp-content/plugins/woocommerce-gateway-stripe/readme\.txt/*$'
+    ci: true
+  - in: method
+    regex: '^GET$'
+    ci: true
+status: 200
+response:
+  headers:
+    Content-Type: "text/plain; charset=utf-8"
+  body: |
+    === WooCommerce Stripe Payment Gateway ===
+    Contributors: woocommerce, automattic, royho, akeda, mattyza, bor0, woothemes
+    Tags: credit card, stripe, apple pay, payment request, google pay
+    Requires at least: 6.0
+    Tested up to: 6.5
+    Requires PHP: 7.4
+    Stable tag: {{persona.woocommerce.stripeVersion}}
+    License: GPLv3
+    License URI: https://www.gnu.org/licenses/gpl-3.0.html
+
+    Take credit card payments on your store using Stripe.
+
+    == Description ==
+
+    Accept Visa, Mastercard, American Express, Apple Pay, Google Pay and more directly on your store with the Stripe payment gateway for WooCommerce.
+
+    == Changelog ==
+
+    See the Releases page for the full changelog.
+expect:
+  - 'Stable tag:'
+  - 'Stripe'
