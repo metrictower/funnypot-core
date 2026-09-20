@@ -388,8 +388,9 @@ final class EmulatorCompiler
     /** Hard ceiling on iterate fan-out items; a larger authored max_items is clamped down. */
     private const MAX_ITERATE_ITEMS = 64;
 
-    /** The closed decoy-session mode set: mint (the login POST) or gate (the authed GET/HEAD). */
-    private const DECOY_SESSION_MODES = ['mint', 'gate'];
+    /** The closed decoy-session mode set: mint (the login POST), gate (the authed GET/HEAD), or
+     *  challenge (the 2FA code-entry GET shown between the mint and the authed gate). */
+    private const DECOY_SESSION_MODES = ['mint', 'gate', 'challenge'];
 
     /** The closed authed-panel set a gate rule may render: the phpMyAdmin breached-DB browser (default,
      *  legacy) or the WordPress admin dashboard. An unknown value is a build failure. */
@@ -445,16 +446,40 @@ final class EmulatorCompiler
             // (not protocol-relative '//'), no backslash, no CR/LF/NUL, no '{{' directive. Absent ⇒ the
             // phpMyAdmin default, so the shipped pma mint and any legacy artifact are byte-identical.
             $redirect = isset($config['redirect']) ? (string) $config['redirect'] : self::DECOY_MINT_REDIRECT_DEFAULT;
-            if ($redirect === ''
-                || $redirect[0] !== '/'
-                || strpos($redirect, '//') === 0
-                || strpos($redirect, '\\') !== false
-                || strpos($redirect, '{{') !== false
-                || preg_match('/[\r\n\x00]/', $redirect) === 1
-            ) {
-                throw new RuntimeException("Template {$file}: behavior 'decoy-session' mint 'redirect' must be a static rooted-relative literal (leading '/', no '//', no backslash, no directive, no CR/LF/NUL).");
-            }
+            $this->assertStaticLocation($redirect, $file, "mint 'redirect'");
             $out['redirect'] = $redirect;
+
+            // Opt-in 2FA interstitial (default OFF): the mint issues a strictly-separate 2fa-pending
+            // cookie and 302s to `two_factor_redirect` (the challenge page) instead of the one-step
+            // authenticated mint. OFF ⇒ byte-identical to the legacy mint. The challenge target is the
+            // same static-literal-only guard as `redirect` (no open redirect), and is REQUIRED when the
+            // opt-in is on so the flow can never 302 into a void.
+            $twoFactor = !empty($config['two_factor']);
+            $out['two_factor'] = $twoFactor;
+            if ($twoFactor) {
+                if (!isset($config['two_factor_redirect'])) {
+                    throw new RuntimeException("Template {$file}: behavior 'decoy-session' mint with 'two_factor: true' needs a 'two_factor_redirect' (the challenge page Location).");
+                }
+                $tfRedirect = (string) $config['two_factor_redirect'];
+                $this->assertStaticLocation($tfRedirect, $file, "mint 'two_factor_redirect'");
+                $out['two_factor_redirect'] = $tfRedirect;
+            }
+        }
+
+        if ($mode === 'challenge') {
+            // The generic 2FA code-entry page, rendered ONLY for a verified 2fa-pending cookie. `panel`
+            // picks which skin renders the card (closed enum, default wordpress — the only panel with a
+            // native 2FA interstitial). `form_action` is where the code form posts back: a static
+            // rooted-relative literal (same no-open-redirect guard as the mint redirect), defaulting to
+            // the query-shaped self-post the mint's two_factor_redirect points at.
+            $panel = (string) ($config['panel'] ?? 'wordpress');
+            if (!in_array($panel, self::DECOY_SESSION_PANELS, true)) {
+                throw new RuntimeException("Template {$file}: behavior 'decoy-session' challenge 'panel' must be one of " . implode('|', self::DECOY_SESSION_PANELS) . '.');
+            }
+            $out['panel'] = $panel;
+            $formAction = isset($config['form_action']) ? (string) $config['form_action'] : '/wp-login.php?action=2fa';
+            $this->assertStaticLocation($formAction, $file, "challenge 'form_action'");
+            $out['form_action'] = $formAction;
         }
 
         if ($mode === 'gate') {
@@ -478,6 +503,25 @@ final class EmulatorCompiler
         }
 
         return $out;
+    }
+
+    /**
+     * Assert a decoy-session Location/form-action is a STATIC rooted-relative literal — never attacker-
+     * or directive-shaped (the no-open-redirect invariant): non-empty, starts with a single '/' (not
+     * protocol-relative '//'), no backslash, no '{{' directive, no CR/LF/NUL. A query string (`?`) is
+     * permitted so the flow can point at the query-shaped self-post `/wp-login.php?action=2fa`.
+     */
+    private function assertStaticLocation(string $value, string $file, string $label): void
+    {
+        if ($value === ''
+            || $value[0] !== '/'
+            || strpos($value, '//') === 0
+            || strpos($value, '\\') !== false
+            || strpos($value, '{{') !== false
+            || preg_match('/[\r\n\x00]/', $value) === 1
+        ) {
+            throw new RuntimeException("Template {$file}: behavior 'decoy-session' {$label} must be a static rooted-relative literal (leading '/', no '//', no backslash, no directive, no CR/LF/NUL).");
+        }
     }
 
     /**

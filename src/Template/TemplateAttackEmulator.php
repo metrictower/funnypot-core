@@ -1084,10 +1084,13 @@ final class TemplateAttackEmulator
         $session = new DecoySession($this->decoySessionKey, $this->identitySeed($seed));
 
         if ($mode === 'mint') {
-            return $this->decoySessionMint($session, $config, $captures, $name, $path);
+            return $this->decoySessionMint($session, $config, $captures, $name, $path, $r);
         }
         if ($mode === 'gate') {
             return $this->decoySessionGate($session, $config, $r, $name, $seed);
+        }
+        if ($mode === 'challenge') {
+            return $this->decoySessionChallenge($session, $config, $r, $name, $seed);
         }
 
         return null;
@@ -1096,15 +1099,50 @@ final class TemplateAttackEmulator
     /**
      * The mint half: an empty/whitespace-only username or password is not a login attempt, so it
      * declines (-> the base login-page response), as does an implausible username. Otherwise mint
-     * the authenticated cookie and redirect. The Location is a FIXED literal — captures are read ONLY for
+     * the session cookie and redirect. The Location is a FIXED literal — captures are read ONLY for
      * the credential check, never woven into a header, so a crafted redirect/servername field in
      * the POST body can never steer the client anywhere (no open redirect).
+     *
+     * TWO-FACTOR FOLD (FP-0492): when the rule opts in (`two_factor: true`), the verify step is handled
+     * HERE rather than by a second rule — the mint rule (priority 39) already matches EVERY POST to the
+     * login path (query-blind), so a separate verify rule on the same path+method would need a lower
+     * priority AND its own action-query match to avoid a mint re-fire; folding it in sidesteps that
+     * entirely and can never re-mint a pending cookie. The step is chosen by the presented cookie, not
+     * by the URL:
+     *  - a verified 2fa-pending cookie present ⇒ the VERIFY step: accept-any-code (the submitted code is
+     *    a match-gate only, never read for correctness or reflected) mints the IDENTICAL inert
+     *    authenticated cookie the one-step mint sets and 302s to `redirect`. Grants nothing real.
+     *  - no pending cookie yet ⇒ the initial login: plausible creds mint the 2fa-pending cookie (a
+     *    strictly domain-separate class that NEVER authenticates the gate) and 302 to
+     *    `two_factor_redirect` (the challenge page).
+     * With `two_factor` off (the default) both branches are skipped and the legacy one-step mint runs
+     * byte-identically.
      *
      * @param array<string,mixed>      $config
      * @param array<int|string,string> $captures
      */
-    private function decoySessionMint(DecoySession $session, array $config, array $captures, string $name, string $path): ?EmulatedContent
+    private function decoySessionMint(DecoySession $session, array $config, array $captures, string $name, string $path, ?RequestContext $r): ?EmulatedContent
     {
+        $twoFactor = !empty($config['two_factor']);
+
+        // VERIFY step (opt-in only): a request already carrying a verified 2fa-pending cookie completes
+        // the login on any submitted code. Checked before the credential gate because the challenge form
+        // posts only a code (no log/pwd), so the user/pass captures are empty here by design.
+        if ($twoFactor && $r !== null) {
+            $cookieHeader = BoundedInspection::cookieHeader($r->headers);
+            if ($session->isTwoFactorPending($cookieHeader, $name)) {
+                // Accept-any-code: only the PRESENCE of a code is a gate; the value is never trusted,
+                // stored, or reflected. An empty submission declines (the challenge page re-renders).
+                if (trim((string) ($captures['code'] ?? '')) === '') {
+                    return null;
+                }
+                $cookie = $session->mintCookie($name, $path);
+                $location = (string) ($config['redirect'] ?? '/phpmyadmin/index.php');
+
+                return new EmulatedContent('', ['Set-Cookie' => $cookie, 'Location' => $location], 302);
+            }
+        }
+
         $user = (string) ($captures['user'] ?? '');
         $pass = (string) ($captures['pass'] ?? '');
         if (trim($user) === '' || trim($pass) === '') {
@@ -1112,6 +1150,15 @@ final class TemplateAttackEmulator
         }
         if (preg_match('/^[A-Za-z0-9_.@-]{1,64}$/', $user) !== 1) {
             return null;
+        }
+
+        // INITIAL login, 2FA on: password accepted, code not yet entered. Mint the strictly-separate
+        // 2fa-pending marker (fails isAuthenticated() by construction) and 302 to the challenge page.
+        if ($twoFactor) {
+            $pending = $session->mintPendingCookie($name, $path);
+            $challenge = (string) ($config['two_factor_redirect'] ?? '/phpmyadmin/index.php');
+
+            return new EmulatedContent('', ['Set-Cookie' => $pending, 'Location' => $challenge], 302);
         }
 
         $cookie = $session->mintCookie($name, $path);
@@ -1155,6 +1202,53 @@ final class TemplateAttackEmulator
         }
 
         return $this->decoySessionAuthedBody($config, $seed, $r);
+    }
+
+    /**
+     * The 2FA challenge half (FP-0492): render the generic code-entry form ONLY for a request carrying a
+     * verified 2fa-pending cookie. Anything else — no cookie, a garbage value, an authenticated or
+     * pre-auth cookie (wrong class), a forged/wrong-key/cross-seed tag, or the position-blind port
+     * ($r null) — declines to null so renderRule falls back to the rule's base login page. Fail-closed
+     * by construction, exactly like the gate: the ONLY path to the code form is isTwoFactorPending()
+     * returning true. The rendered body runs the SAME verify-before-serve FingerprintGuard tail the
+     * authed body uses — a fabricated byte that spelled a detector signature, or a guard that could not
+     * load, fails closed rather than serving or throwing.
+     *
+     * @param array<string,mixed> $config
+     */
+    private function decoySessionChallenge(DecoySession $session, array $config, ?RequestContext $r, string $name, int $seed): ?EmulatedContent
+    {
+        $cookieHeader = $r === null ? null : BoundedInspection::cookieHeader($r->headers);
+        if (!$session->isTwoFactorPending($cookieHeader, $name)) {
+            return null;
+        }
+
+        $html = $this->decoyTwoFactorHtml($config, $seed);
+
+        $guard = $this->fingerprintGuard();
+        if ($guard === null || $guard->scan($html) !== []) {
+            return null;
+        }
+
+        return new EmulatedContent($html, ['Content-Type' => 'text/html; charset=utf-8'], 200);
+    }
+
+    /**
+     * The generic 2FA code-entry card: a single numeric-code input and a submit button, wrapped in the
+     * SAME persona-coherent WordpressSkin login chrome as the login page (so the two steps read as one
+     * host). Authored generic copy — no plugin-specific 2FA marker string, no QR, no seed, no real or
+     * backup code value — and it reflects NO submitted value. The form posts back to the compiler-
+     * validated static `form_action` literal (never a capture), so there is no open redirect. Content is
+     * a pure function of the deploy seed, so a re-fetch is byte-stable.
+     *
+     * @param array<string,mixed> $config
+     */
+    private function decoyTwoFactorHtml(array $config, int $seed): string
+    {
+        $persona = VisualPersona::fromSeed($this->identitySeed($seed));
+        $action = (string) ($config['form_action'] ?? '/wp-login.php?action=2fa');
+
+        return (new WordpressSkin())->renderTwoFactor($persona, Esc::text($action));
     }
 
     /**

@@ -55,10 +55,11 @@ match:
     regex: '^POST$'
     ci: true
   - in: body
-    # Two independent OPTIONAL lookaheads (mirrors rule 103, but optional so an absent field still
-    # matches): find log/pwd wherever they sit in the body, in any field order. Match-gates only — the
-    # captures are NEVER reflected.
-    regex: '^(?:(?=(?:.*&)?log=(?P<user>[^&]{0,64})))?(?:(?=(?:.*&)?pwd=(?P<pass>[^&]{0,64})))?'
+    # Three independent OPTIONAL lookaheads (mirrors rule 103, but optional so an absent field still
+    # matches): find log/pwd/code wherever they sit in the body, in any field order. Match-gates only —
+    # the captures are NEVER reflected. `code` feeds only the FP-0492 two-factor verify step (accept-any:
+    # presence gates, value is never trusted); it is inert when `two_factor` is off.
+    regex: '^(?:(?=(?:.*&)?log=(?P<user>[^&]{0,64})))?(?:(?=(?:.*&)?pwd=(?P<pass>[^&]{0,64})))?(?:(?=(?:.*&)?code=(?P<code>[^&]{0,64})))?'
     capture: true
     ci: false
 status: 200
@@ -115,4 +116,14 @@ decoy-session:
   cookie_path: /
   # FIXED literal redirect target — the wp-admin dashboard rule 104 gates. Never a submitted value.
   redirect: /wp-admin/
+  # FP-0492 optional 2FA interstitial. SHIPPED OFF (a second, per-rule off-switch on top of the
+  # signing-key hard kill switch): with two_factor off the mint is the byte-identical one-step login
+  # (authenticated cookie -> /wp-admin/). Flip to true (operator, at enable time) to insert the fake
+  # 2FA step: the mint then issues a strictly-separate 2fa-pending cookie and 302s to two_factor_redirect
+  # (the challenge page, rule 95). The verify step is FOLDED into this same mint handler — a POST that
+  # arrives already carrying a verified 2fa-pending cookie accepts ANY code and mints the identical inert
+  # authenticated cookie (grants nothing real). Folding avoids a separate verify rule that, sharing this
+  # path+method at any priority >= 39, would re-fire this mint and loop.
+  two_factor: false
+  two_factor_redirect: /wp-login.php?action=2fa
 expect: ['login_error', 'wp-login.php']
