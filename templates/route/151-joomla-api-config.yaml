@@ -1,0 +1,30 @@
+id: route-joomla-api-config
+priority: 151
+# Enriches the corpus Joomla webservice config bundle (CVE-2023-23752) so the served body carries
+# the leaked DB credential shape a credential-harvesting scanner confirms on, not just the minimal
+# body-word synth. Enrich, not new_page: the corpus already routes GET /api/index.php/v1/config/application
+# (+ the /api/v1 alias). route_key-guarded to those two keys only — pid:joomla spans many bundles
+# (GET /, /README.txt, /administrator/, …) and a bare pid match would dress all of them.
+#
+# Content-Type MUST stay application/json: the bundle's header witness is the substring
+# 'application/json', which application/vnd.api+json does NOT contain, so vnd.api+json would fail
+# bundle validation and silently drop the serve to the credential-less minimal body.
+# The body keeps the bundle words '"links":' and '"attributes":' so the original nuclei serve is
+# preserved. Credentials are per-deploy synthetic {{persona.db.*}}, coherent with every other leaked
+# config surface; they authenticate nowhere.
+match:
+  pid: [joomla]                                    # load-bearing positive axis: a route_key-only match never fires
+  route_key:
+    - 'GET /api/index.php/v1/config/application'
+    - 'GET /api/v1/config/application'
+response:
+  headers:
+    Content-Type: "application/json; charset=utf-8"
+  body: |
+    {"links":{"self":"https://{{persona.company.domain}}/api/index.php/v1/config/application?public=true"},
+     "data":[
+       {"type":"application","id":"224","attributes":{"offline":false,"sitename":"{{persona.company.name}}","editor":"tinymce"}},
+       {"type":"application","id":"224","attributes":{"dbtype":"mysqli","host":"{{persona.db.host}}","user":"{{persona.db.user}}","password":"{{persona.db.password}}","db":"{{persona.db.name}}","dbprefix":"jos_","dbencryption":0}},
+       {"type":"application","id":"224","attributes":{"mailfrom":"admin@{{persona.company.domain}}","fromname":"{{persona.company.name}}","mailer":"smtp","smtphost":"smtp.{{persona.company.domain}}","smtpuser":"{{persona.db.user}}"}}
+     ]}
+expect: ['"links":', '"attributes":', '"user":', '"password":', 'dbtype']
