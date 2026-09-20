@@ -510,6 +510,10 @@ $synthServedRefKey = null;
 $bodyAtA = [];               // (route#i) => body at fp-0276-sample-a|r-a  (G6)
 $bodyAtB = [];               // (route#i) => body at fp-0276-sample-b|r-a  (G6)
 $multiWordKeys = [];         // (route#i) => true for served bundles with ≥2 bw words
+// FP-0280 witness-menu leg: the ACTUAL selected witness vector per served rxm bundle.
+$rxmVecA = [];               // (route#i) => selected vector at fp-0276-sample-a|r-a
+$rxmVecB = [];               // (route#i) => selected vector at fp-0276-sample-b|r-a
+$rxmKeys = [];               // (route#i) => true for served bundles carrying a non-empty rxm
 
 if (is_file($opt['nuclei'])) {
     ini_set('memory_limit', '512M'); // raise-only; the full index + synthesizer peak ~48 MB
@@ -534,6 +538,7 @@ if (is_file($opt['nuclei'])) {
             $gridKey = $material . '|' . $rlabel;
             $renderStr = 'gate.example|' . $material;
             $bodyStream = '';
+            $witnessStream = '';        // FP-0280: length-framed route#i + selected witness vector
             $nameSet = [];
             $served = [];
             $gridMultiWord = 0;
@@ -543,8 +548,12 @@ if (is_file($opt['nuclei'])) {
                         continue;
                     }
                     $key = $route . '#' . $i;
-                    $c1 = $canon($synth->synthesize($bundle, Detection::none(), $renderStr));
-                    $c2 = $canon($synth->synthesize($bundle, Detection::none(), $renderStr));
+                    $r1 = $synth->synthesize($bundle, Detection::none(), $renderStr);
+                    $v1 = $synth->lastRegexWitnesses();          // FP-0280 actual served witness vector
+                    $c1 = $canon($r1);
+                    $r2 = $synth->synthesize($bundle, Detection::none(), $renderStr);
+                    $v2 = $synth->lastRegexWitnesses();
+                    $c2 = $canon($r2);
                     if ($material === $firstMaterial && $rlabel === $firstRlabel) {
                         $synthBundleCount++;
                     }
@@ -554,9 +563,29 @@ if (is_file($opt['nuclei'])) {
                     if ($c1 !== $c2) {
                         $fail[] = "G3 nondeterministic render: synth {$key} [m={$material},{$rlabel}] (" . firstDiff($c1, $c2) . ')';
                     }
+                    // FP-0280 G3: the selected witness vector must also be stable across twin renders,
+                    // even if the response bytes happen to collide (body-order variance can mask it).
+                    if ($v1 !== $v2) {
+                        $fail[] = "G3 witness vector differs across twin renders: synth {$key} [m={$material},{$rlabel}]";
+                    }
                     $scanLeaves($c1, $key, "synth {$key} [m={$material},{$rlabel}]");
                     $served[] = $key;
                     $bodyStream .= $key . "\x1f" . $c1['body'] . "\x1e";
+                    // FP-0280: record the actual selected vector of every served bundle that carries a
+                    // non-empty rxm (the leg's M6 self-certification — measure real output, not selection).
+                    if (!empty($bundle['rxm'])) {
+                        $rxmKeys[$key] = true;
+                        $frame = strlen($key) . '#' . $key;
+                        foreach ($v1 as $wv) {
+                            $frame .= '|' . strlen((string) $wv) . ':' . (string) $wv;
+                        }
+                        $witnessStream .= $frame . "\x1e";
+                        if ($gridKey === 'fp-0276-sample-a|r-a') {
+                            $rxmVecA[$key] = $v1;
+                        } elseif ($gridKey === 'fp-0276-sample-b|r-a') {
+                            $rxmVecB[$key] = $v1;
+                        }
+                    }
                     foreach (array_keys($c1['headers']) as $hn) {
                         if ($isSyntheticName((string) $hn)) {
                             $nameSet[(string) $hn] = true;
@@ -595,6 +624,12 @@ if (is_file($opt['nuclei'])) {
                 ksort($nameSet);
                 $surfaceRuns['synth:witness-header-names'][$gridKey] = ['status' => 0, 'headers' => [], 'body' => hash('sha256', implode("\n", array_keys($nameSet)))];
             }
+            // FP-0280 aggregate surface: recorded ONLY when ≥1 rxm bundle served at this grid point, so a
+            // zero-rxm index (pre-regeneration) records nothing and a registered key fails closed as a
+            // stale-registry entry rather than silently passing.
+            if ($witnessStream !== '') {
+                $surfaceRuns['synth:regex-witness-menu'][$gridKey] = ['status' => 0, 'headers' => [], 'body' => hash('sha256', $witnessStream)];
+            }
         }
     }
 }
@@ -632,6 +667,36 @@ if ($synthMultiWord > 0) {
     }
 } elseif ($synthBundleCount > 0) {
     fwrite(STDOUT, "INFO: synth bundles={$synthBundleCount} served-set-size=" . ($synthServedRef === null ? 0 : count($synthServedRef)) . " multi-word=0 (body-order floor skipped)\n");
+}
+
+// FP-0280 — the witness-menu floor over the ACTUAL selected vectors. ARMED only when the surface is
+// registered; skipped (never div-by-zero) when the index carries no rxm bundle (pre-regeneration).
+$rxmBundles = 0;
+$rxmDiff = 0;
+foreach (array_keys($rxmKeys) as $key) {
+    if (isset($rxmVecA[$key], $rxmVecB[$key])) {
+        $rxmBundles++;
+        if ($rxmVecA[$key] !== $rxmVecB[$key]) {
+            $rxmDiff++;
+        }
+    }
+}
+if ($rxmBundles > 0) {
+    $rxmPct = $rxmDiff / $rxmBundles;
+    fwrite(STDOUT, sprintf(
+        "INFO: synth rxm bundles=%d differing-at-a·b=%d (%.1f%%)\n",
+        $rxmBundles,
+        $rxmDiff,
+        $rxmPct * 100
+    ));
+    if (isset($surfaces['synth:regex-witness-menu']) && $rxmPct < 0.25) {
+        $fail[] = sprintf(
+            'G-rxm witness-menu floor: only %d/%d (%.1f%%) rxm bundles select a differing witness vector across deploy seeds (need ≥25%%)',
+            $rxmDiff,
+            $rxmBundles,
+            $rxmPct * 100
+        );
+    }
 }
 
 // ---------------------------------------------------------------------------------------------------
