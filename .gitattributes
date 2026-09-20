@@ -7,6 +7,12 @@
 *.yml   text eol=lf
 *.php   text eol=lf
 
+# The two generated Markdown outputs of `funnypot map` (FP-0004). The drift gate recompiles and
+# diffs them, so a CRLF checkout would spuriously drift them just like the compiled artifacts. Only
+# these two Markdown paths are pinned — no broad *.md renormalization.
+README.md         text eol=lf
+docs/DECOY-MAP.md text eol=lf
+
 # Keep the published package to what a consumer actually runs. Everything below is
 # development material: it is in the repo, but `composer require` should not download it.
 # NOTE: scripts/ is deliberately NOT ignored — sibling packages CI-invoke

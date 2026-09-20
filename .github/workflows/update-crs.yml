@@ -74,8 +74,9 @@ jobs:
         run: |
           # The `funnypot build` DAG folds the freshly re-derived CRS templates into funnypot-attack.php
           # (compile-emulators globs templates/attack-crs alongside attack + attack-ai), re-reserves
-          # param ids against the new attack set, and rebuilds the decoy manifest last so its band-A
-          # records + counts stay in step. One orchestrator = the same order composer check / the
+          # param ids against the new attack set, rebuilds the decoy manifest, then regenerates the
+          # decoy map (docs/DECOY-MAP.md + README block) so its band-A records + counts stay in step.
+          # One orchestrator = the same order composer check / the
           # artifact-law gate enforce, so the CRS refresh PR can never trip its own drift gate.
           php -d memory_limit=2G bin/funnypot build
 
@@ -119,5 +120,7 @@ jobs:
             resources/compiled/crs-manifest.json
             resources/skipped-crs.json
             resources/upstream-licenses/coreruleset.LICENSE.md
+            docs/DECOY-MAP.md
+            README.md
             templates/generated/
             templates/attack-ai/

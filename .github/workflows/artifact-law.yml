@@ -2,8 +2,9 @@ name: artifact-law
 
 # Zero-drift compiled-artifact law (FP-0263). Recompiles the in-repo artifacts and fails on any
 # drift from the committed bytes, then runs the three static gates (route-integrity, fingerprint-
-# safety, namespace-collisions). `build-manifest` runs inside `check-drift.sh` (via `funnypot
-# build`) and its output is drift-checked, so the manifest can never go stale unnoticed again.
+# safety, namespace-collisions). `build-manifest` then `map` run inside `check-drift.sh` (via
+# `funnypot build`) and their output is drift-checked, so the manifest and the generated decoy map
+# (docs/DECOY-MAP.md + the README inventory block) can never go stale unnoticed again.
 #
 # check-drift only runs `funnypot build` (the in-repo fold), never a full `build-corpus` recompile —
 # the nuclei-templates corpus is external and not bundled — so a compiler change that alters how the
