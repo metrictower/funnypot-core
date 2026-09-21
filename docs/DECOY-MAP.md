@@ -152,7 +152,7 @@ mindmap
 | pgadmin | 2 | new-page:2 | 2 | 0 | info | &mdash; |
 | php | 1 | new-page:1 | 1 | 0 | high | &mdash; |
 | php-cgi | 2 | attack:2 | 0 | 0 | critical | &mdash; |
-| phpmyadmin | 14 | attack:2 new-page:12 | 22 | 2 | high | accepted, info |
+| phpmyadmin | 14 | attack:2 new-page:12 | 22 | 4 | high | accepted, info |
 | phppgadmin | 2 | attack:1 new-page:1 | 2 | 1 | high | &mdash; |
 | phpunit | 1 | attack:1 | 0 | 0 | critical | &mdash; |
 | pii | 3 | new-page:3 | 3 | 0 | medium | &mdash; |

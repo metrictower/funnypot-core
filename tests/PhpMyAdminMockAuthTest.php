@@ -10,7 +10,6 @@ use Funnypot\Core\Behavior\DecoyTables;
 use Funnypot\Core\Compiler\Crs\FingerprintGuard;
 use Funnypot\Core\Honeytoken;
 use Funnypot\Core\RequestContext;
-use Funnypot\Core\Support\PersonaIdentity;
 use Funnypot\Core\Support\VisualPersona;
 use Funnypot\Core\Template\TemplateAttackEmulator;
 use PHPUnit\Framework\TestCase;
@@ -93,12 +92,15 @@ final class PhpMyAdminMockAuthTest extends TestCase
             array_search(self::GATE_ID, $ids, true)
         );
 
-        // The build-time guard this task requires: the merged corpus grew by exactly these 2 rules,
-        // and Agent A's ai-ollama pack + the CRS pack both survived the recompile untouched. Total
-        // count has since grown further with unrelated rules (see ZapCoverageTest for that delta);
-        // this assertion just needs to track the current total so it keeps proving THIS pair is
-        // still exactly 2 of them, not a stale absolute pin.
-        self::assertCount(78, $rules, 'compiled corpus must be 57 (original baseline) + 2 (this pair) + 11 (unrelated, since: imds-base, wp-admin-redirect, lfi-sshkey, lfi-hostname, imds-identity-doc, FP-0229 nextjs-rsc, FP-0232 verbose-error-volatile, FP-0234 ssti-multifence, FP-0235 crlfuzz-echo, FP-0259 xss-baseline, FP-0286 xss-escalation) + 7 (FP-0143 knock-knock: hikvision-sdk-36260, hikvision-sdk-desc, gpon-10561, fiberhome-27973, netgear-6277, xdebug, node-red) + 1 (FP-0492 attack-wp-2fa-challenge)');
+        // The build-time guard this task requires: THIS pair plus Agent A's ai-ollama pack and the CRS
+        // pack all survive the recompile. The corpus grows with unrelated rules over time, so a bare
+        // exact-count pin is a stale trap (FP-0510); assert a floor + the pair/pack specifics instead,
+        // and count exactly the pair by id so it still proves this is 2 rules, not an absolute total.
+        self::assertGreaterThanOrEqual(78, count($rules), 'compiled corpus must not shrink below the FP-0517 floor');
+        $pair = array_filter($ids, static function (string $id): bool {
+            return $id === self::GATE_ID || $id === self::MINT_ID;
+        });
+        self::assertCount(2, $pair, 'exactly the gate + mint rules make up this pair');
         $ollama = array_filter($ids, static function (string $id): bool {
             return strpos($id, 'ai-ollama') !== false;
         });
@@ -401,32 +403,39 @@ final class PhpMyAdminMockAuthTest extends TestCase
         self::assertStringNotContainsString(self::KEY, $mint->headers['Location']);
     }
 
-    // --- FP-0005: seed-derived app version + class prefix (no fleet-wide literal) -------------
+    // --- FP-0517: byte-faithful real-clone login (fleet-constant, reverses FP-0005) -----------
 
-    /** The rendered login body carries the seed-derived phpMyAdmin app version + class prefix, and
-     *  none of the old fleet-wide literals (`phpMyAdmin 5.2.1`, the invented `pma-*` classes, the id
-     *  `pma_errors`) survive. Real phpMyAdmin field names (`pma_username`/`pma_password`) stay. */
-    public function test_login_body_carries_seed_derived_version_and_prefix_no_fleet_literal(): void
+    /** The rendered login body is a faithful clone of the real phpMyAdmin (pmahomme) login: the real
+     *  visual identity (logo, `Welcome to phpMyAdmin`, the tab-headed Language + Log in cards, the
+     *  Bootstrap grid), the real protocol field names, and NONE of the FP-0005 invented per-deploy
+     *  vocabulary (`*-wrap` class prefix, `phpMyAdmin <version>` footer, `pma_errors` id). Matching the
+     *  real page means the box clusters with real installs, not a honeypot vocabulary. */
+    public function test_login_body_is_a_faithful_real_clone_no_invented_vocabulary(): void
     {
         $seed = 0x5f0005;
-        $version = (string) PersonaIdentity::fromSeed($seed)->field('phpmyadmin.version');
-        $prefix = VisualPersona::fromSeed($seed)->classPrefix();
-
         $r = $this->seededEmulator($seed)->emulate(new RequestContext('GET', '/phpmyadmin/', '', []));
         self::assertNotNull($r);
         $body = $r->body;
 
-        self::assertStringContainsString('phpMyAdmin ' . $version, $body, 'footer shows the seed-derived app version');
-        self::assertStringContainsString('class="' . $prefix . '-wrap"', $body, 'the wrapper carries the seed-derived class prefix');
-        self::assertStringContainsString('id="' . $prefix . '-errors"', $body, 'the errors box id carries the prefix');
-
-        // The killed fleet-wide literals are gone; the real protocol field names remain.
-        self::assertStringNotContainsString('phpMyAdmin 5.2.1', $body);
-        self::assertStringNotContainsString('pma-wrap', $body);
-        self::assertStringNotContainsString('pma-card', $body);
-        self::assertStringNotContainsString('id="pma_errors"', $body);
+        // Real pMA visual identity.
+        self::assertStringContainsString('Welcome to ', $body, 'the real welcome heading');
+        self::assertStringContainsString('class="logo"', $body, 'the branded logo link');
+        self::assertStringContainsString('id="page_content"', $body);
+        self::assertStringContainsString('class="card mb-4"', $body, 'real pMA card markup');
+        self::assertStringContainsString('id="languageSelectLabel"', $body, 'the Language card');
+        self::assertStringContainsString('class="col-sm-4 col-form-label"', $body, 'the Bootstrap grid label');
+        // Real protocol facts.
         self::assertStringContainsString('name="pma_username"', $body);
         self::assertStringContainsString('name="pma_password"', $body);
+        self::assertStringContainsString('name="set_session"', $body);
+        self::assertStringContainsString('name="token"', $body);
+        self::assertStringContainsString('action="index.php?route=/"', $body);
+
+        // The FP-0005 invented per-deploy vocabulary is gone (a non-real class is itself a tell).
+        $prefix = VisualPersona::fromSeed($seed)->classPrefix();
+        self::assertStringNotContainsString($prefix . '-wrap', $body, 'no invented per-deploy class prefix');
+        self::assertStringNotContainsString('-errors"', $body, 'no invented errors-box id');
+        self::assertDoesNotMatchRegularExpression('/phpMyAdmin \d+\.\d+/', $body, 'no visible version footer (real 5.2 login shows none)');
         self::assertStringNotContainsString('{{', $body, 'no directive may survive unrendered');
     }
 
@@ -439,24 +448,42 @@ final class PhpMyAdminMockAuthTest extends TestCase
         $b = $em->emulate(new RequestContext('GET', '/phpmyadmin/', '', []));
         self::assertNotNull($a);
         self::assertNotNull($b);
-        self::assertSame($a->body, $b->body, 'the seed-derived login body must be byte-stable per deploy');
+        self::assertSame($a->body, $b->body, 'the login body must be byte-stable per deploy');
     }
 
-    /** Per-deploy variation: across distinct seeds the rendered version/prefix track their seed-derived
-     *  values (asserted against the derived value, not a bare "not equal", to avoid pool-collision flake). */
-    public function test_login_body_varies_by_deploy_seed(): void
+    /** FP-0517 reverses FP-0005's per-deploy variation: the login is now FLEET-CONSTANT like the real
+     *  phpMyAdmin login, so the markup is identical across deploy seeds except the per-request
+     *  token/set_session values (which the real page also varies). Normalizing those hex values away,
+     *  the bodies are byte-identical across seeds. */
+    public function test_login_body_is_fleet_constant_across_deploy_seeds(): void
     {
-        $prefixes = [];
+        $normalize = static function (string $body): string {
+            // Blank the two per-request hex values so only the fleet-constant markup remains.
+            return preg_replace('/(name="(?:token|set_session)" value=")[0-9a-f]+"/', '$1"', $body);
+        };
+        $bodies = [];
         foreach ([11, 22, 33, 44, 55] as $seed) {
-            $version = (string) PersonaIdentity::fromSeed($seed)->field('phpmyadmin.version');
-            $prefix = VisualPersona::fromSeed($seed)->classPrefix();
             $r = $this->seededEmulator($seed)->emulate(new RequestContext('GET', '/phpmyadmin/', '', []));
             self::assertNotNull($r);
-            self::assertStringContainsString('phpMyAdmin ' . $version, $r->body, "seed {$seed}: version tracks the seed");
-            self::assertStringContainsString('class="' . $prefix . '-wrap"', $r->body, "seed {$seed}: prefix tracks the seed");
-            $prefixes[] = $prefix;
+            $bodies[] = $normalize($r->body);
         }
-        self::assertGreaterThan(1, count(array_unique($prefixes)), 'the class prefix must not collapse to one value across deploys');
+        self::assertCount(1, array_unique($bodies), 'the login markup must be identical across deploys (fleet-constant, like real pMA)');
+    }
+
+    /** The CSRF token and the session id are distinct value classes, exactly as real phpMyAdmin: the
+     *  ONE per-page `token` (CSRF) repeats identically wherever it appears (both the language form and
+     *  the login form carry the same token), while `set_session` is a different value. */
+    public function test_token_is_one_per_page_and_distinct_from_set_session(): void
+    {
+        $r = $this->seededEmulator(0x5f0005)->emulate(new RequestContext('GET', '/phpmyadmin/', '', []));
+        self::assertNotNull($r);
+        preg_match_all('/name="token" value="([0-9a-f]+)"/', $r->body, $tokens);
+        preg_match('/name="set_session" value="([0-9a-f]+)"/', $r->body, $session);
+
+        self::assertGreaterThanOrEqual(2, count($tokens[1]), 'the token appears in both the language and login forms');
+        self::assertCount(1, array_unique($tokens[1]), 'every token field carries the SAME per-page CSRF value');
+        self::assertNotEmpty($session[1] ?? '', 'set_session is present');
+        self::assertNotSame($tokens[1][0], $session[1], 'the CSRF token and the session id must be different values');
     }
 
     /** Gate (GET, rule 102) and login-decline (POST empty password, rule 103) render the identical
@@ -472,20 +499,24 @@ final class PhpMyAdminMockAuthTest extends TestCase
         self::assertSame($gate->body, $decline->body, 'gate and login-decline must serve the identical login body');
     }
 
-    /** Gate <-> dashboard coherence: the class prefix in the login body equals the prefix
-     *  PhpMyAdminSkin renders into the authed dashboard for the same deploy seed. */
-    public function test_login_and_authed_dashboard_share_one_class_prefix(): void
+    /** Login (FP-0517 fleet-constant real clone) -> mint -> authed dashboard: the login is the real
+     *  pMA clone (no per-deploy prefix), and after minting the authed dashboard renders. The dashboard
+     *  is still the persona-skinned breach panel (PhpMyAdminSkin's per-deploy classPrefix); aligning it
+     *  to the same real-clone chrome is a follow-up (the login is what a scanner hits first, so it was
+     *  cloned first). This test pins the end-to-end funnel over one deploy, not a shared class prefix. */
+    public function test_login_real_clone_then_mint_renders_the_authed_dashboard(): void
     {
         $seed = 0x5f0005;
         $prefix = VisualPersona::fromSeed($seed)->classPrefix();
         $em = $this->seededEmulator($seed);
 
-        // Login page carries the prefix.
+        // Login page is the fleet-constant real clone (carries no invented per-deploy prefix).
         $login = $em->emulate(new RequestContext('GET', '/phpmyadmin/', '', []));
         self::assertNotNull($login);
-        self::assertStringContainsString('class="' . $prefix . '-wrap"', $login->body);
+        self::assertStringContainsString('Welcome to ', $login->body);
+        self::assertStringNotContainsString($prefix . '-wrap', $login->body, 'the login no longer carries the per-deploy prefix');
 
-        // Mint a session, then the authed dashboard body carries the SAME prefix.
+        // Mint a session, then the authed dashboard renders (still the persona breach panel).
         $mint = $em->emulate(new RequestContext('POST', '/phpmyadmin/index.php', '', [], 'pma_username=admin&pma_password=secret'));
         self::assertNotNull($mint);
         self::assertSame(302, $mint->status);
@@ -493,7 +524,6 @@ final class PhpMyAdminMockAuthTest extends TestCase
         $dash = $em->emulate(new RequestContext('GET', '/phpmyadmin/', '', ['Cookie' => $cookieHeader]));
         self::assertNotNull($dash);
         self::assertStringContainsString('Showing rows', $dash->body, 'the authed dashboard renders');
-        self::assertStringContainsString($prefix . '-', $dash->body, 'dashboard shares the login class prefix');
     }
 
     /** Fingerprint-clean across seeds: the seed-derived rendered login body never trips the runtime
