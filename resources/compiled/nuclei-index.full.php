@@ -13,11 +13,11 @@ return array (
     'license' => 'MIT (c) 2025 ProjectDiscovery, Inc.',
     'upstream_tag' => '2ec914123864439c3618e7e9ae72d32d0eb56df7',
     'upstream_sha' => '2ec914123864439c3618e7e9ae72d32d0eb56df7',
-    'source_tree' => '8576dcb948ab988d2a7016b561d986364c2bb7602ec2c6f5f606f63a2298908c',
+    'source_tree' => 'f510461e5e2b712811423805f350d9863d37d13dbc307ab9d47ce3f529572eaa',
     'templates_seen' => 11196,
     'templates_in' => 6363,
-    'templates_indexed' => 6490,
-    'route_keys' => 5353,
+    'templates_indexed' => 6497,
+    'route_keys' => 5367,
     'multi_bundle_keys' => 277,
     'largest_bundle_count' => 1324,
     'persona_cap' => 
@@ -84384,6 +84384,19 @@ return array (
       ),
       'name' => 'Exposed Mercurial requires (.hg/requires)',
     ),
+    'route-wpcfg-backup' => 
+    array (
+      'sev' => 'high',
+      'tags' => 
+      array (
+        0 => 'exposure',
+        1 => 'disclosure',
+        2 => 'wordpress',
+        3 => 'backup',
+        4 => 'credentials',
+      ),
+      'name' => 'Exposed wp-config.php backup copy',
+    ),
     'route-basic-auth' => 
     array (
       'sev' => 'low',
@@ -84394,6 +84407,18 @@ return array (
         2 => 'exposure',
       ),
       'name' => 'Basic Auth challenge',
+    ),
+    'route-shell-history' => 
+    array (
+      'sev' => 'high',
+      'tags' => 
+      array (
+        0 => 'exposure',
+        1 => 'disclosure',
+        2 => 'shell-history',
+        3 => 'credentials',
+      ),
+      'name' => 'Exposed shell history',
     ),
     'route-credentials-txt' => 
     array (
@@ -84486,6 +84511,19 @@ return array (
       ),
       'name' => 'Canonical-slash redirect for /typo3conf',
     ),
+    'route-mysql-history' => 
+    array (
+      'sev' => 'medium',
+      'tags' => 
+      array (
+        0 => 'exposure',
+        1 => 'disclosure',
+        2 => 'db-history',
+        3 => 'mysql',
+        4 => 'credentials',
+      ),
+      'name' => 'Exposed MySQL client history',
+    ),
     'route-phpmyadmin' => 
     array (
       'sev' => 'high',
@@ -84577,6 +84615,19 @@ return array (
         2 => 'directory-parent',
       ),
       'name' => 'Forbidden directory parent',
+    ),
+    'route-google-authenticator' => 
+    array (
+      'sev' => 'high',
+      'tags' => 
+      array (
+        0 => 'exposure',
+        1 => 'disclosure',
+        2 => '2fa',
+        3 => 'totp',
+        4 => 'credentials',
+      ),
+      'name' => 'Exposed Google Authenticator secret',
     ),
     'route-ai-claude-json' => 
     array (
@@ -84686,6 +84737,31 @@ return array (
       ),
       'name' => 'LLM gateway auth required',
     ),
+    'route-tls-server-key' => 
+    array (
+      'sev' => 'high',
+      'tags' => 
+      array (
+        0 => 'exposure',
+        1 => 'disclosure',
+        2 => 'tls',
+        3 => 'private-key',
+        4 => 'credentials',
+      ),
+      'name' => 'Exposed TLS private key',
+    ),
+    'route-bowerrc' => 
+    array (
+      'sev' => 'medium',
+      'tags' => 
+      array (
+        0 => 'exposure',
+        1 => 'disclosure',
+        2 => 'registry',
+        3 => 'credentials',
+      ),
+      'name' => 'Exposed .bowerrc registry config',
+    ),
     'route-ai-ollama-version' => 
     array (
       'sev' => 'medium',
@@ -84762,6 +84838,19 @@ return array (
         2 => 'secrets',
       ),
       'name' => 'Exposed environment file (.env.local)',
+    ),
+    'route-psql-history' => 
+    array (
+      'sev' => 'medium',
+      'tags' => 
+      array (
+        0 => 'exposure',
+        1 => 'disclosure',
+        2 => 'db-history',
+        3 => 'postgres',
+        4 => 'credentials',
+      ),
+      'name' => 'Exposed PostgreSQL client history',
     ),
     'route-envfile-dev' => 
     array (
@@ -307531,6 +307620,131 @@ a</title>',
         ),
       ),
     ),
+    'GET /wp-config.php.bak' => 
+    array (
+      'b' => 
+      array (
+        0 => 
+        array (
+          's' => 200,
+          'bw' => 
+          array (
+            0 => 'DB_PASSWORD',
+          ),
+          'nf' => 
+          array (
+          ),
+          'pid' => 'route-wpcfg-backup',
+          'sev' => 'high',
+          'sig' => 0,
+          'amb' => 0,
+          't' => 
+          array (
+            0 => 'route-wpcfg-backup',
+          ),
+        ),
+      ),
+    ),
+    'GET /wp-config.php~' => 
+    array (
+      'b' => 
+      array (
+        0 => 
+        array (
+          's' => 200,
+          'bw' => 
+          array (
+            0 => 'DB_PASSWORD',
+          ),
+          'nf' => 
+          array (
+          ),
+          'pid' => 'route-wpcfg-backup',
+          'sev' => 'high',
+          'sig' => 0,
+          'amb' => 0,
+          't' => 
+          array (
+            0 => 'route-wpcfg-backup',
+          ),
+        ),
+      ),
+    ),
+    'GET /wp-config.php.save' => 
+    array (
+      'b' => 
+      array (
+        0 => 
+        array (
+          's' => 200,
+          'bw' => 
+          array (
+            0 => 'DB_PASSWORD',
+          ),
+          'nf' => 
+          array (
+          ),
+          'pid' => 'route-wpcfg-backup',
+          'sev' => 'high',
+          'sig' => 0,
+          'amb' => 0,
+          't' => 
+          array (
+            0 => 'route-wpcfg-backup',
+          ),
+        ),
+      ),
+    ),
+    'GET /wp-config.php.orig' => 
+    array (
+      'b' => 
+      array (
+        0 => 
+        array (
+          's' => 200,
+          'bw' => 
+          array (
+            0 => 'DB_PASSWORD',
+          ),
+          'nf' => 
+          array (
+          ),
+          'pid' => 'route-wpcfg-backup',
+          'sev' => 'high',
+          'sig' => 0,
+          'amb' => 0,
+          't' => 
+          array (
+            0 => 'route-wpcfg-backup',
+          ),
+        ),
+      ),
+    ),
+    'GET /wp-config.bak' => 
+    array (
+      'b' => 
+      array (
+        0 => 
+        array (
+          's' => 200,
+          'bw' => 
+          array (
+            0 => 'DB_PASSWORD',
+          ),
+          'nf' => 
+          array (
+          ),
+          'pid' => 'route-wpcfg-backup',
+          'sev' => 'high',
+          'sig' => 0,
+          'amb' => 0,
+          't' => 
+          array (
+            0 => 'route-wpcfg-backup',
+          ),
+        ),
+      ),
+    ),
     'GET /private/' => 
     array (
       'b' => 
@@ -307559,6 +307773,81 @@ a</title>',
             array (
               0 => 'Basic realm=',
             ),
+          ),
+        ),
+      ),
+    ),
+    'GET /.bash_history' => 
+    array (
+      'b' => 
+      array (
+        0 => 
+        array (
+          's' => 200,
+          'bw' => 
+          array (
+            0 => 'mysql -u',
+          ),
+          'nf' => 
+          array (
+          ),
+          'pid' => 'route-shell-history',
+          'sev' => 'high',
+          'sig' => 0,
+          'amb' => 0,
+          't' => 
+          array (
+            0 => 'route-shell-history',
+          ),
+        ),
+      ),
+    ),
+    'GET /.zsh_history' => 
+    array (
+      'b' => 
+      array (
+        0 => 
+        array (
+          's' => 200,
+          'bw' => 
+          array (
+            0 => 'mysql -u',
+          ),
+          'nf' => 
+          array (
+          ),
+          'pid' => 'route-shell-history',
+          'sev' => 'high',
+          'sig' => 0,
+          'amb' => 0,
+          't' => 
+          array (
+            0 => 'route-shell-history',
+          ),
+        ),
+      ),
+    ),
+    'GET /.sh_history' => 
+    array (
+      'b' => 
+      array (
+        0 => 
+        array (
+          's' => 200,
+          'bw' => 
+          array (
+            0 => 'mysql -u',
+          ),
+          'nf' => 
+          array (
+          ),
+          'pid' => 'route-shell-history',
+          'sev' => 'high',
+          'sig' => 0,
+          'amb' => 0,
+          't' => 
+          array (
+            0 => 'route-shell-history',
           ),
         ),
       ),
@@ -307859,6 +308148,31 @@ a</title>',
           't' => 
           array (
             0 => 'route-typo3conf-canonical-slash',
+          ),
+        ),
+      ),
+    ),
+    'GET /.mysql_history' => 
+    array (
+      'b' => 
+      array (
+        0 => 
+        array (
+          's' => 200,
+          'bw' => 
+          array (
+            0 => 'IDENTIFIED BY',
+          ),
+          'nf' => 
+          array (
+          ),
+          'pid' => 'route-mysql-history',
+          'sev' => 'medium',
+          'sig' => 0,
+          'amb' => 0,
+          't' => 
+          array (
+            0 => 'route-mysql-history',
           ),
         ),
       ),
@@ -308295,6 +308609,31 @@ a</title>',
         ),
       ),
     ),
+    'GET /.google_authenticator' => 
+    array (
+      'b' => 
+      array (
+        0 => 
+        array (
+          's' => 200,
+          'bw' => 
+          array (
+            0 => 'TOTP_AUTH',
+          ),
+          'nf' => 
+          array (
+          ),
+          'pid' => 'route-google-authenticator',
+          'sev' => 'high',
+          'sig' => 0,
+          'amb' => 0,
+          't' => 
+          array (
+            0 => 'route-google-authenticator',
+          ),
+        ),
+      ),
+    ),
     'GET /.claude.json' => 
     array (
       'b' => 
@@ -308595,6 +308934,81 @@ a</title>',
         ),
       ),
     ),
+    'GET /server.key' => 
+    array (
+      'b' => 
+      array (
+        0 => 
+        array (
+          's' => 200,
+          'bw' => 
+          array (
+            0 => 'PRIVATE KEY',
+          ),
+          'nf' => 
+          array (
+          ),
+          'pid' => 'route-tls-server-key',
+          'sev' => 'high',
+          'sig' => 0,
+          'amb' => 0,
+          't' => 
+          array (
+            0 => 'route-tls-server-key',
+          ),
+        ),
+      ),
+    ),
+    'GET /privkey.pem' => 
+    array (
+      'b' => 
+      array (
+        0 => 
+        array (
+          's' => 200,
+          'bw' => 
+          array (
+            0 => 'PRIVATE KEY',
+          ),
+          'nf' => 
+          array (
+          ),
+          'pid' => 'route-tls-server-key',
+          'sev' => 'high',
+          'sig' => 0,
+          'amb' => 0,
+          't' => 
+          array (
+            0 => 'route-tls-server-key',
+          ),
+        ),
+      ),
+    ),
+    'GET /.bowerrc' => 
+    array (
+      'b' => 
+      array (
+        0 => 
+        array (
+          's' => 200,
+          'bw' => 
+          array (
+            0 => '_auth',
+          ),
+          'nf' => 
+          array (
+          ),
+          'pid' => 'route-bowerrc',
+          'sev' => 'medium',
+          'sig' => 0,
+          'amb' => 0,
+          't' => 
+          array (
+            0 => 'route-bowerrc',
+          ),
+        ),
+      ),
+    ),
     'GET /config.php' => 
     array (
       'b' => 
@@ -308716,6 +309130,31 @@ a</title>',
           't' => 
           array (
             0 => 'route-envfile-local',
+          ),
+        ),
+      ),
+    ),
+    'GET /.psql_history' => 
+    array (
+      'b' => 
+      array (
+        0 => 
+        array (
+          's' => 200,
+          'bw' => 
+          array (
+            0 => 'WITH PASSWORD',
+          ),
+          'nf' => 
+          array (
+          ),
+          'pid' => 'route-psql-history',
+          'sev' => 'medium',
+          'sig' => 0,
+          'amb' => 0,
+          't' => 
+          array (
+            0 => 'route-psql-history',
           ),
         ),
       ),

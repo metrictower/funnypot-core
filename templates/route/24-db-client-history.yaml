@@ -1,0 +1,27 @@
+id: route-mysql-history
+priority: 24
+# Exposed ~/.mysql_history — MySQL client history leaking schema hints + a credential-changing
+# statement. Today it falls to the generic CRS-LFI line. The fake password authenticates nowhere.
+new_page:
+  method: GET
+  paths: ['/.mysql_history']
+  sig: 0
+  status: 200
+  severity: medium
+  tags: [exposure, disclosure, db-history, mysql, credentials]
+  name: 'Exposed MySQL client history'
+  body_words: ['IDENTIFIED BY']
+response:
+  headers:
+    Content-Type: "text/plain; charset=utf-8"
+  body: |
+    SHOW DATABASES;
+    USE {{persona.db.name}};
+    SHOW TABLES;
+    SELECT id, email, role FROM users ORDER BY id DESC LIMIT 10;
+    ALTER USER '{{persona.db.user}}'@'%' IDENTIFIED BY '{{fake.mysqlhistpw:hex:20}}';
+    FLUSH PRIVILEGES;
+    quit
+expect:
+  - 'SHOW DATABASES;'
+  - 'IDENTIFIED BY '

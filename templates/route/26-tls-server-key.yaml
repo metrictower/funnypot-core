@@ -1,0 +1,44 @@
+id: route-tls-server-key
+priority: 26
+# Exposed TLS private key at the classic /server.key + /privkey.pem paths — a genuine plain-404 gap
+# today. Full-length PEM so it reads as a real exported key; every line is a per-attacker decoy and
+# the key authenticates nowhere (same inert posture as route-ssh-private-key). Priority 26 < 100 so
+# this route wins first-match over the generic PRIVATE-KEY body enrich (route-ssh-private-key), and
+# its own believable body serves.
+new_page:
+  method: GET
+  paths: ['/server.key', '/privkey.pem']
+  sig: 0
+  status: 200
+  severity: high
+  tags: [exposure, disclosure, tls, private-key, credentials]
+  name: 'Exposed TLS private key'
+  body_words: ['PRIVATE KEY']
+response:
+  headers:
+    # A real host serving an unknown .key/.pem extension falls to the default type, so octet-stream
+    # (nginx/Apache default) reads more real than a knowing application/x-pem-file.
+    Content-Type: "application/octet-stream"
+  body: |
+    -----BEGIN PRIVATE KEY-----
+    {{fake.tlspem01:b64:64}}
+    {{fake.tlspem02:b64:64}}
+    {{fake.tlspem03:b64:64}}
+    {{fake.tlspem04:b64:64}}
+    {{fake.tlspem05:b64:64}}
+    {{fake.tlspem06:b64:64}}
+    {{fake.tlspem07:b64:64}}
+    {{fake.tlspem08:b64:64}}
+    {{fake.tlspem09:b64:64}}
+    {{fake.tlspem10:b64:64}}
+    {{fake.tlspem11:b64:64}}
+    {{fake.tlspem12:b64:64}}
+    {{fake.tlspem13:b64:64}}
+    {{fake.tlspem14:b64:64}}
+    {{fake.tlspem15:b64:64}}
+    {{fake.tlspem16:b64:64}}
+    {{fake.tlspem17:b64:24}}
+    -----END PRIVATE KEY-----
+expect:
+  - '-----BEGIN PRIVATE KEY-----'
+  - '-----END PRIVATE KEY-----'

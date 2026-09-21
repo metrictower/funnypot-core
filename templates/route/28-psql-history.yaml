@@ -1,0 +1,28 @@
+id: route-psql-history
+priority: 28
+# Exposed ~/.psql_history — PostgreSQL client history. Distinct from the MySQL one: psql meta-commands
+# (\l \c \dt \du) and PostgreSQL DDL (ALTER USER ... WITH PASSWORD), so the dialect is coherent for a
+# Postgres deploy. Today it falls to the generic CRS-LFI line. The fake password authenticates nowhere.
+new_page:
+  method: GET
+  paths: ['/.psql_history']
+  sig: 0
+  status: 200
+  severity: medium
+  tags: [exposure, disclosure, db-history, postgres, credentials]
+  name: 'Exposed PostgreSQL client history'
+  body_words: ['WITH PASSWORD']
+response:
+  headers:
+    Content-Type: "text/plain; charset=utf-8"
+  body: |
+    \l
+    \c {{persona.db.name}}
+    \dt
+    SELECT id, email, role FROM users ORDER BY id DESC LIMIT 10;
+    ALTER USER {{persona.db.user}} WITH PASSWORD '{{fake.psqlhistpw:hex:20}}';
+    \du
+    \q
+expect:
+  - 'WITH PASSWORD '
+  - '\dt'

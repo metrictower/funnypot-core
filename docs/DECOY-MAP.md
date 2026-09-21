@@ -4,99 +4,105 @@
 > The manifest is the sole inventory authority; friendly names, categories and behavior
 > prose live in the README taxonomy, not here.
 
-Manifest schema 1. Authored records: 353 across 82 families. Corpus: 2611 families / 5134 route keys (summarized, not enumerated). Enrichers: 226.
+Manifest schema 1. Authored records: 367 across 87 families. Corpus: 2611 families / 5134 route keys (summarized, not enumerated). Enrichers: 233.
 
 ```mermaid
 mindmap
   root((funnypot decoys))
-    fam0001["ai-config: 12"]
-    fam0002["anthropic: 1"]
-    fam0003["api: 112"]
-    fam0004["basic-auth: 1"]
-    fam0005["behavioral: 1"]
-    fam0006["citrix: 1"]
-    fam0007["cloud: 4"]
-    fam0008["cloud-metadata: 3"]
-    fam0009["cmdi: 1"]
-    fam0010["cms: 4"]
-    fam0011["config-disclosure: 12"]
-    fam0012["confluence: 1"]
-    fam0013["cpanel: 2"]
-    fam0014["credentials: 3"]
-    fam0015["crlf: 1"]
-    fam0016["database: 4"]
-    fam0017["dlink: 1"]
-    fam0018["dotnet: 1"]
-    fam0019["error-oracle: 1"]
-    fam0020["etcd: 2"]
-    fam0021["f5: 1"]
-    fam0022["favicon: 1"]
-    fam0023["fiberhome: 1"]
-    fam0024["forbidden: 3"]
-    fam0025["fortinet: 1"]
-    fam0026["geoserver: 1"]
-    fam0027["glastopf: 1"]
-    fam0028["glpi: 2"]
-    fam0029["gpon: 1"]
-    fam0030["grafana: 5"]
-    fam0031["hikvision: 1"]
-    fam0032["ivanti: 1"]
-    fam0033["jenkins: 3"]
-    fam0034["kibana: 3"]
-    fam0035["laravel: 1"]
-    fam0036["lfi: 5"]
-    fam0037["log-disclosure: 20"]
-    fam0038["netgear: 1"]
-    fam0039["nextjs: 2"]
-    fam0040["node-red: 1"]
-    fam0041["ollama: 9"]
-    fam0042["open: 1"]
-    fam0043["openai: 1"]
-    fam0044["owncloud: 1"]
-    fam0045["pgadmin: 2"]
-    fam0046["php: 1"]
-    fam0047["php-cgi: 2"]
-    fam0048["phpmyadmin: 14"]
-    fam0049["phppgadmin: 2"]
-    fam0050["phpunit: 1"]
-    fam0051["pii: 3"]
-    fam0052["proc: 1"]
-    fam0053["rce: 1"]
-    fam0054["recon: 4"]
-    fam0055["reflection-baseline: 2"]
-    fam0056["sap: 1"]
-    fam0057["shellshock: 1"]
-    fam0058["smb: 1"]
-    fam0059["spring-boot: 1"]
-    fam0060["springboot: 12"]
-    fam0061["sqli: 2"]
-    fam0062["ssh: 1"]
-    fam0063["ssti: 2"]
-    fam0064["struts: 1"]
-    fam0065["terraform: 3"]
-    fam0066["thinkphp: 1"]
-    fam0067["tomcat: 2"]
-    fam0068["twig: 1"]
-    fam0069["v1: 1"]
-    fam0070["vcs: 10"]
-    fam0071["vite: 1"]
-    fam0072["webmin: 1"]
-    fam0073["webshell: 1"]
-    fam0074["whm: 1"]
-    fam0075["windows: 2"]
-    fam0076["woocommerce: 8"]
-    fam0077["wordpress: 15"]
-    fam0078["wp-plugin-enum: 10"]
-    fam0079["wp-theme-enum: 2"]
-    fam0080["xdebug: 1"]
-    fam0081["xss: 2"]
-    fam0082["xxe: 1"]
+    fam0001["2fa: 1"]
+    fam0002["ai-config: 12"]
+    fam0003["anthropic: 1"]
+    fam0004["api: 112"]
+    fam0005["basic-auth: 1"]
+    fam0006["behavioral: 1"]
+    fam0007["citrix: 1"]
+    fam0008["cloud: 4"]
+    fam0009["cloud-metadata: 3"]
+    fam0010["cmdi: 1"]
+    fam0011["cms: 4"]
+    fam0012["config-disclosure: 12"]
+    fam0013["confluence: 1"]
+    fam0014["cpanel: 2"]
+    fam0015["credentials: 3"]
+    fam0016["crlf: 1"]
+    fam0017["database: 4"]
+    fam0018["db-history: 2"]
+    fam0019["dlink: 1"]
+    fam0020["dotnet: 1"]
+    fam0021["error-oracle: 1"]
+    fam0022["etcd: 2"]
+    fam0023["f5: 1"]
+    fam0024["favicon: 1"]
+    fam0025["fiberhome: 1"]
+    fam0026["forbidden: 3"]
+    fam0027["fortinet: 1"]
+    fam0028["geoserver: 1"]
+    fam0029["glastopf: 1"]
+    fam0030["glpi: 2"]
+    fam0031["gpon: 1"]
+    fam0032["grafana: 5"]
+    fam0033["hikvision: 1"]
+    fam0034["ivanti: 1"]
+    fam0035["jenkins: 3"]
+    fam0036["kibana: 3"]
+    fam0037["laravel: 1"]
+    fam0038["lfi: 5"]
+    fam0039["log-disclosure: 20"]
+    fam0040["netgear: 1"]
+    fam0041["nextjs: 2"]
+    fam0042["node-red: 1"]
+    fam0043["ollama: 9"]
+    fam0044["open: 1"]
+    fam0045["openai: 1"]
+    fam0046["owncloud: 1"]
+    fam0047["pgadmin: 2"]
+    fam0048["php: 1"]
+    fam0049["php-cgi: 2"]
+    fam0050["phpmyadmin: 14"]
+    fam0051["phppgadmin: 2"]
+    fam0052["phpunit: 1"]
+    fam0053["pii: 3"]
+    fam0054["proc: 1"]
+    fam0055["rce: 1"]
+    fam0056["recon: 4"]
+    fam0057["reflection-baseline: 2"]
+    fam0058["registry: 1"]
+    fam0059["sap: 1"]
+    fam0060["shell-history: 3"]
+    fam0061["shellshock: 1"]
+    fam0062["smb: 1"]
+    fam0063["spring-boot: 1"]
+    fam0064["springboot: 12"]
+    fam0065["sqli: 2"]
+    fam0066["ssh: 1"]
+    fam0067["ssti: 2"]
+    fam0068["struts: 1"]
+    fam0069["terraform: 3"]
+    fam0070["thinkphp: 1"]
+    fam0071["tls: 2"]
+    fam0072["tomcat: 2"]
+    fam0073["twig: 1"]
+    fam0074["v1: 1"]
+    fam0075["vcs: 10"]
+    fam0076["vite: 1"]
+    fam0077["webmin: 1"]
+    fam0078["webshell: 1"]
+    fam0079["whm: 1"]
+    fam0080["windows: 2"]
+    fam0081["woocommerce: 8"]
+    fam0082["wordpress: 20"]
+    fam0083["wp-plugin-enum: 10"]
+    fam0084["wp-theme-enum: 2"]
+    fam0085["xdebug: 1"]
+    fam0086["xss: 2"]
+    fam0087["xxe: 1"]
     corpus["corpus: 2611 families / 5134 keys"]
-    enrichers["content enrichers #40;not route claimers#41;: 226"]
+    enrichers["content enrichers #40;not route claimers#41;: 233"]
 ```
 
 | Family | Authored records | Tier mix | Owned routes | Outbound links | Max severity | Integrity |
 |---|---|---|---|---|---|---|
+| 2fa | 1 | new-page:1 | 1 | 0 | high | &mdash; |
 | ai-config | 12 | new-page:12 | 12 | 0 | high | &mdash; |
 | anthropic | 1 | attack-ai:1 | 1 | 0 | medium | &mdash; |
 | api | 112 | new-page:112 | 112 | 0 | info | info |
@@ -113,6 +119,7 @@ mindmap
 | credentials | 3 | new-page:3 | 3 | 0 | high | &mdash; |
 | crlf | 1 | attack:1 | 0 | 0 | low | &mdash; |
 | database | 4 | new-page:4 | 4 | 0 | high | &mdash; |
+| db-history | 2 | new-page:2 | 2 | 0 | medium | &mdash; |
 | dlink | 1 | attack:1 | 1 | 0 | high | &mdash; |
 | dotnet | 1 | new-page:1 | 1 | 0 | medium | &mdash; |
 | error-oracle | 1 | attack:1 | 0 | 0 | medium | &mdash; |
@@ -152,7 +159,9 @@ mindmap
 | rce | 1 | attack-crs:1 | 0 | 0 | critical | &mdash; |
 | recon | 4 | attack:1 new-page:3 | 4 | 0 | medium | &mdash; |
 | reflection-baseline | 2 | attack:2 | 2 | 2 | medium | accepted |
+| registry | 1 | new-page:1 | 1 | 0 | medium | &mdash; |
 | sap | 1 | new-page:1 | 1 | 0 | medium | &mdash; |
+| shell-history | 3 | new-page:3 | 3 | 0 | high | &mdash; |
 | shellshock | 1 | attack:1 | 0 | 0 | critical | &mdash; |
 | smb | 1 | attack:1 | 0 | 0 | high | &mdash; |
 | spring-boot | 1 | attack:1 | 0 | 0 | high | &mdash; |
@@ -163,6 +172,7 @@ mindmap
 | struts | 1 | attack:1 | 0 | 0 | critical | &mdash; |
 | terraform | 3 | new-page:3 | 3 | 0 | high | &mdash; |
 | thinkphp | 1 | attack:1 | 0 | 0 | critical | &mdash; |
+| tls | 2 | new-page:2 | 2 | 0 | high | &mdash; |
 | tomcat | 2 | new-page:2 | 2 | 0 | medium | &mdash; |
 | twig | 1 | attack:1 | 0 | 0 | high | &mdash; |
 | v1 | 1 | attack-ai:1 | 1 | 0 | medium | info |
@@ -173,13 +183,13 @@ mindmap
 | whm | 1 | new-page:1 | 1 | 0 | low | &mdash; |
 | windows | 2 | attack:2 | 0 | 0 | critical | &mdash; |
 | woocommerce | 8 | attack:8 | 6 | 1 | critical | warn, info |
-| wordpress | 15 | attack:15 | 18 | 4 | critical | accepted, info |
+| wordpress | 20 | attack:15 new-page:5 | 23 | 4 | critical | accepted, info |
 | wp-plugin-enum | 10 | new-page:10 | 10 | 0 | medium | info |
 | wp-theme-enum | 2 | new-page:2 | 2 | 0 | medium | &mdash; |
 | xdebug | 1 | attack:1 | 0 | 0 | critical | &mdash; |
 | xss | 2 | attack:1 attack-crs:1 | 0 | 0 | high | &mdash; |
 | xxe | 1 | attack:1 | 0 | 0 | high | &mdash; |
 | _corpus (nuclei-inversion)_ | 2611 families / 5134 keys | &mdash; | &mdash; | &mdash; | &mdash; | &mdash; |
-| _content enrichers (not route claimers)_ | 226 | &mdash; | &mdash; | &mdash; | &mdash; | &mdash; |
+| _content enrichers (not route claimers)_ | 233 | &mdash; | &mdash; | &mdash; | &mdash; | &mdash; |
 
 Per-family detail: `bin/funnypot map --family=NAME --format=md` (or `--format=mermaid` for the raw flowchart).
