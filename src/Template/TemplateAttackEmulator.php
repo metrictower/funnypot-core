@@ -50,6 +50,9 @@ final class TemplateAttackEmulator
     /** @var array<int,array<string,mixed>> compiled attack rules */
     private $rules;
 
+    /** @var array<int,array<string,mixed>>|null cached payload-eligible rule subset (FP-0086) */
+    private $payloadEligible = null;
+
     /**
      * Compiled param-route buckets: `['schema'=>1,'buckets'=>['<seg>'=>[<entry...>]]]`. A
      * parameterized path can't be keyed in the exact store, so it dispatches here — between the
@@ -265,6 +268,101 @@ final class TemplateAttackEmulator
         }
 
         return null;
+    }
+
+    /**
+     * FP-0086 payload-only scan: match the PAYLOAD-eligible rule subset against a PATH-STRIPPED view
+     * of the request (query + body only), for the real-route case where the M2 no-shadow guard
+     * suppresses the ordinary path/corpus match to avoid shadowing a live endpoint. Stripping the
+     * path can only NARROW a match, so it introduces no path-driven false positive; excluding
+     * path/method/header-conditioned rules keeps the scan to genuine query/body payloads. Detection
+     * only — the caller decides whether anything is served.
+     *
+     * @return array{rule:array<string,mixed>,captures:array<int|string,string>}|null
+     */
+    public function matchPayload(RequestContext $r): ?array
+    {
+        if (!BoundedInspection::targetAccepted($r)) {
+            return null;
+        }
+        // No query or body ⇒ no payload to inspect; the common real-route request pays ~nothing.
+        if ($r->query === '' && (string) ($r->rawBody ?? '') === '') {
+            return null;
+        }
+        $stripped = $this->pathStripped($r);
+        foreach ($this->payloadEligibleRules() as $rule) {
+            if ($this->disabled !== [] && isset($this->disabled[(string) ($rule['id'] ?? '')])) {
+                continue;
+            }
+            if (isset($rule['lit']) && $this->literalAbsent($stripped, $rule)) {
+                continue;
+            }
+            $captures = $this->match($stripped, $rule);
+            if ($captures !== null) {
+                return ['rule' => $rule, 'captures' => $captures];
+            }
+        }
+
+        return null;
+    }
+
+    /** A request clone with the path removed, so the `request`/`path` surfaces carry only query+body. */
+    private function pathStripped(RequestContext $r): RequestContext
+    {
+        return new RequestContext(
+            $r->method,
+            '',
+            $r->query,
+            $r->headers,
+            $r->rawBody,
+            $r->host,
+            $r->scheme,
+            $r->httpVersion,
+            $r->targetAdmitted
+        );
+    }
+
+    /**
+     * The payload-eligible rule subset (cached): rules whose top-level match carries NO path/method/
+     * header condition, so they classify on query/body payload content only. Path/method-pinned rules
+     * belong to the path/corpus tier; header-borne rules are deferred to a later phase (FP-0086 P1).
+     * The rule set is immutable after construction, so the subset is computed once.
+     *
+     * @return array<int,array<string,mixed>>
+     */
+    private function payloadEligibleRules(): array
+    {
+        if ($this->payloadEligible !== null) {
+            return $this->payloadEligible;
+        }
+        $eligible = [];
+        foreach ($this->rules as $rule) {
+            if (self::ruleIsPayloadEligible($rule)) {
+                $eligible[] = $rule;
+            }
+        }
+        $this->payloadEligible = $eligible;
+
+        return $eligible;
+    }
+
+    /** @param array<string,mixed> $rule */
+    private static function ruleIsPayloadEligible(array $rule): bool
+    {
+        $hasPayloadSurface = false;
+        foreach ((array) ($rule['match'] ?? []) as $cond) {
+            $in = (string) ($cond['in'] ?? 'request');
+            if ($in === 'path' || $in === 'method' || strncmp($in, 'header', 6) === 0) {
+                return false;
+            }
+            if ($in === 'request' || $in === 'query' || $in === 'body') {
+                $hasPayloadSurface = true;
+            }
+        }
+
+        // Require at least one query/body/request condition: a rule with no payload surface — or an
+        // empty catch-all match — must never fire the real-route payload scan (defence-in-depth).
+        return $hasPayloadSurface;
     }
 
     /**

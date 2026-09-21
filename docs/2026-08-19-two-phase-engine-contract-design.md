@@ -94,9 +94,14 @@ Verdict {
 
 - **`classification`** maps the match:
   - `clean` — no template routes and no attack payload; **or** a sig=1 root/homepage hit with no probe
-    signature (an ordinary visitor to `/`), **or** the path is a real route per `SiteProfile` (see below).
+    signature (an ordinary visitor to `/`), **or** the path is a real route per `SiteProfile` (see below)
+    — the last case UNLESS `Config->payloadInspection` is on and the query/body carries a hostile payload
+    (FP-0086), which classifies `attack-class` instead.
   - `scanner-probe` — a routed nuclei template matched (a known scanner signature hit a known bait path).
-  - `attack-class` — no route, but the attack matcher recognized an injection payload (LFI/SQLi/…).
+  - `attack-class` — the attack matcher recognized an injection payload (LFI/SQLi/…): on a route MISS
+    (default), or — with `Config->payloadInspection` (FP-0086) — on a hostile query/body payload sent to a
+    real route the host declares. Detection only: it never changes served bytes (serving stays gated on
+    `attackEmulation`).
   - `suspicious` — cheap heuristics fired (cumulative anomaly from the §2.4 request-shape bot signals)
     without a specific signature. **Reserved slot**: v1 computes the signals and accrues `anomaly`, but the
     *classification* stays `clean` here until the policy owns the composite decision (S3) — the enum value
@@ -117,6 +122,9 @@ Verdict {
   is a genuine route on the host app — so a deceptive-WAF deployment (core running BEFORE the app) never
   mis-classifies a live `/wp-login.php` as a scanner bait (M2: "a fake `/wp-login.php` never collides with
   a real one"). Position-blind: the oracle is **data the caller supplies**, not core reaching into a router.
+  FP-0086 refines this: the oracle still suppresses the PATH/corpus match on a real route, but with
+  `Config->payloadInspection` a path-stripped payload scan runs on that route, so a hostile query/body
+  payload to a genuine endpoint reaches `attack-class` (detection only — no served bytes).
 
 `detect()` is retained as a thin back-compat shim: `detect($r)` = `classify($r, SiteProfile::empty())
 ->detection`. No caller breaks.

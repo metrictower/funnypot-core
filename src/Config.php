@@ -90,6 +90,14 @@ final class Config
     /** @var bool interactive attack-class emulation on a route miss */
     public $attackEmulation;
 
+    /**
+     * @var bool FP-0086: inspect the query/body PAYLOAD on a corpus-colliding DECLARED route (which
+     * the M2 no-shadow guard otherwise classifies CLEAN), so a hostile payload to a route the host
+     * genuinely serves reaches ATTACK_CLASS. Detection-only: it never changes served bytes (serving
+     * stays gated on attackEmulation). Default off ⇒ every existing deployment is byte/verdict-identical.
+     */
+    public $payloadInspection;
+
     /** @var Closure|null fn(RequestContext):bool — own scanners; true ⇒ never serve fakes */
     public $trustedBypass;
 
@@ -258,7 +266,8 @@ final class Config
         array $reflectClasses = [],
         ?Closure $reflectorAuthorizer = null,
         bool $paramReactivity = false,
-        bool $runtimeFingerprintScan = true
+        bool $runtimeFingerprintScan = true,
+        bool $payloadInspection = false
     ) {
         $this->mode = $mode;
         $this->gate = $gate;
@@ -291,6 +300,7 @@ final class Config
         $this->reflectorAuthorizer = $reflectorAuthorizer;
         $this->paramReactivity = $paramReactivity;
         $this->runtimeFingerprintScan = $runtimeFingerprintScan;
+        $this->payloadInspection = $payloadInspection;
     }
 
     public function respondEnabled(): bool
