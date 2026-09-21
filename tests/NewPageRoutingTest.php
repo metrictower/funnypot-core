@@ -411,10 +411,10 @@ final class NewPageRoutingTest extends TestCase
             'bash_history'            => ['/.bash_history', 200, 'mysql -u ', 'text/plain; charset=utf-8'],
             'zsh_history'             => ['/.zsh_history', 200, 'AWS_SECRET_ACCESS_KEY', 'text/plain; charset=utf-8'],
             'mysql_history'           => ['/.mysql_history', 200, 'IDENTIFIED BY ', 'text/plain; charset=utf-8'],
-            'psql_history'            => ['/.psql_history', 200, 'SELECT ', 'text/plain; charset=utf-8'],
+            'psql_history'            => ['/.psql_history', 200, 'WITH PASSWORD ', 'text/plain; charset=utf-8'],
             'google_authenticator'    => ['/.google_authenticator', 200, 'TOTP_AUTH', 'text/plain; charset=utf-8'],
-            'server.key'              => ['/server.key', 200, 'BEGIN PRIVATE KEY', 'application/x-pem-file'],
-            'privkey.pem'             => ['/privkey.pem', 200, 'BEGIN PRIVATE KEY', 'application/x-pem-file'],
+            'server.key'              => ['/server.key', 200, 'BEGIN PRIVATE KEY', 'application/octet-stream'],
+            'privkey.pem'             => ['/privkey.pem', 200, 'BEGIN PRIVATE KEY', 'application/octet-stream'],
             'bowerrc'                 => ['/.bowerrc', 200, '_auth', 'application/json'],
         ];
     }

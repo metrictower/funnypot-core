@@ -13,10 +13,10 @@ return array (
     'license' => 'MIT (c) 2025 ProjectDiscovery, Inc.',
     'upstream_tag' => '2ec914123864439c3618e7e9ae72d32d0eb56df7',
     'upstream_sha' => '2ec914123864439c3618e7e9ae72d32d0eb56df7',
-    'source_tree' => '5505115d279c08781bf02026649da290ba8d535ad9f0910df97db11964eaae72',
+    'source_tree' => 'f510461e5e2b712811423805f350d9863d37d13dbc307ab9d47ce3f529572eaa',
     'templates_seen' => 11196,
     'templates_in' => 6363,
-    'templates_indexed' => 6496,
+    'templates_indexed' => 6497,
     'route_keys' => 5367,
     'multi_bundle_keys' => 277,
     'largest_bundle_count' => 1324,
@@ -84511,7 +84511,7 @@ return array (
       ),
       'name' => 'Canonical-slash redirect for /typo3conf',
     ),
-    'route-db-client-history' => 
+    'route-mysql-history' => 
     array (
       'sev' => 'medium',
       'tags' => 
@@ -84519,9 +84519,10 @@ return array (
         0 => 'exposure',
         1 => 'disclosure',
         2 => 'db-history',
-        3 => 'credentials',
+        3 => 'mysql',
+        4 => 'credentials',
       ),
-      'name' => 'Exposed database client history',
+      'name' => 'Exposed MySQL client history',
     ),
     'route-phpmyadmin' => 
     array (
@@ -84837,6 +84838,19 @@ return array (
         2 => 'secrets',
       ),
       'name' => 'Exposed environment file (.env.local)',
+    ),
+    'route-psql-history' => 
+    array (
+      'sev' => 'medium',
+      'tags' => 
+      array (
+        0 => 'exposure',
+        1 => 'disclosure',
+        2 => 'db-history',
+        3 => 'postgres',
+        4 => 'credentials',
+      ),
+      'name' => 'Exposed PostgreSQL client history',
     ),
     'route-envfile-dev' => 
     array (
@@ -308147,43 +308161,18 @@ a</title>',
           's' => 200,
           'bw' => 
           array (
-            0 => 'SELECT',
+            0 => 'IDENTIFIED BY',
           ),
           'nf' => 
           array (
           ),
-          'pid' => 'route-db-client-history',
+          'pid' => 'route-mysql-history',
           'sev' => 'medium',
           'sig' => 0,
           'amb' => 0,
           't' => 
           array (
-            0 => 'route-db-client-history',
-          ),
-        ),
-      ),
-    ),
-    'GET /.psql_history' => 
-    array (
-      'b' => 
-      array (
-        0 => 
-        array (
-          's' => 200,
-          'bw' => 
-          array (
-            0 => 'SELECT',
-          ),
-          'nf' => 
-          array (
-          ),
-          'pid' => 'route-db-client-history',
-          'sev' => 'medium',
-          'sig' => 0,
-          'amb' => 0,
-          't' => 
-          array (
-            0 => 'route-db-client-history',
+            0 => 'route-mysql-history',
           ),
         ),
       ),
@@ -309141,6 +309130,31 @@ a</title>',
           't' => 
           array (
             0 => 'route-envfile-local',
+          ),
+        ),
+      ),
+    ),
+    'GET /.psql_history' => 
+    array (
+      'b' => 
+      array (
+        0 => 
+        array (
+          's' => 200,
+          'bw' => 
+          array (
+            0 => 'WITH PASSWORD',
+          ),
+          'nf' => 
+          array (
+          ),
+          'pid' => 'route-psql-history',
+          'sev' => 'medium',
+          'sig' => 0,
+          'amb' => 0,
+          't' => 
+          array (
+            0 => 'route-psql-history',
           ),
         ),
       ),
