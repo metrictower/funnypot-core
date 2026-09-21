@@ -149,7 +149,11 @@ final class Honeypot implements Engine
         // the per-request membership test in applyIgnore() is O(1).
         $this->ignoreTemplates = array_flip($this->config->ignoreTemplates);
 
-        $this->attackEmulator = $this->config->attackEmulation
+        // Built when EITHER serving-side attack emulation OR detection-side payload inspection
+        // (FP-0086) is on. payloadInspection alone builds the emulator for CLASSIFICATION only —
+        // buildAttackFake stays gated on attackEmulation, so a payloadInspection-only build serves
+        // nothing (detect-mode changes no bytes).
+        $this->attackEmulator = ($this->config->attackEmulation || $this->config->payloadInspection)
             ? TemplateAttackEmulator::fromPackage([], $personaSeed, $this->config->decoySessionKey, $this->config->volatileProof, $this->config->promptInjectionSeeding)->disable($this->config->exclude)
             : null;
     }
@@ -300,7 +304,33 @@ final class Honeypot implements Engine
 
             // An entry with no servable bundles, or a path the host declares as a genuine route,
             // is not a probe — never shadow a live endpoint (M2). Mirrors respond()'s early null.
-            if ($bundles === [] || $profile->hasRoute($r->method, PathNormalizer::normalize($r->path))) {
+            $isRealRoute = $profile->hasRoute($r->method, PathNormalizer::normalize($r->path));
+            if ($bundles === [] || $isRealRoute) {
+                // FP-0086: the M2 guard suppresses the PATH/corpus match on a declared route so a
+                // live endpoint is never shadowed — but a hostile query/body PAYLOAD to that route is
+                // still an attack. When opted in (payloadInspection), inspect the PATH-STRIPPED
+                // payload; a match classifies ATTACK_CLASS. Path-stripping + the payload-eligible
+                // subset add no path-driven false positive, and serving stays gated on attackEmulation
+                // (buildAttackFake), so a payloadInspection-only build reaches the verdict but serves
+                // nothing.
+                if ($isRealRoute && $this->config->payloadInspection && $this->attackEmulator !== null) {
+                    $pm = $this->attackEmulator->matchPayload($r);
+                    if ($pm !== null && $this->personaGateAllows($pm['rule'], $r)) {
+                        $rule = $pm['rule'];
+                        $detection = TemplateAttackEmulator::detectionForRule($rule);
+                        $handle = FakeHandle::attack((string) ($rule['id'] ?? 'attack'), $pm['captures']);
+
+                        return new Verdict(
+                            Verdict::ATTACK_CLASS,
+                            $detection,
+                            $detection->highestSeverity,
+                            $anomaly,
+                            $signals,
+                            $handle
+                        );
+                    }
+                }
+
                 return new Verdict(Verdict::CLEAN, Detection::none(), '', $anomaly, $signals, null);
             }
 
@@ -308,7 +338,7 @@ final class Honeypot implements Engine
             // override the static exact-store stub. Sits AFTER the M2 guard (so a live host route is
             // never shadowed) and BEFORE the route verdict; on a decline it falls through to the
             // static bundle below — zero coverage loss, no new throw path.
-            if ($this->attackEmulator !== null && $this->attackEmulator->ownsPath($r->path)) {
+            if ($this->attackEmulator !== null && $this->config->attackEmulation && $this->attackEmulator->ownsPath($r->path)) {
                 $ov = $this->attackEmulator->matchRule($r);
                 // A persona-gated rule (e.g. the Next.js RSC responder) fires ONLY where the served
                 // `/` persona is the gate's pid — personaGateAllows() reproduces the serve-path pick
@@ -384,7 +414,10 @@ final class Honeypot implements Engine
             }
         }
 
-        if ($this->attackEmulator !== null) {
+        // Gated on attackEmulation (not just emulator!=null): under payloadInspection alone the
+        // emulator is built for the real-route payload scan above, but the serving-side param + linear
+        // attack tiers stay off, so a payloadInspection-only build is byte-identical to today here.
+        if ($this->attackEmulator !== null && $this->config->attackEmulation) {
             // Param-route tier: a parameterized path the exact store can't key, dispatched by
             // prefix bucket. It sits BETWEEN the exact-store miss and the linear attack scan, and
             // a hit returns here — so a matched param route skips the attack gauntlet entirely. The
@@ -1645,7 +1678,11 @@ final class Honeypot implements Engine
      */
     private function buildAttackFake(FakeHandle $handle, string $seed, ?RequestContext $r = null): array
     {
-        if ($this->attackEmulator === null) {
+        // Serving is gated on attackEmulation, not merely a built emulator: FP-0086's payloadInspection
+        // builds the emulator for CLASSIFICATION only, so an attack handle from a payloadInspection-only
+        // build must serve NOTHING (detect mode changes no bytes). With attackEmulation on this is the
+        // pre-FP-0086 condition (emulator is non-null iff attackEmulation), so serving is unchanged.
+        if ($this->attackEmulator === null || !$this->config->attackEmulation) {
             return ['r' => null, 'reason' => Outcome::NO_CANDIDATE];
         }
 

@@ -139,6 +139,29 @@ if ($response !== null) {
 // nothing matched: serve your normal 404
 ```
 
+### Inspect payloads on your own routes (`payloadInspection`)
+
+By default the engine never shadows a route your host genuinely serves: a request to a real endpoint
+is classified `clean`, even if its query or body carries an injection payload. Set
+`payloadInspection: true` to also scan the **query/body payload** of requests to those real routes, so
+a hostile payload aimed at an endpoint you serve reaches `attack-class`:
+
+```php
+$funnypot = Honeypot::default(new Config(
+    mode: 'detect',
+    payloadInspection: true,   // classify hostile query/body payloads on your real routes
+));
+$verdict = $funnypot->classify($request, $siteProfile);
+// $verdict->classification === 'attack-class' for e.g. /account?next=<sqli> on a served /account
+// $verdict->decodePath lists any decoders that exposed the payload
+```
+
+It is **detection-only**: the payload scan never changes served bytes (serving stays gated on
+`attackEmulation`), and only the path is stripped from the match surface, so it adds **no**
+path-driven false positive. It does, like any WAF, reintroduce ordinary payload-content false
+positives on real routes — a benign `?q=` that literally contains an SQLi/XSS token can read as an
+attack — which is why it is opt-in and off by default.
+
 ### Per-deploy persona seed (avoid a fleet-constant identity)
 
 Every fabricated identity — the company name, domain, admin credentials, fake secrets, visual skin — is
