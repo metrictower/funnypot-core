@@ -17,7 +17,7 @@ response:
   headers:
     Content-Type: "text/plain; charset=utf-8"
   body: |
-    {{fake.gasecret:hexupper:32}}
+    {{fake.gasecret:b32:32}}
     " RATE_LIMIT 3 30
     " WINDOW_SIZE 17
     " DISALLOW_REUSE

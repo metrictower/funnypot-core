@@ -181,6 +181,21 @@ final class TemplateEngineTest extends TestCase
         self::assertNotSame($a, $c);    // varies by seed
     }
 
+    public function test_renderer_b32_is_valid_base32_sized_and_deterministic(): void
+    {
+        // FP-0511: base32 (RFC 4648 A-Z2-7) for the .google_authenticator TOTP secret shape.
+        $rr = new DirectiveRenderer();
+        $a = $rr->render('{{fake.gasecret:b32:32}}', [], 42);
+        $b = $rr->render('{{fake.gasecret:b32:32}}', [], 42);
+        self::assertSame(32, strlen($a));
+        self::assertSame(1, preg_match('/^[A-Z2-7]{32}$/', $a), 'must be valid RFC-4648 base32');
+        self::assertSame($a, $b);                                              // deterministic per seed
+        self::assertNotSame($a, $rr->render('{{fake.gasecret:b32:32}}', [], 7)); // varies by seed
+        // Arbitrary length is honoured exactly (not just 32).
+        self::assertSame(16, strlen($rr->render('{{fake.k:b32:16}}', [], 3)));
+        self::assertSame(80, strlen($rr->render('{{fake.k:b32:80}}', [], 3))); // > one digest, chained
+    }
+
     public function test_renderer_dec_is_uniform_nonzero_and_deterministic(): void
     {
         $rr = new DirectiveRenderer();

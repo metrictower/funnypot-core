@@ -435,6 +435,32 @@ final class DirectiveRenderer
 
                 return substr(rtrim(strtr(base64_encode($material), '+/', '-_'), '='), 0, $len);
             }
+            if ($enc === 'b32') {
+                // RFC 4648 base32 (alphabet A-Z2-7), unpadded — the shape of a real Google Authenticator
+                // TOTP secret. Emit exactly $len chars, 5 bits at a time from the digest byte stream,
+                // chaining raw sha256 to extend past 32 bytes (like the b64url/dec encoders).
+                $alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567';
+                $material = (string) hex2bin($digest);
+                $out = '';
+                $buffer = 0;
+                $bits = 0;
+                $pos = 0;
+                while (strlen($out) < $len) {
+                    if ($pos >= strlen($material)) {
+                        $material = hash('sha256', $material, true);
+                        $pos = 0;
+                    }
+                    $buffer = ($buffer << 8) | ord($material[$pos]);
+                    $pos++;
+                    $bits += 8;
+                    while ($bits >= 5 && strlen($out) < $len) {
+                        $bits -= 5;
+                        $out .= $alphabet[($buffer >> $bits) & 0x1F];
+                    }
+                }
+
+                return $out;
+            }
             if ($enc === 'dec') {
                 // All-digit field (e.g. a Firebase sender id / GCP project number). Draw each digit
                 // uniformly by rejection-sampling digest bytes: a byte >= 250 is discarded so the
