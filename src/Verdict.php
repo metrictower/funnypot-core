@@ -49,6 +49,14 @@ final class Verdict
     /** @var FakeHandle|null pointer to what synthesize() would build; null when nothing to fake */
     public $fakeHandle;
 
+    /**
+     * @var string[] decode_path (FP-0356): the decoders whose folded layer exposed this match, in
+     * order (applied-set telemetry, e.g. ['percent','base64']). Empty when the raw request matched
+     * or nothing matched. Additive + set after construction, so no construction site changes; a
+     * consumer that never reads it sees no difference.
+     */
+    public $decodePath = [];
+
     public function __construct(
         string $classification,
         Detection $detection,
@@ -95,6 +103,7 @@ final class Verdict
             'classification' => $this->classification,
             'severity' => $this->severity,
             'anomaly' => $this->anomaly,
+            'decode_path' => $this->decodePath,
             'signals' => $this->signals->toArray(),
             'fakeHandle' => $this->fakeHandle === null ? null : $this->fakeHandle->toArray(),
             'detection' => [

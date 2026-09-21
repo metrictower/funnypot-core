@@ -28,6 +28,13 @@ final class BoundedInspection
     public const BODY_BYTES = 32768;
     public const SUBJECT_BYTES = 32768;
     public const DECODE_PASSES = 2;
+    /**
+     * FP-0356 recursive normalizer: max decode layers folded on top of raw before matching. Bounds
+     * worst-case work with SUBJECT_BYTES. Every in-scope decoder is NON-EXPANDING (decoded layer is
+     * never longer than its input — asserted in foldLayers), so total folded size stays <= a small
+     * multiple of SUBJECT_BYTES regardless of decoder count and no decode-bomb is possible.
+     */
+    public const MAX_DECODE_DEPTH = 3;
     public const FINGERPRINT_BYTES = 4096;
     public const COOKIE_BYTES = 8192;
     public const COOKIE_PAIRS = 64;
@@ -285,6 +292,12 @@ final class BoundedInspection
             return '';
         }
 
+        return self::foldLayers(self::requestRaw($request));
+    }
+
+    /** The raw (undecoded) request surface: path + query + clipped body, under the byte cap. */
+    private static function requestRaw(RequestContext $request): string
+    {
         $raw = '';
         self::append($raw, $request->path, self::SUBJECT_BYTES);
         self::append($raw, ' ', self::SUBJECT_BYTES);
@@ -292,23 +305,259 @@ final class BoundedInspection
         self::append($raw, ' ', self::SUBJECT_BYTES);
         self::append($raw, self::clip((string) ($request->rawBody ?? ''), self::BODY_BYTES), self::SUBJECT_BYTES);
 
+        return $raw;
+    }
+
+    /**
+     * Bounded recursive decode/normalization (FP-0356). RETAINS the raw input and APPENDS each
+     * decoded layer under the SUBJECT_BYTES cap, so decoding only ever ADDS a view a rule can match
+     * — it never removes a match the raw would have caught. Peels the common evasion encodings
+     * (percent, '+', \uXXXX, HTML-entity, plausible base64, prefixed/long hex, nested-JSON string
+     * values) toward a fixed point, one decoder per pass, bounded by MAX_DECODE_DEPTH and the byte
+     * cap. INVARIANT: every decoder is non-expanding (a decoded layer is never longer than its
+     * input), enforced below — so total folded size stays within a small multiple of SUBJECT_BYTES
+     * and no decode-bomb (base64-of-base64, entity expansion) is possible.
+     *
+     * @param string[]|null $applied out: ordered, de-duplicated names of the decoders that fired
+     *                               (the decode_path telemetry; applied-set, not a winning chain).
+     */
+    public static function foldLayers(string $raw, ?array &$applied = null): string
+    {
+        if ($applied === null) {
+            $applied = [];
+        }
+        // Clamp the input so the invariant (output <= SUBJECT_BYTES) holds even for a caller that
+        // passes an un-clipped raw; the built-in callers already clip, this is belt-and-braces.
+        $raw = self::clip($raw, self::SUBJECT_BYTES);
         $subject = $raw;
         $layer = $raw;
-        for ($pass = 0; $pass < self::DECODE_PASSES; $pass++) {
-            if (!self::hasPercentOctet($layer) || strlen($subject) >= self::SUBJECT_BYTES) {
-                // Deliberate: percent-free input has no decode layer to append, so the subject is raw alone.
+        for ($depth = 0; $depth < self::MAX_DECODE_DEPTH; $depth++) {
+            if (strlen($subject) >= self::SUBJECT_BYTES) {
                 break;
             }
-            $decoded = rawurldecode($layer);
-            if ($decoded === $layer) {
+            $usedName = null;
+            foreach (self::DECODER_ORDER as $name) {
+                $decoded = self::decodeLayer($name, $layer);
+                if ($decoded === null || $decoded === '' || $decoded === $layer) {
+                    continue;
+                }
+                // Non-expanding invariant (bomb guard): reject any decoder that GREW the layer, so a
+                // future expanding decoder (e.g. utf7) cannot turn the fold into an expansion bomb.
+                if (strlen($decoded) > strlen($layer)) {
+                    continue;
+                }
+                $usedName = $name;
+                $layer = $decoded;
+                break;
+            }
+            if ($usedName === null) {
                 break;
             }
             self::append($subject, ' ', self::SUBJECT_BYTES);
-            self::append($subject, $decoded, self::SUBJECT_BYTES);
-            $layer = $decoded;
+            self::append($subject, $layer, self::SUBJECT_BYTES);
+            if (!in_array($usedName, $applied, true)) {
+                $applied[] = $usedName;
+            }
         }
 
         return $subject;
+    }
+
+    /**
+     * The decoders that transformed this request's surface (FP-0356 decode_path). Applied-set, not a
+     * winning chain: the ordered, de-duplicated decoders that produced a new layer when folding the
+     * request surface (path + query + body). Telemetry only — surfaced additively on the Verdict.
+     *
+     * @return string[]
+     */
+    public static function appliedDecoders(RequestContext $request): array
+    {
+        if (!self::targetAccepted($request)) {
+            return [];
+        }
+        $applied = [];
+        self::foldLayers(self::requestRaw($request), $applied);
+
+        return $applied;
+    }
+
+    /** Decode chain order (most-common encodings first). */
+    private const DECODER_ORDER = ['percent', 'plus', 'unicode', 'entity', 'base64', 'hex', 'json'];
+
+    /** One bounded decode step; null when the decoder does not apply to this layer. */
+    private static function decodeLayer(string $name, string $layer): ?string
+    {
+        switch ($name) {
+            case 'percent':
+                return self::hasPercentOctet($layer) ? rawurldecode($layer) : null;
+            case 'plus':
+                return strpos($layer, '+') === false ? null : str_replace('+', ' ', $layer);
+            case 'unicode':
+                return self::decodeUnicodeEscapes($layer);
+            case 'entity':
+                return strpos($layer, '&') === false ? null : self::decodeHtmlEntities($layer);
+            case 'base64':
+                return self::decodePlausibleBase64($layer);
+            case 'hex':
+                return self::decodeHex($layer);
+            case 'json':
+                return self::decodeJsonStrings($layer);
+        }
+
+        return null;
+    }
+
+    /** `\uXXXX` unicode escapes -> the BMP character (no mbstring; manual UTF-8 encode). */
+    private static function decodeUnicodeEscapes(string $value): ?string
+    {
+        if (strpos($value, '\\u') === false) {
+            return null;
+        }
+        $out = preg_replace_callback('/\\\\u([0-9a-fA-F]{4})/', static function (array $m): string {
+            return self::codepointToUtf8((int) hexdec($m[1]));
+        }, $value);
+
+        return ($out === null || $out === $value) ? null : $out;
+    }
+
+    /** Encode a BMP codepoint as UTF-8 (\uXXXX is 4 hex, so at most 3 bytes). */
+    private static function codepointToUtf8(int $cp): string
+    {
+        if ($cp < 0x80) {
+            return chr($cp);
+        }
+        if ($cp < 0x800) {
+            return chr(0xC0 | ($cp >> 6)) . chr(0x80 | ($cp & 0x3F));
+        }
+
+        return chr(0xE0 | ($cp >> 12)) . chr(0x80 | (($cp >> 6) & 0x3F)) . chr(0x80 | ($cp & 0x3F));
+    }
+
+    /** HTML entities (&lt; &#65; &amp; …) -> their characters. Never expands. */
+    private static function decodeHtmlEntities(string $value): ?string
+    {
+        $out = html_entity_decode($value, ENT_QUOTES | ENT_HTML5, 'UTF-8');
+
+        return $out === $value ? null : $out;
+    }
+
+    /**
+     * Plausible base64 tokens -> their decoded bytes. Gated to AVOID false positives: only a run of
+     * >=16 base64 chars whose length is a multiple of 4, that strict-decodes to MOSTLY-PRINTABLE
+     * text, is decoded — so a random alphanumeric id/hash/cookie is left alone.
+     */
+    private static function decodePlausibleBase64(string $value): ?string
+    {
+        if (!preg_match('#[A-Za-z0-9+/]{16,}={0,2}#', $value)) {
+            return null;
+        }
+        $changed = false;
+        $out = preg_replace_callback('#[A-Za-z0-9+/]{16,}={0,2}#', static function (array $m) use (&$changed): string {
+            $tok = $m[0];
+            if (strlen($tok) % 4 !== 0) {
+                return $tok;
+            }
+            $decoded = base64_decode($tok, true);
+            if ($decoded === false || $decoded === '' || !self::mostlyPrintable($decoded)) {
+                return $tok;
+            }
+            $changed = true;
+
+            return $decoded;
+        }, $value);
+
+        return ($changed && $out !== null && $out !== $value) ? $out : null;
+    }
+
+    /**
+     * Hex-encoded bytes -> characters. Short runs MUST carry a `\x` or `0x` prefix (so a 6-hex CSS
+     * colour like `a1b2c3` is never decoded); a long BARE run (>=16, even length) is decoded only
+     * when it yields mostly-printable text (so a hash/digest, which decodes to binary, is skipped).
+     */
+    private static function decodeHex(string $value): ?string
+    {
+        $changed = false;
+        $out = preg_replace_callback('/(?:\\\\x|0x)([0-9a-fA-F]{2})/', static function (array $m) use (&$changed): string {
+            $changed = true;
+
+            return chr((int) hexdec($m[1]));
+        }, $value);
+        if ($out === null) {
+            $out = $value;
+        }
+        $out = preg_replace_callback('/\b[0-9a-fA-F]{16,}\b/', static function (array $m) use (&$changed): string {
+            $tok = $m[0];
+            if (strlen($tok) % 2 !== 0) {
+                return $tok;
+            }
+            $decoded = @hex2bin($tok);
+            if ($decoded === false || !self::mostlyPrintable($decoded)) {
+                return $tok;
+            }
+            $changed = true;
+
+            return $decoded;
+        }, $out);
+
+        return ($changed && $out !== null && $out !== $value) ? $out : null;
+    }
+
+    /** Nested-JSON string values, concatenated -> exposes a payload hidden in a JSON body. */
+    private static function decodeJsonStrings(string $value): ?string
+    {
+        $trimmed = ltrim($value);
+        if ($trimmed === '' || ($trimmed[0] !== '{' && $trimmed[0] !== '[')) {
+            return null;
+        }
+        $data = json_decode($value, true);
+        if (!is_array($data)) {
+            return null;
+        }
+        $strings = [];
+        self::collectJsonStrings($data, $strings, 0);
+        if ($strings === []) {
+            return null;
+        }
+        $joined = implode(' ', $strings);
+
+        // Non-expanding: extracted string values are a subset of the JSON source bytes.
+        return ($joined !== $value && strlen($joined) <= strlen($value)) ? $joined : null;
+    }
+
+    /**
+     * @param mixed    $node
+     * @param string[] $out
+     */
+    private static function collectJsonStrings($node, array &$out, int $depth): void
+    {
+        if ($depth > self::MAX_DECODE_DEPTH || count($out) > 256) {
+            return;
+        }
+        foreach ((array) $node as $value) {
+            if (is_string($value)) {
+                $out[] = $value;
+            } elseif (is_array($value)) {
+                self::collectJsonStrings($value, $out, $depth + 1);
+            }
+        }
+    }
+
+    /** True when >=85% of the bytes are printable ASCII/whitespace — the base64/hex plausibility gate. */
+    private static function mostlyPrintable(string $s): bool
+    {
+        $len = strlen($s);
+        if ($len === 0) {
+            return false;
+        }
+        $printable = 0;
+        for ($i = 0; $i < $len; $i++) {
+            $c = ord($s[$i]);
+            if ($c === 9 || $c === 10 || $c === 13 || ($c >= 32 && $c < 127)) {
+                $printable++;
+            }
+        }
+
+        return $printable / $len >= 0.85;
     }
 
     /** One bounded decode for capture-specific normalizers outside the generic request builder. */
@@ -339,13 +588,18 @@ final class BoundedInspection
             case 'headers':
                 return self::headerSurface($request->headers);
             case 'path':
+                // Path stays raw: it is structural (routing already normalizes it) and folding it
+                // adds false-positive surface for no evasion win.
                 return self::clip($request->path, self::SUBJECT_BYTES);
             case 'query':
-                return self::clip($request->query, self::SUBJECT_BYTES);
+                // FP-0356: fold the query arm so query-pinned rules (xss/open-redirect) catch encoded
+                // evasions, matching what the `request` arm already does for the concatenated surface.
+                return self::foldLayers(self::clip($request->query, self::SUBJECT_BYTES));
             case 'method':
                 return self::clip($request->method, self::SUBJECT_BYTES);
             case 'body':
-                return self::clip((string) ($request->rawBody ?? ''), self::BODY_BYTES);
+                // FP-0356: fold the body arm too (body-pinned rules: xxe, sqli in POST bodies).
+                return self::foldLayers(self::clip((string) ($request->rawBody ?? ''), self::BODY_BYTES));
             case 'request':
             default:
                 return self::requestSubject($request);

@@ -112,10 +112,20 @@ never auto-merges.
   PR diff. CRS's Apache-2.0 notice + statement of changes is kept **separate** from the nuclei
   MIT notice, at `resources/UPSTREAM-LICENSE-CRS.md`.
 
-## Known limitation
+## Input normalization (FP-0356)
 
 CRS's regexes assume its own transform pipeline ran first (`t:urlDecodeUni`,
-`t:htmlEntityDecode`, `t:jsDecode`, …). funnypot's match surface only does raw + one
-`rawurldecode()` pass, so a CRS-derived regex has more false negatives on double-encoded /
-HTML-entity / JS-escaped obfuscation than CRS itself. This is a recall limitation, not a safety
-gap.
+`t:htmlEntityDecode`, `t:jsDecode`, …). funnypot narrows that gap with a bounded recursive
+decode/normalization stage in `BoundedInspection::foldLayers()`, applied to the `request`, `query`
+and `body` match surfaces before matching. It RETAINS the raw bytes and APPENDS each decoded layer
+(so decoding only ever adds a matchable view, never removes a raw match), peeling percent, `+`,
+`\uXXXX`, HTML-entity, plausible base64, prefixed/long hex and nested-JSON string values toward a
+fixed point — bounded by `MAX_DECODE_DEPTH` and the `SUBJECT_BYTES` cap, with every decoder
+non-expanding so no decode-bomb is possible. The decoders that fired are recorded as `decode_path`
+on the `Verdict` (telemetry; additive). The CRS aggregates all match `in: request`, so they get the
+folded view for free; `path` and `header` surfaces stay raw by design.
+
+**Residual limitation.** Per-rule CRS `t:` chains are not yet applied individually (the compiler
+fuses each class into one broadened alternation, so there is no per-branch surface to transform) —
+capturing them as provenance is a separate follow-up. Obfuscation beyond the bounded decoder set or
+`MAX_DECODE_DEPTH` is still a recall gap, not a safety gap.
