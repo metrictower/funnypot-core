@@ -56,11 +56,29 @@ final class PayloadInspectionTest extends TestCase
         return new RequestContext('GET', '/wp-login.php', $query);
     }
 
-    public function test_hostile_payload_on_a_real_route_reaches_attack_class_when_opted_in(): void
+    /**
+     * @dataProvider hostilePayloads
+     * Each attack class (and an encoded evasion) aimed at a real route must reach ATTACK_CLASS.
+     */
+    public function test_hostile_payload_on_a_real_route_reaches_attack_class_when_opted_in(string $query, ?string $body): void
     {
         $hp = $this->honeypot(true, false);
-        $verdict = $hp->classify($this->realRouteRequest('redirect=1 union select 1 from users'), $this->realRouteProfile());
-        self::assertSame(Verdict::ATTACK_CLASS, $verdict->classification, 'a SQLi payload to a real route must classify ATTACK_CLASS under payloadInspection');
+        $verdict = $hp->classify(new RequestContext('GET', '/wp-login.php', $query, [], $body), $this->realRouteProfile());
+        self::assertSame(Verdict::ATTACK_CLASS, $verdict->classification);
+    }
+
+    /** @return array<string,array{0:string,1:?string}> */
+    public static function hostilePayloads(): array
+    {
+        return [
+            'sqli'          => ['redirect=1 union select 1 from users', null],
+            'lfi'           => ['file=../../../../etc/passwd', null],
+            'xss'           => ['q=<script>alert(1)</script>', null],
+            'rce'           => ['cmd=;cat /etc/passwd', null],
+            'sqli in body'  => ['', 'name=1 union select password from users'],
+            // Encoded evasion exposed by the FP-0356 decode fold (HTML-entity), on a real route.
+            'entity-encoded sqli' => ['q=1 union&#x20;select 1', null],
+        ];
     }
 
     public function test_benign_payload_on_a_real_route_stays_clean(): void
@@ -112,6 +130,32 @@ final class PayloadInspectionTest extends TestCase
 
         self::assertSame(Verdict::ATTACK_CLASS, $verdict->classification);
         self::assertNotNull($hp->synthesize($verdict, $profile, 'seed'), 'attackEmulation ON must serve the fake');
+    }
+
+    public function test_path_like_query_value_does_not_false_positive(): void
+    {
+        // A benign query value that merely LOOKS path-ish must not hit ATTACK_CLASS — path-stripping
+        // + the payload-eligible subset mean no path-pinned rule can fire through this branch.
+        $hp = $this->honeypot(true, false);
+        foreach (['file=my.report/2024.pdf', 'next=/dashboard/home', 'ref=/blog/posts/hello-world'] as $q) {
+            $verdict = $hp->classify($this->realRouteRequest($q), $this->realRouteProfile());
+            self::assertSame(Verdict::CLEAN, $verdict->classification, "benign path-like query must stay CLEAN: {$q}");
+        }
+    }
+
+    public function test_payload_scan_is_not_catastrophically_slow(): void
+    {
+        // A coarse regression tripwire (NOT a benchmark): 300 real-route payload classifications must
+        // complete well under a generous wall bound. Catches an accidental full-corpus/unbounded scan
+        // without being flaky on a loaded CI runner.
+        $hp = $this->honeypot(true, false);
+        $profile = $this->realRouteProfile();
+        $req = $this->realRouteRequest('redirect=1 union select 1 from users');
+        $start = microtime(true);
+        for ($i = 0; $i < 300; $i++) {
+            $hp->classify($req, $profile);
+        }
+        self::assertLessThan(5.0, microtime(true) - $start, '300 payload classifications should be well under 5s');
     }
 
     public function test_non_route_behavior_is_identical_with_and_without_payload_inspection(): void

@@ -349,14 +349,20 @@ final class TemplateAttackEmulator
     /** @param array<string,mixed> $rule */
     private static function ruleIsPayloadEligible(array $rule): bool
     {
+        $hasPayloadSurface = false;
         foreach ((array) ($rule['match'] ?? []) as $cond) {
             $in = (string) ($cond['in'] ?? 'request');
             if ($in === 'path' || $in === 'method' || strncmp($in, 'header', 6) === 0) {
                 return false;
             }
+            if ($in === 'request' || $in === 'query' || $in === 'body') {
+                $hasPayloadSurface = true;
+            }
         }
 
-        return true;
+        // Require at least one query/body/request condition: a rule with no payload surface — or an
+        // empty catch-all match — must never fire the real-route payload scan (defence-in-depth).
+        return $hasPayloadSurface;
     }
 
     /**
