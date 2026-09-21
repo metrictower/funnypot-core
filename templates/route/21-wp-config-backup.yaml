@@ -1,0 +1,48 @@
+id: route-wpcfg-backup
+priority: 21
+# Editor/backup copies of wp-config.php served as PLAIN TEXT (the server no longer executes a
+# .bak/~/.save/.orig), so the PHP source — DB creds + WP auth salts — is disclosed. Today these
+# paths fall to the generic CRS-LFI "failed to open stream" line, which is a mild tell (a real
+# server hands back the file). Every secret is a per-attacker decoy (persona DB story + {{fake.*}}
+# salts) that authenticates nowhere; coherent with /.env and the wp-config route on one deploy.
+# The id deliberately avoids the `wp-config` needle (route-wp-config, priority 40) so that enrich
+# rule can't substring-hijack this bundle; priority 21 also makes it first-match.
+new_page:
+  method: GET
+  paths: ['/wp-config.php.bak', '/wp-config.php~', '/wp-config.php.save', '/wp-config.php.orig', '/wp-config.bak']
+  sig: 0
+  status: 200
+  severity: high
+  tags: [exposure, disclosure, wordpress, backup, credentials]
+  name: 'Exposed wp-config.php backup copy'
+  body_words: ['DB_PASSWORD']
+response:
+  headers:
+    Content-Type: "text/plain; charset=utf-8"
+  body: |
+    <?php
+    /** WordPress database + auth configuration (backup copy). */
+    define( 'DB_NAME', '{{persona.db.wpName}}' );
+    define( 'DB_USER', '{{persona.db.user}}' );
+    define( 'DB_PASSWORD', '{{fake.wpdbpass:hex:24}}' );
+    define( 'DB_HOST', 'db-{{fake.wprds:hex:12}}.{{persona.cloud.aws.region}}.rds.amazonaws.com' );
+    define( 'DB_CHARSET', 'utf8mb4' );
+    define( 'DB_COLLATE', '' );
+
+    define( 'AUTH_KEY',         '{{fake.wpauth:hex:64}}' );
+    define( 'SECURE_AUTH_KEY',  '{{fake.wpsauth:hex:64}}' );
+    define( 'LOGGED_IN_KEY',    '{{fake.wplogin:hex:64}}' );
+    define( 'NONCE_KEY',        '{{fake.wpnonce:hex:64}}' );
+    define( 'AUTH_SALT',        '{{fake.wpasalt:hex:64}}' );
+    define( 'SECURE_AUTH_SALT', '{{fake.wpssalt:hex:64}}' );
+    define( 'LOGGED_IN_SALT',   '{{fake.wplsalt:hex:64}}' );
+    define( 'NONCE_SALT',       '{{fake.wpnsalt:hex:64}}' );
+
+    $table_prefix = 'wp_';
+    define( 'WP_DEBUG', false );
+    if ( ! defined( 'ABSPATH' ) ) { define( 'ABSPATH', __DIR__ . '/' ); }
+    require_once ABSPATH . 'wp-settings.php';
+taunt: { mode: line, open: '//' }
+expect:
+  - "define( 'DB_PASSWORD'"
+  - "define( 'AUTH_KEY'"

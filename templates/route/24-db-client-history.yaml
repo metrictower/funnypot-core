@@ -1,0 +1,28 @@
+id: route-db-client-history
+priority: 24
+# Exposed mysql/psql client history — leaks schema hints + a credential-changing statement. Today
+# these fall to the generic CRS-LFI line. The fake password authenticates nowhere.
+new_page:
+  method: GET
+  paths: ['/.mysql_history', '/.psql_history']
+  sig: 0
+  status: 200
+  severity: medium
+  tags: [exposure, disclosure, db-history, credentials]
+  name: 'Exposed database client history'
+  body_words: ['SELECT']
+response:
+  headers:
+    Content-Type: "text/plain; charset=utf-8"
+  body: |
+    SHOW DATABASES;
+    USE {{persona.db.name}};
+    SHOW TABLES;
+    SELECT id, email, role FROM users ORDER BY id DESC LIMIT 10;
+    SELECT * FROM wp_options WHERE option_name = 'siteurl';
+    ALTER USER '{{persona.db.user}}'@'%' IDENTIFIED BY '{{fake.dbhistpw:hex:20}}';
+    FLUSH PRIVILEGES;
+    quit
+expect:
+  - 'SELECT '
+  - 'IDENTIFIED BY '

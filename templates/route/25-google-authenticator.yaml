@@ -1,0 +1,32 @@
+id: route-google-authenticator
+priority: 25
+# Exposed ~/.google_authenticator — the TOTP shared secret + one-time recovery codes for the deploy
+# user's 2FA. Today this falls to the generic CRS-LFI line. The secret + codes are per-attacker
+# decoys (they enrol nowhere). The recognisable RATE_LIMIT/DISALLOW_REUSE/TOTP_AUTH option lines
+# and the recovery-code block at this path are the disclosure a scanner confirms on.
+new_page:
+  method: GET
+  paths: ['/.google_authenticator']
+  sig: 0
+  status: 200
+  severity: high
+  tags: [exposure, disclosure, 2fa, totp, credentials]
+  name: 'Exposed Google Authenticator secret'
+  body_words: ['TOTP_AUTH']
+response:
+  headers:
+    Content-Type: "text/plain; charset=utf-8"
+  body: |
+    {{fake.gasecret:hexupper:32}}
+    " RATE_LIMIT 3 30
+    " WINDOW_SIZE 17
+    " DISALLOW_REUSE
+    " TOTP_AUTH
+    {{fake.garec1:dec:8}}
+    {{fake.garec2:dec:8}}
+    {{fake.garec3:dec:8}}
+    {{fake.garec4:dec:8}}
+    {{fake.garec5:dec:8}}
+expect:
+  - 'TOTP_AUTH'
+  - 'DISALLOW_REUSE'

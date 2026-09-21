@@ -148,6 +148,39 @@ final class NewPageRoutingTest extends TestCase
     /**
      * @return array<string, array{0:string,1:int,2:string,3:string}>
      */
+    /**
+     * FP-0510 must-hold M2: the /wp-config.php.bak route must BEAT the generic CRS-LFI attack body.
+     * With attackEmulation ON (so the CRS-LFI catch-all is actually live), the .bak path must serve
+     * the believable wp-config leak (route tier wins), never the generic "failed to open stream".
+     * Also proves the new decoys don't collateral-capture benign siblings (acceptance #3).
+     */
+    public function test_fp0510_precedence_and_negatives(): void
+    {
+        $store = new PhpArrayStore(require __DIR__ . '/../resources/compiled/nuclei-index.full.php');
+        $config = new Config(
+            'respond',
+            static function (RequestContext $r): bool { return true; },
+            'matched-only',
+            static function (RequestContext $r): string { return 'fixed'; },
+            'coherent',
+            'realistic'
+        );
+        $config->attackEmulation = true; // make the CRS-LFI generic tier live, so precedence is real
+        $hp = new Honeypot($store, $config);
+
+        // Precedence: the route-tier .bak decoy wins over the CRS-LFI generic body.
+        $bak = $hp->respond(new RequestContext('GET', '/wp-config.php.bak'));
+        self::assertNotNull($bak, '/wp-config.php.bak must serve');
+        self::assertStringContainsString('DB_PASSWORD', $bak->body);
+        self::assertStringNotContainsString('failed to open stream', $bak->body, 'route decoy must beat the generic CRS-LFI body');
+
+        // Negative: the /.bash_history route must NOT capture the benign sibling /.bashrc.
+        $bashrc = $hp->respond(new RequestContext('GET', '/.bashrc'));
+        if ($bashrc !== null) {
+            self::assertStringNotContainsString('mysql -u ', $bashrc->body, '/.bashrc must not serve the shell-history decoy');
+        }
+    }
+
     public static function pages(): array
     {
         return [
@@ -369,6 +402,20 @@ final class NewPageRoutingTest extends TestCase
             'typo3conf listing'       => ['/typo3conf/', 200, 'Index of /typo3conf', 'text/html; charset=utf-8'],
             'typo3conf (no slash 301)' => ['/typo3conf', 301, 'Moved Permanently', 'text/html; charset=iso-8859-1'],
             'typo3conf localconf.php' => ['/typo3conf/localconf.php', 200, '$typo_db_username', 'text/plain; charset=utf-8'],
+
+            // FP-0510 — FAKE_FILES corpus-gap disclosure decoys (credential/loot paths the corpus
+            // missed or answered with the generic CRS-LFI line). Each serves a believable, per-attacker
+            // persona-seeded body at an exact root-anchored path.
+            'wp-config.php.bak'       => ['/wp-config.php.bak', 200, 'DB_PASSWORD', 'text/plain; charset=utf-8'],
+            'wp-config.php~'          => ['/wp-config.php~', 200, 'AUTH_KEY', 'text/plain; charset=utf-8'],
+            'bash_history'            => ['/.bash_history', 200, 'mysql -u ', 'text/plain; charset=utf-8'],
+            'zsh_history'             => ['/.zsh_history', 200, 'AWS_SECRET_ACCESS_KEY', 'text/plain; charset=utf-8'],
+            'mysql_history'           => ['/.mysql_history', 200, 'IDENTIFIED BY ', 'text/plain; charset=utf-8'],
+            'psql_history'            => ['/.psql_history', 200, 'SELECT ', 'text/plain; charset=utf-8'],
+            'google_authenticator'    => ['/.google_authenticator', 200, 'TOTP_AUTH', 'text/plain; charset=utf-8'],
+            'server.key'              => ['/server.key', 200, 'BEGIN PRIVATE KEY', 'application/x-pem-file'],
+            'privkey.pem'             => ['/privkey.pem', 200, 'BEGIN PRIVATE KEY', 'application/x-pem-file'],
+            'bowerrc'                 => ['/.bowerrc', 200, '_auth', 'application/json'],
         ];
     }
 

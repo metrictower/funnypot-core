@@ -1,0 +1,27 @@
+id: route-bowerrc
+priority: 27
+# Exposed /.bowerrc — a genuine plain-404 gap today. Leaks a private package registry + a basic-auth
+# token a scanner mines for supply-chain access. The registry host is the persona's own vanity domain
+# (non-resolving) and the token is a per-attacker decoy that authenticates nowhere.
+new_page:
+  method: GET
+  paths: ['/.bowerrc']
+  sig: 0
+  status: 200
+  severity: medium
+  tags: [exposure, disclosure, registry, credentials]
+  name: 'Exposed .bowerrc registry config'
+  body_words: ['_auth']
+response:
+  headers:
+    Content-Type: "application/json"
+  body: |
+    {
+      "registry": "https://npm.{{persona.company.domain}}",
+      "_auth": "{{fake.bowerauth:b64:44}}",
+      "email": "{{persona.user.admin.email}}",
+      "directory": "vendor/bower_components"
+    }
+expect:
+  - '"_auth"'
+  - '"registry"'

@@ -1,0 +1,32 @@
+id: route-shell-history
+priority: 23
+# Exposed shell history for the deploy user — leaks the operational story (paths, DB login, cloud
+# env) a scanner mines for lateral movement. Today these fall to the generic CRS-LFI line. Every
+# credential is a per-attacker decoy coherent with the persona's DB/company story; none works.
+new_page:
+  method: GET
+  paths: ['/.bash_history', '/.zsh_history', '/.sh_history']
+  sig: 0
+  status: 200
+  severity: high
+  tags: [exposure, disclosure, shell-history, credentials]
+  name: 'Exposed shell history'
+  body_words: ['mysql -u']
+response:
+  headers:
+    Content-Type: "text/plain; charset=utf-8"
+  body: |
+    cd /var/www/{{persona.company.slug}}
+    git pull origin main
+    composer install --no-dev
+    mysql -u {{persona.db.user}} -p'{{fake.histdbpass:hex:20}}' {{persona.db.name}}
+    export AWS_ACCESS_KEY_ID={{persona.cloud.aws.accessKeyId}}
+    export AWS_SECRET_ACCESS_KEY={{persona.cloud.aws.secretKey}}
+    aws s3 sync ./storage s3://{{persona.company.slug}}-prod-backups
+    php artisan migrate --force
+    sudo systemctl restart php8.2-fpm
+    exit
+taunt: { mode: line, open: '#' }
+expect:
+  - 'mysql -u '
+  - 'AWS_SECRET_ACCESS_KEY='
