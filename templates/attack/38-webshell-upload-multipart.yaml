@@ -1,0 +1,27 @@
+id: attack-webshell-upload-multipart
+severity: high
+priority: 38
+tags: [attack, webshell, upload, multipart, rce]
+# FP-0369: a multipart file-upload whose FILENAME carries a server-executable extension — the classic
+# "upload a webshell" probe. Keyed on `in: fields.filename` (the multipart filename field in ISOLATION),
+# which no existing rule catches: 86-webshell needs a shell name in the PATH or a cmd= param; the LFI
+# family and cmdi are `in: request` blob rules; matching `\.php$` anchored to the isolated filename is
+# impossible to author safely on the request blob (it would hit `.php` in any benign URL value). Covers
+# double-extension (x.php.jpg) and null-byte (x.php\x00.gif) evasions via the trailing-char class.
+# Priority 38: after the owns_path upload rules (35 admin-ajax, 36 eventin keep their tailored bodies for
+# their endpoints) and before cmdi (40/41) which would otherwise shadow a webshell body's metachars.
+# Response is inert: a canned "upload accepted" JSON with a fully-synthetic persona uploads URL (no
+# attacker bytes reflected), chaining coherently into the 86-webshell /wp-content/uploads/*.php panel on
+# the follow-up GET.
+match:
+  - in: fields.filename
+    regex: '\.(?:php[0-9]?|phtml|phar|phps|pht)(?:[.;\x00"]|$)'
+response:
+  status: 200
+  headers:
+    Content-Type: "application/json; charset=utf-8"
+  body: |
+    {"success":true,"data":{"url":"https:\/\/{{persona.company.domain}}\/wp-content\/uploads\/{{fake.uplf:hex:8}}.php","name":"{{fake.upln:hex:6}}.php","type":"application\/x-php","size":{{fake.upls:dec:4}}}}
+expect:
+  - 'wp-content'
+  - '"success":true'
