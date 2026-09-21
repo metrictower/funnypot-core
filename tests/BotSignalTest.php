@@ -200,6 +200,44 @@ final class BotSignalTest extends TestCase
         }
     }
 
+    public function test_fp0093_new_attack_tools_classify_as_scanner(): void
+    {
+        // The 6 genuinely-new tools folded in from the iCabbiTools firewall audit (FP-0093).
+        $uas = [
+            'Hydra/9.5',
+            'OpenVAS/22.4.0',
+            'Mozilla/5.0 (compatible; Metasploit)',
+            'Medusa/2.2',
+            'wfuzz/3.1.0',
+            'Mozilla/5.0 (compatible; burpsuite)',
+        ];
+        foreach ($uas as $ua) {
+            $s = $this->signals(['User-Agent' => $ua]);
+            self::assertSame(BotSignalSet::UA_SCANNER, $s->uaClass, $ua . ' is an attack tool');
+            self::assertTrue($s->has(BotSignalSet::SCANNER_USER_AGENT), $ua . ' must flag SCANNER_USER_AGENT');
+        }
+    }
+
+    public function test_fp0093_legit_crawlers_are_not_scanners(): void
+    {
+        // The generic substrings the audit REJECTED (scan/spider/crawler/…) would have flagged these
+        // real crawlers; the 6 tool names added must not. Baiduspider (contains "spider") is the
+        // load-bearing case.
+        $uas = [
+            'Mozilla/5.0 (compatible; Baiduspider/2.0; +http://www.baidu.com/search/spider.html)',
+            'Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)',
+            'Mozilla/5.0 (compatible; bingbot/2.0; +http://www.bing.com/bingbot.htm)',
+            'Mozilla/5.0 (compatible; YandexBot/3.0; +http://yandex.com/bots)',
+            'Mozilla/5.0 (compatible; UptimeRobot/2.0; http://www.uptimerobot.com/)',
+            'Mozilla/5.0 (compatible; AhrefsBot/7.0; +http://ahrefs.com/robot/)',
+        ];
+        foreach ($uas as $ua) {
+            $s = $this->signals(['User-Agent' => $ua]);
+            self::assertNotSame(BotSignalSet::UA_SCANNER, $s->uaClass, $ua . ' is a legitimate crawler, not an attack tool');
+            self::assertFalse($s->has(BotSignalSet::SCANNER_USER_AGENT), $ua . ' must not be flagged a scanner');
+        }
+    }
+
     public function test_fingerprint_is_stable_across_version_bump_and_list_reorder(): void
     {
         $v120 = $this->signals($this->browser())->fingerprint;

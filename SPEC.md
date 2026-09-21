@@ -56,6 +56,26 @@ re-scans are byte-identical and the host never contradicts itself. All I/O, logg
 banning live in the app via an optional observer; the core is pure. Correctness is certified by
 running **real nuclei against a `php -S` server backed by the package**.
 
+### Where a request-detection rule belongs (folding in a per-app "little firewall")
+
+funnypot grew from several apps' hand-rolled firewalls, so this keeps getting re-derived (FP-0093).
+A rule has exactly one home:
+
+- **`BotSignalSet` (request-shape signals)** — user-agent classes and missing/'malformed-header
+  checks. A UA/header rule has **no servable response**, so it is a signal, never a template. New
+  attack-tool UA names extend `Honeypot::classifyUserAgent()`'s scanner alternation — but only
+  *unambiguous* tool names: generic substrings (`scan`/`spider`/`crawler`/`analyzer`/`node`) misfire
+  on real crawlers (e.g. `spider` flags Baiduspider) and are rejected.
+- **The compiled corpus (path → fake-response)** — a path probe with a servable fake is a template;
+  matching is **exact + root-anchored**, never substring (`/favicon.ico` is ambient, but
+  `/actuator/favicon.ico` is a probe — a substring rule cannot tell them apart). Payload inspection
+  over query/body is corpus/attack-emulation work (FP-0356 decode fold + FP-0086 `payloadInspection`),
+  not a `BotSignalSet` signal.
+- **funnypot-policy / the app (gates + actions)** — anything that `die()`s, blocks, bans, rate-limits
+  or logs. A missing-header check that *acts* is a gate; core only computes the signal
+  (`MISSING_ACCEPT`/`_LANGUAGE`/`_ENCODING` are already present — an app-side `die()` on them is policy,
+  not a core detection to port).
+
 ---
 
 ## 2. Compiled artifact + merge
