@@ -13,7 +13,7 @@ return array (
     'license' => 'MIT (c) 2025 ProjectDiscovery, Inc.',
     'upstream_tag' => '2ec914123864439c3618e7e9ae72d32d0eb56df7',
     'upstream_sha' => '2ec914123864439c3618e7e9ae72d32d0eb56df7',
-    'source_tree' => 'be72fe18d487d99c322688ef78ff4b4aab91cd1a682b8eb8c7b39fa502ae79c4',
+    'source_tree' => '8576dcb948ab988d2a7016b561d986364c2bb7602ec2c6f5f606f63a2298908c',
     'templates_seen' => 11196,
     'templates_in' => 6363,
     'templates_indexed' => 6490,

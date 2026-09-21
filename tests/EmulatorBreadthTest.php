@@ -42,7 +42,7 @@ final class EmulatorBreadthTest extends TestCase
             'phpinfo page'                     => ['GET /tool/view/phpinfo.view.php', 0, 'route-phpinfo'],
             'htpasswd'                         => ['GET /.htpasswd', 0, 'route-htpasswd'],
             'apache server-status'             => ['GET /server-status', 0, 'route-apache-server-status'],
-            'apache server-info'               => ['GET /server-info', 0, 'route-apache-server-status'],
+            'apache server-info'               => ['GET /server-info', 0, 'route-apache-server-info'],
             'package.json'                     => ['GET /package.json', 0, 'route-package-json'],
             'package-lock.json'                => ['GET /package-lock.json', 0, 'route-package-json'],
             'ssh/pem private key'              => ['GET /cgi-bin/privatekey.pem', 0, 'route-ssh-private-key'],
