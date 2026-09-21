@@ -382,6 +382,40 @@ final class FingerprintSafetyTest extends TestCase
         self::assertSame(1, $this->runGateOn([$rule]));
     }
 
+    public function test_the_ci_gate_flags_a_waf_lookalike_challenge_page(): void
+    {
+        // FP-0363 gate-bite: a served body that reads as a WAF/antibot challenge page must fail the
+        // gate. Uses runGateOnCapturing (NOT runGateOn — a WAF-only lookalike emits "WAF-lookalike
+        // tell", never the "fingerprint leak" string runGateOn asserts). Nothing lands in the repo.
+        $rule = [
+            'id' => 'waf-lookalike-probe',
+            'response' => [
+                'headers' => [],
+                'body' => '<html><body><footer>secured by BunkerWeb</footer>'
+                    . '<div class="lds-roller"></div></body></html>',
+            ],
+        ];
+        $out = [];
+        $code = $this->runGateOnCapturing([$rule], $out);
+        self::assertSame(1, $code, 'gate must fail on a WAF-lookalike body; output: ' . implode("\n", $out));
+        self::assertStringContainsString('WAF-lookalike tell', implode("\n", $out));
+    }
+
+    public function test_the_ci_gate_passes_a_plain_403_body(): void
+    {
+        // The companion to the gate-bite: a legitimate plain 403/Forbidden page (no challenge shape)
+        // must stay green, proving the WAF gate is anchored to challenge SHAPE, not bare words.
+        $rule = [
+            'id' => 'plain-403-probe',
+            'response' => [
+                'headers' => [],
+                'body' => '<html><body><h1>403 Forbidden</h1>'
+                    . '<p>You don\'t have permission to access this resource.</p></body></html>',
+            ],
+        ];
+        self::assertSame(0, $this->runGatePass([$rule]));
+    }
+
     /**
      * Write a rule-set to a scratch artifact and run the CI gate against it via --index; returns the
      * gate's exit code. Nothing lands in the repo.

@@ -23,6 +23,7 @@ declare(strict_types=1);
 
 use Funnypot\Core\Compiler\Crs\FingerprintGuard;
 use Funnypot\Core\Rules\ServedStringWalker;
+use Funnypot\Core\Rules\WafLookalikeGuard;
 
 $root = dirname(__DIR__, 2);
 require $root . '/vendor/autoload.php';
@@ -50,8 +51,13 @@ if (!$explicit) {
 }
 
 $guard = FingerprintGuard::fromPackage();
+// Second, independent gate (FP-0363): the same served leaves must not resemble a WAF/antibot
+// challenge page. CI/test-only — its tells live in a SEPARATE list and this guard is on no runtime
+// path, so it cannot change what funnypot serves. Both guards fail CLOSED on a broken list.
+$wafGuard = WafLookalikeGuard::fromPackage();
 $walker = new ServedStringWalker();
 $leaks = 0;
+$wafHits = 0;
 $totalLeaves = 0;
 $artifacts = 0;
 
@@ -91,6 +97,11 @@ foreach ($indexes as $index) {
             $leaks++;
             fwrite(STDOUT, "::error file={$index}::fingerprint leak at {$path}: " . implode(', ', $hits) . "\n");
         }
+        $waf = $wafGuard->scan($text);
+        if ($waf !== []) {
+            $wafHits++;
+            fwrite(STDOUT, "::error file={$index}::WAF-lookalike tell at {$path}: " . implode(', ', $waf) . "\n");
+        }
     }
 }
 
@@ -112,10 +123,10 @@ if ($unknown !== []) {
         . implode(', ', $unknown) . "\n");
 }
 
-if ($leaks > 0) {
-    fwrite(STDERR, "FAIL: {$leaks} fingerprint leak(s) across {$totalLeaves} served leaves.\n");
+if ($leaks > 0 || $wafHits > 0) {
+    fwrite(STDERR, "FAIL: {$leaks} fingerprint leak(s) + {$wafHits} WAF-lookalike tell(s) across {$totalLeaves} served leaves.\n");
     exit(1);
 }
 
-fwrite(STDOUT, "OK: {$totalLeaves} served leaves across {$artifacts} artifact(s) carry no upstream-detector signature.\n");
+fwrite(STDOUT, "OK: {$totalLeaves} served leaves across {$artifacts} artifact(s) carry no upstream-detector signature or WAF-lookalike challenge tell.\n");
 exit(0);

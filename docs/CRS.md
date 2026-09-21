@@ -97,6 +97,15 @@ never auto-merges.
   constant-table scan). CRS's `msg`/`logdata` text is never captured by the parser, and generated
   templates never reflect attacker input (`{{match.*}}`/`capture` are stripped), so only the attack
   **class**, never the detector, is ever exposed.
+- **WAF-lookalike safety** (same script `check-fingerprint-safety.php`, separate tell list at
+  `resources/waf-lookalike-tells.php`, guard `Rules\WafLookalikeGuard`). Fails the build if any
+  served leaf reads as a WAF/antibot **challenge or block interstitial** — a branded footer
+  (`Web Application Firewall`, `BunkerWeb`, `SafeLine`, Sucuri/Incapsula), the antibot spinner
+  (`lds-roller`), a proof-of-work loop, a "checking your browser" body, or a redirect into a
+  `/challenge` page. A honeypot that emits a recognisable challenge page breaks the deception and
+  signals it is being watched. Tells are anchored to challenge-page **shape**, so a plain
+  `403`/`Forbidden`/spinner/redirect stays green. This list is CI/test-only and lives **apart** from
+  the runtime egress denylist above — it is on no runtime path, so it changes nothing funnypot serves.
 - **License** (`scripts/ci/check-license.sh`, SPDX allow-list at
   `resources/ALLOWED-LICENSES.txt`). CRS is Apache-2.0 (allow-listed). The gate resolves the
   upstream SPDX id, fails on anything off the list, and commits the fetched license text into the

@@ -722,7 +722,7 @@ regenerated-and-committed whenever the templates change — nothing serves them 
 
 ```bash
 composer build                     # recompile the in-repo artifacts (the funnypot build DAG)
-composer check                     # the LAW: recompile + drift gate + lint-routes + fingerprint (static + runtime render-corpus) + namespace
+composer check                     # the LAW: recompile + drift gate + lint-routes + fingerprint (static + runtime render-corpus + WAF-lookalike scan) + namespace
 ```
 
 Run `composer check` before pushing. It runs the exact bytes CI's `artifact-law` workflow runs
