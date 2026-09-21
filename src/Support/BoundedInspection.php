@@ -41,6 +41,15 @@ final class BoundedInspection
     public const COOKIE_PAIRS = 64;
     public const COOKIE_NAME_BYTES = 256;
     public const COOKIE_VALUE_BYTES = 4096;
+    /**
+     * FP-0369 structured-body inspection caps. MAX_BODY_FIELDS bounds the per-field match loop;
+     * MAX_FIELD_DEPTH (= MAX_DECODE_DEPTH, so structure-depth and decode-depth are one story) caps
+     * JSON nesting; BODY_FIELD_BYTES clips one field before fold/match. Worst-case work is
+     * min(BODY_BYTES, MAX_BODY_FIELDS x BODY_FIELD_BYTES), each fold itself SUBJECT_BYTES-bounded.
+     */
+    public const MAX_BODY_FIELDS = 256;
+    public const MAX_FIELD_DEPTH = self::MAX_DECODE_DEPTH;
+    public const BODY_FIELD_BYTES = 4096;
 
     /** Saturates only on an impossible integer overflow; ordinary callers receive the exact count. */
     public static function targetBytes(string $path, string $query): int
@@ -574,6 +583,204 @@ final class BoundedInspection
         return $printable / $len >= 0.85;
     }
 
+    // --- FP-0369 structured request-body inspection ------------------------------------------------
+
+    /**
+     * Flatten the request body BY CONTENT TYPE into a bounded, ordered list of kinded field entries
+     * (`['kind' => value|name|filename, 'v' => <raw string>]`) so a rule can match one field in
+     * isolation (no cross-field regex span). Pure string work — no ext, no unserialize, no tmp files.
+     * The body is clipped to BODY_BYTES first (rawBody is captured at up to 65536); a malformed or
+     * unknown body yields [] (the `in: fields` condition then simply doesn't match). XML is P2 (yields
+     * [] here). Values are RAW; per-field decoding happens in fieldSurfaces() via foldLayers().
+     *
+     * @return array<int,array{kind:string,v:string}>
+     */
+    public static function bodyFields(RequestContext $r): array
+    {
+        $body = self::clip((string) ($r->rawBody ?? ''), self::BODY_BYTES);
+        if ($body === '') {
+            return [];
+        }
+        $ct = strtolower(trim(explode(';', self::headerValue($r->headers, 'Content-Type'))[0]));
+        if ($ct === 'application/json' || $ct === 'text/json' || substr($ct, -5) === '+json') {
+            return self::jsonFields($body);
+        }
+        if ($ct === 'application/x-www-form-urlencoded') {
+            return self::urlencodedFields($body);
+        }
+        if (strncmp($ct, 'multipart/form-data', 19) === 0) {
+            return self::multipartFields($body, self::headerValue($r->headers, 'Content-Type'));
+        }
+
+        // XML (P2) and any other/absent content type: no per-field view; falls back to blob matching.
+        return [];
+    }
+
+    /**
+     * The per-field match surfaces for a kind: '' / 'fields' => value+name entries; 'filename' =>
+     * filename entries only. Each element is foldLayers()-normalized (FP-0356) and clipped, so an
+     * encoded payload inside one field is decoded and matchable per-field.
+     *
+     * @return string[]
+     */
+    public static function fieldSurfaces(RequestContext $r, string $kind = ''): array
+    {
+        $want = $kind === 'filename' ? ['filename'] : ['value', 'name'];
+        $out = [];
+        foreach (self::bodyFields($r) as $f) {
+            if (!in_array($f['kind'], $want, true)) {
+                continue;
+            }
+            $out[] = self::foldLayers(self::clip($f['v'], self::BODY_FIELD_BYTES));
+            if (count($out) >= self::MAX_BODY_FIELDS) {
+                break;
+            }
+        }
+
+        return $out;
+    }
+
+    /**
+     * A single space-joined string of ALL body fields (every kind), for the literalAbsent pre-filter
+     * ONLY. A safe SUPERSET: if a literal is absent from the join it is absent from every field (safe
+     * skip); a literal straddling two fields in the join is a false "present" that only forces the
+     * rule to evaluate (the real per-field match still runs), never a false match.
+     */
+    public static function fieldsPrefilterSubject(RequestContext $r): string
+    {
+        $parts = [];
+        foreach (self::bodyFields($r) as $f) {
+            $parts[] = self::foldLayers(self::clip($f['v'], self::BODY_FIELD_BYTES));
+        }
+
+        return implode(' ', $parts);
+    }
+
+    /**
+     * JSON body -> value fields (leaf scalars) + name fields (dotted key paths, e.g. user.name). The
+     * json_decode depth arg (MAX_FIELD_DEPTH) is a hard nesting cap: a too-deep body returns null -> [].
+     *
+     * @return array<int,array{kind:string,v:string}>
+     */
+    private static function jsonFields(string $body): array
+    {
+        $data = json_decode($body, true, self::MAX_FIELD_DEPTH);
+        if (!is_array($data)) {
+            return [];
+        }
+        $out = [];
+        self::collectJsonFields($data, '', $out, 0);
+
+        return $out;
+    }
+
+    /**
+     * @param mixed                                    $node
+     * @param array<int,array{kind:string,v:string}>  $out
+     */
+    private static function collectJsonFields($node, string $path, array &$out, int $depth): void
+    {
+        if ($depth > self::MAX_FIELD_DEPTH || count($out) >= self::MAX_BODY_FIELDS) {
+            return;
+        }
+        foreach ((array) $node as $key => $value) {
+            if (count($out) >= self::MAX_BODY_FIELDS) {
+                return;
+            }
+            $keyPath = $path === '' ? (string) $key : $path . '.' . $key;
+            if (is_array($value)) {
+                self::collectJsonFields($value, $keyPath, $out, $depth + 1);
+                continue;
+            }
+            $out[] = ['kind' => 'value', 'v' => self::scalarString($value)];
+            $out[] = ['kind' => 'name', 'v' => $keyPath];
+        }
+    }
+
+    /** A JSON/scalar leaf as a string (bool -> true/false; null -> ''). */
+    private static function scalarString($value): string
+    {
+        if (is_bool($value)) {
+            return $value ? 'true' : 'false';
+        }
+        if ($value === null) {
+            return '';
+        }
+
+        return (string) $value;
+    }
+
+    /**
+     * urlencoded body -> raw name + value fields (per pair). Hand-rolled (not parse_str, which is
+     * max_input_vars-bound and mangles a[b] keys). Halves are RAW; fieldSurfaces() folds them.
+     *
+     * @return array<int,array{kind:string,v:string}>
+     */
+    private static function urlencodedFields(string $body): array
+    {
+        $out = [];
+        foreach (explode('&', $body) as $pair) {
+            if ($pair === '') {
+                continue;
+            }
+            if (count($out) >= self::MAX_BODY_FIELDS) {
+                break;
+            }
+            $eq = strpos($pair, '=');
+            $name = $eq === false ? $pair : substr($pair, 0, $eq);
+            $value = $eq === false ? '' : substr($pair, $eq + 1);
+            $out[] = ['kind' => 'name', 'v' => $name];
+            $out[] = ['kind' => 'value', 'v' => $value];
+        }
+
+        return $out;
+    }
+
+    /**
+     * multipart/form-data -> name + filename + value fields per part. Bounded pure-string parse; a
+     * missing/malformed boundary or part is skipped (-> [] or fewer fields), never a crash.
+     *
+     * @return array<int,array{kind:string,v:string}>
+     */
+    private static function multipartFields(string $body, string $contentType): array
+    {
+        if (preg_match('/boundary="?([^";\r\n]+)"?/i', $contentType, $bm) !== 1) {
+            return [];
+        }
+        $out = [];
+        foreach (explode('--' . $bm[1], $body) as $part) {
+            if (count($out) >= self::MAX_BODY_FIELDS) {
+                break;
+            }
+            $part = ltrim($part, "\r\n");
+            if ($part === '' || strncmp($part, '--', 2) === 0) {
+                continue; // preamble / closing delimiter
+            }
+            $sep = strpos($part, "\r\n\r\n");
+            $blank = 4;
+            if ($sep === false) {
+                $sep = strpos($part, "\n\n");
+                $blank = 2;
+            }
+            if ($sep === false) {
+                continue;
+            }
+            $headers = substr($part, 0, $sep);
+            if (stripos($headers, 'content-disposition:') === false) {
+                continue;
+            }
+            if (preg_match('/\bname="([^"]*)"/i', $headers, $nm) === 1) {
+                $out[] = ['kind' => 'name', 'v' => $nm[1]];
+            }
+            if (preg_match('/\bfilename="([^"]*)"/i', $headers, $fm) === 1) {
+                $out[] = ['kind' => 'filename', 'v' => $fm[1]];
+            }
+            $out[] = ['kind' => 'value', 'v' => self::clip(rtrim(substr($part, $sep + $blank), "\r\n"), self::BODY_FIELD_BYTES)];
+        }
+
+        return $out;
+    }
+
     /** One bounded decode for capture-specific normalizers outside the generic request builder. */
     public static function decodeOnce(string $value): string
     {
@@ -614,6 +821,12 @@ final class BoundedInspection
             case 'body':
                 // FP-0356: fold the body arm too (body-pinned rules: xxe, sqli in POST bodies).
                 return self::foldLayers(self::clip((string) ($request->rawBody ?? ''), self::BODY_BYTES));
+            case 'fields':
+            case 'fields.filename':
+                // FP-0369: multi-VALUE surfaces have no single-string form — evalConditions handles
+                // them via fieldSurfaces() before ever calling surface(). Defensive: a stray caller
+                // gets '' (no match) rather than the misleading request-default.
+                return '';
             case 'request':
             default:
                 return self::requestSubject($request);

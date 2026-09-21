@@ -355,7 +355,11 @@ final class TemplateAttackEmulator
             if ($in === 'path' || $in === 'method' || strncmp($in, 'header', 6) === 0) {
                 return false;
             }
-            if ($in === 'request' || $in === 'query' || $in === 'body') {
+            // FP-0369: the body-derived per-field surfaces are payload surfaces too, so a rule keyed
+            // only on `fields`/`fields.filename` (e.g. the multipart webshell-upload rule) is eligible
+            // for the real-route payload scan (matchPayload) — still gated on Config->payloadInspection.
+            if ($in === 'request' || $in === 'query' || $in === 'body'
+                || $in === 'fields' || $in === 'fields.filename') {
                 $hasPayloadSurface = true;
             }
         }
@@ -1798,7 +1802,13 @@ final class TemplateAttackEmulator
      */
     private function literalAbsent(RequestContext $r, array $rule): bool
     {
-        $surface = $this->surface($r, (string) ($rule['lit_in'] ?? 'request'));
+        $litIn = (string) ($rule['lit_in'] ?? 'request');
+        // FP-0369: a fields rule's pre-filter checks the space-joined ALL-fields subject — a safe
+        // superset (absent from the join => absent from every field => safe skip; a straddling false
+        // "present" only forces per-field evaluation, never a false match).
+        $surface = ($litIn === 'fields' || $litIn === 'fields.filename')
+            ? BoundedInspection::fieldsPrefilterSubject($r)
+            : $this->surface($r, $litIn);
         $lit = (string) $rule['lit'];
         $ci = ($rule['lit_ci'] ?? true) !== false;
         $hit = $ci ? stripos($surface, $lit) : strpos($surface, $lit);
@@ -1835,8 +1845,52 @@ final class TemplateAttackEmulator
     {
         $captures = null;
         foreach ($conds as $cond) {
-            $surface = $this->surface($r, (string) ($cond['in'] ?? 'request'), $priorCaptures);
+            $in = (string) ($cond['in'] ?? 'request');
             $ci = ($cond['ci'] ?? true) !== false;
+
+            // FP-0369 multi-field surface: match the condition against EACH body field in isolation
+            // (match-any), so no regex/contains can span a field boundary. All decoding is inside
+            // BoundedInspection::fieldSurfaces (foldLayers) — never a rawurldecode in this file.
+            if ($in === 'fields' || $in === 'fields.filename') {
+                $kind = $in === 'fields.filename' ? 'filename' : '';
+                $matchedField = false;
+                foreach (BoundedInspection::fieldSurfaces($r, $kind) as $field) {
+                    if (isset($cond['regex'])) {
+                        $flags = ($ci ? 'i' : '') . (($cond['dotall'] ?? false) ? 's' : '');
+                        $result = preg_match('~' . $cond['regex'] . '~' . $flags, $field, $m);
+                        if ($result !== 1 || preg_last_error() !== PREG_NO_ERROR) {
+                            // A PCRE error is a bad pattern, not a per-field miss: fail the rule (as the
+                            // single-surface path does), never silently pass the other fields.
+                            if (preg_last_error() !== PREG_NO_ERROR) {
+                                return null;
+                            }
+                            continue; // this field simply did not match; try the next
+                        }
+                        if ($captures === null || ($cond['capture'] ?? false) === true) {
+                            $captures = $m;
+                        }
+                        $matchedField = true;
+                        break;
+                    }
+                    if (isset($cond['contains'])) {
+                        $needle = (string) $cond['contains'];
+                        $hit = $ci ? stripos($field, $needle) : strpos($field, $needle);
+                        if ($hit !== false) {
+                            $matchedField = true;
+                            break;
+                        }
+                        continue;
+                    }
+
+                    return null; // neither regex nor contains: malformed condition
+                }
+                if (!$matchedField) {
+                    return null;
+                }
+                continue;
+            }
+
+            $surface = $this->surface($r, $in, $priorCaptures);
 
             if (isset($cond['regex'])) {
                 $flags = ($ci ? 'i' : '') . (($cond['dotall'] ?? false) ? 's' : '');

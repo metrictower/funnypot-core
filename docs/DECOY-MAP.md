@@ -4,7 +4,7 @@
 > The manifest is the sole inventory authority; friendly names, categories and behavior
 > prose live in the README taxonomy, not here.
 
-Manifest schema 1. Authored records: 367 across 87 families. Corpus: 2611 families / 5134 route keys (summarized, not enumerated). Enrichers: 233.
+Manifest schema 1. Authored records: 368 across 88 families. Corpus: 2611 families / 5134 route keys (summarized, not enumerated). Enrichers: 233.
 
 ```mermaid
 mindmap
@@ -82,20 +82,21 @@ mindmap
     fam0071["tls: 2"]
     fam0072["tomcat: 2"]
     fam0073["twig: 1"]
-    fam0074["v1: 1"]
-    fam0075["vcs: 10"]
-    fam0076["vite: 1"]
-    fam0077["webmin: 1"]
-    fam0078["webshell: 1"]
-    fam0079["whm: 1"]
-    fam0080["windows: 2"]
-    fam0081["woocommerce: 8"]
-    fam0082["wordpress: 20"]
-    fam0083["wp-plugin-enum: 10"]
-    fam0084["wp-theme-enum: 2"]
-    fam0085["xdebug: 1"]
-    fam0086["xss: 2"]
-    fam0087["xxe: 1"]
+    fam0074["upload: 1"]
+    fam0075["v1: 1"]
+    fam0076["vcs: 10"]
+    fam0077["vite: 1"]
+    fam0078["webmin: 1"]
+    fam0079["webshell: 1"]
+    fam0080["whm: 1"]
+    fam0081["windows: 2"]
+    fam0082["woocommerce: 8"]
+    fam0083["wordpress: 20"]
+    fam0084["wp-plugin-enum: 10"]
+    fam0085["wp-theme-enum: 2"]
+    fam0086["xdebug: 1"]
+    fam0087["xss: 2"]
+    fam0088["xxe: 1"]
     corpus["corpus: 2611 families / 5134 keys"]
     enrichers["content enrichers #40;not route claimers#41;: 233"]
 ```
@@ -175,6 +176,7 @@ mindmap
 | tls | 2 | new-page:2 | 2 | 0 | high | &mdash; |
 | tomcat | 2 | new-page:2 | 2 | 0 | medium | &mdash; |
 | twig | 1 | attack:1 | 0 | 0 | high | &mdash; |
+| upload | 1 | attack:1 | 0 | 0 | high | &mdash; |
 | v1 | 1 | attack-ai:1 | 1 | 0 | medium | info |
 | vcs | 10 | new-page:10 | 10 | 0 | medium | &mdash; |
 | vite | 1 | param:1 | 1 | 0 | high | &mdash; |
