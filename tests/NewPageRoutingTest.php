@@ -1497,7 +1497,9 @@ final class NewPageRoutingTest extends TestCase
     public function test_bare_sql_backups_use_the_exact_backup_renderer(string $route, string $path): void
     {
         $index = require __DIR__ . '/../resources/compiled/nuclei-index.full.php';
-        self::assertCount(5353, $index['routes'], 'the priority-only repair must not alter the corpus route-key set');
+        // Exact route-key count (moves when route templates are added — bump it with the addition):
+        // 5353 -> 5367 after FP-0510 added 14 disclosure-decoy route keys.
+        self::assertCount(5367, $index['routes'], 'the priority-only repair must not alter the corpus route-key set');
         self::assertCount(1, $index['routes'][$route]['b'] ?? [], "{$route} must keep its one authored bundle");
         $bundle = $index['routes'][$route]['b'][0];
         self::assertSame('route-sql-backup', $bundle['pid'] ?? null, "{$route} exact pid");

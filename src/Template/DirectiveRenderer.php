@@ -387,7 +387,7 @@ final class DirectiveRenderer
             return FakeSecrets::flag($seed, substr($part, 10));
         }
         if (strpos($part, 'fake.') === 0) {
-            // fake.NAME:ENC:N — ENC in {hex (default), hexupper, b64, b64url, dec}, plus the closed
+            // fake.NAME:ENC:N — ENC in {hex (default), hexupper, b64, b64url, b32, dec}, plus the closed
             // rsa2048 form for the one JWKS modulus (jwks_n:342 only). Seed+name derived, so a NAME
             // reused in a template renders the same fabricated value in both places.
             $bits = explode(':', substr($part, 5));
