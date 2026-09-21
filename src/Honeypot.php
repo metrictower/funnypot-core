@@ -930,7 +930,12 @@ final class Honeypot implements Engine
         // Attack tools ONLY. This class is the one that acts without an opt-in, so an ordinary
         // HTTP client (python-httpx) or a commercial crawler (SemrushBot) must never be listed
         // here — they belong in the script and good-bot classes below.
-        if (preg_match('/nmap|sqlmap|nuclei|nikto|masscan|zgrab|acunetix|nessus|wpscan|dirbuster|gobuster|ffuf|feroxbuster|arachni|zaproxy/i', $ua) === 1) {
+        // FP-0093: the tail (hydra…burpcollaborator) folds in the genuinely-new attack tools from the
+        // iCabbiTools firewall audit — each an unambiguous attack tool with no legitimate-client
+        // collision. Deliberately NOT the generic substrings the audit rejected (scan/spider/crawler/
+        // analyzer/node), which would misfire on real crawlers like Baiduspider. `burp` is spelled out
+        // to burpsuite|burpcollaborator so a bare "burp" substring can't false-positive.
+        if (preg_match('/nmap|sqlmap|nuclei|nikto|masscan|zgrab|acunetix|nessus|wpscan|dirbuster|gobuster|ffuf|feroxbuster|arachni|zaproxy|hydra|openvas|metasploit|medusa|wfuzz|burpsuite|burpcollaborator/i', $ua) === 1) {
             return BotSignalSet::UA_SCANNER;
         }
         if (preg_match('#curl|wget|python-requests|python-urllib|python-httpx|urllib|go-http-client|libwww|okhttp|axios|node-fetch|guzzle|java/|apache-httpclient|ruby|perl|winhttp#i', $ua) === 1) {
