@@ -27,6 +27,7 @@ final class BoundedInspection
     public const HOST_BYTES = 512;
     public const BODY_BYTES = 32768;
     public const SUBJECT_BYTES = 32768;
+    /** Retained for BC. Superseded by MAX_DECODE_DEPTH (FP-0356), which foldLayers uses instead. */
     public const DECODE_PASSES = 2;
     /**
      * FP-0356 recursive normalizer: max decode layers folded on top of raw before matching. Bounds
@@ -381,8 +382,11 @@ final class BoundedInspection
         return $applied;
     }
 
-    /** Decode chain order (most-common encodings first). */
-    private const DECODER_ORDER = ['percent', 'plus', 'unicode', 'entity', 'base64', 'hex', 'json'];
+    /**
+     * Decode chain order. base64 is tried BEFORE plus so a base64 token containing '+' is decoded
+     * whole, rather than the '+' first being rewritten to a space (which would break the token).
+     */
+    private const DECODER_ORDER = ['percent', 'base64', 'plus', 'unicode', 'entity', 'hex', 'json'];
 
     /** One bounded decode step; null when the decoder does not apply to this layer. */
     private static function decodeLayer(string $name, string $layer): ?string
@@ -407,13 +411,17 @@ final class BoundedInspection
         return null;
     }
 
-    /** `\uXXXX` unicode escapes -> the BMP character (no mbstring; manual UTF-8 encode). */
+    /**
+     * Unicode escapes -> the BMP character (no mbstring; manual UTF-8 encode). Handles both the JS
+     * `\uXXXX` form and the IIS/`%uXXXX` form (a distinct evasion vector percent-decode leaves alone,
+     * since `%u` is not a valid percent-octet).
+     */
     private static function decodeUnicodeEscapes(string $value): ?string
     {
-        if (strpos($value, '\\u') === false) {
+        if (strpos($value, '\\u') === false && stripos($value, '%u') === false) {
             return null;
         }
-        $out = preg_replace_callback('/\\\\u([0-9a-fA-F]{4})/', static function (array $m): string {
+        $out = preg_replace_callback('/(?:\\\\u|%u)([0-9a-fA-F]{4})/i', static function (array $m): string {
             return self::codepointToUtf8((int) hexdec($m[1]));
         }, $value);
 
@@ -433,7 +441,13 @@ final class BoundedInspection
         return chr(0xE0 | ($cp >> 12)) . chr(0x80 | (($cp >> 6) & 0x3F)) . chr(0x80 | ($cp & 0x3F));
     }
 
-    /** HTML entities (&lt; &#65; &amp; …) -> their characters. Never expands. */
+    /**
+     * HTML entities (&lt; &#65; &amp; …) -> their characters. Never expands. NOTE: this decodes any
+     * escaped markup, so a benign body that legitimately escapes an attack token (e.g. `&amp;lt;script&amp;gt;`
+     * in prose) folds to the literal token — but only a would-be-404 path reaches the attack scan
+     * (classifyContent route-gates real routes to CLEAN first), and raw is retained, so this widens
+     * recall without new false negatives.
+     */
     private static function decodeHtmlEntities(string $value): ?string
     {
         $out = html_entity_decode($value, ENT_QUOTES | ENT_HTML5, 'UTF-8');

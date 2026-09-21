@@ -43,6 +43,7 @@ final class DecodeNormalizerTest extends TestCase
         return [
             'plus'    => ['union+select+1', 'union select 1', 'plus'],
             'unicode' => ['\\u0075nion select', 'union select', 'unicode'],
+            'unicode-percent-u' => ['%u0075nion select', 'union select', 'unicode'],
             'entity'  => ['union&#x20;select', 'union select', 'entity'],
             'entity-named' => ['1&lt;script&gt;', '1<script>', 'entity'],
             'base64'  => ['x=' . base64_encode('union select 1 from users'), 'union select 1', 'base64'],
@@ -103,7 +104,7 @@ final class DecodeNormalizerTest extends TestCase
         self::assertStringNotContainsString('a b', BoundedInspection::surface($rp, 'path'));
     }
 
-    public function test_classify_records_decode_path_on_an_encoded_attack(): void
+    private function honeypot(): Honeypot
     {
         $config = new Config(
             'respond',
@@ -120,7 +121,41 @@ final class DecodeNormalizerTest extends TestCase
             0,
             true // attackEmulation
         );
-        $hp = Honeypot::default($config);
+
+        return Honeypot::default($config);
+    }
+
+    /**
+     * @dataProvider benignEncodedTraffic
+     * Benign encoded content sent to a would-be-404 path must NOT be classified as an attack, even
+     * though the normalizer decodes it — the token-adjacency the rules require is not created.
+     */
+    public function test_benign_encoded_traffic_is_not_an_attack(string $query, ?string $body): void
+    {
+        $verdict = $this->honeypot()->classify(new RequestContext('POST', '/nope-not-a-route', $query, [], $body), SiteProfile::empty());
+        self::assertNotSame(\Funnypot\Core\Verdict::ATTACK_CLASS, $verdict->classification, 'benign encoded input must not read as an attack');
+    }
+
+    /** @return array<string,array{0:string,1:?string}> */
+    public static function benignEncodedTraffic(): array
+    {
+        // A real JWT (header.payload.sig — base64url, payload decodes to benign JSON).
+        $jwt = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.'
+            . base64_encode('{"sub":"1234567890","name":"Jane Doe","role":"member"}') . '.abc123signature';
+
+        return [
+            'jwt cookie'        => ['token=' . $jwt, null],
+            'base64 prose body' => ['', 'data=' . base64_encode('please select a plan from the list of available workers')],
+            'base64 csv'        => ['', base64_encode('name,email,city\nJane,jane@example.com,Dublin')],
+            'entity prose'      => ['', 'note=use the &amp;amp; symbol and &amp;lt;3 for love'],
+            'plus params'       => ['a=1+1&b=c++&note=fast+and+simple', null],
+            'hex colours'       => ['theme=%23a1b2c3&accent=%23ffffff', null],
+        ];
+    }
+
+    public function test_classify_records_decode_path_on_an_encoded_attack(): void
+    {
+        $hp = $this->honeypot();
 
         // An HTML-entity-encoded SQLi payload: the raw bytes evade the sqli regex; the entity fold
         // exposes "union select" so the existing rule fires, and decode_path records 'entity'.
