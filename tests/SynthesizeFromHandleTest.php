@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Funnypot\Core\Tests;
 
+use Funnypot\Core\Behavior\DecoySession;
 use Funnypot\Core\Config;
 use Funnypot\Core\FakeHandle;
 use Funnypot\Core\Honeypot;
@@ -68,6 +69,44 @@ final class SynthesizeFromHandleTest extends TestCase
 
         self::assertNotNull($roundTripped);
         self::assertSame($direct->body, $roundTripped->body, 'a serialized handle must rebuild the same fake');
+    }
+
+    /**
+     * FP-0516: the two-phase path must thread the request into synthesizeFromHandle so a
+     * request-dependent render can see it. The load-bearing case is the decoy-session gate: with the
+     * authed cookie present it renders the breached-DB panel; drop the request (the pre-FP-0516 two-phase
+     * signature) and the same handle fails closed to the login page. An embedder (classify -> carry
+     * handle -> synthesizeFromHandle) would otherwise always serve the login even to a mock-authed
+     * attacker — the exact bug behind /phpmyadmin login never reaching the panel.
+     */
+    public function test_it_threads_the_request_into_the_decoy_session_gate(): void
+    {
+        $key = 'S3cr3t-Decoy-Signing-Key-must-never-leak';
+        $store = new PhpArrayStore(require __DIR__ . '/../resources/compiled/nuclei-index.full.php');
+        $config = new Config('respond', null, 'matched-only', null, 'coherent', Style::REALISTIC, 'high', 65536, 0, 0, true);
+        $config->decoySessionKey = $key;
+        $engine = new Honeypot($store, $config);
+        $profile = SiteProfile::empty();
+        $seed = 'seed-fixed';
+
+        // A browser presenting a valid authenticated cookie minted at THIS engine's deploy seed.
+        $setCookie = (new DecoySession($key, $config->deploySeed()))->mintCookie('phpMyAdmin', '/phpmyadmin');
+        $semi = strpos($setCookie, ';');
+        $cookie = $semi === false ? $setCookie : substr($setCookie, 0, $semi);
+        $r = new RequestContext('GET', '/phpmyadmin/index.php', '', ['Cookie' => $cookie]);
+
+        $verdict = $engine->classify($r, $profile);
+        self::assertNotNull($verdict->fakeHandle, 'the phpMyAdmin gate must produce a handle');
+
+        // With the request: the gate reads the cookie and renders the authed breached-DB panel.
+        $authed = $engine->synthesizeFromHandle($verdict->fakeHandle, $profile, $seed, $r);
+        self::assertNotNull($authed);
+        self::assertStringContainsString('Server version:', $authed->body, 'the authed panel must render when the request is threaded through');
+
+        // Without the request (the dropped-request signature): the same handle fails closed to login.
+        $noRequest = $engine->synthesizeFromHandle($verdict->fakeHandle, $profile, $seed);
+        self::assertNotNull($noRequest);
+        self::assertStringNotContainsString('Server version:', $noRequest->body, 'no request -> the gate must fall back to the login page, never the panel');
     }
 
     /** @param array<string,string> $headers @return array<string,string> */

@@ -1431,14 +1431,21 @@ final class Honeypot implements Engine
      * profile, seed) + the compiled store: same inputs => same bytes. null is the sole "no fake"
      * signal (degrade to the caller's 404); a synthesis fault never escapes as a 5xx.
      */
-    public function synthesize(Verdict $verdict, SiteProfile $profile, string $seed): ?SynthesizedResponse
+    /**
+     * @param RequestContext|null $r FP-0516: the originating request. Thread it so a render that
+     *  depends on the live request — the decoy-session gate reading the auth cookie (the mock-auth
+     *  authed panel) — can see it. An embedder using the two-phase classify()->synthesize() API must
+     *  pass the request here, or the gate fails closed to the login page (as it did before this param).
+     *  Defaults null: unchanged for callers that don't need it (route/method fakes ignore $r).
+     */
+    public function synthesize(Verdict $verdict, SiteProfile $profile, string $seed, ?RequestContext $r = null): ?SynthesizedResponse
     {
-        return $this->buildFake($verdict->fakeHandle, $profile, $seed)['r'];
+        return $this->buildFake($verdict->fakeHandle, $profile, $seed, $r)['r'];
     }
 
-    public function synthesizeFromHandle(?FakeHandle $handle, SiteProfile $profile, string $seed): ?SynthesizedResponse
+    public function synthesizeFromHandle(?FakeHandle $handle, SiteProfile $profile, string $seed, ?RequestContext $r = null): ?SynthesizedResponse
     {
-        return $this->buildFake($handle, $profile, $seed)['r'];
+        return $this->buildFake($handle, $profile, $seed, $r)['r'];
     }
 
     private function declined(RequestContext $r, string $reason): ?SynthesizedResponse

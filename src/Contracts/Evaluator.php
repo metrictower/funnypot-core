@@ -32,8 +32,12 @@ interface Evaluator
     /**
      * Build the fake a Verdict points at, or null to degrade to the caller's 404 (the engine only
      * ever upgrades a 404, never emits a 5xx). Pure function of (verdict, profile, seed) + store.
+     *
+     * The optional request lets a render that depends on it — the decoy-session gate reading the
+     * auth cookie — see it. Defaulted to null so a caller that only carries the handle across the
+     * two-phase boundary is unaffected; without it the gate fail-closes to the login page.
      */
-    public function synthesize(Verdict $verdict, SiteProfile $profile, string $seed): ?SynthesizedResponse;
+    public function synthesize(Verdict $verdict, SiteProfile $profile, string $seed, ?RequestContext $r = null): ?SynthesizedResponse;
 
     /**
      * Same as synthesize(), but from the Verdict's FakeHandle alone.
@@ -49,7 +53,8 @@ interface Evaluator
      * the 7.3 hosts this package supports) or re-run classify() and pay for it twice. Both were
      * being done, in different adapters, for the same contract.
      *
-     * A null handle degrades to null, exactly as a Verdict with no handle does.
+     * A null handle degrades to null, exactly as a Verdict with no handle does. The optional request
+     * threads through to a request-dependent render (the decoy-session gate) as in synthesize().
      */
-    public function synthesizeFromHandle(?FakeHandle $handle, SiteProfile $profile, string $seed): ?SynthesizedResponse;
+    public function synthesizeFromHandle(?FakeHandle $handle, SiteProfile $profile, string $seed, ?RequestContext $r = null): ?SynthesizedResponse;
 }
