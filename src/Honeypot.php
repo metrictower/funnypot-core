@@ -273,6 +273,13 @@ final class Honeypot implements Engine
             $verdict = $this->foldHoneytoken($verdict);
         }
 
+        // decode_path telemetry (FP-0356): record which decoders transformed the request surface when
+        // a probe/attack matched. Computed once here (not threaded through every Detection site) and
+        // only on a match, so a clean request pays nothing.
+        if ($verdict->detection->matched) {
+            $verdict->decodePath = BoundedInspection::appliedDecoders($r);
+        }
+
         return $verdict;
     }
 
