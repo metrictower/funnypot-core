@@ -21,7 +21,7 @@ response:
   headers:
     Content-Type: "application/json; charset=utf-8"
   body: |
-    {"success":true,"data":{"url":"https:\/\/{{persona.company.domain}}\/wp-content\/uploads\/{{fake.uplf:hex:8}}.php","name":"{{fake.upln:hex:6}}.php","type":"application\/x-php","size":{{fake.upls:dec:4}}}}
+    {"success":true,"data":{"url":"https:\/\/{{persona.company.domain}}\/wp-content\/uploads\/{{fake.uplf:hex:8}}.php","name":"{{fake.upln:hex:6}}.php","type":"application\/x-httpd-php","size":{{fake.upls:dec:5}}}}
 expect:
   - 'wp-content'
   - '"success":true'

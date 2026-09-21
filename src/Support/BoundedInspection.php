@@ -720,10 +720,10 @@ final class BoundedInspection
     {
         $out = [];
         foreach (explode('&', $body) as $pair) {
-            if (count($out) >= self::MAX_BODY_FIELDS || $pair === '') {
-                if ($pair === '') {
-                    continue;
-                }
+            if ($pair === '') {
+                continue;
+            }
+            if (count($out) >= self::MAX_BODY_FIELDS) {
                 break;
             }
             $eq = strpos($pair, '=');
@@ -821,6 +821,12 @@ final class BoundedInspection
             case 'body':
                 // FP-0356: fold the body arm too (body-pinned rules: xxe, sqli in POST bodies).
                 return self::foldLayers(self::clip((string) ($request->rawBody ?? ''), self::BODY_BYTES));
+            case 'fields':
+            case 'fields.filename':
+                // FP-0369: multi-VALUE surfaces have no single-string form — evalConditions handles
+                // them via fieldSurfaces() before ever calling surface(). Defensive: a stray caller
+                // gets '' (no match) rather than the misleading request-default.
+                return '';
             case 'request':
             default:
                 return self::requestSubject($request);
