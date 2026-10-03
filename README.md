@@ -162,6 +162,12 @@ path-driven false positive. It does, like any WAF, reintroduce ordinary payload-
 positives on real routes — a benign `?q=` that literally contains an SQLi/XSS token can read as an
 attack — which is why it is opt-in and off by default.
 
+Optional `latencyMs` plus `latencyJitterMs` is carried as response metadata for the emitter or
+adapter to apply; core does not sleep while building the fake. If the optional jitter entropy draw
+fails, core still delivers the same response with the configured base latency only—without retrying,
+logging or substituting another randomness source. This fallback is scoped to latency jitter and is
+not a guarantee for unrelated response-time entropy calls.
+
 ### Per-deploy persona seed (avoid a fleet-constant identity)
 
 Every fabricated identity — the company name, domain, admin credentials, fake secrets, visual skin — is
