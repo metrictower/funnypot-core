@@ -1,17 +1,24 @@
 id: route-phppgadmin-intro
 priority: 384
-# Brand-new page: the phpPgAdmin intro.php content frame (no nuclei template at this path). The
-# /phppgadmin/ frameset (371) points its detail frame at intro.php; this is where real phpPgAdmin
-# discloses its version — an `<h1>phpPgAdmin <ver></h1>` heading — NOT on the version-free frameset.
-# A scanner following the frame src lands here and lifts the version from the content where it really
-# lives. phpPgAdmin manages PostgreSQL, so this is coherent with the persona app db; it never names
-# MySQL. Served text/html; version is a dotted literal (no bare 6-digit run). Authored `low` severity.
+# Brand-new page: the phpPgAdmin intro.php content frame. The /phppgadmin/ frameset (371) points its
+# detail frame at intro.php; this is where real phpPgAdmin discloses its version. phpPgAdmin manages
+# PostgreSQL, coherent with the persona app db; it never names MySQL. Served text/html; version is a
+# dotted literal (no bare 6-digit run). Self-contained inline CSS (FP-0526: no external theme asset —
+# redirect_canonical 301s it). CSS re-derived, never vendored.
+#
+# FP-0528: the compiled route_key 'GET /phppgadmin/intro.php' ALSO carries the corpus `phppgadmin`
+# detection bundle (tag phppgadmin-version, a regex-witness that renders a ~70-byte minimal). Both it and
+# this template are co-candidates and PersonaSelector::pick weights them (default w=1), so a seed could
+# land on the minimal. A high `weight` makes this styled page win deterministically on every seed. The
+# body KEEPS the `<span class="appname">phpPgAdmin</span> <span class="version">…</span>` topbar so a
+# scanner matching the phppgadmin-version string still matches, now inside the real styled content frame.
 new_page:
   method: GET
   paths: ['/phppgadmin/intro.php']
   sig: 0
   status: 200
   severity: low
+  weight: 100000
   tags: [phppgadmin, postgres, panel, version, disclosure]
   name: 'phpPgAdmin intro (version disclosure)'
   body_words: ['phpPgAdmin']
@@ -26,6 +33,9 @@ response:
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
     <style>
     body{margin:0;padding:0;font-family:Verdana,Arial,Helvetica,sans-serif;font-size:11px;color:#000;background:#fff}
+    #topbar{background:#e8e8e8;border-bottom:1px solid #ccc;padding:6px 10px;font-size:12px}
+    #topbar .appname{font-weight:bold;color:#444}
+    #topbar .version{color:#777}
     #intro{margin:10px}
     h1{font-size:18px;font-weight:bold;color:#444;border-bottom:1px solid #ccc;padding-bottom:6px;margin:0 0 12px}
     p{margin:8px 0}
@@ -36,6 +46,7 @@ response:
     </style>
     </head>
     <body>
+    <div id="topbar"><span class="appname">phpPgAdmin</span> <span class="version">7.13.0</span></div>
     <div id="intro">
     <h1>phpPgAdmin 7.13.0</h1>
     <p>Welcome to phpPgAdmin.</p>
@@ -49,5 +60,6 @@ response:
     </html>
 taunt: { mode: block, open: '<!--', close: '-->' }
 expect:
+  - '<span class="appname">phpPgAdmin</span> <span class="version">7.13.0</span>'
   - '<h1>phpPgAdmin 7.13.0</h1>'
   - 'PostgreSQL Documentation'
