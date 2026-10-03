@@ -1,0 +1,72 @@
+id: route-biotime-login
+priority: 416
+# FP-0529: styled BioTime login for the shared poly-stack /login/ path; weight:100000 so a styled
+# product login wins over the corpus minimal (PersonaSelector). Self-contained inline CSS + SVG
+# (FP-0526). Re-derived, never vendored.
+new_page:
+  method: GET
+  paths: ['/login/', '/login']
+  sig: 0
+  status: 200
+  severity: low
+  weight: 100000
+  tags: [biotime, panel, login, exposure]
+  name: 'BioTime login'
+  body_words: ['BioTime']
+response:
+  headers:
+    Content-Type: "text/html; charset=utf-8"
+  body: |
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="robots" content="noindex,nofollow">
+    <title>BioTime</title>
+    <style>
+    :root{color-scheme:light}
+    *{box-sizing:border-box}
+    body{margin:0;min-height:100vh;font-family:"Segoe UI",Tahoma,Helvetica,Arial,sans-serif;background:#eef2f7;color:#2c3e50;display:flex;align-items:center;justify-content:center;padding:1.5rem}
+    .login{width:100%;max-width:23rem;background:#fff;border-radius:.4rem;box-shadow:0 .4rem 1.2rem rgba(31,45,61,.15);overflow:hidden}
+    .login-head{background:#1f8acb;color:#fff;padding:1.4rem 1.5rem;text-align:center}
+    .login-head svg{width:44px;height:44px;vertical-align:middle}
+    .login-head .name{font-size:1.5rem;font-weight:700;letter-spacing:.5px;margin-left:.4rem;vertical-align:middle}
+    .login-head .sub{display:block;font-size:.8rem;opacity:.85;margin-top:.3rem}
+    .login-body{padding:1.5rem}
+    .field{margin-bottom:1rem}
+    label{display:block;margin-bottom:.35rem;font-size:.85rem;color:#5a6b7b}
+    input{display:block;width:100%;padding:.55rem .7rem;border:1px solid #ccd6df;border-radius:.25rem;font-size:1rem}
+    .btn{width:100%;padding:.6rem;border:0;border-radius:.25rem;background:#1f8acb;color:#fff;font-size:1rem;cursor:pointer}
+    .btn:hover{background:#2499e0}
+    .foot{padding:.7rem 1.5rem;text-align:center;font-size:.75rem;color:#8a98a6;background:#f6f8fa}
+    </style>
+    </head>
+    <body>
+    <div class="login">
+    <div class="login-head">
+    <svg viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg" aria-label="BioTime"><circle cx="24" cy="24" r="22" fill="#fff" opacity=".15"/><circle cx="24" cy="24" r="17" fill="none" stroke="#fff" stroke-width="2.5"/><path d="M24 13v11l7 5" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round"/></svg>
+    <span class="name">BioTime</span>
+    <span class="sub">Time &amp; Attendance Management</span>
+    </div>
+    <div class="login-body">
+    <form method="post" action="/login/">
+    <div class="field">
+    <label for="username">Username</label>
+    <input type="text" id="username" name="username" autocomplete="username" autofocus>
+    </div>
+    <div class="field">
+    <label for="password">Password</label>
+    <input type="password" id="password" name="password" autocomplete="current-password">
+    </div>
+    <button type="submit" class="btn">Sign In</button>
+    </form>
+    </div>
+    <div class="foot">BioTime &middot; ZKTeco</div>
+    </div>
+    </body>
+    </html>
+taunt: { mode: block, open: '<!--', close: '-->' }
+expect:
+  - '<title>BioTime</title>'
+  - 'name="username"'

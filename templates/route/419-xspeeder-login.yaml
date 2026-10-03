@@ -1,0 +1,70 @@
+id: route-xspeeder-login
+priority: 419
+# FP-0529: styled router-admin login for the shared poly-stack /login/ path; weight:100000 so a styled
+# product login wins over the corpus minimal (PersonaSelector). Self-contained inline CSS + SVG
+# (FP-0526). Re-derived, never vendored.
+new_page:
+  method: GET
+  paths: ['/login/', '/login']
+  sig: 0
+  status: 200
+  severity: low
+  weight: 100000
+  tags: [xspeeder, panel, login, exposure]
+  name: 'Router admin login'
+  body_words: ['路由']
+response:
+  headers:
+    Content-Type: "text/html; charset=utf-8"
+  body: |
+    <!DOCTYPE html>
+    <html lang="zh-CN">
+    <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="robots" content="noindex,nofollow">
+    <title>神行者路由</title>
+    <style>
+    :root{color-scheme:light}
+    *{box-sizing:border-box}
+    body{margin:0;min-height:100vh;font-family:"Microsoft YaHei","PingFang SC",Tahoma,Helvetica,Arial,sans-serif;background:#2b6cb0;background:linear-gradient(135deg,#2b6cb0,#1a3d6b);color:#2c3e50;display:flex;align-items:center;justify-content:center;padding:1.5rem}
+    .box{width:100%;max-width:22rem;background:#fff;border-radius:.4rem;box-shadow:0 .5rem 1.4rem rgba(0,0,0,.3);overflow:hidden}
+    .head{background:#f4f7fb;border-bottom:1px solid #e2e8f0;padding:1.3rem 1.5rem;text-align:center}
+    .head svg{width:40px;height:40px;vertical-align:middle}
+    .head .name{font-size:1.25rem;font-weight:700;color:#2b6cb0;margin-left:.4rem;vertical-align:middle}
+    .body{padding:1.5rem}
+    .field{margin-bottom:1rem}
+    label{display:block;margin-bottom:.35rem;font-size:.85rem;color:#5a6b7b}
+    input{display:block;width:100%;padding:.55rem .7rem;border:1px solid #cbd5e0;border-radius:.25rem;font-size:1rem}
+    .btn{width:100%;padding:.6rem;border:0;border-radius:.25rem;background:#2b6cb0;color:#fff;font-size:1rem;cursor:pointer}
+    .btn:hover{background:#3182ce}
+    .foot{padding:.7rem 1.5rem;text-align:center;font-size:.75rem;color:#9aa4b2;background:#f4f7fb}
+    </style>
+    </head>
+    <body>
+    <div class="box">
+    <div class="head">
+    <svg viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg" aria-label="router"><rect x="6" y="26" width="36" height="14" rx="3" fill="#2b6cb0"/><circle cx="14" cy="33" r="2" fill="#fff"/><circle cx="22" cy="33" r="2" fill="#fff"/><path d="M24 22V12" stroke="#2b6cb0" stroke-width="2.5" stroke-linecap="round"/><path d="M17 15a10 10 0 0 1 14 0" fill="none" stroke="#2b6cb0" stroke-width="2.5" stroke-linecap="round"/><path d="M13 11a16 16 0 0 1 22 0" fill="none" stroke="#2b6cb0" stroke-width="2.5" stroke-linecap="round"/></svg>
+    <span class="name">神行者路由</span>
+    </div>
+    <div class="body">
+    <form method="post" action="/login/">
+    <div class="field">
+    <label for="username">用户名 Username</label>
+    <input type="text" id="username" name="username" autocomplete="username" autofocus>
+    </div>
+    <div class="field">
+    <label for="password">密码 Password</label>
+    <input type="password" id="password" name="password" autocomplete="current-password">
+    </div>
+    <button type="submit" class="btn">登录</button>
+    </form>
+    </div>
+    <div class="foot">神行者路由管理系统</div>
+    </div>
+    </body>
+    </html>
+taunt: { mode: block, open: '<!--', close: '-->' }
+expect:
+  - '<title>神行者路由</title>'
+  - 'name="username"'

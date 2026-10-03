@@ -13,10 +13,10 @@ return array (
     'license' => 'MIT (c) 2025 ProjectDiscovery, Inc.',
     'upstream_tag' => '2ec914123864439c3618e7e9ae72d32d0eb56df7',
     'upstream_sha' => '2ec914123864439c3618e7e9ae72d32d0eb56df7',
-    'source_tree' => 'b720ebf63c9854fb6c9c801b67f729faae10204a5e75b4083603b785335c8a7f',
+    'source_tree' => '99d85444a11408778c57c3264afaa9a5715ad67cad29e7894815c5de251dd0ce',
     'templates_seen' => 11196,
     'templates_in' => 6363,
-    'templates_indexed' => 6497,
+    'templates_indexed' => 6507,
     'route_keys' => 5367,
     'multi_bundle_keys' => 277,
     'largest_bundle_count' => 1324,
@@ -85653,6 +85653,126 @@ return array (
         2 => 'discovery',
       ),
       'name' => 'Exposed auth endpoint (401)',
+    ),
+    'route-airflow-login' => 
+    array (
+      'sev' => 'low',
+      'tags' => 
+      array (
+        0 => 'airflow',
+        1 => 'panel',
+        2 => 'login',
+        3 => 'exposure',
+      ),
+      'name' => 'Apache Airflow login',
+    ),
+    'route-octoprint-login' => 
+    array (
+      'sev' => 'low',
+      'tags' => 
+      array (
+        0 => 'octoprint',
+        1 => 'panel',
+        2 => 'login',
+        3 => 'exposure',
+      ),
+      'name' => 'OctoPrint login',
+    ),
+    'route-wagtail-login' => 
+    array (
+      'sev' => 'low',
+      'tags' => 
+      array (
+        0 => 'wagtail',
+        1 => 'panel',
+        2 => 'login',
+        3 => 'exposure',
+      ),
+      'name' => 'Wagtail login',
+    ),
+    'route-vmware-cloud-director-login' => 
+    array (
+      'sev' => 'low',
+      'tags' => 
+      array (
+        0 => 'vmware',
+        1 => 'panel',
+        2 => 'login',
+        3 => 'exposure',
+      ),
+      'name' => 'VMware Cloud Director login',
+    ),
+    'route-hestia-login' => 
+    array (
+      'sev' => 'low',
+      'tags' => 
+      array (
+        0 => 'hestia',
+        1 => 'panel',
+        2 => 'login',
+        3 => 'exposure',
+      ),
+      'name' => 'Hestia Control Panel login',
+    ),
+    'route-security-onion-login' => 
+    array (
+      'sev' => 'low',
+      'tags' => 
+      array (
+        0 => 'securityonion',
+        1 => 'panel',
+        2 => 'login',
+        3 => 'exposure',
+      ),
+      'name' => 'Security Onion login',
+    ),
+    'route-biotime-login' => 
+    array (
+      'sev' => 'low',
+      'tags' => 
+      array (
+        0 => 'biotime',
+        1 => 'panel',
+        2 => 'login',
+        3 => 'exposure',
+      ),
+      'name' => 'BioTime login',
+    ),
+    'route-bynder-login' => 
+    array (
+      'sev' => 'low',
+      'tags' => 
+      array (
+        0 => 'bynder',
+        1 => 'panel',
+        2 => 'login',
+        3 => 'exposure',
+      ),
+      'name' => 'Bynder login',
+    ),
+    'route-falcosidekick-login' => 
+    array (
+      'sev' => 'low',
+      'tags' => 
+      array (
+        0 => 'falcosidekick',
+        1 => 'panel',
+        2 => 'login',
+        3 => 'exposure',
+      ),
+      'name' => 'Falcosidekick login',
+    ),
+    'route-xspeeder-login' => 
+    array (
+      'sev' => 'low',
+      'tags' => 
+      array (
+        0 => 'xspeeder',
+        1 => 'panel',
+        2 => 'login',
+        3 => 'exposure',
+      ),
+      'name' => 'Router admin login',
     ),
     'route-phpinfo' => 
     array (
@@ -194029,6 +194149,16 @@ a</title>',
         123 => 'vmware-ftp-server',
         124 => 'vrealize-loginsight-panel',
         125 => 'zenml-dashboard-panel',
+        126 => 'route-airflow-login',
+        127 => 'route-octoprint-login',
+        128 => 'route-wagtail-login',
+        129 => 'route-vmware-cloud-director-login',
+        130 => 'route-hestia-login',
+        131 => 'route-security-onion-login',
+        132 => 'route-biotime-login',
+        133 => 'route-bynder-login',
+        134 => 'route-falcosidekick-login',
+        135 => 'route-xspeeder-login',
       ),
       'b' => 
       array (
@@ -195274,6 +195404,206 @@ a</title>',
             0 => 'quivr-panel',
           ),
           'w' => 2,
+        ),
+        40 => 
+        array (
+          's' => 200,
+          'bw' => 
+          array (
+            0 => 'Airflow',
+          ),
+          'nf' => 
+          array (
+          ),
+          'pid' => 'route-airflow-login',
+          'sev' => 'low',
+          'sig' => 0,
+          'amb' => 0,
+          't' => 
+          array (
+            0 => 'route-airflow-login',
+          ),
+          'w' => 8,
+        ),
+        41 => 
+        array (
+          's' => 200,
+          'bw' => 
+          array (
+            0 => 'OctoPrint',
+          ),
+          'nf' => 
+          array (
+          ),
+          'pid' => 'route-octoprint-login',
+          'sev' => 'low',
+          'sig' => 0,
+          'amb' => 0,
+          't' => 
+          array (
+            0 => 'route-octoprint-login',
+          ),
+          'w' => 8,
+        ),
+        42 => 
+        array (
+          's' => 200,
+          'bw' => 
+          array (
+            0 => 'Wagtail',
+          ),
+          'nf' => 
+          array (
+          ),
+          'pid' => 'route-wagtail-login',
+          'sev' => 'low',
+          'sig' => 0,
+          'amb' => 0,
+          't' => 
+          array (
+            0 => 'route-wagtail-login',
+          ),
+          'w' => 8,
+        ),
+        43 => 
+        array (
+          's' => 200,
+          'bw' => 
+          array (
+            0 => 'VMware',
+          ),
+          'nf' => 
+          array (
+          ),
+          'pid' => 'route-vmware-cloud-director-login',
+          'sev' => 'low',
+          'sig' => 0,
+          'amb' => 0,
+          't' => 
+          array (
+            0 => 'route-vmware-cloud-director-login',
+          ),
+          'w' => 8,
+        ),
+        44 => 
+        array (
+          's' => 200,
+          'bw' => 
+          array (
+            0 => 'Hestia',
+          ),
+          'nf' => 
+          array (
+          ),
+          'pid' => 'route-hestia-login',
+          'sev' => 'low',
+          'sig' => 0,
+          'amb' => 0,
+          't' => 
+          array (
+            0 => 'route-hestia-login',
+          ),
+          'w' => 8,
+        ),
+        45 => 
+        array (
+          's' => 200,
+          'bw' => 
+          array (
+            0 => 'Security',
+          ),
+          'nf' => 
+          array (
+          ),
+          'pid' => 'route-security-onion-login',
+          'sev' => 'low',
+          'sig' => 0,
+          'amb' => 0,
+          't' => 
+          array (
+            0 => 'route-security-onion-login',
+          ),
+          'w' => 8,
+        ),
+        46 => 
+        array (
+          's' => 200,
+          'bw' => 
+          array (
+            0 => 'BioTime',
+          ),
+          'nf' => 
+          array (
+          ),
+          'pid' => 'route-biotime-login',
+          'sev' => 'low',
+          'sig' => 0,
+          'amb' => 0,
+          't' => 
+          array (
+            0 => 'route-biotime-login',
+          ),
+          'w' => 8,
+        ),
+        47 => 
+        array (
+          's' => 200,
+          'bw' => 
+          array (
+            0 => 'Bynder',
+          ),
+          'nf' => 
+          array (
+          ),
+          'pid' => 'route-bynder-login',
+          'sev' => 'low',
+          'sig' => 0,
+          'amb' => 0,
+          't' => 
+          array (
+            0 => 'route-bynder-login',
+          ),
+          'w' => 8,
+        ),
+        48 => 
+        array (
+          's' => 200,
+          'bw' => 
+          array (
+            0 => 'falcosidekick',
+          ),
+          'nf' => 
+          array (
+          ),
+          'pid' => 'route-falcosidekick-login',
+          'sev' => 'low',
+          'sig' => 0,
+          'amb' => 0,
+          't' => 
+          array (
+            0 => 'route-falcosidekick-login',
+          ),
+          'w' => 8,
+        ),
+        49 => 
+        array (
+          's' => 200,
+          'bw' => 
+          array (
+            0 => '路由',
+          ),
+          'nf' => 
+          array (
+          ),
+          'pid' => 'route-xspeeder-login',
+          'sev' => 'low',
+          'sig' => 0,
+          'amb' => 0,
+          't' => 
+          array (
+            0 => 'route-xspeeder-login',
+          ),
+          'w' => 8,
         ),
       ),
     ),
@@ -197888,6 +198218,206 @@ a</title>',
           array (
             0 => 'xspeeder-login',
           ),
+        ),
+        12 => 
+        array (
+          's' => 200,
+          'bw' => 
+          array (
+            0 => 'Airflow',
+          ),
+          'nf' => 
+          array (
+          ),
+          'pid' => 'route-airflow-login',
+          'sev' => 'low',
+          'sig' => 0,
+          'amb' => 0,
+          't' => 
+          array (
+            0 => 'route-airflow-login',
+          ),
+          'w' => 100000,
+        ),
+        13 => 
+        array (
+          's' => 200,
+          'bw' => 
+          array (
+            0 => 'OctoPrint',
+          ),
+          'nf' => 
+          array (
+          ),
+          'pid' => 'route-octoprint-login',
+          'sev' => 'low',
+          'sig' => 0,
+          'amb' => 0,
+          't' => 
+          array (
+            0 => 'route-octoprint-login',
+          ),
+          'w' => 100000,
+        ),
+        14 => 
+        array (
+          's' => 200,
+          'bw' => 
+          array (
+            0 => 'Wagtail',
+          ),
+          'nf' => 
+          array (
+          ),
+          'pid' => 'route-wagtail-login',
+          'sev' => 'low',
+          'sig' => 0,
+          'amb' => 0,
+          't' => 
+          array (
+            0 => 'route-wagtail-login',
+          ),
+          'w' => 100000,
+        ),
+        15 => 
+        array (
+          's' => 200,
+          'bw' => 
+          array (
+            0 => 'VMware',
+          ),
+          'nf' => 
+          array (
+          ),
+          'pid' => 'route-vmware-cloud-director-login',
+          'sev' => 'low',
+          'sig' => 0,
+          'amb' => 0,
+          't' => 
+          array (
+            0 => 'route-vmware-cloud-director-login',
+          ),
+          'w' => 100000,
+        ),
+        16 => 
+        array (
+          's' => 200,
+          'bw' => 
+          array (
+            0 => 'Hestia',
+          ),
+          'nf' => 
+          array (
+          ),
+          'pid' => 'route-hestia-login',
+          'sev' => 'low',
+          'sig' => 0,
+          'amb' => 0,
+          't' => 
+          array (
+            0 => 'route-hestia-login',
+          ),
+          'w' => 100000,
+        ),
+        17 => 
+        array (
+          's' => 200,
+          'bw' => 
+          array (
+            0 => 'Security',
+          ),
+          'nf' => 
+          array (
+          ),
+          'pid' => 'route-security-onion-login',
+          'sev' => 'low',
+          'sig' => 0,
+          'amb' => 0,
+          't' => 
+          array (
+            0 => 'route-security-onion-login',
+          ),
+          'w' => 100000,
+        ),
+        18 => 
+        array (
+          's' => 200,
+          'bw' => 
+          array (
+            0 => 'BioTime',
+          ),
+          'nf' => 
+          array (
+          ),
+          'pid' => 'route-biotime-login',
+          'sev' => 'low',
+          'sig' => 0,
+          'amb' => 0,
+          't' => 
+          array (
+            0 => 'route-biotime-login',
+          ),
+          'w' => 100000,
+        ),
+        19 => 
+        array (
+          's' => 200,
+          'bw' => 
+          array (
+            0 => 'Bynder',
+          ),
+          'nf' => 
+          array (
+          ),
+          'pid' => 'route-bynder-login',
+          'sev' => 'low',
+          'sig' => 0,
+          'amb' => 0,
+          't' => 
+          array (
+            0 => 'route-bynder-login',
+          ),
+          'w' => 100000,
+        ),
+        20 => 
+        array (
+          's' => 200,
+          'bw' => 
+          array (
+            0 => 'falcosidekick',
+          ),
+          'nf' => 
+          array (
+          ),
+          'pid' => 'route-falcosidekick-login',
+          'sev' => 'low',
+          'sig' => 0,
+          'amb' => 0,
+          't' => 
+          array (
+            0 => 'route-falcosidekick-login',
+          ),
+          'w' => 100000,
+        ),
+        21 => 
+        array (
+          's' => 200,
+          'bw' => 
+          array (
+            0 => '路由',
+          ),
+          'nf' => 
+          array (
+          ),
+          'pid' => 'route-xspeeder-login',
+          'sev' => 'low',
+          'sig' => 0,
+          'amb' => 0,
+          't' => 
+          array (
+            0 => 'route-xspeeder-login',
+          ),
+          'w' => 100000,
         ),
       ),
     ),
