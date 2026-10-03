@@ -424,12 +424,15 @@ final class CpsrvdLoginOracleTest extends TestCase
 
     public function test_submitted_username_is_never_reflected_in_either_branch(): void
     {
-        $json = $this->emulator()->emulate(new RequestContext('POST', '/login/', 'login_only=1', [], 'user=root&pass=x'));
-        $html = $this->emulator()->emulate(new RequestContext('POST', '/login/', '', [], 'user=root&pass=x'));
+        // A distinctive sentinel, not a common word: the body legitimately contains boilerplate like
+        // the CSS `:root` selector, so a generic probe would false-positive without proving reflection.
+        $probe = 'Xreflprobe4242X';
+        $json = $this->emulator()->emulate(new RequestContext('POST', '/login/', 'login_only=1', [], 'user=' . $probe . '&pass=x'));
+        $html = $this->emulator()->emulate(new RequestContext('POST', '/login/', '', [], 'user=' . $probe . '&pass=x'));
         self::assertNotNull($json);
         self::assertNotNull($html);
-        self::assertStringNotContainsString('root', $json->body);
-        self::assertStringNotContainsString('root', $html->body);
+        self::assertStringNotContainsString($probe, $json->body);
+        self::assertStringNotContainsString($probe, $html->body);
     }
 
     public function test_crafted_username_never_surfaces_in_either_branch(): void
