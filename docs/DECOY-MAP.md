@@ -116,7 +116,7 @@ mindmap
 | cms | 4 | new-page:4 | 4 | 0 | high | &mdash; |
 | config-disclosure | 12 | new-page:12 | 12 | 0 | high | &mdash; |
 | confluence | 1 | attack:1 | 0 | 0 | critical | &mdash; |
-| cpanel | 2 | attack:1 new-page:1 | 2 | 2 | high | accepted, info |
+| cpanel | 2 | attack:1 new-page:1 | 2 | 1 | high | info |
 | credentials | 3 | new-page:3 | 3 | 0 | high | &mdash; |
 | crlf | 1 | attack:1 | 0 | 0 | low | &mdash; |
 | database | 4 | new-page:4 | 4 | 0 | high | &mdash; |
