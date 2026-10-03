@@ -2,6 +2,13 @@ id: route-joomla
 priority: 150
 # Joomla administrator login — dresses the existing joomla-panel bundle. The generator
 # meta tag is the exact marker the nuclei template looks for.
+#
+# FP-0520: faithful clone of the real Joomla 4/5 Atum administrator login — the Joomla logo, the
+# centered login card, the real field names (username/passwd) plus the real hidden login fields
+# (option=com_login, task=login, return, the CSRF token-name=1), and the "Return to site home page"
+# link. Self-contained inline CSS (no external template asset — an unowned /administrator/templates/
+# path is 301'd by WordPress redirect_canonical and never loads, FP-0526). CSS/logo re-derived, never
+# vendored (Joomla is GPL). Version stays unprinted, as a default Joomla admin login does.
 match:
   template_needle: [joomla-panel]
 set_cookie: PHPSESSID
@@ -10,16 +17,56 @@ response:
     Content-Type: "text/html; charset=utf-8"
   body: |
     <!DOCTYPE html>
-    <html><head>
+    <html lang="en-GB" dir="ltr">
+    <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="generator" content="Joomla! - Open Source Content Management" />
+    <meta name="robots" content="noindex,nofollow">
     <title>Administration - Login</title>
+    <style>
+    :root{color-scheme:light}
+    *{box-sizing:border-box}
+    body{margin:0;min-height:100vh;font-family:"Roboto",-apple-system,"Segoe UI",Helvetica,Arial,sans-serif;background:#1a3867;background:linear-gradient(135deg,#1a3867,#0d1f3c);color:#1b1b1b;display:flex;align-items:center;justify-content:center;padding:1.5rem}
+    .login{width:100%;max-width:23rem}
+    .login-brand{text-align:center;margin-bottom:1.25rem}
+    .login-brand svg{width:56px;height:56px}
+    .login-card{background:#fff;border-radius:.5rem;box-shadow:0 .5rem 1.5rem rgba(0,0,0,.3);padding:1.75rem 1.5rem}
+    .login-card h1{font-size:1.1rem;font-weight:500;text-align:center;margin:0 0 1.25rem;color:#15181d}
+    .control{position:relative;margin-bottom:1rem}
+    .control .ico{position:absolute;left:.7rem;top:50%;transform:translateY(-50%);color:#6b7280;font-style:normal}
+    .control input{width:100%;padding:.6rem .75rem .6rem 2.2rem;border:1px solid #cfd4da;border-radius:.3rem;font-size:1rem}
+    .btn{width:100%;padding:.6rem;border:0;border-radius:.3rem;background:#2a69b8;color:#fff;font-size:1rem;cursor:pointer}
+    .btn:hover{background:#2f76cf}
+    .home{display:block;text-align:center;margin-top:1.1rem}
+    .home a{color:#cfe0f5;font-size:.9rem;text-decoration:none}
+    .home a:hover{text-decoration:underline}
+    </style>
     </head>
-    <body>
+    <body class="com_login view-login layout-default">
+    <div class="login">
+    <div class="login-brand">
+    <svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg" aria-label="Joomla"><circle cx="32" cy="32" r="30" fill="#fff"/><path d="M30 14c-5 0-9 4-9 9 0 2 .7 3.8 1.9 5.2L34 40.3c1 1 1 1.6 0 2.6-1 1-2.6 1-3.6 0l-2-2-5 5 2 2c3.8 3.8 10 3.8 13.8 0 3.3-3.3 3.7-8.3 1.3-12L28.9 26.5c-.6-.6-.9-1.4-.9-2.3 0-1.8 1.5-3.2 3.2-3.2.9 0 1.7.3 2.3.9l2 2 5-5-2-2C38.7 15.2 36.4 14 34 14h-4z" fill="#f44321"/></svg>
+    </div>
+    <div class="login-card">
+    <h1>Log in to access your account</h1>
     <form action="/administrator/index.php" method="post">
-    <input name="username" type="text" />
-    <input name="passwd" type="password" />
-    <button type="submit">Log in</button>
+    <div class="control"><span class="ico">&#128100;</span><input name="username" type="text" placeholder="Username" autocomplete="username" autofocus></div>
+    <div class="control"><span class="ico">&#128274;</span><input name="passwd" type="password" placeholder="Password" autocomplete="current-password"></div>
+    <button type="submit" class="btn">Log in</button>
+    <input type="hidden" name="option" value="com_login">
+    <input type="hidden" name="task" value="login">
+    <input type="hidden" name="return" value="aW5kZXgucGhw">
+    <input type="hidden" name="{{fake.joomla_csrf:hex:32}}" value="1">
     </form>
-    </body></html>
+    </div>
+    <div class="home"><a href="/">&#8592; Return to site home page</a></div>
+    </div>
+    </body>
+    </html>
 taunt: { mode: block, open: '<!--', close: '-->' }
-expect: ['content="Joomla! - Open Source Content Management"']
+expect:
+  - 'content="Joomla! - Open Source Content Management"'
+  - 'name="passwd"'
+  - 'name="option" value="com_login"'
+  - 'Log in'

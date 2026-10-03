@@ -30,21 +30,48 @@ response:
     <html lang="en">
     <head>
       <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1">
       <title>{{persona.company.name}} Admin</title>
+      <style>
+      :root{color-scheme:light}
+      *{box-sizing:border-box}
+      body{margin:0;font-family:-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;background:#f4f5f7;color:#1f2733}
+      header.topbar{background:#1f2733;color:#fff;padding:.9rem 1.5rem;display:flex;align-items:center;justify-content:space-between}
+      header.topbar .title{font-size:1.1rem;font-weight:600}
+      header.topbar .who{font-size:.85rem;color:#b7c0cd}
+      .layout{display:flex;min-height:calc(100vh - 3.4rem)}
+      nav.side{width:15rem;background:#fff;border-right:1px solid #e3e7ec;padding:1rem 0}
+      nav.side ul{list-style:none;margin:0;padding:0}
+      nav.side a{display:block;padding:.6rem 1.5rem;color:#334;text-decoration:none;font-size:.95rem}
+      nav.side a:hover{background:#eef1f5}
+      main{flex:1;padding:1.5rem}
+      main h1{font-size:1.3rem;margin:0 0 1rem}
+      .card{background:#fff;border:1px solid #e3e7ec;border-radius:.4rem;padding:1.1rem 1.25rem;max-width:34rem}
+      </style>
     </head>
     <body>
-      <h1>{{persona.company.name}} Dashboard</h1>
-      <nav>
-        <ul>
-          <li><a href="/admin/{{surface.noun:c1}}">Admin: {{surface.noun:c1}}</a></li>
-          <li><a href="/admin/{{surface.noun:c2}}">Admin: {{surface.noun:c2}}</a></li>
-          <li><a href="/api">API</a></li>
-          <li><a href="/webhooks">Webhooks</a></li>
-          <li><a href="/status">Status</a></li>
-          <li><a href="/metrics">Metrics</a></li>
-        </ul>
-      </nav>
-      <p>Signed in as {{persona.user.admin.email}}.</p>
+      <header class="topbar">
+        <span class="title">{{persona.company.name}} Admin</span>
+        <span class="who">{{persona.user.admin.email}}</span>
+      </header>
+      <div class="layout">
+        <nav class="side">
+          <ul>
+            <li><a href="/admin/{{surface.noun:c1}}">{{surface.noun:c1}}</a></li>
+            <li><a href="/admin/{{surface.noun:c2}}">{{surface.noun:c2}}</a></li>
+            <li><a href="/api">API</a></li>
+            <li><a href="/webhooks">Webhooks</a></li>
+            <li><a href="/status">Status</a></li>
+            <li><a href="/metrics">Metrics</a></li>
+          </ul>
+        </nav>
+        <main>
+          <h1>{{persona.company.name}} Dashboard</h1>
+          <div class="card">
+            <p>Signed in as {{persona.user.admin.email}}.</p>
+          </div>
+        </main>
+      </div>
     </body>
     </html>
 taunt: { mode: block, open: '<!--', close: '-->' }

@@ -5,6 +5,13 @@ priority: 381
 # pgAdmin fronts PostgreSQL, so this panel is coherent with the persona app db (like phpPgAdmin); it
 # never names MySQL. A fresh `pga4_session` cookie per request. Version is a dotted literal (no bare
 # 6-digit run).
+#
+# FP-0521/FP-0522: the real pgAdmin 4 login is a React SPA (an empty #root filled by a JS bundle) —
+# a JS-less honeypot cannot serve that shell without a blank page + a 404 bundle (a tell), so this is
+# a faithful STATIC render of the post-JS login: the pgAdmin wordmark, the blue card with Email/Password,
+# the forgotten-password link, language select and Login button. Self-contained inline CSS (no external
+# stylesheet — on the WordPress host an unowned /pgadmin4/static/css path is 301'd by redirect_canonical
+# and never loads, FP-0526). CSS re-derived, never vendored.
 new_page:
   method: GET
   paths: ['/pgadmin4/', '/pgadmin4/login']
@@ -24,30 +31,60 @@ response:
     <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <meta name="robots" content="noindex,nofollow">
     <title>pgAdmin 4</title>
-    <link rel="icon" href="/pgadmin4/static/img/favicon.ico">
-    <link rel="stylesheet" href="/pgadmin4/static/css/style.css">
+    <style>
+    :root{color-scheme:light}
+    *{box-sizing:border-box}
+    body{margin:0;min-height:100vh;font-family:"Helvetica Neue",Helvetica,Arial,sans-serif;background:#326690;color:#fff;display:flex;align-items:center;justify-content:center;padding:1.5rem}
+    .login-card{width:100%;max-width:25rem;background:#3a6d94;border-radius:.25rem;box-shadow:0 .25rem 1rem rgba(0,0,0,.25);overflow:hidden}
+    .card-header{padding:1.25rem 1.5rem .25rem;text-align:center}
+    .brand{font-size:1.6rem;font-weight:700;letter-spacing:.5px}
+    .brand .pg{background:#fff;color:#326690;padding:0 .2em;border-radius:.15em}
+    .card-header h4{font-weight:400;font-size:1.15rem;margin:.6rem 0 0}
+    .card-body{padding:1.25rem 1.5rem 1.5rem}
+    .form-group{margin-bottom:1rem}
+    .form-control{display:block;width:100%;padding:.5rem .75rem;border:1px solid rgba(255,255,255,.4);border-radius:.25rem;background:#fff;color:#212529;font-size:1rem}
+    label{display:block;margin-bottom:.35rem;font-size:.9rem}
+    .forgot{display:block;text-align:right;color:#cfe3f2;font-size:.85rem;margin:-.5rem 0 1rem;text-decoration:none}
+    .forgot:hover{text-decoration:underline}
+    select.form-control{appearance:auto}
+    .btn-primary{display:block;width:100%;padding:.55rem;border:0;border-radius:.25rem;background:#2e7fb0;color:#fff;font-size:1rem;cursor:pointer}
+    .btn-primary:hover{background:#3690c4}
+    .card-footer{padding:.6rem 1.5rem;text-align:center;font-size:.75rem;color:#cfe3f2;background:rgba(0,0,0,.12)}
+    </style>
     </head>
     <body>
-    <div id="pgadmin-preloader"><div class="pg-sp-container"><div class="pg-sp-content"></div></div></div>
-    <div class="container">
-    <div class="card login-card">
-    <div class="card-header"><h4>pgAdmin 4</h4></div>
+    <div class="login-card">
+    <div class="card-header">
+    <div class="brand"><span class="pg">pg</span>Admin</div>
+    <h4>Login</h4>
+    </div>
     <div class="card-body">
     <form method="post" action="/pgadmin4/login" id="login-form" novalidate>
     <div class="form-group">
     <label for="email">Email Address / Username</label>
-    <input type="text" class="form-control" id="email" name="email" placeholder="Email Address / Username" required autofocus>
+    <input type="text" class="form-control" id="email" name="email" placeholder="Email Address / Username" required autofocus autocomplete="username">
     </div>
     <div class="form-group">
     <label for="password">Password</label>
-    <input type="password" class="form-control" id="password" name="password" placeholder="Password" required>
+    <input type="password" class="form-control" id="password" name="password" placeholder="Password" required autocomplete="current-password">
+    </div>
+    <a class="forgot" href="/pgadmin4/forgot_password">Forgotten your password?</a>
+    <div class="form-group">
+    <select class="form-control" name="language" aria-label="Language">
+    <option value="en" selected>English</option>
+    <option value="de">German (Deutsch)</option>
+    <option value="fr">French (Français)</option>
+    <option value="es">Spanish (Español)</option>
+    <option value="ja">Japanese (日本語)</option>
+    <option value="zh">Chinese (Simplified) (简体中文)</option>
+    </select>
     </div>
     <button type="submit" class="btn btn-primary">Login</button>
     </form>
     </div>
     <div class="card-footer">pgAdmin 4 Version 8.5</div>
-    </div>
     </div>
     </body>
     </html>
@@ -55,3 +92,5 @@ taunt: { mode: block, open: '<!--', close: '-->' }
 expect:
   - '<title>pgAdmin 4</title>'
   - 'Version 8.5'
+  - '>Login</button>'
+  - 'name="email"'

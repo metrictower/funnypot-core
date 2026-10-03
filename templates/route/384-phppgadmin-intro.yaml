@@ -24,7 +24,16 @@ response:
     <head>
     <title>phpPgAdmin</title>
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-    <link rel="stylesheet" href="themes/default/global.css" type="text/css" />
+    <style>
+    body{margin:0;padding:0;font-family:Verdana,Arial,Helvetica,sans-serif;font-size:11px;color:#000;background:#fff}
+    #intro{margin:10px}
+    h1{font-size:18px;font-weight:bold;color:#444;border-bottom:1px solid #ccc;padding-bottom:6px;margin:0 0 12px}
+    p{margin:8px 0}
+    ul{margin:10px 0;padding-inline-start:22px}
+    li{margin:4px 0}
+    a{color:#007;text-decoration:none}
+    a:hover{text-decoration:underline}
+    </style>
     </head>
     <body>
     <div id="intro">

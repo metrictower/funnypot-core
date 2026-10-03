@@ -27,7 +27,23 @@ response:
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Login</title>
-    <link rel="stylesheet" href="/cpsess0000000000/styled/basic/css/cjt.css">
+    <style>
+    :root{color-scheme:light}
+    *{box-sizing:border-box}
+    body{margin:0;min-height:100vh;font-family:-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;background:linear-gradient(160deg,#133a5e,#071726);color:#1b1b1b;display:flex;align-items:center;justify-content:center;padding:1.5rem}
+    .login-container{width:100%;max-width:24rem;background:#fff;border-radius:.5rem;box-shadow:0 .5rem 1.5rem rgba(0,0,0,.35);padding:1.75rem 1.5rem}
+    .brand{text-align:center;margin-bottom:1.25rem}
+    .brand h1{margin:0;font-size:1.6rem;font-weight:700;color:#ff6c2c}
+    .brand .product{margin:.2rem 0 0;color:#555;font-size:.9rem}
+    .notice{font-size:.85rem;color:#666;text-align:center;margin:.75rem 0}
+    .notice.error{color:#9a2a2a;background:#f8d7da;border:1px solid #f5c2c7;border-radius:.3rem;padding:.5rem}
+    .form-group{margin-bottom:1rem}
+    .form-group label{display:block;margin-bottom:.3rem;font-size:.85rem;color:#333}
+    .form-group input{width:100%;padding:.55rem .7rem;border:1px solid #cfd4da;border-radius:.3rem;font-size:1rem}
+    .btn-primary{width:100%;padding:.6rem;border:0;border-radius:.3rem;background:#ff6c2c;color:#fff;font-size:1rem;font-weight:600;cursor:pointer}
+    .btn-primary:hover{background:#ff7f45}
+    .copyright{text-align:center;color:#888;font-size:.75rem;margin-top:1.1rem}
+    </style>
     </head>
     <body class="whm-login-page">
     <div id="whm_lm_container" class="login-container">
