@@ -16,6 +16,15 @@ response:
     <html>
     <head>
       <title>Console // Werkzeug Debugger</title>
+      <style>
+      body{margin:0;background:#f8f8f8;color:#000;font-family:"Lucida Grande","Lucida Sans Unicode",Verdana,sans-serif;font-size:15px}
+      div.debugger{background:#fff;padding:12px 30px 24px;margin:0}
+      h1{font-family:"Georgia","Times New Roman",serif;font-size:36px;font-weight:normal;color:#11557C;margin:18px 0 12px}
+      div.console{border:1px solid #ccc;padding:0;background:#fafafa;margin:0 0 12px}
+      div.console div.output{background:#fafafa;color:#222;font-family:"Consolas","Deja Vu Sans Mono","Bitstream Vera Sans Mono",monospace;font-size:13px;padding:10px 12px;white-space:pre-wrap}
+      div.footer{color:#86989B;font-size:13px;text-align:right;margin:10px 0 0}
+      span.fw{font-weight:bold;color:#11557C}
+      </style>
     </head>
     <body>
       <div class="debugger">
