@@ -1,0 +1,34 @@
+id: route-fiberhome-login
+priority: 407
+# Benign follow-through for the Fiberhome login form. The exact POST key makes the host's real-route
+# guard run before the request-aware ownership override; the lower-priority attack companion then
+# preserves the existing critical injection rule while ordinary/malformed credentials get this inert
+# failed-login page. No credential is inspected, reflected, accepted or persisted.
+new_page:
+  method: POST
+  paths: ['/boaform/admin/formLogin']
+  sig: 0
+  status: 200
+  severity: info
+  weight: 100000
+  tags: [fiberhome, panel, login, exposure]
+  name: 'Fiberhome failed login'
+  body_words: ['Web User Login', 'Authentication failed']
+response:
+  headers:
+    Content-Type: "text/html; charset=utf-8"
+  body: |
+    <html><head><title>Web User Login</title></head><body>
+    <form method="post" action="/boaform/admin/formLogin">
+    <input type="text" name="username">
+    <input type="password" name="psd">
+    <input type="submit" value="Login">
+    </form>
+    <p>Authentication failed. Please try again.</p>
+    </body></html>
+expect:
+  - 'Web User Login'
+  - 'action="/boaform/admin/formLogin"'
+  - 'name="username"'
+  - 'name="psd"'
+  - 'Authentication failed. Please try again.'

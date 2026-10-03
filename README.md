@@ -619,7 +619,7 @@ at build time and not listed here. Every response stays **inert** (emulates outp
 
 | Family | Decoys | Behaviour |
 |---|---|---|
-| **Panel login oracles** | Grafana · Kibana · Jenkins · Webmin · cPanel/cpsrvd · phpPgAdmin · WP-login · D-Link HNAP | Byte-faithful login pages that **never** authenticate — bait the login, log the attempt, always decline |
+| **Panel login oracles** | Grafana · Kibana · Jenkins · Webmin · cPanel/cpsrvd · phpPgAdmin · WP-login · D-Link HNAP · Fiberhome | Byte-faithful login pages that **never** authenticate — bait the login, log the attempt, always decline |
 | **Mock-auth (high-interaction)** | phpMyAdmin (gate + login + authed dashboard) · WordPress (wp-login mint → optional fake 2FA step → authed `/wp-admin` dashboard) | Accepts any credential → inert decoy session → an authed decoy: phpMyAdmin's "breached DB" (6 seeded tables, one seeded with an inert CTF-style flag) or a full WordPress admin dashboard. An optional, per-rule fake 2FA interstitial (`two_factor`, off by default) sits between login and dashboard: it accepts **any** code into the same inert session (no real second factor, no secret shown). Dormant until a signing key is set |
 | **WordPress** | xmlrpc (base · GET · addtwo · `system.multicall`) · wp-login (mock-auth mint, optional fake 2FA) · wp-admin (authed dashboard, else login redirect) · REST API (`/wp-json` index + `wp/v2` users · posts · pages · comments · media · categories · tags · types · statuses · settings) · plugin mass-exploit `admin-ajax.php` (Ninja Forms upload+nonce · iSnapshot · LaStudioKit unauth admin · password-reset) · Eventin speaker CSV import · REST batch-router desync (CVE-2026-63030) · emergency reset script (`/emergency.php` page + POST credential oracle) · timthumb (RCE/WebShot `?src=`/`?webshot=`) | Request-aware `xmlrpc.php` parses the `methodCall`; a plausible wp-login POST mints a signed decoy session and 302s to `/wp-admin/` — or, when the rule opts into `two_factor`, to a generic 2FA code-entry page that accepts any code before minting the authed session; the gate renders the authed admin dashboard for that cookie and falls back to the pinned login redirect otherwise; REST endpoints serve one persona-seeded author set (5 users, index 1 = admin) that every collection references — no email/login exposed to anon, `settings` → 401; a `POST /wp-admin/admin-ajax.php` dispatches on the plugin `action` (CVE-2026-0740/-0920, CVE-2024-56064, CVE-2025-4606) to canned inert plugin JSON (synthetic nonce, nothing reflected, no upload executed or user created), and `POST /wp-json/eventin/v2/speakers/import` returns the inert "Successfully imported speaker" 200 (CVE-2025-47539) — an unknown action declines; a `POST /wp-json/batch/v1` (or `?rest_route=/batch/v1`) batch envelope gets a **static 207 Multi-Status** confirming the batch-desync CVE (`block_cannot_read`, no `rest_term_invalid`) — the sub-request paths are never parsed, dispatched, or reflected (SSRF-inert). The login card can also render a **fake lockout** notice ("too many failed login attempts, try again in N minutes", HTTP 200, seeded stateless countdown, never a real block) for a consumer that counts per-IP login failures; `/emergency.php` serves a persona-coherent emergency password-reset page carrying the real scanner witnesses, and a POST is captured by an inert credential oracle (never reflected, never authenticates); every `timthumb.php`/`thumb.php` variant serves a vulnerable-version (2.8.13) error page and captures + HTML-escapes a `?src=`/`?webshot=` exploit query — SSRF-safe, no outbound fetch |
 | **WordPress core version disclosure** | `/readme.html` · `/wp-links-opml.php` · `/feed/` · `/?feed=rss2` · `/wp-admin/install.php` (fresh setup form) · a `route-wordpress` `GET /` homepage shell (generator meta + `wp-emoji-release.min.js?ver=`) | Every channel renders the one deploy-stable `persona.wordpress.version`, so a core fingerprinter reads a single consistent version across them all. The five dedicated paths disclose it fleet-wide; the homepage marker rides the `/` persona lottery, coexisting with the corpus's existing WordPress `/` variant (which stays version-degenerate — a bounded non-disclosure, never a conflicting version). The `/feed/`, `/?feed=rss2` and install surfaces are attack-tier (`owns_path`, gated by `attackEmulation`) |
@@ -649,16 +649,16 @@ at build time and not listed here. Every response stays **inert** (emulates outp
 
 | Metric | Count |
 |---|---|
-| Authored decoy records | 370 |
+| Authored decoy records | 372 |
 | Authored families | 89 |
-| &nbsp;&nbsp;tier `attack` | 84 |
+| &nbsp;&nbsp;tier `attack` | 85 |
 | &nbsp;&nbsp;tier `attack-ai` | 9 |
 | &nbsp;&nbsp;tier `attack-crs` | 4 |
-| &nbsp;&nbsp;tier `new-page` | 271 |
+| &nbsp;&nbsp;tier `new-page` | 272 |
 | &nbsp;&nbsp;tier `param` | 2 |
 | Corpus families (nuclei-inversion) | 2611 |
 | Corpus route keys | 5134 |
-| Content enrichers (not route claimers) | 243 |
+| Content enrichers (not route claimers) | 244 |
 
 Full visual + per-family drill-downs: [`docs/DECOY-MAP.md`](docs/DECOY-MAP.md) — regenerate with `bin/funnypot map` (`--family=NAME` for one family).
 <!-- GENERATED-DECOY-INVENTORY:END -->
