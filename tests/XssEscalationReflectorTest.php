@@ -184,8 +184,11 @@ final class XssEscalationReflectorTest extends TestCase
     {
         $hp = $this->gateOn();
         $tags = [
-            // form-encoded the way a Go/Rust query encoder emits it: '+' for space
-            'img onerror, plus-encoded' => ['q=%3Cimg+src%3Dx+onerror%3Dalert(1)%3E', '<img src=x onerror=alert(1)>'],
+            // NOTE (FP-0356 fold + capture-reads-raw fix): a '+'-encoded full tag decodes to a genuine
+            // full tag shape (<img src=x onerror=...>), which is owned by `attack-xss` by design — see
+            // test_full_tag_shapes_stay_with_attack_xss_at_equal_priority. It is therefore NOT an
+            // escalation-owned case; the escalation list below is the slash-event / breakout shapes the
+            // broad attack-xss regex does not fully claim.
             'svg slash-event'           => ['q=<svg/onload=alert(1)>', '<svg/onload=alert(1)>'],
             'svg slash-event, encoded'  => ['q=%3Csvg%2Fonload%3Dalert(1)%3E', '<svg/onload=alert(1)>'],
             'details slash-event'       => ['q=<details/open/ontoggle=alert(1)>', '<details/open/ontoggle=alert(1)>'],

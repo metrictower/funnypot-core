@@ -1890,7 +1890,10 @@ final class TemplateAttackEmulator
                 continue;
             }
 
-            $surface = $this->surface($r, $in, $priorCaptures);
+            // A capturing condition reads the RAW query/body surface: its capture is reflected through a
+            // directive that decodes once, so the FP-0356 folded surface would double the reflection.
+            $capturesHere = ($cond['capture'] ?? false) === true;
+            $surface = $this->surface($r, $in, $priorCaptures, $capturesHere);
 
             if (isset($cond['regex'])) {
                 $flags = ($ci ? 'i' : '') . (($cond['dotall'] ?? false) ? 's' : '');
@@ -1920,8 +1923,8 @@ final class TemplateAttackEmulator
     /**
      * @param array<int|string,string> $priorCaptures groups from the top-level match, for the `match.N` surface
      */
-    private function surface(RequestContext $r, string $in, array $priorCaptures = []): string
+    private function surface(RequestContext $r, string $in, array $priorCaptures = [], bool $raw = false): string
     {
-        return BoundedInspection::surface($r, $in, $priorCaptures);
+        return BoundedInspection::surface($r, $in, $priorCaptures, $raw);
     }
 }

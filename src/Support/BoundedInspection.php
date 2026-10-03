@@ -790,9 +790,14 @@ final class BoundedInspection
     /**
      * Preserve the attack emulator's selector vocabulary behind one bounded implementation.
      *
+     * $raw forces the query/body arms to their UNFOLDED bytes. A capturing condition feeds its capture
+     * into a reflector directive that performs its own single decode, so it must read raw request bytes:
+     * the FP-0356 fold (raw + ' ' + decoded layers) would otherwise be captured whole and reflected
+     * doubled. Detection-only (non-capturing) conditions keep the fold so query/body evasions still match.
+     *
      * @param array<int|string,string> $captures
      */
-    public static function surface(RequestContext $request, string $in, array $captures = []): string
+    public static function surface(RequestContext $request, string $in, array $captures = [], bool $raw = false): string
     {
         if (strncmp($in, 'header:', 7) === 0) {
             return self::headerValue($request->headers, substr($in, 7));
@@ -815,12 +820,17 @@ final class BoundedInspection
             case 'query':
                 // FP-0356: fold the query arm so query-pinned rules (xss/open-redirect) catch encoded
                 // evasions, matching what the `request` arm already does for the concatenated surface.
-                return self::foldLayers(self::clip($request->query, self::SUBJECT_BYTES));
+                // A capturing condition reads raw (see $raw) so its reflected capture is not doubled.
+                return $raw
+                    ? self::clip($request->query, self::SUBJECT_BYTES)
+                    : self::foldLayers(self::clip($request->query, self::SUBJECT_BYTES));
             case 'method':
                 return self::clip($request->method, self::SUBJECT_BYTES);
             case 'body':
                 // FP-0356: fold the body arm too (body-pinned rules: xxe, sqli in POST bodies).
-                return self::foldLayers(self::clip((string) ($request->rawBody ?? ''), self::BODY_BYTES));
+                return $raw
+                    ? self::clip((string) ($request->rawBody ?? ''), self::BODY_BYTES)
+                    : self::foldLayers(self::clip((string) ($request->rawBody ?? ''), self::BODY_BYTES));
             case 'fields':
             case 'fields.filename':
                 // FP-0369: multi-VALUE surfaces have no single-string form — evalConditions handles

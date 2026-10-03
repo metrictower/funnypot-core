@@ -11,6 +11,9 @@ reflect_class: open-redirect
 # suppressed inline in a response-owning host, where it would be a live open redirect.
 match:
   - in: query
+    # capture:true so the match.1 reflected into the Location header reads the RAW query bytes; without
+    # it the FP-0356 folded surface (raw + decoded) is captured and the Location is doubled/garbled.
+    capture: true
     regex: '(?:url|redirect|redirect_uri|redirect_url|next|dest|destination|return|returnurl|returnto|goto|target|continue|forward)=((?:https?:)?//[^&]+)'
 response:
   headers:
