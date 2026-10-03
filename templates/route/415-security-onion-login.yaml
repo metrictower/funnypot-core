@@ -1,0 +1,74 @@
+id: route-security-onion-login
+priority: 415
+# FP-0529: styled Security Onion login for the shared poly-stack /login/ path; weight:100000 so
+# a styled product login wins over the corpus minimal (PersonaSelector). Self-contained inline CSS +
+# SVG (FP-0526). CSS/logo re-derived, never vendored.
+new_page:
+  method: GET
+  paths: ['/login/', '/login']
+  sig: 0
+  status: 200
+  severity: low
+  weight: 100000
+  tags: [securityonion, panel, login, exposure]
+  name: 'Security Onion login'
+  body_words: ['Security']
+response:
+  headers:
+    Content-Type: "text/html; charset=utf-8"
+  body: |
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="robots" content="noindex,nofollow">
+    <title>Security Onion</title>
+    <style>
+    :root{color-scheme:dark}
+    *{box-sizing:border-box}
+    body{margin:0;min-height:100vh;font-family:-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;background:#10141c;background:linear-gradient(160deg,#10141c,#070a10);color:#dfe6ef;display:flex;align-items:center;justify-content:center;padding:1.5rem}
+    .login{width:100%;max-width:23rem}
+    .brand{text-align:center;margin-bottom:1.5rem}
+    .brand svg{width:64px;height:64px}
+    .brand .wm{margin-top:.65rem;font-size:1.15rem;font-weight:700;letter-spacing:.4px;color:#eef3f9}
+    .brand .wm span{color:#7d4bc7}
+    .card{background:#1a2130;border:1px solid #28314a;border-radius:.4rem;box-shadow:0 .5rem 1.5rem rgba(0,0,0,.45);padding:1.75rem 1.5rem}
+    .card h1{font-size:1.05rem;font-weight:500;text-align:center;margin:0 0 1.25rem;color:#f2f5fa}
+    label{display:block;margin-bottom:.35rem;font-size:.85rem;color:#9aa7bd}
+    .field{margin-bottom:1rem}
+    .field input{width:100%;padding:.6rem .75rem;border:1px solid #333f5c;border-radius:.25rem;background:#10141c;color:#dfe6ef;font-size:1rem}
+    .field input:focus{outline:none;border-color:#7d4bc7}
+    .btn{width:100%;padding:.6rem;border:0;border-radius:.25rem;background:#7d4bc7;color:#fff;font-size:1rem;font-weight:600;cursor:pointer}
+    .btn:hover{background:#8f5dd8}
+    .foot{text-align:center;margin-top:1.25rem;font-size:.75rem;color:#6c7890}
+    </style>
+    </head>
+    <body>
+    <div class="login">
+    <div class="brand">
+    <svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg" aria-label="Security Onion"><circle cx="32" cy="32" r="30" fill="#7d4bc7"/><path d="M32 14c-6 4-11 10-11 20 0 7 5 14 11 16 6-2 11-9 11-16 0-10-5-16-11-20zm0 8c3 3 6 7 6 12 0 5-3 9-6 11-3-2-6-6-6-11 0-5 3-9 6-12z" fill="#fff"/></svg>
+    <div class="wm">Security <span>Onion</span></div>
+    </div>
+    <div class="card">
+    <h1>Sign in to your account</h1>
+    <form method="post" action="/login/" autocomplete="off">
+    <div class="field">
+    <label for="email">Email</label>
+    <input type="email" id="email" name="email" placeholder="Email" autofocus autocomplete="username">
+    </div>
+    <div class="field">
+    <label for="password">Password</label>
+    <input type="password" id="password" name="password" placeholder="Password" autocomplete="current-password">
+    </div>
+    <button type="submit" class="btn">Login</button>
+    </form>
+    </div>
+    <div class="foot">Security Onion</div>
+    </div>
+    </body>
+    </html>
+taunt: { mode: block, open: '<!--', close: '-->' }
+expect:
+  - '<title>Security Onion</title>'
+  - 'name="email"'

@@ -1,0 +1,80 @@
+id: route-octoprint-login
+priority: 411
+# FP-0529: styled OctoPrint login for the shared poly-stack /login/ path; weight:100000 so a styled
+# product login wins over the corpus minimal (PersonaSelector). Self-contained inline CSS + SVG
+# (FP-0526: external asset paths are 301'd by WordPress redirect_canonical). CSS/logo re-derived,
+# never vendored.
+#
+# OctoPrint's login is a white card on a light surface with the orange OctoPrint tentacle logo,
+# a "Please log in" heading, username + password fields and a "Log in" button, orange accents.
+# The exact witness `<title>OctoPrint Login</title>`. Version is a dotted literal (no bare 6-digit run).
+new_page:
+  method: GET
+  paths: ['/login/', '/login']
+  sig: 0
+  status: 200
+  severity: low
+  weight: 100000
+  tags: [octoprint, panel, login, exposure]
+  name: 'OctoPrint login'
+  body_words: ['OctoPrint']
+response:
+  headers:
+    Content-Type: "text/html; charset=utf-8"
+  body: |
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="robots" content="noindex,nofollow">
+    <title>OctoPrint Login</title>
+    <style>
+    :root{color-scheme:light}
+    *{box-sizing:border-box}
+    body{margin:0;min-height:100vh;font-family:"Segoe UI",Tahoma,Helvetica,Arial,sans-serif;background:#fafafa;color:#333;display:flex;align-items:center;justify-content:center;padding:1.5rem}
+    .login{width:100%;max-width:22rem}
+    .brand{text-align:center;margin-bottom:1.25rem}
+    .brand svg{width:64px;height:64px}
+    .brand .name{display:block;margin-top:.4rem;font-size:1.3rem;font-weight:600;color:#2a2a2a}
+    .brand .name b{color:#ffac00}
+    .card{background:#fff;border:1px solid #e4e4e4;border-radius:.3rem;box-shadow:0 .1rem .5rem rgba(0,0,0,.08);padding:1.5rem 1.4rem}
+    .card h2{margin:0 0 1.1rem;font-size:1.1rem;font-weight:500;text-align:center;color:#2a2a2a}
+    .form-group{margin-bottom:1rem}
+    label{display:block;margin-bottom:.35rem;font-size:.9rem;color:#555}
+    .form-control{display:block;width:100%;padding:.5rem .75rem;border:1px solid #ccc;border-radius:.25rem;font-size:1rem;color:#444}
+    .form-control:focus{outline:0;border-color:#ffac00;box-shadow:0 0 0 .15rem rgba(255,172,0,.25)}
+    .remember{display:flex;align-items:center;gap:.4rem;font-size:.85rem;color:#666;margin-bottom:1rem}
+    .btn{display:block;width:100%;padding:.55rem;border:0;border-radius:.25rem;background:#ffac00;color:#fff;font-size:1rem;font-weight:600;cursor:pointer}
+    .btn:hover{background:#e89b00}
+    </style>
+    </head>
+    <body>
+    <div class="login">
+    <div class="brand">
+    <svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg" aria-label="OctoPrint"><circle cx="32" cy="26" r="16" fill="#ffac00"/><circle cx="26" cy="24" r="3" fill="#fff"/><circle cx="38" cy="24" r="3" fill="#fff"/><path d="M20 38c-2 6-6 8-10 9 3 3 9 3 13-2m18-7c2 6 6 8 10 9-3 3-9 3-13-2m-13 4c0 6-2 10-5 13 5 1 9-2 10-8m8-5c0 6 2 10 5 13-5 1-9-2-10-8" stroke="#ffac00" stroke-width="3.5" fill="none" stroke-linecap="round"/></svg>
+    <span class="name">Octo<b>Print</b></span>
+    </div>
+    <div class="card">
+    <h2>Please log in</h2>
+    <form method="post" action="/login/">
+    <div class="form-group">
+    <label for="username">Username</label>
+    <input type="text" class="form-control" id="username" name="username" autofocus autocomplete="username">
+    </div>
+    <div class="form-group">
+    <label for="password">Password</label>
+    <input type="password" class="form-control" id="password" name="password" autocomplete="current-password">
+    </div>
+    <label class="remember"><input type="checkbox" name="remember"> Remember me</label>
+    <button type="submit" class="btn">Log in</button>
+    </form>
+    </div>
+    </div>
+    </body>
+    </html>
+taunt: { mode: block, open: '<!--', close: '-->' }
+expect:
+  - '<title>OctoPrint Login</title>'
+  - 'name="username"'
+  - '>Log in</button>'

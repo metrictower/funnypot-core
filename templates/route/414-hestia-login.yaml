@@ -1,0 +1,73 @@
+id: route-hestia-login
+priority: 414
+# FP-0529: styled Hestia Control Panel login for the shared poly-stack /login/ path; weight:100000 so
+# a styled product login wins over the corpus minimal (PersonaSelector). Self-contained inline CSS +
+# SVG (FP-0526). CSS/logo re-derived, never vendored.
+new_page:
+  method: GET
+  paths: ['/login/', '/login']
+  sig: 0
+  status: 200
+  severity: low
+  weight: 100000
+  tags: [hestia, panel, login, exposure]
+  name: 'Hestia Control Panel login'
+  body_words: ['Hestia']
+response:
+  headers:
+    Content-Type: "text/html; charset=utf-8"
+  body: |
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="robots" content="noindex,nofollow">
+    <title>Log in - Hestia Control Panel</title>
+    <style>
+    :root{color-scheme:dark}
+    *{box-sizing:border-box}
+    body{margin:0;min-height:100vh;font-family:"Nunito Sans",-apple-system,"Segoe UI",Helvetica,Arial,sans-serif;background:#16271b;background:linear-gradient(160deg,#16271b,#0c1812);color:#e8f1ea;display:flex;align-items:center;justify-content:center;padding:1.5rem}
+    .login{width:100%;max-width:22rem}
+    .brand{text-align:center;margin-bottom:1.5rem}
+    .brand svg{width:60px;height:60px}
+    .brand .wm{margin-top:.6rem;font-size:1.1rem;font-weight:700;letter-spacing:.3px;color:#dff3e4}
+    .card{background:#1c3324;border:1px solid #2b4a35;border-radius:.5rem;box-shadow:0 .5rem 1.5rem rgba(0,0,0,.4);padding:1.75rem 1.5rem}
+    label{display:block;margin-bottom:.35rem;font-size:.85rem;color:#a9c9b4}
+    .field{margin-bottom:1rem}
+    .field input{width:100%;padding:.6rem .75rem;border:1px solid #37573f;border-radius:.3rem;background:#13241a;color:#e8f1ea;font-size:1rem}
+    .field input:focus{outline:none;border-color:#409b00}
+    .btn{width:100%;padding:.6rem;border:0;border-radius:.3rem;background:#409b00;color:#fff;font-size:1rem;font-weight:700;cursor:pointer}
+    .btn:hover{background:#4bb000}
+    .foot{text-align:center;margin-top:1.25rem;font-size:.75rem;color:#7fa08a}
+    .foot a{color:#8fd7a0;text-decoration:none}
+    .foot a:hover{text-decoration:underline}
+    </style>
+    </head>
+    <body>
+    <div class="login">
+    <div class="brand">
+    <svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg" aria-label="Hestia"><circle cx="32" cy="32" r="30" fill="#409b00"/><path d="M22 20v24h5v-10h10v10h5V20h-5v9H27v-9z" fill="#fff"/></svg>
+    <div class="wm">Hestia Control Panel</div>
+    </div>
+    <div class="card">
+    <form method="post" action="/login/" autocomplete="off">
+    <div class="field">
+    <label for="user">Username</label>
+    <input type="text" id="user" name="user" placeholder="Username" autofocus autocomplete="username">
+    </div>
+    <div class="field">
+    <label for="password">Password</label>
+    <input type="password" id="password" name="password" placeholder="Password" autocomplete="current-password">
+    </div>
+    <button type="submit" class="btn">Log in</button>
+    </form>
+    </div>
+    <div class="foot"><a href="/reset/">Reset Password</a></div>
+    </div>
+    </body>
+    </html>
+taunt: { mode: block, open: '<!--', close: '-->' }
+expect:
+  - 'Hestia Control Panel'
+  - 'name="user"'

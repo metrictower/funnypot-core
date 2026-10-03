@@ -1,0 +1,82 @@
+id: route-airflow-login
+priority: 410
+# FP-0529: styled Airflow login for the shared poly-stack /login/ path; weight:100000 so a styled
+# product login wins over the corpus minimal (PersonaSelector). Self-contained inline CSS + SVG
+# (FP-0526: external asset paths are 301'd by WordPress redirect_canonical). CSS/logo re-derived,
+# never vendored.
+#
+# Apache Airflow fronts its UI with a Flask-AppBuilder login: a centered card titled "Sign In",
+# username + password fields and a "Sign In" button, dark teal accents. The exact witness
+# `Airflow - Login` lives in <title>. Version is a dotted literal (no bare 6-digit run).
+new_page:
+  method: GET
+  paths: ['/login/', '/login']
+  sig: 0
+  status: 200
+  severity: low
+  weight: 100000
+  tags: [airflow, panel, login, exposure]
+  name: 'Apache Airflow login'
+  body_words: ['Airflow']
+response:
+  headers:
+    Content-Type: "text/html; charset=utf-8"
+  body: |
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="robots" content="noindex,nofollow">
+    <title>Airflow - Login</title>
+    <style>
+    :root{color-scheme:light}
+    *{box-sizing:border-box}
+    body{margin:0;min-height:100vh;font-family:"Helvetica Neue",Helvetica,Arial,sans-serif;background:#f6f7f9;color:#51504f;display:flex;align-items:center;justify-content:center;padding:1.5rem}
+    .login-box{width:100%;max-width:24rem}
+    .brand{text-align:center;margin-bottom:1.25rem;display:flex;align-items:center;justify-content:center;gap:.5rem}
+    .brand svg{width:40px;height:40px}
+    .brand .name{font-size:1.5rem;font-weight:600;color:#017cee}
+    .panel{background:#fff;border:1px solid #e3e6e8;border-radius:.3rem;box-shadow:0 .1rem .4rem rgba(0,0,0,.08)}
+    .panel-head{background:#00ad46;color:#fff;padding:.7rem 1.25rem;border-radius:.3rem .3rem 0 0;font-size:1.05rem}
+    .panel-body{padding:1.5rem 1.25rem}
+    .form-group{margin-bottom:1rem}
+    label{display:block;margin-bottom:.35rem;font-size:.9rem;font-weight:600;color:#51504f}
+    .form-control{display:block;width:100%;padding:.5rem .75rem;border:1px solid #cccccc;border-radius:.25rem;background:#fff;color:#55595c;font-size:1rem}
+    .form-control:focus{outline:0;border-color:#017cee;box-shadow:0 0 0 .15rem rgba(1,124,238,.2)}
+    .btn{display:inline-block;padding:.5rem 1.1rem;border:0;border-radius:.25rem;background:#00ad46;color:#fff;font-size:1rem;cursor:pointer}
+    .btn:hover{background:#009a3e}
+    .footer{text-align:center;margin-top:1.1rem;font-size:.8rem;color:#9aa0a6}
+    </style>
+    </head>
+    <body>
+    <div class="login-box">
+    <div class="brand">
+    <svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg" aria-label="Airflow"><circle cx="32" cy="32" r="30" fill="#017cee"/><path d="M20 40c6-18 18-22 26-24-2 8-6 20-24 26-1-.6-1.6-1-2-2z" fill="#fff"/><circle cx="24" cy="38" r="3.2" fill="#00ad46"/></svg>
+    <span class="name">Airflow</span>
+    </div>
+    <div class="panel">
+    <div class="panel-head">Sign In</div>
+    <div class="panel-body">
+    <form method="post" action="/login/">
+    <div class="form-group">
+    <label for="username">Username</label>
+    <input type="text" class="form-control" id="username" name="username" autofocus autocomplete="username">
+    </div>
+    <div class="form-group">
+    <label for="password">Password</label>
+    <input type="password" class="form-control" id="password" name="password" autocomplete="current-password">
+    </div>
+    <button type="submit" class="btn">Sign In</button>
+    </form>
+    </div>
+    </div>
+    <div class="footer">Apache Airflow 2.9.3</div>
+    </div>
+    </body>
+    </html>
+taunt: { mode: block, open: '<!--', close: '-->' }
+expect:
+  - '<title>Airflow - Login</title>'
+  - 'name="username"'
+  - '>Sign In</button>'

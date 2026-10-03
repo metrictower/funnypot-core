@@ -1,0 +1,77 @@
+id: route-vmware-cloud-director-login
+priority: 413
+# FP-0529: styled VMware Cloud Director login for the shared poly-stack /login/ path; weight:100000 so
+# a styled product login wins over the corpus minimal (PersonaSelector). Self-contained inline CSS +
+# SVG (FP-0526). CSS/logo re-derived, never vendored.
+new_page:
+  method: GET
+  paths: ['/login/', '/login']
+  sig: 0
+  status: 200
+  severity: low
+  weight: 100000
+  tags: [vmware, panel, login, exposure]
+  name: 'VMware Cloud Director login'
+  body_words: ['VMware']
+response:
+  headers:
+    Content-Type: "text/html; charset=utf-8"
+  body: |
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="robots" content="noindex,nofollow">
+    <title>Welcome to VMware Cloud Director</title>
+    <style>
+    :root{color-scheme:dark}
+    *{box-sizing:border-box}
+    body{margin:0;min-height:100vh;font-family:"Metropolis","Helvetica Neue",Helvetica,Arial,sans-serif;background:#0b1a2b;background:linear-gradient(160deg,#0b1a2b,#071320);color:#e6edf5;display:flex;align-items:center;justify-content:center;padding:1.5rem}
+    .login{width:100%;max-width:24rem}
+    .brand{text-align:center;margin-bottom:1.5rem}
+    .brand svg{width:64px;height:64px}
+    .brand .wm{margin-top:.75rem;font-size:1.05rem;font-weight:600;letter-spacing:.3px;color:#cfe0f2}
+    .card{background:#122339;border:1px solid #1e3a57;border-radius:.4rem;box-shadow:0 .5rem 1.5rem rgba(0,0,0,.4);padding:1.75rem 1.5rem}
+    .card h1{font-size:1.15rem;font-weight:500;text-align:center;margin:0 0 1.25rem;color:#f0f6fc}
+    label{display:block;margin-bottom:.35rem;font-size:.85rem;color:#9fb4ca}
+    .field{margin-bottom:1rem}
+    .field input{width:100%;padding:.6rem .75rem;border:1px solid #2a4a6b;border-radius:.25rem;background:#0b1a2b;color:#e6edf5;font-size:1rem}
+    .field input:focus{outline:none;border-color:#0091da}
+    .btn{width:100%;padding:.6rem;border:0;border-radius:.25rem;background:#0091da;color:#fff;font-size:1rem;font-weight:600;cursor:pointer}
+    .btn:hover{background:#00a0ef}
+    .foot{text-align:center;margin-top:1.25rem;font-size:.75rem;color:#6f879e}
+    </style>
+    </head>
+    <body>
+    <div class="login">
+    <div class="brand">
+    <svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg" aria-label="VMware"><rect width="64" height="64" rx="10" fill="#0091da"/><path d="M14 24l7 16 5-11 5 11 7-16h-5l-3 8-4-9h-2l-4 9-3-8z" fill="#fff"/></svg>
+    <div class="wm">Cloud Director</div>
+    </div>
+    <div class="card">
+    <h1>Welcome to VMware Cloud Director</h1>
+    <form method="post" action="/login/" autocomplete="off">
+    <div class="field">
+    <label for="organization">Organization</label>
+    <input type="text" id="organization" name="organization" placeholder="System" autofocus>
+    </div>
+    <div class="field">
+    <label for="username">User name</label>
+    <input type="text" id="username" name="username" placeholder="User name" autocomplete="username">
+    </div>
+    <div class="field">
+    <label for="password">Password</label>
+    <input type="password" id="password" name="password" placeholder="Password" autocomplete="current-password">
+    </div>
+    <button type="submit" class="btn">Sign In</button>
+    </form>
+    </div>
+    <div class="foot">&copy; VMware Cloud Director</div>
+    </div>
+    </body>
+    </html>
+taunt: { mode: block, open: '<!--', close: '-->' }
+expect:
+  - '<title>Welcome to VMware Cloud Director</title>'
+  - 'name="organization"'

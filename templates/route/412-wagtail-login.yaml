@@ -1,0 +1,74 @@
+id: route-wagtail-login
+priority: 412
+# FP-0529: styled Wagtail login for the shared poly-stack /login/ path; weight:100000 so a styled
+# product login wins over the corpus minimal (PersonaSelector). Self-contained inline CSS + SVG
+# (FP-0526: external asset paths are 301'd by WordPress redirect_canonical). CSS/logo re-derived,
+# never vendored.
+#
+# Wagtail's admin login is teal-branded (#2e1f5e field, #00b0b1 accent) with the Wagtail feather
+# wordmark, a "Sign in to Wagtail" heading, username + password fields and a "Sign in" button.
+# The exact witness `Wagtail - Sign in` lives in <title>. Version is a dotted literal (no bare run).
+new_page:
+  method: GET
+  paths: ['/login/', '/login']
+  sig: 0
+  status: 200
+  severity: low
+  weight: 100000
+  tags: [wagtail, panel, login, exposure]
+  name: 'Wagtail login'
+  body_words: ['Wagtail']
+response:
+  headers:
+    Content-Type: "text/html; charset=utf-8"
+  body: |
+    <!DOCTYPE html>
+    <html lang="en" dir="ltr">
+    <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="robots" content="noindex,nofollow">
+    <title>Wagtail - Sign in</title>
+    <style>
+    :root{color-scheme:light}
+    *{box-sizing:border-box}
+    body{margin:0;min-height:100vh;font-family:"Mulish",-apple-system,"Segoe UI",Helvetica,Arial,sans-serif;background:#2e1f5e;color:#fff;display:flex;align-items:center;justify-content:center;padding:1.5rem}
+    .login{width:100%;max-width:21rem}
+    .brand{text-align:center;margin-bottom:1.5rem}
+    .brand svg{width:48px;height:48px}
+    .brand .name{display:block;margin-top:.5rem;font-size:1.4rem;font-weight:800;letter-spacing:.3px}
+    h1{font-size:1.1rem;font-weight:600;text-align:center;margin:0 0 1.25rem;color:#dcd6f0}
+    .field{margin-bottom:1rem}
+    label{display:block;margin-bottom:.35rem;font-size:.85rem;font-weight:600;color:#cfc8e8}
+    input[type=text],input[type=password]{display:block;width:100%;padding:.6rem .75rem;border:1px solid #4a3c7a;border-radius:.2rem;background:#231748;color:#fff;font-size:1rem}
+    input[type=text]:focus,input[type=password]:focus{outline:0;border-color:#00b0b1;box-shadow:0 0 0 .15rem rgba(0,176,177,.35)}
+    .btn{display:block;width:100%;padding:.6rem;border:0;border-radius:.2rem;background:#00b0b1;color:#fff;font-size:1rem;font-weight:700;cursor:pointer;margin-top:.5rem}
+    .btn:hover{background:#13c4c5}
+    </style>
+    </head>
+    <body>
+    <div class="login">
+    <div class="brand">
+    <svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg" aria-label="Wagtail"><path d="M14 44c4-16 16-26 34-28-4 4-6 8-7 13 6-2 11-1 15 2-6 1-10 4-13 9-3 5-8 8-15 8-6 0-11-1-14-4z" fill="#00b0b1"/><circle cx="40" cy="22" r="2.4" fill="#2e1f5e"/></svg>
+    <span class="name">Wagtail</span>
+    </div>
+    <h1>Sign in to Wagtail</h1>
+    <form method="post" action="/login/">
+    <div class="field">
+    <label for="id_username">Username</label>
+    <input type="text" id="id_username" name="username" autofocus autocomplete="username">
+    </div>
+    <div class="field">
+    <label for="id_password">Password</label>
+    <input type="password" id="id_password" name="password" autocomplete="current-password">
+    </div>
+    <button type="submit" class="btn">Sign in</button>
+    </form>
+    </div>
+    </body>
+    </html>
+taunt: { mode: block, open: '<!--', close: '-->' }
+expect:
+  - '<title>Wagtail - Sign in</title>'
+  - 'name="username"'
+  - '>Sign in</button>'
