@@ -80,7 +80,7 @@ final class VulnerableLockfileDecoyTest extends TestCase
             if ($isJson) {
                 self::assertNotNull(json_decode($b), "{$path} must be valid JSON even with the taunt field: {$b}");
             }
-            self::assertStringContainsString(explode('|', $ct)[0], (string) ($r->headers['Content-Type'] ?? ''), "{$path} Content-Type");
+            self::assertStringContainsString($ct, (string) ($r->headers['Content-Type'] ?? ''), "{$path} Content-Type");
         }
     }
 
@@ -118,6 +118,35 @@ final class VulnerableLockfileDecoyTest extends TestCase
             foreach ($paths as $p) {
                 $b = $this->body($this->resp($p, (string) $s));
                 self::assertSame(0, preg_match('/\b9\d{5}\b/', $b), "seed {$s} {$p} formed a denylisted run");
+            }
+        }
+    }
+
+    public function test_manifest_and_lock_are_coherent_for_one_deploy(): void
+    {
+        // AC5: /package.json and /package-lock.json agree on the app name/version + the full root dep set,
+        // and the shared-NAME integrity values are identical between package-lock.json and yarn.lock.
+        $manifest = $this->body($this->resp('/package.json', 'hostX'));
+        $lock = $this->body($this->resp('/package-lock.json', 'hostX'));
+        $yarn = $this->body($this->resp('/yarn.lock', 'hostX'));
+        self::assertSame(1, preg_match('/"name": "([^"]+)"/', $manifest, $mn));
+        self::assertStringContainsString('"name": "' . $mn[1] . '"', $lock, 'manifest + lock must share the app name');
+        foreach (['express', 'lodash', 'axios', 'jsonwebtoken', 'node-serialize', 'minimist'] as $dep) {
+            self::assertStringContainsString('"' . $dep . '"', $manifest, "manifest must list {$dep}");
+        }
+        // lodash integrity is the same seeded value in both npm lockfiles (shared {{fake.npm_i_lodash}}).
+        self::assertSame(1, preg_match('#lodash[^}]*?integrity": "(sha512-[^"]+)"#s', $lock, $li), 'lock lodash integrity');
+        self::assertStringContainsString($li[1], $yarn, 'package-lock + yarn.lock must share the lodash integrity');
+    }
+
+    public function test_fingerprint_guard_clean_across_seeds(): void
+    {
+        // AC9: run the served bodies+headers through the real egress FingerprintGuard (not just a regex).
+        $guard = \Funnypot\Core\Compiler\Crs\FingerprintGuard::fromPackage();
+        foreach (['/package-lock.json', '/composer.lock', '/requirements.txt', '/Pipfile.lock', '/yarn.lock'] as $p) {
+            for ($s = 0; $s < 200; $s++) {
+                $r = $this->resp($p, (string) $s);
+                self::assertSame([], $guard->scanResponse($this->body($r), (array) ($r->headers ?? [])), "seed {$s} {$p} tripped FingerprintGuard");
             }
         }
     }
