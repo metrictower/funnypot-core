@@ -35,6 +35,10 @@ final class FoldLayerListTest extends TestCase
             'cap-saturating-raw'    => str_repeat('A', BoundedInspection::SUBJECT_BYTES + 500),
             'cap-saturating-plus'   => str_repeat('a+', BoundedInspection::SUBJECT_BYTES),
             'cap-saturating-pct'    => str_repeat('%41', BoundedInspection::SUBJECT_BYTES),
+            // Exact SB-1 boundary with a firing decoder: the joiner space fits (used -> SB) but the
+            // decoded layer clips to empty. foldLayers records the decoder and keeps a dangling space;
+            // foldLayerList must record the same decoder (parity) while omitting the empty layer.
+            'cap-boundary-sb-1-pct' => str_repeat('A', BoundedInspection::SUBJECT_BYTES - 4) . '%41',
         ];
         $out = [];
         foreach ($cases as $k => $v) {

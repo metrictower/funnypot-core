@@ -396,6 +396,12 @@ final class BoundedInspection
             // The joiner space consumes one byte of the budget (append(subject, ' ')); $used is below
             // the cap here, so the space always fits.
             $used += 1;
+            // decode_path parity: this decoder fired (produced a layer), so record it exactly as
+            // foldLayers does — BEFORE the cap-boundary break, independent of whether the clipped layer
+            // then fits. foldLayers records $usedName even when the layer clips to empty at the cap.
+            if (!in_array($usedName, $applied, true)) {
+                $applied[] = $usedName;
+            }
             $remaining = self::SUBJECT_BYTES - $used;
             if ($remaining <= 0) {
                 // Space fit, layer does not: the legacy string keeps the dangling space; the list omits
@@ -405,9 +411,6 @@ final class BoundedInspection
             $clipped = self::clip($layer, $remaining);
             $layers[] = $clipped;
             $used += strlen($clipped);
-            if (!in_array($usedName, $applied, true)) {
-                $applied[] = $usedName;
-            }
         }
 
         return $layers;
