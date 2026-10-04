@@ -72,6 +72,8 @@ $captures = [
     'user' => 'probe', 'pass' => 'probe', 'marker' => 'probe', 'path' => '/etc/hostname',
     'a' => '21', 'b' => '21', 'expr' => '7*7', 'surface' => '7*7',
     'sum' => '0', 'result' => '0', 'rendered' => '0', 'value' => 'probe',
+    // FP-0466 cmdi arithmetic-oracle anchor groups (42/49/51) — fixed non-token constants.
+    'left' => 'probe', 'mid' => 'probe', 'right' => 'probe',
 ];
 
 // --- 1. attack rules + param entries -------------------------------------------------------------

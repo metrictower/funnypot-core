@@ -106,6 +106,28 @@ final class BehaviorCommandInjectionOracleTest extends TestCase
         self::assertStringContainsString((string) (15 + 27), $this->serve('cmd /c "set /a (15+27)"'));
     }
 
+    // ---- AC4: obfuscation (shell-deobfuscate decoder, Stage 2) ---------------------------------
+
+    public function test_ifs_obfuscated_posix_probe_is_normalised(): void
+    {
+        // echo${IFS}ABCDEF$((10+5))ABCDEF  -> ${IFS} folds to a space -> matches 42.
+        self::assertStringContainsString('ABCDEF' . (10 + 5) . 'ABCDEF', $this->serve('echo${IFS}ABCDEF$((10+5))ABCDEF'));
+    }
+
+    public function test_escaped_multiplication_expr_is_normalised(): void
+    {
+        // TAG999$(expr 6 \* 7)TAG999  -> the backslash is stripped -> `expr 6 * 7` matches 49.
+        self::assertStringContainsString('TAG999' . (6 * 7) . 'TAG999', $this->serve('TAG999$(expr 6 \\* 7)TAG999'));
+    }
+
+    public function test_percent_then_ifs_obfuscation_folds(): void
+    {
+        // A percent-encoded ${IFS}: percent-decode then shell-deobfuscate both fire in the fold.
+        $raw = 'echo%24%7BIFS%7DABCDEF%24%28%2810%2B5%29%29ABCDEF';
+        $resp = $this->engine(true, true)->respond(new RequestContext('GET', '/x', 'q=' . $raw, [], null, 'x.test'));
+        self::assertStringContainsString('ABCDEF' . (10 + 5) . 'ABCDEF', $this->body($resp));
+    }
+
     // ---- AC6: compute, not echo ----------------------------------------------------------------
 
     public function test_computes_not_echoes_the_expression(): void

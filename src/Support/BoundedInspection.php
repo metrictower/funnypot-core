@@ -395,7 +395,10 @@ final class BoundedInspection
      * Decode chain order. base64 is tried BEFORE plus so a base64 token containing '+' is decoded
      * whole, rather than the '+' first being rewritten to a space (which would break the token).
      */
-    private const DECODER_ORDER = ['percent', 'base64', 'plus', 'unicode', 'entity', 'hex', 'json'];
+    // `shell` is LAST so it runs after the transport decoders (percent/base64/…) have normalised the
+    // layer — a `%24%7BIFS%7D` token percent-decodes to `${IFS}` first, then shell-deobfuscation folds
+    // it to a space. It only ever REMOVES bytes, so the non-expanding fold invariant holds.
+    private const DECODER_ORDER = ['percent', 'base64', 'plus', 'unicode', 'entity', 'hex', 'json', 'shell'];
 
     /** One bounded decode step; null when the decoder does not apply to this layer. */
     private static function decodeLayer(string $name, string $layer): ?string
@@ -415,9 +418,41 @@ final class BoundedInspection
                 return self::decodeHex($layer);
             case 'json':
                 return self::decodeJsonStrings($layer);
+            case 'shell':
+                return self::decodeShellObfuscation($layer);
         }
 
         return null;
+    }
+
+    /**
+     * FP-0466: fold the common shell command-injection TAMPER shapes to their canonical form so a probe
+     * split by `${IFS}` or escaped with quotes/backslashes/carets still matches the arithmetic cmdi
+     * rules. `${IFS}`/`$IFS` -> a space (the field-separator the shell expands them to); empty `""`/`''`
+     * and a lone `\`/`^` (cmd/sh escape no-ops) -> removed. Every rule strictly REMOVES bytes, so the
+     * layer only shrinks (the foldLayers grower-guard enforces this regardless). Additive-safe: foldLayers
+     * RETAINS the raw layer, so a rule that matches a real `\`/`^`/quote (LFI `..\..\`, cmd carets) still
+     * fires on the raw portion; this only appends a normalised view that widens recall, never removes one.
+     */
+    private static function decodeShellObfuscation(string $value): ?string
+    {
+        if (strpos($value, '${IFS}') === false
+            && strpos($value, '$IFS') === false
+            && strpos($value, '""') === false
+            && strpos($value, "''") === false
+            && strpos($value, '\\') === false
+            && strpos($value, '^') === false
+        ) {
+            return null;
+        }
+        // `${IFS}` before `$IFS` (longer first); then empty quotes; then the escape no-ops.
+        $out = str_replace(
+            ['${IFS}', '$IFS', '""', "''", '\\', '^'],
+            [' ', ' ', '', '', '', ''],
+            $value
+        );
+
+        return $out === $value ? null : $out;
     }
 
     /**
