@@ -66,6 +66,10 @@ final class PersonaIdentity
         // pool sits entirely at or below 8.5.1, so each deploy lands on the affected side of BOTH
         // CVE-2023-22515 (<=8.5.1) and CVE-2023-22527 (<=8.5.3) while still varying per deploy.
         'confluence.version',
+        // FP-0409: the FortiOS version this host claims on the SSL-VPN login surfaces (/remote/login,
+        // /fpc/app/login) and the future WS CLI banner — one coherent, per-deploy-stable value on the
+        // affected side of CVE-2024-55591 (<=7.0.16).
+        'fortios.version',
         // The WooCommerce core + payment-plugin versions this host claims — one source of truth for
         // every store surface (the storefront generator meta, the readme `Stable tag:`, the wc-augmented
         // REST index). paymentsVersion and stripeVersion are held on the vulnerable side of their CVEs so
@@ -300,6 +304,7 @@ final class PersonaIdentity
             // field() and productVersion('confluence') never drift; the pool is entirely <=8.5.1 so the
             // rendered version is always on the affected side of CVE-2023-22515 and -22527.
             'confluence.version' => self::pickProductVersion($slug, $domain, 'confluence'),
+            'fortios.version' => self::pickProductVersion($slug, $domain, 'fortios'),
 
             // The WooCommerce core + payment-plugin versions this host claims — the single source of
             // truth for every store surface. Derived like php.version so field() and productVersion()
@@ -468,6 +473,17 @@ final class PersonaIdentity
             '8.4.2',
             '8.3.2',
             '8.2.3',
+        ],
+        // FortiOS releases on the affected side of CVE-2024-55591 — FortiOS 7.0.0-7.0.16 ONLY (per
+        // Fortinet FG-IR-24-535; FortiOS 7.2.x is "Not affected" — only FortiProxy 7.2.x is, and this page
+        // claims FortiGate/FortiOS). Dotted into <=2-digit runs, so no entry carries the denied bare
+        // 6-digit token.
+        'fortios' => [
+            '7.0.16',
+            '7.0.14',
+            '7.0.13',
+            '7.0.12',
+            '7.0.11',
         ],
         // The active theme's own version. Deliberately a two-part shape, unlike core's X.Y.Z, so a
         // theme asset's ?ver= can never mechanically match the core assets' ?ver= on the same page.

@@ -1,0 +1,77 @@
+id: route-fortios-login
+priority: 424
+# FP-0409: FortiOS SSL-VPN web login page at /remote/login — the appliance fingerprint surface for the
+# CVE-2024-55591 band (the unauth WebSocket auth-bypass itself is stateful/protocol and lives in the app
+# follow-up FP-0540; core serves only the HTTP login/fingerprint). Distinct from 80-fortios.yaml, which
+# emulates the OLDER CVE-2022-40684 Forwarded-header admin-API bypass (a JSON response, not a page).
+# /login is already owned by the VMware login (413) and /remote/fgt_lang is the corpus JS lang file, so
+# this claims only the free /remote/login (and sibling /fpc/app/login in 425).
+#
+# Markers are product-intrinsic FortiOS GUI DOM (the `main-app` root class, the `<f-icon>` web component),
+# re-derived from the product's own shape — NEVER a scanner/nuclei/CRS matcher string (invariant 1).
+# Self-contained inline CSS + inline SVG (no external asset: a referenced path 301s on a WP host via
+# redirect_canonical and breaks styling — FP-0526). Version is the per-deploy-stable {{persona.fortios
+# .version}} (affected band) so /remote/login, /fpc/app/login and the WS CLI banner read as one host.
+# APSCOOKIE is a static Set-Cookie header with HEX values (no decimal 6-digit-9 denylist risk). Inert:
+# static HTML, no request byte reflected, any origin. severity high so default-ceiling embedders serve it.
+new_page:
+  method: GET
+  paths: ['/remote/login']
+  sig: 0
+  status: 200
+  severity: high
+  weight: 100000
+  tags: [fortinet, fortios, ssl-vpn, login, exposure]
+  name: 'FortiOS SSL-VPN login'
+  body_words: ['main-app', 'f-icon']
+response:
+  headers:
+    Content-Type: "text/html; charset=UTF-8"
+    Set-Cookie: 'APSCOOKIE_{{fake.apsid:hex:10}}="{{fake.apsval:hex:40}}"; path=/; secure; httponly; samesite=strict'
+  body: |
+    <!DOCTYPE html>
+    <html class="main-app">
+    <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Please Login</title>
+    <style>
+    html,body{height:100%;margin:0}
+    body{font-family:"Segoe UI",Helvetica,Arial,sans-serif;background:#f2f4f6;color:#1a1a1a}
+    .wrap{min-height:100%;display:flex;align-items:center;justify-content:center}
+    .card{width:22rem;background:#fff;border:1px solid #d8dde2;border-radius:4px;box-shadow:0 2px 8px rgba(0,0,0,.08);padding:28px 30px}
+    .brand{display:flex;align-items:center;gap:8px;margin-bottom:18px}
+    .brand svg{width:26px;height:26px}
+    .brand b{color:#da291c;font-size:18px;letter-spacing:.3px}
+    h1{font-size:15px;font-weight:600;margin:0 0 16px;color:#52606d}
+    label{display:block;font-size:12px;color:#67727d;margin:12px 0 4px}
+    input{width:100%;box-sizing:border-box;padding:8px 10px;border:1px solid #cfd6dc;border-radius:3px;font-size:14px}
+    button{margin-top:20px;width:100%;padding:9px;border:0;border-radius:3px;background:#da291c;color:#fff;font-size:14px;cursor:pointer}
+    .foot{margin-top:16px;color:#9aa4ad;font-size:11px;text-align:center}
+    f-icon.fa-warning{display:none}
+    </style>
+    </head>
+    <body>
+    <div class="wrap">
+    <div class="card">
+    <div class="brand"><svg viewBox="0 0 24 24" fill="#da291c"><path d="M3 3h7v7H3zM14 3h7v7h-7zM3 14h7v7H3zM14 14h7v7h-7z"/></svg><b>FortiGate</b></div>
+    <f-icon class="fa-warning"></f-icon>
+    <h1>Please Login</h1>
+    <form method="post" action="/remote/logincheck" autocomplete="off">
+    <input type="hidden" name="realm" value="">
+    <input type="hidden" name="just_logged_in" value="1">
+    <label for="username">Name</label>
+    <input type="text" id="username" name="username" autocomplete="username" autofocus>
+    <label for="credential">Password</label>
+    <input type="password" id="credential" name="credential" autocomplete="current-password">
+    <button type="submit">Login</button>
+    </form>
+    <div class="foot">FortiGate &middot; v{{persona.fortios.version}}</div>
+    </div>
+    </div>
+    </body>
+    </html>
+taunt: { mode: block, open: '<!--', close: '-->' }
+expect:
+  - 'class="main-app"'
+  - '<f-icon'
