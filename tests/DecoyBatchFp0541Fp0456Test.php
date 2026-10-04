@@ -68,18 +68,28 @@ final class DecoyBatchFp0541Fp0456Test extends TestCase
 
     // ---- FP-0456 Citrix Bleed NSC_AAAC canary ----
 
-    public function test_citrix_bleed_leaks_labelled_nsc_aaac_cookie(): void
+    public function test_citrix_bleed_leaks_labelled_nsc_aaac_on_oversized_host(): void
     {
-        $b = $this->body('GET', '/oauth/idp/.well-known/openid-configuration', '', ['Host' => str_repeat('a', 300)]);
+        // The exploit uses a huge repeated Host header; only that oversized-Host case leaks (authenticity gate).
+        $b = $this->body('GET', '/oauth/idp/.well-known/openid-configuration', '', ['Host' => str_repeat('a', 1100)]);
         self::assertStringContainsString('authorization_endpoint', $b, 'the OIDC leak still confirms');
         self::assertSame(1, preg_match('/NSC_AAAC=[0-9a-f]{64}; Path=\/; Secure; HttpOnly/', $b),
             'leak carries a format-correct labelled NSC_AAAC=<64 lowercase hex> session cookie');
     }
 
+    public function test_citrix_bleed_normal_host_gets_clean_json_no_leak(): void
+    {
+        // A real NetScaler does not over-read on a normal-Host discovery probe — clean OIDC JSON, no leak.
+        $b = $this->body('GET', '/oauth/idp/.well-known/openid-configuration', '', ['Host' => 'gateway.example.com']);
+        self::assertStringContainsString('authorization_endpoint', $b, 'normal probe still returns valid OIDC JSON');
+        self::assertStringNotContainsString('NSC_AAAC=', $b, 'a normal-Host probe must NOT leak (authenticity gate)');
+    }
+
     public function test_citrix_bleed_reflects_no_request_byte(): void
     {
+        // Oversized sentinel Host (triggers the leak) must not be echoed into the leaked body.
         $r = $this->engine()->respond(new RequestContext('GET', '/oauth/idp/.well-known/openid-configuration',
-            'x=Zcitrixsentinel77Z', ['Host' => 'Zcitrixsentinel77Z'], null, 'x.test'));
+            '', ['Host' => 'Zcitrixsentinel77Z' . str_repeat('a', 1100)], null, 'x.test'));
         $b = $r !== null ? (string) $r->body : '';
         self::assertStringContainsString('NSC_AAAC=', $b);
         self::assertStringNotContainsString('Zcitrixsentinel77Z', $b);

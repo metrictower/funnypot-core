@@ -2,19 +2,36 @@ id: attack-citrix-bleed-4966
 severity: critical
 priority: 84
 tags: [attack, citrix, netscaler, memory-leak, cve-2023-4966]
-# Citrix Bleed: a request to the OpenID config endpoint (exploited with an oversized repeated
-# Host header) leaks memory containing a session token. Return a fabricated leaked token blob —
-# memory-ish hex filler wrapping a format-correct labelled `NSC_AAAC=<64 lowercase hex>; Path=/;
-# Secure; HttpOnly` session cookie (FP-0456), which is what a Bleed harvester greps for. Deterministic
-# seed-derived + number-safe (pure hex cannot form a denied digit run). The self-verifying / replay-
-# detection loop (recognise the harvested NSC_AAAC on a later /GetUserName submit) is stateful = app-tier.
+# Citrix Bleed (CVE-2023-4966): ns_aaa_oauth_send_openid_config uses snprintf's would-write byte count, so
+# a response that crosses 0x20000 (131072) bytes over-reads adjacent process memory. The hostname is
+# inserted 6x into the OIDC JSON, so ONLY an OVERSIZED repeated Host header (researchers used ~24,812 bytes)
+# crosses the threshold and appends leaked memory. AUTHENTICITY GATE: a normal-Host discovery probe gets
+# clean OIDC JSON (base response) — a real NetScaler does not leak on a normal probe; only an oversized Host
+# (the branch case) triggers the leak. The leaked blob is memory-ish hex filler wrapping a format-correct
+# labelled `NSC_AAAC=<64 lowercase hex>; Path=/; Secure; HttpOnly` session cookie (FP-0456) — what a Bleed
+# harvester greps for; deterministic seed-derived, number-safe (pure hex cannot form a denied digit run).
+# The self-verifying / replay-detection loop (recognise the harvested NSC_AAAC on a later submit) is
+# stateful = app-tier (FP-0553).
 match:
   - in: path
     contains: "/oauth/idp/.well-known/openid-configuration"
+status: 200
 response:
   headers:
     Content-Type: "application/json; charset=utf-8"
   body: |
     {"issuer":"https://gateway.{{persona.company.domain}}/oauth/idp","authorization_endpoint":"https://gateway.{{persona.company.domain}}/oauth/idp/login"}
-    {{fake.bleed:hex:60}}NSC_AAAC={{fake.nscaaac:hex:64}}; Path=/; Secure; HttpOnly{{fake.bleed2:hex:60}}
+behavior: branch
+branch:
+  cases:
+    # Oversized Host (the Bleed exploit — hostname echoed 6x crosses the 0x20000 over-read). The Host
+    # surface is clipped to a few KB, so the real ~24k-byte attack Host easily exceeds this 1024 gate while
+    # a normal `gateway.example.com` never does. Only this case appends the leaked memory + NSC_AAAC canary.
+    - when: { in: header:Host, regex: '.{1024,}' }
+      response:
+        status: 200
+        headers: { Content-Type: "application/json; charset=utf-8" }
+        body: |
+          {"issuer":"https://gateway.{{persona.company.domain}}/oauth/idp","authorization_endpoint":"https://gateway.{{persona.company.domain}}/oauth/idp/login"}
+          {{fake.bleed:hex:60}}NSC_AAAC={{fake.nscaaac:hex:64}}; Path=/; Secure; HttpOnly{{fake.bleed2:hex:60}}
 expect: ['authorization_endpoint']
