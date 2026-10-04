@@ -282,8 +282,8 @@ $config->reflectorAuthorizer = fn (RequestContext $r, string $class) => edgeAtte
 ```
 
 > **v0.7.0 migration (breaking, safe-off).** An `isolatedOrigin: true` install that does nothing
-> else now serves **no** active reflector until it wires a `reflectorAuthorizer` — the three reflect
-> classes (`xss`, `open-redirect`, `fs-read`) all ride this one seam, so all three go dormant
+> else now serves **no** active reflector until it wires a `reflectorAuthorizer` — the four reflect
+> classes (`xss`, `open-redirect`, `fs-read`, `cmdi`) all ride this one seam, so they go dormant
 > together. This is deliberate: a bare boolean was never proof that the reflection would not act in
 > an operator origin. Re-enable per class from the authorizer's `$reflectClass` argument. The
 > standalone-app activation path (an edge-attested origin split from the operator plane) is delivered
@@ -297,7 +297,9 @@ and param compilers carry the flag into the compiled rule; the runtime reads it 
 a future reflector is a one-line template edit with no engine change.
 
 Each reflector also declares an explicit **reflect class** — `reflect_class: xss` (reflected-XSS),
-`open-redirect`, or `fs-read` (the Vite `/@fs/` path echo). `Config::$reflectClasses` is a per-class
+`open-redirect`, `fs-read` (the Vite `/@fs/` path echo), or `cmdi` (the arithmetic command-injection
+oracle: POSIX `$((…))`/`expr` + Windows `set /a`, which echoes the attacker's anchor tokens around a
+`SafeArithmetic`-computed integer). `Config::$reflectClasses` is a per-class
 override map (`array<string, bool>`, default `[]`) that lets an **isolated-origin** honeypot turn a
 single class off without disabling the others:
 
@@ -628,7 +630,7 @@ at build time and not listed here. Every response stays **inert** (emulates outp
 | **RCE / CVE exploits** | Confluence OGNL (26134 · 22527 SSTI command-exec) · Confluence setup/version (22515 unauth-admin trap + `footer-build-information` disclosure on dashboard/server-info) · php-cgi (1823 · 4577) · Shellshock · Struts OGNL (5638) · PHPUnit (9841) · ThinkPHP · F5 iControl (1388) · GeoServer (36401) · Laravel Ignition · ownCloud (49103) · Spring Actuator · webshell (family-aware: WSO login form · c99 · b374k, else a generic panel) | Fake-vulnerable responses so the scanner "confirms" a hit that isn't real; the 22527 oracle returns the canned `X-Cmd-Response` uid (OGNL never evaluated) while the `${a*b}` arithmetic variant falls through to the SSTI-numeric reflector; the 22515 surfaces disclose a per-deploy `persona.confluence.version` (≤8.5.1, affected side) and accept the setup-admin POST as an inert 302 credential-capture (no admin created); the webshell decoy skins the panel to the requested family's own self-identifying markers, all canned — nothing is ever executed. Confluence attack rules are `severity: critical` (serve only at a critical deploy ceiling) |
 | **Spring Boot Actuator** | `/actuator/{env,health,mappings,info,beans,loggers,threaddump,configprops}` · `heapdump` (twelve scanner paths) · `logfile` | One persona-coherent Spring identity across every endpoint. `heapdump` is a **generated** HotSpot HPROF (`binary_generator: spring_hprof_v1`, < 4 KB, raw bytes, no gzip/disposition) planting the datasource/AWS/admin/JWT secrets as rooted `java.lang.String` objects a heap analyser or `strings` recovers; `logfile` is a Logback log leaking the same values, stamped with the same seeded boot date as the heap header |
 | **IoT / edge exploits (CVE)** | Hikvision camera (36260) · GPON router (10561) · Fiberhome router (27973) · Netgear router (6277) · Xdebug remote-debug recon · Node-RED (deploy RCE + recon) | Signal-only decoys for the highest-volume real-world IoT/edge HTTP exploit probes — path/payload-gated, inert canned reply, no request byte reflected |
-| **Injection & reflection** | SQLi · XSS · SSTI (Twig · numeric) · command injection (unix · windows) · XXE · open-redirect · CRLF response-splitting · php-glastopf | Plausible reflected-payload behaviour, never executed |
+| **Injection & reflection** | SQLi · XSS · SSTI (Twig · numeric) · command injection (unix · windows · **arithmetic oracle**: POSIX `$((a op b))` · `expr` · Windows `set /a`, op ∈ +/-/*) · XXE · open-redirect · CRLF response-splitting · php-glastopf | Plausible reflected-payload behaviour, never executed; the arithmetic oracle computes `a op b` (SafeArithmetic, zero exec) and reflects the attacker's anchor tokens around the result so anti-reflection scanners (Commix/Artemis) confirm — reflector-gated (`reflect_class: cmdi`), inert |
 | **LFI / traversal** | `/etc/shadow` · `/etc/group` · `/proc/*/environ` · unix · windows · SMB conf | Bounded fake file-read, in-string only — no filesystem access |
 | **Network appliances (CVE)** | FortiOS (40684) · Ivanti Connect Secure (21887) · Citrix Bleed (4966) | Edge-device exploit surfaces bots sweep hardest |
 | **Cloud / IMDS** | EC2 instance-metadata tree (category listing · every leaf · `placement`/`iam`/`network`/`block-device-mapping` sub-listings) · `instance-identity/document` · `iam/security-credentials` role listing → inert STS creds | Fully-walkable SSRF/LFI bait — every advertised child resolves (no partial tell), all values inert, seed-coherent, and consistent across the document and leaves |
@@ -649,9 +651,9 @@ at build time and not listed here. Every response stays **inert** (emulates outp
 
 | Metric | Count |
 |---|---|
-| Authored decoy records | 379 |
+| Authored decoy records | 381 |
 | Authored families | 89 |
-| &nbsp;&nbsp;tier `attack` | 88 |
+| &nbsp;&nbsp;tier `attack` | 90 |
 | &nbsp;&nbsp;tier `attack-ai` | 9 |
 | &nbsp;&nbsp;tier `attack-crs` | 4 |
 | &nbsp;&nbsp;tier `new-page` | 276 |

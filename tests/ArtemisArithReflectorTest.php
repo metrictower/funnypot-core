@@ -85,12 +85,14 @@ final class ArtemisArithReflectorTest extends TestCase
         // No '*' (not a product expansion): the grammar requires d*d, so no marker forms.
         $noMul = new RequestContext('GET', '/x', 'q=echo%20abcdef1234%24%28%281234%29%29fedcba99', [], null, 'x.test');
         self::assertStringNotContainsString('1234fedcba99', $this->body($e->respond($noMul, SiteProfile::empty(), 's')));
-        // A non-hex left token ([a-f0-9] only): regex declines, no marker.
-        $nonHex = new RequestContext('GET', '/x', 'q=echo%20zzzzzz%24%28%281234%2a5678%29%29fedcba99', [], null, 'x.test');
-        self::assertStringNotContainsString((string) (1234 * 5678) . 'fedcba99', $this->body($e->respond($nonHex, SiteProfile::empty(), 's')));
+        // FP-0466: the anchor charset is now [A-Za-z0-9] (was hex), so a non-hex alnum anchor like
+        // `zzzzzz` is INTENTIONALLY valid. The remaining non-match guard is the min-length boundary: an
+        // anchor of <3 alnum chars immediately before `$((` declines (left requires {3,16}).
+        $tooShort = new RequestContext('GET', '/x', 'q=echo%20xy%24%28%281234%2a5678%29%29fedcba99', [], null, 'x.test');
+        self::assertStringNotContainsString((string) (1234 * 5678) . 'fedcba99', $this->body($e->respond($tooShort, SiteProfile::empty(), 's')));
     }
 
-    public function test_reflected_tokens_are_hex_only_no_markup(): void
+    public function test_reflected_tokens_are_alnum_only_no_markup(): void
     {
         $resp = $this->engine(true)->respond($this->probe('abcdef1234', 1111, 2222, 'fedcba99'), SiteProfile::empty(), 's');
         $b = $this->body($resp);

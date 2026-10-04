@@ -1,0 +1,55 @@
+id: attack-cmdi-winarith
+severity: high
+priority: 51
+tags: [attack, cmdi, command-injection, reflector, artemis, windows]
+# FP-0466: the Windows cmd.exe `set /a` arithmetic command-injection dialect. Commix frames a Windows
+# oracle as `echo TAG& set /a A op B &echo TAG` (or a bare `cmd /c "set /a (A+B)"`), confirming via the
+# evaluated sum bracketed by the attacker's anchors. Distinct cmd.exe syntax/frame from the POSIX 42/49
+# dialects, so its own template. `behavior: expr-eval` computes A op B via Support\SafeArithmetic (zero
+# exec) and reflects {left}{result}{right}.
+#
+# Poly-stack persona (operator 2026-08-24): a cmd.exe frame on the same box is bait to author, not a tell
+# to avoid — cross-stack coherence is relaxed; the inert + fingerprint-safe + within-product invariants
+# still hold. The marker is emitted CONTIGUOUS (not on cmd's natural separate lines) because the oracle's
+# job is scanner confirmation; detection beats line-fidelity (a stateful analyst-grade cmd frame is an
+# app-tier concern).
+#
+# REFLECTING decoy: gated behind Config::serveReflector() via reflects_input: true + reflect_class: cmdi
+# (same class as 42/49/FP-0386) — isolated-origin + class-enabled + authorized only; embedded and the
+# position-blind synthesize() port never serve it. Safe to author raw: left/right are whitelisted to
+# [A-Za-z0-9] and the result is a bounded signed integer (digits, optional leading '-'); SafeArithmetic
+# declines (→ base page, never 500) on overflow / out-of-grammar.
+#
+# FP-guard (FP-0466 review): `set /a` MUST be preceded by a command-injection separator (& | ; backtick
+# newline, the cmd /c " quote, or a ( subshell) or sit at the surface start, and MUST have a space before
+# /a — so benign prose containing a word ending in "set/a" (dataset/a, charset/a, offset/a …) or a plain
+# "set /a" in text never matches; only a real injected `… & set /a A op B` / `cmd /c "set /a (A op B)"`
+# does. (The leading optional group means no compiled `lit` pre-filter; the bounded regex is cheap.)
+reflects_input: true
+reflect_class: cmdi
+match:
+  - in: request
+    regex: '(?:echo\s+(?P<left>[A-Za-z0-9]{3,16})\s*)?(?:^|[&|;`"(\n])\s*set\s+/a\s+\(?\s*(?P<expr>\d{1,10}\s*[+\-*]\s*\d{1,10})\s*\)?(?:\s*&\s*echo\s+(?P<right>[A-Za-z0-9]{3,16}))?'
+    capture: true
+status: 200
+behavior: expr-eval
+expr-eval:
+  expr: expr
+  bind: result
+  max_len: 24
+  max_operand: 2147483647
+  response:
+    headers:
+      Content-Type: "text/plain; charset=utf-8"
+    # Contiguous marker is the scanner confirmation; a literal CRLF cannot live in a compiled .php
+    # artifact (repo .gitattributes forces `*.php eol=lf`, and the drift gate would see CR as drift), so
+    # the body is LF-terminated. cmd's native \r\n line-fidelity is deferred to the stateful app frame.
+    body: |
+      {{match.left}}{{match.result}}{{match.right}}
+# Base response: served when the expression declines — a plain, marker-free line, never a 500. No static
+# scanner marker, so no `expect:` (the dynamic confirmation is the computed expr-eval body above).
+response:
+  headers:
+    Content-Type: "text/plain; charset=utf-8"
+  body: |
+    0

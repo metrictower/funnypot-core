@@ -1,0 +1,48 @@
+id: attack-cmdi-expr-util
+severity: high
+priority: 49
+tags: [attack, cmdi, command-injection, reflector, artemis, expr]
+# FP-0466: the POSIX `expr`/command-substitution arithmetic command-injection dialect. Commix/Artemis
+# also confirm RCE via `{left}$(expr A + B){right}` (or the backtick form) — a different syntax from the
+# 42 `$((A op B))` arithmetic-expansion home, so it gets its own template + coherent `expr` output frame.
+# `behavior: expr-eval` computes A op B with Support\SafeArithmetic (hand-written recursive-descent
+# integer parser — NEVER eval/shell/callback) and reflects {left}{result}{right} as `expr(1)` would print
+# the bare integer to stdout.
+#
+# REFLECTING decoy (echoes the attacker's left/right tokens): gated behind Config::serveReflector() via
+# reflects_input: true + reflect_class: cmdi (same class as 42/FP-0386) — serves ONLY from an isolated-
+# origin box with the class enabled and the request authorized; embedded hosts (isolatedOrigin=false) and
+# the position-blind synthesize() port never serve it (detection still recorded, degrades to host 404).
+# Safe to author raw: left/right are whitelisted to [A-Za-z0-9] (no <>&"' / CR/LF/NUL) and the result is
+# pure digits; SafeArithmetic declines (→ base page, never a 500) on overflow / out-of-grammar.
+#
+# `expr(1)` requires spaces around the operator (shell word-splitting), so the expr group demands \s+.
+# The escaped-multiplication shell form (`expr 6 \* 7`) depends on the shell-deobfuscate decoder to strip
+# the backslash and is covered by that follow-up stage; this template matches the unescaped `+`/`-`/`*`
+# operator forms.
+reflects_input: true
+reflect_class: cmdi
+match:
+  - in: request
+    regex: '(?:echo\s+)?(?P<left>[A-Za-z0-9]{3,16})(?:\$\(|`)\s*expr\s+(?P<expr>\d{1,10}\s+[+\-*]\s+\d{1,10})\s*(?:\)|`)(?P<right>[A-Za-z0-9]{3,16})'
+    capture: true
+status: 200
+behavior: expr-eval
+expr-eval:
+  expr: expr
+  bind: result
+  max_len: 24
+  max_operand: 2147483647
+  response:
+    headers:
+      Content-Type: "text/plain; charset=utf-8"
+    body: |
+      {{match.left}}{{match.result}}{{match.right}}
+# Base response: served when the expression declines (overflow / out of grammar / non-arithmetic) — a
+# plain, marker-free line, never a 500 (only-upgrade invariant). No static scanner marker lives here, so
+# no `expect:` (the dynamic confirmation is the computed expr-eval body above; cf. 45-ssti-numeric's base).
+response:
+  headers:
+    Content-Type: "text/plain; charset=utf-8"
+  body: |
+    0
