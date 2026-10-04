@@ -1,0 +1,58 @@
+id: route-confluence-server-info
+priority: 421
+# FP-0465: Confluence /server-info.action, the page CVE-2023-22515 abuses. The exploit sends
+# GET /server-info.action?bootstrapStatusProvider.applicationConfig.setupComplete=false to flip the
+# in-memory setup flag; the route key strips the query, so the param-laden request and a bare GET both
+# resolve here. A stateless core cannot truly flip/remember the flag, so this always serves the real
+# server-info HTML (the easy-lure choice) carrying the same {{persona.confluence.version}} footer as the
+# dashboard — the 22515 version fingerprint. The real endpoint returns HTML (NOT the {"setupComplete":
+# false} JSON some write-ups imagine), so we serve HTML. The true flag-flip -> gated setup-form state
+# machine is an optional funnypot-app follow-up (core stays stateless). Inert, static, any origin.
+new_page:
+  method: GET
+  paths: ['/server-info.action']
+  sig: 0
+  status: 200
+  severity: high
+  tags: [confluence, atlassian, server-info, version, disclosure]
+  name: 'Confluence server-info (version disclosure)'
+  body_words: ['Confluence', 'footer-build-information']
+response:
+  headers:
+    Content-Type: "text/html;charset=UTF-8"
+  body: |
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+    <meta charset="utf-8">
+    <title>System Information - Confluence</title>
+    <style>
+    body{margin:0;font-family:-apple-system,"Segoe UI",Roboto,Arial,sans-serif;font-size:14px;color:#172b4d;background:#fff}
+    #header{background:#fff;border-bottom:2px solid #0052cc;padding:0 20px;height:48px;display:flex;align-items:center}
+    #header .logo{font-weight:700;color:#0052cc;font-size:18px}
+    #main{max-width:960px;margin:24px auto;padding:0 20px}
+    h1{font-size:24px;font-weight:500;margin:0 0 16px}
+    table{border-collapse:collapse;width:100%}
+    th,td{text-align:left;padding:8px 12px;border-bottom:1px solid #dfe1e6;font-size:13px}
+    th{color:#6b778c;width:220px;font-weight:600}
+    #footer{border-top:1px solid #dfe1e6;color:#6b778c;font-size:12px;text-align:center;padding:16px;margin-top:40px}
+    </style>
+    </head>
+    <body>
+    <div id="header"><span class="logo">Confluence</span></div>
+    <div id="main">
+    <h1>System Information</h1>
+    <table>
+    <tr><th>Confluence Version</th><td>{{persona.confluence.version}}</td></tr>
+    <tr><th>Database</th><td>PostgreSQL</td></tr>
+    <tr><th>Servlet Container</th><td>Apache Tomcat/{{persona.tomcat.version}}</td></tr>
+    <tr><th>Java Version</th><td>{{persona.java.version}}</td></tr>
+    </table>
+    </div>
+    <div id="footer">
+    Powered by Atlassian Confluence <span id='footer-build-information'>{{persona.confluence.version}}</span>
+    </div>
+    </body>
+    </html>
+expect:
+  - "footer-build-information"

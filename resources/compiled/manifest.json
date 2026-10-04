@@ -4,11 +4,11 @@
     "license": "MIT (c) 2025 ProjectDiscovery, Inc.",
     "upstream_tag": "2ec914123864439c3618e7e9ae72d32d0eb56df7",
     "upstream_sha": "2ec914123864439c3618e7e9ae72d32d0eb56df7",
-    "source_tree": "3f02b05178b8da375559a86d3130ca8cfa9f22089f16d3b8c1caa89c06aa09d7",
+    "source_tree": "db1d00ee7aef1f0ef46c5da3aa3fa68ed49d0715dec6d4264369ed42ebb320af",
     "templates_seen": 11196,
     "templates_in": 6363,
-    "templates_indexed": 6508,
-    "route_keys": 5368,
+    "templates_indexed": 6512,
+    "route_keys": 5372,
     "multi_bundle_keys": 277,
     "largest_bundle_count": 1324,
     "persona_cap": {
@@ -39,7 +39,7 @@
     "built_at": "2026-08-16T03:20:40+00:00",
     "core_commit": "f5f15f27d19b5e7ba9235f61c03dc77d9b227ec6",
     "php_version": "8.4.10",
-    "sha256": "44b91806c24f63e333e30bbd1b57cc748f7ea41f1107d4ff17e930a0fd42e99a",
+    "sha256": "61de868ead48e75513dffa92ae66cc3e5a6b07738d254e06183ca749b0146a37",
     "skipped_count": 4833,
-    "artifact_bytes": 6439814
+    "artifact_bytes": 6443241
 }

@@ -1,0 +1,37 @@
+id: attack-confluence-22527
+severity: critical
+priority: 4
+tags: [attack, rce, confluence, ognl, ssti, cve-2023-22527]
+# FP-0465: Confluence CVE-2023-22527 OGNL/SSTI unauth RCE (CVSS 10.0, CISA KEV; affects 8.0.x-8.5.3).
+# The in-the-wild exploit POSTs to /template/aui/text-inline.vm an OGNL payload in the `label` param
+# that breaks out with a single quote and chains `KEY_velocity.struts2.context` ->
+# `freemarker.template.utility.Execute().exec({...})`, confirming via an `X-Cmd-Response` header that
+# carries the command output. 05-confluence-ognl.yaml covers the OLDER CVE-2022-26134 but its
+# `\$\{.*(#context|getRuntime|...)` regex is anchored on `${...}` and never matches this `'`-breakout
+# payload, so 22527 was genuinely uncovered. We answer the command-exec confirmation with the canned
+# uid marker (single-line, header-safe) in `X-Cmd-Response` plus a plausible Confluence page.
+#
+# Inert invariant (preserve 05's posture): the OGNL/Velocity/FreeMarker payload is NEVER fed to any
+# template engine or eval — only the fixed `{{canned.uid}}` header is emitted; no request byte is
+# reflected. The markers matched below are what the SCANNER SENDS (attacker payload), not strings we
+# emit, so the fingerprint invariant (never emit a scanner/CRS matcher signature) is untouched.
+#
+# No owns_path: the `${197*7331}` arithmetic variant of 22527 carries NO command-exec marker, so it
+# declines here and falls through to the generic 45-ssti-numeric decoy, which computes and reflects the
+# product (the arithmetic confirmation) — owning the path would suppress that fallthrough. priority 4
+# sits ahead of 05 (5) so the command-exec payload resolves here first.
+match:
+  - in: method
+    regex: '^POST$'
+  - in: path
+    regex: '^/template/aui/text-inline\.vm/*$'
+    ci: true
+  - in: request
+    dotall: true
+    regex: 'KEY_velocity|struts2\.context|findValue|freemarker\.template\.utility\.Execute|\.getWriter\(|setHeader'
+response:
+  headers:
+    Content-Type: "text/html;charset=UTF-8"
+    X-Cmd-Response: "{{canned.uid}}"
+  body: "<!DOCTYPE html><html><head><title>Log In - Confluence</title></head><body><div id=\"main\">Confluence</div></body></html>"
+expect: ["uid=0(root)"]
