@@ -44,7 +44,7 @@ final class EmulatorBreadthTest extends TestCase
             'apache server-status'             => ['GET /server-status', 0, 'route-apache-server-status'],
             'apache server-info'               => ['GET /server-info', 0, 'route-apache-server-info'],
             'package.json'                     => ['GET /package.json', 0, 'route-package-json'],
-            'package-lock.json'                => ['GET /package-lock.json', 0, 'route-package-json'],
+            'package-lock.json'                => ['GET /package-lock.json', 0, 'route-package-lock-json'],
             'ssh/pem private key'              => ['GET /cgi-bin/privatekey.pem', 0, 'route-ssh-private-key'],
             'sql dump / db backup'             => ['GET /install/froxlor.sql', 0, 'route-sql-dump'],
             'wp-login (registration open)'     => ['GET /wp-login.php', 1, 'route-wp-login'],
