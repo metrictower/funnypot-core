@@ -339,7 +339,12 @@ final class Honeypot implements Engine
             // never shadowed) and BEFORE the route verdict; on a decline it falls through to the
             // static bundle below — zero coverage loss, no new throw path.
             if ($this->attackEmulator !== null && $this->config->attackEmulation && $this->attackEmulator->ownsPath($r->path)) {
-                $ov = $this->attackEmulator->matchRule($r);
+                // FP-0547: on an owned path, a path-conditioned rule (the owner + path-coherent siblings)
+                // wins over a path-agnostic generic injection rule whose window is the exploit body — so a
+                // CVE decoy keeps its own path at a normal priority instead of priority-warring the lfi/cmdi
+                // band. matchOnOwnedPath == matchRule except for that path-conditioned-over-path-agnostic
+                // promotion; the decline fall-through below is unchanged.
+                $ov = $this->attackEmulator->matchOnOwnedPath($r);
                 // A persona-gated rule (e.g. the Next.js RSC responder) fires ONLY where the served
                 // `/` persona is the gate's pid — personaGateAllows() reproduces the serve-path pick
                 // byte-for-byte, so gate-open ⟺ this deploy actually presents that stack. A closed

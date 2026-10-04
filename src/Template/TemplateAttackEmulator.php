@@ -53,6 +53,12 @@ final class TemplateAttackEmulator
     /** @var array<int,array<string,mixed>>|null cached payload-eligible rule subset (FP-0086) */
     private $payloadEligible = null;
 
+    /** @var array<int,array<string,mixed>>|null cached path-conditioned rule subset (FP-0547, owns_path Tier 1) */
+    private $pathConditionedRules = null;
+
+    /** @var array<int,array<string,mixed>>|null cached path-agnostic rule subset (FP-0547, owns_path Tier 2) */
+    private $pathAgnosticRules = null;
+
     /**
      * Compiled param-route buckets: `['schema'=>1,'buckets'=>['<seg>'=>[<entry...>]]]`. A
      * parameterized path can't be keyed in the exact store, so it dispatches here — between the
@@ -249,25 +255,119 @@ final class TemplateAttackEmulator
         }
 
         foreach ($this->rules as $rule) {
-            if ($this->disabled !== [] && isset($this->disabled[(string) ($rule['id'] ?? '')])) {
-                continue;
+            $hit = $this->tryRule($r, $rule);
+            if ($hit !== null) {
+                return $hit;
             }
-            // Cheap literal pre-filter: the compiler proves `lit` is a substring every match of
-            // this rule must carry in surface `lit_in`. If it is absent, no condition can hold —
-            // skip the regex loop. Pure speedup: rules without `lit` are evaluated as before, and
-            // a present literal only means "evaluate", never "match".
-            if (isset($rule['lit']) && $this->literalAbsent($r, $rule)) {
-                continue;
-            }
-            $captures = $this->match($r, $rule);
-            if ($captures === null) {
-                continue;
-            }
-
-            return ['rule' => $rule, 'captures' => $captures];
         }
 
         return null;
+    }
+
+    /**
+     * Evaluate ONE rule against the request (disabled-check + literal pre-filter + match). Shared by
+     * matchRule and matchOnOwnedPath so the two can never diverge.
+     *
+     * Cheap literal pre-filter: the compiler proves `lit` is a substring every match of this rule must
+     * carry in surface `lit_in`. If it is absent, no condition can hold — skip the regex loop. Pure
+     * speedup: rules without `lit` are evaluated as before, and a present literal only means "evaluate".
+     *
+     * @param array<string,mixed> $rule
+     * @return array{rule:array<string,mixed>,captures:array<int|string,string>}|null
+     */
+    private function tryRule(RequestContext $r, array $rule): ?array
+    {
+        if ($this->disabled !== [] && isset($this->disabled[(string) ($rule['id'] ?? '')])) {
+            return null;
+        }
+        if (isset($rule['lit']) && $this->literalAbsent($r, $rule)) {
+            return null;
+        }
+        $captures = $this->match($r, $rule);
+        if ($captures === null) {
+            return null;
+        }
+
+        return ['rule' => $rule, 'captures' => $captures];
+    }
+
+    /**
+     * Rule selection for an owns_path-claimed path (FP-0547). The caller has already confirmed the path
+     * is owned (ownsPath()), so the request targets a decoy that CLAIMS this path. A plain matchRule here
+     * returns the globally-lowest-priority match across ALL rules, which lets a path-AGNOSTIC generic
+     * injection rule (e.g. lfi/cmdi — `in: request`, no `in: path`) whose window is the exploit BODY win
+     * over the path's own decoy and serve the wrong body/Content-Type. So scan in two tiers:
+     *
+     *   Tier 1 — rules that carry an `in: path` condition (the owner AND every path-coherent sibling),
+     *            in priority order; first match wins. This is the path's own decoy family.
+     *   Tier 2 — only if Tier 1 is empty: path-agnostic rules (no `in: path`), in priority order. This
+     *            preserves today's generic-decoy-on-decline (e.g. the tokenless multipart webshell POST
+     *            to the owned /wp-admin/admin-ajax.php still served by the upload rule).
+     *
+     * Identical to matchRule EXCEPT a path-conditioned match is promoted above a path-agnostic one — the
+     * single intended behavior change, always toward the path's own decoy. Intra-tier order is unchanged.
+     *
+     * @return array{rule:array<string,mixed>,captures:array<int|string,string>}|null
+     */
+    public function matchOnOwnedPath(RequestContext $r): ?array
+    {
+        if (!BoundedInspection::targetAccepted($r)) {
+            return null;
+        }
+        $this->partitionByPathCondition();
+        foreach ($this->pathConditionedRules as $rule) {
+            $hit = $this->tryRule($r, $rule);
+            if ($hit !== null) {
+                return $hit;
+            }
+        }
+        foreach ($this->pathAgnosticRules as $rule) {
+            $hit = $this->tryRule($r, $rule);
+            if ($hit !== null) {
+                return $hit;
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * Partition the (immutable, priority-ordered) rule set once into path-conditioned and path-agnostic
+     * subsets for matchOnOwnedPath. Both preserve priority order (partitioned in $rules order).
+     */
+    private function partitionByPathCondition(): void
+    {
+        if ($this->pathConditionedRules !== null) {
+            return;
+        }
+        $this->pathConditionedRules = [];
+        $this->pathAgnosticRules = [];
+        foreach ($this->rules as $rule) {
+            if (self::ruleHasPathCondition($rule)) {
+                $this->pathConditionedRules[] = $rule;
+            } else {
+                $this->pathAgnosticRules[] = $rule;
+            }
+        }
+    }
+
+    /**
+     * True when the rule's TOP-LEVEL match carries an `in: path` condition. Reads only the top-level
+     * `match` array (as match()/ruleIsPayloadEligible do) — NOT nested behavior `when:` branch conditions:
+     * a rule with a top-level `in: path` plus a nested `when: { in: body }` (e.g. the admin-ajax override)
+     * is path-conditioned by its top-level claim.
+     *
+     * @param array<string,mixed> $rule
+     */
+    private static function ruleHasPathCondition(array $rule): bool
+    {
+        foreach ((array) ($rule['match'] ?? []) as $cond) {
+            if (($cond['in'] ?? 'request') === 'path') {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /**
