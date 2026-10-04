@@ -2,22 +2,25 @@ id: attack-cmdi-arith
 severity: high
 priority: 42
 tags: [attack, cmdi, command-injection, reflector, artemis]
-# FP-0386: dynamic arithmetic command-injection reflector for anti-reflection DAST (CERT-Polska
-# Artemis et al). Artemis does NOT trust a static `echo vulnerable`; it injects
-# `echo {left}$(({a}*{b})){right}` with fresh 8-hex `left`/`right` tokens and random operands, and
-# confirms ONLY if the body contains `{left}{a*b}{right}` — the marker forms only if the shell
-# evaluated the arithmetic AND the attacker's exact tokens bracket it. 41-cmdi-unix returns a fixed
-# uid=0(root) and never computes, so it cannot form this marker. Here `behavior: expr-eval` computes
-# the product with Support\SafeArithmetic (hand-written recursive-descent integer parser — NEVER
-# eval/shell/callback) and reflects {left}{product}{right} inside a plausible command-output frame.
+# FP-0386 + FP-0466: dynamic arithmetic command-injection reflector for anti-reflection DAST (CERT-Polska
+# Artemis / Commix et al). The scanner does NOT trust a static `echo vulnerable`; it injects
+# `echo {left}$(({a} op {b})){right}` (optionally with an inner `$(echo {mid})` confirmation) using fresh
+# random `left`/`mid`/`right` anchor tokens and random operands, and confirms ONLY if the body contains
+# `{left}{a op b}{mid}{right}` — the marker forms only if the shell evaluated the arithmetic AND the
+# attacker's exact tokens bracket it. 41-cmdi-unix returns a fixed uid=0(root) and never computes, so it
+# cannot form this marker. Here `behavior: expr-eval` computes `a op b` (op ∈ + - *) with
+# Support\SafeArithmetic (hand-written recursive-descent integer parser — NEVER eval/shell/callback) and
+# reflects {left}{result}{mid}{right} inside a plausible command-output frame. (FP-0466 generalised this
+# from FP-0386's hex-anchor/multiplication-only form; the sibling 49-cmdi-expr-util / 51-cmdi-winarith
+# carry the `expr` and Windows `set /a` dialects.)
 #
-# REFLECTING decoy: it echoes the attacker's `left`/`right` tokens verbatim, so (per the project rule,
-# like 65-xss-reflection-escalation / 60-open-redirect) it is gated behind Config::serveReflector():
+# REFLECTING decoy: it echoes the attacker's anchor tokens verbatim, so (per the project rule, like
+# 65-xss-reflection-escalation / 60-open-redirect) it is gated behind Config::serveReflector():
 # reflects_input: true + reflect_class: cmdi ⇒ serves ONLY from an isolated-origin box with the class
 # enabled and the request authorized. Embedded hosts (isolatedOrigin=false) and the position-blind
 # synthesize() port never serve it (detection still recorded; degrades to the host 404). Safe to author
-# raw: `left`/`right` are whitelisted to [a-f0-9]{6,16} (no <>&"' / CR/LF/NUL can appear) and the
-# product is pure digits; SafeArithmetic declines (→ base page, never a 500) on overflow/out-of-grammar.
+# raw: the anchors are whitelisted to [A-Za-z0-9]{3,16} (no <>&"' / CR/LF/NUL can appear) and the result
+# is a bounded signed integer; SafeArithmetic declines (→ base page, never a 500) on overflow/out-of-grammar.
 # Time-based (sleep 5 vs sleep 0) is deliberately NOT here — a synchronous engine sleep is a DoS
 # amplifier + self-fingerprint; it is an app-tier / store-deferred follow-up (spec §4/§6).
 reflects_input: true

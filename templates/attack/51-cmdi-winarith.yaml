@@ -17,13 +17,19 @@ tags: [attack, cmdi, command-injection, reflector, artemis, windows]
 # REFLECTING decoy: gated behind Config::serveReflector() via reflects_input: true + reflect_class: cmdi
 # (same class as 42/49/FP-0386) — isolated-origin + class-enabled + authorized only; embedded and the
 # position-blind synthesize() port never serve it. Safe to author raw: left/right are whitelisted to
-# [A-Za-z0-9] and the result is pure digits; SafeArithmetic declines (→ base page, never 500) on overflow
-# / out-of-grammar. The `set` literal gives the compiler a free required-literal pre-filter.
+# [A-Za-z0-9] and the result is a bounded signed integer (digits, optional leading '-'); SafeArithmetic
+# declines (→ base page, never 500) on overflow / out-of-grammar.
+#
+# FP-guard (FP-0466 review): `set /a` MUST be preceded by a command-injection separator (& | ; backtick
+# newline, the cmd /c " quote, or a ( subshell) or sit at the surface start, and MUST have a space before
+# /a — so benign prose containing a word ending in "set/a" (dataset/a, charset/a, offset/a …) or a plain
+# "set /a" in text never matches; only a real injected `… & set /a A op B` / `cmd /c "set /a (A op B)"`
+# does. (The leading optional group means no compiled `lit` pre-filter; the bounded regex is cheap.)
 reflects_input: true
 reflect_class: cmdi
 match:
   - in: request
-    regex: '(?:echo\s+(?P<left>[A-Za-z0-9]{3,16})\s*&\s*)?set\s*/a\s+\(?\s*(?P<expr>\d{1,10}\s*[+\-*]\s*\d{1,10})\s*\)?(?:\s*&\s*echo\s+(?P<right>[A-Za-z0-9]{3,16}))?'
+    regex: '(?:echo\s+(?P<left>[A-Za-z0-9]{3,16})\s*)?(?:^|[&|;`"(\n])\s*set\s+/a\s+\(?\s*(?P<expr>\d{1,10}\s*[+\-*]\s*\d{1,10})\s*\)?(?:\s*&\s*echo\s+(?P<right>[A-Za-z0-9]{3,16}))?'
     capture: true
 status: 200
 behavior: expr-eval

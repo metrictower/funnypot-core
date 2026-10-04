@@ -138,17 +138,53 @@ final class BehaviorCommandInjectionOracleTest extends TestCase
 
     // ---- AC9/AC10: embedded + unauthorized suppress the reflection -----------------------------
 
-    public function test_embedded_host_suppresses_every_dialect(): void
+    /** @return string[] one probe per dialect, each computing 42 */
+    private static function dialectProbes(): array
     {
-        foreach (['echo ABCDEF$((23+19))ZYXWVU', 'echo TAG123$(expr 15 + 27)TAG123', 'echo WTAG& set /a 15+27 &echo WTAG'] as $p) {
-            self::assertStringNotContainsString('42', $this->serve($p, false, true), "embedded must suppress: {$p}");
+        return ['echo ABCDEF$((23+19))ZYXWVU', 'echo TAG123$(expr 15 + 27)TAG123', 'echo WTAG& set /a 15+27 &echo WTAG'];
+    }
+
+    public function test_embedded_host_suppresses_but_still_detects_every_dialect(): void
+    {
+        $e = $this->engine(false, true); // embedded origin, authorized
+        foreach (self::dialectProbes() as $p) {
+            $r = $this->probe($p);
+            // Detection is still recorded (classification is attack-class on a cmdi rule)...
+            $v = $e->classify($r, SiteProfile::empty());
+            self::assertStringStartsWith('attack-cmdi', (string) ($v->fakeHandle->ruleId ?? ''), "embedded must still DETECT: {$p}");
+            // ...but the reflection is withheld (no serve).
+            self::assertNull($e->respond($r), "embedded must WITHHOLD the reflection: {$p}");
         }
     }
 
-    public function test_unauthorized_suppresses_every_dialect(): void
+    public function test_unauthorized_suppresses_but_still_detects_every_dialect(): void
     {
-        foreach (['echo ABCDEF$((23+19))ZYXWVU', 'echo TAG123$(expr 15 + 27)TAG123', 'echo WTAG& set /a 15+27 &echo WTAG'] as $p) {
-            self::assertStringNotContainsString('42', $this->serve($p, true, false), "unauthorized must suppress: {$p}");
+        $e = $this->engine(true, false); // isolated origin, authorizer declines
+        foreach (self::dialectProbes() as $p) {
+            $r = $this->probe($p);
+            $v = $e->classify($r, SiteProfile::empty());
+            self::assertStringStartsWith('attack-cmdi', (string) ($v->fakeHandle->ruleId ?? ''), "unauthorized must still DETECT: {$p}");
+            self::assertNull($e->respond($r), "unauthorized must WITHHOLD the reflection: {$p}");
+        }
+    }
+
+    public function test_position_blind_synthesize_port_never_reflects(): void
+    {
+        // AC11: the request-less synthesize() port cannot prove isolated origin, so it never reflects.
+        $e = $this->engine(true, true);
+        $r = $this->probe('echo ABCDEF$((23+19))ZYXWVU');
+        $v = $e->classify($r, SiteProfile::empty());
+        self::assertStringStartsWith('attack-cmdi', (string) ($v->fakeHandle->ruleId ?? ''));
+        // synthesize() WITHOUT a request is the position-blind port: it cannot prove isolated origin.
+        self::assertNull($e->synthesize($v, SiteProfile::empty(), 's'), 'position-blind port must not reflect');
+    }
+
+    public function test_windows_seta_does_not_match_benign_word_boundary_text(): void
+    {
+        // FP-0466 review: a benign path/word ending in "set/a" must NOT trigger the Windows rule.
+        foreach (['/reports/dataset/a 2024-01', 'charset/a 2024-01', 'see offset/a 2024-01 for details'] as $benign) {
+            $v = $this->engine(true, true)->classify($this->probe($benign), SiteProfile::empty());
+            self::assertNotSame('attack-cmdi-winarith', (string) ($v->fakeHandle->ruleId ?? ''), "benign must not match: {$benign}");
         }
     }
 

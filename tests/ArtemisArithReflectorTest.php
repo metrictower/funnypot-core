@@ -92,7 +92,7 @@ final class ArtemisArithReflectorTest extends TestCase
         self::assertStringNotContainsString((string) (1234 * 5678) . 'fedcba99', $this->body($e->respond($tooShort, SiteProfile::empty(), 's')));
     }
 
-    public function test_reflected_tokens_are_hex_only_no_markup(): void
+    public function test_reflected_tokens_are_alnum_only_no_markup(): void
     {
         $resp = $this->engine(true)->respond($this->probe('abcdef1234', 1111, 2222, 'fedcba99'), SiteProfile::empty(), 's');
         $b = $this->body($resp);

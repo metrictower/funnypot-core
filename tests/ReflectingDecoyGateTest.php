@@ -264,6 +264,10 @@ final class ReflectingDecoyGateTest extends TestCase
         self::assertTrue(!empty($attack->ruleById('attack-xss')['reflects_input']));
         self::assertTrue(!empty($attack->ruleById('attack-xss-escalation')['reflects_input']));
         self::assertTrue(!empty($attack->ruleById('attack-open-redirect')['reflects_input']));
+        // The cmdi arithmetic reflectors (FP-0386 + FP-0466 multi-dialect).
+        self::assertTrue(!empty($attack->ruleById('attack-cmdi-arith')['reflects_input']));
+        self::assertTrue(!empty($attack->ruleById('attack-cmdi-expr-util')['reflects_input']));
+        self::assertTrue(!empty($attack->ruleById('attack-cmdi-winarith')['reflects_input']));
 
         // A bounded-capture reflector (HTML-safe by construction) is NOT tagged.
         self::assertTrue(empty($attack->ruleById('attack-phpcgi-1823')['reflects_input']));
@@ -278,12 +282,13 @@ final class ReflectingDecoyGateTest extends TestCase
         $attackSrc = (string) file_get_contents(self::ATTACK_ARTIFACT);
         $paramSrc = (string) file_get_contents(self::PARAM_ARTIFACT);
 
-        // attack-xss, attack-xss-escalation, attack-open-redirect; param-vite-fs.
-        self::assertSame(3, substr_count($attackSrc, 'reflects_input'));
+        // attack-xss, attack-xss-escalation, attack-open-redirect, attack-cmdi-arith,
+        // attack-cmdi-expr-util, attack-cmdi-winarith; param-vite-fs.
+        self::assertSame(6, substr_count($attackSrc, 'reflects_input'));
         self::assertSame(1, substr_count($paramSrc, 'reflects_input'));
 
         // The explicit reflect_class tag rides alongside reflects_input, one per reflector.
-        self::assertSame(3, substr_count($attackSrc, 'reflect_class'));
+        self::assertSame(6, substr_count($attackSrc, 'reflect_class'));
         self::assertSame(1, substr_count($paramSrc, 'reflect_class'));
     }
 
@@ -294,6 +299,10 @@ final class ReflectingDecoyGateTest extends TestCase
         self::assertSame('xss', $attack->ruleById('attack-xss')['reflect_class']);
         self::assertSame('xss', $attack->ruleById('attack-xss-escalation')['reflect_class']);
         self::assertSame('open-redirect', $attack->ruleById('attack-open-redirect')['reflect_class']);
+        // The cmdi arithmetic reflectors all share the one cmdi class (FP-0386 + FP-0466).
+        self::assertSame('cmdi', $attack->ruleById('attack-cmdi-arith')['reflect_class']);
+        self::assertSame('cmdi', $attack->ruleById('attack-cmdi-expr-util')['reflect_class']);
+        self::assertSame('cmdi', $attack->ruleById('attack-cmdi-winarith')['reflect_class']);
         // The param tier carries the class too (ruleById resolves param entries).
         self::assertSame('fs-read', $attack->ruleById('param-vite-fs')['reflect_class']);
     }
