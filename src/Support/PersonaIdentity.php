@@ -238,10 +238,12 @@ final class PersonaIdentity
             // so a bare 6-digit CRS-id run (\b9\d{5}\b) cannot form in them; only the two url-safe-base64
             // shapes whose '-'/'_' can bound a run are re-roll-guarded (guardedB64Key). All seed-derived,
             // non-working, exact-shape so a secret scanner bites.
-            // OpenAI project key: 'sk-proj-' + 48 [A-Za-z0-9_-] (Caido \bsk-proj-[A-Za-z0-9_-]{40,}\b).
-            'cloud.openai.projectKey' => self::guardedB64Key($seed, 'openai_proj', 'sk-proj-', 48),
-            // HuggingFace user access token: 'hf_' + 34 [A-Za-z0-9].
-            'cloud.huggingface.token' => 'hf_' . self::base62($seed, 'hf_k', 34),
+            // OpenAI project key: 'sk-proj-' + 74 + the constant 'T3BlbkFJ' infix + 74 [A-Za-z0-9_-].
+            // The T3BlbkFJ infix is what gitleaks/trufflehog require (not just Caido's {40,}).
+            'cloud.openai.projectKey' => self::openaiProjectKey($seed),
+            // HuggingFace user access token: 'hf_' + 34 LETTERS (gitleaks hf_(?i:[a-z]{34}); letters are a
+            // subset of Caido/trufflehog's [A-Za-z0-9], and a digitless body can never form a 9ddddd run).
+            'cloud.huggingface.token' => 'hf_' . self::alphaRun($seed, 'hf_k', 34),
             // Groq Cloud API key: 'gsk_' + 52 [A-Za-z0-9].
             'cloud.groq.apiKey' => 'gsk_' . self::base62($seed, 'groq_k', 52),
             // BuildKite user token: 'bkua_' + 40 hex.
@@ -704,11 +706,57 @@ final class PersonaIdentity
             $body = substr(self::base64url((string) hex2bin(
                 self::h($seed, $f) . self::h($seed, $f . '2') . self::h($seed, $f . '3') . self::h($seed, $f . '4')
             )), 0, $len);
+            // A trailing '-' breaks a \b-anchored scanner rule (glpat-/trufflehog): '-' is \W, so the
+            // closing \b can't land after it and {20,} can't backtrack below the required length. Re-roll.
+            if (substr($body, -1) === '-') {
+                continue;
+            }
             $value = $prefix . $body;
             if (!self::hitsDeniedDigits($value)) {
                 return $value;
             }
         }
+    }
+
+    /**
+     * FP-0419: OpenAI project key — 'sk-proj-' + 74 + the constant 'T3BlbkFJ' infix + 74 url-safe-base64.
+     * The infix is what gitleaks/trufflehog's openai rules require; the overall body still satisfies
+     * Caido's 'sk-proj-[A-Za-z0-9_-]{40,}'. Re-rolled past the denied digit run and a trailing '-'.
+     */
+    private static function openaiProjectKey(int $seed): string
+    {
+        for ($round = 0; ; $round++) {
+            $s = $round === 0 ? '' : '|r' . $round;
+            $a = substr(self::base64url((string) hex2bin(
+                self::h($seed, 'openai_proj_a' . $s) . self::h($seed, 'openai_proj_a2' . $s) . self::h($seed, 'openai_proj_a3' . $s)
+            )), 0, 74);
+            $b = substr(self::base64url((string) hex2bin(
+                self::h($seed, 'openai_proj_b' . $s) . self::h($seed, 'openai_proj_b2' . $s) . self::h($seed, 'openai_proj_b3' . $s)
+            )), 0, 74);
+            $value = 'sk-proj-' . $a . 'T3BlbkFJ' . $b;
+            if (substr($b, -1) !== '-' && !self::hitsDeniedDigits($value)) {
+                return $value;
+            }
+        }
+    }
+
+    /** FP-0419: `len` letters ([A-Za-z]) from the seed — a digitless run (no 6-digit-run risk), for the
+     *  HuggingFace token whose gitleaks rule is letters-only. */
+    private static function alphaRun(int $seed, string $field, int $len): string
+    {
+        $alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz';
+        $hex = self::h($seed, $field);
+        $round = 1;
+        while (strlen($hex) < $len * 2) {
+            $hex .= self::h($seed, $field . $round);
+            $round++;
+        }
+        $out = '';
+        for ($i = 0; $i < $len; $i++) {
+            $out .= $alphabet[(int) hexdec(substr($hex, $i * 2, 2)) % 52];
+        }
+
+        return $out;
     }
 
     /**

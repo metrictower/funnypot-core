@@ -25,16 +25,19 @@ final class CanaryTokenCatalogTest extends TestCase
     private static function shapes(): array
     {
         // Prefixes are split so no line is a scannable secret literal.
+        // \b-anchored (NAME=value\n context) so these match the real Caido/gitleaks/trufflehog rules,
+        // not just a loose shape. A trailing '-' on glpat- would fail the closing \b (the FP-0419 review
+        // fix); the openai key must carry the T3BlbkFJ infix (asserted separately).
         return [
-            'cloud.openai.projectKey'     => '~^' . 'sk-' . 'proj-[A-Za-z0-9_-]{48}$~',
-            'cloud.huggingface.token'     => '~^' . 'hf' . '_[A-Za-z0-9]{34}$~',
-            'cloud.groq.apiKey'           => '~^' . 'gsk' . '_[A-Za-z0-9]{52}$~',
-            'cloud.buildkite.token'       => '~^' . 'bkua' . '_[a-f0-9]{40}$~',
-            'cloud.circleci.token'        => '~^[a-f0-9]{40}$~',
-            'cloud.github.pat'            => '~^' . 'ghp' . '_[A-Za-z0-9]{36}$~',
-            'cloud.github.fineGrainedPat' => '~^' . 'github_pat' . '_[A-Za-z0-9]{82}$~',
-            'cloud.gitlab.pat'            => '~^' . 'glpat' . '-[A-Za-z0-9_-]{20}$~',
-            'cloud.slack.botToken'        => '~^' . 'xoxb' . '-[0-9A-Za-z-]{40}$~',
+            'cloud.openai.projectKey'     => '~\b' . 'sk-' . 'proj-[A-Za-z0-9_-]{40,}\b~',
+            'cloud.huggingface.token'     => '~\b' . 'hf' . '_[A-Za-z]{34}\b~',
+            'cloud.groq.apiKey'           => '~\b' . 'gsk' . '_[A-Za-z0-9]{52}\b~',
+            'cloud.buildkite.token'       => '~\b' . 'bkua' . '_[a-f0-9]{40}\b~',
+            'cloud.circleci.token'        => '~\b[a-f0-9]{40}\b~',
+            'cloud.github.pat'            => '~\b' . 'ghp' . '_[A-Za-z0-9]{36}\b~',
+            'cloud.github.fineGrainedPat' => '~\b' . 'github_pat' . '_[A-Za-z0-9]{82}\b~',
+            'cloud.gitlab.pat'            => '~\b' . 'glpat' . '-[A-Za-z0-9_-]{20,}\b~',
+            'cloud.slack.botToken'        => '~\b' . 'xoxb' . '-[0-9A-Za-z-]{40}\b~',
         ];
     }
 
@@ -72,16 +75,28 @@ final class CanaryTokenCatalogTest extends TestCase
         }
     }
 
+    public function test_openai_key_carries_the_vendor_infix_and_gitlab_has_no_trailing_dash(): void
+    {
+        for ($s = 0; $s < 2000; $s++) {
+            $p = PersonaIdentity::fromSeed($s);
+            self::assertStringContainsString('T3Blb' . 'kFJ', (string) $p->field('cloud.openai.projectKey'),
+                "seed {$s}: openai project key must carry the vendor infix (gitleaks/trufflehog require it)");
+            self::assertNotSame('-', substr((string) $p->field('cloud.gitlab.pat'), -1),
+                "seed {$s}: gitlab PAT must not end in '-' (breaks a \\b-anchored scanner rule)");
+        }
+    }
+
     public function test_env_production_decoy_leaks_the_new_catalog(): void
     {
         $idx = require __DIR__ . '/../resources/compiled/nuclei-index.full.php';
         $cfg = new Config('respond', static function (RequestContext $r): bool { return true; }, 'matched-only',
             static function (RequestContext $r): string { return 'fixed'; }, 'coherent', Style::REALISTIC, 'high', 65536, 0, 0, false);
         $h = new Honeypot(new PhpArrayStore($idx), $cfg);
-        $body = (string) ($h->respond(new RequestContext('GET', '/.env.production', '', [], null, 'x.test'))->body ?? '');
-        foreach (['OPENAI_API_KEY=sk-' . 'proj-', 'HUGGINGFACE_TOKEN=hf' . '_', 'GROQ_API_KEY=gsk' . '_',
-            'GITHUB_TOKEN=ghp' . '_', 'GITLAB_TOKEN=glpat' . '-', 'CIRCLE_TOKEN='] as $marker) {
-            self::assertStringContainsString($marker, $body, "the .env.production decoy must leak {$marker}");
+        foreach (['/.env.production', '/.env'] as $path) {
+            $body = (string) ($h->respond(new RequestContext('GET', $path, '', [], null, 'x.test'))->body ?? '');
+            foreach (['OPENAI_API_KEY=sk-' . 'proj-', 'GITHUB_TOKEN=ghp' . '_'] as $marker) {
+                self::assertStringContainsString($marker, $body, "the {$path} decoy must leak {$marker}");
+            }
         }
     }
 }

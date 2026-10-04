@@ -65,6 +65,12 @@ response:
 
     JWT_SECRET={{fake.jwtsecret:hex:64}}
     SLACK_WEBHOOK_URL=https://hooks.slack.com/services/T{{fake.slackt:hex:8}}/B{{fake.slackb:hex:8}}/{{fake.slacktok:hex:24}}
+
+    OPENAI_API_KEY={{persona.cloud.openai.projectKey}}
+    ANTHROPIC_API_KEY={{persona.cloud.anthropic.apiKey}}
+    HUGGINGFACE_TOKEN={{persona.cloud.huggingface.token}}
+    GROQ_API_KEY={{persona.cloud.groq.apiKey}}
+    GITHUB_TOKEN={{persona.cloud.github.pat}}
 taunt: { mode: line, open: '#' }
 expect:
   - 'APP_KEY=base64:'
@@ -73,3 +79,5 @@ expect:
   - 'STRIPE_SECRET=sk_live_'
   - 'whsec_'
   - 'SENDGRID_API_KEY=SG.'
+  - 'OPENAI_API_KEY=sk-proj-'
+  - 'GITHUB_TOKEN=ghp_'
