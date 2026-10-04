@@ -23,14 +23,18 @@ final class DecoySessionPayloadsTest extends TestCase
         self::assertCount(16, DecoySessionPayloads::PAIRS, 'the reviewed pool is exactly 16 pairs');
         foreach (DecoySessionPayloads::PAIRS as $i => $pair) {
             self::assertArrayHasKey('pre', $pair, "pair {$i} has a pre side");
+            self::assertArrayHasKey('pending', $pair, "pair {$i} has a pending (2FA challenge) side");
             self::assertArrayHasKey('authenticated', $pair, "pair {$i} has an authenticated side");
-            self::assertNotSame($pair['pre'], $pair['authenticated'], "pair {$i}: the two classes must differ structurally");
+            // All three phases must differ structurally (pre -> challenge -> authenticated).
+            self::assertNotSame($pair['pre'], $pair['authenticated'], "pair {$i}: pre vs authenticated must differ");
+            self::assertNotSame($pair['pre'], $pair['pending'], "pair {$i}: pre vs pending must differ");
+            self::assertNotSame($pair['pending'], $pair['authenticated'], "pair {$i}: pending vs authenticated must differ");
         }
 
         // The first two rows pin the reviewed order (the whole list is order-sensitive because one
         // index selects a row); a reorder would silently change which token every deploy mints.
-        self::assertSame(['pre' => 'state=guest', 'authenticated' => 'state=user'], DecoySessionPayloads::PAIRS[0]);
-        self::assertSame(['pre' => 'logged_in=0', 'authenticated' => 'logged_in=1'], DecoySessionPayloads::PAIRS[10]);
+        self::assertSame(['pre' => 'state=guest', 'pending' => 'state=challenge', 'authenticated' => 'state=user'], DecoySessionPayloads::PAIRS[0]);
+        self::assertSame(['pre' => 'logged_in=0', 'pending' => 'logged_in=2', 'authenticated' => 'logged_in=1'], DecoySessionPayloads::PAIRS[10]);
     }
 
     public function test_one_index_selects_the_whole_pair(): void
