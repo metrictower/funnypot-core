@@ -1,0 +1,30 @@
+id: attack-imds-azure
+severity: critical
+priority: 86
+tags: [attack, ssrf, cloud-metadata, imds, azure]
+# FP-0471: Azure Instance Metadata Service. SSRFmap fetches /metadata/instance?api-version=... (header
+# `Metadata: true`) and the managed-identity token at /metadata/identity/oauth2/token. 90-imds previously
+# matched `/metadata/instance` but served the AWS STS blob (wrong-body coherence bug); 90 is narrowed and
+# THIS rule owns the Azure surface with the real {compute,network} JSON shape + a canary bearer token.
+# Served regardless of the `Metadata: true` request header and of ?api-version (query != path) — a
+# scanner that omits them is still bait. Inert: no execution, no request byte reflected. Fingerprint-safe:
+# GUIDs are pure hex, numeric octets use dec:N, so no bare 6-digit-9 run; no scanner matcher string.
+match:
+  - in: path
+    regex: '^/metadata/(?:instance|identity/oauth2/token)(?:/|$)'
+    ci: true
+status: 200
+response:
+  headers:
+    Content-Type: "application/json; charset=utf-8"
+  body: |
+    {"compute":{"azEnvironment":"AzurePublicCloud","location":"{{pick:az_loc:eastus,westeurope,southeastasia}}","name":"{{pick:az_vm:web-01,app-01,db-01}}","resourceGroupName":"{{pick:az_rg:prod-rg,app-rg,core-rg}}","subscriptionId":"{{fake.az_sub:hex:8}}-{{fake.az_sub2:hex:4}}-{{fake.az_sub3:hex:4}}-{{fake.az_sub4:hex:4}}-{{fake.az_sub5:hex:12}}","vmId":"{{fake.az_vm1:hex:8}}-{{fake.az_vm2:hex:4}}-{{fake.az_vm3:hex:4}}-{{fake.az_vm4:hex:4}}-{{fake.az_vm5:hex:12}}","vmSize":"{{pick:az_size:Standard_D2s_v3,Standard_B2ms,Standard_D4s_v3}}","osType":"Linux"},"network":{"interface":[{"ipv4":{"ipAddress":[{"privateIpAddress":"10.0.{{fake.az_ip3:dec:1}}.{{fake.az_ip4:dec:2}}","publicIpAddress":""}],"subnet":[{"address":"10.0.0.0","prefix":"24"}]},"macAddress":"00{{fake.az_mac:hexupper:10}}"}]}}
+behavior: branch
+branch:
+  cases:
+    - when: { in: path, regex: '/metadata/identity/oauth2/token', ci: true }
+      response:
+        headers: { Content-Type: "application/json; charset=utf-8" }
+        body: "{\"access_token\":\"{{fake.az_jwt_h:b64url:36}}.{{fake.az_jwt_p:b64url:220}}.{{fake.az_jwt_s:b64url:43}}\",\"token_type\":\"Bearer\",\"expires_in\":\"3599\",\"resource\":\"https://management.azure.com/\"}"
+expect:
+  - "azEnvironment"

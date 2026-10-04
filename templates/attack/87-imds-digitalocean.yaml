@@ -1,0 +1,41 @@
+id: attack-imds-digitalocean
+severity: critical
+priority: 87
+tags: [attack, ssrf, cloud-metadata, imds, digitalocean]
+# FP-0471: DigitalOcean droplet metadata. SSRFmap fetches 169.254.169.254/metadata/v1.json (the whole
+# droplet document) and the small /metadata/v1/ tree. Not previously served (404). Inert droplet JSON +
+# a couple of walkable leaves, all {{fake.*}}/{{pick}} honeytokens, coherent within the response. No
+# execution, no request byte reflected. Fingerprint-safe: droplet_id via dec:N, octets via dec/pick, no
+# bare 6-digit-9 run, no scanner matcher string.
+match:
+  - in: path
+    regex: '^/metadata/v1(?:\.json)?(?:/|$)'
+    ci: true
+status: 200
+response:
+  headers:
+    Content-Type: "application/json"
+  body: |
+    {"droplet_id":{{fake.do_id:dec:9}},"hostname":"{{pick:do_host:web-01,app-01,db-01}}","region":"{{pick:do_region:nyc3,sfo3,ams3,sgp1,fra1}}","public_keys":["ssh-rsa AAAAB3NzaC1yc2E{{fake.do_sshkey:b64:356}}"],"interfaces":{"public":[{"ipv4":{"ip_address":"{{pick:do_pub1:138,159,167}}.{{fake.do_p2:dec:2}}.{{fake.do_p3:dec:2}}.{{fake.do_p4:dec:2}}","netmask":"255.255.240.0","gateway":"{{pick:do_pub1:138,159,167}}.{{fake.do_p2:dec:2}}.{{fake.do_p3:dec:2}}.1"}}]},"features":{"dhcp_enabled":true}}
+behavior: branch
+branch:
+  cases:
+    - when: { in: path, regex: '/metadata/v1/id$', ci: true }
+      response:
+        headers: { Content-Type: "text/plain" }
+        body: "{{fake.do_id:dec:9}}"
+    - when: { in: path, regex: '/metadata/v1/hostname$', ci: true }
+      response:
+        headers: { Content-Type: "text/plain" }
+        body: "{{pick:do_host:web-01,app-01,db-01}}"
+    - when: { in: path, regex: '/metadata/v1/?$', ci: true }
+      response:
+        headers: { Content-Type: "text/plain" }
+        body: |
+          hostname
+          id
+          interfaces/
+          public-keys
+          region
+expect:
+  - "droplet_id"
