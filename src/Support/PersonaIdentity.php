@@ -55,6 +55,11 @@ final class PersonaIdentity
         // staying denylist-safe (no bare `\b9\d{5}\b`) and inert. buildId is the 21-char nanoid shape;
         // assetHash/appHash are the 16-hex content-hash shape (css+webpack chunk / main-app chunk).
         'nextjs.buildId', 'nextjs.assetHash', 'nextjs.appHash',
+        // The Atlassian Confluence version this host claims — one source of truth for every Confluence
+        // surface (the `footer-build-information` span on the dashboard/login/server-info pages). The
+        // pool sits entirely at or below 8.5.1, so each deploy lands on the affected side of BOTH
+        // CVE-2023-22515 (<=8.5.1) and CVE-2023-22527 (<=8.5.3) while still varying per deploy.
+        'confluence.version',
         // The WooCommerce core + payment-plugin versions this host claims — one source of truth for
         // every store surface (the storefront generator meta, the readme `Stable tag:`, the wc-augmented
         // REST index). paymentsVersion and stripeVersion are held on the vulnerable side of their CVEs so
@@ -258,6 +263,12 @@ final class PersonaIdentity
             'nextjs.assetHash' => self::nextAssetHash($seed, 'nextjs_asset'),
             'nextjs.appHash' => self::nextAssetHash($seed, 'nextjs_app'),
 
+            // The Confluence version this host claims — the single source of truth for the
+            // `footer-build-information` span on every Confluence surface. Derived like php.version so
+            // field() and productVersion('confluence') never drift; the pool is entirely <=8.5.1 so the
+            // rendered version is always on the affected side of CVE-2023-22515 and -22527.
+            'confluence.version' => self::pickProductVersion($slug, $domain, 'confluence'),
+
             // The WooCommerce core + payment-plugin versions this host claims — the single source of
             // truth for every store surface. Derived like php.version so field() and productVersion()
             // never drift. The payments/stripe pools sit entirely on the vulnerable side of their CVEs
@@ -413,6 +424,18 @@ final class PersonaIdentity
             '6.6.2',
             '6.3.4',
             '6.5.2',
+        ],
+        // Atlassian Confluence Data Center/Server releases, all <=8.5.1 so every entry lands on the
+        // affected side of CVE-2023-22515 (<=8.5.1, fixed 8.5.2) AND CVE-2023-22527 (<=8.5.3, fixed
+        // 8.5.4), and every value matches the 22515 version-footer regex scanners grep for. Dots break
+        // each into <=2-digit runs, so no entry carries the denied bare 6-digit token. Per-deploy
+        // variation is the anti-fingerprint property (same posture as the php/tomcat pools).
+        'confluence' => [
+            '8.5.1',
+            '8.5.0',
+            '8.4.2',
+            '8.3.2',
+            '8.2.3',
         ],
         // The active theme's own version. Deliberately a two-part shape, unlike core's X.Y.Z, so a
         // theme asset's ?ver= can never mechanically match the core assets' ?ver= on the same page.

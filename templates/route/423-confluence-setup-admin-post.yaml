@@ -1,0 +1,30 @@
+id: route-confluence-setup-admin-post
+priority: 423
+# FP-0465: the POST arm of the CVE-2023-22515 setup-administrator form (sibling of 422). The exploit
+# POSTs username/password/email/fullName to create an unauthenticated admin; the real server answers a
+# 302 to /setup/finishsetup.action. We mirror that redirect so the exploit tooling believes the admin
+# was created, while the submitted credentials are captured in ordinary request telemetry — the intel
+# value. Core is stateless: no admin is created, no session minted. The Location is the static rooted-
+# relative setup-finish path (never Host / query / a captured value), so there is no open redirect, and
+# the target never matches this key, so there is no loop. Inert: 302, no request byte reflected, any
+# origin. A per-request JSESSIONID (set_cookie) is a stateful-app concern -> funnypot-app follow-up.
+new_page:
+  method: POST
+  paths: ['/setup/setupadministrator.action']
+  sig: 0
+  status: 302
+  severity: high
+  tags: [confluence, atlassian, setup, auth-bypass, admin-trap]
+  name: 'Confluence setup administrator (POST capture)'
+  body_words: ['Moved']
+response:
+  headers:
+    Content-Type: "text/html;charset=UTF-8"
+    Location: "/setup/finishsetup.action"
+  body: |
+    <!DOCTYPE html>
+    <html><head><title>Moved</title></head>
+    <body><p>Moved to <a href="/setup/finishsetup.action">/setup/finishsetup.action</a>.</p></body>
+    </html>
+expect:
+  - "finishsetup.action"

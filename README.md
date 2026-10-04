@@ -625,7 +625,7 @@ at build time and not listed here. Every response stays **inert** (emulates outp
 | **WordPress core version disclosure** | `/readme.html` · `/wp-links-opml.php` · `/feed/` · `/?feed=rss2` · `/wp-admin/install.php` (fresh setup form) · a `route-wordpress` `GET /` homepage shell (generator meta + `wp-emoji-release.min.js?ver=`) | Every channel renders the one deploy-stable `persona.wordpress.version`, so a core fingerprinter reads a single consistent version across them all. The five dedicated paths disclose it fleet-wide; the homepage marker rides the `/` persona lottery, coexisting with the corpus's existing WordPress `/` variant (which stays version-degenerate — a bounded non-disclosure, never a conflicting version). The `/feed/`, `/?feed=rss2` and install surfaces are attack-tier (`owns_path`, gated by `attackEmulation`) |
 | **Next.js / RSC** | App-Router `GET /` shell + a React Server Components (Flight) responder for `?_rsc=` navigations | A persona-gated framework fingerprint for the 2025 RSC CVE family (CVE-2025-55182/-55183/-55184) — fires only on deploys where the persona lottery picked Next.js for `/`, so it never leaks a stray Flight response on a WordPress/nginx deploy. Inert hand-authored Flight document, no request byte reflected |
 | **WooCommerce** | storefront `GET /` persona (`route-woo-store`) + wc-augmented `/wp-json` index · public Store API (`wc/store/v1/products`) · `wc/v3` mgmt API unauth `401` · plugin readmes (core/stripe/payments) · CVE-2023-28121 (WC Payments header impersonation → `201` admin) · CVE-2023-34000 (Stripe Gateway pay-for-order IDOR → billing PII) | Persona-gated on the store `/` pid (like Next.js): the store is a `GET /` persona and every other surface is an attack-tier rule gated on that pid, so a non-store deploy is unchanged. `wc/v3` unauth is the real `401 woocommerce_rest_cannot_view` (no raw PII); PII appears only in the two CVE shapes and is honeytoken (`{{fake.*}}`). Plugin readme versions sit on the vulnerable side of each CVE for version-coherence. Inert, no request byte reflected |
-| **RCE / CVE exploits** | Confluence OGNL (26134) · php-cgi (1823 · 4577) · Shellshock · Struts OGNL (5638) · PHPUnit (9841) · ThinkPHP · F5 iControl (1388) · GeoServer (36401) · Laravel Ignition · ownCloud (49103) · Spring Actuator · webshell (family-aware: WSO login form · c99 · b374k, else a generic panel) | Fake-vulnerable responses so the scanner "confirms" a hit that isn't real; the webshell decoy skins the panel to the requested family's own self-identifying markers, all canned — nothing is ever executed |
+| **RCE / CVE exploits** | Confluence OGNL (26134 · 22527 SSTI command-exec) · Confluence setup/version (22515 unauth-admin trap + `footer-build-information` disclosure on dashboard/server-info) · php-cgi (1823 · 4577) · Shellshock · Struts OGNL (5638) · PHPUnit (9841) · ThinkPHP · F5 iControl (1388) · GeoServer (36401) · Laravel Ignition · ownCloud (49103) · Spring Actuator · webshell (family-aware: WSO login form · c99 · b374k, else a generic panel) | Fake-vulnerable responses so the scanner "confirms" a hit that isn't real; the 22527 oracle returns the canned `X-Cmd-Response` uid (OGNL never evaluated) while the `${a*b}` arithmetic variant falls through to the SSTI-numeric reflector; the 22515 surfaces disclose a per-deploy `persona.confluence.version` (≤8.5.1, affected side) and accept the setup-admin POST as an inert 302 credential-capture (no admin created); the webshell decoy skins the panel to the requested family's own self-identifying markers, all canned — nothing is ever executed. Confluence attack rules are `severity: critical` (serve only at a critical deploy ceiling) |
 | **Spring Boot Actuator** | `/actuator/{env,health,mappings,info,beans,loggers,threaddump,configprops}` · `heapdump` (twelve scanner paths) · `logfile` | One persona-coherent Spring identity across every endpoint. `heapdump` is a **generated** HotSpot HPROF (`binary_generator: spring_hprof_v1`, < 4 KB, raw bytes, no gzip/disposition) planting the datasource/AWS/admin/JWT secrets as rooted `java.lang.String` objects a heap analyser or `strings` recovers; `logfile` is a Logback log leaking the same values, stamped with the same seeded boot date as the heap header |
 | **IoT / edge exploits (CVE)** | Hikvision camera (36260) · GPON router (10561) · Fiberhome router (27973) · Netgear router (6277) · Xdebug remote-debug recon · Node-RED (deploy RCE + recon) | Signal-only decoys for the highest-volume real-world IoT/edge HTTP exploit probes — path/payload-gated, inert canned reply, no request byte reflected |
 | **Injection & reflection** | SQLi · XSS · SSTI (Twig · numeric) · command injection (unix · windows) · XXE · open-redirect · CRLF response-splitting · php-glastopf | Plausible reflected-payload behaviour, never executed |
@@ -649,16 +649,16 @@ at build time and not listed here. Every response stays **inert** (emulates outp
 
 | Metric | Count |
 |---|---|
-| Authored decoy records | 374 |
+| Authored decoy records | 379 |
 | Authored families | 89 |
-| &nbsp;&nbsp;tier `attack` | 87 |
+| &nbsp;&nbsp;tier `attack` | 88 |
 | &nbsp;&nbsp;tier `attack-ai` | 9 |
 | &nbsp;&nbsp;tier `attack-crs` | 4 |
-| &nbsp;&nbsp;tier `new-page` | 272 |
+| &nbsp;&nbsp;tier `new-page` | 276 |
 | &nbsp;&nbsp;tier `param` | 2 |
 | Corpus families (nuclei-inversion) | 2611 |
 | Corpus route keys | 5134 |
-| Content enrichers (not route claimers) | 244 |
+| Content enrichers (not route claimers) | 248 |
 
 Full visual + per-family drill-downs: [`docs/DECOY-MAP.md`](docs/DECOY-MAP.md) — regenerate with `bin/funnypot map` (`--family=NAME` for one family).
 <!-- GENERATED-DECOY-INVENTORY:END -->

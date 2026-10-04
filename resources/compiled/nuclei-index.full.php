@@ -13,11 +13,11 @@ return array (
     'license' => 'MIT (c) 2025 ProjectDiscovery, Inc.',
     'upstream_tag' => '2ec914123864439c3618e7e9ae72d32d0eb56df7',
     'upstream_sha' => '2ec914123864439c3618e7e9ae72d32d0eb56df7',
-    'source_tree' => '3f02b05178b8da375559a86d3130ca8cfa9f22089f16d3b8c1caa89c06aa09d7',
+    'source_tree' => 'db1d00ee7aef1f0ef46c5da3aa3fa68ed49d0715dec6d4264369ed42ebb320af',
     'templates_seen' => 11196,
     'templates_in' => 6363,
-    'templates_indexed' => 6508,
-    'route_keys' => 5368,
+    'templates_indexed' => 6512,
+    'route_keys' => 5372,
     'multi_bundle_keys' => 277,
     'largest_bundle_count' => 1324,
     'persona_cap' => 
@@ -85785,6 +85785,58 @@ return array (
         3 => 'exposure',
       ),
       'name' => 'Router admin login',
+    ),
+    'route-confluence-dashboard' => 
+    array (
+      'sev' => 'high',
+      'tags' => 
+      array (
+        0 => 'confluence',
+        1 => 'atlassian',
+        2 => 'dashboard',
+        3 => 'version',
+        4 => 'disclosure',
+      ),
+      'name' => 'Confluence dashboard (version disclosure)',
+    ),
+    'route-confluence-server-info' => 
+    array (
+      'sev' => 'high',
+      'tags' => 
+      array (
+        0 => 'confluence',
+        1 => 'atlassian',
+        2 => 'server-info',
+        3 => 'version',
+        4 => 'disclosure',
+      ),
+      'name' => 'Confluence server-info (version disclosure)',
+    ),
+    'route-confluence-setup-admin' => 
+    array (
+      'sev' => 'high',
+      'tags' => 
+      array (
+        0 => 'confluence',
+        1 => 'atlassian',
+        2 => 'setup',
+        3 => 'auth-bypass',
+        4 => 'admin-trap',
+      ),
+      'name' => 'Confluence setup administrator form',
+    ),
+    'route-confluence-setup-admin-post' => 
+    array (
+      'sev' => 'high',
+      'tags' => 
+      array (
+        0 => 'confluence',
+        1 => 'atlassian',
+        2 => 'setup',
+        3 => 'auth-bypass',
+        4 => 'admin-trap',
+      ),
+      'name' => 'Confluence setup administrator (POST capture)',
     ),
     'route-phpinfo' => 
     array (
@@ -313798,6 +313850,109 @@ a</title>',
             0 => 'route-fiberhome-login',
           ),
           'w' => 100000,
+        ),
+      ),
+    ),
+    'GET /dashboard.action' => 
+    array (
+      'b' => 
+      array (
+        0 => 
+        array (
+          's' => 200,
+          'bw' => 
+          array (
+            0 => 'Confluence',
+            1 => 'footer-build-information',
+          ),
+          'nf' => 
+          array (
+          ),
+          'pid' => 'route-confluence-dashboard',
+          'sev' => 'high',
+          'sig' => 0,
+          'amb' => 0,
+          't' => 
+          array (
+            0 => 'route-confluence-dashboard',
+          ),
+        ),
+      ),
+    ),
+    'GET /server-info.action' => 
+    array (
+      'b' => 
+      array (
+        0 => 
+        array (
+          's' => 200,
+          'bw' => 
+          array (
+            0 => 'Confluence',
+            1 => 'footer-build-information',
+          ),
+          'nf' => 
+          array (
+          ),
+          'pid' => 'route-confluence-server-info',
+          'sev' => 'high',
+          'sig' => 0,
+          'amb' => 0,
+          't' => 
+          array (
+            0 => 'route-confluence-server-info',
+          ),
+        ),
+      ),
+    ),
+    'GET /setup/setupadministrator.action' => 
+    array (
+      'b' => 
+      array (
+        0 => 
+        array (
+          's' => 200,
+          'bw' => 
+          array (
+            0 => 'Confluence',
+            1 => 'Administrator Account',
+          ),
+          'nf' => 
+          array (
+          ),
+          'pid' => 'route-confluence-setup-admin',
+          'sev' => 'high',
+          'sig' => 0,
+          'amb' => 0,
+          't' => 
+          array (
+            0 => 'route-confluence-setup-admin',
+          ),
+        ),
+      ),
+    ),
+    'POST /setup/setupadministrator.action' => 
+    array (
+      'b' => 
+      array (
+        0 => 
+        array (
+          's' => 302,
+          'bw' => 
+          array (
+            0 => 'Moved',
+          ),
+          'nf' => 
+          array (
+          ),
+          'pid' => 'route-confluence-setup-admin-post',
+          'sev' => 'high',
+          'sig' => 0,
+          'amb' => 0,
+          't' => 
+          array (
+            0 => 'route-confluence-setup-admin-post',
+          ),
         ),
       ),
     ),
