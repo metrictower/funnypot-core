@@ -58,8 +58,18 @@ final class TeamCityDecoyTest extends TestCase
 
     public function test_tokens_endpoint_returns_token(): void
     {
-        $b = $this->body('POST', 'jsp=/app/rest/users/id:1/tokens;.jsp');
-        self::assertStringContainsString('<token', $b);
+        // id-agnostic: a follow-up using the id the decoy returned (id:2) must still hit the token case.
+        foreach (['jsp=/app/rest/users/id:1/tokens;.jsp', 'jsp=/app/rest/users/id:2/tokens;.jsp'] as $q) {
+            $b = $this->body('POST', $q);
+            self::assertStringContainsString('<token', $b, "token case for {$q}");
+            self::assertStringNotContainsString('<user', $b, "{$q} must not fall through to the user case");
+        }
+    }
+
+    public function test_unanchored_jsp_does_not_over_match(): void
+    {
+        // `(^|&)jsp=` so a param like ?xjsp=1 does NOT trigger the decoy.
+        self::assertStringNotContainsString('buildNumber', $this->body('GET', 'xjsp=/app/rest/server;.jsp'));
     }
 
     public function test_serves_at_default_high_ceiling(): void
