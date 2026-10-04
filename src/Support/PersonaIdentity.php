@@ -35,6 +35,12 @@ final class PersonaIdentity
         'cloud.aws.regionCode',
         'cloud.anthropic.apiKey', 'cloud.openai.apiKey', 'cloud.github.copilotToken',
         'cloud.stripe.secretKey', 'cloud.sendgrid.apiKey', 'cloud.google.apiKey',
+        // FP-0419: modern AI / CI-CD key shapes a secret scanner (Caido ai-key/cicd-token checks,
+        // trufflehog, gitleaks) matches. Each is exact-shape, seed-derived, non-working, and fingerprint-
+        // guarded. See the builder for the per-vendor format.
+        'cloud.openai.projectKey', 'cloud.huggingface.token', 'cloud.groq.apiKey',
+        'cloud.buildkite.token', 'cloud.circleci.token', 'cloud.github.pat',
+        'cloud.github.fineGrainedPat', 'cloud.gitlab.pat', 'cloud.slack.botToken',
         'secret.jwt',
         'php.version',
         'phpmyadmin.version',
@@ -227,6 +233,30 @@ final class PersonaIdentity
             'cloud.stripe.secretKey' => 'sk_live_' . self::base62($seed, 'stripe_sk', 24),
             'cloud.sendgrid.apiKey' => 'SG.' . self::base62($seed, 'sg1', 22) . '.' . self::base62($seed, 'sg2', 43),
             'cloud.google.apiKey' => self::googleApiKey($seed),
+
+            // FP-0419: modern AI / CI-CD key shapes. base62/hex bodies carry no interior word boundary,
+            // so a bare 6-digit CRS-id run (\b9\d{5}\b) cannot form in them; only the two url-safe-base64
+            // shapes whose '-'/'_' can bound a run are re-roll-guarded (guardedB64Key). All seed-derived,
+            // non-working, exact-shape so a secret scanner bites.
+            // OpenAI project key: 'sk-proj-' + 48 [A-Za-z0-9_-] (Caido \bsk-proj-[A-Za-z0-9_-]{40,}\b).
+            'cloud.openai.projectKey' => self::guardedB64Key($seed, 'openai_proj', 'sk-proj-', 48),
+            // HuggingFace user access token: 'hf_' + 34 [A-Za-z0-9].
+            'cloud.huggingface.token' => 'hf_' . self::base62($seed, 'hf_k', 34),
+            // Groq Cloud API key: 'gsk_' + 52 [A-Za-z0-9].
+            'cloud.groq.apiKey' => 'gsk_' . self::base62($seed, 'groq_k', 52),
+            // BuildKite user token: 'bkua_' + 40 hex.
+            'cloud.buildkite.token' => 'bkua_' . substr(self::h($seed, 'bk_k'), 0, 40),
+            // CircleCI personal token: 40 hex (presented as `circle-token: <40hex>` / CIRCLE_TOKEN=).
+            'cloud.circleci.token' => substr(self::h($seed, 'circle_k'), 0, 40),
+            // GitHub classic PAT: 'ghp_' + 36 [A-Za-z0-9].
+            'cloud.github.pat' => 'ghp_' . self::base62($seed, 'ghp_k', 36),
+            // GitHub fine-grained PAT: 'github_pat_' + 82 [A-Za-z0-9] (base62 subset of [A-Za-z0-9_]).
+            'cloud.github.fineGrainedPat' => 'github_pat_' . self::base62($seed, 'ghpat_k', 82),
+            // GitLab PAT: 'glpat-' + 20 [A-Za-z0-9_-].
+            'cloud.gitlab.pat' => self::guardedB64Key($seed, 'glpat_k', 'glpat-', 20),
+            // Slack bot token: 'xoxb-' + 40 [0-9A-Za-z-] (Caido xox[baprs]-[0-9A-Za-z-]{10,48}).
+            'cloud.slack.botToken' => 'xoxb-' . self::base62($seed, 'slack_k', 40),
+
             'secret.jwt' => substr(self::h($seed, 'jwt_secret'), 0, 64),
 
             // The PHP interpreter version this host claims — the single source of truth for the
@@ -656,6 +686,25 @@ final class PersonaIdentity
             $value = 'AIza' . substr(self::base64url((string) hex2bin(
                 self::h($seed, $round === 0 ? 'google_k' : 'google_k|r' . $round)
             )), 0, 35);
+            if (!self::hitsDeniedDigits($value)) {
+                return $value;
+            }
+        }
+    }
+
+    /**
+     * FP-0419: prefix + `len` url-safe-base64 chars ([A-Za-z0-9_-]), re-rolled past the fingerprint
+     * denylist's bare 6-digit run — a '-'/'_' in the prefix or body can bound one (unlike a pure base62
+     * body, which has no interior word boundary). Used for the '-'-bearing shapes (sk-proj-, glpat-).
+     */
+    private static function guardedB64Key(int $seed, string $field, string $prefix, int $len): string
+    {
+        for ($round = 0; ; $round++) {
+            $f = $round === 0 ? $field : $field . '|r' . $round;
+            $body = substr(self::base64url((string) hex2bin(
+                self::h($seed, $f) . self::h($seed, $f . '2') . self::h($seed, $f . '3') . self::h($seed, $f . '4')
+            )), 0, $len);
+            $value = $prefix . $body;
             if (!self::hitsDeniedDigits($value)) {
                 return $value;
             }
