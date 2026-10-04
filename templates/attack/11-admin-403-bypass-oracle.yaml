@@ -1,0 +1,98 @@
+id: attack-admin-403-bypass
+severity: high
+priority: 11
+tags: [attack, recon, 403-bypass, proxy-header, acl-bypass]
+# FP-0402: a 403-bypass oracle for reverse-proxy ACL-bypass tooling (nomore403, reconftw 4xxbypass, x8).
+# Protected admin paths return a realistic nginx 403 by DEFAULT; a request carrying a classic bypass
+# header (X-Original-URL / X-Rewrite-URL / X-Forwarded-Host / X-Host / X-Http-Host-Override, or an
+# IP-spoof header set to localhost) OR a path-encoding trick (/%2e/<p>, /<p>/., /<p>;) "unlocks" to a
+# 200 admin login — baiting the attacker into believing they bypassed the WAF, so they pour credential
+# stuffing + exploit payloads into the telemetry trap.
+#
+# Pure-template via `behavior: branch` (base 403 status + a matching case's 200 status), the cpsrvd/kibana
+# per-case-status pattern inverted. NO engine change; NO reflection — every body/header is a fixed
+# code-owned literal (the bypass header/path value is NEVER echoed), so the unlock is safe bait, not a
+# real header-driven oracle. Fingerprint-safe: a bare nginx 403 + a generic login carry no scanner/CRS/
+# WAF matcher strings (no version banner; no CF-RAY/AWS-WAF lookalike — that would be a tell, invariant 1).
+#
+# PATH SCOPE: /internal /admin-console /adminpanel /restricted /control — classic protected-admin paths
+# with NO corpus entry (verified), so this never shadows another product's detection. It deliberately
+# does NOT claim /admin (rich route-surface-admin dashboard), /console (styled Werkzeug, FP-0524), or
+# /manager//dashboard (corpus flower/snapcomms) — clobbering a rich decoy would be a deception downgrade.
+# The login form self-posts; a POST credential oracle + telemetry enrichment are follow-ups (FP-0402).
+owns_path: [/internal, /admin-console, /adminpanel, /restricted, /control]
+match:
+  - in: path
+    # clean path (incl any trailing-slash count via /*) or a reachable trick spelling (/%2e/<p>, /<p>/., /<p>;).
+    regex: '^/(?:%2e/)?(?:internal|admin-console|adminpanel|restricted|control)(?:/\.|;|/*)$'
+    ci: true
+status: 403
+response:
+  headers:
+    Content-Type: "text/html; charset=utf-8"
+    Server: "nginx"
+  body: |
+    <html>
+    <head><title>403 Forbidden</title></head>
+    <body>
+    <center><h1>403 Forbidden</h1></center>
+    <hr><center>nginx</center>
+    </body>
+    </html>
+behavior: branch
+branch:
+  cases:
+    - when: { in: 'header:x-original-url', regex: '\S' }
+      response: &unlock
+        status: 200
+        headers:
+          Content-Type: "text/html; charset=UTF-8"
+          Server: "nginx"
+          X-Proxy-Cache: "BYPASS"
+        body: |
+          <!doctype html>
+          <html lang="en">
+          <head>
+          <meta charset="utf-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1">
+          <meta name="robots" content="noindex,nofollow">
+          <title>Internal Administration Portal</title>
+          <style>
+          :root{color-scheme:light}
+          *{box-sizing:border-box}
+          body{margin:0;min-height:100vh;font-family:-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;background:#f4f5f7;color:#1f2733;display:flex;align-items:center;justify-content:center;padding:1.5rem}
+          .card{width:100%;max-width:23rem;background:#fff;border:1px solid #e3e7ec;border-radius:.4rem;box-shadow:0 .25rem .75rem rgba(0,0,0,.08);padding:1.75rem 1.5rem}
+          h1{font-size:1.15rem;margin:0 0 .3rem}
+          .sub{color:#6b7280;font-size:.85rem;margin:0 0 1.25rem}
+          label{display:block;font-size:.85rem;margin:.75rem 0 .25rem}
+          input{display:block;width:100%;padding:.55rem .7rem;border:1px solid #cfd4da;border-radius:.3rem;font-size:1rem}
+          button{margin-top:1.1rem;width:100%;padding:.6rem;border:0;border-radius:.3rem;background:#2d6cdf;color:#fff;font-size:1rem;cursor:pointer}
+          .foot{margin-top:1rem;color:#9aa4b2;font-size:.75rem;text-align:center}
+          </style>
+          </head>
+          <body>
+          <div class="card">
+          <h1>{{persona.company.name}} Internal Admin</h1>
+          <p class="sub">Restricted area. Authorized personnel only.</p>
+          <form action="" method="post">
+          <label for="u">Username</label>
+          <input type="text" id="u" name="username" autocomplete="username" autofocus>
+          <label for="p">Password</label>
+          <input type="password" id="p" name="password" autocomplete="current-password">
+          <button type="submit">Sign in</button>
+          </form>
+          <p class="foot">SSO build &middot; internal gateway</p>
+          </div>
+          </body>
+          </html>
+    - { when: { in: 'header:x-rewrite-url', regex: '\S' }, response: *unlock }
+    - { when: { in: 'header:x-forwarded-host', regex: '\S' }, response: *unlock }
+    - { when: { in: 'header:x-host', regex: '\S' }, response: *unlock }
+    - { when: { in: 'header:x-http-host-override', regex: '\S' }, response: *unlock }
+    - { when: { in: 'header:x-forwarded-for', regex: '127\.0\.0\.1|::1|localhost' }, response: *unlock }
+    - { when: { in: 'header:x-real-ip', regex: '127\.0\.0\.1|::1|localhost' }, response: *unlock }
+    - { when: { in: 'header:true-client-ip', regex: '127\.0\.0\.1|::1|localhost' }, response: *unlock }
+    - { when: { in: 'header:x-custom-ip-authorization', regex: '127\.0\.0\.1|::1|localhost' }, response: *unlock }
+    - { when: { in: 'path', regex: '%2e/|/\.$|;$', ci: true }, response: *unlock }
+expect:
+  - '403 Forbidden'
