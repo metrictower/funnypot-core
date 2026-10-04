@@ -1,0 +1,78 @@
+id: attack-ssti-engine-error
+severity: high
+priority: 52
+tags: [attack, ssti, freemarker, velocity, twig, error-oracle]
+# FP-0476: the SSTI ENGINE-ERROR oracle. SSTI scanners (Tplmap/SSTImap/nuclei/Caido) confirm the template
+# ENGINE two ways: (a) an arithmetic probe reflecting the product — ALREADY covered by 43/44/45/46 +
+# SafeArithmetic across every delimiter; or (b) a sandbox-escape / directive probe that does NOT evaluate
+# to a number, confirmed by the engine's DISTINCTIVE exception output. This rule serves (b): a canned,
+# engine-specific error page for a FreeMarker / Velocity / Twig escape probe. The exception strings
+# (freemarker.core.ParseException, org.apache.velocity.exception.ParseErrorException, Twig\Error\SyntaxError)
+# are PRODUCT-INTRINSIC engine output, NOT scanner/CRS matcher words.
+#
+# Markers are ANCHORED to real escape SYNTAX (FP-0476 review): a FreeMarker built-in only inside ${}/<#,
+# a Velocity directive only when followed by `($`, a Twig filter only with a quoted arg. Bare substrings
+# (`getFilter`, `<@`, `?api`, `|map(`) were removed — they fired on benign traffic (getFilterOptions,
+# ?api-version, arr|map(x), <@channel>). `in: request` folds the PATH too, so a loose marker would 500 a
+# benign path. Detection-only, no capture, nothing reflected — no reflector gating.
+#
+# priority 52 sorts AFTER the arithmetic SSTI rules (43-46); disjoint by construction (arithmetic grammar
+# vs escape syntax), so a clean {{7*7}}/@(7*7) reflects the product at 45/46 and never reaches here.
+# 05-confluence-ognl (runtime command-exec markers) wins a getRuntime/ProcessBuilder payload first; 06 is
+# method+path gated. INERT: fully canned, NO attacker byte echoed -> no reflects_input/isolated-origin.
+# AUTHORED 500: real FreeMarker/Velocity Java apps + Symfony/Twig dev pages return HTTP 500 with the
+# exception page (200 would be the tell). App-chosen decoy status (same posture as 47-verbose-error-volatile
+# status:500) — NOT an unintended fault, so it does not breach the only-upgrade invariant.
+match:
+  - in: request
+    dotall: true
+    ci: true
+    regex: '[<\[]#(?:assign|list|global|macro)\b|(?:\$\{|[<\[]#)[^}>\]]{0,200}\?(?:new|api|eval)\b|freemarker\.template\.utility\.Execute|#(?:set|foreach)\s*\(\s*\$|#evaluate\s*\(|#parse\s*\(\s*[''"$]|\$class\.inspect|\.class\.forName\s*\(|_self\.env|registerUndefinedFilterCallback|\|\s*(?:filter|map|reduce)\s*\(\s*[''"]|\.getFilter\s*\(\s*[''"]'
+status: 500
+# Base response = the neutral 500 (no engine string): served on the position-blind synthesize() port where
+# the case `when` conditions (in: request) cannot read the request, so no specific engine is leaked.
+response:
+  headers:
+    Content-Type: "text/html; charset=utf-8"
+  body: |
+    <!doctype html><html><head><title>Error 500</title></head><body>
+    <h1>Internal Server Error</h1><p>The server encountered an error and could not complete your request.</p>
+    </body></html>
+behavior: branch
+branch:
+  cases:
+    - when: { in: request, dotall: true, ci: true, regex: '[<\[]#(?:assign|list|global|macro)\b|(?:\$\{|[<\[]#)[^}>\]]{0,200}\?(?:new|api|eval)\b|freemarker\.template\.utility\.Execute' }
+      response:
+        status: 500
+        headers: { Content-Type: "text/html; charset=utf-8" }
+        body: |
+          <html><head><title>Error 500</title></head><body><pre>
+          freemarker.core.ParseException: Syntax error in template "index.ftl" in line 1, column 1:
+          Encountered an unexpected directive. Check the FreeMarker Manual for the correct syntax.
+              at freemarker.core.FMParser.generateParseException(FMParser.java)
+              at freemarker.core.FMParser.Expression(FMParser.java)
+              at freemarker.template.Template.&lt;init&gt;(Template.java)
+          </pre></body></html>
+    - when: { in: request, dotall: true, ci: true, regex: '#(?:set|foreach)\s*\(\s*\$|#evaluate\s*\(|#parse\s*\(\s*[''"$]|\$class\.inspect|\.class\.forName\s*\(' }
+      response:
+        status: 500
+        headers: { Content-Type: "text/html; charset=utf-8" }
+        body: |
+          <html><head><title>Error 500</title></head><body><pre>
+          org.apache.velocity.exception.ParseErrorException: Encountered "&lt;EOF&gt;" at line 1, column 1.
+          Was expecting one of: "(" ... &lt;WHITESPACE&gt; ... &lt;NEWLINE&gt; ...
+              at org.apache.velocity.runtime.parser.Parser.generateParseException(Parser.java)
+              at org.apache.velocity.runtime.RuntimeInstance.parse(RuntimeInstance.java)
+          </pre></body></html>
+    - when: { in: request, dotall: true, ci: true, regex: '_self\.env|registerUndefinedFilterCallback|\|\s*(?:filter|map|reduce)\s*\(\s*[''"]|\.getFilter\s*\(\s*[''"]' }
+      response:
+        status: 500
+        headers: { Content-Type: "text/html; charset=utf-8" }
+        body: |
+          <html><head><title>Error 500</title></head><body><pre>
+          Twig\Error\SyntaxError: Unexpected token "punctuation" of value "(" in "index.html.twig" at line 1.
+              in /var/www/vendor/twig/twig/src/ExpressionParser.php:285
+              Twig\Error\RuntimeError: An exception has been thrown during the rendering of a template.
+          </pre></body></html>
+expect:
+  - "Internal Server Error"
