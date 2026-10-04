@@ -1,0 +1,28 @@
+id: route-fortios-fgt-lang
+priority: 409
+# FP-0541: FortiOS SSL-VPN language file /remote/fgt_lang. The corpus routes this key (pid fortios,
+# witness regex `var fgt_lang =`) but serves it as text/plain. wapiti's mod_forti FortiOS SSL-VPN label
+# requires the fgt_lang response Content-Type to contain `javascript`, and a .js-shaped body served as
+# text/plain is a response-type mismatch (security invariant 5: Content-Type must match the content).
+# This enrich sets application/javascript and keeps the `var fgt_lang =` witness body. pid:[fortios]
+# selects the FortiOS bundles; the route_key guard pins ONLY /remote/fgt_lang so the SSL-VPN login routes
+# (424/425) stay untouched. Inert static JS asset; no exec/fs/network; no request byte reflected. Only
+# FortiOS's own UI strings appear — no scanner/matcher literals.
+match:
+  pid: [fortios]
+  route_key: ['GET /remote/fgt_lang']
+response:
+  headers:
+    Content-Type: "application/javascript; charset=utf-8"
+  body: |
+    var fgt_lang = {
+    "sslvpn_title":"SSL-VPN Service",
+    "sslvpn_login":"Please Login",
+    "sslvpn_username":"Username",
+    "sslvpn_password":"Password",
+    "sslvpn_launch":"Launch",
+    "sslvpn_logout":"Logout",
+    "sslvpn_download":"Download FortiClient",
+    "err_auth":"Permission denied, please try again."
+    };
+expect: ['var fgt_lang =']

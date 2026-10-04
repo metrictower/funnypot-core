@@ -3,7 +3,11 @@ severity: critical
 priority: 84
 tags: [attack, citrix, netscaler, memory-leak, cve-2023-4966]
 # Citrix Bleed: a request to the OpenID config endpoint (exploited with an oversized repeated
-# Host header) leaks memory containing a session token. Return a fabricated leaked token blob.
+# Host header) leaks memory containing a session token. Return a fabricated leaked token blob —
+# memory-ish hex filler wrapping a format-correct labelled `NSC_AAAC=<64 lowercase hex>; Path=/;
+# Secure; HttpOnly` session cookie (FP-0456), which is what a Bleed harvester greps for. Deterministic
+# seed-derived + number-safe (pure hex cannot form a denied digit run). The self-verifying / replay-
+# detection loop (recognise the harvested NSC_AAAC on a later /GetUserName submit) is stateful = app-tier.
 match:
   - in: path
     contains: "/oauth/idp/.well-known/openid-configuration"
@@ -12,5 +16,5 @@ response:
     Content-Type: "application/json; charset=utf-8"
   body: |
     {"issuer":"https://gateway.{{persona.company.domain}}/oauth/idp","authorization_endpoint":"https://gateway.{{persona.company.domain}}/oauth/idp/login"}
-    {{fake.bleed:hex:60}}{{fake.bleed2:hex:60}}
+    {{fake.bleed:hex:60}}NSC_AAAC={{fake.nscaaac:hex:64}}; Path=/; Secure; HttpOnly{{fake.bleed2:hex:60}}
 expect: ['authorization_endpoint']
