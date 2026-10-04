@@ -507,11 +507,12 @@ final class BoundedInspection
         // CONTEXT GATE (critical): deobfuscation is only meaningful inside a shell command-substitution /
         // arithmetic / IFS context. Gating on that context — NOT on a bare `\`/`^`/empty-quote, which
         // pervade benign traffic (Windows paths, addslashes'd prose, CSV, regex, caret math) — is what
-        // stops this decoder appending a spurious fold COPY to an ordinary request. Without the gate, a
-        // span-y CRS catch-all could match across the `raw + ' ' + copy` layer joiner on benign input
-        // (e.g. a comment containing an escaped quote and the word "command"), and the fold copy also
-        // gives the raw layer a trailing space that `cat `/`type ` rules could latch onto. `$((` is a
-        // substring of nothing here but `$(` covers both `$(` and `$((`.
+        // stops this decoder producing a spurious normalised layer for an ordinary request. Matching is
+        // per-layer, so the hazard is NOT a cross-layer straddle; it is within a single layer: run ungated,
+        // the deobfuscator rewrites benign plaintext in its own right (de-escaping `we\'re` -> `we're`,
+        // stripping a lone caret from caret math), yielding a decoded layer a rule could then false-match.
+        // The context gate removes those within-layer benign rewrites. `$((` is a substring of nothing here
+        // but `$(` covers both `$(` and `$((`.
         $hasContext = strpos($value, '${IFS}') !== false
             || strpos($value, '$IFS') !== false
             || strpos($value, '$(') !== false

@@ -117,11 +117,13 @@ never auto-merges.
 CRS's regexes assume its own transform pipeline ran first (`t:urlDecodeUni`,
 `t:htmlEntityDecode`, `t:jsDecode`, …). funnypot narrows that gap with a bounded recursive
 decode/normalization stage in `BoundedInspection::foldLayers()`, applied to the `request`, `query`
-and `body` match surfaces before matching. It RETAINS the raw bytes and APPENDS each decoded layer
-(so decoding only ever adds a matchable view, never removes a raw match), peeling percent, `+`,
-`\uXXXX`, HTML-entity, plausible base64, prefixed/long hex and nested-JSON string values toward a
-fixed point — bounded by `MAX_DECODE_DEPTH` and the `SUBJECT_BYTES` cap, with every decoder
-non-expanding so no decode-bomb is possible. The decoders that fired are recorded as `decode_path`
+and `body` match surfaces before matching. It RETAINS the raw bytes as layer 0 and peels each decoded
+layer — percent, `+`, `\uXXXX`, HTML-entity, plausible base64, prefixed/long hex and nested-JSON string
+values — toward a fixed point, bounded by `MAX_DECODE_DEPTH` and the `SUBJECT_BYTES` cap, with every
+decoder non-expanding so no decode-bomb is possible. Each condition is matched against **each layer
+separately** (`foldLayerList()` / `surfaces()`, FP-0534), so decoding only ever adds a matchable view and
+never removes a raw match, while a match can never span the layer joiner (the single concatenated
+`foldLayers()` string survives only for the literal pre-filter and the `decode_path` telemetry). The decoders that fired are recorded as `decode_path`
 on the `Verdict` (telemetry; additive). The CRS aggregates all match `in: request`, so they get the
 folded view for free; `path` and `header` surfaces stay raw by design.
 

@@ -410,8 +410,9 @@ Plain-PHP mapping applies the equivalent check to `REQUEST_URI` before headers o
 
 Accepted adapter snapshots keep up to 65,536 bytes of canonical headers (at most 128 fields and 256
 values) and the existing 65,536-byte captured-body ceiling. Attack and bot classifiers derive a
-smaller view: 16,384 header bytes over at most 64 fields, a 32,768-byte body contribution, at most two
-URL-decode passes, and a final 32,768-byte regex subject. Header values and body bytes beyond those
+smaller view: 16,384 header bytes over at most 64 fields, a 32,768-byte body contribution, and up to
+three decode layers — each a ≤32,768-byte match surface evaluated separately (FP-0534), so a match can
+never span the layer joiner. Header values and body bytes beyond those
 documented inspection windows are deliberately not classified. OOB probes retain their separate
 65,536-byte header-first layout, reserved 16,384-byte body tail and three decode passes. Direct
 contexts also cap Host at 512 bytes and cookie/session parsing at 8,192 bytes/64 pairs.

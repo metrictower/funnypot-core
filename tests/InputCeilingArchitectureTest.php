@@ -35,6 +35,10 @@ final class InputCeilingArchitectureTest extends TestCase
         self::assertStringNotContainsString('$r->path . \' \' . $r->query', $source);
         self::assertStringNotContainsString("implode(' ', array_map('strval', \$r->headers))", $source);
         self::assertStringContainsString('BoundedInspection::surface(', $source);
+        // FP-0534: evalConditions must route the non-fields match through surfaces() (per-layer match-any)
+        // so a future refactor cannot silently revert to matching the single concatenated fold surface,
+        // which would reopen the layer-joiner straddle.
+        self::assertStringContainsString('BoundedInspection::surfaces(', $source);
     }
 
     public function test_adapters_do_not_recopy_host_or_flatten_psr_values_unbounded(): void

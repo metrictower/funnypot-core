@@ -96,6 +96,21 @@ final class FoldLayerListTest extends TestCase
         self::assertSame([''], BoundedInspection::surfaces($r, 'request'));
     }
 
+    public function test_decoded_layer_gains_its_own_start_anchor(): void
+    {
+        // AC-9 (spec §5.3): a ^-anchored rule matches a DECODED layer (which starts with the cleartext)
+        // even though the single joined fold surface starts with the still-encoded raw layer. This is the
+        // mechanism behind the per-layer start-anchored gains — a strict, intended improvement.
+        $raw = '%2Fetc%2Fpasswd';
+        $joined = BoundedInspection::foldLayers($raw);
+        self::assertSame(0, preg_match('~^/etc/passwd~', $joined), 'joined surface starts with the encoded raw layer');
+        $anyLayer = 0;
+        foreach (BoundedInspection::foldLayerList($raw) as $layer) {
+            $anyLayer += preg_match('~^/etc/passwd~', $layer);
+        }
+        self::assertSame(1, $anyLayer, 'the decoded layer gains its own ^ start');
+    }
+
     public function test_straddle_window_cannot_match_across_joiner(): void
     {
         // The raw/decoded boundary: raw 'a+b' folds to "a+b a b". A pattern needing a '+' adjacent to a
