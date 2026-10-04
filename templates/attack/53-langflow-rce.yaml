@@ -1,0 +1,32 @@
+id: attack-langflow-cve-2025-3248
+severity: high
+priority: 53
+tags: [attack, rce, langflow, cve-2025-3248, ai]
+# FP-0455: Langflow unauthenticated code-execution decoy (CVE-2025-3248, CISA KEV, exploited by the Flodrix
+# botnet). The exploit POSTs attacker Python to POST /api/v1/validate/code, which the vulnerable Langflow
+# validates by COMPILING it — a decorator/default-arg payload executes at compile time. Scanners confirm by
+# the injected command's output in the response. /api/v1/validate/code is already a corpus key (a
+# detection-only CVE-2025-3248 stub, no servable body), so this is an owns_path OVERRIDE: claim the path
+# and serve the canned confirmation ahead of the store stub (like 100-grafana-login).
+#
+# The exact path IS the signal — there is no legitimate Langflow on a honeypot, so any POST here is a probe;
+# method+path suffice and no fragile code-payload marker is needed (avoids benign over-match). INERT: the
+# submitted code is NEVER compiled/executed; only the fixed canned JSON is served (no request byte
+# reflected). The uid line is generic command output (product-intrinsic, like 41-cmdi-unix / 06-confluence),
+# not a scanner matcher string. Status 200 + application/json = a real Langflow validate/code response shape
+# (imports/function error arrays), with the "executed" command output in detail so the scanner confirms.
+owns_path: [/api/v1/validate/code]
+match:
+  - in: path
+    regex: '^/api/v1/validate/code/*$'
+    ci: true
+  - in: method
+    regex: '^POST$'
+    ci: true
+status: 200
+response:
+  headers:
+    Content-Type: "application/json"
+  body: '{"imports":{"errors":[]},"function":{"errors":[]},"detail":"uid=1000(langflow) gid=1000(langflow) groups=1000(langflow)\n"}'
+expect:
+  - 'uid=1000(langflow)'
