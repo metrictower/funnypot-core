@@ -113,7 +113,7 @@ mindmap
 | behavioral | 1 | param:1 | 1 | 0 | high | &mdash; |
 | citrix | 1 | attack:1 | 0 | 0 | critical | &mdash; |
 | cloud | 4 | new-page:4 | 4 | 0 | high | &mdash; |
-| cloud-metadata | 7 | attack:7 | 1 | 0 | critical | &mdash; |
+| cloud-metadata | 7 | attack:7 | 1 | 0 | high | &mdash; |
 | cmdi | 4 | attack:4 | 0 | 0 | critical | &mdash; |
 | cms | 4 | new-page:4 | 4 | 0 | high | &mdash; |
 | config-disclosure | 12 | new-page:12 | 12 | 0 | high | &mdash; |

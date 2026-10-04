@@ -1,5 +1,5 @@
 id: attack-imds-aws-v2
-severity: critical
+severity: high
 priority: 92
 tags: [attack, ssrf, cloud-metadata, imds, aws, imdsv2]
 # FP-0471: AWS IMDSv2 session-token endpoint + user-data, neither previously served (404). IMDSv2

@@ -1,5 +1,5 @@
 id: attack-imds-gcp
-severity: critical
+severity: high
 priority: 85
 tags: [attack, ssrf, cloud-metadata, imds, gcp]
 # FP-0471: GCP compute metadata emulation. SSRFmap and friends fetch the GCP metadata tree at
@@ -9,66 +9,107 @@ tags: [attack, ssrf, cloud-metadata, imds, gcp]
 # and THIS rule owns the GCP tree with a coherent GCP body. We emit `Metadata-Flavor: Google` on every
 # response and serve regardless of the request header (a scanner that omits it is still bait). Walkable
 # tree via behavior:branch; leaves are inert {{fake.*}} honeytokens (canary ya29. OAuth2 token). Inert:
-# nothing executed, no request byte reflected. Fingerprint-safe: fake numeric ids use dec:N>=9 and hex
-# runs, so no bare 6-digit-9 run; no scanner/CRS matcher string in any body.
+# nothing executed, no request byte reflected.
+#
+# severity: high — matches 89/90/91 so the GCP surface serves at the default (`high`) ceiling that the
+# embedders (wordpress/laravel) run, not only at prod's `critical`.
+#
+# The base response is a GCP-shaped 404 for an UNKNOWN key (real GCP returns 404 for a missing metadata
+# attribute); every real node is an explicit case below (including the directory listings and the tree
+# root), so an SSRF walker terminates instead of looping on a self-similar root listing.
+#
+# Fingerprint-safe: project-id numeric suffix is pick(1-8)+dec:5 so its leading digit is never 9 (a bare
+# `9\d{5}` run is on the denylist); other ids are dec:N>=9 / hex; no scanner/CRS matcher string.
 match:
   - in: path
     regex: '^/computeMetadata/v1(?:beta1)?(?:/|$)'
     ci: true
-status: 200
+status: 404
 response:
   headers:
     Content-Type: "application/text"
     Metadata-Flavor: "Google"
   body: |
-    instance/
-    project/
+    404 - Not Found
 behavior: branch
 branch:
   cases:
     - when: { in: path, regex: '/project/numeric-project-id', ci: true }
       response:
+        status: 200
         headers: { Content-Type: "application/text", Metadata-Flavor: "Google" }
         body: "{{fake.gcp_projnum:dec:12}}"
     - when: { in: path, regex: '/project/project-id', ci: true }
       response:
+        status: 200
         headers: { Content-Type: "application/text", Metadata-Flavor: "Google" }
-        body: "{{pick:gcp_adj:striped,amber,lunar,quiet,cobalt,nimble}}-{{pick:gcp_noun:field,harbor,summit,delta,grove,ridge}}-{{fake.gcp_projtail:hex:6}}"
+        body: "{{pick:gcp_adj:striped,amber,lunar,quiet,cobalt,nimble}}-{{pick:gcp_noun:field,harbor,summit,delta,grove,ridge}}-{{pick:gcp_pd:1,2,3,4,5,6,7,8}}{{fake.gcp_projtail:dec:5}}"
     - when: { in: path, regex: '/project/attributes/ssh-keys', ci: true }
       response:
+        status: 200
         headers: { Content-Type: "application/text", Metadata-Flavor: "Google" }
         body: "admin:ssh-rsa AAAAB3NzaC1yc2E{{fake.gcp_sshkey:b64:356}} admin"
+    - when: { in: path, regex: '/project/attributes/?$', ci: true }
+      response:
+        status: 200
+        headers: { Content-Type: "application/text", Metadata-Flavor: "Google" }
+        body: |
+          ssh-keys
     - when: { in: path, regex: '/service-accounts/default/token', ci: true }
       response:
+        status: 200
         headers: { Content-Type: "application/json", Metadata-Flavor: "Google" }
         body: "{\"access_token\":\"ya29.{{fake.gcp_oauth:b64url:140}}\",\"expires_in\":3599,\"token_type\":\"Bearer\"}"
     - when: { in: path, regex: '/service-accounts/default/email', ci: true }
       response:
+        status: 200
         headers: { Content-Type: "application/text", Metadata-Flavor: "Google" }
         body: "{{fake.gcp_projnum:dec:12}}-compute@developer.gserviceaccount.com"
-    - when: { in: path, regex: '/service-accounts(/default)?/?$', ci: true }
+    - when: { in: path, regex: '/service-accounts/default/?$', ci: true }
       response:
+        status: 200
+        headers: { Content-Type: "application/text", Metadata-Flavor: "Google" }
+        body: |
+          aliases
+          email
+          identity
+          scopes
+          token
+    - when: { in: path, regex: '/service-accounts/?$', ci: true }
+      response:
+        status: 200
         headers: { Content-Type: "application/text", Metadata-Flavor: "Google" }
         body: |
           default/
     - when: { in: path, regex: '/instance/hostname', ci: true }
       response:
+        status: 200
         headers: { Content-Type: "application/text", Metadata-Flavor: "Google" }
-        body: "{{pick:gcp_host:instance-1,gke-node-1,app-vm}}.c.{{fake.gcp_projtail:hex:6}}.internal"
+        body: "{{pick:gcp_host:instance-1,gke-node-1,app-vm}}.c.{{pick:gcp_adj:striped,amber,lunar,quiet,cobalt,nimble}}-{{pick:gcp_noun:field,harbor,summit,delta,grove,ridge}}-{{pick:gcp_pd:1,2,3,4,5,6,7,8}}{{fake.gcp_projtail:dec:5}}.internal"
     - when: { in: path, regex: '/instance/zone', ci: true }
       response:
+        status: 200
         headers: { Content-Type: "application/text", Metadata-Flavor: "Google" }
         body: "projects/{{fake.gcp_projnum:dec:12}}/zones/{{pick:gcp_zone:us-central1-a,europe-west1-b,asia-east1-c}}"
     - when: { in: path, regex: '/instance/machine-type', ci: true }
       response:
+        status: 200
         headers: { Content-Type: "application/text", Metadata-Flavor: "Google" }
         body: "projects/{{fake.gcp_projnum:dec:12}}/machineTypes/{{pick:gcp_mt:e2-medium,n2-standard-2,e2-standard-4}}"
     - when: { in: path, regex: '/instance/id', ci: true }
       response:
+        status: 200
         headers: { Content-Type: "application/text", Metadata-Flavor: "Google" }
         body: "{{fake.gcp_instid:dec:19}}"
+    - when: { in: path, regex: '/instance/service-accounts/?$', ci: true }
+      response:
+        status: 200
+        headers: { Content-Type: "application/text", Metadata-Flavor: "Google" }
+        body: |
+          default/
     - when: { in: path, regex: '/instance/?$', ci: true }
       response:
+        status: 200
         headers: { Content-Type: "application/text", Metadata-Flavor: "Google" }
         body: |
           hostname
@@ -78,10 +119,18 @@ branch:
           zone
     - when: { in: path, regex: '/project/?$', ci: true }
       response:
+        status: 200
         headers: { Content-Type: "application/text", Metadata-Flavor: "Google" }
         body: |
           attributes/
           numeric-project-id
           project-id
+    - when: { in: path, regex: '^/computeMetadata/v1(?:beta1)?/?$', ci: true }
+      response:
+        status: 200
+        headers: { Content-Type: "application/text", Metadata-Flavor: "Google" }
+        body: |
+          instance/
+          project/
 expect:
-  - "instance/"
+  - "404 - Not Found"

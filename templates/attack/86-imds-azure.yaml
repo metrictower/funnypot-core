@@ -1,5 +1,5 @@
 id: attack-imds-azure
-severity: critical
+severity: high
 priority: 86
 tags: [attack, ssrf, cloud-metadata, imds, azure]
 # FP-0471: Azure Instance Metadata Service. SSRFmap fetches /metadata/instance?api-version=... (header

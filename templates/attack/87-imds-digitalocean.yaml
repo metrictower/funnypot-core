@@ -1,5 +1,5 @@
 id: attack-imds-digitalocean
-severity: critical
+severity: high
 priority: 87
 tags: [attack, ssrf, cloud-metadata, imds, digitalocean]
 # FP-0471: DigitalOcean droplet metadata. SSRFmap fetches 169.254.169.254/metadata/v1.json (the whole
@@ -28,6 +28,19 @@ branch:
       response:
         headers: { Content-Type: "text/plain" }
         body: "{{pick:do_host:web-01,app-01,db-01}}"
+    - when: { in: path, regex: '/metadata/v1/region$', ci: true }
+      response:
+        headers: { Content-Type: "text/plain" }
+        body: "{{pick:do_region:nyc3,sfo3,ams3,sgp1,fra1}}"
+    - when: { in: path, regex: '/metadata/v1/public-keys$', ci: true }
+      response:
+        headers: { Content-Type: "text/plain" }
+        body: "ssh-rsa AAAAB3NzaC1yc2E{{fake.do_sshkey:b64:356}}"
+    - when: { in: path, regex: '/metadata/v1/interfaces(/.*)?$', ci: true }
+      response:
+        headers: { Content-Type: "text/plain" }
+        body: |
+          public/
     - when: { in: path, regex: '/metadata/v1/?$', ci: true }
       response:
         headers: { Content-Type: "text/plain" }
