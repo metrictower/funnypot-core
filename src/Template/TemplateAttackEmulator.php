@@ -307,23 +307,32 @@ final class TemplateAttackEmulator
      * Identical to matchRule EXCEPT a path-conditioned match is promoted above a path-agnostic one — the
      * single intended behavior change, always toward the path's own decoy. Intra-tier order is unchanged.
      *
+     * GATE-AWARE: $gateOk, when given, is the caller's persona-gate predicate. A matching rule whose gate
+     * is CLOSED is SKIPPED and the scan CONTINUES — so a persona-gated owner that is absent on this deploy
+     * never suppresses a generic injection match that would otherwise serve (FP-0547 review F1). Without
+     * $gateOk the scan does no gating (direct callers/tests see matchRule-style behavior).
+     *
+     * @param callable(array<string,mixed>):bool|null $gateOk
      * @return array{rule:array<string,mixed>,captures:array<int|string,string>}|null
      */
-    public function matchOnOwnedPath(RequestContext $r): ?array
+    public function matchOnOwnedPath(RequestContext $r, ?callable $gateOk = null): ?array
     {
         if (!BoundedInspection::targetAccepted($r)) {
             return null;
         }
         $this->partitionByPathCondition();
-        foreach ($this->pathConditionedRules as $rule) {
-            $hit = $this->tryRule($r, $rule);
-            if ($hit !== null) {
-                return $hit;
-            }
-        }
-        foreach ($this->pathAgnosticRules as $rule) {
-            $hit = $this->tryRule($r, $rule);
-            if ($hit !== null) {
+        foreach ([$this->pathConditionedRules, $this->pathAgnosticRules] as $tier) {
+            foreach ($tier as $rule) {
+                $hit = $this->tryRule($r, $rule);
+                if ($hit === null) {
+                    continue;
+                }
+                if ($gateOk !== null && !$gateOk($rule)) {
+                    // Gate closed for this rule on this deploy: skip it and keep scanning (the next tier-1
+                    // sibling, else a tier-2 generic) rather than letting the absent owner block the serve.
+                    continue;
+                }
+
                 return $hit;
             }
         }
@@ -343,7 +352,10 @@ final class TemplateAttackEmulator
         $this->pathConditionedRules = [];
         $this->pathAgnosticRules = [];
         foreach ($this->rules as $rule) {
-            if (self::ruleHasPathCondition($rule)) {
+            // Tier 1 = the path's own decoys: a rule with an `in: path` condition OR one that declares
+            // owns_path (a path owner may gate its path via `in: request` rather than `in: path`, e.g.
+            // wp-batch-v1 owning '/'; it is still a path owner and must beat a path-agnostic generic).
+            if (self::ruleHasPathCondition($rule) || isset($rule['owns_path'])) {
                 $this->pathConditionedRules[] = $rule;
             } else {
                 $this->pathAgnosticRules[] = $rule;

@@ -342,14 +342,16 @@ final class Honeypot implements Engine
                 // FP-0547: on an owned path, a path-conditioned rule (the owner + path-coherent siblings)
                 // wins over a path-agnostic generic injection rule whose window is the exploit body — so a
                 // CVE decoy keeps its own path at a normal priority instead of priority-warring the lfi/cmdi
-                // band. matchOnOwnedPath == matchRule except for that path-conditioned-over-path-agnostic
-                // promotion; the decline fall-through below is unchanged.
-                $ov = $this->attackEmulator->matchOnOwnedPath($r);
-                // A persona-gated rule (e.g. the Next.js RSC responder) fires ONLY where the served
-                // `/` persona is the gate's pid — personaGateAllows() reproduces the serve-path pick
-                // byte-for-byte, so gate-open ⟺ this deploy actually presents that stack. A closed
-                // gate is treated as a decline (fall through below), never a fleet-wide override.
-                if ($ov !== null && $this->personaGateAllows($ov['rule'], $r)) {
+                // band. The scan is GATE-AWARE: a persona-gated rule (e.g. the Next.js RSC responder) fires
+                // ONLY where the served `/` persona is the gate's pid — personaGateAllows() reproduces the
+                // serve-path pick byte-for-byte, so gate-open ⟺ this deploy presents that stack. A rule
+                // whose gate is CLOSED is SKIPPED and the scan continues, so an absent gated owner never
+                // suppresses a generic injection match that would otherwise serve (review F1). matchOnOwnedPath
+                // returns the first matching, gate-open rule; a non-null result is authoritative to serve.
+                $ov = $this->attackEmulator->matchOnOwnedPath($r, function (array $rule) use ($r): bool {
+                    return $this->personaGateAllows($rule, $r);
+                });
+                if ($ov !== null) {
                     $rule = $ov['rule'];
                     $detection = TemplateAttackEmulator::detectionForRule($rule);
                     $handle = FakeHandle::attack((string) ($rule['id'] ?? 'attack'), $ov['captures']);
@@ -364,8 +366,9 @@ final class Honeypot implements Engine
                     );
                 }
 
-                // Owned path, but the request-aware rule declined (a rare path/method variant the
-                // rule's stricter match missed, or a closed persona gate). The static store bundle at
+                // Owned path, but NO request-aware rule matched with an open gate (a rare path/method
+                // variant every rule's stricter match missed, or every matching owner's persona gate is
+                // closed on this deploy). The static store bundle at
                 // an owned login path may be the exact login-SUCCESS decoy owns_path exists to shadow
                 // — never re-expose an authenticated success on a decline. Degrade to CLEAN when the
                 // fallthrough entry carries an auth-success witness. A ROOT/homepage entry (all sig=1)

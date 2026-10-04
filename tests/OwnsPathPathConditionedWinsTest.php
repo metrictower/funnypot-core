@@ -98,12 +98,29 @@ final class OwnsPathPathConditionedWinsTest extends TestCase
         self::assertStringNotContainsString('2023.11.3', $body, 'no jsp= -> TeamCity owner declines -> no attack XML serve');
     }
 
+    public function test_gated_owner_closed_still_serves_the_generic_attack(): void
+    {
+        // FP-0547 review F1: /wp-json is owned by woo-wp-json-index, which is persona-gated (route-woo-store).
+        // On the default (non-woo) seed that gate is CLOSED, so the gate-aware scan skips the owner and
+        // continues to the ungated generic LFI rule — the request keeps its ATTACK_CLASS serve instead of
+        // being downgraded to the static index. A benign /wp-json still serves the static index.
+        $attack = $this->engine()->respond(new RequestContext('GET', '/wp-json', 'f=../.ssh/id_rsa', [], null, 'x.test'));
+        $ab = $attack !== null ? (string) $attack->body : '';
+        self::assertStringContainsString('BEGIN', $ab, 'a gated-closed owner must not suppress the generic LFI attack serve');
+
+        $benign = $this->engine()->respond(new RequestContext('GET', '/wp-json', '', [], null, 'x.test'));
+        $bb = $benign !== null ? (string) $benign->body : '';
+        self::assertStringNotContainsString('BEGIN', $bb, 'benign /wp-json serves the static index, not an attack decoy');
+    }
+
     public function test_override_site_calls_matchOnOwnedPath(): void
     {
         // Source pin: the owns_path override must route through matchOnOwnedPath so a refactor cannot
         // silently revert to matchRule (which reopens the path-agnostic-shadows-owner bug, FP-0547).
         $src = file_get_contents(__DIR__ . '/../src/Honeypot.php');
         self::assertNotFalse($src);
-        self::assertStringContainsString('matchOnOwnedPath($r)', $src);
+        // The override calls matchOnOwnedPath with the request and a persona-gate predicate (gate-aware
+        // scan, review F1). Pin the call so a refactor can't revert to the shadow-prone matchRule here.
+        self::assertStringContainsString('matchOnOwnedPath($r,', $src);
     }
 }
