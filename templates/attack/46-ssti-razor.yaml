@@ -10,7 +10,8 @@ tags: [attack, ssti, razor]
 #
 # Same safety posture as 45: the reflected value is the integer result of Support\SafeArithmetic (hand-
 # written parser, NEVER eval/a template engine/a callback); the capture is whitelisted to digits + - * / %
-# ( ) spaces, so the output is always pure digits. html_safe_captures (compile-time assertion) marks it
+# ( ) spaces, so the output is always a bounded signed integer (digits, optional leading '-' — still
+# <>&"'-free). html_safe_captures (compile-time assertion) marks it
 # HTML-safe-by-construction, so it needs no isolated origin and reflects_input would be wrong. A non-
 # arithmetic `@(...)` (e.g. a Razor helper call) fails the operand grammar; overflow/div-by-zero decline
 # to the inert base page, never a 500.

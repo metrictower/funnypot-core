@@ -58,14 +58,14 @@ final class SstiRazorOracleTest extends TestCase
         self::assertStringNotContainsString('4321*8765', $b, 'the raw expression must not be echoed');
     }
 
-    public function test_non_arithmetic_razor_declines_to_base_page(): void
+    public function test_non_arithmetic_razor_reflects_no_product(): void
     {
-        // A Razor helper call is not arithmetic -> no product; declines to the inert base page (or 404),
-        // never a reflected marker.
+        // A Razor helper call is not arithmetic -> no product reflected (the rule declines; falls through
+        // to an inert page or 404). The key property: no bare computed integer is ever emitted.
         foreach (['@(config)', '@(Html.Raw(x))', '@(User.Name)'] as $p) {
             $b = $this->serve($p);
             self::assertStringNotContainsString('7006652', $b);
-            self::assertDoesNotMatchRegularExpression('/^\d+\s*$/', trim($b), "{$p} must not reflect a bare product: {$b}");
+            self::assertDoesNotMatchRegularExpression('/^-?\d+\s*$/', trim($b), "{$p} must not reflect a bare product: {$b}");
         }
     }
 
