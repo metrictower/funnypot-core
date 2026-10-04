@@ -15,9 +15,10 @@ priority: 408
 # Scoped to the 0108 signal only: 0108 is an auth BYPASS that merely reaches the page; it grants no
 # session/cookie, so no success-login response is fabricated (that belongs to the separate 2024-0012 /
 # 2020-2021 chains). Inert: static canned HTML, no exec/fs/network, no request byte reflected. The PAN-OS
-# version is a deploy-seeded {{pick}} of CVE-2025-0108-affected releases (per-deploy variance; all below
-# the fixed 11.2.4-h4 / 11.1.6-h1 / 10.2.13-h3 / 10.1.14-h9). Only PAN-OS's own product strings appear —
-# no scanner/matcher literals.
+# version is a {{pick}} of CVE-2025-0108-affected releases (standard pick scope — keyed on the per-request
+# personaSeed / source-IP, like the other route picks e.g. apache-server-info; it varies per source IP, is
+# stable across deploys; all are below the fixed 11.2.4-h4 / 11.1.6-h1 / 10.2.13-h3 / 10.1.14-h9). Only
+# PAN-OS's own product strings appear — no scanner/matcher literals.
 match:
   pid: [pan-os]
   route_key: ['GET /unauth/%252e%252e/php/ztp_gate.php/PAN_help/x.css']
