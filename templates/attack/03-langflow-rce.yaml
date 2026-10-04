@@ -1,0 +1,47 @@
+id: attack-langflow-cve-2025-3248
+severity: high
+priority: 3
+tags: [attack, rce, langflow, cve-2025-3248, ai]
+# FP-0455: Langflow unauthenticated code-execution decoy (CVE-2025-3248, CISA KEV, Flodrix botnet). The
+# exploit POSTs attacker Python to /api/v1/validate/code, which vulnerable Langflow validates by COMPILING
+# it (a decorator/default-arg payload executes at compile time). Scanners confirm by the injected command's
+# OUTPUT in the JSON response: the canonical nuclei KEV template reads /etc/passwd and matches a passwd
+# regex; OWASP Nettacker runs `id` and matches `uid=`. We serve the command output inside the REAL Langflow
+# validate/code envelope — `function.errors[]` (NOT an invented key) — so both scanners confirm.
+#
+# priority 3 (BELOW the whole LFI band 21-31 AND cmdi 40/41): the Langflow exploit BODY is file-read/
+# command code (e.g. open("/etc/passwd"), subprocess cat), so it collides with every generic injection rule;
+# the owns_path override.s matchRule() picks the LOWEST priority match, and 31-lfi-unix (text/plain passwd)
+# would win + fail the scanner.s application/json check. A priority below the band makes THIS rule win. Safe:
+# the match is the EXACT owns_path (/api/v1/validate/code) + POST, so a low global priority never over-matches
+# another path. (A general fix — owns_path owner wins on its owned path — is filed separately.) The match is the EXACT owns_path + POST, so a low priority causes
+# no over-match elsewhere. INERT: the submitted code is NEVER compiled/executed; only the canned envelope is
+# served, no request byte reflected. The passwd/uid lines are product-intrinsic command output (like
+# 41-cmdi-unix / 90-imds), not scanner matcher strings. severity high -> serves at the embedder ceiling.
+# Detecting reuse of any leaked value is stateful -> app follow-up.
+owns_path: [/api/v1/validate/code]
+match:
+  - in: path
+    regex: '^/api/v1/validate/code/*$'
+    ci: true
+  - in: method
+    regex: '^POST$'
+    ci: true
+status: 200
+# Base (and the position-blind port): the passwd-style output = the canonical nuclei KEV confirmation.
+response:
+  headers:
+    Content-Type: "application/json"
+  body: '{"imports":{"errors":[]},"function":{"errors":["root:x:0:0:root:/root:/bin/bash\nlangflow:x:1000:1000::/home/langflow:/bin/bash\n"]}}'
+behavior: branch
+branch:
+  cases:
+    # A uid/whoami-style probe (e.g. Nettacker) -> the id output, inside the same function.errors envelope.
+    - when: { in: request, regex: '\b(?:id|whoami)\b|uid', ci: true }
+      response:
+        status: 200
+        headers: { Content-Type: "application/json" }
+        body: '{"imports":{"errors":[]},"function":{"errors":["uid=1000(langflow) gid=1000(langflow) groups=1000(langflow)\n"]}}'
+expect:
+  - 'function'
+  - 'root:x:0:0'
