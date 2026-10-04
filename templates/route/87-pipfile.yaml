@@ -1,0 +1,33 @@
+id: route-pipfile
+priority: 87
+# FP-0399: Python manifest decoy at /Pipfile (pipenv TOML). Enrich on the corpus `pipfile-config` bundle;
+# companion to 86-pipfile-lock with the same REAL OSV-vulnerable PyPI set, pinned (==x.y.z) for scanner
+# friendliness. Inert, no request reflected. Bundle requires the body words [[source]] and [packages]. Pipfile
+# has no registered media type, so text/plain is byte-faithful.
+match:
+  template_needle: [pipfile-config]
+response:
+  headers:
+    Content-Type: "text/plain; charset=utf-8"
+  body: |
+    [[source]]
+    name = "pypi"
+    url = "https://pypi.org/simple"
+    verify_ssl = true
+
+    [packages]
+    django = "==3.0.4"
+    pyyaml = "==5.1"
+    urllib3 = "==1.25.7"
+    jinja2 = "==2.10.1"
+    flask = "==1.0.2"
+    requests = "==2.25.1"
+
+    [dev-packages]
+
+    [requires]
+    python_version = "3.8"
+taunt: { mode: line, open: '#' }
+expect:
+  - '[[source]]'
+  - '[packages]'

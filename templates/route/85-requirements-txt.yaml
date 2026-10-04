@@ -1,0 +1,24 @@
+id: route-requirements-txt
+priority: 85
+# FP-0399: vulnerable Python requirements decoy at /requirements.txt (+ the /app/, /src/, /requirements/
+# path variants the shared python-requirements-disclosure bundle keys). Pinned to REAL OSV-listed vulnerable
+# releases — Django 3.0.4 (CVE-2021-35042) matches the box's django-admin decoy (route 190). An
+# osv-scanner/pip-audit scrape parses pkg==ver and reports verifiable CVEs. Versions FIXED (detection
+# payload); plain text, inert, no request reflected. Bundle requires the `==` body word + text/plain CT.
+match:
+  template_needle: [python-requirements-disclosure]
+response:
+  headers:
+    Content-Type: "text/plain; charset=utf-8"
+  body: |
+    # Pinned production requirements
+    Django==3.0.4
+    PyYAML==5.1
+    urllib3==1.25.7
+    Jinja2==2.10.1
+    Flask==1.0.2
+    requests==2.25.1
+taunt: { mode: line, open: '#' }
+expect:
+  - 'Django==3.0.4'
+  - 'PyYAML==5.1'

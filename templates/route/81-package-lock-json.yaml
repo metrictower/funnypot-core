@@ -1,0 +1,86 @@
+id: route-package-lock-json
+priority: 81
+# FP-0399: vulnerable npm lockfile decoy at /package-lock.json. /package.json and /package-lock.json share
+# the corpus `package-json` bundle; this enrich is route_key-guarded to /package-lock.json (priority 81 <
+# 90, so it wins that path) and serves a lockfileVersion:3 document whose node versions are REAL OSV-listed
+# vulnerable releases — an SCA scanner (osv-scanner/npm audit/Trivy) that scrapes the file parses
+# (ecosystem,name,version) and reports verifiable CVEs, marking the box a high-value target. Versions are
+# FIXED literals (the detection payload); integrity/resolved refs are {{fake.*}}-seeded so two deploys are
+# not byte-identical (anti-correlation). Inert: static per-render bytes, no request reflected. The
+# integrity NAMEs are shared with 84-yarn-lock so the two npm files agree for one attacker.
+match:
+  template_needle: [package-json]
+  route_key: ['GET /package-lock.json']
+response:
+  headers:
+    Content-Type: "application/json; charset=utf-8"
+  body: |
+    {
+    "name": "{{pick:npm-app-name:web-app,dashboard,storefront,admin-ui}}",
+    "version": "{{pick:npm-app-version:1.4.2,3.0.1,2.11.0,0.9.7}}",
+    "lockfileVersion": 3,
+    "requires": true,
+    "packages": {
+      "": {
+        "name": "{{pick:npm-app-name:web-app,dashboard,storefront,admin-ui}}",
+        "version": "{{pick:npm-app-version:1.4.2,3.0.1,2.11.0,0.9.7}}",
+        "dependencies": {
+          "express": "4.16.4",
+          "lodash": "4.17.11",
+          "axios": "0.21.1",
+          "jsonwebtoken": "8.5.1",
+          "node-serialize": "0.0.4",
+          "minimist": "1.2.5"
+        }
+      },
+      "node_modules/lodash": {
+        "version": "4.17.11",
+        "resolved": "https://registry.npmjs.org/lodash/-/lodash-4.17.11.tgz",
+        "integrity": "sha512-{{fake.npm_i_lodash:b64:86}}=="
+      },
+      "node_modules/axios": {
+        "version": "0.21.1",
+        "resolved": "https://registry.npmjs.org/axios/-/axios-0.21.1.tgz",
+        "integrity": "sha512-{{fake.npm_i_axios:b64:86}}=="
+      },
+      "node_modules/jsonwebtoken": {
+        "version": "8.5.1",
+        "resolved": "https://registry.npmjs.org/jsonwebtoken/-/jsonwebtoken-8.5.1.tgz",
+        "integrity": "sha512-{{fake.npm_i_jwt:b64:86}}=="
+      },
+      "node_modules/node-serialize": {
+        "version": "0.0.4",
+        "resolved": "https://registry.npmjs.org/node-serialize/-/node-serialize-0.0.4.tgz",
+        "integrity": "sha512-{{fake.npm_i_nodeser:b64:86}}=="
+      },
+      "node_modules/minimist": {
+        "version": "1.2.5",
+        "resolved": "https://registry.npmjs.org/minimist/-/minimist-1.2.5.tgz",
+        "integrity": "sha512-{{fake.npm_i_minimist:b64:86}}=="
+      },
+      "node_modules/qs": {
+        "version": "6.5.2",
+        "resolved": "https://registry.npmjs.org/qs/-/qs-6.5.2.tgz",
+        "integrity": "sha512-{{fake.npm_i_qs:b64:86}}=="
+      },
+      "node_modules/cookie": {
+        "version": "0.3.1",
+        "resolved": "https://registry.npmjs.org/cookie/-/cookie-0.3.1.tgz",
+        "integrity": "sha1-{{fake.npm_i_cookie:b64:27}}="
+      },
+      "node_modules/express": {
+        "version": "4.16.4",
+        "resolved": "https://registry.npmjs.org/express/-/express-4.16.4.tgz",
+        "integrity": "sha512-{{fake.npm_i_express:b64:86}}==",
+        "dependencies": {
+          "cookie": "0.3.1",
+          "qs": "6.5.2"
+        }
+      }
+    }
+    }
+taunt: { mode: inline_field, key: '_comment' }
+expect:
+  - '"lockfileVersion": 3'
+  - '"node_modules/lodash"'
+  - '"version": "4.17.11"'

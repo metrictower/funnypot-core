@@ -1,6 +1,8 @@
 id: route-package-json
 priority: 90
-# package.json (also package-lock.json) — plausible manifest of common public deps.
+# package.json — plausible npm manifest. FP-0399: deps aligned with the vulnerable set in the companion
+# lockfile (81-package-lock-json, route_key-guarded to /package-lock.json; this unguarded rule dresses
+# /package.json). Shared pick KEYs (npm-app-name/version) keep manifest + lock coherent for one attacker.
 match:
   template_needle: [package-json]
 response:
@@ -8,20 +10,21 @@ response:
     Content-Type: "application/json; charset=utf-8"
   body: |
     {
-      "name": "@example/{{pick:web-app,dashboard,storefront,admin-ui}}",
-      "version": "{{pick:1.4.2,3.0.1,2.11.0,0.9.7}}",
+      "name": "{{pick:npm-app-name:web-app,dashboard,storefront,admin-ui}}",
+      "version": "{{pick:npm-app-version:1.4.2,3.0.1,2.11.0,0.9.7}}",
       "private": true,
-      "description": "Internal web frontend.",
+      "description": "Internal web service.",
       "scripts": {
-        "build": "vite build",
-        "test": "vitest run"
+        "start": "node server.js",
+        "test": "mocha"
       },
       "dependencies": {
-        "react": "^18.2.0",
-        "axios": "^1.6.0"
-      },
-      "devDependencies": {
-        "vite": "^5.0.0"
+        "express": "4.16.4",
+        "lodash": "4.17.11",
+        "axios": "0.21.1",
+        "jsonwebtoken": "8.5.1",
+        "node-serialize": "0.0.4",
+        "minimist": "1.2.5"
       }
     }
 taunt: { mode: inline_field, key: '_comment' }

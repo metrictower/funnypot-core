@@ -1,0 +1,35 @@
+id: route-pipfile-lock
+priority: 86
+# FP-0399: vulnerable Python lockfile decoy at /Pipfile.lock (pipenv format). Enrich on the corpus
+# `pipfile-lock` bundle. Same REAL OSV-vulnerable PyPI set as 85-requirements-txt (pipenv lowercases the
+# package keys in the `default` map). Versions FIXED (==x.y.z, the detection payload); the _meta + per-package
+# sha256 hashes are {{fake.*}}-seeded (anti-correlation). Inert, no request reflected. Bundle requires the
+# body words "pipfile-spec": and "requires".
+match:
+  template_needle: [pipfile-lock]
+response:
+  headers:
+    Content-Type: "application/json; charset=utf-8"
+  body: |
+    {
+    "_meta": {
+      "hash": {"sha256": "{{fake.pipfile_hash:hex:64}}"},
+      "pipfile-spec": 6,
+      "requires": {"python_version": "3.8"},
+      "sources": [{"name": "pypi", "url": "https://pypi.org/simple", "verify_ssl": true}]
+    },
+    "default": {
+      "django": {"hashes": ["sha256:{{fake.pl_django:hex:64}}"], "index": "pypi", "version": "==3.0.4"},
+      "pyyaml": {"hashes": ["sha256:{{fake.pl_pyyaml:hex:64}}"], "index": "pypi", "version": "==5.1"},
+      "urllib3": {"hashes": ["sha256:{{fake.pl_urllib3:hex:64}}"], "index": "pypi", "version": "==1.25.7"},
+      "jinja2": {"hashes": ["sha256:{{fake.pl_jinja2:hex:64}}"], "index": "pypi", "version": "==2.10.1"},
+      "flask": {"hashes": ["sha256:{{fake.pl_flask:hex:64}}"], "index": "pypi", "version": "==1.0.2"},
+      "requests": {"hashes": ["sha256:{{fake.pl_requests:hex:64}}"], "index": "pypi", "version": "==2.25.1"}
+    },
+    "develop": {}
+    }
+taunt: { mode: inline_field, key: '_comment' }
+expect:
+  - '"pipfile-spec": 6'
+  - '"django"'
+  - '"version": "==3.0.4"'
