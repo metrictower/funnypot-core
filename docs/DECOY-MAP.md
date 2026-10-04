@@ -4,7 +4,7 @@
 > The manifest is the sole inventory authority; friendly names, categories and behavior
 > prose live in the README taxonomy, not here.
 
-Manifest schema 1. Authored records: 389 across 91 families. Corpus: 2611 families / 5134 route keys (summarized, not enumerated). Enrichers: 257.
+Manifest schema 1. Authored records: 390 across 92 families. Corpus: 2611 families / 5134 route keys (summarized, not enumerated). Enrichers: 257.
 
 ```mermaid
 mindmap
@@ -80,26 +80,27 @@ mindmap
     fam0069["ssh: 1"]
     fam0070["ssti: 2"]
     fam0071["struts: 1"]
-    fam0072["terraform: 3"]
-    fam0073["thinkphp: 1"]
-    fam0074["tls: 2"]
-    fam0075["tomcat: 2"]
-    fam0076["twig: 1"]
-    fam0077["upload: 1"]
-    fam0078["v1: 1"]
-    fam0079["vcs: 10"]
-    fam0080["vite: 1"]
-    fam0081["webmin: 1"]
-    fam0082["webshell: 1"]
-    fam0083["whm: 1"]
-    fam0084["windows: 2"]
-    fam0085["woocommerce: 8"]
-    fam0086["wordpress: 20"]
-    fam0087["wp-plugin-enum: 10"]
-    fam0088["wp-theme-enum: 2"]
-    fam0089["xdebug: 1"]
-    fam0090["xss: 2"]
-    fam0091["xxe: 1"]
+    fam0072["teamcity: 1"]
+    fam0073["terraform: 3"]
+    fam0074["thinkphp: 1"]
+    fam0075["tls: 2"]
+    fam0076["tomcat: 2"]
+    fam0077["twig: 1"]
+    fam0078["upload: 1"]
+    fam0079["v1: 1"]
+    fam0080["vcs: 10"]
+    fam0081["vite: 1"]
+    fam0082["webmin: 1"]
+    fam0083["webshell: 1"]
+    fam0084["whm: 1"]
+    fam0085["windows: 2"]
+    fam0086["woocommerce: 8"]
+    fam0087["wordpress: 20"]
+    fam0088["wp-plugin-enum: 10"]
+    fam0089["wp-theme-enum: 2"]
+    fam0090["xdebug: 1"]
+    fam0091["xss: 2"]
+    fam0092["xxe: 1"]
     corpus["corpus: 2611 families / 5134 keys"]
     enrichers["content enrichers #40;not route claimers#41;: 257"]
 ```
@@ -177,6 +178,7 @@ mindmap
 | ssh | 1 | attack:1 | 0 | 0 | high | &mdash; |
 | ssti | 2 | attack:2 | 0 | 0 | high | &mdash; |
 | struts | 1 | attack:1 | 0 | 0 | critical | &mdash; |
+| teamcity | 1 | attack:1 | 1 | 0 | high | info |
 | terraform | 3 | new-page:3 | 3 | 0 | high | &mdash; |
 | thinkphp | 1 | attack:1 | 0 | 0 | critical | &mdash; |
 | tls | 2 | new-page:2 | 2 | 0 | high | &mdash; |
