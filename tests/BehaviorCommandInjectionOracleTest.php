@@ -201,6 +201,26 @@ final class BehaviorCommandInjectionOracleTest extends TestCase
         self::assertNull($e->synthesize($v, SiteProfile::empty(), 's'), 'position-blind port must not reflect');
     }
 
+    public function test_benign_escaped_prose_does_not_become_an_attack(): void
+    {
+        // FP-0466 Stage 2 review (F1): the shell-deobfuscate decoder must NOT fire on benign text that
+        // carries a backslash/caret/empty-quote but NO shell-injection context — otherwise the appended
+        // fold copy lets a CRS catch-all straddle the layer joiner and 403 a legitimate request.
+        $benign = [
+            "comment=We\\'re running the import command tonight",
+            'note=Run the \\"export\\" command first',
+            'f=2^8 command ok',
+            'row="","command",""',
+            'path=C:\\Users\\admin\\command.txt',
+        ];
+        foreach ($benign as $b) {
+            $v = $this->engine(true, true)->classify(new RequestContext('POST', '/x', '', [], $b, 'x.test'), SiteProfile::empty());
+            $id = (string) ($v->fakeHandle->ruleId ?? '');
+            self::assertStringNotContainsString('cmdi', $id, "benign must not hit a cmdi rule: {$b} (got {$id})");
+            self::assertStringNotContainsString('crs-rce', $id, "benign must not hit crs-rce via the fold copy: {$b} (got {$id})");
+        }
+    }
+
     public function test_windows_seta_does_not_match_benign_word_boundary_text(): void
     {
         // FP-0466 review: a benign path/word ending in "set/a" must NOT trigger the Windows rule.
