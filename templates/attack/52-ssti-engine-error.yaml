@@ -10,22 +10,24 @@ tags: [attack, ssti, freemarker, velocity, twig, error-oracle]
 # (freemarker.core.ParseException, org.apache.velocity.exception.ParseErrorException, Twig\Error\SyntaxError)
 # are PRODUCT-INTRINSIC engine output, NOT scanner/CRS matcher words.
 #
-# priority 52 sorts AFTER the arithmetic SSTI rules (43-46); the two sets are disjoint by construction
-# (43-46 require a digit+operator arithmetic grammar, this requires escape-directive markers), so a clean
-# {{7*7}}/@(7*7) reflects the product at 45/46 and never reaches here. Markers verified disjoint from
-# 05-confluence-ognl (runtime command-exec markers win first) and 06 (method+path gated).
+# Markers are ANCHORED to real escape SYNTAX (FP-0476 review): a FreeMarker built-in only inside ${}/<#,
+# a Velocity directive only when followed by `($`, a Twig filter only with a quoted arg. Bare substrings
+# (`getFilter`, `<@`, `?api`, `|map(`) were removed — they fired on benign traffic (getFilterOptions,
+# ?api-version, arr|map(x), <@channel>). `in: request` folds the PATH too, so a loose marker would 500 a
+# benign path. Detection-only, no capture, nothing reflected — no reflector gating.
 #
-# INERT: fully canned, NO attacker byte echoed (we deliberately do not quote the offending expression), so
-# the rule needs no reflects_input / isolated-origin and carries zero reflection/XSS surface.
+# priority 52 sorts AFTER the arithmetic SSTI rules (43-46); disjoint by construction (arithmetic grammar
+# vs escape syntax), so a clean {{7*7}}/@(7*7) reflects the product at 45/46 and never reaches here.
+# 05-confluence-ognl (runtime command-exec markers) wins a getRuntime/ProcessBuilder payload first; 06 is
+# method+path gated. INERT: fully canned, NO attacker byte echoed -> no reflects_input/isolated-origin.
 # AUTHORED 500: real FreeMarker/Velocity Java apps + Symfony/Twig dev pages return HTTP 500 with the
-# exception page (200 would be the tell). This is an app-chosen decoy status (same posture as the shipped
-# 47-verbose-error-volatile status:500) — NOT an unintended fault, so it does not breach the only-upgrade
-# invariant (which governs LLM/engine FAULTS degrading to 404, not authored decoys).
+# exception page (200 would be the tell). App-chosen decoy status (same posture as 47-verbose-error-volatile
+# status:500) — NOT an unintended fault, so it does not breach the only-upgrade invariant.
 match:
   - in: request
     dotall: true
     ci: true
-    regex: '(?:<#(?:assign|list|global|macro)\b|<@|\?(?:new|api|eval)\b|freemarker\.template\.utility\.Execute|#(?:set|evaluate|foreach|parse|macro)\s*\(|\$class\.inspect|_self\.env|registerUndefinedFilterCallback|\{%\s*set\b|\|\s*(?:filter|map|reduce)\s*\(|getFilter)'
+    regex: '[<\[]#(?:assign|list|global|macro)\b|(?:\$\{|[<\[]#)[^}>\]]{0,200}\?(?:new|api|eval)\b|freemarker\.template\.utility\.Execute|#(?:set|foreach)\s*\(\s*\$|#evaluate\s*\(|#parse\s*\(\s*[''"$]|\$class\.inspect|\.class\.forName\s*\(|_self\.env|registerUndefinedFilterCallback|\|\s*(?:filter|map|reduce)\s*\(\s*[''"]|\.getFilter\s*\(\s*[''"]'
 status: 500
 # Base response = the neutral 500 (no engine string): served on the position-blind synthesize() port where
 # the case `when` conditions (in: request) cannot read the request, so no specific engine is leaked.
@@ -39,7 +41,7 @@ response:
 behavior: branch
 branch:
   cases:
-    - when: { in: request, dotall: true, ci: true, regex: '<#(?:assign|list|global|macro)\b|<@|\?(?:new|api|eval)\b|freemarker\.template\.utility\.Execute' }
+    - when: { in: request, dotall: true, ci: true, regex: '[<\[]#(?:assign|list|global|macro)\b|(?:\$\{|[<\[]#)[^}>\]]{0,200}\?(?:new|api|eval)\b|freemarker\.template\.utility\.Execute' }
       response:
         status: 500
         headers: { Content-Type: "text/html; charset=utf-8" }
@@ -51,7 +53,7 @@ branch:
               at freemarker.core.FMParser.Expression(FMParser.java)
               at freemarker.template.Template.&lt;init&gt;(Template.java)
           </pre></body></html>
-    - when: { in: request, dotall: true, ci: true, regex: '#(?:set|evaluate|foreach|parse|macro)\s*\(|\$class\.inspect' }
+    - when: { in: request, dotall: true, ci: true, regex: '#(?:set|foreach)\s*\(\s*\$|#evaluate\s*\(|#parse\s*\(\s*[''"$]|\$class\.inspect|\.class\.forName\s*\(' }
       response:
         status: 500
         headers: { Content-Type: "text/html; charset=utf-8" }
@@ -62,7 +64,7 @@ branch:
               at org.apache.velocity.runtime.parser.Parser.generateParseException(Parser.java)
               at org.apache.velocity.runtime.RuntimeInstance.parse(RuntimeInstance.java)
           </pre></body></html>
-    - when: { in: request, dotall: true, ci: true, regex: '_self\.env|registerUndefinedFilterCallback|\{%\s*set\b|\|\s*(?:filter|map|reduce)\s*\(|getFilter' }
+    - when: { in: request, dotall: true, ci: true, regex: '_self\.env|registerUndefinedFilterCallback|\|\s*(?:filter|map|reduce)\s*\(\s*[''"]|\.getFilter\s*\(\s*[''"]' }
       response:
         status: 500
         headers: { Content-Type: "text/html; charset=utf-8" }

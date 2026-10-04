@@ -46,7 +46,8 @@ final class SstiErrorOracleTest extends TestCase
 
     public function test_freemarker_escape_probe_returns_freemarker_exception_500(): void
     {
-        foreach (['<#assign x=1>', '${7?api}', '<@foo />'] as $p) {
+        // <@foo /> was intentionally dropped (over-matched Slack <@mentions>); [#assign] square syntax added.
+        foreach (['<#assign x=1>', '${7?api}', '[#assign x=1]'] as $p) {
             $r = $this->resp($p);
             self::assertSame(500, $r->status ?? null, "{$p} status");
             self::assertStringContainsString('freemarker.core', $this->body($r), "{$p} must show the FreeMarker exception");
@@ -83,11 +84,31 @@ final class SstiErrorOracleTest extends TestCase
 
     public function test_benign_traffic_does_not_trigger_the_error_oracle(): void
     {
-        foreach (['hello world', 'name=john&age=30', 'search=the quick brown fox', 'q=SELECT 1', 'id=42'] as $p) {
-            $b = $this->body($this->resp($p));
+        // The FP-0476 review corpus: shapes that the first (loose) regex over-matched. None may 500.
+        $benign = [
+            'hello world', 'name=john&age=30', 'search=the quick brown fox', 'q=SELECT 1', 'id=42',
+            'targetFilter=all', 'widgetFilter=1', 'action=getFilteredProducts', 'fn=getFilterOptions',
+            'api-version=2021-04-01', 'redirect=https://x/items?new=1', '?new-arrivals',
+            'a || map(b)', 'cache || filter(items)', 'ok || reduce(xs)', 'arr|map(x)',
+            '<@channel>', '<@U024BE7LH>', 'the #set (a) of things', 'Use #foreach (loop)',
+        ];
+        foreach ($benign as $p) {
+            $r = $this->resp($p);
+            $b = $this->body($r);
             self::assertStringNotContainsString('freemarker.core', $b, "{$p} must not trigger FreeMarker");
             self::assertStringNotContainsString('velocity.exception', $b, "{$p} must not trigger Velocity");
             self::assertStringNotContainsString('Twig\\Error', $b, "{$p} must not trigger Twig");
+        }
+    }
+
+    public function test_benign_path_does_not_trigger_the_error_oracle(): void
+    {
+        // `in: request` folds the PATH, so a benign path must not match (the getFilter substring bug).
+        foreach (['/api/getFilterOptions', '/getFilters', '/v1/targetFilter', '/products?widgetFilter=1'] as $path) {
+            $r = $this->engine()->respond(new RequestContext('GET', $path, '', [], null, 'x.test'));
+            $b = $r !== null ? (string) $r->body : '';
+            self::assertStringNotContainsString('Twig\\Error', $b, "{$path} must not 500 as a Twig error");
+            self::assertStringNotContainsString('freemarker.core', $b, "{$path} must not 500 as a FreeMarker error");
         }
     }
 
