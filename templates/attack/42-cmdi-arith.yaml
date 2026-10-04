@@ -24,9 +24,13 @@ reflects_input: true
 reflect_class: cmdi
 match:
   - in: request
-    # The $((d*d)) arithmetic-expansion bracketed by two hex tokens is Artemis-distinctive; an optional
-    # leading `echo` tightens it. capture:true selects these groups for the response markers.
-    regex: '(?:echo\s+)?(?P<left>[a-f0-9]{6,16})\$\(\((?P<expr>\d{1,10}\*\d{1,10})\)\)(?P<right>[a-f0-9]{6,16})'
+    # FP-0466: the POSIX $((A op B)) arithmetic-expansion bracketed by two alnum tokens is the Artemis/
+    # Commix-distinctive shape; the distinctive `$((` syntax (not anchor length) is the specificity. An
+    # optional leading `echo` tightens it; the operator is any of + - *; an optional inner `$(echo MID)`
+    # confirmation group (Commix) is captured too. capture:true selects left/expr/mid/right for the
+    # response markers. Widened from FP-0386's hex-mul-only form (the ticket probes use uppercase anchors
+    # and +/- operators); SafeArithmetic evaluates A op B (zero exec) and declines out-of-grammar.
+    regex: '(?:echo\s+)?(?P<left>[A-Za-z0-9]{3,16})\$\(\(\s*(?P<expr>\d{1,10}\s*[+\-*]\s*\d{1,10})\s*\)\)(?:\$\((?:echo\s+)?(?P<mid>[A-Za-z0-9]{3,16})\))?(?P<right>[A-Za-z0-9]{3,16})'
     capture: true
 status: 200
 behavior: expr-eval
@@ -39,9 +43,9 @@ expr-eval:
     headers:
       Content-Type: "text/plain; charset=utf-8"
     body: |
-      $ sh -c 'id; echo {{match.left}}$((...)){{match.right}}'
+      $ sh -c 'id; echo {{match.left}}$((...)){{match.mid}}{{match.right}}'
       uid=0(root) gid=0(root) groups=0(root)
-      {{match.left}}{{match.result}}{{match.right}}
+      {{match.left}}{{match.result}}{{match.mid}}{{match.right}}
 # Base response: served when the expression declines (overflow / out of grammar / non-arithmetic) —
 # a plain, marker-free diagnostic line, never a 500 (only-upgrade invariant).
 response:
