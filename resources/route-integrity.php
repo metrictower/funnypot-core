@@ -124,7 +124,7 @@ return array(
             'a' => 'attack-langflow-cve-2025-3248',
             'b' => 'corpus:cve2025',
             'path' => '/api/v1/validate/code',
-            'reason' => 'owns_path override of the Langflow CVE-2025-3248 detection stub: serves the canned validate/code execution-confirmation JSON (uid=1000(langflow), authentic imports/function shape) the corpus has no page for; classification is unchanged, only the response is new',
+            'reason' => 'owns_path override of the Langflow CVE-2025-3248 detection stub: serves the command output inside the real validate/code envelope (function.errors[] — passwd-style for the nuclei KEV probe, uid= for a whoami/id probe) the corpus stub lacks at the non-critical ceiling; classification carries the same CVE tag, only the served response is new',
         ),
         // FP-0394: the /?feed=rss2 responder and the Next.js RSC responder both own '/', so the lint
         // sees a same-tier collision. They are mutually exclusive by query (feed=rss2 vs _rsc=) and a

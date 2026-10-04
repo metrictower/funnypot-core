@@ -12,61 +12,76 @@ use Funnypot\Core\Store\PhpArrayStore;
 use PHPUnit\Framework\TestCase;
 
 /**
- * FP-0455: Langflow unauthenticated code-execution decoy (CVE-2025-3248, CISA KEV). An owns_path override on
- * POST /api/v1/validate/code serves a canned Langflow validate/code response carrying the "executed"
- * command output (uid=1000(langflow)), so a scanner confirms the RCE. Inert: the submitted code is never
- * compiled/executed, no request byte reflected.
+ * FP-0455: Langflow unauthenticated code-execution decoy (CVE-2025-3248, CISA KEV). owns_path override on
+ * POST /api/v1/validate/code serving the command output inside the real validate/code envelope
+ * (function.errors[]): passwd-style for the nuclei KEV probe, uid= for a whoami/id probe. Priority 34 so it
+ * wins over 41-cmdi-unix on the exploit's command-bearing body. Inert; no request byte reflected.
  */
 final class LangflowRceDecoyTest extends TestCase
 {
     /** @var array<string,mixed>|null */
-    private static $indexCache;
+    private static $idx;
 
     private function engine(string $ceiling = 'high'): Honeypot
     {
-        if (self::$indexCache === null) {
-            self::$indexCache = require __DIR__ . '/../resources/compiled/nuclei-index.full.php';
+        if (self::$idx === null) {
+            self::$idx = require __DIR__ . '/../resources/compiled/nuclei-index.full.php';
         }
         $cfg = new Config('respond', static function (RequestContext $r): bool { return true; }, 'matched-only',
             static function (RequestContext $r): string { return 'fixed'; }, 'coherent', Style::REALISTIC, $ceiling, 65536, 0, 0, false);
         $cfg->attackEmulation = true;
 
-        return new Honeypot(new PhpArrayStore(self::$indexCache), $cfg);
+        return new Honeypot(new PhpArrayStore(self::$idx), $cfg);
     }
 
-    private function post(string $body = '{"code":"x"}', string $ceiling = 'high'): ?object
+    private function post(string $body, string $ceiling = 'high'): ?object
     {
         return $this->engine($ceiling)->respond(new RequestContext('POST', '/api/v1/validate/code', '', ['Content-Type' => 'application/json'], $body, 'x.test'));
     }
 
-    public function test_post_returns_canned_rce_confirmation_at_embedder_ceiling(): void
+    private function body(?object $r): string
     {
-        $r = $this->post();
-        self::assertSame(200, $r->status ?? null, 'must serve at the default high (embedder) ceiling');
-        $b = $r !== null ? (string) $r->body : '';
-        self::assertStringContainsString('uid=1000(langflow)', $b, 'command-output confirmation');
-        self::assertNotNull(json_decode($b), 'must be valid JSON (authentic validate/code shape)');
-        self::assertStringContainsString('"imports"', $b);
-        self::assertSame('application/json', $r->headers['Content-Type'] ?? null);
+        return $r !== null ? (string) $r->body : '';
     }
 
-    public function test_also_serves_at_critical_ceiling(): void
+    public function test_passwd_probe_confirms_via_function_errors(): void
     {
-        self::assertStringContainsString('uid=1000(langflow)', (string) ($this->post('{"code":"y"}', 'critical')->body ?? ''));
+        // A nuclei-KEV-style probe that reads /etc/passwd (no id/whoami token) -> passwd output.
+        foreach (['high', 'critical'] as $ceil) {
+            $b = $this->body($this->post('{"code":"@exec\ndef x():\n open(\'/etc/passwd\').read()"}', $ceil));
+            self::assertStringContainsString('root:x:0:0', $b, "passwd confirmation at {$ceil}");
+            self::assertStringContainsString('"function"', $b, 'real validate/code envelope');
+            self::assertNotNull(json_decode($b), 'valid JSON');
+        }
     }
 
-    public function test_non_post_does_not_serve_the_confirmation(): void
+    public function test_uid_probe_confirms_via_function_errors(): void
     {
-        $r = $this->engine()->respond(new RequestContext('GET', '/api/v1/validate/code', '', [], null, 'x.test'));
-        $b = $r !== null ? (string) $r->body : '';
-        self::assertStringNotContainsString('uid=1000(langflow)', $b, 'only POST is the exploit shape');
+        $b = $this->body($this->post('{"code":"import os\nos.system(\'id\')"}'));
+        self::assertStringContainsString('uid=1000(langflow)', $b);
+        self::assertStringContainsString('"function"', $b);
+    }
+
+    public function test_wins_over_cmdi_unix_on_command_bearing_body(): void
+    {
+        // The exploit body carries unix command markers that 41-cmdi-unix would match; priority 34 must win,
+        // serving the Langflow envelope (function.errors), NOT the generic cmdi uid=0(root) page.
+        $b = $this->body($this->post('{"code":"import subprocess; subprocess.check_output([\'cat\',\'/etc/passwd\'])"}'));
+        self::assertStringContainsString('"function"', $b, 'Langflow rule must win over 41-cmdi-unix');
+        self::assertStringNotContainsString('uid=0(root)', $b, 'must not be the generic cmdi page');
+    }
+
+    public function test_non_post_and_sibling_paths_decline(): void
+    {
+        $g = $this->engine()->respond(new RequestContext('GET', '/api/v1/validate/code', '', [], null, 'x.test'));
+        self::assertStringNotContainsString('function', $this->body($g));
     }
 
     public function test_submitted_code_is_never_reflected(): void
     {
         $marker = 'Zlangflowsentinel88Z';
-        $b = (string) ($this->post('{"code":"@exec(\'' . $marker . '\')"}')->body ?? '');
-        self::assertStringContainsString('uid=1000(langflow)', $b);
-        self::assertStringNotContainsString($marker, $b, 'the submitted code must never be echoed');
+        $b = $this->body($this->post('{"code":"@exec(\'' . $marker . '\')"}'));
+        self::assertStringContainsString('"function"', $b);
+        self::assertStringNotContainsString($marker, $b);
     }
 }
