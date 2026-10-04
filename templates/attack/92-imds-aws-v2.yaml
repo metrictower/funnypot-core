@@ -1,0 +1,36 @@
+id: attack-imds-aws-v2
+severity: high
+priority: 92
+tags: [attack, ssrf, cloud-metadata, imds, aws, imdsv2]
+# FP-0471: AWS IMDSv2 session-token endpoint + user-data, neither previously served (404). IMDSv2
+# clients first `PUT /latest/api/token` (header X-aws-ec2-metadata-token-ttl-seconds) to get an opaque
+# ~56-char token, then pass it on GETs. Core is STATELESS: we serve a static-shaped {{fake.*}} token and
+# accept any/no token on the data endpoints (91 already serves /latest/meta-data; 89 the identity doc).
+# /latest/user-data serves an inert cloud-init bait (seeded honeytoken creds) — this also satisfies the
+# ticket's DWORD-SSRF criterion, since `http://2852039166/latest/user-data` resolves to this path (the
+# encoded authority is already flagged critical by OastProbe; no engine change). Branch is PATH-keyed
+# (the engine's branch `when` is a single condition, so method is not AND-gated); the token is served on
+# its path regardless of verb — the scanner PUTs it. Inert, no request byte reflected, fingerprint-safe.
+match:
+  - in: path
+    regex: '^/latest/(?:api/token|user-data)/?$'
+    ci: true
+status: 200
+response:
+  headers:
+    Content-Type: "text/plain"
+  body: |
+    #!/bin/bash
+    export DB_HOST=10.0.{{fake.ud_ip3:dec:1}}.{{fake.ud_ip4:dec:2}}
+    export DB_USER=svc_app
+    export DB_PASS={{fake.ud_dbpass:b64url:24}}
+    export API_TOKEN={{fake.ud_apitok:b64url:32}}
+behavior: branch
+branch:
+  cases:
+    - when: { in: path, regex: '^/latest/api/token/?$', ci: true }
+      response:
+        headers: { Content-Type: "text/plain" }
+        body: "{{fake.imds_v2tok:b64url:56}}"
+expect:
+  - "DB_HOST"
