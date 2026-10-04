@@ -106,6 +106,28 @@ final class BehaviorCommandInjectionOracleTest extends TestCase
         self::assertStringContainsString((string) (15 + 27), $this->serve('cmd /c "set /a (15+27)"'));
     }
 
+    // ---- AC4: obfuscation (shell-deobfuscate decoder, Stage 2) ---------------------------------
+
+    public function test_ifs_obfuscated_posix_probe_is_normalised(): void
+    {
+        // echo${IFS}ABCDEF$((10+5))ABCDEF  -> ${IFS} folds to a space -> matches 42.
+        self::assertStringContainsString('ABCDEF' . (10 + 5) . 'ABCDEF', $this->serve('echo${IFS}ABCDEF$((10+5))ABCDEF'));
+    }
+
+    public function test_escaped_multiplication_expr_is_normalised(): void
+    {
+        // TAG999$(expr 6 \* 7)TAG999  -> the backslash is stripped -> `expr 6 * 7` matches 49.
+        self::assertStringContainsString('TAG999' . (6 * 7) . 'TAG999', $this->serve('TAG999$(expr 6 \\* 7)TAG999'));
+    }
+
+    public function test_percent_then_ifs_obfuscation_folds(): void
+    {
+        // A percent-encoded ${IFS}: percent-decode then shell-deobfuscate both fire in the fold.
+        $raw = 'echo%24%7BIFS%7DABCDEF%24%28%2810%2B5%29%29ABCDEF';
+        $resp = $this->engine(true, true)->respond(new RequestContext('GET', '/x', 'q=' . $raw, [], null, 'x.test'));
+        self::assertStringContainsString('ABCDEF' . (10 + 5) . 'ABCDEF', $this->body($resp));
+    }
+
     // ---- AC6: compute, not echo ----------------------------------------------------------------
 
     public function test_computes_not_echoes_the_expression(): void
@@ -177,6 +199,26 @@ final class BehaviorCommandInjectionOracleTest extends TestCase
         self::assertStringStartsWith('attack-cmdi', (string) ($v->fakeHandle->ruleId ?? ''));
         // synthesize() WITHOUT a request is the position-blind port: it cannot prove isolated origin.
         self::assertNull($e->synthesize($v, SiteProfile::empty(), 's'), 'position-blind port must not reflect');
+    }
+
+    public function test_benign_escaped_prose_does_not_become_an_attack(): void
+    {
+        // FP-0466 Stage 2 review (F1): the shell-deobfuscate decoder must NOT fire on benign text that
+        // carries a backslash/caret/empty-quote but NO shell-injection context — otherwise the appended
+        // fold copy lets a CRS catch-all straddle the layer joiner and 403 a legitimate request.
+        $benign = [
+            "comment=We\\'re running the import command tonight",
+            'note=Run the \\"export\\" command first',
+            'f=2^8 command ok',
+            'row="","command",""',
+            'path=C:\\Users\\admin\\command.txt',
+        ];
+        foreach ($benign as $b) {
+            $v = $this->engine(true, true)->classify(new RequestContext('POST', '/x', '', [], $b, 'x.test'), SiteProfile::empty());
+            $id = (string) ($v->fakeHandle->ruleId ?? '');
+            self::assertStringNotContainsString('cmdi', $id, "benign must not hit a cmdi rule: {$b} (got {$id})");
+            self::assertStringNotContainsString('crs-rce', $id, "benign must not hit crs-rce via the fold copy: {$b} (got {$id})");
+        }
     }
 
     public function test_windows_seta_does_not_match_benign_word_boundary_text(): void

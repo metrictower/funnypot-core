@@ -50,6 +50,13 @@ final class DecodeNormalizerTest extends TestCase
             'hex-prefixed' => ['\x75\x6e\x69\x6f\x6e select', 'union select', 'hex'],
             'hex-bare-long' => [bin2hex('union select all') . ' tail', 'union select all', 'hex'],
             'json'    => ['{"q":"union select 1"}', 'union select 1', 'json'],
+            // FP-0466 shell-deobfuscation (context-gated: only inside ${IFS}/$(/backtick).
+            // ${IFS} -> space, empty ""/'' removed, escape no-ops (\\, ^) removed.
+            'shell-ifs'         => ['cat${IFS}/etc/passwd', 'cat /etc/passwd', 'shell'],
+            'shell-escaped-mul' => ['$(expr 6 \\* 7)', '$(expr 6 * 7)', 'shell'],
+            'shell-caret-ctx'   => ['`c^a^t /etc/passwd`', '`cat /etc/passwd`', 'shell'],
+            'shell-emptyquote'  => ['c""at${IFS}/etc/passwd', 'cat /etc/passwd', 'shell'],
+            'shell-ifs-percent' => ['cat%24%7BIFS%7D/etc/shadow', 'cat /etc/shadow', 'shell'],
         ];
     }
 
@@ -76,6 +83,13 @@ final class DecodeNormalizerTest extends TestCase
             'binary base64' => ['id=' . base64_encode(str_repeat("\x00\x01", 12)), 'base64'],
             // Not JSON at all — the json decoder must not fire on arbitrary text.
             'plain text' => ['the quick brown fox jumps over', 'json'],
+            // No shell-obfuscation token present -> the shell decoder must not fire.
+            'no shell tokens' => ['the quick brown fox jumps over', 'shell'],
+            // Escaped quote + a command word but NO shell-injection context (no ${IFS}/$(/backtick):
+            // the decoder must NOT fire, so no fold copy is appended for a CRS catch-all to straddle.
+            'escaped prose no context' => ["We\\'re running the import command tonight", 'shell'],
+            // A lone caret in benign math, no context -> must not fire.
+            'caret math no context' => ['result = 2^8 command ok', 'shell'],
         ];
     }
 
