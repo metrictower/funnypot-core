@@ -13,11 +13,11 @@ return array (
     'license' => 'MIT (c) 2025 ProjectDiscovery, Inc.',
     'upstream_tag' => '2ec914123864439c3618e7e9ae72d32d0eb56df7',
     'upstream_sha' => '2ec914123864439c3618e7e9ae72d32d0eb56df7',
-    'source_tree' => '793a65a0cbb465d07a9034499658f00916108e0260e5bfa40870870e63ed2852',
+    'source_tree' => 'd8ff38d3ec2b3687c267eb96a2e7584990052b6d832500f95c0eea8aecf50f61',
     'templates_seen' => 11196,
     'templates_in' => 6363,
-    'templates_indexed' => 6512,
-    'route_keys' => 5372,
+    'templates_indexed' => 6514,
+    'route_keys' => 5374,
     'multi_bundle_keys' => 277,
     'largest_bundle_count' => 1324,
     'persona_cap' => 
@@ -85837,6 +85837,32 @@ return array (
         4 => 'admin-trap',
       ),
       'name' => 'Confluence setup administrator (POST capture)',
+    ),
+    'route-fortios-login' => 
+    array (
+      'sev' => 'high',
+      'tags' => 
+      array (
+        0 => 'fortinet',
+        1 => 'fortios',
+        2 => 'ssl-vpn',
+        3 => 'login',
+        4 => 'exposure',
+      ),
+      'name' => 'FortiOS SSL-VPN login',
+    ),
+    'route-fortios-fpc-login' => 
+    array (
+      'sev' => 'high',
+      'tags' => 
+      array (
+        0 => 'fortinet',
+        1 => 'fortios',
+        2 => 'ssl-vpn',
+        3 => 'login',
+        4 => 'exposure',
+      ),
+      'name' => 'FortiOS SSL-VPN login (/fpc)',
     ),
     'route-phpinfo' => 
     array (
@@ -313953,6 +313979,60 @@ a</title>',
           array (
             0 => 'route-confluence-setup-admin-post',
           ),
+        ),
+      ),
+    ),
+    'GET /remote/login' => 
+    array (
+      'b' => 
+      array (
+        0 => 
+        array (
+          's' => 200,
+          'bw' => 
+          array (
+            0 => 'main-app',
+            1 => 'f-icon',
+          ),
+          'nf' => 
+          array (
+          ),
+          'pid' => 'route-fortios-login',
+          'sev' => 'high',
+          'sig' => 0,
+          'amb' => 0,
+          't' => 
+          array (
+            0 => 'route-fortios-login',
+          ),
+          'w' => 100000,
+        ),
+      ),
+    ),
+    'GET /fpc/app/login' => 
+    array (
+      'b' => 
+      array (
+        0 => 
+        array (
+          's' => 200,
+          'bw' => 
+          array (
+            0 => 'main-app',
+            1 => 'f-icon',
+          ),
+          'nf' => 
+          array (
+          ),
+          'pid' => 'route-fortios-fpc-login',
+          'sev' => 'high',
+          'sig' => 0,
+          'amb' => 0,
+          't' => 
+          array (
+            0 => 'route-fortios-fpc-login',
+          ),
+          'w' => 100000,
         ),
       ),
     ),
