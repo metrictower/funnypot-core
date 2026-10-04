@@ -19,12 +19,19 @@ use PHPUnit\Framework\TestCase;
  */
 final class FortiOsDecoyTest extends TestCase
 {
-    private const AFFECTED = '/^7\.(0\.([0-9]|1[0-6])|2\.[0-8])$/'; // <=7.0.16 / 7.2.x affected band
+    private const AFFECTED = '/^7\.0\.(\d|1[0-6])$/'; // FortiOS 7.0.0-7.0.16 (CVE-2024-55591; 7.2.x NOT affected)
+
+    /** @var array<string,mixed>|null */
+    private static $indexCache;
 
     /** @var array<string,mixed> */
     private static function index(): array
     {
-        return require __DIR__ . '/../resources/compiled/nuclei-index.full.php';
+        if (self::$indexCache === null) {
+            self::$indexCache = require __DIR__ . '/../resources/compiled/nuclei-index.full.php';
+        }
+
+        return self::$indexCache;
     }
 
     private function engine(string $seed = 'fixed', string $ceiling = 'high'): Honeypot
@@ -68,12 +75,21 @@ final class FortiOsDecoyTest extends TestCase
 
     public function test_version_is_on_the_affected_side_and_coherent_across_surfaces(): void
     {
-        // Same deploy seed -> same version on both surfaces (cross-surface coherence).
-        $v1 = (string) PersonaIdentity::fromSeed(crc32('hostA'))->field('fortios.version');
-        self::assertSame(1, preg_match(self::AFFECTED, $v1), "version must be on the CVE-2024-55591 affected side: {$v1}");
-        $a = $this->body($this->resp('/remote/login', '', 'hostA'));
-        $b = $this->body($this->resp('/fpc/app/login', '', 'hostA'));
-        self::assertStringContainsString('v' . $this->renderedVersion($a), $b, 'both surfaces must show the same version for one deploy');
+        // Cross-surface coherence: both FortiOS pages on ONE deploy render the SAME version (that is the
+        // whole reason a persona field was chosen over a per-request {{pick}}). Compare the two rendered
+        // pages directly rather than a separately-seeded field value.
+        $a = $this->renderedVersion($this->body($this->resp('/remote/login', '', 'hostA')));
+        $b = $this->renderedVersion($this->body($this->resp('/fpc/app/login', '', 'hostA')));
+        self::assertSame($a, $b, 'both FortiOS surfaces must show the same version for one deploy');
+        self::assertSame(1, preg_match(self::AFFECTED, $a), "version must be on the CVE-2024-55591 affected side: {$a}");
+    }
+
+    public function test_every_pool_version_is_in_the_affected_band(): void
+    {
+        for ($s = 0; $s < 2000; $s++) {
+            $v = (string) PersonaIdentity::fromSeed($s)->field('fortios.version');
+            self::assertSame(1, preg_match(self::AFFECTED, $v), "seed {$s}: fortios.version must be FortiOS 7.0.0-7.0.16, got {$v}");
+        }
     }
 
     private function renderedVersion(string $body): string

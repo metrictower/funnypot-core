@@ -474,15 +474,16 @@ final class PersonaIdentity
             '8.3.2',
             '8.2.3',
         ],
-        // FortiOS SSL-VPN releases on the affected side of CVE-2024-55591 (<=7.0.16; the 7.2.x entries
-        // cover the FortiProxy-affected band). The login page claims FortiOS, so the pool is biased to
-        // 7.0.x. Dotted into <=2-digit runs, so no entry carries the denied bare 6-digit token.
+        // FortiOS releases on the affected side of CVE-2024-55591 — FortiOS 7.0.0-7.0.16 ONLY (per
+        // Fortinet FG-IR-24-535; FortiOS 7.2.x is "Not affected" — only FortiProxy 7.2.x is, and this page
+        // claims FortiGate/FortiOS). Dotted into <=2-digit runs, so no entry carries the denied bare
+        // 6-digit token.
         'fortios' => [
+            '7.0.16',
             '7.0.14',
             '7.0.13',
             '7.0.12',
-            '7.2.8',
-            '7.2.6',
+            '7.0.11',
         ],
         // The active theme's own version. Deliberately a two-part shape, unlike core's X.Y.Z, so a
         // theme asset's ?ver= can never mechanically match the core assets' ?ver= on the same page.
