@@ -345,24 +345,11 @@ final class BoundedInspection
             if (strlen($subject) >= self::SUBJECT_BYTES) {
                 break;
             }
-            $usedName = null;
-            foreach (self::DECODER_ORDER as $name) {
-                $decoded = self::decodeLayer($name, $layer);
-                if ($decoded === null || $decoded === '' || $decoded === $layer) {
-                    continue;
-                }
-                // Non-expanding invariant (bomb guard): reject any decoder that GREW the layer, so a
-                // future expanding decoder (e.g. utf7) cannot turn the fold into an expansion bomb.
-                if (strlen($decoded) > strlen($layer)) {
-                    continue;
-                }
-                $usedName = $name;
-                $layer = $decoded;
+            $next = self::nextLayer($layer);
+            if ($next === null) {
                 break;
             }
-            if ($usedName === null) {
-                break;
-            }
+            [$layer, $usedName] = $next;
             self::append($subject, ' ', self::SUBJECT_BYTES);
             self::append($subject, $layer, self::SUBJECT_BYTES);
             if (!in_array($usedName, $applied, true)) {
@@ -371,6 +358,84 @@ final class BoundedInspection
         }
 
         return $subject;
+    }
+
+    /**
+     * The fold as an ordered layer list — [raw, L1, L2, ...] — instead of the space-joined string
+     * foldLayers() returns. INVARIANT: implode(' ', foldLayerList($x)) === foldLayers($x), with one
+     * documented divergence at the exact byte cap: when the joiner space fits but the next layer does
+     * not, the legacy string ends in a dangling space while the list simply omits the empty layer.
+     * Byte accounting mirrors foldLayers()/append() exactly (the joiner costs one SUBJECT_BYTES byte,
+     * then the layer is clipped to the remainder) so each list element equals the legacy appended run.
+     *
+     * Matching per-layer (match-any over this list) can never span the joiner, closing the FP-0356
+     * straddle: a span-y catch-all could match a window lying across the raw/decoded boundary present
+     * in the joined string but in no single layer.
+     *
+     * @param string[]|null $applied out: ordered, de-duplicated decoder names (decode_path parity).
+     * @return string[] non-empty; element 0 is the clipped raw.
+     */
+    public static function foldLayerList(string $raw, ?array &$applied = null): array
+    {
+        if ($applied === null) {
+            $applied = [];
+        }
+        $raw = self::clip($raw, self::SUBJECT_BYTES);
+        $layers = [$raw];
+        $used = strlen($raw);
+        $layer = $raw;
+        for ($depth = 0; $depth < self::MAX_DECODE_DEPTH; $depth++) {
+            if ($used >= self::SUBJECT_BYTES) {
+                break;
+            }
+            $next = self::nextLayer($layer);
+            if ($next === null) {
+                break;
+            }
+            [$layer, $usedName] = $next;
+            // The joiner space consumes one byte of the budget (append(subject, ' ')); $used is below
+            // the cap here, so the space always fits.
+            $used += 1;
+            $remaining = self::SUBJECT_BYTES - $used;
+            if ($remaining <= 0) {
+                // Space fit, layer does not: the legacy string keeps the dangling space; the list omits
+                // the empty layer. Loop would break next iteration anyway (cap reached).
+                break;
+            }
+            $clipped = self::clip($layer, $remaining);
+            $layers[] = $clipped;
+            $used += strlen($clipped);
+            if (!in_array($usedName, $applied, true)) {
+                $applied[] = $usedName;
+            }
+        }
+
+        return $layers;
+    }
+
+    /**
+     * The single next decoded layer under DECODER_ORDER and the non-expanding (bomb) guard, or null at
+     * the fixed point. Shared by foldLayers()/foldLayerList() so both peel identically.
+     *
+     * @return array{0:string,1:string}|null [decoded layer, decoder name]
+     */
+    private static function nextLayer(string $layer): ?array
+    {
+        foreach (self::DECODER_ORDER as $name) {
+            $decoded = self::decodeLayer($name, $layer);
+            if ($decoded === null || $decoded === '' || $decoded === $layer) {
+                continue;
+            }
+            // Non-expanding invariant (bomb guard): reject any decoder that GREW the layer, so a future
+            // expanding decoder (e.g. utf7) cannot turn the fold into an expansion bomb.
+            if (strlen($decoded) > strlen($layer)) {
+                continue;
+            }
+
+            return [$decoded, $name];
+        }
+
+        return null;
     }
 
     /**
@@ -891,6 +956,47 @@ final class BoundedInspection
             case 'request':
             default:
                 return self::requestSubject($request);
+        }
+    }
+
+    /**
+     * Per-layer surfaces for a selector: the folded arms (non-raw query/body and request/default)
+     * return their fold as a layer list; every other arm returns the single surface() string wrapped
+     * in a one-element list. Dispatch mirrors surface() arm-for-arm so the two can never disagree.
+     * A caller matches a condition against EACH element (match-any), which keeps any single match
+     * inside one layer — the straddle fix (FP-0534). Capture semantics are unchanged: a capturing
+     * query/body condition passes $raw = true and gets the single unfolded surface (FP-0530).
+     *
+     * @param array<int|string,string> $captures
+     * @return string[] non-empty.
+     */
+    public static function surfaces(RequestContext $request, string $in, array $captures = [], bool $raw = false): array
+    {
+        if (strncmp($in, 'header:', 7) === 0 || strncmp($in, 'match.', 6) === 0) {
+            return [self::surface($request, $in, $captures, $raw)];
+        }
+
+        switch ($in) {
+            case 'query':
+                return $raw
+                    ? [self::surface($request, $in, $captures, true)]
+                    : self::foldLayerList(self::clip($request->query, self::SUBJECT_BYTES));
+            case 'body':
+                return $raw
+                    ? [self::surface($request, $in, $captures, true)]
+                    : self::foldLayerList(self::clip((string) ($request->rawBody ?? ''), self::BODY_BYTES));
+            case 'header':
+            case 'headers':
+            case 'path':
+            case 'method':
+            case 'fields':
+            case 'fields.filename':
+                return [self::surface($request, $in, $captures, $raw)];
+            case 'request':
+            default:
+                return self::targetAccepted($request)
+                    ? self::foldLayerList(self::requestRaw($request))
+                    : [''];
         }
     }
 

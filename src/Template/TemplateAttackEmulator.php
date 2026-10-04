@@ -1892,24 +1892,43 @@ final class TemplateAttackEmulator
 
             // A capturing condition reads the RAW query/body surface: its capture is reflected through a
             // directive that decodes once, so the FP-0356 folded surface would double the reflection.
+            // Match each decoded layer SEPARATELY (match-any) so no regex/contains can span the fold's
+            // layer joiner (FP-0534); a capturing arm gets a single-element list (the raw surface).
             $capturesHere = ($cond['capture'] ?? false) === true;
-            $surface = $this->surface($r, $in, $priorCaptures, $capturesHere);
+            $surfaces = BoundedInspection::surfaces($r, $in, $priorCaptures, $capturesHere);
 
             if (isset($cond['regex'])) {
                 $flags = ($ci ? 'i' : '') . (($cond['dotall'] ?? false) ? 's' : '');
-                $result = preg_match('~' . $cond['regex'] . '~' . $flags, $surface, $m);
-                // A PCRE error (false / backtrack limit) is a bad authored pattern, not a hit:
-                // fail the whole rule so a broken template can never emulate.
-                if ($result !== 1 || preg_last_error() !== PREG_NO_ERROR) {
+                $hit = false;
+                foreach ($surfaces as $surface) {
+                    $result = preg_match('~' . $cond['regex'] . '~' . $flags, $surface, $m);
+                    // A PCRE error (false / backtrack limit) is a bad authored pattern or an unsafe
+                    // pattern on this input, not a per-layer miss: fail the whole rule so a match on a
+                    // later layer can never rescue a backtrack-limit hit on an earlier one.
+                    if ($result === false || preg_last_error() !== PREG_NO_ERROR) {
+                        return null;
+                    }
+                    if ($result === 1) {
+                        $hit = true;
+                        break;
+                    }
+                }
+                if (!$hit) {
                     return null;
                 }
-                if ($captures === null || ($cond['capture'] ?? false) === true) {
+                if ($captures === null || $capturesHere) {
                     $captures = $m;
                 }
             } elseif (isset($cond['contains'])) {
                 $needle = (string) $cond['contains'];
-                $hit = $ci ? stripos($surface, $needle) : strpos($surface, $needle);
-                if ($hit === false) {
+                $hit = false;
+                foreach ($surfaces as $surface) {
+                    if (($ci ? stripos($surface, $needle) : strpos($surface, $needle)) !== false) {
+                        $hit = true;
+                        break;
+                    }
+                }
+                if (!$hit) {
                     return null;
                 }
             } else {
