@@ -661,7 +661,7 @@ at build time and not listed here. Every response stays **inert** (emulates outp
 | &nbsp;&nbsp;tier `param` | 2 |
 | Corpus families (nuclei-inversion) | 2611 |
 | Corpus route keys | 5134 |
-| Content enrichers (not route claimers) | 257 |
+| Content enrichers (not route claimers) | 258 |
 
 Full visual + per-family drill-downs: [`docs/DECOY-MAP.md`](docs/DECOY-MAP.md) — regenerate with `bin/funnypot map` (`--family=NAME` for one family).
 <!-- GENERATED-DECOY-INVENTORY:END -->

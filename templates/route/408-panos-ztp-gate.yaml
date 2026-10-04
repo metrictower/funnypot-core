@@ -1,0 +1,43 @@
+id: route-panos-ztp-gate
+priority: 408
+# FP-0460: Palo Alto PAN-OS management auth-bypass decoy (CVE-2025-0108, CISA KEV). The nginx/Apache
+# path-confusion probe `GET /unauth/%252e%252e/php/ztp_gate.php/PAN_help/x.css` reaches ztp_gate.php
+# unauthenticated and renders the PAN-OS management "Zero Touch Provisioning" page. The corpus already
+# routes this exact key (pid pan-os) but minimal-synths the body; this enrich dresses it with the real
+# PAN-OS ZTP page so Nettacker/nuclei confirm (status 200 + Content-Type text/html + body `Zero Touch
+# Provisioning`). pid:[pan-os] selects the bundle; the route_key guard pins ONLY the x.css path, leaving
+# the co-tenant `/php/ztp_gate.php/.js.map` (same pid) untouched.
+#
+# Content-Type nuance: the URL ends in `.css` but the authentic response is text/html because Apache
+# executed the PHP — that mismatch IS the exploit's fingerprint and the scanner checks for text/html, so
+# serving text/html matches the real product (NOT a security-invariant-5 violation).
+#
+# Scoped to the 0108 signal only: 0108 is an auth BYPASS that merely reaches the page; it grants no
+# session/cookie, so no success-login response is fabricated (that belongs to the separate 2024-0012 /
+# 2020-2021 chains). Inert: static canned HTML, no exec/fs/network, no request byte reflected. The PAN-OS
+# version is a deploy-seeded {{pick}} of CVE-2025-0108-affected releases (per-deploy variance; all below
+# the fixed 11.2.4-h4 / 11.1.6-h1 / 10.2.13-h3 / 10.1.14-h9). Only PAN-OS's own product strings appear —
+# no scanner/matcher literals.
+match:
+  pid: [pan-os]
+  route_key: ['GET /unauth/%252e%252e/php/ztp_gate.php/PAN_help/x.css']
+response:
+  headers:
+    Content-Type: "text/html; charset=UTF-8"
+  body: |
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Zero Touch Provisioning</title>
+    </head>
+    <body>
+    <div id="ztp-status">
+    <h1>Zero Touch Provisioning</h1>
+    <p>Palo Alto Networks PAN-OS {{pick:panos-version:11.1.4-h7,11.2.3,10.2.9-h1,10.1.12}}</p>
+    <p>This device has not yet been provisioned. Awaiting configuration from the Zero Touch Provisioning service.</p>
+    </div>
+    </body>
+    </html>
+expect: ['Zero Touch Provisioning']
