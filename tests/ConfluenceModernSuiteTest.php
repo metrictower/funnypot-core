@@ -85,6 +85,10 @@ final class ConfluenceModernSuiteTest extends TestCase
         // Inert: only the canned uid header is emitted; no attacker byte reaches the body.
         $payload = 'label=freemarker.template.utility.Execute.exec({\'Zconfsentinel42Z\'})';
         $resp = $this->resp('POST', '/template/aui/text-inline.vm', '', $payload);
+        // Guard against a vacuous pass: the rule must actually serve (else body('') trivially excludes
+        // the sentinel even if the Execute-only payload stopped matching).
+        self::assertNotNull($resp, 'the 22527 rule must serve this Execute payload');
+        self::assertStringContainsString('uid=0(root)', $resp->headers['X-Cmd-Response'] ?? '');
         self::assertStringNotContainsString('Zconfsentinel42Z', $this->body($resp), 'no request byte may be reflected');
     }
 

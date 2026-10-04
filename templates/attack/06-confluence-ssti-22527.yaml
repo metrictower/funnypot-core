@@ -19,7 +19,9 @@ tags: [attack, rce, confluence, ognl, ssti, cve-2023-22527]
 # No owns_path: the `${197*7331}` arithmetic variant of 22527 carries NO command-exec marker, so it
 # declines here and falls through to the generic 45-ssti-numeric decoy, which computes and reflects the
 # product (the arithmetic confirmation) — owning the path would suppress that fallthrough. priority 4
-# sits ahead of 05 (5) so the command-exec payload resolves here first.
+# sits ahead of 05 (5) so the command-exec payload resolves here first. A payload carrying BOTH an
+# arithmetic expansion AND a command-exec marker resolves HERE (command-exec primary, the uid header,
+# no product) — the deliberate command-exec-first posture, since the uid confirmation is the stronger tell.
 match:
   - in: method
     regex: '^POST$'
