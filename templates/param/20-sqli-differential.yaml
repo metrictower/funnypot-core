@@ -71,14 +71,16 @@ branch:
     # C3 FALSE / CHANGED  ->  serves P_empty (materially shorter: no result rows). Any remaining
     #   and/or comparison (unequal ones only — equal ones were caught by C2) or a nonzero decrement
     #   `id=10-1`.
-    #   NUMERIC ANCHOR (FP-0240). The decrement alternative is anchored to a `=<value>` position
-    #   (`=\s*\d+\s*-\s*[1-9]`), NOT a bare `\d-\d`, so it fires only in the injected PARAM-VALUE
-    #   context. The param-tier surface is `path+query+body` (double-urldecoded), so an un-anchored
-    #   `\d-\d` also matched a benign PATH slug like `/catalog/item-3-2` and mis-served the empty
-    #   page as that slug's baseline — inverting the differential for a scanner that crawled there.
-    #   A slug has no `=<digits>-` before the dash, so it now serves the baseline P. (The and/or
-    #   alternative already required an `=`, so it was never path-reachable.)
-    - when: { in: request, regex: "\\b(?:and|or)\\s+'?\\w+'?\\s*=\\s*'?\\w+|=\\s*\\d+\\s*-\\s*[1-9]" }
+    #   NUMERIC ANCHOR (FP-0240, tightened FP-0586). The decrement alternative is anchored to a
+    #   `=<value>` position (not a bare `\d-\d`) AND spans the WHOLE value to a param boundary
+    #   (`=\s*\d+\s*-\s*[1-9]\d*\s*(?=&|$)`), so it fires only when the injected value IS the decrement.
+    #   The param-tier surface is `path+query+body` (double-urldecoded): an un-anchored `\d-\d` matched a
+    #   benign PATH slug (`/catalog/item-3-2`), and a mid-value `=\d+-\d` matched a benign note/range whose
+    #   value carries trailing text (`note=10-2 off`) — both mis-served the empty page as that path's
+    #   baseline, inverting the differential. A slug has no `=<digits>-`, and a trailing word after the
+    #   decrement now fails the `(?=&|$)` boundary, so both serve the baseline P. (The and/or alternative
+    #   already required an `=`, so it was never path-reachable.)
+    - when: { in: request, regex: "\\b(?:and|or)\\s+'?\\w+'?\\s*=\\s*'?\\w+|=\\s*\\d+\\s*-\\s*[1-9]\\d*\\s*(?=&|$)" }
       response: &peResp
         headers: { Content-Type: "text/html; charset=utf-8" }
         body: |
