@@ -97,14 +97,12 @@ final class WordPressEmergencyAndWebshellDecoyTest extends TestCase
 
     public function test_generic_default_branch_is_unchanged(): void
     {
-        // A non-family path (shell/cmd/alfa, uploads/*.php, cmd= params) has no case -> base panel.
+        // A non-family DIRECT shell path (shell/cmd/alfa, cmd= params) has no branch case -> base panel.
+        // (/wp-content/uploads/*.php now serves the phpinfo upload-confirmation per FP-0443 — covered by
+        // FuxploiderUploadConfirmTest, not the base panel.)
         $shell = $this->attackEmulate('GET', '/shell.php');
         self::assertNotNull($shell);
         self::assertStringContainsString('uid=33(www-data)', $shell->body);
-
-        $uploads = $this->attackEmulate('GET', '/wp-content/uploads/2023/07/wp-conf.php');
-        self::assertNotNull($uploads);
-        self::assertStringContainsString('uid=33(www-data)', $uploads->body);
     }
 
     // --- B. POST credential oracle ----------------------------------------------------------------

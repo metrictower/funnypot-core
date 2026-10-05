@@ -50,14 +50,15 @@ final class FuxploiderUploadConfirmTest extends TestCase
     }
 
     /** @dataProvider uploadPaths */
-    public function test_uploaded_file_fetch_confirms_fuxploider_and_keeps_uid(string $path): void
+    public function test_uploaded_file_fetch_confirms_fuxploider(string $path): void
     {
         $r = $this->get($path);
         self::assertNotNull($r, "{$path} must serve a confirmation page");
         self::assertSame(200, $r->status);
         self::assertSame(1, preg_match(self::FUXPLOIDER_REGEX, $r->body), "fuxploider codeExecRegex must match: {$path}");
-        // The generic /wp-content/uploads webshell-grep confirmation (uid=33) must still hold.
-        self::assertStringContainsString('uid=33(www-data)', $r->body, "uid=33 preserved: {$path}");
+        // Coherent phpinfo page — deliberately NO `uid=…` id-output line (a real phpinfo never prints
+        // one; that would be a tell). The webshell-grep uid=33 confirmation stays on the direct-shell paths.
+        self::assertStringNotContainsString('uid=33(www-data)', $r->body, "phpinfo page carries no id-output tell: {$path}");
     }
 
     public function test_phpinfo_decoy_also_satisfies_fuxploider(): void
