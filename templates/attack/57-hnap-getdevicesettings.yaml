@@ -11,8 +11,9 @@ priority: 57
 # request byte reflected. The purenetworks.com/HNAP1/ SOAPAction URLs + ModelName/VendorName are D-Link's
 # OWN product strings (fingerprint-safe, not scanner/CRS literals). FirmwareVersion is a {{pick}} for
 # per-host variance; model DIR-850L is a heavily-targeted real D-Link router. severity high so embedders
-# serve it. The SOAPAction-header command-injection RCE (CVE-2015-2051 exploit phase) is a separate
-# follow-up — see FP-0555 (needs the RouterSploit exploit-phase matcher confirmed in the ingest bench).
+# serve it. This GET recon satisfies RouterSploit's check() (200 + "D-Link" + "SOAPActions"); the
+# SOAPAction-header command-injection RCE exploit phase (CVE-2015-2051) is now covered by
+# 56-hnap-soapaction-rce (FP-0555).
 match:
   - in: path
     regex: '(?:^|/)HNAP1/?$'

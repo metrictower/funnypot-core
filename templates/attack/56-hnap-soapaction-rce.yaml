@@ -1,0 +1,67 @@
+id: attack-hnap-soapaction-rce
+severity: high
+priority: 56
+tags: [attack, dlink, hnap, iot, rce, cve-2015-2051]
+# FP-0555 (FP-0441 AC2): D-Link HNAP SOAPAction-header command-injection RCE (CVE-2015-2051). The real
+# exploit (RouterSploit dlink/multi_hnap_rce exploit phase) POSTs /HNAP1/ with the shell command injected
+# into the SOAPAction HEADER after the action name — `SOAPAction: "http://purenetworks.com/HNAP1/
+# GetDeviceSettings/`<backtick-wrapped cmd>`"`. It is BLIND command injection: the tool runs the payload
+# and does NOT read/validate any response (it prints "response is not available") — so no echoed marker or
+# command output is needed to satisfy it. The paired recon check (GET /HNAP1/, keyed on `status 200 &&
+# "D-Link" && "SOAPActions"`) is already served by 57-hnap-getdevicesettings; this rule covers the POST
+# exploit phase: return a plausible canned GetDeviceSettings SOAP envelope (200) so the box looks like a
+# vulnerable D-Link, with the injected command NEVER reflected and NEVER executed — the canned-output
+# pattern of the appliance RCE decoys (74-f5 / 82-ivanti). INERT: static XML, no capture, no exec/fs.
+#
+# Precedence: POST-only + gated on the injection shape in the SOAPAction header, so it never collides with
+# the GET recon (57) and never shadows a benign login POST (96-hnap-login matches an <Action> body; a clean
+# login carries no header injection). priority 56 < 96 so it wins if a RCE POST also carries an <Action>
+# body. The `56-` filename prefix is cosmetic only — `priority` is the real key (56-splunk-postgres-recovery
+# already diverges prefix-vs-priority); the `id` is unique. severity `high` (NOT critical) deliberately
+# matches the HNAP family (57/96) so recon + login + RCE are all served under one ceiling — a `critical`
+# rule would be dropped at a `high`-ceiling deployment, leaving check() passing (57, high) but the
+# exploit POST a plain 404 (incoherent surface).
+#
+# Fingerprint-safe: the match keys on D-Link's OWN `purenetworks.com/HNAP1/` SOAPAction URL shape plus the
+# injection shape (a trailing path segment after the action name + a shell metacharacter) — never a
+# scanner/CRS matcher literal. Action-name-agnostic (`[A-Za-z]+`) so GetDeviceSettings and other injectable
+# HNAP actions are all caught; a benign SOAPAction ends at the action name with no trailing `/<...>`.
+match:
+  - in: path
+    regex: '(?:^|/)HNAP1/?$'
+    ci: false
+  - in: method
+    regex: '^POST$'
+    ci: false
+  - in: header:SOAPAction
+    regex: 'purenetworks\.com/HNAP1/[A-Za-z]+/.*[`$;|&]'   # trailing segment + shell metachar = injection; never reflected
+    ci: false
+status: 200
+response:
+  headers:
+    Content-Type: "text/xml; charset=utf-8"
+  body: |
+    <?xml version="1.0" encoding="utf-8"?>
+    <soap:Envelope xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/">
+    <soap:Body>
+    <GetDeviceSettingsResponse xmlns="http://purenetworks.com/HNAP1/">
+    <GetDeviceSettingsResult>OK</GetDeviceSettingsResult>
+    <Type>GetDeviceSettings</Type>
+    <DeviceName>D-Link Systems DIR-850L</DeviceName>
+    <VendorName>D-Link Systems</VendorName>
+    <ModelName>DIR-850L</ModelName>
+    <ModelDescription>Wireless AC1200 Dual Band Gigabit Cloud Router</ModelDescription>
+    <FirmwareVersion>{{pick:dlink-fw:1.14B07,1.20B07,1.21B08,1.08}}</FirmwareVersion>
+    <PresentationURL>http://192.168.0.1/</PresentationURL>
+    <SOAPActions>
+    <string>http://purenetworks.com/HNAP1/GetDeviceSettings</string>
+    <string>http://purenetworks.com/HNAP1/Login</string>
+    <string>http://purenetworks.com/HNAP1/GetFirmwareStatus</string>
+    <string>http://purenetworks.com/HNAP1/Reboot</string>
+    </SOAPActions>
+    </GetDeviceSettingsResponse>
+    </soap:Body>
+    </soap:Envelope>
+expect:
+  - '<ModelName>DIR-850L</ModelName>'
+  - 'SOAPActions'
