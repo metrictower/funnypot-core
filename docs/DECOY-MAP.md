@@ -4,7 +4,7 @@
 > The manifest is the sole inventory authority; friendly names, categories and behavior
 > prose live in the README taxonomy, not here.
 
-Manifest schema 1. Authored records: 407 across 102 families. Corpus: 2611 families / 5134 route keys (summarized, not enumerated). Enrichers: 272.
+Manifest schema 1. Authored records: 411 across 103 families. Corpus: 2611 families / 5134 route keys (summarized, not enumerated). Enrichers: 277.
 
 ```mermaid
 mindmap
@@ -66,53 +66,54 @@ mindmap
     fam0055["open: 1"]
     fam0056["openai: 1"]
     fam0057["owncloud: 1"]
-    fam0058["pgadmin: 2"]
-    fam0059["php: 1"]
-    fam0060["php-cgi: 2"]
-    fam0061["phpmyadmin: 14"]
-    fam0062["phppgadmin: 2"]
-    fam0063["phpunit: 1"]
-    fam0064["pii: 3"]
-    fam0065["proc: 1"]
-    fam0066["razor: 1"]
-    fam0067["rce: 1"]
-    fam0068["recon: 5"]
-    fam0069["reflection-baseline: 2"]
-    fam0070["registry: 1"]
-    fam0071["sap: 1"]
-    fam0072["shell-history: 3"]
-    fam0073["shellshock: 1"]
-    fam0074["smb: 1"]
-    fam0075["splunk: 1"]
-    fam0076["spring-boot: 1"]
-    fam0077["springboot: 12"]
-    fam0078["sqli: 2"]
-    fam0079["ssh: 1"]
-    fam0080["ssti: 2"]
-    fam0081["struts: 1"]
-    fam0082["teamcity: 1"]
-    fam0083["terraform: 3"]
-    fam0084["thinkphp: 1"]
-    fam0085["tls: 2"]
-    fam0086["tomcat: 2"]
-    fam0087["twig: 1"]
-    fam0088["upload: 1"]
-    fam0089["v1: 1"]
-    fam0090["vcs: 10"]
-    fam0091["vite: 1"]
-    fam0092["webmin: 1"]
-    fam0093["webshell: 1"]
-    fam0094["whm: 1"]
-    fam0095["windows: 2"]
-    fam0096["woocommerce: 8"]
-    fam0097["wordpress: 20"]
-    fam0098["wp-plugin-enum: 10"]
-    fam0099["wp-theme-enum: 2"]
-    fam0100["xdebug: 1"]
-    fam0101["xss: 2"]
-    fam0102["xxe: 1"]
+    fam0058["palo-alto: 4"]
+    fam0059["pgadmin: 2"]
+    fam0060["php: 1"]
+    fam0061["php-cgi: 2"]
+    fam0062["phpmyadmin: 14"]
+    fam0063["phppgadmin: 2"]
+    fam0064["phpunit: 1"]
+    fam0065["pii: 3"]
+    fam0066["proc: 1"]
+    fam0067["razor: 1"]
+    fam0068["rce: 1"]
+    fam0069["recon: 5"]
+    fam0070["reflection-baseline: 2"]
+    fam0071["registry: 1"]
+    fam0072["sap: 1"]
+    fam0073["shell-history: 3"]
+    fam0074["shellshock: 1"]
+    fam0075["smb: 1"]
+    fam0076["splunk: 1"]
+    fam0077["spring-boot: 1"]
+    fam0078["springboot: 12"]
+    fam0079["sqli: 2"]
+    fam0080["ssh: 1"]
+    fam0081["ssti: 2"]
+    fam0082["struts: 1"]
+    fam0083["teamcity: 1"]
+    fam0084["terraform: 3"]
+    fam0085["thinkphp: 1"]
+    fam0086["tls: 2"]
+    fam0087["tomcat: 2"]
+    fam0088["twig: 1"]
+    fam0089["upload: 1"]
+    fam0090["v1: 1"]
+    fam0091["vcs: 10"]
+    fam0092["vite: 1"]
+    fam0093["webmin: 1"]
+    fam0094["webshell: 1"]
+    fam0095["whm: 1"]
+    fam0096["windows: 2"]
+    fam0097["woocommerce: 8"]
+    fam0098["wordpress: 20"]
+    fam0099["wp-plugin-enum: 10"]
+    fam0100["wp-theme-enum: 2"]
+    fam0101["xdebug: 1"]
+    fam0102["xss: 2"]
+    fam0103["xxe: 1"]
     corpus["corpus: 2611 families / 5134 keys"]
-    enrichers["content enrichers #40;not route claimers#41;: 272"]
+    enrichers["content enrichers #40;not route claimers#41;: 277"]
 ```
 
 | Family | Authored records | Tier mix | Owned routes | Outbound links | Max severity | Integrity |
@@ -174,6 +175,7 @@ mindmap
 | open | 1 | attack:1 | 0 | 0 | medium | &mdash; |
 | openai | 1 | attack-ai:1 | 1 | 0 | medium | &mdash; |
 | owncloud | 1 | attack:1 | 0 | 0 | high | &mdash; |
+| palo-alto | 4 | new-page:4 | 4 | 0 | info | &mdash; |
 | pgadmin | 2 | new-page:2 | 2 | 0 | info | &mdash; |
 | php | 1 | new-page:1 | 1 | 0 | high | &mdash; |
 | php-cgi | 2 | attack:2 | 0 | 0 | critical | &mdash; |
@@ -220,6 +222,6 @@ mindmap
 | xss | 2 | attack:1 attack-crs:1 | 0 | 0 | high | &mdash; |
 | xxe | 1 | attack:1 | 0 | 0 | high | &mdash; |
 | _corpus (nuclei-inversion)_ | 2611 families / 5134 keys | &mdash; | &mdash; | &mdash; | &mdash; | &mdash; |
-| _content enrichers (not route claimers)_ | 272 | &mdash; | &mdash; | &mdash; | &mdash; | &mdash; |
+| _content enrichers (not route claimers)_ | 277 | &mdash; | &mdash; | &mdash; | &mdash; | &mdash; |
 
 Per-family detail: `bin/funnypot map --family=NAME --format=md` (or `--format=mermaid` for the raw flowchart).

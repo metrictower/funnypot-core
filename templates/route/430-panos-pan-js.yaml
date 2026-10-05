@@ -1,0 +1,24 @@
+id: route-panos-pan-js
+priority: 430
+# FP-0410: PAN-OS GlobalProtect /js/Pan.js static asset — ETag build-timestamp oracle witness (see
+# 429-panos-login-css). Content-Type application/javascript. Self-authored stub, no vendor bytes.
+new_page:
+  method: GET
+  paths: ['/js/Pan.js']
+  sig: 0
+  status: 200
+  severity: info
+  tags: [palo-alto, globalprotect, pan-os, version-oracle, exposure]
+  name: 'GlobalProtect Pan.js'
+  body_words: ['Pan']
+response:
+  headers:
+    Content-Type: "application/javascript"
+    ETag: '"{{persona.panos.etag}}"'
+    Last-Modified: "{{persona.panos.lastModified}}"
+  body: |
+    var Pan = Pan || {};
+    Pan.base = "/global-protect";
+    Pan.submit = function(f){ return f && f.user && f.user.value.length > 0; };
+expect:
+  - 'Pan'
