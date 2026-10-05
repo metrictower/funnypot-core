@@ -1,0 +1,71 @@
+id: attack-django-orm-filter
+severity: high
+priority: 14
+tags: [attack, django, orm, injection, info-disclosure, api, differential, exposure]
+# FP-0387: Django ORM lookup / sensitive-field filter-injection DIFFERENTIAL decoy. An API scanner
+# (Artemis django_orm_injection) appends Django lookup suffixes (__startswith/__contains/__exact/...) to
+# a collection filter param and compares a "likely" vs "unlikely" response; if they differ
+# (SequenceMatcher.quick_ratio < 0.9) it flags an ORM injection. /api/v1/users is an EXACT-store key
+# (the 398 collection stub, served before the param/attack tiers and ignoring the query), so today both
+# probes return the identical collection body (ratio ~1.0) and the scanner stays silent. This rule owns
+# that path and introduces the differential.
+#
+# VALUE-CLASS dispatch (NOT a secret-guessing oracle — Artemis sends ONE fixed likely/unlikely pair, not
+# an iterative brute force): an unlikely-shaped value (empty, a uuid4().hex, or a tilde run) returns an
+# EMPTY paginated envelope; any plausible value returns a populated user list. Both 200 (never 500 — a
+# real DRF zero-match filter is a 200 empty page); TRUE ~750B vs FALSE ~60B -> quick_ratio ~0.15 << 0.9.
+#
+# NO engine change; NO reflection (every byte is canned/seeded, the probe value is never echoed, so the
+# rule is embedded-safe and needs no reflect_class). match is in:path AND in:query(an ORM suffix is
+# present), so a BENIGN GET /api/v1/users (no suffix) fails the match, matchOnOwnedPath declines, and the
+# request falls through to the static 398 collection byte-identically — only the ORM probe is reclassified
+# ATTACK_CLASS (no new reports for innocent hits). No collision with FP-0454 (it owns the /{id} detail
+# path; this owns the collection). Fingerprint-safe: ids dec:5, iteration count the literal 600000 (not a
+# 9xxxxx CRS-rule-id run), salts/hashes base64, no scanner matcher string, no version banner. The leaked
+# password hashes are fabricated (seeded base64) and authenticate nowhere; no real credential is emitted.
+owns_path:
+  - /api/v1/users
+  - /api/v2/users
+match:
+  - in: path
+    regex: '^/api/v[0-9]+/users/*$'
+    ci: true
+  - in: query
+    regex: '(?:^|&)[A-Za-z_][A-Za-z0-9_]*__(?:exact|iexact|contains|icontains|startswith|istartswith|endswith|iendswith|gt|gte|lt|lte|regex|iregex)='
+    ci: true
+status: 200
+response:
+  headers:
+    Content-Type: "application/json; charset=utf-8"
+  body: |
+    {
+    "data": [
+      { "id": {{fake.u1_id:dec:5}}, "username": "{{persona.user.admin.username}}", "email": "{{persona.user.admin.email}}", "is_staff": true, "is_superuser": true, "is_active": true, "password": "pbkdf2_sha256$600000${{fake.u1_salt:b64url:12}}${{fake.u1_hash:b64:44}}", "last_login": "2025-02-11T08:30:00Z", "date_joined": "2023-05-02T11:04:12Z" },
+      { "id": {{fake.u2_id:dec:5}}, "username": "{{fake.person.username:u2}}", "email": "{{fake.person.email:u2}}", "is_staff": false, "is_superuser": false, "is_active": true, "password": "pbkdf2_sha256$600000${{fake.u2_salt:b64url:12}}${{fake.u2_hash:b64:44}}", "last_login": "2025-01-09T19:22:40Z", "date_joined": "2024-02-18T15:51:07Z" },
+      { "id": {{fake.u3_id:dec:5}}, "username": "{{fake.person.username:u3}}", "email": "{{fake.person.email:u3}}", "is_staff": true, "is_superuser": false, "is_active": false, "password": "pbkdf2_sha256$600000${{fake.u3_salt:b64url:12}}${{fake.u3_hash:b64:44}}", "last_login": null, "date_joined": "2024-09-30T07:13:55Z" }
+    ],
+    "page": 1,
+    "per_page": 25,
+    "total": 3
+    }
+behavior: branch
+branch:
+  cases:
+    # Unlikely value right after `__suffix=`: empty, a uuid4().hex (16+ hex), or a tilde run. The tilde
+    # is escaped (\~) because the compiler wraps the pattern in ~...~ delimiters — a bare ~ would close it.
+    - when: { in: query, regex: '__[a-z]+=(?:[0-9a-f]{16,}|\~{4,})?(?=&|$)', ci: true }
+      response:
+        status: 200
+        headers:
+          Content-Type: "application/json; charset=utf-8"
+        body: |
+          {
+          "data": [],
+          "page": 1,
+          "per_page": 25,
+          "total": 0
+          }
+expect:
+  - '"is_superuser": true'
+  - 'pbkdf2_sha256$'
+  - '"data": ['
