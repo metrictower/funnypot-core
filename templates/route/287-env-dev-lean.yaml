@@ -1,0 +1,36 @@
+id: route-envfile-devlean
+priority: 287
+# Brand-new page: a dropped /.env.dev — a short dev-env alias. Deliberately LEAN (<=500 rendered
+# bytes): some passive scanners only run their exposed-env content check when the body is small
+# (e.g. Caido's isValidEnvContent bails on bodies over 500 B), so the rich sibling .env decoys never
+# trip that specific check. This minimal variant keeps the real-looking AWS pair + one AI key and
+# the host's own DB password, so it still parses as a valid leak, stays persona-coherent with every
+# other dropped config (one host, one identity), and fits under the size gate.
+# The id avoids the route-dotenv needles (dotenv/exposed-config/environment) and the bare `env-`
+# substring; the body_word is AWS_SECRET_ACCESS_KEY (not APP_DEBUG=) — both keep that global enrich
+# from hijacking this page to application/octet-stream instead of text/plain.
+new_page:
+  method: GET
+  paths: ['/.env.dev']
+  sig: 0
+  status: 200
+  severity: high
+  tags: [exposure, config-disclosure, secrets]
+  name: 'Exposed environment file (.env.dev)'
+  body_words: ['AWS_SECRET_ACCESS_KEY']
+response:
+  headers:
+    Content-Type: "text/plain; charset=utf-8"
+  body: |
+    APP_ENV=production
+    APP_DEBUG=false
+    DB_PASSWORD={{persona.db.password}}
+    AWS_ACCESS_KEY_ID={{persona.cloud.aws.accessKeyId}}
+    AWS_SECRET_ACCESS_KEY={{persona.cloud.aws.secretKey}}
+    OPENAI_API_KEY={{persona.cloud.openai.projectKey}}
+taunt: { mode: line, open: '#' }
+expect:
+  - 'APP_ENV=production'
+  - 'AWS_ACCESS_KEY_ID=AKIA'
+  - 'AWS_SECRET_ACCESS_KEY='
+  - 'OPENAI_API_KEY=sk-proj-'
