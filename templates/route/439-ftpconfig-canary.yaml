@@ -1,0 +1,36 @@
+id: route-ftpconfig
+priority: 439
+# FP-0563: enrich (NOT new_page) the corpus `ftpconfig` bundle (/.ftpconfig). The minimal synth emits only
+# the bare words ("user":\n"passphrase":\n"host":\n"protocol":) — INVALID JSON with no credentials, so a
+# worm/scanner extracts nothing and never pivots. Here we dress it into a believable, valid-JSON ftp-sync
+# config carrying a SEEDED canary credential, so the worm parses it, grabs the creds, and tries them against
+# SFTP/FTP (the cross-protocol pivot — correlated app-side, FP-0562).
+#
+# Credential is {{persona.db.user}}/{{persona.db.password}} — DEPLOY-STABLE (a re-scan sees one identity the
+# app tier can recognise on a later SSH/FTP login) and already re-rolled past the \b9\d{5}\b denylist by
+# PersonaIdentity::password(); coherent with the SAME creds leaked in /.env, /secrets.json, /.vscode/sftp.json
+# (one credential story per deploy). privateKeyPath points at the conventional ~/.ssh/id_rsa (outside the
+# docroot, so a 404 there is realistic). FLAT object, scalar values only. INERT: no request byte reflected,
+# no real credential.
+match:
+  template_needle: [ftpconfig]
+response:
+  headers:
+    Content-Type: "application/json"
+  body: |
+    {
+    "protocol": "sftp",
+    "host": "deploy.{{persona.company.domain}}",
+    "port": 22,
+    "user": "{{persona.db.user}}",
+    "passphrase": "{{persona.db.password}}",
+    "privateKeyPath": "/home/{{persona.db.user}}/.ssh/id_rsa",
+    "remotePath": "/var/www/{{persona.company.slug}}",
+    "uploadOnSave": false
+    }
+taunt: { mode: inline_field, key: '_comment' }
+expect:
+  - '"protocol":'
+  - '"host":'
+  - '"user":'
+  - '"passphrase":'
