@@ -14,8 +14,9 @@ use PHPUnit\Framework\TestCase;
 /**
  * FP-0455: Langflow unauthenticated code-execution decoy (CVE-2025-3248, CISA KEV). owns_path override on
  * POST /api/v1/validate/code serving the command output inside the real validate/code envelope
- * (function.errors[]): passwd-style for the nuclei KEV probe, uid= for a whoami/id probe. Priority 34 so it
- * wins over 41-cmdi-unix on the exploit's command-bearing body. Inert; no request byte reflected.
+ * (function.errors[]): passwd-style for the nuclei KEV probe, uid= for a whoami/id probe. As the owns_path
+ * owner of a corpus-keyed path it wins via the matchOnOwnedPath Tier-1 override (FP-0547) over the generic
+ * LFI/cmdi rules on the exploit's command-bearing body, regardless of its priority. Inert; no byte reflected.
  */
 final class LangflowRceDecoyTest extends TestCase
 {
@@ -64,8 +65,8 @@ final class LangflowRceDecoyTest extends TestCase
 
     public function test_wins_over_cmdi_unix_on_command_bearing_body(): void
     {
-        // The exploit body carries unix command markers that 41-cmdi-unix would match; priority 34 must win,
-        // serving the Langflow envelope (function.errors), NOT the generic cmdi uid=0(root) page.
+        // The exploit body carries unix command markers that 41-cmdi-unix would match; the owns_path Tier-1
+        // override (FP-0547) must win, serving the Langflow envelope (function.errors), NOT the cmdi uid=0(root) page.
         $b = $this->body($this->post('{"code":"import subprocess; subprocess.check_output([\'cat\',\'/etc/passwd\'])"}'));
         self::assertStringContainsString('"function"', $b, 'Langflow rule must win over 41-cmdi-unix');
         self::assertStringNotContainsString('uid=0(root)', $b, 'must not be the generic cmdi page');
