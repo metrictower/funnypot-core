@@ -1,0 +1,55 @@
+id: attack-sqli-error-pgsql
+severity: high
+priority: 49
+status: 200
+tags: [attack, sqli, error-based, extraction, oracle, postgres, deception]
+# FP-0573: error-based SQLi EXTRACTION oracle — PostgreSQL dialect (sibling of 49b MySQL / 49c MSSQL). A
+# scanner casts the sub-select to numeric so PostgreSQL leaks the value inside the authentic
+# `invalid input syntax for type numeric: "<v>"` error. CANNED/seeded: no attacker byte reflected — the
+# frame is the literal Postgres emits (double-quoted value) and the embedded value is persona-coherent
+# synthetic schema, so the tool confirms and extracts a FAKE database. Never 500. The branch keys on the
+# sub-select target so the leaked value is coherent; base case leaks the current database. The error
+# string is real product output (the deception), never a scanner/CRS matcher signature. Match is PG-
+# distinctive (numeric cast / ::numeric / quote_ident) so it does not overlap the MySQL/MSSQL siblings.
+match:
+  - in: request
+    ci: true
+    regex: '\bcast\b[^;]{0,120}?\bas\s+numeric\b|::\s*numeric\b|quote_ident\s*\('
+response:
+  headers:
+    Content-Type: "text/html; charset=utf-8"
+  body: "ERROR: invalid input syntax for type numeric: \"{{persona.db.name}}\"\n"
+expect: ["invalid input syntax for type numeric"]
+behavior: branch
+branch:
+  cases:
+    # version() -> a believable PostgreSQL version banner.
+    - when: { in: request, regex: '\bversion\s*\(\s*\)|current_setting\s*\(\s*.server_version', ci: true }
+      response:
+        headers: { Content-Type: "text/html; charset=utf-8" }
+        body: "ERROR: invalid input syntax for type numeric: \"{{pick:PostgreSQL 14.10 on x86_64-pc-linux-gnu,PostgreSQL 15.5 on x86_64-pc-linux-gnu,PostgreSQL 16.1 on x86_64-pc-linux-gnu}}\"\n"
+    # current_user / session_user -> the persona DB login.
+    - when: { in: request, regex: 'current_user|session_user|\buser\b', ci: true }
+      response:
+        headers: { Content-Type: "text/html; charset=utf-8" }
+        body: "ERROR: invalid input syntax for type numeric: \"{{persona.db.user}}\"\n"
+    # information_schema.columns / pg_attribute enumeration -> a plausible column name.
+    - when: { in: request, regex: 'column_name|information_schema\.columns|pg_attribute', ci: true }
+      response:
+        headers: { Content-Type: "text/html; charset=utf-8" }
+        body: "ERROR: invalid input syntax for type numeric: \"{{pick:id,username,password_hash,email,auth_token,created_at}}\"\n"
+    # information_schema.tables / pg_class enumeration -> a plausible table name.
+    - when: { in: request, regex: 'table_name|information_schema\.tables|pg_class|pg_tables', ci: true }
+      response:
+        headers: { Content-Type: "text/html; charset=utf-8" }
+        body: "ERROR: invalid input syntax for type numeric: \"{{pick:users,accounts,sessions,api_keys,orders,transactions}}\"\n"
+    # a count() enumeration step -> a small plausible count.
+    - when: { in: request, regex: '\bcount\s*\(', ci: true }
+      response:
+        headers: { Content-Type: "text/html; charset=utf-8" }
+        body: "ERROR: invalid input syntax for type numeric: \"{{pick:3,5,6,7,11}}\"\n"
+    # a credential/data select -> a believable scram/md5 hash shape.
+    - when: { in: request, regex: 'password|passwd|\bpwd\b|secret|auth_token|\bhash\b', ci: true }
+      response:
+        headers: { Content-Type: "text/html; charset=utf-8" }
+        body: "ERROR: invalid input syntax for type numeric: \"md5{{fake.pgpwhash:hex:32}}\"\n"

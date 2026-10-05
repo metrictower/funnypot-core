@@ -1,0 +1,56 @@
+id: attack-sqli-error-mssql
+severity: high
+priority: 49
+status: 200
+tags: [attack, sqli, error-based, extraction, oracle, mssql, deception]
+# FP-0573: error-based SQLi EXTRACTION oracle — MSSQL dialect (sibling of 49b MySQL). A scanner
+# confirming error-based extraction on SQL Server casts the sub-select to int so the server leaks the
+# value inside the authentic "Conversion failed when converting the ... value '<v>' to data type int."
+# error. CANNED/seeded: no attacker byte is reflected — the error frame is the literal SQL Server emits
+# and the embedded value is persona-coherent synthetic schema, so the tool confirms and extracts a FAKE
+# database forever. Never 500 (a 5xx is discarded by the tool and is itself a tell). The branch keys on
+# WHAT the sub-select targets so the leaked value is coherent (version->a version, user->a login, ...);
+# the base case leaks the current database name (the usual first extraction). The error string is real
+# product output (the deception), never a scanner/CRS matcher signature.
+match:
+  - in: request
+    ci: true
+    regex: 'convert\s*\(\s*int\b|\bcast\b[^;]{0,120}?\bas\s+int\b'
+response:
+  headers:
+    Content-Type: "text/html; charset=utf-8"
+  body: "Server Error: Conversion failed when converting the nvarchar value '{{persona.db.name}}' to data type int.\n"
+expect: ["Conversion failed when converting"]
+behavior: branch
+branch:
+  cases:
+    # @@version -> a believable SQL Server version banner.
+    - when: { in: request, regex: '@@\s*version|\bserverproperty\s*\(', ci: true }
+      response:
+        headers: { Content-Type: "text/html; charset=utf-8" }
+        body: "Server Error: Conversion failed when converting the nvarchar value '{{pick:Microsoft SQL Server 2019 (RTM) - 15.0.2000.5,Microsoft SQL Server 2022 (RTM) - 16.0.1000.6,Microsoft SQL Server 2017 (RTM-CU31) - 14.0.3456.2}}' to data type int.\n"
+    # current user / login -> the persona DB login (SQL Server dbo/sa shapes).
+    - when: { in: request, regex: 'system_user|suser_sname|current_user|\buser_name\s*\(', ci: true }
+      response:
+        headers: { Content-Type: "text/html; charset=utf-8" }
+        body: "Server Error: Conversion failed when converting the nvarchar value '{{persona.db.user}}' to data type int.\n"
+    # sys.columns enumeration -> a plausible column name.
+    - when: { in: request, regex: 'sys\.columns|column_name|syscolumns', ci: true }
+      response:
+        headers: { Content-Type: "text/html; charset=utf-8" }
+        body: "Server Error: Conversion failed when converting the nvarchar value '{{pick:id,username,password_hash,email,auth_token,created_at}}' to data type int.\n"
+    # sys.tables / sysobjects enumeration -> a plausible table name.
+    - when: { in: request, regex: 'sys\.tables|sysobjects|table_name', ci: true }
+      response:
+        headers: { Content-Type: "text/html; charset=utf-8" }
+        body: "Server Error: Conversion failed when converting the nvarchar value '{{pick:users,accounts,sessions,api_keys,orders,transactions}}' to data type int.\n"
+    # a count() enumeration step -> a small plausible count.
+    - when: { in: request, regex: '\bcount\s*\(', ci: true }
+      response:
+        headers: { Content-Type: "text/html; charset=utf-8" }
+        body: "Server Error: Conversion failed when converting the nvarchar value '{{pick:3,5,6,7,11}}' to data type int.\n"
+    # a credential/data select -> a believable hash shape.
+    - when: { in: request, regex: 'password|passwd|\bpwd\b|secret|auth_token|\bhash\b', ci: true }
+      response:
+        headers: { Content-Type: "text/html; charset=utf-8" }
+        body: "Server Error: Conversion failed when converting the nvarchar value '0x{{fake.mssqlpwhash:hex:40}}' to data type int.\n"
