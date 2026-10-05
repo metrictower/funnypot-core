@@ -1,0 +1,40 @@
+id: route-dlink-getcfg-post
+priority: 426
+# FP-0556: the D-Link getcfg.php credential disclosure is served on GET /getcfg.php (364-dlink-getcfg,
+# pid cve2025) but the POST /getcfg.php bundle (pid cve2024 — the DIR-645 dir_645_password_disclosure
+# shape, bw <name>/<password>/<account>) was undressed and minimal-synthed to a bare stub. The REAL
+# exploit and RouterSploit's dlink/dir_645_password_disclosure POST `SERVICES=DEVICE.ACCOUNT`, so the
+# disclosure must answer on POST too. This enrich dresses the POST bundle: pid:[cve2024] selects it and
+# the route_key guard pins ONLY `POST /getcfg.php` (every other cve2024 bundle is untouched). Body is the
+# real DEVICE.ACCOUNT postxml carrying the bundle's bw (<name>/<password>/<account>); `admin` is the real
+# default account, the password is {{fake.*}} seed-derived and number-safe (continuous hex, no digit run).
+# Content-Type EXACTLY text/xml (the bundle's typed header witness). INERT: static XML, no request byte
+# reflected, no exec/fs.
+match:
+  pid: [cve2024]
+  route_key: ['POST /getcfg.php']
+response:
+  headers:
+    Content-Type: "text/xml"
+  body: |
+    <?xml version="1.0" encoding="utf-8"?>
+    <postxml>
+    <module>
+    <service>DEVICE.ACCOUNT</service>
+    <device>
+    <account>
+    <seqno>1</seqno>
+    <max>2</max>
+    <count>1</count>
+    <entry>
+    <uid>USR-</uid>
+    <name>admin</name>
+    <usrid></usrid>
+    <password>{{fake.dlink_getcfg_post_pw:hex:16}}</password>
+    <group>0</group>
+    </entry>
+    </account>
+    </device>
+    </module>
+    </postxml>
+expect: ['<name>admin</name>', '<password>']
