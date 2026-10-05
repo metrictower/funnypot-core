@@ -1,0 +1,31 @@
+id: attack-nosql-operator
+severity: high
+priority: 121
+tags: [attack, nosql, nosqli, injection]
+# FP-0434 (T1): reclassify a NoSQL operator-injection probe out of the SQLi archetype. The GENERATED
+# CRS SQLi rule (attack-crs-sqli, priority 950) already matches the Mongo operator set and mis-serves a
+# MySQL-1064 syntax error — a backend-incoherence tell (a SQL error for a Mongo/Express probe) and a weak
+# decoy. This rule sits at priority 120 (after every hand rule, before CRS 950) so it wins the NoSQL
+# subset and answers a coherent, inert JSON empty-result ("the query ran, nothing matched").
+#
+# INVARIANT #5 guard: a second in:path condition is a negative-lookahead that EXCLUDES static-document
+# extensions (.php/.html/.js/...), so this JSON reclassification fires ONLY on API/extensionless paths;
+# a NoSQL operator on a .php/.html path falls through to CRS unchanged (no new Content-Type tell, no
+# regression). No owns_path (store hits win first); no reflection (operator bytes never echoed); status
+# app-chosen 200, never 5xx. The operator list is re-derived from public MongoDB docs (clean-room).
+match:
+  - in: path
+    regex: '^(?!.*\.(?:php|html?|aspx?|jsp|asp|cgi|js|css|png|jpe?g|gif|ico|svg|txt|xml)(?:/|$)).*$'
+    ci: true
+  - in: request
+    regex: '(?:\[\s*\$|"\s*\$)(?:ne|gte?|lte?|in|nin|regex|exists|where|expr|all|elemMatch|nor|not|and|or|mod|size|type|text|search|comment)\b'
+    ci: true
+status: 200
+response:
+  headers:
+    Content-Type: "application/json; charset=utf-8"
+  body: |
+    {"data":[],"total":0}
+expect:
+  - '"data"'
+  - '"total"'
