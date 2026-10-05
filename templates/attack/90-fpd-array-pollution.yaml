@@ -1,0 +1,20 @@
+id: attack-fpd-array-pollution
+severity: high
+priority: 90
+tags: [attack, fpd, param-pollution, path-disclosure]
+# FP-0428: Full Path Disclosure via sqlmap's array-parameter-pollution provocation. sqlmap converts a
+# scalar param to an array (id=1 -> id[]=1) so an unhardened scalar-expecting builtin (trim/htmlspecialchars
+# /strlen/...) raises a PHP Warning that leaks the absolute docroot. We answer with an AUTHORED 200 Warning
+# (never a real 500 — invariant #2) naming a seeded /var/www/<slug>/ file, wording keyed to the deploy PHP
+# major (phpinfo coherence). The param NAME is NEVER reflected — the file is seeded, so no reflector gate.
+# Priority 90 is AFTER every injection archetype (sqli 50, xss 64/65, cmdi 41, ssti 43, redirect 60,
+# webshell 86), so a compound payload (id[]=<sqli/xss/lfi>) still gets its specific lie; FPD answers only
+# when the empty-bracket array form is the lone signal. Store hits win first -> fires only on store-miss.
+match:
+  - in: request
+    regex: '[\w.]{1,64}\[\]='
+response:
+  headers:
+    Content-Type: "text/html; charset=utf-8"
+  body: "{{attack.fpd.warning}}"
+expect: ["array given", "on line"]

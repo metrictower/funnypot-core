@@ -1,0 +1,15 @@
+id: attack-fpd-wpdb-includes
+severity: high
+priority: 19
+tags: [attack, fpd, wordpress, path-disclosure, cve-2024-fpd]
+# FP-0428: sibling of attack-fpd-wpdb-content for the /wp-includes/wp-db.php probe shape. Same authored
+# 200 Uncaught-Error FPD body, naming /var/www/<slug>/wp-includes/wp-db.php. See 19-fpd-wpdb-content.yaml.
+match:
+  - in: path
+    regex: '(?:^|/)wp-includes/wp-db\.php$'
+    ci: true
+response:
+  headers:
+    Content-Type: "text/html; charset=utf-8"
+  body: "{{attack.fpd.fatal:includes}}"
+expect: ["Call to undefined function", "wp-includes/wp-db.php"]

@@ -580,7 +580,8 @@ final class DirectiveRenderer
                 substr($part, 7),
                 $ident,
                 $this->personaField($seed, 'company.name'),
-                $this->personaField($seed, 'company.slug')
+                $this->personaField($seed, 'company.slug'),
+                $this->personaField($seed, 'php.version')
             );
         }
         if (strpos($part, 'persona.') === 0) {

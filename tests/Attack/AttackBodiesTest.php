@@ -456,4 +456,89 @@ final class AttackBodiesTest extends TestCase
 
         return null;
     }
+
+    // --- FP-0428: Full Path Disclosure frames (fpd.*) ------------------------------------------------
+
+    public function test_fpd_forms_resolve_and_root_at_the_persona_docroot(): void
+    {
+        foreach ($this->sweepSeeds() as $label => $seed) {
+            $ident = PersonaIdentity::fromSeed($seed);
+            $slug = (string) $ident->field('company.slug');
+            $php = (string) $ident->field('php.version');
+            foreach (['warning', 'fatal:content', 'fatal:includes'] as $form) {
+                $body = AttackBodies::fpd($seed, $form, $slug, $php);
+                self::assertNotNull($body, "fpd.{$form} must resolve at {$label}");
+                // Rooted at the SAME /var/www/<slug>/ docroot as the SQLi frame (one deploy, one docroot).
+                self::assertStringContainsString('/var/www/' . $slug . '/', (string) $body, "fpd.{$form} docroot at {$label}");
+                self::assertStringNotContainsString('/var/www/html', (string) $body, "no fixed docroot at {$label}");
+                // sqlmap extracts the bolded path; the /var/www/<slug> prefix is byte-identical to the sqli frame's.
+                self::assertSame(1, preg_match('#<b>(/var/www/' . preg_quote($slug, '#') . '/[^<>]+)</b>#', (string) $body, $m),
+                    "fpd.{$form} must carry an extractable bolded docroot at {$label}");
+                // Line number is 2-digit -> can never form the \b9\d{5}\b denylist run.
+                self::assertSame(0, preg_match('/\b9\d{5}\b/', (string) $body), "fpd.{$form} no denylist run at {$label}");
+            }
+            // Docroot prefix coherence with the SQLi suffix frame (when the sqli frame is non-bare).
+            $sqliSuffix = (string) AttackBodies::sqli($seed, 'suffix', $slug);
+            if ($sqliSuffix !== '') {
+                self::assertStringContainsString('/var/www/' . $slug . '/', $sqliSuffix, "sqli docroot coherent at {$label}");
+            }
+        }
+    }
+
+    public function test_fpd_warning_wording_tracks_the_persona_php_major(): void
+    {
+        // PHP 7 uses "expects parameter 1 to be string"; PHP 8 uses "Argument #1 (...) must be of type".
+        $php7 = AttackBodies::fpd(1, 'warning', 'acme', '7.4.33');
+        $php8 = AttackBodies::fpd(1, 'warning', 'acme', '8.2.18');
+        self::assertStringContainsString('expects parameter 1 to be string, array given', (string) $php7);
+        self::assertStringNotContainsString('must be of type', (string) $php7);
+        self::assertStringContainsString('must be of type string, array given', (string) $php8);
+        self::assertStringContainsString('Argument #1', (string) $php8);
+    }
+
+    public function test_fpd_is_known_form_closed_set(): void
+    {
+        foreach (['fpd.warning', 'fpd.fatal:content', 'fpd.fatal:includes'] as $ok) {
+            self::assertTrue(AttackBodies::isKnownForm($ok), "{$ok} must be a known form");
+        }
+        foreach (['fpd.bogus', 'fpd.fatal:other', 'fpd.', 'fpd.warn'] as $bad) {
+            self::assertFalse(AttackBodies::isKnownForm($bad), "{$bad} must be rejected");
+            self::assertNull(AttackBodies::fpd(1, substr($bad, 4), 'acme', '8.2.18'), "{$bad} must resolve null");
+        }
+    }
+
+    public function test_fpd_compiles_through_the_directive_lint(): void
+    {
+        $good = $this->compileScratch([
+            'id' => 'scratch-fpd-ok', 'severity' => 'high', 'priority' => 95,
+            'match' => [['in' => 'request', 'regex' => 'x\[\]=']],
+            'response' => ['headers' => ['Content-Type' => 'text/html'], 'body' => '{{attack.fpd.warning}}'],
+        ]);
+        self::assertNotNull($good, 'a template using {{attack.fpd.warning}} must compile');
+
+        $this->expectException(RuntimeException::class);
+        $this->compileScratch([
+            'id' => 'scratch-fpd-bad', 'severity' => 'high', 'priority' => 95,
+            'match' => [['in' => 'request', 'regex' => 'x\[\]=']],
+            'response' => ['headers' => ['Content-Type' => 'text/html'], 'body' => '{{attack.fpd.nope}}'],
+        ]);
+    }
+
+    public function test_fpd_fingerprint_safe_across_seeds(): void
+    {
+        $guard = FingerprintGuard::fromPackage();
+        $headers = ['Content-Type' => 'text/html; charset=utf-8'];
+        for ($s = 0; $s < 1200; $s++) {
+            $ident = PersonaIdentity::fromSeed($s);
+            $slug = (string) $ident->field('company.slug');
+            $php = (string) $ident->field('php.version');
+            foreach (['warning', 'fatal:content', 'fatal:includes'] as $form) {
+                $body = (string) AttackBodies::fpd($s, $form, $slug, $php);
+                self::assertSame(0, preg_match('/\b9\d{5}\b/', $body), "seed {$s} fpd.{$form} denylist run");
+                if ($s < 200) {
+                    self::assertSame([], $guard->scanResponse($body, $headers), "seed {$s} fpd.{$form} FingerprintGuard");
+                }
+            }
+        }
+    }
 }
