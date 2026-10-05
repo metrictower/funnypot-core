@@ -662,9 +662,9 @@ at build time and not listed here. Every response stays **inert** (emulates outp
 
 | Metric | Count |
 |---|---|
-| Authored decoy records | 443 |
-| Authored families | 115 |
-| &nbsp;&nbsp;tier `attack` | 126 |
+| Authored decoy records | 444 |
+| Authored families | 116 |
+| &nbsp;&nbsp;tier `attack` | 127 |
 | &nbsp;&nbsp;tier `attack-ai` | 10 |
 | &nbsp;&nbsp;tier `attack-crs` | 4 |
 | &nbsp;&nbsp;tier `new-page` | 301 |

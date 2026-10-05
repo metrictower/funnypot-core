@@ -1,0 +1,113 @@
+id: attack-graphql-introspection
+severity: high
+priority: 39
+tags: [attack, graphql, introspection, schema, api, exposure, info-disclosure, honeytoken]
+# FP-0453: default-serving, request-aware GraphQL introspection + schema-fuzzing decoy. The complete
+# synthetic __schema already existed in route/335-graphql-introspection, but only as an ENRICH on the
+# wpgraphql CVE-2019-9880 co-bundle: that bundle is `critical`, so the default `high` ceiling drops it
+# and POST /graphql falls to minimal synth; it was also request-BLIND and partial-per-host. This rule
+# re-scopes the surface into a `high`-severity, request-aware, endpoint-owning decoy that serves on a
+# default deploy, covers /graphql + /api/graphql + /v1/graphql, and is decoupled from the CVE needle.
+#
+# Request-aware via behavior:branch over the request surface (POST JSON body `{"query":"…"}` AND GET
+# `?query=…`; `in: request` folds a percent-decoded layer so an encoded GET query is seen):
+#   - introspection (`__schema`)  -> the full build_client_schema-valid schema (satisfies Akto
+#     contains_all ["data","__schema"] and VulnAPI 200 + json + populated data.__schema.types).
+#   - a mutation                  -> a canned success ENVELOPE (fabricated DATA, not fabricated AUTH:
+#     no Set-Cookie, no auth-success witness line — hasAuthSuccessWitness holds).
+#   - a bait data query           -> a synthetic record whose secret fields carry deploy-stable persona
+#     honeytokens (never a real key; correlatable with /.env + /secrets.json).
+#   - anything else               -> a coherent graphql-js validation error with didYouMean drawn from a
+#     FIXED synthetic vocabulary; the attacker's field name is NEVER echoed (no capture reflection), so
+#     clairvoyance/InQL walk a fixed surface and nothing is reflected.
+#
+# INERT: no resolver, the query is never parsed or executed, nothing is captured/reflected, always 200
+# (only-upgrade-404, never 500). Fingerprint-safe: no scanner-signature strings, ids dec:5 (no bare
+# 6-digit run), the schema carries no matcher words. A bare GET /graphql with no query fails the gate and
+# falls through byte-identically to route/404-graphql-get (the inert "must POST" envelope).
+owns_path:
+  - /graphql
+  - /api/graphql
+  - /v1/graphql
+match:
+  - in: path
+    regex: '^(?:/api|/v[0-9]+)?/graphql/*$'
+    ci: true
+  - in: request
+    regex: '(?:__schema|\bmutation\b|\bquery\b)'
+    ci: true
+status: 200
+response:
+  headers:
+    Content-Type: "application/json"
+  body: |
+    {"errors":[{"message":"Cannot query the requested field on type \"Query\". Did you mean \"viewer\", \"users\", or \"systemConfig\"?","extensions":{"code":"GRAPHQL_VALIDATION_FAILED"}}],"data":null}
+behavior: branch
+branch:
+  cases:
+    # Introspection query -> the full spec-valid __schema (reused verbatim from route/335 so a
+    # schema-walking client, graphql-core build_client_schema, builds it without throwing).
+    - when: { in: request, regex: '__schema', ci: true }
+      response:
+        status: 200
+        headers:
+          Content-Type: "application/json"
+        body: |
+          {"data":{
+          "viewer": { "name": "{{persona.user.admin.username}}", "email": "{{persona.user.admin.email}}", "roles": ["administrator"] },
+          "__schema": {
+            "queryType": { "name": "Query" },
+            "mutationType": { "name": "Mutation" },
+            "subscriptionType": null,
+            "types": [
+              { "kind": "OBJECT", "name": "Query", "description": "The root query type.", "fields": [
+                { "name": "viewer", "description": "The authenticated user.", "args": [], "type": { "kind": "OBJECT", "name": "User", "ofType": null }, "isDeprecated": false, "deprecationReason": null },
+                { "name": "users", "description": "All users.", "args": [], "type": { "kind": "LIST", "name": null, "ofType": { "kind": "OBJECT", "name": "User", "ofType": null } }, "isDeprecated": false, "deprecationReason": null },
+                { "name": "systemConfig", "description": "Runtime configuration.", "args": [], "type": { "kind": "OBJECT", "name": "SystemConfig", "ofType": null }, "isDeprecated": false, "deprecationReason": null }
+              ], "inputFields": null, "interfaces": [], "enumValues": null, "possibleTypes": null },
+              { "kind": "OBJECT", "name": "Mutation", "description": "The root mutation type.", "fields": [
+                { "name": "updateUserRole", "description": "Change a user's role.", "args": [ { "name": "userId", "description": null, "type": { "kind": "NON_NULL", "name": null, "ofType": { "kind": "SCALAR", "name": "ID", "ofType": null } }, "defaultValue": null }, { "name": "role", "description": null, "type": { "kind": "NON_NULL", "name": null, "ofType": { "kind": "SCALAR", "name": "String", "ofType": null } }, "defaultValue": null } ], "type": { "kind": "OBJECT", "name": "MutationResult", "ofType": null }, "isDeprecated": false, "deprecationReason": null }
+              ], "inputFields": null, "interfaces": [], "enumValues": null, "possibleTypes": null },
+              { "kind": "OBJECT", "name": "User", "description": "A registered user.", "fields": [
+                { "name": "id", "description": null, "args": [], "type": { "kind": "NON_NULL", "name": null, "ofType": { "kind": "SCALAR", "name": "ID", "ofType": null } }, "isDeprecated": false, "deprecationReason": null },
+                { "name": "email", "description": null, "args": [], "type": { "kind": "SCALAR", "name": "String", "ofType": null }, "isDeprecated": false, "deprecationReason": null },
+                { "name": "apiKey", "description": "The user's personal API key.", "args": [], "type": { "kind": "SCALAR", "name": "String", "ofType": null }, "isDeprecated": false, "deprecationReason": null },
+                { "name": "roles", "description": "The user's assigned roles.", "args": [], "type": { "kind": "LIST", "name": null, "ofType": { "kind": "SCALAR", "name": "String", "ofType": null } }, "isDeprecated": false, "deprecationReason": null },
+                { "name": "isActive", "description": null, "args": [], "type": { "kind": "SCALAR", "name": "Boolean", "ofType": null }, "isDeprecated": false, "deprecationReason": null }
+              ], "inputFields": null, "interfaces": [], "enumValues": null, "possibleTypes": null },
+              { "kind": "OBJECT", "name": "SystemConfig", "description": "Runtime configuration.", "fields": [
+                { "name": "awsAccessKeyId", "description": null, "args": [], "type": { "kind": "SCALAR", "name": "String", "ofType": null }, "isDeprecated": false, "deprecationReason": null },
+                { "name": "stripeSecretKey", "description": null, "args": [], "type": { "kind": "SCALAR", "name": "String", "ofType": null }, "isDeprecated": false, "deprecationReason": null }
+              ], "inputFields": null, "interfaces": [], "enumValues": null, "possibleTypes": null },
+              { "kind": "SCALAR", "name": "ID", "description": null, "fields": null, "inputFields": null, "interfaces": null, "enumValues": null, "possibleTypes": null },
+              { "kind": "SCALAR", "name": "String", "description": null, "fields": null, "inputFields": null, "interfaces": null, "enumValues": null, "possibleTypes": null },
+              { "kind": "SCALAR", "name": "Boolean", "description": null, "fields": null, "inputFields": null, "interfaces": null, "enumValues": null, "possibleTypes": null }
+            ],
+            "directives": [
+              { "name": "include", "description": "Include this field or fragment only when the `if` argument is true.", "locations": [ "FIELD", "FRAGMENT_SPREAD", "INLINE_FRAGMENT" ], "args": [ { "name": "if", "description": "Included when true.", "type": { "kind": "NON_NULL", "name": null, "ofType": { "kind": "SCALAR", "name": "Boolean", "ofType": null } }, "defaultValue": null } ], "isRepeatable": false },
+              { "name": "skip", "description": "Skip this field or fragment when the `if` argument is true.", "locations": [ "FIELD", "FRAGMENT_SPREAD", "INLINE_FRAGMENT" ], "args": [ { "name": "if", "description": "Skipped when true.", "type": { "kind": "NON_NULL", "name": null, "ofType": { "kind": "SCALAR", "name": "Boolean", "ofType": null } }, "defaultValue": null } ], "isRepeatable": false },
+              { "name": "deprecated", "description": "Marks an element as deprecated.", "locations": [ "FIELD_DEFINITION", "ENUM_VALUE" ], "args": [ { "name": "reason", "description": "Why the element was deprecated.", "type": { "kind": "SCALAR", "name": "String", "ofType": null }, "defaultValue": null } ], "isRepeatable": false }
+            ]
+          }
+          }}
+    # A mutation -> a canned success ENVELOPE. Fabricated data only: NO Set-Cookie, no auth-success line.
+    - when: { in: request, regex: '\bmutation\b', ci: true }
+      response:
+        status: 200
+        headers:
+          Content-Type: "application/json"
+        body: |
+          {"data":{"updateUserRole":{"success":true,"newRole":"admin","__typename":"MutationResult"}}}
+    # A bait data query -> a synthetic record leaking deploy-stable persona honeytokens (never real keys).
+    - when: { in: request, regex: '(?:adminUser|viewer|systemConfig|apiKey|apiToken|\busers\b)', ci: true }
+      response:
+        status: 200
+        headers:
+          Content-Type: "application/json"
+        body: |
+          {"data":{"viewer":{ "id": {{fake.gql_id:dec:5}}, "username": "{{persona.user.admin.username}}", "email": "{{persona.user.admin.email}}", "apiKey": "{{persona.cloud.aws.accessKeyId}}", "roles": ["administrator"], "isActive": true },
+          "systemConfig": { "awsAccessKeyId": "{{persona.cloud.aws.accessKeyId}}", "awsSecretKey": "{{persona.cloud.aws.secretKey}}", "stripeSecretKey": "{{persona.cloud.stripe.secretKey}}" }}}
+expect:
+  - '"errors":'
+  - 'GRAPHQL_VALIDATION_FAILED'
+  - '"data":null'
