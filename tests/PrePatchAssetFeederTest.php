@@ -9,6 +9,7 @@ use Funnypot\Core\Honeypot;
 use Funnypot\Core\RequestContext;
 use Funnypot\Core\Response\Style;
 use Funnypot\Core\Store\PhpArrayStore;
+use Funnypot\Core\Support\PersonaIdentity;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -90,6 +91,29 @@ final class PrePatchAssetFeederTest extends TestCase
         $lm = $this->lastModified($r);
         self::assertNotNull($lm);
         self::assertLessThan($patch, strtotime($lm), 'HEAD date is pre-patch');
+    }
+
+    /**
+     * version<->date same-entry coherence (plan v2): the resolved `<vendor>.version` and
+     * `<vendor>.lastModified` must come from the SAME BUILDS entry, so a future surface that displays the
+     * version can never disagree with the asset date. Known-answer map mirrors PersonaIdentity::CITRIX_BUILDS
+     * / IVANTI_BUILDS — a refactor pointing `version` at a different pool fails this.
+     */
+    public function test_version_and_last_modified_are_the_same_build_entry(): void
+    {
+        $maps = [
+            'citrix' => ['13.1-48.47' => 1684108800, '13.0-90.12' => 1681084800, '14.1-4.42' => 1691366400],
+            'ivanti' => ['22.3R1' => 1687219200, '9.1R18.3' => 1694476800, '22.5R2.1' => 1698105600],
+        ];
+        for ($s = 0; $s < 24; $s++) {
+            $p = PersonaIdentity::fromSeed($s);
+            foreach ($maps as $vendor => $map) {
+                $ver = (string) $p->field("{$vendor}.version");
+                $lm = (string) $p->field("{$vendor}.lastModified");
+                self::assertArrayHasKey($ver, $map, "seed {$s}: {$vendor}.version is a known vulnerable build");
+                self::assertSame($map[$ver], strtotime($lm), "seed {$s}: {$vendor} version<->lastModified are the same build entry");
+            }
+        }
     }
 
     /** Across many deploy seeds the served date is always a valid pre-patch build entry (never post-patch). */
