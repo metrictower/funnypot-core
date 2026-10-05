@@ -43,6 +43,11 @@ final class FalsePositiveReportTest extends TestCase
         'attack-fpd-array-pollution' => ['fp0582:fpd-array'],
         'attack-verbose-error-volatile' => ['fp0582:verbose-error-hex'],
         'attack-crs-rce' => ['fp0582:crs-rce-ipconfig'],
+        // NEWLY SURFACED by this report (review Finding 1): the GENERATED OWASP-CRS SQLi rule matches a
+        // bare "select <words>" in benign content (a product search "select 2024 laptop models") →
+        // classifies ATTACK_CLASS. Same class as FP-0582's crs-rce: a GENERATED CRS rule, fixable only at
+        // compile-time. Tracked in FP-0583. Baselined here so the guardrail still catches a DIFFERENT new FP.
+        'attack-crs-sqli' => ['fpcrs:json-select'],
         // NOTE: FP-0582's fifth accepted FP, attack-open-redirect, is a param-route/reflector rule — it
         // does NOT fire via the store-miss attack scan this differential harness exercises (an absolute/
         // protocol-relative redirect param on a neutral path classifies CLEAN), so it is not captured
@@ -147,17 +152,22 @@ final class FalsePositiveReportTest extends TestCase
     public function test_detection_rate_on_blatant_attacks_at_floor(): void
     {
         $engine = $this->engine();
+        // Review Finding 2: neutral store-miss paths (bare path CLEAN) so the PAYLOAD is the sole cause —
+        // else a payload-detection regression would be masked by the path itself being a decoy.
         $attacks = [
-            'sqli-tautology' => ['/catalog', "id=1' OR '1'='1"],
-            'sqli-union' => ['/catalog', 'id=1 union select password from users'],
-            'xss-script' => ['/search', 'q=' . rawurlencode('<script>alert(1)</script>')],
-            'cmdi-semicolon' => ['/ping', 'host=' . rawurlencode('127.0.0.1;id')],
-            'lfi-passwd' => ['/download', 'file=' . rawurlencode('../../../../etc/passwd')],
-            'ssti-numeric' => ['/p', 'q=' . rawurlencode('{{1337*7}}')],
+            'sqli-tautology' => ['/shop/atk-1', "id=1' OR '1'='1"],
+            'sqli-union' => ['/shop/atk-2', 'id=1 union select password from users'],
+            'xss-script' => ['/shop/atk-3', 'q=' . rawurlencode('<script>alert(1)</script>')],
+            'cmdi-semicolon' => ['/shop/atk-4', 'host=' . rawurlencode('127.0.0.1;id')],
+            'lfi-passwd' => ['/shop/atk-5', 'file=' . rawurlencode('../../../../etc/passwd')],
+            'ssti-numeric' => ['/shop/atk-6', 'q=' . rawurlencode('{{1337*7}}')],
         ];
         $detected = 0;
         $missed = [];
         foreach ($attacks as $label => [$path, $query]) {
+            // Guard: the bare path must be CLEAN so the payload is what gets detected, not the path.
+            $bare = $engine->classify(new RequestContext('GET', $path, '', [], null, 'shop.example.test'), SiteProfile::empty());
+            self::assertFalse(self::isFalsePositive($bare), "attack path {$label} must be a neutral store-miss path (bare CLEAN)");
             $v = $engine->classify(new RequestContext('GET', $path, $query, [], null, 'shop.example.test'), SiteProfile::empty());
             if (self::isFalsePositive($v)) {
                 $detected++;
