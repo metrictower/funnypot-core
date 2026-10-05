@@ -273,22 +273,25 @@ final class ReflectingDecoyGateTest extends TestCase
         self::assertTrue(empty($attack->ruleById('attack-phpcgi-1823')['reflects_input']));
         self::assertTrue(empty($attack->ruleById('attack-xss-baseline')['reflects_input']));
 
+        // The CORS dynamic reflector (FP-0445).
+        self::assertTrue(!empty($attack->ruleById('attack-cors-reflector')['reflects_input']));
+
         // The param tier carries the same attribute (ruleById resolves param entries).
         self::assertTrue(!empty($attack->ruleById('param-vite-fs')['reflects_input']));
     }
 
-    public function test_exactly_the_four_reflectors_are_tagged_in_the_artifacts(): void
+    public function test_exactly_the_tagged_reflectors_are_present_in_the_artifacts(): void
     {
         $attackSrc = (string) file_get_contents(self::ATTACK_ARTIFACT);
         $paramSrc = (string) file_get_contents(self::PARAM_ARTIFACT);
 
         // attack-xss, attack-xss-escalation, attack-open-redirect, attack-cmdi-arith,
-        // attack-cmdi-expr-util, attack-cmdi-winarith; param-vite-fs.
-        self::assertSame(6, substr_count($attackSrc, 'reflects_input'));
+        // attack-cmdi-expr-util, attack-cmdi-winarith, attack-cors-reflector; param-vite-fs.
+        self::assertSame(7, substr_count($attackSrc, 'reflects_input'));
         self::assertSame(1, substr_count($paramSrc, 'reflects_input'));
 
         // The explicit reflect_class tag rides alongside reflects_input, one per reflector.
-        self::assertSame(6, substr_count($attackSrc, 'reflect_class'));
+        self::assertSame(7, substr_count($attackSrc, 'reflect_class'));
         self::assertSame(1, substr_count($paramSrc, 'reflect_class'));
     }
 

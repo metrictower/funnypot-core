@@ -44,6 +44,8 @@ final class ParamReactionRenderer
                 return $this->commandResult($intent->value, $deploySeed, $html);
             case ParamIntent::KIND_SEARCH_RESULT:
                 return $this->searchResult($deploySeed, $html);
+            case ParamIntent::KIND_DEBUG_CANARY:
+                return $this->debugCanary($html);
             default:
                 return null;
         }
@@ -190,6 +192,22 @@ final class ParamReactionRenderer
         }
 
         return new ReactionFragment("\n--- application debug ---\n" . $trace . "\n", '', false);
+    }
+
+    // --- debug-canary (FP-0427: echo the sqlmap mining honey-param's canary verbatim) --------------
+
+    /**
+     * Echo the honey-parameter's canary token back into the body so sqlmap's substring reflection test
+     * confirms ONLY that parameter. usesValue=true so the decorator inserts the canary (via Esc::text — a
+     * no-op for `[a-z]{10}`, so it appears verbatim). Carries no fabricated secret and no other candidate.
+     */
+    private function debugCanary(bool $html): ReactionFragment
+    {
+        if ($html) {
+            return new ReactionFragment("\n<!-- debug token: ", " -->\n", true);
+        }
+
+        return new ReactionFragment("\ndebug_token=", "\n", true);
     }
 
     private function debugTrace(int $seed): string
