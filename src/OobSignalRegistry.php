@@ -66,6 +66,17 @@ final class OobSignalRegistry
             );
         }
 
+        // FP-0474: attribute an automated XSS scan (Dalfox/XSStrike) from its unique marker sentinels —
+        // telemetry only, baseline serves byte-identical. `info` severity; `scanner.xss-probe` tag.
+        if (XssProbe::detect($r)) {
+            $out[] = new TemplateMatch(
+                'xss-scanner-probe',
+                'info',
+                ['scanner.xss-probe', 'xss', 'dalfox', 'scanner'],
+                'Automated XSS scanner marker probe (Dalfox/XSStrike)'
+            );
+        }
+
         return $out;
     }
 }
