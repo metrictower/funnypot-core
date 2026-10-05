@@ -1,0 +1,47 @@
+id: route-pyproject-toml
+priority: 298
+# FP-0542: /pyproject.toml, paired with poetry.lock (297). Unlike poetry.lock, /pyproject.toml is ALREADY
+# a corpus route key (the `pyproject` bundle, bw build-system / [tool.poetry] / [tool.black]), so ENRICH it
+# (template_needle pinned + route_key guard) rather than add a co-located new_page bundle (the FP-0556
+# multi-persona coverage trap). The declared dependency pins stay coherent with poetry.lock's locked set
+# (Django 3.0.4, PyYAML 5.1, urllib3 1.25.7, Jinja2 2.10.1) so a poetry project reads consistently; the
+# lock file carries the exact versions osv-scanner resolves to CVEs. Body keeps the bundle's bw
+# (build-system / [tool.poetry] / [tool.black]). Persona-derived project name. INERT: static bytes.
+match:
+  template_needle: [pyproject]
+  route_key: ['GET /pyproject.toml']
+response:
+  headers:
+    Content-Type: "text/plain; charset=utf-8"
+  body: |
+    [build-system]
+    requires = ["poetry-core>=1.0.0"]
+    build-backend = "poetry.core.masonry.api"
+
+    [tool.poetry]
+    name = "{{persona.company.slug}}"
+    version = "1.4.2"
+    description = ""
+    authors = ["{{persona.user.admin.username}} <{{persona.user.admin.email}}>"]
+
+    [tool.poetry.dependencies]
+    python = "^3.8"
+    django = "3.0.4"
+    pyyaml = "5.1"
+    urllib3 = "1.25.7"
+    jinja2 = "2.10.1"
+
+    [tool.black]
+    line-length = 88
+    target-version = ['py38']
+    exclude = '/(\.git|\.venv|build|dist)/'
+# `exclude =` is one of the corpus bundle's body words, so it MUST appear in-place as a valid TOML line;
+# otherwise appendMissingTokens appends a bare `exclude =` (no value) and breaks the TOML parse.
+# No taunt: a line-mode taunt injects a malformed line into the TOML. The persona-derived project
+# name/author already vary the body per deploy (anti-fingerprint).
+expect:
+  - 'exclude ='
+  - '[tool.poetry]'
+  - '[build-system]'
+  - 'django = "3.0.4"'
+  - '[tool.black]'

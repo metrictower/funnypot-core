@@ -4,7 +4,7 @@
 > The manifest is the sole inventory authority; friendly names, categories and behavior
 > prose live in the README taxonomy, not here.
 
-Manifest schema 1. Authored records: 396 across 96 families. Corpus: 2611 families / 5134 route keys (summarized, not enumerated). Enrichers: 265.
+Manifest schema 1. Authored records: 397 across 96 families. Corpus: 2611 families / 5134 route keys (summarized, not enumerated). Enrichers: 267.
 
 ```mermaid
 mindmap
@@ -29,7 +29,7 @@ mindmap
     fam0018["crushftp: 1"]
     fam0019["database: 4"]
     fam0020["db-history: 2"]
-    fam0021["dependency-disclosure: 1"]
+    fam0021["dependency-disclosure: 2"]
     fam0022["dlink: 2"]
     fam0023["dotnet: 1"]
     fam0024["error-oracle: 1"]
@@ -106,7 +106,7 @@ mindmap
     fam0095["xss: 2"]
     fam0096["xxe: 1"]
     corpus["corpus: 2611 families / 5134 keys"]
-    enrichers["content enrichers #40;not route claimers#41;: 265"]
+    enrichers["content enrichers #40;not route claimers#41;: 267"]
 ```
 
 | Family | Authored records | Tier mix | Owned routes | Outbound links | Max severity | Integrity |
@@ -131,7 +131,7 @@ mindmap
 | crushftp | 1 | attack:1 | 1 | 0 | high | &mdash; |
 | database | 4 | new-page:4 | 4 | 0 | high | &mdash; |
 | db-history | 2 | new-page:2 | 2 | 0 | medium | &mdash; |
-| dependency-disclosure | 1 | new-page:1 | 1 | 0 | high | &mdash; |
+| dependency-disclosure | 2 | new-page:2 | 2 | 0 | high | &mdash; |
 | dlink | 2 | attack:2 | 2 | 0 | high | &mdash; |
 | dotnet | 1 | new-page:1 | 1 | 0 | medium | &mdash; |
 | error-oracle | 1 | attack:1 | 0 | 0 | medium | &mdash; |
@@ -208,6 +208,6 @@ mindmap
 | xss | 2 | attack:1 attack-crs:1 | 0 | 0 | high | &mdash; |
 | xxe | 1 | attack:1 | 0 | 0 | high | &mdash; |
 | _corpus (nuclei-inversion)_ | 2611 families / 5134 keys | &mdash; | &mdash; | &mdash; | &mdash; | &mdash; |
-| _content enrichers (not route claimers)_ | 265 | &mdash; | &mdash; | &mdash; | &mdash; | &mdash; |
+| _content enrichers (not route claimers)_ | 267 | &mdash; | &mdash; | &mdash; | &mdash; | &mdash; |
 
 Per-family detail: `bin/funnypot map --family=NAME --format=md` (or `--format=mermaid` for the raw flowchart).

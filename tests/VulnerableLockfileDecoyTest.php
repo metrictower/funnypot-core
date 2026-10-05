@@ -72,6 +72,10 @@ final class VulnerableLockfileDecoyTest extends TestCase
             // FP-0542: Go module files with OSV-verified vulnerable module pins (gin/websocket/yaml.v2/jwt-go).
             '/go.sum'            => [['github.com/gin-gonic/gin v1.6.0 h1:', 'github.com/gorilla/websocket v1.4.0 h1:', 'gopkg.in/yaml.v2 v2.2.2 h1:', 'github.com/dgrijalva/jwt-go v3.2.0+incompatible h1:'], false, 'text/plain'],
             '/go.mod'            => [['module github.com/', 'github.com/gin-gonic/gin v1.6.0', 'github.com/gorilla/websocket v1.4.0', 'gopkg.in/yaml.v2 v2.2.2'], false, 'text/plain'],
+            // FP-0542: Python Poetry layout — poetry.lock (exact pins) + pyproject.toml, reusing the
+            // FP-0399 OSV-verified Python set (Django 3.0.4 / PyYAML 5.1 / urllib3 1.25.7 / Jinja2 2.10.1).
+            '/poetry.lock'       => [['name = "django"', 'version = "3.0.4"', 'name = "pyyaml"', 'content-hash = "'], false, 'text/plain'],
+            '/pyproject.toml'    => [['[tool.poetry]', '[build-system]', 'django = "3.0.4"', '[tool.black]'], false, 'text/plain'],
         ];
     }
 
