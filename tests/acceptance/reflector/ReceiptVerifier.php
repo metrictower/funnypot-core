@@ -231,22 +231,44 @@ final class ReceiptVerifier
         }
     }
 
-    /** The existing legacy rule sees raw plus two percent-decoded request layers, not form decoding. */
+    /**
+     * The legacy attack-xss rule matches its tag pattern against the engine's folded request surface:
+     * raw, two percent-decoded layers, AND the `+`->space (form) fold (BoundedInspection's decode chain).
+     * A form-encoded tag `<IMG+src=x+onerror=...>` reaches attack-xss with real whitespace, so the `+`
+     * fold must be mirrored or the harness would reject a legitimate form-encoded legacy record.
+     *
+     * CRITICAL: match each layer INDEPENDENTLY, never a concatenation of layers. The engine matches
+     * per-layer (BoundedInspection::foldLayerList is a match-any list; the FP-0534 straddle fix keeps a
+     * match inside a single layer), so a joined subject would let the lazy `<script>...</script>` /
+     * `<svg>...</svg>` alternatives span the layer joiner and manufacture ownership the engine never
+     * grants — an escalation query could then claim attack-xss. Per-layer matching mirrors the engine
+     * exactly and also avoids that straddle class entirely.
+     */
     private static function legacyMatch(string $path, string $query): ?string
     {
-        $layer = $path . ' ' . $query . ' ';
-        $subject = $layer;
+        $layers = [$path . ' ' . $query . ' '];
+        $layer = $layers[0];
         for ($pass = 0; $pass < 2; $pass++) {
             $decoded = rawurldecode($layer);
             if ($decoded === $layer) {
                 break;
             }
-            $subject .= ' ' . $decoded;
+            $layers[] = $decoded;
             $layer = $decoded;
         }
+        foreach ($layers as $base) {
+            if (strpos($base, '+') !== false) {
+                $layers[] = str_replace('+', ' ', $base);
+            }
+        }
         $pattern = '~<script[^>]*>.*?</script>|<svg[^>]*>.*?</svg>|<img[^>]*\son\w+\s*=[^>]*>|<[a-z][a-z0-9]*[^>]*\son(?:error|load|mouseover|focus)\s*=[^>]*>~is';
+        foreach ($layers as $candidate) {
+            if (preg_match($pattern, $candidate, $match) === 1) {
+                return $match[0];
+            }
+        }
 
-        return preg_match($pattern, $subject, $match) === 1 ? $match[0] : null;
+        return null;
     }
 
     /** @param array<string,mixed> $run */

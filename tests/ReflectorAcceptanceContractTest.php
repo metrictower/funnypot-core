@@ -202,12 +202,17 @@ final class ReflectorAcceptanceContractTest extends TestCase
         }
     }
 
-    public function test_form_encoded_dalfox_tag_correlates_to_real_escalation_response(): void
+    public function test_form_encoded_dalfox_tag_correlates_to_real_legacy_response(): void
     {
+        // A '+'-encoded event-handler tag decodes (+ -> space) to a genuine full tag, which attack-xss
+        // owns by design (full event-handler tags go to the broad legacy reflector, not the escalation
+        // rule — see test_actual_full_core_preserves_baseline_legacy_and_escalation_ownership). The
+        // verifier must correlate it via the same form-fold the engine applies (ReceiptVerifier::legacyMatch).
         $packet = $this->packet();
         $record = $this->actualRecord(3, "'\"><IMG src=x onerror=alert(1) class=dlx0123abcd>", true, true);
-        self::assertSame('attack-xss-escalation', $record['owner']);
+        self::assertSame('attack-xss', $record['owner']);
         self::assertStringContainsString('+', $record['query']);
+        self::assertStringContainsString('<IMG src=x onerror=alert(1) class=dlx0123abcd>', $record['body']);
         $packet['runs']['dalfox-authorized']['records'][2] = $record;
         $packet['runs']['dalfox-authorized']['scanner_output'] = $this->dalfoxOutput('authorized', $record);
         ReceiptVerifier::verifyPacket($this->withInclusiveTotal($packet), $this->pins);
