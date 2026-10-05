@@ -1,0 +1,25 @@
+id: attack-cisco-ios-xe-implant
+severity: high
+priority: 53
+tags: [attack, cisco, ios-xe, implant, webui, cve-2023-20198]
+# FP-0422: Cisco IOS XE web UI implant (CVE-2023-20198 backdoor). A GET/POST to
+# /webui/logoutconfirm.html?logon_hash=1 carrying the implant's hex Authorization token returns the 18-hex
+# implant response the cisco_backdoor check confirms on. Gated on the hex auth header (a benign request
+# without it falls through). The hex response is a per-request {{fake}} (18 hex, glued -> no bare 6-digit
+# run). INERT: no reflection, no execution.
+match:
+  - in: path
+    regex: '/webui/logoutconfirm\.html'
+    ci: true
+  - in: query
+    regex: 'logon_hash='
+    ci: true
+  - in: header:authorization
+    regex: '^[0-9a-f]{20,}$'
+    ci: true
+status: 200
+response:
+  headers:
+    Content-Type: "text/html; charset=utf-8"
+  body: "{{fake.cisco_impl:hex:18}}"
+expect: []

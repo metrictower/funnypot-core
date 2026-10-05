@@ -13,11 +13,11 @@ return array (
     'license' => 'MIT (c) 2025 ProjectDiscovery, Inc.',
     'upstream_tag' => '2ec914123864439c3618e7e9ae72d32d0eb56df7',
     'upstream_sha' => '2ec914123864439c3618e7e9ae72d32d0eb56df7',
-    'source_tree' => '0798f56bce431c6aaf616abf72aa977a27115e8663ce24cb98d41569d5fd3ae7',
+    'source_tree' => '6f5e496b9252a199772cc880e7e670c7c230137eb5d56fc1bde5ad9ffc16bea1',
     'templates_seen' => 11196,
     'templates_in' => 6363,
-    'templates_indexed' => 6522,
-    'route_keys' => 5387,
+    'templates_indexed' => 6524,
+    'route_keys' => 5389,
     'multi_bundle_keys' => 277,
     'largest_bundle_count' => 1324,
     'persona_cap' => 
@@ -85960,6 +85960,31 @@ return array (
         3 => 'canarytokens',
       ),
       'name' => 'Exposed JavaScript source map',
+    ),
+    'route-hadoop-yarn-newapp' => 
+    array (
+      'sev' => 'low',
+      'tags' => 
+      array (
+        0 => 'hadoop',
+        1 => 'yarn',
+        2 => 'resourcemanager',
+        3 => 'exposure',
+      ),
+      'name' => 'Hadoop YARN new-application',
+    ),
+    'route-hikvision-configfile' => 
+    array (
+      'sev' => 'high',
+      'tags' => 
+      array (
+        0 => 'hikvision',
+        1 => 'camera',
+        2 => 'cve-2017-7921',
+        3 => 'config-disclosure',
+        4 => 'exposure',
+      ),
+      'name' => 'Hikvision configurationFile disclosure',
     ),
     'route-phpinfo' => 
     array (
@@ -314454,6 +314479,57 @@ a</title>',
           't' => 
           array (
             0 => 'route-js-sourcemap',
+          ),
+        ),
+      ),
+    ),
+    'GET /ws/v1/cluster/apps/new-application' => 
+    array (
+      'b' => 
+      array (
+        0 => 
+        array (
+          's' => 200,
+          'bw' => 
+          array (
+            0 => 'application-id',
+          ),
+          'nf' => 
+          array (
+          ),
+          'pid' => 'route-hadoop-yarn-newapp',
+          'sev' => 'low',
+          'sig' => 0,
+          'amb' => 0,
+          't' => 
+          array (
+            0 => 'route-hadoop-yarn-newapp',
+          ),
+        ),
+      ),
+    ),
+    'GET /System/configurationFile' => 
+    array (
+      'b' => 
+      array (
+        0 => 
+        array (
+          's' => 200,
+          'bw' => 
+          array (
+            0 => '<adminUserName>',
+            1 => '<adminPassword>',
+          ),
+          'nf' => 
+          array (
+          ),
+          'pid' => 'route-hikvision-configfile',
+          'sev' => 'high',
+          'sig' => 0,
+          'amb' => 0,
+          't' => 
+          array (
+            0 => 'route-hikvision-configfile',
           ),
         ),
       ),

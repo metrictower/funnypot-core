@@ -1,0 +1,22 @@
+id: attack-tomcat-jsp-put
+severity: high
+priority: 34
+tags: [attack, tomcat, jsp, upload, worm, cve-2017-12615]
+# FP-0422: Apache Tomcat JSP PUT upload worm (CVE-2017-12615). A PUT of a .jsp returns 201 Created so the
+# worm believes the webshell uploaded. Priority 34 is BEFORE the cmdi (40/41) + webshell/upload rules so a
+# JSP body's shell metacharacters can't shadow this. INERT: the uploaded bytes are NEVER stored or reflected
+# (actual upload storage + get-back is the stateful funnypot-app follow-up FP-0566). Match is method+path
+# only — no body condition — so any .jsp PUT is answered.
+match:
+  - in: method
+    regex: '^PUT$'
+    ci: true
+  - in: path
+    regex: '\.jsp$'
+    ci: true
+status: 201
+response:
+  headers:
+    Content-Type: "text/html; charset=utf-8"
+  body: ""
+expect: []

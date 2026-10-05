@@ -1,0 +1,14 @@
+id: route-antsword-antproxy
+priority: 438
+# FP-0422: AntSword Chinese webshell proxy backdoor /.antproxy.php. The corpus keys this with a detection
+# stub; enrich it with the md5("antproxy.php") a scanner's antsword check confirms on. The md5 is a fixed,
+# re-derived protocol constant (inert). text/html (the shell echoes a bare string).
+match:
+  template_needle: [antsword-backdoor]
+response:
+  headers:
+    Content-Type: "text/html; charset=utf-8"
+  body: |
+    951d11e51392117311602d0c25435d7f
+expect:
+  - '951d11e51392117311602d0c25435d7f'

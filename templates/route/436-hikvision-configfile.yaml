@@ -1,0 +1,32 @@
+id: route-hikvision-configfile
+priority: 436
+# FP-0422: Hikvision CVE-2017-7921 auth-bypass config disclosure. /System/configurationFile returns the
+# device config blob with the admin credentials. Honeytoken = the deploy-stable {{persona.user.admin.password}}
+# (NOT the ticket's literal "canary123" = a decode-tell + fleet constant) so the leaked admin password is
+# correlatable on a later camera/login attempt (FP-0562/FP-0566 pattern) and coherent with every other admin
+# surface. admin.password alphabet is XML/JSON-safe + re-rolled past the \b9\d{5}\b denylist. Server header
+# best-effort (nginx overrides it in prod). Content-Type application/octet-stream (the real config download).
+new_page:
+  method: GET
+  paths: ['/System/configurationFile']
+  sig: 0
+  status: 200
+  severity: high
+  tags: [hikvision, camera, cve-2017-7921, config-disclosure, exposure]
+  name: 'Hikvision configurationFile disclosure'
+  body_words: ['<adminUserName>', '<adminPassword>']
+response:
+  headers:
+    Content-Type: "application/octet-stream"
+    Server: "App-webs/"
+  body: |
+    <?xml version="1.0" encoding="UTF-8"?>
+    <configurationFile version="2.0">
+    <userList>
+    <user><id>1</id><adminUserName>admin</adminUserName><adminPassword>{{persona.user.admin.password}}</adminPassword><priority>0</priority></user>
+    </userList>
+    <network><mac>44:19:b6:{{fake.hikmac:hex:2}}:{{fake.hikmac2:hex:2}}:{{fake.hikmac3:hex:2}}</mac></network>
+    </configurationFile>
+expect:
+  - '<adminUserName>admin</adminUserName>'
+  - '<adminPassword>'

@@ -1,0 +1,16 @@
+id: route-fatpipe-loginservlet
+priority: 437
+# FP-0422: FatPipe router backdoor (CVE-2021-27856) /fpui/loginServlet. The corpus keys this path with a
+# detection stub; enrich it with the believable success JSON a scanner's cmuser-backdoor check confirms on.
+# Inert canned JSON, no reflection.
+match:
+  template_needle: [CVE-2021-27856]
+response:
+  headers:
+    Content-Type: "application/json"
+  body: |
+    {"loginRes":"success","activeUserName":"cmuser"}
+taunt: { mode: inline_field, key: '_comment' }
+expect:
+  - '"loginRes":"success"'
+  - '"activeUserName":"cmuser"'

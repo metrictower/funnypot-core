@@ -1,0 +1,23 @@
+id: route-hadoop-yarn-newapp
+priority: 435
+# FP-0422: Hadoop YARN ResourceManager new-application endpoint (GET). INtrack step 1 — a worm GETs
+# /ws/v1/cluster/apps/new-application to obtain an application-id before POSTing a reverse-shell app
+# (the POST capture is stateful -> funnypot-app FP-0566). This GET is a store-miss (the corpus keys only
+# the POST); serve the believable application-id JSON so the worm proceeds. The id digits are glued to
+# `application_` / `_` (no word boundary), so no bare 6-digit run can form. INERT static JSON.
+new_page:
+  method: GET
+  paths: ['/ws/v1/cluster/apps/new-application']
+  sig: 0
+  status: 200
+  severity: low
+  tags: [hadoop, yarn, resourcemanager, exposure]
+  name: 'Hadoop YARN new-application'
+  body_words: ['application-id']
+response:
+  headers:
+    Content-Type: "application/json"
+  body: |
+    {"application-id":"application_1700000000001_0001","maximum-resource-capability":{"memory":8192,"vCores":4}}
+expect:
+  - '"application-id":'
