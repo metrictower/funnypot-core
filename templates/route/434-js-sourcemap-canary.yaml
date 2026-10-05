@@ -1,0 +1,40 @@
+id: route-js-sourcemap
+priority: 434
+# FP-0403 (Parts 1-4): webpack/vite bundle source-map canary lure. The common .js.map paths that
+# reconftw/sourcemapper request directly (main/app/bundle) are store-miss 404 today -> new_page a valid
+# Source Map v3 whose sourcesContent reconstructs frontend TS files seeded with the deploy-stable canary
+# catalog (same creds /.env + /secrets.json + the astro map leak -> one credential story). persona.* (not
+# fake.*) so the canary is correlatable + already fingerprint-safe. Valid JSON: single-line \n-escaped
+# sourcesContent; lone `{` first line for the inline_field _comment taunt. No request byte reflected.
+new_page:
+  method: GET
+  paths:
+    - /static/js/main.js.map
+    - /assets/index.js.map
+    - /js/app.js.map
+    - /bundle.js.map
+    - /main.js.map
+    - /js/app.bundle.js.map
+  sig: 0
+  status: 200
+  severity: info
+  tags: [exposure, sourcemap, config-disclosure, canarytokens]
+  name: 'Exposed JavaScript source map'
+  body_words: ['sourcesContent']
+response:
+  headers:
+    Content-Type: "application/json"
+  body: |
+    {
+    "version": 3,
+    "file": "main.js",
+    "sources": ["webpack://app/src/config/aws.ts", "webpack://app/src/api/client.ts", "webpack://app/src/services/auth.service.ts"],
+    "sourcesContent": ["export const AWS_ACCESS_KEY_ID = \"{{persona.cloud.aws.accessKeyId}}\";\nexport const AWS_SECRET_ACCESS_KEY = \"{{persona.cloud.aws.secretKey}}\";\nexport const AWS_REGION = \"{{persona.cloud.aws.region}}\";\n", "export const API_BASE = \"https://{{persona.company.domain}}/api/v1/internal/ops\";\nexport const STRIPE_SECRET = \"{{persona.cloud.stripe.secretKey}}\";\nexport const OPENAI_KEY = \"{{persona.cloud.openai.projectKey}}\";\n", "export const JWT_SECRET = \"{{persona.secret.jwt}}\";\nexport async function login(u, p) { return fetch(API_BASE + \"/auth/login\", { method: \"POST\" }); }\n"],
+    "names": [],
+    "mappings": ""
+    }
+taunt: { mode: inline_field, key: '_comment' }
+expect:
+  - '"sourcesContent"'
+  - 'AWS_SECRET_ACCESS_KEY'
+  - 'STRIPE_SECRET'

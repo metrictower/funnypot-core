@@ -4,7 +4,7 @@
 > The manifest is the sole inventory authority; friendly names, categories and behavior
 > prose live in the README taxonomy, not here.
 
-Manifest schema 1. Authored records: 411 across 103 families. Corpus: 2611 families / 5134 route keys (summarized, not enumerated). Enrichers: 277.
+Manifest schema 1. Authored records: 417 across 104 families. Corpus: 2611 families / 5134 route keys (summarized, not enumerated). Enrichers: 279.
 
 ```mermaid
 mindmap
@@ -84,36 +84,37 @@ mindmap
     fam0073["shell-history: 3"]
     fam0074["shellshock: 1"]
     fam0075["smb: 1"]
-    fam0076["splunk: 1"]
-    fam0077["spring-boot: 1"]
-    fam0078["springboot: 12"]
-    fam0079["sqli: 2"]
-    fam0080["ssh: 1"]
-    fam0081["ssti: 2"]
-    fam0082["struts: 1"]
-    fam0083["teamcity: 1"]
-    fam0084["terraform: 3"]
-    fam0085["thinkphp: 1"]
-    fam0086["tls: 2"]
-    fam0087["tomcat: 2"]
-    fam0088["twig: 1"]
-    fam0089["upload: 1"]
-    fam0090["v1: 1"]
-    fam0091["vcs: 10"]
-    fam0092["vite: 1"]
-    fam0093["webmin: 1"]
-    fam0094["webshell: 1"]
-    fam0095["whm: 1"]
-    fam0096["windows: 2"]
-    fam0097["woocommerce: 8"]
-    fam0098["wordpress: 20"]
-    fam0099["wp-plugin-enum: 10"]
-    fam0100["wp-theme-enum: 2"]
-    fam0101["xdebug: 1"]
-    fam0102["xss: 2"]
-    fam0103["xxe: 1"]
+    fam0076["sourcemap: 6"]
+    fam0077["splunk: 1"]
+    fam0078["spring-boot: 1"]
+    fam0079["springboot: 12"]
+    fam0080["sqli: 2"]
+    fam0081["ssh: 1"]
+    fam0082["ssti: 2"]
+    fam0083["struts: 1"]
+    fam0084["teamcity: 1"]
+    fam0085["terraform: 3"]
+    fam0086["thinkphp: 1"]
+    fam0087["tls: 2"]
+    fam0088["tomcat: 2"]
+    fam0089["twig: 1"]
+    fam0090["upload: 1"]
+    fam0091["v1: 1"]
+    fam0092["vcs: 10"]
+    fam0093["vite: 1"]
+    fam0094["webmin: 1"]
+    fam0095["webshell: 1"]
+    fam0096["whm: 1"]
+    fam0097["windows: 2"]
+    fam0098["woocommerce: 8"]
+    fam0099["wordpress: 20"]
+    fam0100["wp-plugin-enum: 10"]
+    fam0101["wp-theme-enum: 2"]
+    fam0102["xdebug: 1"]
+    fam0103["xss: 2"]
+    fam0104["xxe: 1"]
     corpus["corpus: 2611 families / 5134 keys"]
-    enrichers["content enrichers #40;not route claimers#41;: 277"]
+    enrichers["content enrichers #40;not route claimers#41;: 279"]
 ```
 
 | Family | Authored records | Tier mix | Owned routes | Outbound links | Max severity | Integrity |
@@ -193,6 +194,7 @@ mindmap
 | shell-history | 3 | new-page:3 | 3 | 0 | high | &mdash; |
 | shellshock | 1 | attack:1 | 0 | 0 | critical | &mdash; |
 | smb | 1 | attack:1 | 0 | 0 | high | &mdash; |
+| sourcemap | 6 | new-page:6 | 6 | 0 | info | &mdash; |
 | splunk | 1 | attack:1 | 1 | 0 | high | &mdash; |
 | spring-boot | 1 | attack:1 | 0 | 0 | high | &mdash; |
 | springboot | 12 | new-page:12 | 12 | 0 | high | &mdash; |
@@ -222,6 +224,6 @@ mindmap
 | xss | 2 | attack:1 attack-crs:1 | 0 | 0 | high | &mdash; |
 | xxe | 1 | attack:1 | 0 | 0 | high | &mdash; |
 | _corpus (nuclei-inversion)_ | 2611 families / 5134 keys | &mdash; | &mdash; | &mdash; | &mdash; | &mdash; |
-| _content enrichers (not route claimers)_ | 277 | &mdash; | &mdash; | &mdash; | &mdash; | &mdash; |
+| _content enrichers (not route claimers)_ | 279 | &mdash; | &mdash; | &mdash; | &mdash; | &mdash; |
 
 Per-family detail: `bin/funnypot map --family=NAME --format=md` (or `--format=mermaid` for the raw flowchart).
