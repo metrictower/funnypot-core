@@ -26,6 +26,7 @@ use Funnypot\Core\Support\Fake\FakeSecrets;
 use Funnypot\Core\Support\PathNormalizer;
 use Funnypot\Core\Support\PersonaIdentity;
 use Funnypot\Core\Support\SafeArithmetic;
+use Funnypot\Core\Support\SafeComparison;
 use Funnypot\Core\Support\SubSeed;
 use Funnypot\Core\Support\VisualPersona;
 use Funnypot\Core\SynthesizedResponse;
@@ -672,6 +673,20 @@ final class TemplateAttackEmulator
                 if (!isset($case['when'])) {
                     continue;
                 }
+                // FP-0429: a comparison-routed case carries `compare: true|false`. Its `when` regex names a
+                // `cmp` group holding the boolean clause (e.g. `2>1`, `5 NOT BETWEEN 0 AND 3`); the case is
+                // selected iff SafeComparison's STATIC truth equals the polarity. An INDETERMINATE clause (a
+                // column/function operand → SafeComparison null) selects NO case, so a function-side
+                // extraction probe and benign non-numeric text are never routed to the FALSE page. It then
+                // continues the scan: a plain indeterminate clause reaches the baseline, but one that also
+                // carries a lone unbalanced quote is claimed by the C1 breaker (a believable 500 — the quote,
+                // not the comparison, is the tell). Zero execution; nothing reflected.
+                if (isset($case['compare'])) {
+                    if ($this->comparisonCaseMatches((array) $case['when'], (bool) $case['compare'], $r)) {
+                        return $this->renderCaseResponse((array) ($case['response'] ?? []), $captures, $seed);
+                    }
+                    continue;
+                }
                 // The top-level captures are visible to a case `when` via the `match.N` surface,
                 // so a branch can dispatch on the ONE parsed method the rule captured rather than
                 // re-scanning the whole body (which a planted secondary token could steer).
@@ -699,6 +714,42 @@ final class TemplateAttackEmulator
         $status = isset($response['status']) ? (int) $response['status'] : null;
 
         return $this->renderResponse($response, $captures, $seed, $status);
+    }
+
+    /**
+     * FP-0429: test a comparison-routed branch case. It tries each folded request surface in turn — the
+     * decode-folded layers are included, so a CONSISTENTLY percent/`+`-encoded comparison resolves — and
+     * evaluates on the FIRST surface whose match yields a `cmp` group (a mixed raw+encoded clause no real
+     * tool emits can match a raw layer first, where `%` reads as modulo; that degrades safe-direction to
+     * the baseline). `when` MUST name a `cmp` group holding the boolean clause. Returns true iff `cmp` is
+     * a STATIC comparison (via SafeComparison, zero-exec) whose truth equals $wantTrue. A non-literal/
+     * indeterminate clause (SafeComparison null) or any PCRE fault returns false → the case is skipped →
+     * the scan continues (a plain indeterminate clause reaches the baseline; one bearing a lone quote is
+     * claimed by the C1 breaker's believable 500). Never the FALSE page from an indeterminate clause,
+     * never a 5xx from SafeComparison itself. Nothing is reflected.
+     *
+     * @param array<string,mixed> $when
+     */
+    private function comparisonCaseMatches(array $when, bool $wantTrue, RequestContext $r): bool
+    {
+        if (!isset($when['regex'])) {
+            return false;
+        }
+        $in = isset($when['in']) ? (string) $when['in'] : 'request';
+        $flags = (($when['ci'] ?? true) !== false ? 'i' : '') . (($when['dotall'] ?? false) ? 's' : '');
+        foreach (BoundedInspection::surfaces($r, $in) as $surface) {
+            $res = preg_match('~' . $when['regex'] . '~' . $flags, $surface, $m);
+            if ($res === false || preg_last_error() !== PREG_NO_ERROR) {
+                return false;
+            }
+            if ($res === 1 && isset($m['cmp']) && $m['cmp'] !== '') {
+                $truth = SafeComparison::evaluate((string) $m['cmp']);
+
+                return $truth !== null && $truth === $wantTrue;
+            }
+        }
+
+        return false;
     }
 
     /**
