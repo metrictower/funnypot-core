@@ -1,0 +1,42 @@
+id: attack-cors-reflector
+severity: medium
+status: 200
+priority: 63
+tags: [attack, cors, misconfiguration, canarytokens]
+reflects_input: true
+reflect_class: cors
+# FP-0445: permissive-CORS misconfiguration decoy for cross-origin scanners (CORScanner, bug-bounty CORS
+# fuzzers). A request to a sacrificial authenticated-API path carrying an Origin header gets that Origin
+# reflected into Access-Control-Allow-Origin WITH Access-Control-Allow-Credentials: true — the classic
+# critical CORS misconfig the scanner confirms — and a JSON body leaking a seeded canary session token +
+# API key.
+#
+# SAFETY: reflects_input: true routes the serve through the three-term reflector gate (Config::serveReflector
+# — isolatedOrigin AND the per-class map AND the request-bound reflectorAuthorizer; every term subtract-only).
+# So this serves ONLY on a standalone isolated-origin honeypot whose adapter vouches for the request; inline
+# in a response-owning host it is WITHHELD (detection kept, reflection dropped) — critical, because echoing
+# Origin into ACAO on a real embedded site would be a genuine credentialed-CORS vulnerability. The Origin is
+# bounded-reflected via {{urldecode:match.1}}; an encoded CRLF becomes real CR/LF and is declined by the
+# header-safety guard (no header injection). Canaries are deploy-stable persona.* (correlatable, already
+# fingerprint-safe), never a real secret.
+#
+# PATHS are store-MISS endpoints only. /api/me, /api/profile, /api/whoami are deliberately EXCLUDED: they are
+# store HITs with their own recon surfaces, and claiming them (owns_path) would 404 that surface for any
+# Origin-bearing request on an embedded host where the reflector is withheld. Owning them on the isolated box
+# is a possible follow-up.
+match:
+  - in: path
+    regex: '^/api/(?:auth/session|session|v1/user/keys|user|users/me|account|v1/me|v1/account|v2/user)$'
+    ci: true
+  - in: 'header:origin'
+    capture: true
+    regex: '(\S.*)'
+response:
+  headers:
+    Content-Type: "application/json; charset=utf-8"
+    Access-Control-Allow-Origin: "{{urldecode:match.1}}"
+    Access-Control-Allow-Credentials: "true"
+  body: |
+    {"authenticated":true,"user":"{{persona.user.admin.username}}","session_token":"{{persona.secret.jwt}}","api_key":"{{persona.cloud.aws.accessKeyId}}"}
+expect:
+  - '"authenticated":true'
