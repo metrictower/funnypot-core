@@ -101,6 +101,11 @@ final class PersonaIdentity
         'crushftp.lastModified',
         'ivcsa.version',
         'ivcsa.lastModified',
+        // FP-0570: a per-deploy INERT canary OpenSSH private key for /.ssh/id_rsa. Seed-derived (so NO
+        // static key lives in this PUBLIC repo — a static key would be a fleet fingerprint), parse-
+        // plausible (the openssh-key-v1 magic + 70-col-wrapped base64) but not a usable key, so a
+        // credential-harvesting worm that grabs it can be recognised app-side (FP-0562) when replayed.
+        'ssh.privateKey',
         // The WooCommerce core + payment-plugin versions this host claims — one source of truth for
         // every store surface (the storefront generator meta, the readme `Stable tag:`, the wc-augmented
         // REST index). paymentsVersion and stripeVersion are held on the vulnerable side of their CVEs so
@@ -374,6 +379,7 @@ final class PersonaIdentity
             'crushftp.lastModified' => gmdate('D, d M Y H:i:s', self::crushftpBuild($slug, $domain)['epoch']) . ' GMT',
             'ivcsa.version' => self::ivcsaBuild($slug, $domain)['version'],
             'ivcsa.lastModified' => gmdate('D, d M Y H:i:s', self::ivcsaBuild($slug, $domain)['epoch']) . ' GMT',
+            'ssh.privateKey' => self::sshPrivateKey($seed),
 
             // The WooCommerce core + payment-plugin versions this host claims — the single source of
             // truth for every store surface. Derived like php.version so field() and productVersion()
@@ -780,6 +786,47 @@ final class PersonaIdentity
         $idx = (int) (hexdec(substr(hash('sha256', $slug . '|' . $domain . '|ivcsa-build'), 0, 8)) % count(self::IVCSA_BUILDS));
 
         return self::IVCSA_BUILDS[$idx];
+    }
+
+    /**
+     * FP-0570: a per-deploy INERT canary OpenSSH private key (for the /.ssh/id_rsa exposure decoy). The
+     * body is deterministically derived from the deploy seed (sha256 chain) behind the real
+     * `openssh-key-v1\0` magic, then 70-col-wrapped in the standard PEM frame — parse-plausible to a
+     * casual `file`/header check but NOT a usable key, so no real credential is ever exposed and a worm
+     * that exfiltrates it is recognisable as having walked OUR planted canary. Deploy-seeded (not static),
+     * so this PUBLIC repo ships only the generator, never a fleet-constant key.
+     *
+     * Denylist-safety: a random base64 blob can, across seeds, coincidentally contain a bare `\b9\d{5}\b`
+     * run — the CRS-rule-id denylist pattern (a FALSE collision; it is key material, not a rule id, same
+     * class as the FP-0552 manifest-number collision). The only numeric denied pattern a base64 blob can
+     * realistically hit; the rest are literal scanner/product words a key never contains. So re-derive
+     * with an incremented counter until the PEM is clean — deterministic per seed (same seed ⇒ same first
+     * clean key), bounded, effectively always resolves on the first one or two tries.
+     */
+    private static function sshPrivateKey(int $seed): string
+    {
+        for ($round = 0; ; $round++) {
+            $s = $round === 0 ? '' : '|r' . $round;
+            // RSA-sized (~1200 raw bytes ≈ a 2048-bit id_rsa, the filename's conventional algorithm) behind
+            // the real openssh-key-v1 magic, as a seeded sha256 chain. Derived from the raw $seed (like
+            // awsSecretKey), NOT persona slug/domain, so every DEPLOY gets a distinct key (not one of a few
+            // hundred repo-precomputable blobs) — the per-deploy-unique canary the ticket wants.
+            $raw = "openssh-key-v1\x00";
+            $block = (string) hex2bin(self::h($seed, 'ssh-id-rsa' . $s));
+            while (strlen($raw) < 1200) {
+                $raw .= $block;
+                $block = hash('sha256', $block, true);
+            }
+            $raw = substr($raw, 0, 1200);
+            $pem = "-----BEGIN OPENSSH PRIVATE KEY-----\n"
+                . chunk_split(base64_encode($raw), 70, "\n")
+                . "-----END OPENSSH PRIVATE KEY-----\n";
+            // Re-roll off the shared denied-digit predicate (a base64 blob can bound a bare 9ddddd CRS-id
+            // collision); deterministic first-clean per seed, like awsSecretKey.
+            if (!self::hitsDeniedDigits($pem)) {
+                return $pem;
+            }
+        }
     }
 
     /**

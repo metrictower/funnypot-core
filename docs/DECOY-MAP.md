@@ -4,7 +4,7 @@
 > The manifest is the sole inventory authority; friendly names, categories and behavior
 > prose live in the README taxonomy, not here.
 
-Manifest schema 1. Authored records: 440 across 114 families. Corpus: 2611 families / 5134 route keys (summarized, not enumerated). Enrichers: 290.
+Manifest schema 1. Authored records: 441 across 114 families. Corpus: 2611 families / 5134 route keys (summarized, not enumerated). Enrichers: 291.
 
 ```mermaid
 mindmap
@@ -97,7 +97,7 @@ mindmap
     fam0086["spring-boot: 1"]
     fam0087["springboot: 12"]
     fam0088["sqli: 2"]
-    fam0089["ssh: 1"]
+    fam0089["ssh: 2"]
     fam0090["ssti: 2"]
     fam0091["struts: 1"]
     fam0092["teamcity: 1"]
@@ -124,7 +124,7 @@ mindmap
     fam0113["xss: 2"]
     fam0114["xxe: 1"]
     corpus["corpus: 2611 families / 5134 keys"]
-    enrichers["content enrichers #40;not route claimers#41;: 290"]
+    enrichers["content enrichers #40;not route claimers#41;: 291"]
 ```
 
 | Family | Authored records | Tier mix | Owned routes | Outbound links | Max severity | Integrity |
@@ -217,7 +217,7 @@ mindmap
 | spring-boot | 1 | attack:1 | 0 | 0 | high | &mdash; |
 | springboot | 12 | new-page:12 | 12 | 0 | high | &mdash; |
 | sqli | 2 | attack:1 attack-crs:1 | 0 | 0 | high | &mdash; |
-| ssh | 1 | attack:1 | 0 | 0 | high | &mdash; |
+| ssh | 2 | attack:1 new-page:1 | 1 | 0 | high | &mdash; |
 | ssti | 2 | attack:2 | 0 | 0 | high | &mdash; |
 | struts | 1 | attack:1 | 0 | 0 | critical | &mdash; |
 | teamcity | 1 | attack:1 | 1 | 0 | high | info |
@@ -244,6 +244,6 @@ mindmap
 | xss | 2 | attack:1 attack-crs:1 | 0 | 0 | high | &mdash; |
 | xxe | 1 | attack:1 | 0 | 0 | high | &mdash; |
 | _corpus (nuclei-inversion)_ | 2611 families / 5134 keys | &mdash; | &mdash; | &mdash; | &mdash; | &mdash; |
-| _content enrichers (not route claimers)_ | 290 | &mdash; | &mdash; | &mdash; | &mdash; | &mdash; |
+| _content enrichers (not route claimers)_ | 291 | &mdash; | &mdash; | &mdash; | &mdash; | &mdash; |
 
 Per-family detail: `bin/funnypot map --family=NAME --format=md` (or `--format=mermaid` for the raw flowchart).

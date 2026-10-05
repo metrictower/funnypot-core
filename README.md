@@ -662,16 +662,16 @@ at build time and not listed here. Every response stays **inert** (emulates outp
 
 | Metric | Count |
 |---|---|
-| Authored decoy records | 440 |
+| Authored decoy records | 441 |
 | Authored families | 114 |
 | &nbsp;&nbsp;tier `attack` | 125 |
 | &nbsp;&nbsp;tier `attack-ai` | 10 |
 | &nbsp;&nbsp;tier `attack-crs` | 4 |
-| &nbsp;&nbsp;tier `new-page` | 299 |
+| &nbsp;&nbsp;tier `new-page` | 300 |
 | &nbsp;&nbsp;tier `param` | 2 |
 | Corpus families (nuclei-inversion) | 2611 |
 | Corpus route keys | 5134 |
-| Content enrichers (not route claimers) | 290 |
+| Content enrichers (not route claimers) | 291 |
 
 Full visual + per-family drill-downs: [`docs/DECOY-MAP.md`](docs/DECOY-MAP.md) — regenerate with `bin/funnypot map` (`--family=NAME` for one family).
 <!-- GENERATED-DECOY-INVENTORY:END -->
