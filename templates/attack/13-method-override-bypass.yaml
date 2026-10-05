@@ -1,0 +1,48 @@
+id: attack-method-override-bypass
+severity: high
+priority: 13
+tags: [attack, auth-bypass, http-method-override, verb-tampering, api]
+# FP-0454: HTTP method-override auth-bypass oracle for API scanners (VulnAPI
+# http_method_override_auth_bypass, Burp/ZAP verb-tampering). Admin resource paths return a realistic
+# 401 for a direct state-changing verb (DELETE/PUT/PATCH, no creds); a POST/GET that SMUGGLES the verb
+# via a method-override header (X-HTTP-Method-Override / X-HTTP-Method / X-Method-Override, name-folded
+# case-insensitively so the 5 VulnAPI spellings collapse to 3 conditions) or a _method-style query/body
+# param "unlocks" a 200 success JSON — VulnAPI's status-only confirm (non-401/403) then flags a Critical
+# bypass. Modelled on 11-admin-403-bypass-oracle.yaml.
+#
+# NO engine change; NO owns_path (the three /{id} paths are store misses — the linear attack scan
+# reaches this rule via its in:path regex, and it can never shadow the bare-noun collection route which
+# is a different store key). NO reflection — the success id is a FABRICATED {{fake.*}}; the requested
+# {id}, headers and params are NEVER echoed, so it is embedded-safe and needs no reflect_class. Override
+# VALUE is gated to DELETE|PUT|PATCH, so an override to GET / a benign ?method=list does NOT unlock.
+# Fingerprint-safe: canned bodies, no scanner/CRS token, hex id (no digit run), no version banner.
+# Faults/no-match/synthesize-port ($r null) degrade to the base 401, never a 5xx (invariant #2). CT
+# application/json for every case; status app-chosen, no 3xx (invariant #5). Embedders opt in via
+# Config->attackEmulation (default off); a host with a genuine such API excludes it via Config->exclude.
+match:
+  - in: path
+    regex: '^/api/v1/(?:users|keys|tokens)/[A-Za-z0-9._-]+/?$'
+    ci: true
+status: 401
+response:
+  headers:
+    Content-Type: "application/json; charset=utf-8"
+    WWW-Authenticate: 'Bearer realm="api"'
+  body: |
+    {"error":"unauthorized","message":"Authentication required."}
+behavior: branch
+branch:
+  cases:
+    - when: { in: 'header:x-http-method-override', regex: '^\s*(?:DELETE|PUT|PATCH)\s*$', ci: true }
+      response: &unlock
+        status: 200
+        headers:
+          Content-Type: "application/json; charset=utf-8"
+        body: |
+          {"status":"success","action":"deleted","id":"{{fake.moab_id:hex:12}}"}
+    - { when: { in: 'header:x-http-method', regex: '^\s*(?:DELETE|PUT|PATCH)\s*$', ci: true }, response: *unlock }
+    - { when: { in: 'header:x-method-override', regex: '^\s*(?:DELETE|PUT|PATCH)\s*$', ci: true }, response: *unlock }
+    - { when: { in: 'query', regex: '(?:^|&)(?:_method|method|httpMethod|_httpMethod)=\s*(?:DELETE|PUT|PATCH)\b', ci: true }, response: *unlock }
+    - { when: { in: 'body',  regex: '(?:^|&)(?:_method|method|httpMethod|_httpMethod)=\s*(?:DELETE|PUT|PATCH)\b', ci: true }, response: *unlock }
+expect:
+  - '"error":"unauthorized"'
