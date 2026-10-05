@@ -1,0 +1,18 @@
+id: route-panos-bg-png
+priority: 432
+# FP-0410: PAN-OS GlobalProtect portal bg.png — ETag build-timestamp oracle witness (see 431). Self-
+# GENERATED minimal valid 1x1 PNG, NO real PAN-OS artwork (golden rule). Content-Type image/png.
+new_page:
+  method: GET
+  paths: ['/global-protect/portal/images/bg.png']
+  sig: 0
+  status: 200
+  severity: info
+  tags: [palo-alto, globalprotect, pan-os, version-oracle, exposure]
+  name: 'GlobalProtect portal background'
+response:
+  headers:
+    Content-Type: "image/png"
+    ETag: '"{{persona.panos.etag}}"'
+    Last-Modified: "{{persona.panos.lastModified}}"
+  body_b64: 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAAC0lEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg=='

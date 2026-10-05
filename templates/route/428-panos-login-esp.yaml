@@ -1,0 +1,40 @@
+id: route-panos-login-esp
+priority: 428
+# FP-0410: enrich the corpus /global-protect/login.esp bundle into a believable PAN-OS GlobalProtect
+# portal. The key carries TWO bundles (pid globalprotect = panel/<title> detect; pid pan-os =
+# CVE-2018-10141 reflected-XSS confirm), and buildRouteFake/PersonaSelector picks one per deploy/source-IP,
+# so BOTH pids are matched here → the portal serves regardless of the pick. The portal links the four
+# static assets (427-432) whose ETag/Last-Modified carry the version-oracle (panos-scanner / Wapiti decode
+# the asset ETag hex epoch → build date → PAN-OS version); login.esp itself is a dynamic page, so it carries
+# NO ETag. The `var valueUser` bootstrap is authentic to the era's portal and keeps the pan-os XSS bundle's
+# body-word in-persona when that bundle is the pick. Server header is best-effort (nginx overrides it in
+# prod). No request byte reflected.
+match:
+  route_key: ['GET /global-protect/login.esp']
+  pid: [globalprotect, pan-os]
+response:
+  headers:
+    Content-Type: "text/html; charset=UTF-8"
+  body: |
+    <!DOCTYPE html>
+    <html><head>
+    <title>GlobalProtect Portal</TITLE>
+    <link rel="shortcut icon" href="/global-protect/portal/images/favicon.ico">
+    <link rel="stylesheet" href="/global-protect/portal/css/login.css">
+    <script src="/js/Pan.js"></script>
+    </head>
+    <body style="background:url('/global-protect/portal/images/bg.png')">
+    <div id="container">
+    <div id="heading">GlobalProtect Portal</div>
+    <div id="login">
+    <form method="post" action="/global-protect/login.esp">
+    <input name="user" type="text" placeholder="Name">
+    <input name="passwd" type="password" placeholder="Password">
+    <input type="submit" value="Log In">
+    </form>
+    </div>
+    </div>
+    <script>var valueUser = "";var valueOS = navigator.platform;</script>
+    </body></html>
+expect:
+  - 'GlobalProtect Portal'

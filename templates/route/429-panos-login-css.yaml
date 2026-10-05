@@ -1,0 +1,28 @@
+id: route-panos-login-css
+priority: 429
+# FP-0410: PAN-OS GlobalProtect portal login.css static asset — the ETag build-timestamp oracle witness.
+# panos-scanner / Wapiti mod_paloalto read the ETag's hex epoch -> build date -> PAN-OS version. ETag +
+# Last-Modified are the persona.panos triple (version/etag/lastModified all from one build index, so they
+# agree). Content-Type text/css (a .css served as text/html is itself a tell). Self-authored CSS, no vendor
+# bytes, no request byte reflected.
+new_page:
+  method: GET
+  paths: ['/global-protect/portal/css/login.css']
+  sig: 0
+  status: 200
+  severity: info
+  tags: [palo-alto, globalprotect, pan-os, version-oracle, exposure]
+  name: 'GlobalProtect portal login.css'
+  body_words: ['#login']
+response:
+  headers:
+    Content-Type: "text/css"
+    ETag: '"{{persona.panos.etag}}"'
+    Last-Modified: "{{persona.panos.lastModified}}"
+  body: |
+    body{margin:0;font-family:Helvetica,Arial,sans-serif;color:#fff}
+    #container{width:340px;margin:120px auto}
+    #heading{font-size:20px;text-align:center;margin-bottom:18px}
+    #login input{display:block;width:100%;margin:6px 0;padding:8px;box-sizing:border-box}
+expect:
+  - '#login'

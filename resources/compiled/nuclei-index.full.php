@@ -13,11 +13,11 @@ return array (
     'license' => 'MIT (c) 2025 ProjectDiscovery, Inc.',
     'upstream_tag' => '2ec914123864439c3618e7e9ae72d32d0eb56df7',
     'upstream_sha' => '2ec914123864439c3618e7e9ae72d32d0eb56df7',
-    'source_tree' => '1898f3e3bb65b28d0c83ba2218f2fcbb3ccbcdd11655c1790f55454f11354a18',
+    'source_tree' => '31c97e21ae5e4a4fd671ca6e3085033f96ccf54750037bd41ede493d0260c1b3',
     'templates_seen' => 11196,
     'templates_in' => 6363,
-    'templates_indexed' => 6517,
-    'route_keys' => 5377,
+    'templates_indexed' => 6521,
+    'route_keys' => 5381,
     'multi_bundle_keys' => 277,
     'largest_bundle_count' => 1324,
     'persona_cap' => 
@@ -85896,6 +85896,58 @@ return array (
         4 => 'exposure',
       ),
       'name' => 'FortiOS SSL-VPN login (/fpc)',
+    ),
+    'route-panos-login-css' => 
+    array (
+      'sev' => 'info',
+      'tags' => 
+      array (
+        0 => 'palo-alto',
+        1 => 'globalprotect',
+        2 => 'pan-os',
+        3 => 'version-oracle',
+        4 => 'exposure',
+      ),
+      'name' => 'GlobalProtect portal login.css',
+    ),
+    'route-panos-pan-js' => 
+    array (
+      'sev' => 'info',
+      'tags' => 
+      array (
+        0 => 'palo-alto',
+        1 => 'globalprotect',
+        2 => 'pan-os',
+        3 => 'version-oracle',
+        4 => 'exposure',
+      ),
+      'name' => 'GlobalProtect Pan.js',
+    ),
+    'route-panos-favicon' => 
+    array (
+      'sev' => 'info',
+      'tags' => 
+      array (
+        0 => 'palo-alto',
+        1 => 'globalprotect',
+        2 => 'pan-os',
+        3 => 'version-oracle',
+        4 => 'exposure',
+      ),
+      'name' => 'GlobalProtect favicon',
+    ),
+    'route-panos-bg-png' => 
+    array (
+      'sev' => 'info',
+      'tags' => 
+      array (
+        0 => 'palo-alto',
+        1 => 'globalprotect',
+        2 => 'pan-os',
+        3 => 'version-oracle',
+        4 => 'exposure',
+      ),
+      'name' => 'GlobalProtect portal background',
     ),
     'route-phpinfo' => 
     array (
@@ -314141,6 +314193,106 @@ a</title>',
             0 => 'route-fortios-fpc-login',
           ),
           'w' => 100000,
+        ),
+      ),
+    ),
+    'GET /global-protect/portal/css/login.css' => 
+    array (
+      'b' => 
+      array (
+        0 => 
+        array (
+          's' => 200,
+          'bw' => 
+          array (
+            0 => '#login',
+          ),
+          'nf' => 
+          array (
+          ),
+          'pid' => 'route-panos-login-css',
+          'sev' => 'info',
+          'sig' => 0,
+          'amb' => 0,
+          't' => 
+          array (
+            0 => 'route-panos-login-css',
+          ),
+        ),
+      ),
+    ),
+    'GET /js/Pan.js' => 
+    array (
+      'b' => 
+      array (
+        0 => 
+        array (
+          's' => 200,
+          'bw' => 
+          array (
+            0 => 'Pan',
+          ),
+          'nf' => 
+          array (
+          ),
+          'pid' => 'route-panos-pan-js',
+          'sev' => 'info',
+          'sig' => 0,
+          'amb' => 0,
+          't' => 
+          array (
+            0 => 'route-panos-pan-js',
+          ),
+        ),
+      ),
+    ),
+    'GET /global-protect/portal/images/favicon.ico' => 
+    array (
+      'b' => 
+      array (
+        0 => 
+        array (
+          's' => 200,
+          'bw' => 
+          array (
+          ),
+          'nf' => 
+          array (
+          ),
+          'pid' => 'route-panos-favicon',
+          'sev' => 'info',
+          'sig' => 0,
+          'amb' => 0,
+          't' => 
+          array (
+            0 => 'route-panos-favicon',
+          ),
+          'bin' => 1,
+        ),
+      ),
+    ),
+    'GET /global-protect/portal/images/bg.png' => 
+    array (
+      'b' => 
+      array (
+        0 => 
+        array (
+          's' => 200,
+          'bw' => 
+          array (
+          ),
+          'nf' => 
+          array (
+          ),
+          'pid' => 'route-panos-bg-png',
+          'sev' => 'info',
+          'sig' => 0,
+          'amb' => 0,
+          't' => 
+          array (
+            0 => 'route-panos-bg-png',
+          ),
+          'bin' => 1,
         ),
       ),
     ),

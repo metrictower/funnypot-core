@@ -1,0 +1,20 @@
+id: route-panos-favicon
+priority: 431
+# FP-0410: PAN-OS GlobalProtect portal favicon.ico — ETag build-timestamp oracle witness (the scanner keys
+# on the ETag header, not the image). Self-GENERATED minimal valid ICO (hand-packed 1x1 32bpp), NO real
+# PAN-OS copyrighted artwork (golden rule). Content-Type image/x-icon (no charset). Binary render branch
+# still renders response.headers, so ETag/Last-Modified (the persona.panos triple) resolve here too.
+new_page:
+  method: GET
+  paths: ['/global-protect/portal/images/favicon.ico']
+  sig: 0
+  status: 200
+  severity: info
+  tags: [palo-alto, globalprotect, pan-os, version-oracle, exposure]
+  name: 'GlobalProtect favicon'
+response:
+  headers:
+    Content-Type: "image/x-icon"
+    ETag: '"{{persona.panos.etag}}"'
+    Last-Modified: "{{persona.panos.lastModified}}"
+  body_b64: 'AAABAAEAAQEAAAEAIAAwAAAAFgAAACgAAAABAAAAAgAAAAEAIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACAOwr/AAAAAA=='

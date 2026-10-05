@@ -70,6 +70,15 @@ final class PersonaIdentity
         // /fpc/app/login) and the future WS CLI banner — one coherent, per-deploy-stable value on the
         // affected side of CVE-2024-55591 (<=7.0.16).
         'fortios.version',
+        // FP-0410: the PAN-OS GlobalProtect identity this host claims — version + the matching static-asset
+        // ETag (hex build epoch) + Last-Modified, ALL derived from one PANOS_BUILDS index so they can never
+        // disagree. panos-scanner / Wapiti decode the asset ETag's hex epoch -> build date -> PAN-OS version;
+        // the curated builds are co-generational with the FP-0460 ztp-gate pool. 8-hex etag + dotted version
+        // + 4-digit-year Last-Modified all carry <=2-digit / boundary-free runs, so none forms the denied
+        // bare 6-digit token.
+        'panos.version',
+        'panos.etag',
+        'panos.lastModified',
         // The WooCommerce core + payment-plugin versions this host claims — one source of truth for
         // every store surface (the storefront generator meta, the readme `Stable tag:`, the wc-augmented
         // REST index). paymentsVersion and stripeVersion are held on the vulnerable side of their CVEs so
@@ -312,6 +321,12 @@ final class PersonaIdentity
             // rendered version is always on the affected side of CVE-2023-22515 and -22527.
             'confluence.version' => self::pickProductVersion($slug, $domain, 'confluence'),
             'fortios.version' => self::pickProductVersion($slug, $domain, 'fortios'),
+            // FP-0410: the PAN-OS GlobalProtect version + its static-asset ETag/Last-Modified, all from ONE
+            // PANOS_BUILDS index (panosBuild) so the version, the hex build epoch, and the RFC-1123 date
+            // round-trip to the same build and never drift across the portal + the four asset decoys.
+            'panos.version' => self::panosBuild($slug, $domain)['version'],
+            'panos.etag' => sprintf('%08x', self::panosBuild($slug, $domain)['epoch']),
+            'panos.lastModified' => gmdate('D, d M Y H:i:s', self::panosBuild($slug, $domain)['epoch']) . ' GMT',
 
             // The WooCommerce core + payment-plugin versions this host claims — the single source of
             // truth for every store surface. Derived like php.version so field() and productVersion()
@@ -588,6 +603,38 @@ final class PersonaIdentity
         $idx = (int) (hexdec(substr(hash('sha256', $seedMaterial . '|product-version|' . $product), 0, 8)) % count($pool));
 
         return $pool[$idx];
+    }
+
+    /**
+     * FP-0410: curated PAN-OS GA version -> build-epoch pairs, re-derived from the PUBLIC PAN-OS release
+     * record (NOT a copy of Wapiti's 222-row version-table — golden rule / clean-room). Each epoch is the
+     * approximate documented GA date (UTC midnight) of a real GA version; `panos.etag`/`panos.lastModified`
+     * are both derived from the SAME entry so the asset ETag's hex epoch decodes back to this build date and
+     * a version fingerprinter (panos-scanner / Wapiti mod_paloalto) reads one coherent version. The set is
+     * co-generational with the FP-0460 ztp-gate pool (10.1/10.2/11.0/11.1) and spans the affected side of
+     * the marquee PAN-OS CVEs (CVE-2024-3400, CVE-2020-2021) for N-day baiting. Every rendered value
+     * (8-hex etag, dotted version, 4-digit-year RFC-1123 date) is free of the denied bare 6-digit run.
+     */
+    private const PANOS_BUILDS = [
+        ['version' => '8.1.0', 'epoch' => 1520294400],   // 2018-03-06
+        ['version' => '9.1.0', 'epoch' => 1579132800],   // 2020-01-16
+        ['version' => '10.1.0', 'epoch' => 1618876800],  // 2021-04-20
+        ['version' => '10.2.0', 'epoch' => 1637107200],  // 2021-11-17
+        ['version' => '11.0.0', 'epoch' => 1668470400],  // 2022-11-15
+        ['version' => '11.1.0', 'epoch' => 1700092800],  // 2023-11-16
+    ];
+
+    /**
+     * One PANOS_BUILDS entry for this deploy — keyed like pickProductVersion so the triple is deploy-stable
+     * and per-seed. Returns ['version'=>string,'epoch'=>int].
+     *
+     * @return array{version:string,epoch:int}
+     */
+    private static function panosBuild(string $slug, string $domain): array
+    {
+        $idx = (int) (hexdec(substr(hash('sha256', $slug . '|' . $domain . '|panos-build'), 0, 8)) % count(self::PANOS_BUILDS));
+
+        return self::PANOS_BUILDS[$idx];
     }
 
     /**
