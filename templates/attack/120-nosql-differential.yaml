@@ -1,0 +1,60 @@
+id: attack-nosql-differential
+severity: high
+priority: 120
+tags: [attack, nosql, nosqli, injection, differential, exposure]
+# FP-0434 (T2): NoSQL operator-injection DIFFERENTIAL record-dump decoy on believable Mongo collection
+# paths. /products and /users are exact-store collection keys that serve a static 200 JSON list and
+# ignore the query, so today a NoSQL operator probe gets the identical body (no differential -> a scanner
+# like NoSQLMap/Artemis stays silent). This owns_path rule (FP-0387 pattern) introduces the differential:
+# an operator probe with a plausible value dumps a populated document list ("injection returned the whole
+# collection"); an operator whose value is an unlikely sentinel (empty / 16+ hex / tilde run) returns an
+# empty list. Both 200, never 500; quick_ratio << 0.9. A BENIGN request (no operator) fails the match and
+# falls through to the static store collection byte-identically (embedded-safe, no new reports).
+#
+# Documents carry a Mongo-style _id (24-hex ObjectId shape — a coherent NoSQL tell, and no bare 6-digit
+# run can form in a hex token); name/email seeded. The slight products-vs-users schema seam is invisible
+# to the scanner (it compares likely-vs-unlikely, both operator-bearing). `exposure` intent tag marks the
+# designed override of the two route-surface collection keys (lint INFO, not a shadow FAIL). No collision
+# with FP-0387 (/api/v1/users) or FP-0454 (/api/v1/{id}). No reflection; all rows canned/seeded.
+owns_path:
+  - /products
+  - /users
+match:
+  - in: path
+    regex: '^/(?:products|users)/*$'
+    ci: true
+  - in: request
+    regex: '(?:\[\s*\$|"\s*\$)(?:ne|gte?|lte?|in|nin|regex|exists|where|expr|all|elemMatch|nor|not|and|or|mod|size|type|text|search|comment)\b'
+    ci: true
+status: 200
+response:
+  headers:
+    Content-Type: "application/json; charset=utf-8"
+  body: |
+    {
+    "data": [
+      { "_id": "{{fake.n1_id:hex:24}}", "name": "{{fake.person.full:n1}}", "email": "{{fake.person.email:n1}}", "role": "admin", "active": true },
+      { "_id": "{{fake.n2_id:hex:24}}", "name": "{{fake.person.full:n2}}", "email": "{{fake.person.email:n2}}", "role": "editor", "active": true },
+      { "_id": "{{fake.n3_id:hex:24}}", "name": "{{fake.person.full:n3}}", "email": "{{fake.person.email:n3}}", "role": "user", "active": true },
+      { "_id": "{{fake.n4_id:hex:24}}", "name": "{{fake.person.full:n4}}", "email": "{{fake.person.email:n4}}", "role": "user", "active": false },
+      { "_id": "{{fake.n5_id:hex:24}}", "name": "{{fake.person.full:n5}}", "email": "{{fake.person.email:n5}}", "role": "user", "active": true },
+      { "_id": "{{fake.n6_id:hex:24}}", "name": "{{fake.person.full:n6}}", "email": "{{fake.person.email:n6}}", "role": "user", "active": true }
+    ],
+    "total": 6
+    }
+behavior: branch
+branch:
+  cases:
+    # Unlikely value right after the operator (empty / 16+ hex / tilde run) -> empty result. The tilde is
+    # escaped (\~) because the compiler wraps match patterns in ~...~ delimiters.
+    - when: { in: request, regex: '\[\s*\$[a-z]+\s*\]=(?:[0-9a-f]{16,}|\~{4,})?(?=[&\s]|$)', ci: true }
+      response:
+        status: 200
+        headers:
+          Content-Type: "application/json; charset=utf-8"
+        body: |
+          {"data":[],"total":0}
+expect:
+  - '"_id"'
+  - '"role": "admin"'
+  - '"total": 6'

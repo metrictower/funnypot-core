@@ -25,8 +25,14 @@ final class DjangoOrmFilterDifferentialTest extends TestCase
     /** @var array<string,mixed>|null */
     private static $idx;
 
+    /** @var array<string,Honeypot> per-seed engine cache — caps Honeypot churn across the seed sweeps. */
+    private static $engines = [];
+
     private function engine(string $seed = 'fixed'): Honeypot
     {
+        if (isset(self::$engines[$seed])) {
+            return self::$engines[$seed];
+        }
         if (self::$idx === null) {
             self::$idx = require __DIR__ . '/../resources/compiled/nuclei-index.full.php';
         }
@@ -35,7 +41,7 @@ final class DjangoOrmFilterDifferentialTest extends TestCase
             65536, 0, 0, false, null, null, null, $seed);
         $cfg->attackEmulation = true;
 
-        return new Honeypot(new PhpArrayStore(self::$idx), $cfg);
+        return self::$engines[$seed] = new Honeypot(new PhpArrayStore(self::$idx), $cfg);
     }
 
     private function resp(string $path, string $query = '', string $seed = 'fixed'): ?object
