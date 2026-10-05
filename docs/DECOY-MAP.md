@@ -176,7 +176,7 @@ mindmap
 | langflow | 1 | attack:1 | 1 | 0 | high | accepted |
 | laravel | 1 | attack:1 | 1 | 0 | high | &mdash; |
 | lfi | 5 | attack:4 attack-crs:1 | 0 | 0 | high | &mdash; |
-| llm | 1 | attack-ai:1 | 1 | 0 | high | fail |
+| llm | 1 | attack-ai:1 | 1 | 0 | high | accepted |
 | log-disclosure | 20 | new-page:20 | 20 | 0 | high | &mdash; |
 | netgear | 1 | attack:1 | 1 | 0 | critical | &mdash; |
 | nextjs | 2 | attack:1 new-page:1 | 2 | 0 | high | accepted, info |
@@ -186,7 +186,7 @@ mindmap
 | ntlm | 1 | attack:1 | 27 | 0 | medium | info |
 | ollama | 9 | attack-ai:6 new-page:3 | 9 | 0 | medium | info |
 | open | 1 | attack:1 | 0 | 0 | medium | &mdash; |
-| openai | 1 | attack-ai:1 | 1 | 0 | medium | fail |
+| openai | 1 | attack-ai:1 | 1 | 0 | medium | accepted |
 | owncloud | 1 | attack:1 | 0 | 0 | high | &mdash; |
 | palo-alto | 4 | new-page:4 | 4 | 0 | info | &mdash; |
 | pgadmin | 2 | new-page:2 | 2 | 0 | info | &mdash; |
