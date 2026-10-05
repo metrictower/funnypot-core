@@ -8,6 +8,7 @@ use Funnypot\Core\Compiler\Crs\FingerprintGuard;
 use Funnypot\Core\Contracts\CompiledStore;
 use Funnypot\Core\Reaction\ParamIntent;
 use Funnypot\Core\Reaction\ParamReactionDecorator;
+use Funnypot\Core\Reaction\ParamMiningProbe;
 use Funnypot\Core\Reaction\QueryIntentClassifier;
 use Funnypot\Core\Response\EmulatorRegistry;
 use Funnypot\Core\Rules\ServedStringWalker;
@@ -647,6 +648,13 @@ final class Honeypot implements Engine
         }
         if ($this->isRootEntry($bundles) || $r->query === '') {
             return null;
+        }
+
+        // A parameter-mining batch (FP-0427) is checked first: its honey-param canary echo must win over a
+        // generic single-param intent that a candidate name in the same batch (e.g. file=/q=) would produce.
+        $mining = ParamMiningProbe::detect($r->query);
+        if ($mining !== null) {
+            return $mining;
         }
 
         return QueryIntentClassifier::classify($r->query);

@@ -23,6 +23,7 @@ final class ParamIntent
     public const KIND_DEBUG_VIEW = 'debug-view';
     public const KIND_COMMAND_RESULT = 'command-result';
     public const KIND_SEARCH_RESULT = 'search-result';
+    public const KIND_DEBUG_CANARY = 'debug-canary';
 
     /** Max decoded value bytes for a recognized key (mirrors QueryIntentClassifier). */
     public const MAX_VALUE_BYTES = 256;
@@ -39,6 +40,8 @@ final class ParamIntent
         self::KIND_DEBUG_VIEW => ['debug'],
         self::KIND_COMMAND_RESULT => ['cmd'],
         self::KIND_SEARCH_RESULT => ['q', 'search', 'msg', 'note'],
+        // FP-0427: the sqlmap --mine-params honey-parameters whose canary value is echoed back.
+        self::KIND_DEBUG_CANARY => ['debug', 'cfg'],
     ];
 
     /** @var string one of the KIND_* constants */
