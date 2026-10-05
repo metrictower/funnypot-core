@@ -1,0 +1,53 @@
+id: attack-sqli-union-extraction
+severity: high
+priority: 48
+status: 200
+tags: [attack, sqli, union, extraction, oracle, deception]
+html_safe_captures: true
+# FP-0416: UNION-based SQLi EXTRACTION oracle (Waymap db_fetcher.py UNION mode). Waymap wraps each target
+# in the 0x7e tilde delimiter — UNION SELECT CONCAT(0x7e,VERSION(),0x7e) / DATABASE() / USER() / an
+# information_schema enum — and reads the value via extract_between_delimiters(text,'~','~'). Before this,
+# such a probe hit 50-sqli's generic 1064 ERROR (no ~value~ in a success context), so UNION extraction
+# found nothing. This sits below 50-sqli and answers the tilde/schema UNION shape with a believable SUCCESS
+# page embedding ~<synthetic>~, so the tool "confirms" + extracts a FAKE database (complements the
+# error-based oracle attack-sqli-error-extraction). Two AND conditions (union-select AND a tilde/schema
+# marker) — no lazy span, no ReDoS. A plain non-tilde union (1,2,3) lacks the marker, so it still falls to
+# 50-sqli. The branch keys the element on the metadata target; base = the server version.
+#
+# CANNED/persona-coherent (persona.db.* + a fixed fake catalog), the `~` is the literal Waymap expects, no
+# attacker byte is reflected, never 500. Schema-tarpit micro-delay rate-limiting (stateful) is app = FP-0576.
+match:
+  - in: request
+    ci: true
+    regex: 'union\s+(?:all\s+)?select\b'
+  - in: request
+    ci: true
+    regex: '0x7e|char\s*\(\s*126\s*\)|information_schema\.'
+response:
+  headers:
+    Content-Type: "text/html; charset=utf-8"
+  body: "<!doctype html><html lang=\"en\"><head><meta charset=\"utf-8\"><title>{{attack.page.title:home}}</title></head><body>\n<div class=\"row\">~{{persona.db.name}}~</div>\n</body></html>\n"
+expect: ["<div class=\"row\">~"]
+behavior: branch
+branch:
+  cases:
+    - when: { in: request, regex: '@@\s*(?:global\.)?version|\bversion\s*\(\s*\)|@@\s*version_comment', ci: true }
+      response:
+        headers: { Content-Type: "text/html; charset=utf-8" }
+        body: "<!doctype html><html lang=\"en\"><head><meta charset=\"utf-8\"><title>{{attack.page.title:home}}</title></head><body>\n<div class=\"row\">~{{pick:8.0.36,8.0.35,8.4.3}}-0ubuntu0.22.04.1~</div>\n</body></html>\n"
+    - when: { in: request, regex: 'current_user|system_user|session_user|\buser\s*\(\s*\)', ci: true }
+      response:
+        headers: { Content-Type: "text/html; charset=utf-8" }
+        body: "<!doctype html><html lang=\"en\"><head><meta charset=\"utf-8\"><title>{{attack.page.title:home}}</title></head><body>\n<div class=\"row\">~{{persona.db.user}}@localhost~</div>\n</body></html>\n"
+    - when: { in: request, regex: 'column_name|information_schema\.columns', ci: true }
+      response:
+        headers: { Content-Type: "text/html; charset=utf-8" }
+        body: "<!doctype html><html lang=\"en\"><head><meta charset=\"utf-8\"><title>{{attack.page.title:home}}</title></head><body>\n<div class=\"row\">~{{pick:id,username,password_hash,email,auth_token,created_at}}~</div>\n</body></html>\n"
+    - when: { in: request, regex: 'table_name|information_schema\.tables', ci: true }
+      response:
+        headers: { Content-Type: "text/html; charset=utf-8" }
+        body: "<!doctype html><html lang=\"en\"><head><meta charset=\"utf-8\"><title>{{attack.page.title:home}}</title></head><body>\n<div class=\"row\">~{{pick:users,accounts,sessions,api_keys,orders,transactions}}~</div>\n</body></html>\n"
+    - when: { in: request, regex: 'schema_name|information_schema\.schemata|\bdatabase\s*\(\s*\)|\bschema\s*\(\s*\)', ci: true }
+      response:
+        headers: { Content-Type: "text/html; charset=utf-8" }
+        body: "<!doctype html><html lang=\"en\"><head><meta charset=\"utf-8\"><title>{{attack.page.title:home}}</title></head><body>\n<div class=\"row\">~{{persona.db.name}}~</div>\n</body></html>\n"
