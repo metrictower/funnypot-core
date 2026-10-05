@@ -1,0 +1,45 @@
+id: attack-nosql-signin-mint
+severity: high
+priority: 119
+status: 200
+tags: [attack, nosql, nosqli, auth-bypass, decoy-session, mint, deception]
+# FP-0572: NoSQL auth-bypass -> decoy-session MINT consumer template (uses the FP-0561 engine mechanism).
+# A NoSQLMap/Artemis auth-bypass operator on a credential field at POST /api/signin confirms the bypass on
+# a KEYED deploy — the mint 302s to the dashboard + issues a signed Set-Cookie (the two Artemis positive
+# signals), extracting a FAKE authenticated session.
+#
+# PLACEMENT preserves unkeyed byte-identity (the FP-0561 invariant: a null-key deploy serves this rule's
+# BASE response, it does NOT fall through):
+#   - benign POST (no operator) does NOT match the 3rd condition -> the rule declines -> plain 404 (today's
+#     bytes for a benign /api/signin, which is a store-miss).
+#   - an operator POST on an UNKEYED deploy declines the mint behavior and serves THIS base response, which
+#     is byte-identical to today's 121-nosql-operator reclassify (`{"data":[],"total":0}\n`,
+#     application/json; charset=utf-8, 200) — so an unkeyed deploy is unchanged on /api/signin too.
+#   - priority 119 (< 121) so a KEYED deploy wins over the generic 121 reclassify and mints instead.
+# The mint is inert (fixed rooted-relative redirect, no reflection), RE-VALIDATES the captured operator in
+# the engine, and is kill-switch-gated (decoySessionKey null => never mints). No attacker byte is reflected.
+match:
+  - in: method
+    regex: '^POST$'
+  - in: path
+    regex: '^/api/signin/?$'
+    ci: true
+  - in: request
+    ci: true
+    capture: true
+    regex: '(?P<bypass>(?:username|user|login|email|pass(?:word)?)(?:\[\s*\$|"\s*:\s*\{\s*"\s*\$)(?:ne|gte?|lte?|gt|lt|in|nin|regex|exists|where|or|nor|not)\b)'
+response:
+  headers:
+    Content-Type: "application/json; charset=utf-8"
+  body: |
+    {"data":[],"total":0}
+behavior: decoy-session
+decoy-session:
+  mode: mint
+  cookie_name: connect.sid
+  cookie_path: /
+  redirect: /account
+  credential_bypass: nosql-operator
+expect:
+  - '"data"'
+  - '"total"'
