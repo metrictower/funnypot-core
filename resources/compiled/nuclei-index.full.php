@@ -13,11 +13,11 @@ return array (
     'license' => 'MIT (c) 2025 ProjectDiscovery, Inc.',
     'upstream_tag' => '2ec914123864439c3618e7e9ae72d32d0eb56df7',
     'upstream_sha' => '2ec914123864439c3618e7e9ae72d32d0eb56df7',
-    'source_tree' => '40f25abdf0de6d416df1b7c60e61e9a127152ca55d12fdd36d678b87a35e355e',
+    'source_tree' => 'd6ba2fe4ff5240ce854f5dfc21b48f883379db87e7ae91cfd1883be03c49b060',
     'templates_seen' => 11196,
     'templates_in' => 6363,
-    'templates_indexed' => 6525,
-    'route_keys' => 5391,
+    'templates_indexed' => 6527,
+    'route_keys' => 5393,
     'multi_bundle_keys' => 277,
     'largest_bundle_count' => 1324,
     'persona_cap' => 
@@ -85960,6 +85960,32 @@ return array (
         4 => 'exposure',
       ),
       'name' => 'GlobalProtect portal background',
+    ),
+    'route-citrix-nsepa' => 
+    array (
+      'sev' => 'info',
+      'tags' => 
+      array (
+        0 => 'citrix',
+        1 => 'netscaler',
+        2 => 'gateway',
+        3 => 'version-oracle',
+        4 => 'exposure',
+      ),
+      'name' => 'NetScaler EPA client',
+    ),
+    'route-ivanti-ds-js' => 
+    array (
+      'sev' => 'info',
+      'tags' => 
+      array (
+        0 => 'ivanti',
+        1 => 'connect-secure',
+        2 => 'pulse',
+        3 => 'version-oracle',
+        4 => 'exposure',
+      ),
+      'name' => 'Ivanti DS script',
     ),
     'route-js-sourcemap' => 
     array (
@@ -314393,6 +314419,55 @@ a</title>',
             0 => 'route-panos-bg-png',
           ),
           'bin' => 1,
+        ),
+      ),
+    ),
+    'GET /epa/scripts/win/nsepa_setup.exe' => 
+    array (
+      'b' => 
+      array (
+        0 => 
+        array (
+          's' => 200,
+          'bw' => 
+          array (
+          ),
+          'nf' => 
+          array (
+          ),
+          'pid' => 'route-citrix-nsepa',
+          'sev' => 'info',
+          'sig' => 0,
+          'amb' => 0,
+          't' => 
+          array (
+            0 => 'route-citrix-nsepa',
+          ),
+          'bin' => 1,
+        ),
+      ),
+    ),
+    'GET /dana-na/css/ds.js' => 
+    array (
+      'b' => 
+      array (
+        0 => 
+        array (
+          's' => 200,
+          'bw' => 
+          array (
+          ),
+          'nf' => 
+          array (
+          ),
+          'pid' => 'route-ivanti-ds-js',
+          'sev' => 'info',
+          'sig' => 0,
+          'amb' => 0,
+          't' => 
+          array (
+            0 => 'route-ivanti-ds-js',
+          ),
         ),
       ),
     ),

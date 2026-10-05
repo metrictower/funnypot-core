@@ -1,0 +1,22 @@
+id: route-citrix-nsepa
+priority: 433
+# FP-0383: Citrix NetScaler Gateway EPA client installer — the OWASP Nettacker `citrix_lastpatcheddate`
+# recon path (HEAD /epa/scripts/win/nsepa_setup.exe, reads Last-Modified). We serve a PRE-patch build date
+# ({{persona.citrix.lastModified}}, a vulnerable 13.x/14.1 build BEFORE the CVE-2023-4966 "Citrix Bleed"
+# fix of 2023-10-10) so a scanner declares the host unpatched and proceeds to the Citrix Bleed exploit
+# decoy (84-citrix-bleed) — the full "recon says unpatched -> exploit -> into our decoy" loop. Self-
+# generated minimal INERT PE stub (the universal public DOS stub) — NO real Citrix binary (golden rule).
+# The binary render branch renders response.headers, so Last-Modified resolves on this asset.
+new_page:
+  method: GET
+  paths: ['/epa/scripts/win/nsepa_setup.exe']
+  sig: 0
+  status: 200
+  severity: info
+  tags: [citrix, netscaler, gateway, version-oracle, exposure]
+  name: 'NetScaler EPA client'
+response:
+  headers:
+    Content-Type: "application/octet-stream"
+    Last-Modified: "{{persona.citrix.lastModified}}"
+  body_b64: 'TVqQAAMAAAAEAAAA//8AALgAAAAAAAAAQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA4fug4AtAnNIbgBTM0hVGhpcyBwcm9ncmFtIGNhbm5vdCBiZSBydW4gaW4gRE9TIG1vZGUuDQ0KJAAAAA=='

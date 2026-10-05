@@ -4,7 +4,7 @@
 > The manifest is the sole inventory authority; friendly names, categories and behavior
 > prose live in the README taxonomy, not here.
 
-Manifest schema 1. Authored records: 436 across 114 families. Corpus: 2611 families / 5134 route keys (summarized, not enumerated). Enrichers: 286.
+Manifest schema 1. Authored records: 438 across 114 families. Corpus: 2611 families / 5134 route keys (summarized, not enumerated). Enrichers: 288.
 
 ```mermaid
 mindmap
@@ -17,7 +17,7 @@ mindmap
     fam0006["basic-auth: 1"]
     fam0007["behavioral: 1"]
     fam0008["cisco: 1"]
-    fam0009["citrix: 1"]
+    fam0009["citrix: 2"]
     fam0010["cloud: 4"]
     fam0011["cloud-metadata: 7"]
     fam0012["cmdi: 4"]
@@ -54,7 +54,7 @@ mindmap
     fam0043["hadoop: 1"]
     fam0044["hikvision: 2"]
     fam0045["http-method-override: 1"]
-    fam0046["ivanti: 1"]
+    fam0046["ivanti: 2"]
     fam0047["jenkins: 3"]
     fam0048["kibana: 3"]
     fam0049["langflow: 1"]
@@ -124,7 +124,7 @@ mindmap
     fam0113["xss: 2"]
     fam0114["xxe: 1"]
     corpus["corpus: 2611 families / 5134 keys"]
-    enrichers["content enrichers #40;not route claimers#41;: 286"]
+    enrichers["content enrichers #40;not route claimers#41;: 288"]
 ```
 
 | Family | Authored records | Tier mix | Owned routes | Outbound links | Max severity | Integrity |
@@ -137,7 +137,7 @@ mindmap
 | basic-auth | 1 | new-page:1 | 1 | 0 | low | &mdash; |
 | behavioral | 1 | param:1 | 1 | 0 | high | &mdash; |
 | cisco | 1 | attack:1 | 1 | 0 | high | &mdash; |
-| citrix | 1 | attack:1 | 0 | 0 | critical | &mdash; |
+| citrix | 2 | attack:1 new-page:1 | 1 | 0 | critical | &mdash; |
 | cloud | 4 | new-page:4 | 4 | 0 | high | &mdash; |
 | cloud-metadata | 7 | attack:7 | 1 | 0 | high | &mdash; |
 | cmdi | 4 | attack:4 | 0 | 0 | critical | &mdash; |
@@ -174,7 +174,7 @@ mindmap
 | hadoop | 1 | new-page:1 | 1 | 0 | low | &mdash; |
 | hikvision | 2 | attack:1 new-page:1 | 2 | 0 | critical | &mdash; |
 | http-method-override | 1 | attack:1 | 0 | 0 | high | &mdash; |
-| ivanti | 1 | attack:1 | 0 | 0 | critical | &mdash; |
+| ivanti | 2 | attack:1 new-page:1 | 1 | 0 | critical | &mdash; |
 | jenkins | 3 | attack:1 new-page:2 | 3 | 1 | high | accepted |
 | kibana | 3 | attack:1 new-page:2 | 3 | 0 | high | info |
 | langflow | 1 | attack:1 | 1 | 0 | high | accepted |
@@ -244,6 +244,6 @@ mindmap
 | xss | 2 | attack:1 attack-crs:1 | 0 | 0 | high | &mdash; |
 | xxe | 1 | attack:1 | 0 | 0 | high | &mdash; |
 | _corpus (nuclei-inversion)_ | 2611 families / 5134 keys | &mdash; | &mdash; | &mdash; | &mdash; | &mdash; |
-| _content enrichers (not route claimers)_ | 286 | &mdash; | &mdash; | &mdash; | &mdash; | &mdash; |
+| _content enrichers (not route claimers)_ | 288 | &mdash; | &mdash; | &mdash; | &mdash; | &mdash; |
 
 Per-family detail: `bin/funnypot map --family=NAME --format=md` (or `--format=mermaid` for the raw flowchart).
