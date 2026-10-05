@@ -23,6 +23,21 @@ return array(
     'priority_overrides' => array(),
 
     'accepted' => array(
+        // FP-0407: the /v1/chat/completions chat endpoint is owned by TWO intentional, priority-ordered
+        // claimants. attack-ai-openai-injection-trap (priority 37) fires ONLY on a prompt-injection marker
+        // in the body and leaks the canary system prompt; the generated troll responder
+        // attack-ai-openai-chat (priority 38) answers every other chat POST. The lower priority gives the
+        // trap first-match precedence on the injection subset; a benign POST misses the trap's body-marker
+        // condition and falls through to the troll responder. Distinct families by design (injection-trap vs
+        // the generated ai-recon troll), so the collision is recorded here with its reason.
+        array(
+            'check' => 'collision',
+            'a' => 'attack-ai-openai-injection-trap',
+            'b' => 'attack-ai-openai-chat',
+            'path' => '/v1/chat/completions',
+            'reason' => 'intentional priority-ordered pair on the chat endpoint: the injection-trap (p37) fires only on an injection marker and leaks the canary system prompt; the generated troll responder (p38) handles every other chat POST — a benign POST misses the trap body-marker and falls through',
+        ),
+
         // The phpMyAdmin login/gate form action is a relative `index.php`. It is mitigated by the
         // shipped per-panel canonical_slash 301 (102-phpmyadmin-gate.yaml → redirect bare /phpmyadmin
         // to /phpmyadmin/), so a browser resolves it under the owned base /phpmyadmin/index.php.

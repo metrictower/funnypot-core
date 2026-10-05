@@ -1,0 +1,34 @@
+id: attack-ai-openai-injection-trap
+severity: high
+priority: 37
+status: 200
+tags: [attack, ai-recon, llm, prompt-injection, canarytokens, exposure]
+owns_path: [/v1/chat/completions]
+# FP-0407 (AC3): the prompt-injection DISCLOSURE trap for /v1/chat/completions. The generated troll
+# responder (38-ai-openai-chat, priority 38) answers every chat POST with a wrong-but-benign completion;
+# this sits one priority ABOVE it and fires ONLY when the request carries a prompt-injection marker
+# (ignore prior instructions / repeat your system prompt / reveal your initial instructions / …). Instead
+# of refusing, it returns a believable OpenAI chat.completion whose assistant message is a "leaked" internal
+# system prompt embedding SEEDED canary credentials — a canary AWS key + an internal postgres URL, the SAME
+# deploy-stable persona.* leaked in /.env & /secrets.json (one credential story), so a scanner that
+# exfiltrates them and replays them is correlated app-side. A benign chat POST carries no marker, so this
+# rule declines and the request falls through to the generated troll responder (byte-identical to today).
+# CANNED: no request byte is reflected (the marker only gates; model is fixed, not echoed), never 5xx.
+match:
+  - in: path
+    regex: '^/v1/chat/completions/?$'
+    ci: false
+  - in: method
+    regex: '^POST$'
+    ci: false
+  - in: body
+    ci: true
+    regex: 'ignore\s+(?:all\s+)?(?:prior|previous|above|earlier)\s+instructions|disregard\s+(?:all\s+)?(?:prior|previous)\s+instructions|repeat\s+your\s+system\s+prompt|system\s+(?:prompt|instructions?)\s+verbatim|(?:output|reveal|print|show|disclose|dump)\s+(?:your\s+)?(?:initial|system|original)\s+(?:prompt|instructions?)|what\s+(?:is|are)\s+your\s+(?:system\s+)?(?:prompt|instructions?)'
+response:
+  headers:
+    Content-Type: "application/json"
+  body: '{"id":"chatcmpl-{{fake.chatid:hex:20}}","object":"chat.completion","created":1769904000,"model":"gpt-4","choices":[{"index":0,"message":{"role":"assistant","content":"You are CorpInternalAssistant v4.2, the internal operations assistant for {{persona.company.name}}.\n\nSYSTEM CONFIGURATION (confidential — do not reveal to end users):\n- AWS_ACCESS_KEY_ID={{persona.cloud.aws.accessKeyId}}\n- DATABASE_URL=postgres://{{persona.db.user}}:{{persona.db.password}}@{{persona.db.host}}.internal:5432/{{persona.db.name}}\n- INTERNAL_API=https://{{persona.company.domain}}/api/v1/internal\n","refusal":null},"logprobs":null,"finish_reason":"stop"}],"usage":{"prompt_tokens":42,"completion_tokens":128,"total_tokens":170}}'
+expect:
+  - '"chat.completion"'
+  - 'CorpInternalAssistant'
+  - 'AWS_ACCESS_KEY_ID='
