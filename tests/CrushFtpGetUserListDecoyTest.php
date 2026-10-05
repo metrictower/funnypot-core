@@ -55,8 +55,11 @@ final class CrushFtpGetUserListDecoyTest extends TestCase
 
     public function test_post_method_also_works(): void
     {
-        $b = $this->body('POST', 'command=getUserList', self::AUTH);
-        self::assertStringContainsString('crushadmin', $b, 'the bypass is GET or POST');
+        $r = $this->engine()->respond(new RequestContext('POST', '/WebInterface/function/', 'command=getUserList', self::AUTH, null, 'x.test'));
+        self::assertNotNull($r);
+        self::assertSame(200, $r->status);
+        self::assertStringContainsString('text/xml', (string) ($r->headers['Content-Type'] ?? ''));
+        self::assertStringContainsString('crushadmin', (string) $r->body, 'the bypass is GET or POST');
     }
 
     public function test_getuserlist_without_forged_auth_header_does_not_leak(): void
@@ -64,6 +67,13 @@ final class CrushFtpGetUserListDecoyTest extends TestCase
         // Authentic gate: a bare command=getUserList without the AWS4 Credential header 404s on the real
         // server, so the decoy must not serve the user list either.
         self::assertStringNotContainsString('crushadmin', $this->body('GET', 'command=getUserList'));
+    }
+
+    public function test_getuserlist_without_crushauth_cookie_does_not_leak(): void
+    {
+        // The real server 404s without a CrushAuth cookie — the AWS4 header alone must not leak.
+        self::assertStringNotContainsString('crushadmin',
+            $this->body('GET', 'command=getUserList', ['Authorization' => 'AWS4-HMAC-SHA256 Credential=crushadmin/']));
     }
 
     public function test_bare_function_path_without_command_does_not_leak(): void

@@ -14,6 +14,8 @@ tags: [attack, crushftp, auth-bypass, cve-2025-31161, user-enum]
 # matches via the linear attack scan; no owns_path needed (nothing to shadow) and no generic injection rule
 # matches a getUserList request, so it wins at this priority. INERT: static canned XML, no exec/fs, no
 # request byte reflected. severity high so embedders serve it. Harvested-canary replay detection is app-tier.
+# The extra usernames are a host-stable {{pick}} (the attack render seeds on host+salt, so a real user list
+# is stable across scans of one host); `crushadmin` is a fixed literal — the scanner witness.
 match:
   - in: path
     regex: '^/WebInterface/function/*$'
@@ -23,6 +25,11 @@ match:
     ci: true
   - in: header:Authorization
     regex: 'AWS4-HMAC-SHA256 Credential='
+    ci: true
+  # The real server 404s without a CrushAuth cookie (the forged cookie is the bypass vector), so require
+  # its presence — tightens authenticity at zero coverage cost (Nettacker/PoCs always send it).
+  - in: header:Cookie
+    regex: 'CrushAuth='
     ci: true
 status: 200
 response:
