@@ -4,7 +4,7 @@
 > The manifest is the sole inventory authority; friendly names, categories and behavior
 > prose live in the README taxonomy, not here.
 
-Manifest schema 1. Authored records: 431 across 113 families. Corpus: 2611 families / 5134 route keys (summarized, not enumerated). Enrichers: 286.
+Manifest schema 1. Authored records: 432 across 114 families. Corpus: 2611 families / 5134 route keys (summarized, not enumerated). Enrichers: 286.
 
 ```mermaid
 mindmap
@@ -92,36 +92,37 @@ mindmap
     fam0081["shellshock: 1"]
     fam0082["smb: 1"]
     fam0083["sourcemap: 6"]
-    fam0084["splunk: 1"]
-    fam0085["spring-boot: 1"]
-    fam0086["springboot: 12"]
-    fam0087["sqli: 2"]
-    fam0088["ssh: 1"]
-    fam0089["ssti: 2"]
-    fam0090["struts: 1"]
-    fam0091["teamcity: 1"]
-    fam0092["terraform: 3"]
-    fam0093["thinkphp: 1"]
-    fam0094["tls: 2"]
-    fam0095["tomcat: 3"]
-    fam0096["twig: 1"]
-    fam0097["union: 1"]
-    fam0098["upload: 1"]
-    fam0099["v1: 1"]
-    fam0100["vcs: 10"]
-    fam0101["velocity: 1"]
-    fam0102["vite: 1"]
-    fam0103["webmin: 1"]
-    fam0104["webshell: 1"]
-    fam0105["whm: 1"]
-    fam0106["windows: 2"]
-    fam0107["woocommerce: 8"]
-    fam0108["wordpress: 20"]
-    fam0109["wp-plugin-enum: 10"]
-    fam0110["wp-theme-enum: 2"]
-    fam0111["xdebug: 1"]
-    fam0112["xss: 2"]
-    fam0113["xxe: 1"]
+    fam0084["spel: 1"]
+    fam0085["splunk: 1"]
+    fam0086["spring-boot: 1"]
+    fam0087["springboot: 12"]
+    fam0088["sqli: 2"]
+    fam0089["ssh: 1"]
+    fam0090["ssti: 2"]
+    fam0091["struts: 1"]
+    fam0092["teamcity: 1"]
+    fam0093["terraform: 3"]
+    fam0094["thinkphp: 1"]
+    fam0095["tls: 2"]
+    fam0096["tomcat: 3"]
+    fam0097["twig: 1"]
+    fam0098["union: 1"]
+    fam0099["upload: 1"]
+    fam0100["v1: 1"]
+    fam0101["vcs: 10"]
+    fam0102["velocity: 1"]
+    fam0103["vite: 1"]
+    fam0104["webmin: 1"]
+    fam0105["webshell: 1"]
+    fam0106["whm: 1"]
+    fam0107["windows: 2"]
+    fam0108["woocommerce: 8"]
+    fam0109["wordpress: 20"]
+    fam0110["wp-plugin-enum: 10"]
+    fam0111["wp-theme-enum: 2"]
+    fam0112["xdebug: 1"]
+    fam0113["xss: 2"]
+    fam0114["xxe: 1"]
     corpus["corpus: 2611 families / 5134 keys"]
     enrichers["content enrichers #40;not route claimers#41;: 286"]
 ```
@@ -211,6 +212,7 @@ mindmap
 | shellshock | 1 | attack:1 | 0 | 0 | critical | &mdash; |
 | smb | 1 | attack:1 | 0 | 0 | high | &mdash; |
 | sourcemap | 6 | new-page:6 | 6 | 0 | info | &mdash; |
+| spel | 1 | attack:1 | 0 | 0 | critical | &mdash; |
 | splunk | 1 | attack:1 | 1 | 0 | high | &mdash; |
 | spring-boot | 1 | attack:1 | 0 | 0 | high | &mdash; |
 | springboot | 12 | new-page:12 | 12 | 0 | high | &mdash; |
