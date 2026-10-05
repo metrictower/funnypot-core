@@ -77,6 +77,24 @@ final class OobSignalRegistry
             );
         }
 
+        // FP-0472 (detection slice): attribute an SSRF protocol-smuggling payload (a raw internal-service
+        // stream wrapped in gopher://dict://tftp://ldap://) from its encapsulated framing/command tokens —
+        // telemetry only, baseline serves byte-identical. RCE-capable families (Redis cron/rdb drop, PHP
+        // -FPM FastCGI, Zabbix system.run) are `critical`; Memcached/dict probing are `high`. The
+        // synthetic protocol responder + structured LHOST/LPORT evidence are deferred to the app tier.
+        $ssrf = SsrfSmugglingProbe::detect($r);
+        if ($ssrf !== null) {
+            $critical = ($ssrf === SsrfSmugglingProbe::REDIS
+                || $ssrf === SsrfSmugglingProbe::FASTCGI
+                || $ssrf === SsrfSmugglingProbe::ZABBIX);
+            $out[] = new TemplateMatch(
+                'ssrf-protocol-smuggling-' . $ssrf,
+                $critical ? 'critical' : 'high',
+                ['ssrf.smuggling.' . $ssrf, 'ssrf', 'protocol-smuggling', $ssrf, 'oob'],
+                'SSRF protocol-smuggling probe (' . $ssrf . ')'
+            );
+        }
+
         return $out;
     }
 }
