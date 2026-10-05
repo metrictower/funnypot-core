@@ -38,6 +38,12 @@ response:
     STRIPE_SECRET_KEY={{persona.cloud.stripe.secretKey}}
     SENDGRID_API_KEY={{persona.cloud.sendgrid.apiKey}}
     JWT_SECRET={{persona.secret.jwt}}
+
+    OPENAI_API_KEY={{persona.cloud.openai.projectKey}}
+    ANTHROPIC_API_KEY={{persona.cloud.anthropic.apiKey}}
+    HUGGINGFACE_TOKEN={{persona.cloud.huggingface.token}}
+    GROQ_API_KEY={{persona.cloud.groq.apiKey}}
+    GITHUB_TOKEN={{persona.cloud.github.pat}}
 taunt: { mode: line, open: '#' }
 expect:
   - 'APP_ENV=development'
@@ -46,3 +52,5 @@ expect:
   - 'AWS_SECRET_ACCESS_KEY='
   - 'STRIPE_SECRET_KEY=sk_live_'
   - 'SENDGRID_API_KEY=SG.'
+  - 'OPENAI_API_KEY=sk-proj-'
+  - 'GITHUB_TOKEN=ghp_'
