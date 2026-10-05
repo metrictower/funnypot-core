@@ -379,7 +379,7 @@ final class PersonaIdentity
             'crushftp.lastModified' => gmdate('D, d M Y H:i:s', self::crushftpBuild($slug, $domain)['epoch']) . ' GMT',
             'ivcsa.version' => self::ivcsaBuild($slug, $domain)['version'],
             'ivcsa.lastModified' => gmdate('D, d M Y H:i:s', self::ivcsaBuild($slug, $domain)['epoch']) . ' GMT',
-            'ssh.privateKey' => self::sshPrivateKey($slug, $domain),
+            'ssh.privateKey' => self::sshPrivateKey($seed),
 
             // The WooCommerce core + payment-plugin versions this host claims — the single source of
             // truth for every store surface. Derived like php.version so field() and productVersion()
@@ -803,26 +803,30 @@ final class PersonaIdentity
      * with an incremented counter until the PEM is clean — deterministic per seed (same seed ⇒ same first
      * clean key), bounded, effectively always resolves on the first one or two tries.
      */
-    private static function sshPrivateKey(string $slug, string $domain): string
+    private static function sshPrivateKey(int $seed): string
     {
-        $pem = '';
-        for ($n = 0; $n < 32; $n++) {
+        for ($round = 0; ; $round++) {
+            $s = $round === 0 ? '' : '|r' . $round;
+            // RSA-sized (~1200 raw bytes ≈ a 2048-bit id_rsa, the filename's conventional algorithm) behind
+            // the real openssh-key-v1 magic, as a seeded sha256 chain. Derived from the raw $seed (like
+            // awsSecretKey), NOT persona slug/domain, so every DEPLOY gets a distinct key (not one of a few
+            // hundred repo-precomputable blobs) — the per-deploy-unique canary the ticket wants.
             $raw = "openssh-key-v1\x00";
-            $block = hash('sha256', $slug . '|' . $domain . '|ssh-id-rsa|' . $n, true);
-            while (strlen($raw) < 400) {
+            $block = (string) hex2bin(self::h($seed, 'ssh-id-rsa' . $s));
+            while (strlen($raw) < 1200) {
                 $raw .= $block;
                 $block = hash('sha256', $block, true);
             }
-            $raw = substr($raw, 0, 400);
+            $raw = substr($raw, 0, 1200);
             $pem = "-----BEGIN OPENSSH PRIVATE KEY-----\n"
                 . chunk_split(base64_encode($raw), 70, "\n")
                 . "-----END OPENSSH PRIVATE KEY-----\n";
-            if (preg_match('/\b9\d{5}\b/', $pem) !== 1) {
+            // Re-roll off the shared denied-digit predicate (a base64 blob can bound a bare 9ddddd CRS-id
+            // collision); deterministic first-clean per seed, like awsSecretKey.
+            if (!self::hitsDeniedDigits($pem)) {
                 return $pem;
             }
         }
-
-        return $pem; // 32 collisions is astronomically unlikely; deterministic fallback.
     }
 
     /**
