@@ -64,6 +64,15 @@ final class BotSignalSet
     public const UA_PLATFORM_MISMATCH = 'ua_platform_mismatch';
     public const SCANNER_USER_AGENT = 'scanner_user_agent';
     public const HOST_IS_BARE_IP = 'host_is_bare_ip';
+    /**
+     * FP-0360 forward-confirmed-rDNS outcomes for a claimed good-bot (set by the host after it runs
+     * {@see CrawlerVerifier::verify} with the client IP + a real resolver — core cannot do DNS). A
+     * CRAWLER_VERIFIED claimant is the real crawler (skip tarpit/deception, serve boring real-ish content);
+     * a BOT_IMPERSONATOR claims a crawler UA whose rDNS does not forward-confirm — a high-value deception/
+     * report target. Both are pure evidence flags; the UA class stays the CLAIM (UA_GOOD_BOT).
+     */
+    public const CRAWLER_VERIFIED = 'crawler_verified';
+    public const BOT_IMPERSONATOR = 'bot_impersonator';
 
     /** @var array<string,bool> named boolean flags for each fired signal */
     public $flags;
