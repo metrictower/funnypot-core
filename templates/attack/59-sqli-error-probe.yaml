@@ -9,9 +9,12 @@ tags: [attack, sqli, error-based, differential]
 # so it does not match -> clean fall-through -> Artemis's differential (error vs clean) fires. One dialect
 # (MySQL), coherent with the shipped SQLi surfaces; multi-dialect + the pgsql/MySQL persona reconciliation
 # are a follow-up. Never 500 (Artemis discards 500). No attacker byte reflected (the frame is seeded/canned).
+# The quote-pair must NOT be immediately followed by `<` or `>`: `'"><...>` is an HTML/markup breakout
+# (nuclei's reflected-XSS probe), never a SQL error probe, and the lookahead keeps it from shadowing the
+# path-conditioned XSS reflector that owns the search route (FP-0579). Bare `'"`/`"'`/`1'"` still match.
 match:
   - in: request
-    regex: "'\"|\"'"
+    regex: "(?:'\"|\"')(?![<>])"
 response:
   headers:
     Content-Type: "text/html; charset=utf-8"
