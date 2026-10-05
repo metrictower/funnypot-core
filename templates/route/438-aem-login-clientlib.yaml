@@ -1,0 +1,29 @@
+id: route-aem-login-clientlib
+priority: 438
+# FP-0589: Adobe AEM Granite login client library — the OWASP Nettacker `adobe_aem_lastpatcheddate` recon
+# path (HEAD /libs/granite/core/content/login/clientlib.js; conditions: 200 + Content-Type contains
+# `javascript` + any Last-Modified). A real AEM author/publish instance serves this concatenated login JS
+# at 200 on the sign-in page, which is why it's an unauthenticated freshness tell. We serve a PRE-patch
+# Last-Modified ({{persona.aem.lastModified}}, a vulnerable AEM 6.5 SP build BEFORE APSB20-31 / SP 6.5.5.0
+# of 2020-06-09) so a scanner reads the host as a stale, unpatched AEM. Served inline (new_page, no
+# redirect — the module does not follow redirects). Self-generated INERT JS stub — NO real AEM code.
+# Completes the Nettacker *_lastpatcheddate feeder set (Citrix/Ivanti-ICS FP-0383, CrushFTP/Ivanti-CSA
+# FP-0588).
+new_page:
+  method: GET
+  paths: ['/libs/granite/core/content/login/clientlib.js']
+  sig: 0
+  status: 200
+  severity: info
+  tags: [adobe, aem, granite, version-oracle, exposure]
+  name: 'AEM Granite login clientlib'
+response:
+  headers:
+    Content-Type: "application/javascript"
+    Last-Modified: "{{persona.aem.lastModified}}"
+    ETag: "{{persona.aem.etag}}"
+  body: |
+    (function(window,document){"use strict";var Granite=window.Granite=window.Granite||{};
+    Granite.author=Granite.author||{};function initLogin(){var f=document.getElementById("login");
+    if(f){f.setAttribute("autocomplete","off");}}document.addEventListener("DOMContentLoaded",initLogin);
+    })(window,document);

@@ -13,11 +13,11 @@ return array (
     'license' => 'MIT (c) 2025 ProjectDiscovery, Inc.',
     'upstream_tag' => '2ec914123864439c3618e7e9ae72d32d0eb56df7',
     'upstream_sha' => '2ec914123864439c3618e7e9ae72d32d0eb56df7',
-    'source_tree' => '0fb6d2c80130a4bd28ad84dfed962ed133066eb32f17b3aca85385e51965042f',
+    'source_tree' => 'b002e9a523f041af6e06818d944efa01918cfa5dd85cc22f3368703197952d7d',
     'templates_seen' => 11196,
     'templates_in' => 6363,
-    'templates_indexed' => 6530,
-    'route_keys' => 5396,
+    'templates_indexed' => 6531,
+    'route_keys' => 5397,
     'multi_bundle_keys' => 277,
     'largest_bundle_count' => 1324,
     'persona_cap' => 
@@ -86059,6 +86059,19 @@ return array (
         4 => 'credential-harvest',
       ),
       'name' => 'exposed SSH private key',
+    ),
+    'route-aem-login-clientlib' => 
+    array (
+      'sev' => 'info',
+      'tags' => 
+      array (
+        0 => 'adobe',
+        1 => 'aem',
+        2 => 'granite',
+        3 => 'version-oracle',
+        4 => 'exposure',
+      ),
+      'name' => 'AEM Granite login clientlib',
     ),
     'route-phpinfo' => 
     array (
@@ -314778,6 +314791,30 @@ a</title>',
           't' => 
           array (
             0 => 'route-ssh-id-rsa',
+          ),
+        ),
+      ),
+    ),
+    'GET /libs/granite/core/content/login/clientlib.js' => 
+    array (
+      'b' => 
+      array (
+        0 => 
+        array (
+          's' => 200,
+          'bw' => 
+          array (
+          ),
+          'nf' => 
+          array (
+          ),
+          'pid' => 'route-aem-login-clientlib',
+          'sev' => 'info',
+          'sig' => 0,
+          'amb' => 0,
+          't' => 
+          array (
+            0 => 'route-aem-login-clientlib',
           ),
         ),
       ),

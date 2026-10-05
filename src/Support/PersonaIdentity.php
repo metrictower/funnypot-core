@@ -101,6 +101,13 @@ final class PersonaIdentity
         'crushftp.lastModified',
         'ivcsa.version',
         'ivcsa.lastModified',
+        // FP-0589: Adobe AEM freshness oracle — the Nettacker adobe_aem_lastpatcheddate module HEADs
+        // /libs/granite/core/content/login/clientlib.js and reads Last-Modified. A vulnerable AEM 6.5
+        // Service-Pack build + a pre-patch date (< APSB20-31 / SP 6.5.5.0, 2020-06-09) from one AEM_BUILDS
+        // index (version<->date coherent). A version field, so keyed on slug|domain like panos/citrix.
+        'aem.version',
+        'aem.lastModified',
+        'aem.etag',
         // FP-0570: a per-deploy INERT canary OpenSSH private key for /.ssh/id_rsa. Seed-derived (so NO
         // static key lives in this PUBLIC repo — a static key would be a fleet fingerprint), parse-
         // plausible (the openssh-key-v1 magic + 70-col-wrapped base64) but not a usable key, so a
@@ -379,6 +386,11 @@ final class PersonaIdentity
             'crushftp.lastModified' => gmdate('D, d M Y H:i:s', self::crushftpBuild($slug, $domain)['epoch']) . ' GMT',
             'ivcsa.version' => self::ivcsaBuild($slug, $domain)['version'],
             'ivcsa.lastModified' => gmdate('D, d M Y H:i:s', self::ivcsaBuild($slug, $domain)['epoch']) . ' GMT',
+            'aem.version' => self::aemBuild($slug, $domain)['version'],
+            'aem.lastModified' => gmdate('D, d M Y H:i:s', self::aemBuild($slug, $domain)['epoch']) . ' GMT',
+            // Deploy-stable ETag, the proven denylist-safe 8-hex-of-epoch panos pattern (an 8-hex token
+            // carries no bare 6-digit decimal run); a real Granite clientlib carries an ETag.
+            'aem.etag' => sprintf('"%08x"', self::aemBuild($slug, $domain)['epoch']),
             'ssh.privateKey' => self::sshPrivateKey($seed),
 
             // The WooCommerce core + payment-plugin versions this host claims — the single source of
@@ -786,6 +798,32 @@ final class PersonaIdentity
         $idx = (int) (hexdec(substr(hash('sha256', $slug . '|' . $domain . '|ivcsa-build'), 0, 8)) % count(self::IVCSA_BUILDS));
 
         return self::IVCSA_BUILDS[$idx];
+    }
+
+    /**
+     * FP-0589: real vulnerable Adobe AEM 6.5 builds — all BEFORE the APSB20-31 / Service Pack 6.5.5.0 fix
+     * (2020-06-09, the multi-CVE SSRF/XSS bulletin). Serves the /libs/granite/core/content/login/clientlib.js
+     * Last-Modified; the Nettacker module reads it as a freshness tell. GA 6.5.0.0 (2019-04-08) + SP3/SP4
+     * (both pre-APSB20-31) — the exact SP day is not load-bearing (only "< 2020-06-09" matters).
+     *
+     * @var non-empty-list<array{version:string,epoch:int}>
+     */
+    private const AEM_BUILDS = [
+        ['version' => '6.5.0.0', 'epoch' => 1554681600],  // 2019-04-08 (GA)
+        ['version' => '6.5.3.0', 'epoch' => 1576108800],  // 2019-12-12 (SP3)
+        ['version' => '6.5.4.0', 'epoch' => 1583366400],  // 2020-03-05 (SP4; still missing APSB20-31)
+    ];
+
+    /**
+     * One AEM_BUILDS entry for this deploy (version+date together, deploy-stable).
+     *
+     * @return array{version:string,epoch:int}
+     */
+    private static function aemBuild(string $slug, string $domain): array
+    {
+        $idx = (int) (hexdec(substr(hash('sha256', $slug . '|' . $domain . '|aem-build'), 0, 8)) % count(self::AEM_BUILDS));
+
+        return self::AEM_BUILDS[$idx];
     }
 
     /**

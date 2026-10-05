@@ -27,11 +27,13 @@ final class PrePatchAssetFeederTest extends TestCase
     private const IVANTI_PATCH = 1706659200;    // 2024-01-31
     private const CRUSHFTP_PATCH = 1742515200;  // 2025-03-21 (CVE-2025-31161)
     private const IVCSA_PATCH = 1725926400;     // 2024-09-10 (CVE-2024-8190/-2024-8963)
+    private const AEM_PATCH = 1591660800;       // 2020-06-09 (APSB20-31 / SP 6.5.5.0)
     // The valid pre-patch Last-Modified epochs (must mirror the PersonaIdentity::*_BUILDS consts).
     private const CITRIX_EPOCHS = [1684108800, 1681084800, 1691366400];
     private const IVANTI_EPOCHS = [1687219200, 1694476800, 1698105600];
     private const CRUSHFTP_EPOCHS = [1734000000, 1738022400];
     private const IVCSA_EPOCHS = [1712707200, 1722470400];
+    private const AEM_EPOCHS = [1554681600, 1576108800, 1583366400];
 
     /** @var array<string,mixed>|null */
     private static $idx;
@@ -70,6 +72,7 @@ final class PrePatchAssetFeederTest extends TestCase
             'ivanti ds.js'     => ['/dana-na/css/ds.js', 'application/javascript', self::IVANTI_PATCH, self::IVANTI_EPOCHS],
             'crushftp jar'     => ['/WebInterface/CrushTunnel.jar', 'application/java-archive', self::CRUSHFTP_PATCH, self::CRUSHFTP_EPOCHS],
             'ivanti-csa png'   => ['/allowed/ivanti-logo.png', 'image/png', self::IVCSA_PATCH, self::IVCSA_EPOCHS],
+            'aem clientlib.js' => ['/libs/granite/core/content/login/clientlib.js', 'application/javascript', self::AEM_PATCH, self::AEM_EPOCHS],
         ];
     }
 
@@ -112,6 +115,7 @@ final class PrePatchAssetFeederTest extends TestCase
             'ivanti' => ['22.3R1' => 1687219200, '9.1R18.3' => 1694476800, '22.5R2.1' => 1698105600],
             'crushftp' => ['10.8.3' => 1734000000, '11.3.0' => 1738022400],
             'ivcsa' => ['4.6.511' => 1712707200, '5.0.1' => 1722470400],
+            'aem' => ['6.5.0.0' => 1554681600, '6.5.3.0' => 1576108800, '6.5.4.0' => 1583366400],
         ];
         for ($s = 0; $s < 24; $s++) {
             $p = PersonaIdentity::fromSeed($s);
