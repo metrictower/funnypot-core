@@ -289,6 +289,37 @@ final class Honeypot implements Engine
     }
 
     /**
+     * The PATH-STRIPPED payload scan shared by the real-route M2 guard (FP-0086) and the corpus-keyed
+     * store-HIT path (FP-0544). Returns an ATTACK_CLASS verdict for a gate-open, payload-eligible match,
+     * else null. Classification is gated on `payloadInspection`; SERVING stays gated on `attackEmulation`
+     * inside buildAttackFake, so a payloadInspection-only build reaches the verdict but serves nothing.
+     * A byte-echoing (`reflects_input`) rule is additionally reflector-gated on the serve path, exactly as
+     * on a store-MISS request — so reaching this scan on a corpus key adds no new reflection surface.
+     */
+    private function payloadVerdict(RequestContext $r, int $anomaly, BotSignalSet $signals): ?Verdict
+    {
+        if (!$this->config->payloadInspection || $this->attackEmulator === null) {
+            return null;
+        }
+        $pm = $this->attackEmulator->matchPayload($r);
+        if ($pm === null || !$this->personaGateAllows($pm['rule'], $r)) {
+            return null;
+        }
+        $rule = $pm['rule'];
+        $detection = TemplateAttackEmulator::detectionForRule($rule);
+        $handle = FakeHandle::attack((string) ($rule['id'] ?? 'attack'), $pm['captures']);
+
+        return new Verdict(
+            Verdict::ATTACK_CLASS,
+            $detection,
+            $detection->highestSeverity,
+            $anomaly,
+            $signals,
+            $handle
+        );
+    }
+
+    /**
      * The content classifier proper — the pre-OAST body of classify(), moved verbatim (no logic
      * change). classify() is the public seam and folds the OAST signal on top of this; every return
      * path below is unchanged.
@@ -314,21 +345,10 @@ final class Honeypot implements Engine
                 // subset add no path-driven false positive, and serving stays gated on attackEmulation
                 // (buildAttackFake), so a payloadInspection-only build reaches the verdict but serves
                 // nothing.
-                if ($isRealRoute && $this->config->payloadInspection && $this->attackEmulator !== null) {
-                    $pm = $this->attackEmulator->matchPayload($r);
-                    if ($pm !== null && $this->personaGateAllows($pm['rule'], $r)) {
-                        $rule = $pm['rule'];
-                        $detection = TemplateAttackEmulator::detectionForRule($rule);
-                        $handle = FakeHandle::attack((string) ($rule['id'] ?? 'attack'), $pm['captures']);
-
-                        return new Verdict(
-                            Verdict::ATTACK_CLASS,
-                            $detection,
-                            $detection->highestSeverity,
-                            $anomaly,
-                            $signals,
-                            $handle
-                        );
+                if ($isRealRoute) {
+                    $pv = $this->payloadVerdict($r, $anomaly, $signals);
+                    if ($pv !== null) {
+                        return $pv;
                     }
                 }
 
@@ -381,6 +401,17 @@ final class Honeypot implements Engine
                 if (!$this->isRootEntry($bundles) && $this->hasAuthSuccessWitness($bundles)) {
                     return new Verdict(Verdict::CLEAN, Detection::none(), '', $anomaly, $signals, null);
                 }
+            }
+
+            // FP-0544: a corpus-keyed store HIT (bundles, not a real route) served its static bundle and
+            // never ran the payload scan, so arithmetic/SSTI/cmdi oracles missed the crawled paths scanners
+            // inject into most (/, /index.php, /search). Run the SAME shared scan the real-route M2 guard
+            // uses — placed AFTER the whole owns_path block (so the auth-success-witness CLEAN guard above
+            // wins first and an owned login-success decoy is never re-exposed by a payload) and BEFORE the
+            // static route verdict. Serving stays gated on attackEmulation (buildAttackFake).
+            $pv = $this->payloadVerdict($r, $anomaly, $signals);
+            if ($pv !== null) {
+                return $pv;
             }
 
             $detection = $this->detectionFor($key, $this->detectIds($entry));
