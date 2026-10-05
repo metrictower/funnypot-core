@@ -653,10 +653,10 @@ at build time and not listed here. Every response stays **inert** (emulates outp
 
 | Metric | Count |
 |---|---|
-| Authored decoy records | 427 |
-| Authored families | 109 |
+| Authored decoy records | 428 |
+| Authored families | 110 |
 | &nbsp;&nbsp;tier `attack` | 117 |
-| &nbsp;&nbsp;tier `attack-ai` | 9 |
+| &nbsp;&nbsp;tier `attack-ai` | 10 |
 | &nbsp;&nbsp;tier `attack-crs` | 4 |
 | &nbsp;&nbsp;tier `new-page` | 295 |
 | &nbsp;&nbsp;tier `param` | 2 |
