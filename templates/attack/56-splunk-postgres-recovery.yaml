@@ -1,0 +1,39 @@
+id: attack-splunk-postgres-recovery
+severity: high
+priority: 56
+tags: [attack, splunk, auth-bypass, cve-2026-20253, postgres-sidecar]
+# FP-0382: Splunk Enterprise PostgreSQL recovery sidecar auth-bypass decoy (CVE-2026-20253, CISA KEV).
+# The sidecar backup/restore controller is reachable UNAUTHENTICATED (CWE-306): POST
+# /en-US/splunkd/__raw/v1/postgres/recovery/{backup,restore} with a traversal backupFile -> arbitrary file
+# create/truncate -> RCE. The decoy answers the endpoint without auth (the bypass) and returns the authentic
+# Splunkd REST validation-error envelope, so a scanner confirms "reachable unauthenticated" without the file
+# ever being written. INERT: never touches Postgres/fs, never reads the body. Match on path+POST only (do
+# NOT require Authorization — answering unauthenticated is the whole point). Store-miss path -> matches via
+# the linear scan; the canonical exploit body (../tmp/poc) triggers no generic rule (31-lfi keys on
+# etc/passwd, not a bare ../), so there is no shadow and no owns_path is needed. (Edge: a NON-canonical
+# etc/passwd-laced backupFile is answered by the LFI decoy instead — acceptable: CVE-2026-20253 is a file-
+# WRITE primitive so a passwd-READ target is not a realistic payload, and the LFI page is still attack-class;
+# the scanner's /tmp/poc probe gets the Splunk envelope.) The
+# `{"messages":[{"type":"ERROR",...}]}` envelope + `Server: Splunkd` are Splunk's OWN REST shape
+# (fingerprint-safe — product strings, not scanner/CRS literals). WITNESS CAVEAT: `backupFile is a required
+# field` is a plausible-but-unverified matcher string (the real Nettacker splunk_cve_2026_20253 text was not
+# confirmable here); the generic ERROR envelope still confirms reachability. Status 400 is an AUTHORED decoy
+# envelope (app-chosen, not an escaped 5xx fault — only-upgrade-404 invariant holds). severity high so
+# embedders serve it.
+match:
+  - in: path
+    regex: '/en-US/splunkd/__raw/v1/postgres/recovery/'
+    ci: true
+  - in: method
+    regex: '^POST$'
+    ci: true
+status: 400
+response:
+  headers:
+    Content-Type: "application/json; charset=UTF-8"
+    Server: "Splunkd"
+  body: |
+    {"messages":[{"type":"ERROR","text":"backupFile is a required field"}]}
+expect:
+  - 'backupFile is a required field'
+  - '"type":"ERROR"'

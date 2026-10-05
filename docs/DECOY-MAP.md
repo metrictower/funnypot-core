@@ -4,7 +4,7 @@
 > The manifest is the sole inventory authority; friendly names, categories and behavior
 > prose live in the README taxonomy, not here.
 
-Manifest schema 1. Authored records: 392 across 94 families. Corpus: 2611 families / 5134 route keys (summarized, not enumerated). Enrichers: 259.
+Manifest schema 1. Authored records: 393 across 95 families. Corpus: 2611 families / 5134 route keys (summarized, not enumerated). Enrichers: 259.
 
 ```mermaid
 mindmap
@@ -76,33 +76,34 @@ mindmap
     fam0065["shell-history: 3"]
     fam0066["shellshock: 1"]
     fam0067["smb: 1"]
-    fam0068["spring-boot: 1"]
-    fam0069["springboot: 12"]
-    fam0070["sqli: 2"]
-    fam0071["ssh: 1"]
-    fam0072["ssti: 2"]
-    fam0073["struts: 1"]
-    fam0074["teamcity: 1"]
-    fam0075["terraform: 3"]
-    fam0076["thinkphp: 1"]
-    fam0077["tls: 2"]
-    fam0078["tomcat: 2"]
-    fam0079["twig: 1"]
-    fam0080["upload: 1"]
-    fam0081["v1: 1"]
-    fam0082["vcs: 10"]
-    fam0083["vite: 1"]
-    fam0084["webmin: 1"]
-    fam0085["webshell: 1"]
-    fam0086["whm: 1"]
-    fam0087["windows: 2"]
-    fam0088["woocommerce: 8"]
-    fam0089["wordpress: 20"]
-    fam0090["wp-plugin-enum: 10"]
-    fam0091["wp-theme-enum: 2"]
-    fam0092["xdebug: 1"]
-    fam0093["xss: 2"]
-    fam0094["xxe: 1"]
+    fam0068["splunk: 1"]
+    fam0069["spring-boot: 1"]
+    fam0070["springboot: 12"]
+    fam0071["sqli: 2"]
+    fam0072["ssh: 1"]
+    fam0073["ssti: 2"]
+    fam0074["struts: 1"]
+    fam0075["teamcity: 1"]
+    fam0076["terraform: 3"]
+    fam0077["thinkphp: 1"]
+    fam0078["tls: 2"]
+    fam0079["tomcat: 2"]
+    fam0080["twig: 1"]
+    fam0081["upload: 1"]
+    fam0082["v1: 1"]
+    fam0083["vcs: 10"]
+    fam0084["vite: 1"]
+    fam0085["webmin: 1"]
+    fam0086["webshell: 1"]
+    fam0087["whm: 1"]
+    fam0088["windows: 2"]
+    fam0089["woocommerce: 8"]
+    fam0090["wordpress: 20"]
+    fam0091["wp-plugin-enum: 10"]
+    fam0092["wp-theme-enum: 2"]
+    fam0093["xdebug: 1"]
+    fam0094["xss: 2"]
+    fam0095["xxe: 1"]
     corpus["corpus: 2611 families / 5134 keys"]
     enrichers["content enrichers #40;not route claimers#41;: 259"]
 ```
@@ -176,6 +177,7 @@ mindmap
 | shell-history | 3 | new-page:3 | 3 | 0 | high | &mdash; |
 | shellshock | 1 | attack:1 | 0 | 0 | critical | &mdash; |
 | smb | 1 | attack:1 | 0 | 0 | high | &mdash; |
+| splunk | 1 | attack:1 | 1 | 0 | high | &mdash; |
 | spring-boot | 1 | attack:1 | 0 | 0 | high | &mdash; |
 | springboot | 12 | new-page:12 | 12 | 0 | high | &mdash; |
 | sqli | 2 | attack:1 attack-crs:1 | 0 | 0 | high | &mdash; |
