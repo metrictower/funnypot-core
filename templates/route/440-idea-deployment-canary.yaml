@@ -1,0 +1,46 @@
+id: route-idea-deployment
+priority: 440
+# FP-0563: enrich the corpus `idea-folder-exposure` bundle, GUARDED to ONLY /.idea/deployment.xml via
+# route_key (the same bundle also serves /.idea/workspace.xml, which must keep its own body). The minimal
+# synth emits a bare XML stub; here we dress it into a well-formed JetBrains deployment config leaking the
+# persona SFTP identity (host + username + privateKey path), coherent with /.ftpconfig and /.vscode/sftp.json
+# (one credential story per deploy). DEPLOY-STABLE persona fields (correlatable app-side, FP-0562). JetBrains
+# stores no cleartext password here (it lives in the OS keychain), so the lure is the username + host + key
+# path — realistic, and the password is carried by the sibling /.ftpconfig. INERT: no request byte reflected,
+# no real credential.
+match:
+  template_needle: [idea-folder-exposure]
+  route_key: ['GET /.idea/deployment.xml']
+response:
+  headers:
+    Content-Type: "text/xml; charset=utf-8"
+  body: |
+    <?xml version="1.0" encoding="UTF-8"?>
+    <project version="4">
+      <component name="PublishConfigData" autoUpload="Always" serverName="{{persona.company.name}} production" remoteFilesAllowedToDisappearOnAutoupload="false">
+        <serverData>
+          <paths name="{{persona.company.name}} production">
+            <serverdata>
+              <mappings>
+                <mapping deploy="/var/www/{{persona.company.slug}}" local="$PROJECT_DIR$" web="/" />
+              </mappings>
+            </serverdata>
+          </paths>
+        </serverData>
+      </component>
+      <component name="WebServers">
+        <option name="servers">
+          <webServer name="{{persona.company.name}} production" url="https://{{persona.company.domain}}">
+            <fileTransfer accessType="SFTP" host="deploy.{{persona.company.domain}}" port="22" privateKey="/home/{{persona.db.user}}/.ssh/id_rsa" authType="KEY_PAIR" rootFolder="/var/www/{{persona.company.slug}}">
+              <option name="port" value="22" />
+              <login>{{persona.db.user}}</login>
+            </fileTransfer>
+          </webServer>
+        </option>
+      </component>
+    </project>
+expect:
+  - '<?xml version='
+  - '<project version'
+  - 'SFTP'
+  - '<login>'
