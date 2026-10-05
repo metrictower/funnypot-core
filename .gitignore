@@ -2,6 +2,7 @@
 composer.lock
 demo/storage/
 scripts/deploy.env
+.reflector-acceptance-output/
 
 .claude/
 demo/storage/*.sqlite*

@@ -38,7 +38,9 @@ $config = new Config(
     $style                                                                              // responseStyle
 );
 
-// NI_REFLECT=1 arms the request-authorized reflector lane (tests/acceptance/run-reflect.sh): the
+// NI_REFLECT=1 arms the legacy request-authorized reflector switch. The bounded scanner receipt
+// lives at tests/acceptance/reflector/run-reflect.sh and uses its own loopback-only router; see that
+// directory's README for the operator command and closed evidence contract. Here it keeps the
 // attack tier on, the origin asserted isolated, and an authorizer that treats every request as
 // evidence. That authorizer is valid ONLY here — a throwaway loopback responder with no operator
 // plane behind it; a real adapter must derive its answer from a server-side fact a client cannot
