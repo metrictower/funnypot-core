@@ -82,6 +82,17 @@ final class PersonaIdentity
         'panos.version',
         'panos.etag',
         'panos.lastModified',
+        // FP-0383: pre-patch static-asset Last-Modified oracles (OWASP Nettacker *_lastpatcheddate recon).
+        // Each vendor's version + lastModified come from ONE BUILDS index (citrixBuild/ivantiBuild) so the
+        // vulnerable version and the pre-patch build date can never disagree. The date is a plausible GA
+        // build BEFORE the vendor's CVE patch so a scanner declares the host unpatched. No ETag (Nettacker
+        // reads Last-Modified only). Dotted/dashed/R version strings + 4-digit-year dates carry no bare
+        // 6-digit run. Citrix NetScaler (CVE-2023-4966, patched 2023-10-10); Ivanti Connect Secure
+        // (CVE-2023-46805/-2024-21887, patched 2024-01-31).
+        'citrix.version',
+        'citrix.lastModified',
+        'ivanti.version',
+        'ivanti.lastModified',
         // The WooCommerce core + payment-plugin versions this host claims — one source of truth for
         // every store surface (the storefront generator meta, the readme `Stable tag:`, the wc-augmented
         // REST index). paymentsVersion and stripeVersion are held on the vulnerable side of their CVEs so
@@ -344,6 +355,13 @@ final class PersonaIdentity
             'panos.version' => self::panosBuild($slug, $domain)['version'],
             'panos.etag' => sprintf('%08x', self::panosBuild($slug, $domain)['epoch']),
             'panos.lastModified' => gmdate('D, d M Y H:i:s', self::panosBuild($slug, $domain)['epoch']) . ' GMT',
+
+            // FP-0383: the Citrix NetScaler / Ivanti Connect Secure vulnerable version + pre-patch build
+            // date, each from ONE BUILDS index so version<->date round-trip to the same entry (no drift).
+            'citrix.version' => self::citrixBuild($slug, $domain)['version'],
+            'citrix.lastModified' => gmdate('D, d M Y H:i:s', self::citrixBuild($slug, $domain)['epoch']) . ' GMT',
+            'ivanti.version' => self::ivantiBuild($slug, $domain)['version'],
+            'ivanti.lastModified' => gmdate('D, d M Y H:i:s', self::ivantiBuild($slug, $domain)['epoch']) . ' GMT',
 
             // The WooCommerce core + payment-plugin versions this host claims — the single source of
             // truth for every store surface. Derived like php.version so field() and productVersion()
@@ -654,6 +672,56 @@ final class PersonaIdentity
         $idx = (int) (hexdec(substr(hash('sha256', $slug . '|' . $domain . '|panos-build'), 0, 8)) % count(self::PANOS_BUILDS));
 
         return self::PANOS_BUILDS[$idx];
+    }
+
+    /**
+     * FP-0383: real vulnerable Citrix NetScaler ADC/Gateway builds — all BEFORE the CVE-2023-4966
+     * (Citrix Bleed) fix of 2023-10-10 (fixes 13.1-49.15 / 14.1-8.50 / 13.0-92.19). The epoch is a
+     * plausible GA build date for that line; version + date come from the same entry so the
+     * /epa/scripts/win/nsepa_setup.exe Last-Modified decodes back to a coherent unpatched build.
+     *
+     * @var non-empty-list<array{version:string,epoch:int}>
+     */
+    private const CITRIX_BUILDS = [
+        ['version' => '13.1-48.47', 'epoch' => 1684108800],  // 2023-05-15
+        ['version' => '13.0-90.12', 'epoch' => 1681084800],  // 2023-04-10
+        ['version' => '14.1-4.42',  'epoch' => 1691366400],  // 2023-08-07
+    ];
+
+    /**
+     * FP-0383: real vulnerable Ivanti Connect Secure builds — all BEFORE the CVE-2023-46805 /
+     * CVE-2024-21887 fix of 2024-01-31. Serves the /dana-na/css/ds.js Last-Modified.
+     *
+     * @var non-empty-list<array{version:string,epoch:int}>
+     */
+    private const IVANTI_BUILDS = [
+        ['version' => '22.3R1',   'epoch' => 1687219200],  // 2023-06-20
+        ['version' => '9.1R18.3', 'epoch' => 1694476800],  // 2023-09-12
+        ['version' => '22.5R2.1', 'epoch' => 1698105600],  // 2023-10-24
+    ];
+
+    /**
+     * One CITRIX_BUILDS entry for this deploy — keyed like panosBuild so the version+date is deploy-stable.
+     *
+     * @return array{version:string,epoch:int}
+     */
+    private static function citrixBuild(string $slug, string $domain): array
+    {
+        $idx = (int) (hexdec(substr(hash('sha256', $slug . '|' . $domain . '|citrix-build'), 0, 8)) % count(self::CITRIX_BUILDS));
+
+        return self::CITRIX_BUILDS[$idx];
+    }
+
+    /**
+     * One IVANTI_BUILDS entry for this deploy — keyed like panosBuild so the version+date is deploy-stable.
+     *
+     * @return array{version:string,epoch:int}
+     */
+    private static function ivantiBuild(string $slug, string $domain): array
+    {
+        $idx = (int) (hexdec(substr(hash('sha256', $slug . '|' . $domain . '|ivanti-build'), 0, 8)) % count(self::IVANTI_BUILDS));
+
+        return self::IVANTI_BUILDS[$idx];
     }
 
     /**

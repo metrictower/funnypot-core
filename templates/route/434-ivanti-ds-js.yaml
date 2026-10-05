@@ -1,0 +1,24 @@
+id: route-ivanti-ds-js
+priority: 434
+# FP-0383: Ivanti Connect Secure DS client script — the OWASP Nettacker `ivanti_lastpatcheddate` recon
+# path (HEAD /dana-na/css/ds.js, reads Last-Modified + checks a javascript Content-Type). We serve a
+# PRE-patch build date ({{persona.ivanti.lastModified}}, a vulnerable 9.1R/22.x build BEFORE the
+# CVE-2023-46805 / CVE-2024-21887 fix of 2024-01-31) so a scanner declares the host unpatched. Standalone
+# recon-intel + poly-stack breadth bait (logs the probe + scanner IP). Self-generated INERT JS — NO real
+# Ivanti code (golden rule).
+new_page:
+  method: GET
+  paths: ['/dana-na/css/ds.js']
+  sig: 0
+  status: 200
+  severity: info
+  tags: [ivanti, connect-secure, pulse, version-oracle, exposure]
+  name: 'Ivanti DS script'
+response:
+  headers:
+    Content-Type: "application/javascript"
+    Last-Modified: "{{persona.ivanti.lastModified}}"
+  body: |
+    var DSID = null;
+    function dsSetActiveTab(t){ return t; }
+    function dsInit(){ return; }
