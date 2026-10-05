@@ -23,27 +23,36 @@ funnypot-core-held signing secret. This scaffold is only the distribution repo's
 1. **Create the repo.** `github.com/metrictower/funnypot-rules` (public, MIT). Copy this scaffold's
    `README.md`, `channels.json`, and `.github/workflows/verify-release.yml` into it.
 
-2. **Generate the keypair** (needs the PHP sodium extension):
+2. **Generate TWO keypairs** — one per role (needs the PHP sodium extension). Role separation means
+   a stolen release secret cannot also move the pointer, and vice versa:
 
    ```sh
-   bash dist/funnypot-rules/keygen.sh 2026-01
+   bash dist/funnypot-rules/keygen.sh 2026-01           # release role (signs version manifests)
+   bash dist/funnypot-rules/keygen.sh 2026-01-channels  # channels role (signs the channels pointer)
    ```
 
-   It prints a PUBLIC key (stdout) and a SECRET key (stderr). Save the public key to
-   `funnypot-rules/keys/ed25519.pub` (base64, one line) for the canary and manual verification.
+   Each prints a PUBLIC key (stdout) and a SECRET key (stderr). Save the public keys to
+   `funnypot-rules/keys/` (base64, one line each) for the canary and manual verification.
 
-3. **Store the secret** as an Actions secret on **funnypot-core**:
-   `FUNNYPOT_RULES_SIGNING_KEY` = the base64 secret key from step 2. Never commit it.
-   Also add a fine-grained PAT scoped to **`contents:write` on funnypot-rules only** as
-   `FUNNYPOT_RULES_RELEASE_TOKEN`, and set the repo **variable** `FUNNYPOT_RULES_KEY_ID = 2026-01`.
+3. **Store the secrets + vars** as Actions secrets/variables on **funnypot-core**:
+   - `FUNNYPOT_RULES_SIGNING_KEY` = the release base64 secret key. Never commit it.
+   - `FUNNYPOT_RULES_CHANNELS_SIGNING_KEY` = the channels base64 secret key (needed only to move a
+     pointer; a plain `--promote=none` publish does not use it). Never commit it.
+   - `FUNNYPOT_RULES_CHANNELS_PUBKEY` repo **variable** = the channels base64 PUBLIC key — the
+     publisher verifies the current `channels.json` with it before carrying it forward on a promote.
+   - A fine-grained PAT scoped to **`contents:write` on funnypot-rules only** as
+     `FUNNYPOT_RULES_RELEASE_TOKEN`, and the repo **variable** `FUNNYPOT_RULES_KEY_ID = 2026-01`.
 
-4. **Commit the public key into funnypot-core's trust root.** Add the entry `keygen.sh` printed to
-   `funnypot-core/resources/rules-signing-keys.php` (inside the `keys` array) via a normal
+4. **Commit BOTH public keys into funnypot-core's trust root.** Add the entries `keygen.sh` printed
+   to `funnypot-core/resources/rules-signing-keys.php` (inside the `keys` array) — the release entry
+   with `"roles": ["release"]` and the channels entry with `"roles": ["channels"]` — via a normal
    reviewed PR. This is the load-bearing trust step: only after this does any release verify.
 
 5. **Cut the first release.** Merge a `resources/compiled/**` change on funnypot-core `main` (any
    normal template refresh PR) — `publish-rules.yml` fires, re-gates, signs, and uploads the first
-   release + the `channels` pointer.
+   version. To create the first `channels.json` pointer, run the workflow manually once with
+   `promote=latest` + `bootstrap=true` (publish ≠ promote: ordinary publishes no longer move a
+   pointer; see docs/RULES-UPDATE.md).
 
 6. **Enable a consumer.** On a honeypot host, point the updater at a data dir and schedule it (see
    `funnypot-core/docs/RULES-UPDATE.md`). Least privilege matters: the data dir is owned by a
