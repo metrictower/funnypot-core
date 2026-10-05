@@ -717,12 +717,16 @@ final class TemplateAttackEmulator
     }
 
     /**
-     * FP-0429: test a comparison-routed branch case. The `when` regex matches the FOLDED request surface
-     * (so a percent/entity-encoded comparison is decoded first) and MUST name a `cmp` group holding the
-     * boolean clause. Returns true iff `cmp` is a STATIC comparison (via SafeComparison, zero-exec) whose
-     * truth equals $wantTrue. A non-literal/indeterminate clause (SafeComparison null) or any PCRE fault
-     * returns false → the case is skipped → the scan falls through to the baseline (never the FALSE page,
-     * never a 5xx). Nothing is reflected.
+     * FP-0429: test a comparison-routed branch case. It tries each folded request surface in turn — the
+     * decode-folded layers are included, so a CONSISTENTLY percent/`+`-encoded comparison resolves — and
+     * evaluates on the FIRST surface whose match yields a `cmp` group (a mixed raw+encoded clause no real
+     * tool emits can match a raw layer first, where `%` reads as modulo; that degrades safe-direction to
+     * the baseline). `when` MUST name a `cmp` group holding the boolean clause. Returns true iff `cmp` is
+     * a STATIC comparison (via SafeComparison, zero-exec) whose truth equals $wantTrue. A non-literal/
+     * indeterminate clause (SafeComparison null) or any PCRE fault returns false → the case is skipped →
+     * the scan continues (a plain indeterminate clause reaches the baseline; one bearing a lone quote is
+     * claimed by the C1 breaker's believable 500). Never the FALSE page from an indeterminate clause,
+     * never a 5xx from SafeComparison itself. Nothing is reflected.
      *
      * @param array<string,mixed> $when
      */

@@ -375,6 +375,11 @@ final class SqliDifferentialTest extends TestCase
         self::assertSame($empty, $this->serve('id=10 AND 11 BETWEEN 0 AND 9-- -')->body, 'FALSE BETWEEN + comment -> P_empty');
         self::assertSame($empty, $this->serve('id=10 AND 9 IN (6,7,8)-- -')->body, 'FALSE IN + comment -> P_empty');
         self::assertSame($empty, $this->serve('id=10 AND 1>2 ORDER BY 1')->body, 'FALSE + trailing clause -> P_empty');
+
+        // On-wire encoded forms (consistently percent/`+`-encoded) must split the same way through the fold.
+        self::assertSame($p, $this->serve('id=10%20AND%202%3E1--%20-')->body, 'encoded TRUE + encoded comment -> P');
+        self::assertSame($empty, $this->serve('id=10+AND+1%3E2--+-')->body, 'encoded FALSE + `+`-encoded comment -> P_empty');
+        self::assertSame($empty, $this->serve('id=10+AND+9+IN+(6,7,8)--+')->body, 'encoded FALSE IN + comment -> P_empty');
     }
 
     /**

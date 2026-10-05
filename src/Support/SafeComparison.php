@@ -123,6 +123,11 @@ final class SafeComparison
      * Remove the trailing SQL line comment (`-- ` / `#`) and any inline block comment (`/* … *\/`) a
      * scanner appends to terminate the host query. `--` is only a comment when followed by whitespace or
      * end-of-string (MySQL rule), so a bare `10--5` stays arithmetic. Pure string surgery, no execution.
+     *
+     * A MySQL VERSIONED conditional comment `/*!NNNNN … *\/` (whose body MySQL actually executes) is
+     * stripped as if inert, so a probe that wraps the whole comparison in one degrades safe-direction to
+     * the baseline rather than splitting. That is an uncommon tamper and a believability gap, not a safety
+     * hole — unwrapping it to keep the inner clause live is tracked separately (see FP-0585).
      */
     private static function stripSqlComments(string $expr): string
     {
