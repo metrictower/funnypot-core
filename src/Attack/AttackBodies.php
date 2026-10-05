@@ -95,7 +95,7 @@ final class AttackBodies
      */
     private const FPD_BUILTINS = [
         'htmlspecialchars|$string', 'strlen|$string', 'trim|$string',
-        'strtolower|$string', 'addslashes|$string', 'intval|$value',
+        'strtolower|$string', 'addslashes|$string',
     ];
 
     /** Real WordPress-core functions a /wp-db.php loaded outside WP calls before any are defined. */
@@ -184,7 +184,11 @@ final class AttackBodies
                 . '() in <b>' . $path . '</b>:' . $line . "\nStack trace:\n#0 {main}\n  thrown in <b>"
                 . $path . '</b> on line <b>' . $line . '</b>';
         }
-        // warning (array-parameter pollution): wording keyed to the deploy PHP major.
+        // warning (array-parameter pollution): the shape is PHP-major specific (verified vs PHP 8.4.10).
+        // PHP 7 raises a WARNING ("expects parameter 1 to be string"); PHP 8 raises a FATAL TypeError
+        // ("Argument #1 ($x) must be of type string, array given") — a Warning carrying the PHP-8 wording
+        // is an impossible shape, so we emit the real frame for each major. Both bold the path + line for
+        // sqlmap extraction; both are served at status 200 (never a real 500 — invariant #2).
         $pair = SubSeed::pick(self::FPD_BUILTINS, $seed, SubSeed::NS_ATTACK, 'fpd|func');
         $parts = explode('|', $pair, 2);
         $fn = $parts[0];
@@ -193,11 +197,14 @@ final class AttackBodies
         $file = SubSeed::pick(self::FILE_POOL, $seed, SubSeed::NS_ATTACK, 'fpd|file');
         $line = 10 + SubSeed::index($seed, SubSeed::NS_ATTACK, 'fpd|line', 90); // 10..99
         $path = '/var/www/' . $slugSegment . $dir . $file;
-        $msg = strpos($phpVersion, '7.') === 0
-            ? $fn . '() expects parameter 1 to be string, array given'
-            : $fn . '(): Argument #1 (' . $arg . ') must be of type string, array given';
+        if (strpos($phpVersion, '7.') === 0) {
+            return "<br />\n<b>Warning</b>:  " . $fn . '() expects parameter 1 to be string, array given in <b>'
+                . $path . '</b> on line <b>' . $line . '</b><br />';
+        }
 
-        return "<br />\n<b>Warning</b>:  " . $msg . ' in <b>' . $path . '</b> on line <b>' . $line . '</b><br />';
+        return "<br />\n<b>Fatal error</b>:  Uncaught TypeError: " . $fn . '(): Argument #1 (' . $arg
+            . ') must be of type string, array given in <b>' . $path . '</b>:' . $line
+            . "\nStack trace:\n#0 {main}\n  thrown in <b>" . $path . '</b> on line <b>' . $line . '</b>';
     }
 
     /**

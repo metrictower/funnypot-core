@@ -487,13 +487,21 @@ final class AttackBodiesTest extends TestCase
 
     public function test_fpd_warning_wording_tracks_the_persona_php_major(): void
     {
-        // PHP 7 uses "expects parameter 1 to be string"; PHP 8 uses "Argument #1 (...) must be of type".
-        $php7 = AttackBodies::fpd(1, 'warning', 'acme', '7.4.33');
-        $php8 = AttackBodies::fpd(1, 'warning', 'acme', '8.2.18');
-        self::assertStringContainsString('expects parameter 1 to be string, array given', (string) $php7);
-        self::assertStringNotContainsString('must be of type', (string) $php7);
-        self::assertStringContainsString('must be of type string, array given', (string) $php8);
-        self::assertStringContainsString('Argument #1', (string) $php8);
+        // Verified vs PHP 8.4.10: PHP 7 raises a WARNING ("expects parameter 1 to be string"); PHP 8
+        // raises a FATAL TypeError ("Argument #1 ($x) must be of type ..."). A Warning carrying the PHP-8
+        // wording is an impossible shape — each major gets its real frame.
+        $php7 = (string) AttackBodies::fpd(1, 'warning', 'acme', '7.4.33');
+        $php8 = (string) AttackBodies::fpd(1, 'warning', 'acme', '8.2.18');
+        self::assertStringContainsString('<b>Warning</b>', $php7);
+        self::assertStringContainsString('expects parameter 1 to be string, array given', $php7);
+        self::assertStringNotContainsString('must be of type', $php7);
+        self::assertStringNotContainsString('TypeError', $php7);
+        self::assertStringContainsString('<b>Fatal error</b>', $php8);
+        self::assertStringContainsString('Uncaught TypeError', $php8);
+        self::assertStringContainsString('Argument #1 ($string) must be of type string, array given', $php8);
+        self::assertStringNotContainsString('expects parameter', $php8);
+        // An empty php version (the resolve() default) degrades to the PHP-8 shape.
+        self::assertStringContainsString('Uncaught TypeError', (string) AttackBodies::fpd(1, 'warning', 'acme', ''));
     }
 
     public function test_fpd_is_known_form_closed_set(): void
