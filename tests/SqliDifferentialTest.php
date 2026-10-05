@@ -353,6 +353,45 @@ final class SqliDifferentialTest extends TestCase
         self::assertSame(500, $this->serve("id=10'")->status, "a bare lone quote must still 500");
     }
 
+    /**
+     * FP-0429 review F1: a comparison clause terminated by a trailing SQL comment (`-- -`, `#`, a block
+     * comment) or a trailing non-logical clause (`ORDER BY`) — the shape sqlmap/ghauri actually emit — must still
+     * split TRUE->P / FALSE->P_empty. Without the SafeComparison comment-strip these all collapsed to
+     * baseline P (zero differential -> scanner concludes "not injectable").
+     */
+    public function testCommentTerminatedComparisonDifferential(): void
+    {
+        $p = $this->baseline();
+        $empty = $this->serve('id=10 AND 1=2')->body;
+
+        // TRUE forms with a terminator -> P
+        self::assertSame($p, $this->serve('id=10 AND 2>1-- -')->body, 'TRUE + line comment -> P');
+        self::assertSame($p, $this->serve('id=10 AND 2>1 ORDER BY 1')->body, 'TRUE + trailing clause -> P');
+        self::assertSame($p, $this->serve('id=10 AND 5 BETWEEN 1 AND 9-- -')->body, 'TRUE BETWEEN + comment -> P');
+
+        // FALSE forms with a terminator -> P_empty
+        self::assertSame($empty, $this->serve('id=10 AND 1>2-- -')->body, 'FALSE + line comment -> P_empty');
+        self::assertSame($empty, $this->serve('id=10 AND 1>2#neutralise')->body, 'FALSE + hash comment -> P_empty');
+        self::assertSame($empty, $this->serve('id=10 AND 11 BETWEEN 0 AND 9-- -')->body, 'FALSE BETWEEN + comment -> P_empty');
+        self::assertSame($empty, $this->serve('id=10 AND 9 IN (6,7,8)-- -')->body, 'FALSE IN + comment -> P_empty');
+        self::assertSame($empty, $this->serve('id=10 AND 1>2 ORDER BY 1')->body, 'FALSE + trailing clause -> P_empty');
+    }
+
+    /**
+     * FP-0429 review F2: an INDETERMINATE comparison (function/column operand) that ALSO carries a lone
+     * unbalanced quote at a token boundary is served the pre-existing C1 breaker 500 — the lone quote
+     * breaks the (fake) string literal, which is a believable syntax error, NOT a tell. This is the
+     * documented exception to "INDETERMINATE -> baseline P": the quote, not the comparison, decides it.
+     * A quote-free indeterminate clause still serves the baseline P (covered above).
+     */
+    public function testIndeterminateWithLoneQuoteHitsTheC1Breaker(): void
+    {
+        $extraction = $this->serve("id=10' AND ORD(MID(username,1,1))>65");
+        self::assertNotNull($extraction);
+        self::assertSame(500, $extraction->status, "a lone quote + indeterminate extraction probe breaks via C1 (500), not baseline");
+        self::assertStringContainsString('SQL syntax', $extraction->body, 'the breaker keeps its believable syntax-error marker');
+    }
+
     /** Benign text carrying `and`/`or` but no comparison operator must serve the baseline P, never P_empty. */
     public function testBenignBooleanProseServesBaseline(): void
     {

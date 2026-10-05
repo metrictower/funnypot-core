@@ -94,14 +94,20 @@ branch:
     #   the bare `1=1`/`1=2` of C2/C3 to the operators sqlmap's WAF-bypass vectors use (`>`,`<`,`>=`,`<=`,
     #   `<>`,`!=`, BETWEEN, IN). Each case names a `cmp` group holding the clause after a LOGICAL `and`/`or`;
     #   handleBranch hands `cmp` to Support\SafeComparison (zero-exec, static integer/arith operands only) and
-    #   selects the case iff the STATIC truth equals the `compare:` polarity. These are PURELY ROUTING — no
-    #   query runs, nothing is reflected, the response is the SAME &pResp/&peResp page as C2/C3 so the TRUE
-    #   differential is byte-identical to the baseline P and the FALSE one is byte-identical to C3's P_empty.
-    #   PLACEMENT (load-bearing). AFTER C2/C3 so the equality forms they own are consumed first (the lookahead
-    #   excludes bare `=`), and BEFORE C1 so a boundary probe that also carries a stray quote
-    #   (`id=10' AND 2>1`) is served its comparison page, not the lone-quote 500. INDETERMINATE (a
-    #   function/column operand like `ORD(MID(x,1,1))>65` → SafeComparison null) matches NEITHER case and
-    #   falls through to the baseline P — an extraction probe is never handed the FALSE page.
+    #   selects the case iff the STATIC truth equals the `compare:` polarity. SafeComparison strips a trailing
+    #   SQL comment (`-- -`/`#`) and anchors on the leading operands, so a comment-terminated probe (the shape
+    #   sqlmap/ghauri emit) still splits. These are PURELY ROUTING — no query runs, nothing is reflected, the
+    #   response is the SAME &pResp/&peResp page as C2/C3 so the TRUE differential is byte-identical to the
+    #   baseline P and the FALSE one is byte-identical to C3's P_empty.
+    #   PLACEMENT. AFTER C2/C3 (load-bearing) so the equality forms they own are consumed first — the lookahead
+    #   excludes bare `=` — and BEFORE C1 (load-bearing) so a boundary probe that also carries a stray quote
+    #   (`id=10' AND 2>1`) is served its comparison page, not the lone-quote 500. (C4-before-C5 is NOT
+    #   load-bearing: both share one `when` and are disambiguated solely by `compare:` against SafeComparison's
+    #   definite true/false.) INDETERMINATE (a function/column operand like `ORD(MID(x,1,1))>65` → SafeComparison
+    #   null) matches NEITHER case and continues the scan: a plain one reaches the baseline P (an extraction
+    #   probe is never handed the FALSE page), but one that ALSO carries a lone unbalanced quote
+    #   (`id=10' AND ORD(MID(x,1,1))>65`) is claimed by C1's believable 500 — the quote is the tell, not the
+    #   comparison.
     # C4 TRUE comparison  ->  P (rows), byte-identical to the C2/baseline body.
     - when: { in: request, regex: "\\b(?:and|or)\\s+(?=[^&]*(?:<=|>=|<>|!=|<|>|\\bbetween\\b|\\bin\\b))(?P<cmp>[^&]+)" }
       compare: true

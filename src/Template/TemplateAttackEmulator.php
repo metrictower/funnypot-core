@@ -676,9 +676,11 @@ final class TemplateAttackEmulator
                 // FP-0429: a comparison-routed case carries `compare: true|false`. Its `when` regex names a
                 // `cmp` group holding the boolean clause (e.g. `2>1`, `5 NOT BETWEEN 0 AND 3`); the case is
                 // selected iff SafeComparison's STATIC truth equals the polarity. An INDETERMINATE clause (a
-                // column/function operand → SafeComparison null) selects NO case → falls through to the
-                // baseline, so function-side extraction probes and benign non-numeric text are never routed
-                // to the FALSE page and never 5xx. Zero execution; nothing reflected.
+                // column/function operand → SafeComparison null) selects NO case, so a function-side
+                // extraction probe and benign non-numeric text are never routed to the FALSE page. It then
+                // continues the scan: a plain indeterminate clause reaches the baseline, but one that also
+                // carries a lone unbalanced quote is claimed by the C1 breaker (a believable 500 — the quote,
+                // not the comparison, is the tell). Zero execution; nothing reflected.
                 if (isset($case['compare'])) {
                     if ($this->comparisonCaseMatches((array) $case['when'], (bool) $case['compare'], $r)) {
                         return $this->renderCaseResponse((array) ($case['response'] ?? []), $captures, $seed);

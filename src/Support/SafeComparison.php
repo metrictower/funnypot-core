@@ -11,11 +11,17 @@ namespace Funnypot\Core\Support;
  * the existing Support\SafeArithmetic (which this class does NOT modify), so the arithmetic grammar the
  * SSTI/expr-eval oracles depend on is untouched.
  *
+ * A trailing SQL comment (`-- `, `#`) or inline `/* … *\/` the scanner appends to neutralise the host
+ * query's tail is stripped first, and the operators are anchored to the LEADING static operands, so a
+ * comment-terminated or clause-suffixed probe (`1>2-- -`, `1>2 ORDER BY 1`) still yields its true/false —
+ * matching how the equality channel already tolerates such suffixes.
+ *
  * Returns the comparison's truth, or NULL (INDETERMINATE) whenever ANY operand is not a static literal/
- * arithmetic expression (a column or function operand like ORD(MID(...)) → SafeArithmetic null → null here)
- * or the clause is malformed / over-bound. The differential decoy treats null as "serve the baseline" —
- * so a function-side extraction probe, and any benign non-numeric text, degrade safely to the baseline and
- * are never routed to the FALSE (empty) response. No eval / create_function / `/e` / callback.
+ * arithmetic expression (a column or function operand like ORD(MID(...)) → SafeArithmetic null → null here),
+ * the clause is malformed / over-bound, or it chains a further boolean (`… AND …` / `… OR …`) whose truth
+ * we will not guess. The differential decoy treats null as "serve the baseline" — so a function-side
+ * extraction probe, and any benign non-numeric text, degrade safely to the baseline and are never routed
+ * to the FALSE (empty) response. No eval / create_function / `/e` / callback.
  */
 final class SafeComparison
 {
@@ -33,7 +39,12 @@ final class SafeComparison
      */
     public static function evaluate(string $expr): ?bool
     {
-        $expr = trim($expr);
+        // A boolean-blind scanner terminates almost every injected clause with a trailing SQL comment
+        // (`-- -`, `#`) so it neutralises the host query's tail; strip it first, or a FALSE comparison
+        // would be left non-parseable → INDETERMINATE → baseline, collapsing the very differential this
+        // exists to produce. Done before the whitelist/length checks so a stripped `#…` tail (whose `#`
+        // is not whitelisted) does not reject the whole clause.
+        $expr = self::stripSqlComments(trim($expr));
         $len = strlen($expr);
         if ($len === 0 || $len > self::MAX_LEN) {
             return null;
@@ -56,7 +67,7 @@ final class SafeComparison
         }
 
         // 2) A (NOT) IN ( n, n, … )
-        if (preg_match('~^(?P<a>.+?)\s+(?P<not>not\s+)?in\s*\((?P<list>[^()]*)\)$~i', $expr, $m) === 1) {
+        if (preg_match('~^(?P<a>.+?)\s+(?P<not>not\s+)?in\s*\((?P<list>[^()]*)\)\s*$~i', $expr, $m) === 1) {
             $a = self::num($m['a']);
             if ($a === null) {
                 return null;
@@ -79,8 +90,16 @@ final class SafeComparison
             return ($m['not'] ?? '') !== '' ? !$member : $member;
         }
 
-        // 3) A <op> B  (longest operators first)
-        if (preg_match('~^(?P<a>.+?)\s*(?P<op><=|>=|<>|!=|<|>|=)\s*(?P<b>.+)$~', $expr, $m) === 1) {
+        // 3) A <op> B  (longest operators first). The operands are anchored to the LEADING static
+        //    arithmetic runs, not to end-of-string, so a trailing non-operand token the scanner appends
+        //    (an `ORDER BY`/`LIMIT` clause, a stray paren) does not make the whole clause unparseable —
+        //    the bare differential `A op B` is still measured. The only tail we refuse to guess at is a
+        //    CHAINED boolean operator (`… AND …` / `… OR …`): its truth depends on a sub-clause we do not
+        //    evaluate, so we abstain (null → baseline) rather than risk serving the wrong differential arm.
+        if (preg_match('~^(?P<a>[0-9+\-*/%()\s]+?)(?P<op><=|>=|<>|!=|<|>|=)(?P<b>[0-9+\-*/%()\s]+)(?P<tail>.*)$~s', $expr, $m) === 1) {
+            if (preg_match('~\b(?:and|or)\b~i', $m['tail']) === 1) {
+                return null; // chained boolean logic — abstain to the baseline rather than guess
+            }
             $a = self::num($m['a']);
             $b = self::num($m['b']);
             if ($a === null || $b === null) {
@@ -98,6 +117,19 @@ final class SafeComparison
         }
 
         return null;
+    }
+
+    /**
+     * Remove the trailing SQL line comment (`-- ` / `#`) and any inline block comment (`/* … *\/`) a
+     * scanner appends to terminate the host query. `--` is only a comment when followed by whitespace or
+     * end-of-string (MySQL rule), so a bare `10--5` stays arithmetic. Pure string surgery, no execution.
+     */
+    private static function stripSqlComments(string $expr): string
+    {
+        $expr = (string) preg_replace('~/\*.*?\*/~s', ' ', $expr);
+        $expr = (string) preg_replace('~\s*(?:--(?=\s|$).*|#.*)$~s', '', $expr);
+
+        return trim($expr);
     }
 
     /** A static integer / arithmetic operand via SafeArithmetic (which handles sign + + - * / %), else null. */
