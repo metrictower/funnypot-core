@@ -13,8 +13,8 @@ status: 200
 match:
   -
     in: path
-    regex: '^/v1/messages/?$'
-    ci: false
+    regex: '^/v1/messages/*$'
+    ci: true
   -
     in: method
     regex: ^POST$

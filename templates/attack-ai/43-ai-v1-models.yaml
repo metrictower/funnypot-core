@@ -13,8 +13,8 @@ status: 200
 match:
   -
     in: path
-    regex: '^/v1/models/?$'
-    ci: false
+    regex: '^/v1/models/*$'
+    ci: true
   -
     in: method
     regex: ^GET$

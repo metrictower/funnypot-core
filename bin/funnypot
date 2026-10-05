@@ -215,7 +215,7 @@ function runCompileAi(string $root, array $argvv): int
             'owns_path' => [$c['path']],
             'status' => 200,
             'match' => [
-                ['in' => 'path', 'regex' => '^' . preg_quote($c['path'], '~') . '/?$', 'ci' => false],
+                ['in' => 'path', 'regex' => '^' . preg_quote($c['path'], '~') . '/*$', 'ci' => true],
                 ['in' => 'method', 'regex' => '^GET$', 'ci' => false],
             ],
             'response' => ['headers' => ['Content-Type' => $ct], 'body' => $c['body']],
@@ -245,7 +245,7 @@ function runCompileAi(string $root, array $argvv): int
         'owns_path' => ['/api/show'],
         'status' => 404,
         'match' => [
-            ['in' => 'path', 'regex' => '^/api/show/?$', 'ci' => false],
+            ['in' => 'path', 'regex' => '^/api/show/*$', 'ci' => true],
             ['in' => 'method', 'regex' => '^POST$', 'ci' => false],
             $modelCapture,
         ],
@@ -297,7 +297,7 @@ function runCompileAi(string $root, array $argvv): int
             'owns_path' => [$c['path']],
             'status' => 200,
             'match' => [
-                ['in' => 'path', 'regex' => '^' . preg_quote($c['path'], '~') . '/?$', 'ci' => false],
+                ['in' => 'path', 'regex' => '^' . preg_quote($c['path'], '~') . '/*$', 'ci' => true],
                 ['in' => 'method', 'regex' => '^POST$', 'ci' => false],
                 $modelCapture,
             ],
@@ -322,7 +322,7 @@ function runCompileAi(string $root, array $argvv): int
         'owns_path' => ['/v1/models'],
         'status' => 200,
         'match' => [
-            ['in' => 'path', 'regex' => '^/v1/models/?$', 'ci' => false],
+            ['in' => 'path', 'regex' => '^/v1/models/*$', 'ci' => true],
             ['in' => 'method', 'regex' => '^GET$', 'ci' => false],
         ],
         'behavior' => 'branch',
