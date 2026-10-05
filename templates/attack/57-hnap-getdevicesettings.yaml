@@ -1,0 +1,51 @@
+id: attack-hnap-getdevicesettings
+severity: high
+tags: [attack, dlink, hnap, iot, recon, cve-2015-2051]
+priority: 57
+# FP-0441 (AC1): D-Link HNAP GetDeviceSettings recon decoy. A GET to the HNAP endpoint returns the device
+# settings SOAP envelope — RouterSploit's dlink/multi_hnap check keys on `status 200 && "D-Link" in body &&
+# "SOAPActions" in body`, then proceeds to its exploit loop. /HNAP1/ is a store-miss path (no corpus key),
+# so this matches via the linear attack scan; GET-only, so it never collides with the POST-only HNAP login
+# oracle (96-hnap-login). A bare GET /HNAP1/ returns this on a real D-Link, so no header gate is needed
+# (the path is D-Link-specific — benign traffic never hits it). INERT: static canned XML, no exec/fs, no
+# request byte reflected. The purenetworks.com/HNAP1/ SOAPAction URLs + ModelName/VendorName are D-Link's
+# OWN product strings (fingerprint-safe, not scanner/CRS literals). FirmwareVersion is a {{pick}} for
+# per-host variance; model DIR-850L is a heavily-targeted real D-Link router. severity high so embedders
+# serve it. The SOAPAction-header command-injection RCE (CVE-2015-2051 exploit phase) is a separate
+# follow-up — see FP-0555 (needs the RouterSploit exploit-phase matcher confirmed in the ingest bench).
+match:
+  - in: path
+    regex: '(?:^|/)HNAP1/?$'
+    ci: false
+  - in: method
+    regex: '^GET$'
+    ci: false
+status: 200
+response:
+  headers:
+    Content-Type: "text/xml; charset=utf-8"
+  body: |
+    <?xml version="1.0" encoding="utf-8"?>
+    <soap:Envelope xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/">
+    <soap:Body>
+    <GetDeviceSettingsResponse xmlns="http://purenetworks.com/HNAP1/">
+    <GetDeviceSettingsResult>OK</GetDeviceSettingsResult>
+    <Type>GetDeviceSettings</Type>
+    <DeviceName>D-Link Systems DIR-850L</DeviceName>
+    <VendorName>D-Link Systems</VendorName>
+    <ModelName>DIR-850L</ModelName>
+    <ModelDescription>Wireless AC1200 Dual Band Gigabit Cloud Router</ModelDescription>
+    <FirmwareVersion>{{pick:dlink-fw:1.14B07,1.20B07,1.21B08,1.08}}</FirmwareVersion>
+    <PresentationURL>http://192.168.0.1/</PresentationURL>
+    <SOAPActions>
+    <string>http://purenetworks.com/HNAP1/GetDeviceSettings</string>
+    <string>http://purenetworks.com/HNAP1/Login</string>
+    <string>http://purenetworks.com/HNAP1/GetFirmwareStatus</string>
+    <string>http://purenetworks.com/HNAP1/Reboot</string>
+    </SOAPActions>
+    </GetDeviceSettingsResponse>
+    </soap:Body>
+    </soap:Envelope>
+expect:
+  - '<ModelName>DIR-850L</ModelName>'
+  - 'SOAPActions'
