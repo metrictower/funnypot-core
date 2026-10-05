@@ -72,6 +72,22 @@ final class PhpPgAdminLoginOracleTest extends TestCase
         self::assertTrue($this->emulator()->ownsPath('/redirect.php'));
     }
 
+    /**
+     * owns_path claims a case-insensitive, trailing-slash-stripped ownership form, so the path MATCH
+     * must accept the same variants or ownsPath() claims a request this rule then declines. Pins the
+     * ci:true + `/*$` fix — a revert to a case-sensitive / slash-intolerant path regex fails here.
+     */
+    public function test_owns_and_serves_case_and_trailing_slash_variants(): void
+    {
+        foreach (['/redirect.php', '/REDIRECT.PHP', '/redirect.php/', '/Redirect.Php//'] as $path) {
+            self::assertTrue($this->emulator()->ownsPath($path), "owns {$path}");
+            $r = $this->isolated()->emulate(new RequestContext('POST', $path, '', [], $this->body('alice')));
+            self::assertNotNull($r, "owns_path must not claim a path the rule declines: {$path}");
+            self::assertSame(200, $r->status, $path);
+            self::assertSame(['attack-phppgadmin-login'], $r->satisfies->templateIds(), $path);
+        }
+    }
+
     // --- branch A: reserved superuser/admin names → disallowed (also the base/default) ---------------
 
     public function test_reserved_username_returns_disallowed_for_security_reasons(): void

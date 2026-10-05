@@ -32,8 +32,11 @@ owns_path: [/redirect.php]
 # verb misses (no route here at all) => plain 404.
 match:
   - in: path
-    regex: '(?:^|/)redirect\.php$'
-    ci: false
+    # owns_path keys on a case-insensitive, trailing-slash-stripped ownership form
+    # (PathNormalizer::ownershipKey), so the path match MUST be ci + trailing-slash tolerant or
+    # ownsPath() claims /REDIRECT.PHP or /redirect.php/ while this rule then declines them.
+    regex: '(?:^|/)redirect\.php/*$'
+    ci: true
   - in: method
     regex: '^POST$'
     ci: false
