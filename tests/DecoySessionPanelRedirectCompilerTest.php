@@ -252,4 +252,24 @@ YAML;
         $this->expectException(RuntimeException::class);
         $this->compileOne($this->challengeRule('  panel: grafana'));
     }
+
+    // --- credential_bypass (mint, FP-0561) ---------------------------------------------------
+
+    public function test_mint_credential_bypass_absent_by_default(): void
+    {
+        $rules = $this->compileOne($this->mintRule(''));
+        self::assertArrayNotHasKey('credential_bypass', $rules[0]['decoy-session'], 'absent ⇒ scalar gate only (unchanged)');
+    }
+
+    public function test_mint_accepts_credential_bypass_nosql_operator(): void
+    {
+        $rules = $this->compileOne($this->mintRule('  credential_bypass: nosql-operator'));
+        self::assertSame('nosql-operator', $rules[0]['decoy-session']['credential_bypass']);
+    }
+
+    public function test_mint_rejects_unknown_credential_bypass(): void
+    {
+        $this->expectException(RuntimeException::class);
+        $this->compileOne($this->mintRule('  credential_bypass: anything-else'));
+    }
 }

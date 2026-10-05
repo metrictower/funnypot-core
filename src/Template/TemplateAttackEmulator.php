@@ -1367,6 +1367,28 @@ final class TemplateAttackEmulator
             }
         }
 
+        // FP-0561: NoSQL authentication-bypass mint. A bypass payload (username[$ne]=&password[$ne]= /
+        // {"username":{"$ne":null}}) carries empty/object credential values that fail the scalar
+        // plausibility gate below, so a scalar-only mint rule declines it. A rule that opts in with
+        // `credential_bypass: nosql-operator` mints instead on EVIDENCE of a NoSQL operator captured on a
+        // credential field (the rule's match binds `(?P<bypass>…)` to that operator expression). The
+        // operator is RE-VALIDATED here against the canonical operator set — not merely trusted from the
+        // rule's match — so a mis-authored config on a loose rule can never mint on benign input. The mint
+        // is otherwise identical to the scalar path: a FIXED authored redirect (no open redirect), operator
+        // bytes never reflected, an inert signed decoy cookie that grants nothing real. Inherits the
+        // decoySessionKey kill switch above (an unkeyed deploy already returned null), so a default install
+        // is byte-identical to today. The scalar-credential path below is untouched.
+        if (($config['credential_bypass'] ?? '') === 'nosql-operator') {
+            $bypass = (string) ($captures['bypass'] ?? '');
+            if (preg_match('~(?:\[\s*\$|"\s*\$)(?:ne|gte?|lte?|gt|lt|in|nin|regex|exists|where|expr|or|nor|not|all|elemMatch)\b~i', $bypass) !== 1) {
+                return null; // no NoSQL-operator evidence on the credential field ⇒ never mint
+            }
+            $cookie = $session->mintCookie($name, $path);
+            $location = (string) ($config['redirect'] ?? '/');
+
+            return new EmulatedContent('', ['Set-Cookie' => $cookie, 'Location' => $location], 302);
+        }
+
         $user = (string) ($captures['user'] ?? '');
         $pass = (string) ($captures['pass'] ?? '');
         if (trim($user) === '' || trim($pass) === '') {
