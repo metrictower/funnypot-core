@@ -731,9 +731,115 @@ final class BoundedInspection
         if (strncmp($ct, 'multipart/form-data', 19) === 0) {
             return self::multipartFields($body, self::headerValue($r->headers, 'Content-Type'));
         }
+        // FP-0369b: XML (application/xml, text/xml, *+xml like application/soap+xml/atom+xml).
+        if ($ct === 'application/xml' || $ct === 'text/xml' || substr($ct, -4) === '+xml') {
+            return self::xmlFields($body);
+        }
 
-        // XML (P2) and any other/absent content type: no per-field view; falls back to blob matching.
+        // Any other/absent content type: no per-field view; falls back to blob matching.
         return [];
+    }
+
+    /**
+     * FP-0369b: flatten an XML body into per-field entries — each element's name, every attribute value,
+     * and all char-data / CDATA — matched via the SAME `in: fields` seam as JSON/urlencoded/multipart.
+     *
+     * XXE-SAFE BY CONSTRUCTION: this is a bounded pure-STRING scan — there is NO XML parser, so no entity
+     * is ever resolved (a `&xxe;` reference stays literal text and is never expanded), no DTD / external
+     * entity / network fetch can occur, and a billion-laughs body cannot amplify (nothing expands). A
+     * `<!DOCTYPE …>`/`<!ENTITY …>`/DTD internal subset, comments, and processing instructions are SKIPPED
+     * wholesale, never interpreted. Bounded by MAX_BODY_FIELDS (per-field clipping happens later in
+     * fieldSurfaces via BODY_FIELD_BYTES). Malformed XML degrades to whatever fields were scanned (often []),
+     * so `in: fields` simply doesn't match — never a throw, never a blob-spanning match.
+     *
+     * @return array<int,array{kind:string,v:string}>
+     */
+    private static function xmlFields(string $body): array
+    {
+        $out = [];
+        $len = strlen($body);
+        $i = 0;
+        while ($i < $len && count($out) < self::MAX_BODY_FIELDS) {
+            $lt = strpos($body, '<', $i);
+            if ($lt === false) {
+                $text = trim(substr($body, $i));
+                if ($text !== '') {
+                    $out[] = ['kind' => 'value', 'v' => $text];
+                }
+                break;
+            }
+            if ($lt > $i) {
+                $text = trim(substr($body, $i, $lt - $i));
+                if ($text !== '') {
+                    $out[] = ['kind' => 'value', 'v' => $text];
+                }
+            }
+            // CDATA: emit the raw content as a value (never interpreted as markup).
+            if (substr($body, $lt, 9) === '<![CDATA[') {
+                $end = strpos($body, ']]>', $lt + 9);
+                $raw = $end === false ? substr($body, $lt + 9) : substr($body, $lt + 9, $end - $lt - 9);
+                if ($raw !== '') {
+                    $out[] = ['kind' => 'value', 'v' => $raw];
+                }
+                $i = $end === false ? $len : $end + 3;
+                continue;
+            }
+            // Comment: skip to -->.
+            if (substr($body, $lt, 4) === '<!--') {
+                $end = strpos($body, '-->', $lt + 4);
+                $i = $end === false ? $len : $end + 3;
+                continue;
+            }
+            // DOCTYPE / DTD / ENTITY declarations: SKIP ENTIRELY — never interpreted (XXE-immune). Skip to
+            // the closing '>' (past an internal subset '[ … ]' when one precedes it).
+            if (substr($body, $lt, 2) === '<!') {
+                $gt = strpos($body, '>', $lt);
+                $bracket = strpos($body, '[', $lt);
+                if ($bracket !== false && ($gt === false || $bracket < $gt)) {
+                    $close = strpos($body, ']', $bracket);
+                    $gt = $close === false ? $gt : strpos($body, '>', $close);
+                }
+                $i = $gt === false ? $len : $gt + 1;
+                continue;
+            }
+            // Processing instruction (incl. the XML declaration): skip past its closing marker.
+            if (substr($body, $lt, 2) === '<?') {
+                $end = strpos($body, '?>', $lt + 2);
+                $i = $end === false ? $len : $end + 2;
+                continue;
+            }
+            // An element tag: <name attr="v" …>, </name>, or <name/>.
+            $gt = strpos($body, '>', $lt);
+            if ($gt === false) {
+                break;
+            }
+            $tag = rtrim(substr($body, $lt + 1, $gt - $lt - 1), '/');
+            $i = $gt + 1;
+            if ($tag === '' || $tag[0] === '/') {
+                continue; // close tag or empty: nothing to emit
+            }
+            if (preg_match('/^([^\s\/>]+)/', $tag, $nm) === 1) {
+                $out[] = ['kind' => 'name', 'v' => $nm[1]];
+            }
+            // Attribute values, double- then single-quoted (two clean patterns, no mixed-quote escaping).
+            $attrVals = [];
+            if (preg_match_all('/="([^"]*)"/', $tag, $dm) > 0) {
+                $attrVals = $dm[1];
+            }
+            if (preg_match_all("/='([^']*)'/", $tag, $sm) > 0) {
+                foreach ($sm[1] as $sv) {
+                    $attrVals[] = $sv;
+                }
+            }
+            foreach ($attrVals as $av) {
+                if (count($out) >= self::MAX_BODY_FIELDS) {
+                    break;
+                }
+                $out[] = ['kind' => 'value', 'v' => $av];
+            }
+        }
+
+        return $out;
     }
 
     /**
