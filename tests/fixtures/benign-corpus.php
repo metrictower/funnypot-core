@@ -110,4 +110,15 @@ return [
     $g('fp0582:fpd-array', '/shop/catalog-filter', 'tags[]=books&tags[]=sale'),
     $g('fp0582:verbose-error-hex', '/shop/report-view', 'page=0x1F'),
     $g('fp0582:crs-rce-ipconfig', '/shop/net-tools', 'host=router&ipconfig=auto'),
+
+    // === FP-0548 straddle regression guard — benign on EVERY decode layer, multi-layer folds ===
+    // Before FP-0534, a span-y CRS catch-all could match across the foldLayers joiner (raw + ' ' +
+    // decoded); per-layer matching closed that. These are benign requests whose folds are multi-layer
+    // with a suggestive-but-benign raw-tail/decoded-head window (SQL-ish prose, nested percent-encoding).
+    // They classify CLEAN today; if a future decoder/matcher change reopens the straddle they become a
+    // NEW false positive and the subset guardrail fails. (No `fp0582:`/`fpcrs:` prefix — not accepted FPs.)
+    $g('fp0548:straddle-pct-prose', '/shop/plan-picker', 'note=' . rawurlencode('select your plan')),
+    $g('fp0548:straddle-plus-chain', '/shop/catalog-sort', 'q=order+by+date'),
+    $g('fp0548:straddle-dblpct', '/shop/decode-demo', 'x=%2561%2562+%2563'),
+    $g('fp0548:straddle-pct-path', '/shop/doc-viewer', 'p=' . rawurlencode('docs/guide/intro')),
 ];

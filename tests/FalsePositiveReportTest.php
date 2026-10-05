@@ -147,6 +147,24 @@ final class FalsePositiveReportTest extends TestCase
         }
         self::assertSame([], $missing, "A recorded baseline FP no longer fires (good! — update BASELINE_FP):\n"
             . json_encode($missing, JSON_PRETTY_PRINT) . "\n\nFull report:\n" . $report);
+
+        // FP-0548 — explicit benign-FP COUNT pin (the FP-0534 foldLayers straddle regression guard).
+        // Before FP-0534 a span-y CRS catch-all could match across the layer joiner (raw + ' ' + decoded);
+        // per-layer matching closed it. The corpus carries `fp0548:straddle-*` samples that are benign on
+        // every decode layer but produce multi-layer folds; if a future decoder/matcher change reopens the
+        // straddle they turn into FPs and the total rises above the accepted baseline. Counting from
+        // BASELINE_FP keeps the expected number honest (every accepted FP is one recorded label).
+        $observedCount = 0;
+        foreach ($observed as $labels) {
+            $observedCount += count($labels);
+        }
+        $baselineCount = 0;
+        foreach (self::BASELINE_FP as $labels) {
+            $baselineCount += count($labels);
+        }
+        self::assertSame($baselineCount, $observedCount,
+            "benign false-positive COUNT drifted from the accepted baseline ({$baselineCount}) — a straddle "
+            . "FP may have reopened, or a fix needs the baseline updated.\n\nFull report:\n" . $report);
     }
 
     public function test_detection_rate_on_blatant_attacks_at_floor(): void
