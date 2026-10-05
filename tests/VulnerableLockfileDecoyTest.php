@@ -65,6 +65,8 @@ final class VulnerableLockfileDecoyTest extends TestCase
             '/requirements.txt'  => [['Django==3.0.4', 'PyYAML==5.1', 'urllib3==1.25.7'], false, 'text/plain'],
             '/Pipfile.lock'      => [['"pipfile-spec": 6', '"version": "==3.0.4"'], true, 'application/json'],
             '/Pipfile'           => [['[[source]]', '[packages]', 'django = "==3.0.4"'], false, 'text/plain'],
+            // FP-0542: pnpm lockfile, reusing the npm OSV-vulnerable set (coherent with package-lock/yarn).
+            '/pnpm-lock.yaml'    => [['lockfileVersion: 5.4', 'lodash: 4.17.11', 'axios: 0.21.1'], false, 'text/plain'],
         ];
     }
 
@@ -137,6 +139,11 @@ final class VulnerableLockfileDecoyTest extends TestCase
         // lodash integrity is the same seeded value in both npm lockfiles (shared {{fake.npm_i_lodash}}).
         self::assertSame(1, preg_match('#lodash[^}]*?integrity": "(sha512-[^"]+)"#s', $lock, $li), 'lock lodash integrity');
         self::assertStringContainsString($li[1], $yarn, 'package-lock + yarn.lock must share the lodash integrity');
+        // FP-0542: pnpm-lock joins the npm-family coherence — byte-identical integrity per package (same seeds).
+        $pnpm = $this->body($this->resp('/pnpm-lock.yaml', 'hostX'));
+        self::assertStringContainsString($li[1], $pnpm, 'package-lock + pnpm-lock must share the lodash integrity');
+        self::assertSame(1, preg_match('#/cookie/0\.3\.1:\s*resolution: \{integrity: (sha1-[^}]+)\}#', $pnpm, $ck), 'pnpm cookie sha1 integrity');
+        self::assertStringContainsString($ck[1], $lock, 'package-lock + pnpm-lock must share the cookie sha1 integrity (same algo + value)');
     }
 
     public function test_fingerprint_guard_clean_across_seeds(): void

@@ -1,0 +1,75 @@
+id: route-pnpm-lock
+priority: 88
+# FP-0542: vulnerable pnpm lockfile decoy at /pnpm-lock.yaml (extends the FP-0399 lockfile suite). pnpm-lock
+# is a corpus route key (bw lockfileVersion:/specifiers:); this enrich serves a pnpm v5.4 lockfile whose
+# dependency versions are REAL OSV-listed vulnerable npm releases — reused from the FP-0399 set in
+# 81-package-lock-json/84-yarn-lock so the three npm files AGREE for one attacker. An SCA scanner (osv-scanner
+# / pnpm audit / Trivy) that scrapes the file resolves by (ecosystem=npm, name, VERSION) and reports verifiable
+# CVEs (lodash 4.17.11 proto-pollution, axios 0.21.1 SSRF, minimist 1.2.5 proto-pollution, node-serialize 0.0.4
+# RCE, jsonwebtoken 8.5.1, qs 6.5.2, express 4.16.4, cookie 0.3.1). Versions are FIXED literals (the detection
+# payload); sha512 integrity is {{fake.*}}-seeded (SCA tools resolve by name+version, NEVER verify the hash) so
+# two deploys are not byte-identical (anti-correlation). The integrity NAMEs are shared with 81/84 so the npm
+# files agree. Content-Type text/plain (the bundle carries no typed Content-Type witness; a raw .yaml lockfile
+# fetch is text). INERT: static per-render bytes, no request byte reflected.
+match:
+  template_needle: [pnpm-lock]
+response:
+  headers:
+    Content-Type: "text/plain; charset=utf-8"
+  body: |
+    lockfileVersion: 5.4
+
+    specifiers:
+      axios: 0.21.1
+      cookie: 0.3.1
+      express: 4.16.4
+      jsonwebtoken: 8.5.1
+      lodash: 4.17.11
+      minimist: 1.2.5
+      node-serialize: 0.0.4
+      qs: 6.5.2
+
+    dependencies:
+      axios: 0.21.1
+      cookie: 0.3.1
+      express: 4.16.4
+      jsonwebtoken: 8.5.1
+      lodash: 4.17.11
+      minimist: 1.2.5
+      node-serialize: 0.0.4
+      qs: 6.5.2
+
+    packages:
+
+      /axios/0.21.1:
+        resolution: {integrity: sha512-{{fake.npm_i_axios:b64:86}}==}
+        dev: false
+
+      /cookie/0.3.1:
+        resolution: {integrity: sha1-{{fake.npm_i_cookie:b64:27}}=}
+        dev: false
+
+      /express/4.16.4:
+        resolution: {integrity: sha512-{{fake.npm_i_express:b64:86}}==}
+        dev: false
+
+      /jsonwebtoken/8.5.1:
+        resolution: {integrity: sha512-{{fake.npm_i_jwt:b64:86}}==}
+        dev: false
+
+      /lodash/4.17.11:
+        resolution: {integrity: sha512-{{fake.npm_i_lodash:b64:86}}==}
+        dev: false
+
+      /minimist/1.2.5:
+        resolution: {integrity: sha512-{{fake.npm_i_minimist:b64:86}}==}
+        dev: false
+
+      /node-serialize/0.0.4:
+        resolution: {integrity: sha512-{{fake.npm_i_nodeser:b64:86}}==}
+        dev: false
+
+      /qs/6.5.2:
+        resolution: {integrity: sha512-{{fake.npm_i_qs:b64:86}}==}
+        dev: false
+expect: ['lockfileVersion: 5.4', 'lodash: 4.17.11']
