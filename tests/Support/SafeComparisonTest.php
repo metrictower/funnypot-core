@@ -46,6 +46,12 @@ final class SafeComparisonTest extends TestCase
             'line comment false' => ['1 > 2-- -', false],
             'hash comment false' => ['1 > 2#neutralise', false],
             'block comment false' => ['1 > 2/* x */', false],
+            // FP-0585: a MySQL versioned conditional comment is UNWRAPPED (its body is live), so it splits.
+            'versioned comment true' => ['/*!50000 2>1*/', true],
+            'versioned comment false' => ['/*!50000 1>2*/', false],
+            'versioned no-version true' => ['/*!1<2*/', true],
+            'versioned wraps operand' => ['/*!50000 2*/>1', true],
+            'plain block still inert false' => ['/* 2>1 */1>2', false],
             'between line comment false' => ['11 BETWEEN 0 AND 9-- -', false],
             'not between line comment true' => ['5 NOT BETWEEN 0 AND 3-- -', true],
             'in line comment false' => ['9 IN (6,7,8)-- -', false],
@@ -67,6 +73,8 @@ final class SafeComparisonTest extends TestCase
             'malformed' => ['2 >', null],
             'no operator' => ['42', null],
             'over-length' => [str_repeat('9', 200) . '>1', null],
+            // FP-0585 N1: a multi-KB surface is bailed before the comment-strip regexes run (no O(n^2)).
+            'over-raw-length comment flood' => [str_repeat('/*!', 12000) . '1>2', null],
         ];
     }
 

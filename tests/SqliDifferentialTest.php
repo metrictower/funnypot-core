@@ -392,6 +392,10 @@ final class SqliDifferentialTest extends TestCase
         self::assertSame($empty, $this->serve('id=10 AND 9 IN (6,7,8)-- -')->body, 'FALSE IN + comment -> P_empty');
         self::assertSame($empty, $this->serve('id=10 AND 1>2 ORDER BY 1')->body, 'FALSE + trailing clause -> P_empty');
 
+        // FP-0585: a MySQL versioned conditional comment wrapping the comparison is unwrapped (live) and splits.
+        self::assertSame($p, $this->serve('id=10 AND ' . rawurlencode('/*!50000 2>1*/'))->body, 'versioned-comment TRUE -> P');
+        self::assertSame($empty, $this->serve('id=10 AND ' . rawurlencode('/*!50000 1>2*/'))->body, 'versioned-comment FALSE -> P_empty');
+
         // On-wire encoded forms (consistently percent/`+`-encoded) must split the same way through the fold.
         self::assertSame($p, $this->serve('id=10%20AND%202%3E1--%20-')->body, 'encoded TRUE + encoded comment -> P');
         self::assertSame($empty, $this->serve('id=10+AND+1%3E2--+-')->body, 'encoded FALSE + `+`-encoded comment -> P_empty');
