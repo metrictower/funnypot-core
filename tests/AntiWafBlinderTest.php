@@ -91,6 +91,42 @@ final class AntiWafBlinderTest extends TestCase
         self::assertNull($poly, 'the WAF-check polyglot must be blinded to the same 404 (no attack serve)');
     }
 
+    // --- owned store-HIT paths (the AC-2 showcase): path-triggered (Class A) vs payload-induced (Class B).
+
+    /**
+     * Class A (path-triggered owned decoy — a panel/feed served by PATH regardless of payload): the
+     * unmarked baseline IS the owned serve, so the polyglot must ALSO get it (byte-identical). Review F1
+     * regression guard — an unconditional owns_path suppression dropped this to a thin stub (ratio 0.225).
+     */
+    public function test_waf_check_polyglot_blinds_path_triggered_owned_panel(): void
+    {
+        $baseline = $this->respond('/phpmyadmin', 'id=1');
+        $poly = $this->respond('/phpmyadmin', 'id=' . rawurlencode(self::POLY));
+        self::assertNotNull($baseline);
+        self::assertNotNull($poly, 'the polyglot on a path-triggered panel must still be served (the panel IS the baseline)');
+        self::assertSame($baseline->body, $poly->body, 'polyglot must be byte-identical to the panel baseline');
+        $ratio = $this->quickRatio($poly->body, $baseline->body);
+        self::assertGreaterThanOrEqual(0.7, $ratio, "owned-panel blind ratio must clear sqlmap AC (got {$ratio})");
+    }
+
+    /**
+     * Class B (payload-induced owned match — a benign request does NOT take the owns_path rule): the
+     * polyglot is suppressed to the route's static baseline, while a GENERIC union still draws its
+     * divergent attack serve (the honeypot is not blinded for a real attacker). Exercises the
+     * matchOnOwnedPath gate the review flagged as untested.
+     */
+    public function test_payload_owned_path_blinds_polyglot_but_not_generic_sqli(): void
+    {
+        $baseline = $this->respond('/api/v1/users/', 'id=1');
+        $poly = $this->respond('/api/v1/users/', 'id=' . rawurlencode(self::POLY));
+        $generic = $this->respond('/api/v1/users/', 'id=' . rawurlencode(self::GENERIC));
+        self::assertNotNull($baseline);
+        self::assertNotNull($poly);
+        self::assertSame($baseline->body, $poly->body, 'polyglot suppressed to the owned-path static baseline');
+        self::assertNotNull($generic, 'a real generic union is still served (NOT blinded)');
+        self::assertNotSame($baseline->body, $generic->body, 'the generic union diverges from baseline (real attack served)');
+    }
+
     // --- param-route (differential) path: the polyglot self-resolves to baseline P (NOT suppressed).
 
     public function test_waf_check_polyglot_serves_baseline_on_the_differential_route(): void
@@ -146,6 +182,29 @@ final class AntiWafBlinderTest extends TestCase
         $obs = new CapturingObserver();
         $this->respond('/products.php', 'id=' . rawurlencode('\'"()(),.()'), $obs);
         self::assertTrue($obs->sawTag('tool.sqlmap.heuristic'), 'the heuristic-alphabet telemetry tag must reach onDetection');
+    }
+
+    /**
+     * Review (safety) F1: the heuristic-alphabet value scan must NEVER throw a 5xx (Security Invariant #2).
+     * A >1000-param body makes PHP's parse_str emit a warning that a Laravel/Symfony warning-to-exception
+     * handler would throw; the bounded manual split must not. Run respond() under such a handler and assert
+     * it returns instead of throwing.
+     */
+    public function test_many_params_do_not_throw_under_a_throwing_error_handler(): void
+    {
+        $body = implode('&', array_map(static function (int $i): string {
+            return 'k' . $i . '=v';
+        }, range(0, 1200)));
+        $engine = $this->engine();
+        set_error_handler(static function (int $no, string $str): bool {
+            throw new \ErrorException($str);
+        });
+        try {
+            $resp = $engine->respond(new RequestContext('POST', '/products.php', '', [], $body, 'x.test'));
+            self::assertNull($resp, 'a benign high-param body resolves (no attack), and MUST NOT throw a 5xx');
+        } finally {
+            restore_error_handler();
+        }
     }
 }
 

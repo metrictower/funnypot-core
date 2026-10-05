@@ -62,10 +62,16 @@ final class AntiWafProbe
         return false;
     }
 
+    /** Max `&`-segments scanned per arm — the heuristic probe is a single short value; a bound keeps this
+     *  linear and, crucially, avoids PHP's `parse_str` (its >max_input_vars WARNING throws under an embedded
+     *  Laravel/Symfony warning-to-exception handler → a 500, which is itself a tell). Mirrors the codebase's
+     *  deliberate no-`parse_str` rule (see QueryIntentClassifier / ParamMiningProbe). */
+    private const MAX_SEGMENTS = 512;
+
     /**
-     * Decoded scalar values from the query string and (when form-encoded) the body. parse_str urldecodes
-     * once — the single decode the heuristic alphabet is sent with. Bounded: only values already short
-     * enough to be the 10-char probe matter, and parse_str caps at max_input_vars.
+     * The exactly-10-char decoded scalar values from the query and (when form-encoded) the body — the only
+     * shape the heuristic alphabet can take. A bounded manual split (NO parse_str): never throws, never a
+     * 500, linear in the capped segment count.
      *
      * @return list<string>
      */
@@ -87,12 +93,22 @@ final class AntiWafProbe
         if ($encoded === '') {
             return;
         }
-        $parsed = [];
-        parse_str($encoded, $parsed);
-        array_walk_recursive($parsed, static function ($v) use (&$out): void {
-            if (is_string($v)) {
-                $out[] = $v;
+        $segments = explode('&', $encoded, self::MAX_SEGMENTS + 1);
+        $count = 0;
+        foreach ($segments as $seg) {
+            if (++$count > self::MAX_SEGMENTS) {
+                break;
             }
-        });
+            $eq = strpos($seg, '=');
+            $raw = $eq === false ? $seg : substr($seg, $eq + 1);
+            if ($raw === '') {
+                continue;
+            }
+            // Form semantics: `+` is a space, then percent-decode — one decode, as the probe is sent with.
+            $value = urldecode($raw);
+            if (strlen($value) === 10) {
+                $out[] = $value; // only the 10-char candidate can be the heuristic alphabet
+            }
+        }
     }
 }

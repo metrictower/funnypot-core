@@ -470,10 +470,18 @@ final class Honeypot implements Engine
                 $ov = $this->attackEmulator->matchOnOwnedPath($r, function (array $rule) use ($r): bool {
                     return $this->personaGateAllows($rule, $r);
                 });
-                // FP-0425: treat the WAF-check polyglot as if no owned rule matched (skip only this
-                // ATTACK return, not the auth-success-witness guard or the route fall-through below), so
-                // it resolves to the SAME baseline the unmarked request would on this owned path.
-                if ($ov !== null && !$wafCheck) {
+                // FP-0425: for the WAF-check polyglot, serve exactly what a payload-NEUTRAL request to this
+                // owned path gets. A PATH-TRIGGERED owned decoy (Class A: panel/feed/version — the match
+                // survives stripping the query/body payload) IS the unmarked baseline, so serve it so the
+                // polyglot stays byte-identical to baseline (the blind holds). A PAYLOAD-INDUCED match
+                // (Class B: a generic injection a benign request would not take → no match once stripped)
+                // is SUPPRESSED so it falls through to the static route baseline below. Unconditional
+                // suppression would wrongly drop a path-triggered panel to its thin stub/404 and CREATE the
+                // very divergence this feature removes (review F1).
+                if ($ov !== null && $wafCheck) {
+                    $ov = $this->ownedPathBaselineMatch($r);
+                }
+                if ($ov !== null) {
                     $rule = $ov['rule'];
                     $detection = TemplateAttackEmulator::detectionForRule($rule);
                     $handle = FakeHandle::attack((string) ($rule['id'] ?? 'attack'), $ov['captures']);
@@ -618,6 +626,38 @@ final class Honeypot implements Engine
         }
 
         return new Verdict(Verdict::CLEAN, Detection::none(), '', $anomaly, $signals, null);
+    }
+
+    /**
+     * FP-0425: the owned-path rule a PAYLOAD-NEUTRAL request to this path would match — the Class A/B
+     * discriminator for the WAF-check blind. Strips the query + body (where the polyglot rides) but keeps
+     * the path/method/headers/host, then re-runs the same gate-aware matchOnOwnedPath. A non-null result is
+     * a path-triggered owned decoy (panel/feed/version) that IS the unmarked baseline → serve it so the
+     * polyglot stays byte-identical to baseline; null means the original match was induced by the stripped
+     * payload → the caller suppresses it and falls through to the static route baseline.
+     *
+     * @return array<string,mixed>|null
+     */
+    private function ownedPathBaselineMatch(RequestContext $r): ?array
+    {
+        if ($this->attackEmulator === null) {
+            return null;
+        }
+        $neutral = new RequestContext(
+            $r->method,
+            $r->path,
+            '',
+            $r->headers,
+            null,
+            $r->host,
+            $r->scheme,
+            $r->httpVersion,
+            $r->targetAdmitted
+        );
+
+        return $this->attackEmulator->matchOnOwnedPath($neutral, function (array $rule) use ($neutral): bool {
+            return $this->personaGateAllows($rule, $neutral);
+        });
     }
 
     /**
