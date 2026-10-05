@@ -3,10 +3,16 @@ severity: critical
 priority: 41
 tags: [attack, rce, command-injection]
 # Shell metacharacter (; | & newline backtick $()) immediately before a unix recon command
-# -> canned uid=0(root) output. Never runs a command.
+# -> canned uid=0(root) output. Never runs a command. The (?![=\w]) guard is on the BARE-token recon
+# words only (id/whoami/uname/pwd/ifconfig): it rejects a query-string param key (`&id=`, `&pwd=`,
+# `&uname=`) where the `&` is a param delimiter not a shell background operator, and an identifier that
+# merely starts with a recon word (`&idle=`), while still matching the genuine shell forms (`;id`,
+# `|whoami`, `` `id` ``, `$(id)`, `&&id`, `%0aid`). The `cat\s`/`ls\s` branches require trailing
+# whitespace, so a param key (`&cat=`) never matched them — they stay UNGUARDED so a bareword argument
+# (`;cat passwd`, `;ls secret`) is still detected. FP-0581.
 match:
   - in: request
-    regex: '(?:[;|&\n`]|\$\(|%0a|%7c|%26)\s*(?:id|whoami|uname|cat\s|ls\s|pwd|ifconfig)'
+    regex: '(?:[;|&\n`]|\$\(|%0a|%7c|%26)\s*(?:(?:id|whoami|uname|pwd|ifconfig)(?![=\w])|cat\s|ls\s)'
 response:
   headers:
     Content-Type: "text/plain; charset=utf-8"

@@ -3,10 +3,14 @@ severity: critical
 priority: 40
 tags: [attack, rce, command-injection, windows]
 # Shell metacharacter immediately before a Windows recon command -> fake ipconfig output.
-# We never run a command; the body is static. Higher priority than the unix rule.
+# We never run a command; the body is static. Higher priority than the unix rule. The (?![=\w]) guard
+# is on the bare-token recon words (ipconfig/systeminfo) and `dir\b` (whose word boundary also matches
+# before a `=`), rejecting a param key (`&ipconfig=`, `&systeminfo=`, `&dir=`) where the `&` is a param
+# delimiter. `type\s` requires trailing whitespace so a param key never matched it — it stays unguarded
+# so a bareword argument (`;type web.config`) is still detected. FP-0581.
 match:
   - in: request
-    regex: '(?:[;|&\n`]|\$\(|%0a|%7c|%26)\s*(?:ipconfig|systeminfo|dir\b|type\s)'
+    regex: '(?:[;|&\n`]|\$\(|%0a|%7c|%26)\s*(?:(?:ipconfig|systeminfo)(?![=\w])|dir\b(?![=\w])|type\s)'
 response:
   headers:
     Content-Type: "text/plain; charset=utf-8"
