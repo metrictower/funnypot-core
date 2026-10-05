@@ -1,0 +1,40 @@
+id: attack-crushftp-getuserlist
+severity: high
+priority: 55
+tags: [attack, crushftp, auth-bypass, cve-2025-31161, user-enum]
+# FP-0459: CrushFTP CVE-2025-31161 improper-auth user-enumeration decoy (CISA KEV). The auth-bypass request
+# GET|POST /WebInterface/function/?command=getUserList with a forged CrushAuth cookie and an
+# `Authorization: AWS4-HMAC-SHA256 Credential=crushadmin/` header reaches the admin getUserList function
+# unauthenticated (the CrushAuth cookie value is NOT validated — that is the bug). Return the CrushFTP XML
+# user list. Scanner confirmation (Nettacker crushftp_cve_2025_31161): body contains
+# `<user_list_subitem>crushadmin</user_list_subitem>` — CrushFTP's OWN `_subitem` response vocabulary,
+# fingerprint-safe (the product's string, not a scanner/CRS literal). AUTHENTIC gate: require the AWS4
+# Credential header — a bare `command=getUserList` without the forged auth 404s on the real server, so it
+# must not leak the user list here either. /WebInterface/function/ is not a corpus key (store miss), so this
+# matches via the linear attack scan; no owns_path needed (nothing to shadow) and no generic injection rule
+# matches a getUserList request, so it wins at this priority. INERT: static canned XML, no exec/fs, no
+# request byte reflected. severity high so embedders serve it. Harvested-canary replay detection is app-tier.
+match:
+  - in: path
+    regex: '^/WebInterface/function/*$'
+    ci: true
+  - in: query
+    regex: 'command=getUserList'
+    ci: true
+  - in: header:Authorization
+    regex: 'AWS4-HMAC-SHA256 Credential='
+    ci: true
+status: 200
+response:
+  headers:
+    Content-Type: "text/xml; charset=utf-8"
+  body: |
+    <?xml version="1.0" encoding="UTF-8"?>
+    <response>
+      <response_status>200</response_status>
+      <user_list_subitem>crushadmin</user_list_subitem>
+      <user_list_subitem>{{pick:crushftp-user1:sftp_backup,batch_sync,edi_partner,archive_svc}}</user_list_subitem>
+      <user_list_subitem>{{pick:crushftp-user2:data_exchange,vendor_upload,report_drop,b2b_ftp}}</user_list_subitem>
+    </response>
+expect:
+  - '<user_list_subitem>crushadmin</user_list_subitem>'
