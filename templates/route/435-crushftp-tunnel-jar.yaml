@@ -1,0 +1,21 @@
+id: route-crushftp-tunnel-jar
+priority: 435
+# FP-0588: CrushFTP WebInterface tunnel applet — the OWASP Nettacker `crushftp_lastpatcheddate` recon
+# path (HEAD /WebInterface/CrushTunnel.jar, reads Last-Modified). We serve a PRE-patch build date
+# ({{persona.crushftp.lastModified}}, a vulnerable 10.8.3 / 11.3.0 build BEFORE the CVE-2025-31161 fix
+# 10.8.4 / 11.3.1 of ~2025-03-21) so a scanner declares the host unpatched and proceeds to the CrushFTP
+# exploit decoy (55-crushftp) — the full recon->exploit->decoy loop. Self-generated INERT jar container
+# (a valid empty ZIP EOCD) — NO real CrushFTP bytecode (golden rule).
+new_page:
+  method: GET
+  paths: ['/WebInterface/CrushTunnel.jar']
+  sig: 0
+  status: 200
+  severity: info
+  tags: [crushftp, version-oracle, exposure]
+  name: 'CrushFTP tunnel applet'
+response:
+  headers:
+    Content-Type: "application/java-archive"
+    Last-Modified: "{{persona.crushftp.lastModified}}"
+  body_b64: 'UEsFBgAAAAAAAAAAAAAAAAAAAAAAAA=='

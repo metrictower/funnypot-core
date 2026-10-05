@@ -25,9 +25,13 @@ final class PrePatchAssetFeederTest extends TestCase
 {
     private const CITRIX_PATCH = 1696896000;    // 2023-10-10
     private const IVANTI_PATCH = 1706659200;    // 2024-01-31
-    // The valid pre-patch Last-Modified epochs (must mirror PersonaIdentity::CITRIX_BUILDS / IVANTI_BUILDS).
+    private const CRUSHFTP_PATCH = 1742515200;  // 2025-03-21 (CVE-2025-31161)
+    private const IVCSA_PATCH = 1725926400;     // 2024-09-10 (CVE-2024-8190/-2024-8963)
+    // The valid pre-patch Last-Modified epochs (must mirror the PersonaIdentity::*_BUILDS consts).
     private const CITRIX_EPOCHS = [1684108800, 1681084800, 1691366400];
     private const IVANTI_EPOCHS = [1687219200, 1694476800, 1698105600];
+    private const CRUSHFTP_EPOCHS = [1734000000, 1738022400];
+    private const IVCSA_EPOCHS = [1712707200, 1722470400];
 
     /** @var array<string,mixed>|null */
     private static $idx;
@@ -64,6 +68,8 @@ final class PrePatchAssetFeederTest extends TestCase
         return [
             'citrix nsepa.exe' => ['/epa/scripts/win/nsepa_setup.exe', 'application/octet-stream', self::CITRIX_PATCH, self::CITRIX_EPOCHS],
             'ivanti ds.js'     => ['/dana-na/css/ds.js', 'application/javascript', self::IVANTI_PATCH, self::IVANTI_EPOCHS],
+            'crushftp jar'     => ['/WebInterface/CrushTunnel.jar', 'application/java-archive', self::CRUSHFTP_PATCH, self::CRUSHFTP_EPOCHS],
+            'ivanti-csa png'   => ['/allowed/ivanti-logo.png', 'image/png', self::IVCSA_PATCH, self::IVCSA_EPOCHS],
         ];
     }
 
@@ -104,6 +110,8 @@ final class PrePatchAssetFeederTest extends TestCase
         $maps = [
             'citrix' => ['13.1-48.47' => 1684108800, '13.0-90.12' => 1681084800, '14.1-4.42' => 1691366400],
             'ivanti' => ['22.3R1' => 1687219200, '9.1R18.3' => 1694476800, '22.5R2.1' => 1698105600],
+            'crushftp' => ['10.8.3' => 1734000000, '11.3.0' => 1738022400],
+            'ivcsa' => ['4.6.511' => 1712707200, '5.0.1' => 1722470400],
         ];
         for ($s = 0; $s < 24; $s++) {
             $p = PersonaIdentity::fromSeed($s);

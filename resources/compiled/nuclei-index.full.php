@@ -13,11 +13,11 @@ return array (
     'license' => 'MIT (c) 2025 ProjectDiscovery, Inc.',
     'upstream_tag' => '2ec914123864439c3618e7e9ae72d32d0eb56df7',
     'upstream_sha' => '2ec914123864439c3618e7e9ae72d32d0eb56df7',
-    'source_tree' => 'd6ba2fe4ff5240ce854f5dfc21b48f883379db87e7ae91cfd1883be03c49b060',
+    'source_tree' => '7c67e2b92e42bda88895ccad21b8d016e87a6f6eb8daffbac8078d7c3c99436f',
     'templates_seen' => 11196,
     'templates_in' => 6363,
-    'templates_indexed' => 6527,
-    'route_keys' => 5393,
+    'templates_indexed' => 6529,
+    'route_keys' => 5395,
     'multi_bundle_keys' => 277,
     'largest_bundle_count' => 1324,
     'persona_cap' => 
@@ -85999,6 +85999,17 @@ return array (
       ),
       'name' => 'Exposed JavaScript source map',
     ),
+    'route-crushftp-tunnel-jar' => 
+    array (
+      'sev' => 'info',
+      'tags' => 
+      array (
+        0 => 'crushftp',
+        1 => 'version-oracle',
+        2 => 'exposure',
+      ),
+      'name' => 'CrushFTP tunnel applet',
+    ),
     'route-hadoop-yarn-newapp' => 
     array (
       'sev' => 'low',
@@ -86023,6 +86034,18 @@ return array (
         4 => 'exposure',
       ),
       'name' => 'Hikvision configurationFile disclosure',
+    ),
+    'route-ivanti-csa-logo' => 
+    array (
+      'sev' => 'info',
+      'tags' => 
+      array (
+        0 => 'ivanti',
+        1 => 'csa',
+        2 => 'version-oracle',
+        3 => 'exposure',
+      ),
+      'name' => 'Ivanti CSA logo',
     ),
     'route-phpinfo' => 
     array (
@@ -314621,6 +314644,31 @@ a</title>',
         ),
       ),
     ),
+    'GET /WebInterface/CrushTunnel.jar' => 
+    array (
+      'b' => 
+      array (
+        0 => 
+        array (
+          's' => 200,
+          'bw' => 
+          array (
+          ),
+          'nf' => 
+          array (
+          ),
+          'pid' => 'route-crushftp-tunnel-jar',
+          'sev' => 'info',
+          'sig' => 0,
+          'amb' => 0,
+          't' => 
+          array (
+            0 => 'route-crushftp-tunnel-jar',
+          ),
+          'bin' => 1,
+        ),
+      ),
+    ),
     'GET /ws/v1/cluster/apps/new-application' => 
     array (
       'b' => 
@@ -314669,6 +314717,31 @@ a</title>',
           array (
             0 => 'route-hikvision-configfile',
           ),
+        ),
+      ),
+    ),
+    'GET /allowed/ivanti-logo.png' => 
+    array (
+      'b' => 
+      array (
+        0 => 
+        array (
+          's' => 200,
+          'bw' => 
+          array (
+          ),
+          'nf' => 
+          array (
+          ),
+          'pid' => 'route-ivanti-csa-logo',
+          'sev' => 'info',
+          'sig' => 0,
+          'amb' => 0,
+          't' => 
+          array (
+            0 => 'route-ivanti-csa-logo',
+          ),
+          'bin' => 1,
         ),
       ),
     ),
