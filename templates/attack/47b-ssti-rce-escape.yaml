@@ -1,0 +1,46 @@
+id: attack-ssti-rce-escape
+severity: critical
+priority: 47
+status: 200
+tags: [attack, ssti, rce, sandbox-escape, command-injection]
+# FP-0433: SSTI SANDBOX-ESCAPE -> synthetic OS execution oracle. A template-injection that breaks out to OS
+# command exec via a Python object-graph/globals chain (__subclasses__/__globals__/__mro__/catch_warnings/
+# os.popen/subprocess), a Node breakout (child_process/execSync/process.mainModule/range.constructor), or Ruby
+# %x()/backtick — vectors that TODAY fall to a plain 404 (the honeypot shows the scanner nothing). This sits
+# BELOW 52 and answers the escape with believable canned OS output (like the cmdi oracles 40/41), so the tool
+# "confirms" RCE and burns budget on a fake shell. The branch keys the output on the recon command; base = id.
+#
+# SCOPE (deliberate): this covers ONLY the vectors 52-ssti-engine-error does NOT already own. The Twig
+# |filter('system') / Freemarker Execute / Java Runtime|ProcessBuilder / PHP registerUndefinedFilterCallback
+# escapes are left to 52's canned engine ParseException — FP-0476 DELIBERATELY presents those engines as
+# SANDBOXED (secure-erroring), the opposite posture to this oracle. Whether to ALSO make Twig/FreeMarker/Java
+# exploitable (reversing FP-0476 for the RCE-primitive subset) is a deploy-posture design decision -> FP-0577.
+# CANNED ONLY — zero host exec, no attacker byte reflected (command-canary echo-token reflection + stateful
+# quarantine are the app half, FP-0577). A plain arithmetic/escape-only SSTI still goes to 45-numeric / 52.
+match:
+  - in: request
+    ci: true
+    regex: '__subclasses__|__globals__|__mro__|catch_warnings|os\.popen|\bsubprocess\b|child_process|execsync|process\.mainmodule|range\.constructor|%x\s*[({]'
+response:
+  headers:
+    Content-Type: "text/plain; charset=utf-8"
+  body: "{{canned.uid}}"
+expect: ["uid=0(root)"]
+behavior: branch
+branch:
+  cases:
+    # /etc/passwd read via the escape.
+    - when: { in: request, regex: 'cat\s+/etc/passwd|/etc/passwd|type\s+.*passwd|get_file_contents.*passwd', ci: true }
+      response:
+        headers: { Content-Type: "text/plain; charset=utf-8" }
+        body: "{{canned.passwd}}"
+    # OS / platform discovery (uname / PHP_OS / os.name / os.platform()) -> a synthetic platform string.
+    - when: { in: request, regex: 'uname|php_os|os\.name|os\.platform|platform\.system|sys\.platform', ci: true }
+      response:
+        headers: { Content-Type: "text/plain; charset=utf-8" }
+        body: "Linux\n"
+    # whoami -> the same privileged identity the id branch implies (root).
+    - when: { in: request, regex: '\bwhoami\b', ci: true }
+      response:
+        headers: { Content-Type: "text/plain; charset=utf-8" }
+        body: "root\n"
