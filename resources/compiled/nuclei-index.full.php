@@ -13,11 +13,11 @@ return array (
     'license' => 'MIT (c) 2025 ProjectDiscovery, Inc.',
     'upstream_tag' => '2ec914123864439c3618e7e9ae72d32d0eb56df7',
     'upstream_sha' => '2ec914123864439c3618e7e9ae72d32d0eb56df7',
-    'source_tree' => '7c67e2b92e42bda88895ccad21b8d016e87a6f6eb8daffbac8078d7c3c99436f',
+    'source_tree' => '0fb6d2c80130a4bd28ad84dfed962ed133066eb32f17b3aca85385e51965042f',
     'templates_seen' => 11196,
     'templates_in' => 6363,
-    'templates_indexed' => 6529,
-    'route_keys' => 5395,
+    'templates_indexed' => 6530,
+    'route_keys' => 5396,
     'multi_bundle_keys' => 277,
     'largest_bundle_count' => 1324,
     'persona_cap' => 
@@ -86046,6 +86046,19 @@ return array (
         3 => 'exposure',
       ),
       'name' => 'Ivanti CSA logo',
+    ),
+    'route-ssh-id-rsa' => 
+    array (
+      'sev' => 'info',
+      'tags' => 
+      array (
+        0 => 'ssh',
+        1 => 'private-key',
+        2 => 'canary',
+        3 => 'exposure',
+        4 => 'credential-harvest',
+      ),
+      'name' => 'exposed SSH private key',
     ),
     'route-phpinfo' => 
     array (
@@ -314742,6 +314755,30 @@ a</title>',
             0 => 'route-ivanti-csa-logo',
           ),
           'bin' => 1,
+        ),
+      ),
+    ),
+    'GET /.ssh/id_rsa' => 
+    array (
+      'b' => 
+      array (
+        0 => 
+        array (
+          's' => 200,
+          'bw' => 
+          array (
+          ),
+          'nf' => 
+          array (
+          ),
+          'pid' => 'route-ssh-id-rsa',
+          'sev' => 'info',
+          'sig' => 0,
+          'amb' => 0,
+          't' => 
+          array (
+            0 => 'route-ssh-id-rsa',
+          ),
         ),
       ),
     ),

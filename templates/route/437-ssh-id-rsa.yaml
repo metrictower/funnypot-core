@@ -1,0 +1,21 @@
+id: route-ssh-id-rsa
+priority: 437
+# FP-0570: exposed SSH private key canary at /.ssh/id_rsa (currently 404; a webroot .ssh leak is a
+# classic credential-harvester / worm target — referenced by the FP-0563 .ftpconfig + .idea decoys'
+# `privateKeyPath: ~/.ssh/id_rsa`). Serves a PER-DEPLOY INERT OpenSSH private key ({{persona.ssh.privateKey}})
+# — seed-derived (so this PUBLIC repo ships only the generator, never a fleet-constant key), parse-plausible
+# but NOT a usable key, so no real credential is exposed and a worm that grabs + replays it is recognisable
+# app-side (FP-0562) as having walked our planted canary. text/plain, as a misconfigured server leaks the
+# raw file. No reflection; inert.
+new_page:
+  method: GET
+  paths: ['/.ssh/id_rsa']
+  sig: 0
+  status: 200
+  severity: info
+  tags: [ssh, private-key, canary, exposure, credential-harvest]
+  name: 'exposed SSH private key'
+response:
+  headers:
+    Content-Type: "text/plain; charset=utf-8"
+  body: "{{persona.ssh.privateKey}}"
