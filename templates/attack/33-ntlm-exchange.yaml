@@ -1,0 +1,51 @@
+id: attack-ntlm-exchange
+severity: medium
+# Priority 33: a free slot. Being owns_path + `in: path`, this rule is Tier-1 (path-conditioned) in
+# matchOnOwnedPath, so no broad `in: request` archetype can shadow it on its own paths regardless of
+# number — priority only orders it against other path owners, and there are none on these paths.
+priority: 33
+# `exposure` is a route-integrity intent tag: it declares that this rule's owns_path override of the
+# corpus exchange-server / zimbra static stubs on these mail paths is deliberate (present the NTLM
+# info-leak surface), not a silent cross-family mask.
+tags: [attack, ntlm, exchange, windows-auth, info-disclosure, exposure, active-directory, honeytoken]
+# NTLM-over-HTTP information-leak on the Windows/Exchange/IIS authentication surface. A bare probe gets
+# the static 401 + `WWW-Authenticate: NTLM` below (Shape A); an NTLM Type-1 (Negotiate) is upgraded by
+# the ntlm-challenge behavior to a 401 + `WWW-Authenticate: NTLM <base64 Type-2>` whose Target-Info
+# AV_PAIRs leak the deploy's synthetic canary AD names (Shape B). It NEVER authenticates: a Type-3
+# (credentials) or any other Authorization falls through to the bare 401 below. Stateless — the
+# challenge nonce is not remembered (NetNTLMv2 credential capture is stateful and lives app-side).
+#
+# owns_path IS LOAD-BEARING: it overrides the pre-existing `GET /EWS/Exchange.asmx` 302 in the corpus
+# and adds 401 coverage on the otherwise-404 OWA/EWS/RPC/ECP/PowerShell/MAPI/EAS/Autodiscover paths.
+#
+# PATH MATCH STAYS AS PERMISSIVE AS owns_path: PathNormalizer::ownershipKey lower-cases + strips ALL
+# trailing slashes, so the path regex tolerates any count of trailing slashes (`/*$`, not `/?$`). A
+# stricter match would decline on a variant the override already claimed and fall back to the corpus.
+owns_path:
+  - /owa/
+  - /ews/
+  - /EWS/Exchange.asmx
+  - /rpc/
+  - /ecp/
+  - /powershell/
+  - /autodiscover/autodiscover.xml
+  - /mapi/
+  - /microsoft-server-activesync/
+match:
+  - in: path
+    regex: '(?:^|/)(?:owa|ews|rpc|ecp|powershell|mapi|microsoft-server-activesync)/*$|(?:^|/)ews/exchange\.asmx/*$|(?:^|/)autodiscover/autodiscover\.xml/*$'
+    ci: true
+  - in: method
+    regex: '^(GET|HEAD|POST)$'
+    ci: true
+status: 401
+behavior: ntlm-challenge
+response:                         # Shape A fallback: the bare 401 (static, digit-free)
+  headers:
+    Content-Type: "text/html; charset=utf-8"
+    WWW-Authenticate: "NTLM"
+  body: |
+    <!DOCTYPE html>
+    <html><head><title>401 - Unauthorized</title></head>
+    <body><h1>401 - Unauthorized: Access is denied due to invalid credentials.</h1></body></html>
+expect: ['401']
