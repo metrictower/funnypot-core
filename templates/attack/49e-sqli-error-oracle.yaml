@@ -1,0 +1,55 @@
+id: attack-sqli-error-oracle
+severity: high
+priority: 49
+status: 200
+tags: [attack, sqli, error-based, extraction, oracle, deception]
+# FP-0573: error-based SQLi EXTRACTION oracle — Oracle dialect (sibling of 49b MySQL / 49c MSSQL /
+# 49d PostgreSQL). A scanner forces the sub-select through CTXSYS.DRITHSX.SN / UTL_INADDR so Oracle
+# leaks the value inside the authentic `ORA-20000: <v>` error. CANNED/seeded: no attacker byte reflected
+# — the ORA- frame is the literal Oracle emits and the embedded value is persona-coherent synthetic
+# schema, so the tool confirms and extracts a FAKE database. Never 500. The branch keys on the sub-select
+# target so the leaked value is coherent; base case leaks the current database/schema. The error string
+# is real product output (the deception), never a scanner/CRS matcher signature. Match is Oracle-
+# distinctive so it does not overlap the MySQL/MSSQL/PostgreSQL siblings.
+match:
+  - in: request
+    ci: true
+    regex: 'ctxsys\.drithsx\.sn|utl_inaddr\.get_host_name|\bxmltype\s*\(|dbms_xdb'
+response:
+  headers:
+    Content-Type: "text/html; charset=utf-8"
+  body: "ORA-20000: {{persona.db.name}}\nORA-06512: at \"CTXSYS.DRITHSX\", line 1\n"
+expect: ["ORA-20000:"]
+behavior: branch
+branch:
+  cases:
+    # banner / v$version -> a believable Oracle version banner.
+    - when: { in: request, regex: '\bbanner\b|v\$version|product_component_version', ci: true }
+      response:
+        headers: { Content-Type: "text/html; charset=utf-8" }
+        body: "ORA-20000: {{pick:Oracle Database 19c Enterprise Edition Release 19.0.0.0.0,Oracle Database 21c Express Edition Release 21.0.0.0.0,Oracle Database 12c Enterprise Edition Release 12.2.0.1.0}}\nORA-06512: at \"CTXSYS.DRITHSX\", line 1\n"
+    # USER / sys_context -> the persona DB login (Oracle upper-cases schema names).
+    - when: { in: request, regex: '\buser\b|sys_context\s*\(', ci: true }
+      response:
+        headers: { Content-Type: "text/html; charset=utf-8" }
+        body: "ORA-20000: {{persona.db.user}}\nORA-06512: at \"CTXSYS.DRITHSX\", line 1\n"
+    # all_tab_columns enumeration -> a plausible column name.
+    - when: { in: request, regex: 'column_name|all_tab_columns|user_tab_columns', ci: true }
+      response:
+        headers: { Content-Type: "text/html; charset=utf-8" }
+        body: "ORA-20000: {{pick:ID,USERNAME,PASSWORD_HASH,EMAIL,AUTH_TOKEN,CREATED_AT}}\nORA-06512: at \"CTXSYS.DRITHSX\", line 1\n"
+    # all_tables / user_tables enumeration -> a plausible table name.
+    - when: { in: request, regex: 'table_name|all_tables|user_tables', ci: true }
+      response:
+        headers: { Content-Type: "text/html; charset=utf-8" }
+        body: "ORA-20000: {{pick:USERS,ACCOUNTS,SESSIONS,API_KEYS,ORDERS,TRANSACTIONS}}\nORA-06512: at \"CTXSYS.DRITHSX\", line 1\n"
+    # a count() enumeration step -> a small plausible count.
+    - when: { in: request, regex: '\bcount\s*\(', ci: true }
+      response:
+        headers: { Content-Type: "text/html; charset=utf-8" }
+        body: "ORA-20000: {{pick:3,5,6,7,11}}\nORA-06512: at \"CTXSYS.DRITHSX\", line 1\n"
+    # a credential/data select -> a believable hash shape.
+    - when: { in: request, regex: 'password|passwd|\bpwd\b|secret|auth_token|\bhash\b', ci: true }
+      response:
+        headers: { Content-Type: "text/html; charset=utf-8" }
+        body: "ORA-20000: {{fake.orapwhash:hex:40}}\nORA-06512: at \"CTXSYS.DRITHSX\", line 1\n"
