@@ -67,6 +67,8 @@ final class VulnerableLockfileDecoyTest extends TestCase
             '/Pipfile'           => [['[[source]]', '[packages]', 'django = "==3.0.4"'], false, 'text/plain'],
             // FP-0542: pnpm lockfile, reusing the npm OSV-vulnerable set (coherent with package-lock/yarn).
             '/pnpm-lock.yaml'    => [['lockfileVersion: 5.4', 'lodash: 4.17.11', 'axios: 0.21.1'], false, 'text/plain'],
+            // FP-0542: Ruby Gemfile with OSV-verified vulnerable gem pins (rack/nokogiri/actionpack).
+            '/Gemfile'           => [["source 'https://rubygems.org'", "gem 'rack', '2.0.6'", "gem 'nokogiri', '1.10.4'", "gem 'actionpack', '5.2.0'"], false, 'text/plain'],
         ];
     }
 

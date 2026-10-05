@@ -1,0 +1,36 @@
+id: route-gemfile
+priority: 89
+# FP-0542: vulnerable Ruby Gemfile decoy at /Gemfile (extends the FP-0399 lockfile suite to the Ruby
+# ecosystem). The corpus keys /Gemfile to the github-gemfile-files bundle (pid github, bw source / gem /
+# https://rubygems.org — GEMFILE content), so a real Gemfile with pinned-vulnerable gems is the authentic
+# bait. pid:[github] selects the bundle; the route_key guard pins ONLY /Gemfile (not /Gemfile.lock, whose
+# bundle wants the same content but is left to its own handling). The pinned versions are REAL
+# ruby-advisory-db / OSV-flagged vulnerable releases (verified 2026-10-05 via OSV): rack 2.0.6 (CVE-2020-8184
+# cookie overwrite, CVE-2022-44572 DoS), nokogiri 1.10.4 (CVE-2020-26247 XXE, < 1.11.0), actionpack 5.2.0
+# (CVE-2020-8164 strong-params bypass, fix >= 5.2.4.3). bundler-audit / osv-scanner resolve (RubyGems, name,
+# version) -> verifiable CVEs. Versions FIXED literals (the payload); the set is deterministic. Content-Type
+# text/plain (no typed Content-Type witness; a raw Gemfile fetch is text). INERT: static bytes, no request
+# byte reflected, no exec/fs. (This decoy only binds now that FP-0557 narrowed 10-git-config's over-broad
+# `git` needle, which previously served a .git/config body on /Gemfile.)
+match:
+  pid: [github]
+  route_key: ['GET /Gemfile']
+response:
+  headers:
+    Content-Type: "text/plain; charset=utf-8"
+  body: |
+    source 'https://rubygems.org'
+    ruby '2.5.1'
+
+    gem 'rails', '5.2.0'
+    gem 'actionpack', '5.2.0'
+    gem 'rack', '2.0.6'
+    gem 'nokogiri', '1.10.4'
+    gem 'pg'
+    gem 'puma', '3.11.0'
+    gem 'bootsnap', '>= 1.1.0', require: false
+
+    group :development, :test do
+      gem 'byebug', platforms: [:mri, :mingw, :x64_mingw]
+    end
+expect: ["source 'https://rubygems.org'", "gem 'rack', '2.0.6'", "gem 'nokogiri', '1.10.4'"]
