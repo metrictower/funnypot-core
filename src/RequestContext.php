@@ -45,6 +45,19 @@ final class RequestContext
     /** @var bool false when an exact adapter request target was rejected before mapping */
     public $targetAdmitted;
 
+    /**
+     * Per-request fold cache (FP-0549), keyed by folding arm ('request'|'query'|'body'). The request is
+     * immutable during one classify(), and BoundedInspection::surface()/surfaces() fold the same bytes
+     * once per request condition; these slots memoize the folded result for the request's lifetime so a
+     * request-heavy template folds each arm once. Perf-only — GC'd with the request, never shared.
+     *
+     * @var array<string,string>
+     */
+    public $foldStrMemo = [];
+
+    /** @var array<string,array<int,string>> per-request folded layer-list cache (FP-0549); see $foldStrMemo. */
+    public $foldListMemo = [];
+
     /** @param array<string,string> $headers */
     public function __construct(
         string $method,
