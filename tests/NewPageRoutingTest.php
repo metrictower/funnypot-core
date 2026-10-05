@@ -987,6 +987,7 @@ final class NewPageRoutingTest extends TestCase
             '/.env.bak'         => ['APP_ENV=production', 'APP_DEBUG=false'],
             '/.env.php'         => ['APP_ENV', 'APP_DEBUG'], // PHP-array form: 'APP_ENV' => 'production'
             '/laravel/.env'     => ['APP_ENV=production', 'APP_DEBUG=false'],
+            '/.env.dev'         => ['APP_ENV=production', 'APP_DEBUG=false'], // FP-0539: lean <=500B variant
         ];
         foreach ($variants as $path => [$appEnv, $appDebug]) {
             $resp = $inv->respond(new RequestContext('GET', $path));
@@ -1008,6 +1009,14 @@ final class NewPageRoutingTest extends TestCase
             self::assertSame(200, $head->status, "HEAD {$path} status");
             self::assertSame('text/plain; charset=utf-8', $head->headers['Content-Type'] ?? null, "HEAD {$path} Content-Type");
         }
+
+        // FP-0539: /.env.dev is the LEAN variant — its served body must stay <=500 bytes so a passive
+        // scanner that only runs its exposed-env content check on small bodies (Caido's isValidEnvContent
+        // bails over 500 B) still fires. It also carries an AI canary (OPENAI_API_KEY).
+        $dev = $inv->respond(new RequestContext('GET', '/.env.dev'));
+        self::assertNotNull($dev);
+        self::assertLessThanOrEqual(500, strlen($dev->body), '/.env.dev must stay under Caido\'s 500-byte env-content gate');
+        self::assertStringContainsString('OPENAI_API_KEY=sk-proj-', $dev->body, '/.env.dev must still carry an AI canary');
 
         // The .env.php leak is the PHP-array source form (proves the enriched body served, not a
         // minimal synth of the bare body word) — and it is served as source text, never executed.

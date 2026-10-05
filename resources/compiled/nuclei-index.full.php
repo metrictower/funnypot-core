@@ -13,11 +13,11 @@ return array (
     'license' => 'MIT (c) 2025 ProjectDiscovery, Inc.',
     'upstream_tag' => '2ec914123864439c3618e7e9ae72d32d0eb56df7',
     'upstream_sha' => '2ec914123864439c3618e7e9ae72d32d0eb56df7',
-    'source_tree' => '063bcb5ec4c3ee0b85dcd58711aabbb9cfbc0a2032a460982fbeee2a477fd530',
+    'source_tree' => '8402e0e0ac46c32bdcc7b4314ce066d04238f8790c76101f067d5f229fe8e481',
     'templates_seen' => 11196,
     'templates_in' => 6363,
-    'templates_indexed' => 6514,
-    'route_keys' => 5374,
+    'templates_indexed' => 6515,
+    'route_keys' => 5375,
     'multi_bundle_keys' => 277,
     'largest_bundle_count' => 1324,
     'persona_cap' => 
@@ -84918,6 +84918,17 @@ return array (
         2 => 'secrets',
       ),
       'name' => 'Exposed environment file (/laravel/.env)',
+    ),
+    'route-envfile-devlean' => 
+    array (
+      'sev' => 'high',
+      'tags' => 
+      array (
+        0 => 'exposure',
+        1 => 'config-disclosure',
+        2 => 'secrets',
+      ),
+      'name' => 'Exposed environment file (.env.dev)',
     ),
     'route-wp-debug-log' => 
     array (
@@ -309926,6 +309937,31 @@ a</title>',
           't' => 
           array (
             0 => 'route-envfile-laravel',
+          ),
+        ),
+      ),
+    ),
+    'GET /.env.dev' => 
+    array (
+      'b' => 
+      array (
+        0 => 
+        array (
+          's' => 200,
+          'bw' => 
+          array (
+            0 => 'AWS_SECRET_ACCESS_KEY',
+          ),
+          'nf' => 
+          array (
+          ),
+          'pid' => 'route-envfile-devlean',
+          'sev' => 'high',
+          'sig' => 0,
+          'amb' => 0,
+          't' => 
+          array (
+            0 => 'route-envfile-devlean',
           ),
         ),
       ),
