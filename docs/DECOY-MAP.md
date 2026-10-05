@@ -4,7 +4,7 @@
 > The manifest is the sole inventory authority; friendly names, categories and behavior
 > prose live in the README taxonomy, not here.
 
-Manifest schema 1. Authored records: 430 across 112 families. Corpus: 2611 families / 5134 route keys (summarized, not enumerated). Enrichers: 286.
+Manifest schema 1. Authored records: 431 across 113 families. Corpus: 2611 families / 5134 route keys (summarized, not enumerated). Enrichers: 286.
 
 ```mermaid
 mindmap
@@ -86,41 +86,42 @@ mindmap
     fam0075["recon: 5"]
     fam0076["reflection-baseline: 2"]
     fam0077["registry: 1"]
-    fam0078["sap: 1"]
-    fam0079["shell-history: 3"]
-    fam0080["shellshock: 1"]
-    fam0081["smb: 1"]
-    fam0082["sourcemap: 6"]
-    fam0083["splunk: 1"]
-    fam0084["spring-boot: 1"]
-    fam0085["springboot: 12"]
-    fam0086["sqli: 2"]
-    fam0087["ssh: 1"]
-    fam0088["ssti: 2"]
-    fam0089["struts: 1"]
-    fam0090["teamcity: 1"]
-    fam0091["terraform: 3"]
-    fam0092["thinkphp: 1"]
-    fam0093["tls: 2"]
-    fam0094["tomcat: 3"]
-    fam0095["twig: 1"]
-    fam0096["union: 1"]
-    fam0097["upload: 1"]
-    fam0098["v1: 1"]
-    fam0099["vcs: 10"]
-    fam0100["velocity: 1"]
-    fam0101["vite: 1"]
-    fam0102["webmin: 1"]
-    fam0103["webshell: 1"]
-    fam0104["whm: 1"]
-    fam0105["windows: 2"]
-    fam0106["woocommerce: 8"]
-    fam0107["wordpress: 20"]
-    fam0108["wp-plugin-enum: 10"]
-    fam0109["wp-theme-enum: 2"]
-    fam0110["xdebug: 1"]
-    fam0111["xss: 2"]
-    fam0112["xxe: 1"]
+    fam0078["sandbox-escape: 1"]
+    fam0079["sap: 1"]
+    fam0080["shell-history: 3"]
+    fam0081["shellshock: 1"]
+    fam0082["smb: 1"]
+    fam0083["sourcemap: 6"]
+    fam0084["splunk: 1"]
+    fam0085["spring-boot: 1"]
+    fam0086["springboot: 12"]
+    fam0087["sqli: 2"]
+    fam0088["ssh: 1"]
+    fam0089["ssti: 2"]
+    fam0090["struts: 1"]
+    fam0091["teamcity: 1"]
+    fam0092["terraform: 3"]
+    fam0093["thinkphp: 1"]
+    fam0094["tls: 2"]
+    fam0095["tomcat: 3"]
+    fam0096["twig: 1"]
+    fam0097["union: 1"]
+    fam0098["upload: 1"]
+    fam0099["v1: 1"]
+    fam0100["vcs: 10"]
+    fam0101["velocity: 1"]
+    fam0102["vite: 1"]
+    fam0103["webmin: 1"]
+    fam0104["webshell: 1"]
+    fam0105["whm: 1"]
+    fam0106["windows: 2"]
+    fam0107["woocommerce: 8"]
+    fam0108["wordpress: 20"]
+    fam0109["wp-plugin-enum: 10"]
+    fam0110["wp-theme-enum: 2"]
+    fam0111["xdebug: 1"]
+    fam0112["xss: 2"]
+    fam0113["xxe: 1"]
     corpus["corpus: 2611 families / 5134 keys"]
     enrichers["content enrichers #40;not route claimers#41;: 286"]
 ```
@@ -204,6 +205,7 @@ mindmap
 | recon | 5 | attack:2 new-page:3 | 9 | 0 | high | &mdash; |
 | reflection-baseline | 2 | attack:2 | 2 | 2 | medium | accepted |
 | registry | 1 | new-page:1 | 1 | 0 | medium | &mdash; |
+| sandbox-escape | 1 | attack:1 | 0 | 0 | critical | &mdash; |
 | sap | 1 | new-page:1 | 1 | 0 | medium | &mdash; |
 | shell-history | 3 | new-page:3 | 3 | 0 | high | &mdash; |
 | shellshock | 1 | attack:1 | 0 | 0 | critical | &mdash; |
