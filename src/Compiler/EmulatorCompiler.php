@@ -257,9 +257,13 @@ final class EmulatorCompiler
     private function ownsPathVariantWarnings(array $rawOwns, array $match, string $file): array
     {
         $pathConditions = [];
+        $hasRequestCondition = false;
         foreach ($match as $cond) {
-            if (($cond['in'] ?? '') === 'path') {
+            $in = (string) ($cond['in'] ?? '');
+            if ($in === 'path') {
                 $pathConditions[] = $cond;
+            } elseif ($in === 'request') {
+                $hasRequestCondition = true;
             }
         }
 
@@ -276,6 +280,13 @@ final class EmulatorCompiler
             ]);
 
             if ($pathConditions === []) {
+                if ($hasRequestCondition) {
+                    // An `in: request` surface already spans the path (path + query + body), and such a
+                    // rule gates on payload content, not the path FORM — so case/trailing-slash variant
+                    // coverage does not apply (e.g. the WP batch query-alias decoy owns '/' only to
+                    // reach the classify() override site, then gates on the batch body). Not a defect.
+                    continue;
+                }
                 $warnings[] = "Template {$file}: owns_path '{$raw}' but the rule has no 'in: path' match condition — it can never match its owned path.";
                 continue;
             }
@@ -287,7 +298,15 @@ final class EmulatorCompiler
                 }
                 $ci = ($cond['ci'] ?? true) !== false;
                 $flags = ($ci ? 'i' : '') . (($cond['dotall'] ?? false) ? 's' : '');
-                foreach ($variants as $variant) {
+                // An explicit `ci: false` is a DELIBERATE case-sensitivity choice — a device-CVE path a
+                // real appliance answers case-sensitively (e.g. FiberHome's /boaform/admin/formLogin),
+                // where serving the decoy on a wrong-case probe would be an authenticity tell. The
+                // owns_path key is lowercased, so ownsPath() still claims a case variant, but the rule
+                // correctly DECLINES it to a clean (store-miss) fall-through. So for a case-sensitive
+                // condition, verify only TRAILING-SLASH coverage (almost never intentionally omitted),
+                // not case; a case-insensitive rule is still held to the full case+slash variant set.
+                $toCheck = $ci ? $variants : array_unique([$raw, $raw . '/', $raw . '//']);
+                foreach ($toCheck as $variant) {
                     $hit = @preg_match('~' . $cond['regex'] . '~' . $flags, $variant);
                     if ($hit !== 1) {
                         $warnings[] = "Template {$file}: owns_path '{$raw}' but the path match does not accept variant '{$variant}' — an owns_path rule's path regex must be case-insensitive and tolerate trailing slashes (use `/*\$` + `ci: true`), or ownsPath will claim a request the rule declines. See the login-oracle templates.";

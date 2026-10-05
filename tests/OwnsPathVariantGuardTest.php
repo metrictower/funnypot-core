@@ -64,6 +64,45 @@ final class OwnsPathVariantGuardTest extends TestCase
         self::assertNotEmpty($warnings);
     }
 
+    public function test_no_in_path_but_in_request_is_clean(): void
+    {
+        // An `in: request` surface spans the path; such a rule gates on payload, not path form, so the
+        // "no in:path" warning must NOT fire (e.g. the WP batch query-alias decoy owns '/' + in:request).
+        $warnings = $this->warningsFor(
+            ['/'],
+            [
+                ['in' => 'method', 'regex' => '^POST$', 'ci' => false],
+                ['in' => 'request', 'regex' => 'batch/v1.*"requests"', 'dotall' => true, 'ci' => false],
+            ]
+        );
+
+        self::assertSame([], $warnings);
+    }
+
+    public function test_ci_false_but_slash_tolerant_is_clean(): void
+    {
+        // Explicit ci:false = deliberate case-sensitivity (a device-CVE path a real appliance answers
+        // case-sensitively, e.g. FiberHome's /boaform/admin/formLogin). With `/*$` the trailing-slash
+        // variants are covered, so no warning — case variants are the author's intended decline.
+        $warnings = $this->warningsFor(
+            ['/boaform/admin/formLogin'],
+            [['in' => 'path', 'regex' => '^/boaform/admin/formLogin/*$', 'ci' => false]]
+        );
+
+        self::assertSame([], $warnings);
+    }
+
+    public function test_ci_false_without_slash_tolerance_still_warns(): void
+    {
+        // ci:false does NOT excuse a missing trailing-slash tolerance — the slash variant still warns.
+        $warnings = $this->warningsFor(
+            ['/boaform/admin/formLogin'],
+            [['in' => 'path', 'regex' => '^/boaform/admin/formLogin$', 'ci' => false]]
+        );
+
+        self::assertNotEmpty($warnings);
+    }
+
     public function test_wp_xmlrpc_style_regex_is_clean_when_ci_true(): void
     {
         // The 26-wp-xmlrpc.yaml shape: `(?:/|$)` isn't end-anchored, so it already tolerates any

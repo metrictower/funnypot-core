@@ -39,7 +39,7 @@ owns_path: ['/']
 persona_gate: route-nextjs
 match:
   - in: path
-    regex: '^/$'
+    regex: '^/+$'
     ci: false
   - in: query
     regex: '(^|&)_rsc='
