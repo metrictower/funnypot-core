@@ -24,7 +24,7 @@ tags: [wordpress, feed, rss, version-disclosure, exposure]
 owns_path: ['/']
 match:
   - in: path
-    regex: '^/$'
+    regex: '^/+$'
     ci: false
   - in: query
     regex: '(^|&)feed=rss2'

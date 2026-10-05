@@ -16,8 +16,8 @@ owns_path: [/v1/chat/completions]
 # CANNED: no request byte is reflected (the marker only gates; model is fixed, not echoed), never 5xx.
 match:
   - in: path
-    regex: '^/v1/chat/completions/?$'
-    ci: false
+    regex: '^/v1/chat/completions/*$'
+    ci: true
   - in: method
     regex: '^POST$'
     ci: false
