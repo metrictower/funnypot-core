@@ -28,6 +28,12 @@ final class SafeComparison
     /** Max raw clause length (a comparison clause is short; longer = not a scanner probe). */
     private const MAX_LEN = 160;
 
+    /** Pre-strip length gate. stripSqlComments runs its regexes BEFORE MAX_LEN, and those passes are
+     *  O(n^2) on a multi-KB surface full of unterminated `/*` starts; a real comparison clause (even
+     *  comment-wrapped) is far under this, so anything larger is not a comparison — bail before the
+     *  regexes (FP-0585 review N1: closes a reachable CPU-amplification on embedded hosts). */
+    private const MAX_RAW_LEN = 1024;
+
     /** Max elements in an IN(...) list. */
     private const MAX_IN = 64;
 
@@ -44,7 +50,11 @@ final class SafeComparison
         // would be left non-parseable → INDETERMINATE → baseline, collapsing the very differential this
         // exists to produce. Done before the whitelist/length checks so a stripped `#…` tail (whose `#`
         // is not whitelisted) does not reject the whole clause.
-        $expr = self::stripSqlComments(trim($expr));
+        $expr = trim($expr);
+        if ($expr === '' || strlen($expr) > self::MAX_RAW_LEN) {
+            return null; // bound the input to the comment-strip regexes (N1) before they run
+        }
+        $expr = self::stripSqlComments($expr);
         $len = strlen($expr);
         if ($len === 0 || $len > self::MAX_LEN) {
             return null;

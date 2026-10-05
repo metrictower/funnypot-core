@@ -73,6 +73,8 @@ final class SafeComparisonTest extends TestCase
             'malformed' => ['2 >', null],
             'no operator' => ['42', null],
             'over-length' => [str_repeat('9', 200) . '>1', null],
+            // FP-0585 N1: a multi-KB surface is bailed before the comment-strip regexes run (no O(n^2)).
+            'over-raw-length comment flood' => [str_repeat('/*!', 12000) . '1>2', null],
         ];
     }
 
