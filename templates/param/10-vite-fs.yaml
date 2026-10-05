@@ -70,6 +70,15 @@ traversal-read:
 
           JWT_SECRET={{fake.jwtsecret:hex:64}}
           SLACK_WEBHOOK_URL=https://hooks.slack.com/services/T{{fake.slackt:hex:8}}/B{{fake.slackb:hex:8}}/{{fake.slacktok:hex:24}}
+          SLACK_BOT_TOKEN={{persona.cloud.slack.botToken}}
+
+          OPENAI_API_KEY={{persona.cloud.openai.projectKey}}
+          ANTHROPIC_API_KEY={{persona.cloud.anthropic.apiKey}}
+          HUGGINGFACE_TOKEN={{persona.cloud.huggingface.token}}
+          GROQ_API_KEY={{persona.cloud.groq.apiKey}}
+          GITHUB_TOKEN={{persona.cloud.github.pat}}
+          NPM_TOKEN={{persona.cloud.npm.token}}
+          PYPI_TOKEN={{persona.cloud.pypi.token}}
     # 2. Cloud CLI credentials — coherent with the persona identity's AWS keypair.
     - suffix: .aws/credentials
       content:

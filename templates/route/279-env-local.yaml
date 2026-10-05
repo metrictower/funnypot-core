@@ -43,6 +43,9 @@ response:
     HUGGINGFACE_TOKEN={{persona.cloud.huggingface.token}}
     GROQ_API_KEY={{persona.cloud.groq.apiKey}}
     GITHUB_TOKEN={{persona.cloud.github.pat}}
+    SLACK_BOT_TOKEN={{persona.cloud.slack.botToken}}
+    NPM_TOKEN={{persona.cloud.npm.token}}
+    PYPI_TOKEN={{persona.cloud.pypi.token}}
 taunt: { mode: line, open: '#' }
 expect:
   - 'APP_ENV=local'
@@ -53,3 +56,6 @@ expect:
   - 'SENDGRID_API_KEY=SG.'
   - 'OPENAI_API_KEY=sk-proj-'
   - 'GITHUB_TOKEN=ghp_'
+  - 'SLACK_BOT_TOKEN=xoxb-'
+  - 'NPM_TOKEN=npm_'
+  - 'PYPI_TOKEN=pypi-'

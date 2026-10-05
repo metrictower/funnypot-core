@@ -37,7 +37,12 @@ final class CanaryTokenCatalogTest extends TestCase
             'cloud.github.pat'            => '~\b' . 'ghp' . '_[A-Za-z0-9]{36}\b~',
             'cloud.github.fineGrainedPat' => '~\b' . 'github_pat' . '_[A-Za-z0-9]{82}\b~',
             'cloud.gitlab.pat'            => '~\b' . 'glpat' . '-[A-Za-z0-9_-]{20,}\b~',
-            'cloud.slack.botToken'        => '~\b' . 'xoxb' . '-[0-9A-Za-z-]{40}\b~',
+            // FP-0558: vendor-EXACT shapes (gitleaks/trufflehog, not just Caido's loose rules).
+            'cloud.slack.botToken'        => '~\b' . 'xoxb' . '-\d{10,13}-\d{10,13}-[A-Za-z0-9]{24}\b~',
+            'cloud.npm.token'             => '~\b' . 'npm' . '_[A-Za-z0-9]{36}\b~',
+            'cloud.pypi.token'            => '~\b' . 'pypi' . '-AgEIcHlwaS5vcmc[A-Za-z0-9_-]{50,}~',
+            'cloud.openai.serviceAccountKey' => '~\b' . 'sk-' . 'svcacct-[A-Za-z0-9_-]{40,}~',
+            'payment.cardNumber'          => '~^4\d{15}$~',
         ];
     }
 
@@ -94,9 +99,53 @@ final class CanaryTokenCatalogTest extends TestCase
         $h = new Honeypot(new PhpArrayStore($idx), $cfg);
         foreach (['/.env.production', '/.env'] as $path) {
             $body = (string) ($h->respond(new RequestContext('GET', $path, '', [], null, 'x.test'))->body ?? '');
-            foreach (['OPENAI_API_KEY=sk-' . 'proj-', 'GITHUB_TOKEN=ghp' . '_'] as $marker) {
+            foreach (['OPENAI_API_KEY=sk-' . 'proj-', 'GITHUB_TOKEN=ghp' . '_',
+                'SLACK_BOT_TOKEN=xoxb-', 'NPM_TOKEN=npm' . '_', 'PYPI_TOKEN=pypi-'] as $marker) {
                 self::assertStringContainsString($marker, $body, "the {$path} decoy must leak {$marker}");
             }
         }
+    }
+
+    public function test_secrets_json_leaks_the_vendor_exact_shapes(): void
+    {
+        $idx = require __DIR__ . '/../resources/compiled/nuclei-index.full.php';
+        $cfg = new Config('respond', static function (RequestContext $r): bool { return true; }, 'matched-only',
+            static function (RequestContext $r): string { return 'fixed'; }, 'coherent', Style::REALISTIC, 'high', 65536, 0, 0, false);
+        $h = new Honeypot(new PhpArrayStore($idx), $cfg);
+        $body = (string) ($h->respond(new RequestContext('GET', '/secrets.json', '', [], null, 'x.test'))->body ?? '');
+        self::assertNotNull(json_decode($body), '/secrets.json must stay valid JSON with the new fields + taunt');
+        foreach (['sk-' . 'svcacct-', 'npm' . '_', 'pypi-AgEIcHlwaS5vcmc', 'xoxb-', '"test_card"'] as $marker) {
+            self::assertStringContainsString($marker, $body, "/secrets.json must leak {$marker}");
+        }
+    }
+
+    public function test_card_canary_is_luhn_valid_across_seeds(): void
+    {
+        for ($s = 0; $s < 2000; $s++) {
+            $pan = (string) PersonaIdentity::fromSeed($s)->field('payment.cardNumber');
+            self::assertSame(1, preg_match('/^4\d{15}$/', $pan), "seed {$s}: card must be a 16-digit Visa-range number");
+            self::assertTrue(self::luhnValid($pan), "seed {$s}: card must be Luhn-valid ({$pan})");
+            // Never a well-known test number (which would unmask the honeypot to a scanner).
+            self::assertNotContains($pan, ['4242424242424242', '4111111111111111', '4012888888881881', '4000056655665556']);
+        }
+    }
+
+    private static function luhnValid(string $number): bool
+    {
+        $sum = 0;
+        $alt = false;
+        for ($i = strlen($number) - 1; $i >= 0; $i--) {
+            $d = (int) $number[$i];
+            if ($alt) {
+                $d *= 2;
+                if ($d > 9) {
+                    $d -= 9;
+                }
+            }
+            $sum += $d;
+            $alt = !$alt;
+        }
+
+        return $sum % 10 === 0;
     }
 }
