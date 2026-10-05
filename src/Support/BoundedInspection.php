@@ -1047,16 +1047,17 @@ final class BoundedInspection
                 // FP-0356: fold the query arm so query-pinned rules (xss/open-redirect) catch encoded
                 // evasions, matching what the `request` arm already does for the concatenated surface.
                 // A capturing condition reads raw (see $raw) so its reflected capture is not doubled.
+                // FP-0549: the folded (raw=false) result is memoized per request; raw=true is not folded.
                 return $raw
                     ? self::clip($request->query, self::SUBJECT_BYTES)
-                    : self::foldLayers(self::clip($request->query, self::SUBJECT_BYTES));
+                    : ($request->foldStrMemo['query'] ??= self::foldLayers(self::clip($request->query, self::SUBJECT_BYTES)));
             case 'method':
                 return self::clip($request->method, self::SUBJECT_BYTES);
             case 'body':
                 // FP-0356: fold the body arm too (body-pinned rules: xxe, sqli in POST bodies).
                 return $raw
                     ? self::clip((string) ($request->rawBody ?? ''), self::BODY_BYTES)
-                    : self::foldLayers(self::clip((string) ($request->rawBody ?? ''), self::BODY_BYTES));
+                    : ($request->foldStrMemo['body'] ??= self::foldLayers(self::clip((string) ($request->rawBody ?? ''), self::BODY_BYTES)));
             case 'fields':
             case 'fields.filename':
                 // FP-0369: multi-VALUE surfaces have no single-string form — evalConditions handles
@@ -1065,7 +1066,9 @@ final class BoundedInspection
                 return '';
             case 'request':
             default:
-                return self::requestSubject($request);
+                // FP-0549: memoize the WHOLE arm value — requestSubject() returns '' for a rejected
+                // target, so the guard is inside the memoized expression.
+                return $request->foldStrMemo['request'] ??= self::requestSubject($request);
         }
     }
 
@@ -1088,13 +1091,14 @@ final class BoundedInspection
 
         switch ($in) {
             case 'query':
+                // FP-0549: memoize the folded (raw=false) layer list per request; raw=true is not folded.
                 return $raw
                     ? [self::surface($request, $in, $captures, true)]
-                    : self::foldLayerList(self::clip($request->query, self::SUBJECT_BYTES));
+                    : ($request->foldListMemo['query'] ??= self::foldLayerList(self::clip($request->query, self::SUBJECT_BYTES)));
             case 'body':
                 return $raw
                     ? [self::surface($request, $in, $captures, true)]
-                    : self::foldLayerList(self::clip((string) ($request->rawBody ?? ''), self::BODY_BYTES));
+                    : ($request->foldListMemo['body'] ??= self::foldLayerList(self::clip((string) ($request->rawBody ?? ''), self::BODY_BYTES)));
             case 'header':
             case 'headers':
             case 'path':
@@ -1104,9 +1108,10 @@ final class BoundedInspection
                 return [self::surface($request, $in, $captures, $raw)];
             case 'request':
             default:
-                return self::targetAccepted($request)
+                // FP-0549: memoize the WHOLE guarded expression — a rejected target yields [''].
+                return $request->foldListMemo['request'] ??= (self::targetAccepted($request)
                     ? self::foldLayerList(self::requestRaw($request))
-                    : [''];
+                    : ['']);
         }
     }
 
