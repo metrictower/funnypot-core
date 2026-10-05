@@ -454,6 +454,19 @@ final class EmulatorCompiler
             $this->assertStaticLocation($redirect, $file, "mint 'redirect'");
             $out['redirect'] = $redirect;
 
+            // FP-0561: opt-in NoSQL authentication-bypass mint. Absent (the default) ⇒ the scalar-credential
+            // plausibility gate alone (unchanged). The single allowed value lets the mint fire on a NoSQL
+            // operator captured on a credential field (runtime re-validates the operator), for a decoy whose
+            // bypass creds are empty/object and so fail the scalar gate. A closed value — any other string is
+            // a compile error, never silently ignored.
+            if (isset($config['credential_bypass'])) {
+                $cb = (string) $config['credential_bypass'];
+                if ($cb !== 'nosql-operator') {
+                    throw new RuntimeException("Template {$file}: decoy-session mint 'credential_bypass' must be 'nosql-operator' (the only supported value).");
+                }
+                $out['credential_bypass'] = $cb;
+            }
+
             // Opt-in 2FA interstitial (default OFF): the mint issues a strictly-separate 2fa-pending
             // cookie and 302s to `two_factor_redirect` (the challenge page) instead of the one-step
             // authenticated mint. OFF ⇒ byte-identical to the legacy mint. The challenge target is the
