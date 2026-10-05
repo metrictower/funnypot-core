@@ -1,0 +1,39 @@
+id: attack-spel-ognl-rce
+severity: critical
+priority: 42
+status: 200
+tags: [attack, rce, spel, ognl, expression-language, spring, struts]
+# FP-0477: Spring SpEL / Struts OGNL expression-language RCE oracle. The classic gadgets —
+# SpEL T(java.lang.Runtime).getRuntime().exec('id') (CVE-2022-22963 / Spring param injection), OGNL
+# (#rt=@java.lang.Runtime@getRuntime()).exec('id') and Struts %{(#a=@java.lang.Runtime@getRuntime()...)}
+# (CVE-2017-5638 et al), ProcessBuilder variants — currently fall to a plain 404 (only the #{...}-FENCED SpEL
+# is caught, by the CRS tier). These gadgets have NO benign use, so matching @java.lang.Runtime@ /
+# T(java.lang.Runtime) / .getRuntime().exec / ProcessBuilder is a high-precision RCE signal. Answer with
+# believable canned OS output (uid=0(root) via {{canned.uid}}, like the cmdi oracles 40/41), branch on the
+# recon command, so the tool confirms RCE and burns budget. A deception-grade pattern oracle — the full
+# SpEL/OGNL AST parser + the VFS/OS evaluator routing (FP-0466/0467) is the heavier app/engine follow-up
+# FP-0578. CANNED ONLY: zero host exec, no attacker byte reflected, never 500.
+match:
+  - in: request
+    ci: true
+    regex: 't\s*\(\s*java\.lang\.(?:runtime|processbuilder)\s*\)|@\s*java\.lang\.(?:runtime|processbuilder)\s*@|\.\s*getruntime\s*\(\s*\)\s*\.\s*exec|new\s+(?:java\.lang\.)?processbuilder\s*\(|@\s*java\.lang\.runtime\s*@\s*getruntime'
+response:
+  headers:
+    Content-Type: "text/plain; charset=utf-8"
+  body: "{{canned.uid}}"
+expect: ["uid=0(root)"]
+behavior: branch
+branch:
+  cases:
+    - when: { in: request, regex: 'cat\s+/etc/passwd|/etc/passwd|type\s+.*passwd', ci: true }
+      response:
+        headers: { Content-Type: "text/plain; charset=utf-8" }
+        body: "{{canned.passwd}}"
+    - when: { in: request, regex: 'uname|os\.name|os\.version|getproperty\s*\(\s*.os', ci: true }
+      response:
+        headers: { Content-Type: "text/plain; charset=utf-8" }
+        body: "Linux\n"
+    - when: { in: request, regex: '\bwhoami\b', ci: true }
+      response:
+        headers: { Content-Type: "text/plain; charset=utf-8" }
+        body: "root\n"
