@@ -36,6 +36,10 @@ final class XssProbeSignalTest extends TestCase
         return [
             'sentinel'   => ['/', 'q=dlfx_sentinel_q_8a3f', []],
             'dlxmid'     => ['/', 'p=dlxmid12ab', []],
+            // Dalfox's dominant discovery marker: the concatenated bracketed sandwich (markers.rs),
+            // no separators. Caught via the inner dlxmid+hex — the leading \b on dlx/xld can't anchor
+            // here because every junction is word-char->word-char.
+            'sandwich'   => ['/search', 'q=dlx0a1b2c3ddlxmid4e5f6a7bxld8c9d0e1f', []],
             'dlx-nonce'  => ['/search', 'q="><svg onload=alert(1) class=dlx1a2b3c4d>', []],
             'xld-nonce'  => ['/', 'x=xld0f1e2d3a', []],
             'dalfox-id'  => ['/', 'q=<img src=x id=dalfox>', []],
@@ -78,6 +82,8 @@ final class XssProbeSignalTest extends TestCase
     {
         self::assertTrue(XssProbe::detect(new RequestContext('GET', '/', 'q=dlfx_sentinel_q_1a2b')));
         self::assertTrue(XssProbe::detect(new RequestContext('GET', '/', 'q=dlx1a2b3c4d')));
+        // The concatenated discovery sandwich matches via the inner dlxmid marker.
+        self::assertTrue(XssProbe::detect(new RequestContext('GET', '/', 'q=dlx0a1b2c3ddlxmid4e5f6a7bxld8c9d0e1f')));
         self::assertFalse(XssProbe::detect(new RequestContext('GET', '/', 'id=90197752')));
         self::assertFalse(XssProbe::detect(new RequestContext('GET', '/', 'q=dalfox review notes')));
     }

@@ -16,15 +16,18 @@ use Funnypot\Core\Support\OobHaystack;
  * Detection-only, pure pattern matching over the bounded, percent-decoded OobHaystack (path + query +
  * header values + body), no I/O / config / state (the OobSignalRegistry contract). PHP 7.3-safe.
  *
- * Markers (grounded in docs/research/scanner-confirmation-and-ai-agent-deception.md:44 — the committed
- * clean-room analysis): Dalfox emits `dlfx_sentinel…`, the `dlx…`/`xld…`/`dlxmid…` dynamic prefixes, and
+ * Markers (grounded in the funnypot-project scanner-confirmation clean-room analysis — a PRIVATE
+ * sibling repo, so no path is cited here; verified against the real Dalfox source, src/scanning/
+ * markers.rs): Dalfox's dominant discovery marker is a CONCATENATED bracketed sandwich with NO
+ * separators — `dlx<hex>dlxmid<hex>xld<hex>` — plus the standalone `dlfx_sentinel…` sentinel and
  * `.dalfox`/`#dalfox` class/id markers. We match those tool-unique forms.
  *
  * FP discipline (the FP-0436/FP-0426 lesson): only DISTINCTIVE forms are matched — the `dlfx_sentinel`
- * literal, the `dlxmid` prefix, a `dlx`/`xld` prefix followed by a hex run, and `dalfox` ONLY in a
- * css-selector / html-attribute marker position (`.dalfox`/`#dalfox`/`class=dalfox`/`id=dalfox`) — NOT a
- * bare query param `?q=dalfox`, which is a benign search for the tool's name. The research doc lists a
- * bare static
+ * literal, the `dlxmid`+hex inner marker (UN-anchored so it catches the concatenated sandwich, where
+ * every junction is word-char→word-char and a leading `\b` could never anchor), a `dlx`/`xld` prefix
+ * followed by a hex run, and `dalfox` ONLY in a css-selector / html-attribute marker position
+ * (`.dalfox`/`#dalfox`/`class=dalfox`/`id=dalfox`) — NOT a bare query param `?q=dalfox`, which is a
+ * benign search for the tool's name. The analysis lists a bare static
  * marker `90197752`, and the ticket adds a "≥15 special characters" batched-probe heuristic; both are
  * DELIBERATELY NOT matched — a bare 8-digit number FPs on benign numeric ids, a special-char density
  * count FPs on benign regex/JSON/minified-JS, and a bare `dalfox` mention FPs on security-report text.
@@ -34,7 +37,7 @@ use Funnypot\Core\Support\OobHaystack;
  */
 final class XssProbe
 {
-    private const PATTERN = '~\bdlfx_sentinel|\bdlxmid[0-9a-z]*|(?:[.#]|(?:class|id)=[\x22\x27]?)dalfox\b|\b(?:dlx|xld)[0-9a-f]{4,}\b~i';
+    private const PATTERN = '~\bdlfx_sentinel|dlxmid[0-9a-f]{4,}|(?:[.#]|(?:class|id)=[\x22\x27]?)dalfox\b|\b(?:dlx|xld)[0-9a-f]{4,}\b~i';
 
     public static function detect(RequestContext $r): bool
     {
