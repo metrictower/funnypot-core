@@ -4,7 +4,7 @@
 > The manifest is the sole inventory authority; friendly names, categories and behavior
 > prose live in the README taxonomy, not here.
 
-Manifest schema 1. Authored records: 428 across 110 families. Corpus: 2611 families / 5134 route keys (summarized, not enumerated). Enrichers: 286.
+Manifest schema 1. Authored records: 429 across 111 families. Corpus: 2611 families / 5134 route keys (summarized, not enumerated). Enrichers: 286.
 
 ```mermaid
 mindmap
@@ -107,18 +107,19 @@ mindmap
     fam0096["upload: 1"]
     fam0097["v1: 1"]
     fam0098["vcs: 10"]
-    fam0099["vite: 1"]
-    fam0100["webmin: 1"]
-    fam0101["webshell: 1"]
-    fam0102["whm: 1"]
-    fam0103["windows: 2"]
-    fam0104["woocommerce: 8"]
-    fam0105["wordpress: 20"]
-    fam0106["wp-plugin-enum: 10"]
-    fam0107["wp-theme-enum: 2"]
-    fam0108["xdebug: 1"]
-    fam0109["xss: 2"]
-    fam0110["xxe: 1"]
+    fam0099["velocity: 1"]
+    fam0100["vite: 1"]
+    fam0101["webmin: 1"]
+    fam0102["webshell: 1"]
+    fam0103["whm: 1"]
+    fam0104["windows: 2"]
+    fam0105["woocommerce: 8"]
+    fam0106["wordpress: 20"]
+    fam0107["wp-plugin-enum: 10"]
+    fam0108["wp-theme-enum: 2"]
+    fam0109["xdebug: 1"]
+    fam0110["xss: 2"]
+    fam0111["xxe: 1"]
     corpus["corpus: 2611 families / 5134 keys"]
     enrichers["content enrichers #40;not route claimers#41;: 286"]
 ```
@@ -223,6 +224,7 @@ mindmap
 | upload | 1 | attack:1 | 0 | 0 | high | &mdash; |
 | v1 | 1 | attack-ai:1 | 1 | 0 | medium | info |
 | vcs | 10 | new-page:10 | 10 | 0 | medium | &mdash; |
+| velocity | 1 | attack:1 | 0 | 0 | high | &mdash; |
 | vite | 1 | param:1 | 1 | 0 | high | &mdash; |
 | webmin | 1 | attack:1 | 1 | 2 | high | accepted |
 | webshell | 1 | attack:1 | 0 | 0 | critical | &mdash; |

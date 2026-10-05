@@ -1,0 +1,41 @@
+id: attack-ssti-velocity-freemarker
+severity: high
+priority: 45
+tags: [attack, ssti, velocity, freemarker]
+# FP-0546: Velocity / FreeMarker ARITHMETIC render oracle. Tplmap/SSTImap confirm these engines with an
+# assign-then-render probe — Velocity `#set($c=7*7)${c}` / `#set($x=7*7)$x`, FreeMarker `<#assign x=7*7>${x}`
+# — which a real engine renders to 49. Before this, those fell to 52-ssti-engine-error's canned
+# org.apache.velocity/freemarker ParseException (plausible for an ESCAPE/directive probe, but a tell for the
+# render-SUCCESS case: a vulnerable engine returns the number, not a parse error). This sits BELOW 52 and
+# owns ONLY the numeric assign shape: it computes A op B and reflects the integer, so a randomized-operand
+# probe (#set($x=1338-1)$x -> 1337) gets its expected value. A non-numeric escape/${…class…}/directive probe
+# does NOT match this arithmetic grammar and still falls to 52's ParseError page. Distinct `#set(`/`<#assign`
+# grammar from 45-ssti-numeric's {{/${ markers, so the two never contend at the shared priority.
+#
+# The reflected value is the integer result of the hand-written Support\SafeArithmetic parser (NEVER eval /
+# a template engine) — pure digits, provably free of <>&"', so html_safe_captures (not reflects_input: that
+# would isolated-origin-gate this ungated decoy off). div/mod-by-zero, overflow, or an oversized expression
+# decline to the base page — never a 500, never an attacker byte reflected.
+html_safe_captures: true
+match:
+  - in: request
+    # The expr grammar deliberately EXCLUDES parens so the Velocity `#set(…)` closing paren is a clean
+    # terminator (not swallowed into the expression); FreeMarker's `>` terminates likewise. The standard
+    # Tplmap/SSTImap assign-render checks use a bare `A op B` operand, so dropping inner-paren support here
+    # costs nothing and keeps the capture unambiguous.
+    regex: '(?:#set\s*\(\s*\$[A-Za-z_]\w*\s*=|<#assign\s+[A-Za-z_]\w*\s*=)\s*(?P<expr>(?=[0-9 \t]{0,31}[-+*/%])[0-9][0-9+\-*/% \t]{0,30}[0-9])'
+status: 200
+behavior: expr-eval
+expr-eval:
+  expr: expr
+  bind: result
+  max_len: 32
+  max_operand: 2147483647
+  response:
+    headers:
+      Content-Type: "text/html; charset=utf-8"
+    body: "{{match.result}}\n"
+response:
+  headers:
+    Content-Type: "text/html; charset=utf-8"
+  body: "<!doctype html><html lang=\"en\"><head><meta charset=\"utf-8\"><title>{{attack.page.title:home}}</title></head><body>\n{{attack.page.body:home}}\n</body></html>\n"
