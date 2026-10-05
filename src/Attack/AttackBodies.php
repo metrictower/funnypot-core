@@ -84,6 +84,23 @@ final class AttackBodies
     /** Source file the fake frame blames. */
     private const FILE_POOL = ['db.php', 'database.php', 'Database.php', 'functions.php', 'query.php', 'model.php', 'search.php', 'products.php'];
 
+    /** FP-0428: the FPD array-pollution closed form set after `fpd.`. */
+    public const FPD_FORMS = ['warning', 'fatal:content', 'fatal:includes'];
+
+    /**
+     * Scalar-expecting PHP builtins paired with the PHP-8 first-argument name (`func|$arg`). An array
+     * passed where a string is expected raises these exact Warning/TypeError shapes — sqlmap's array-
+     * parameter-pollution FPD provocation. Arg names are the real PHP-8 stubs so the PHP-8 wording is
+     * authentic; the PHP-7 wording ("expects parameter 1 to be string") drops the arg name.
+     */
+    private const FPD_BUILTINS = [
+        'htmlspecialchars|$string', 'strlen|$string', 'trim|$string',
+        'strtolower|$string', 'addslashes|$string',
+    ];
+
+    /** Real WordPress-core functions a /wp-db.php loaded outside WP calls before any are defined. */
+    private const FPD_WPFUNCS = ['is_admin', 'absint', 'wp_load_alloptions', 'get_option', 'sanitize_text_field', 'wp_cache_get'];
+
     /** Home decline-page titles (SSTI decline). Every option embeds `{c}` (the escaped company name). */
     private const HOME_TITLES = ['{c}', '{c} — Home', 'Home — {c}', 'Welcome to {c}', '{c} | Home'];
 
@@ -123,7 +140,7 @@ final class AttackBodies
      *   page.title:home | page.body:home          the SSTI decline page (B5)
      *   page.title:search | page.body:search      the CRS-xss decline page (B4)
      */
-    public static function resolve(string $spec, int $seed, string $company, string $slug): ?string
+    public static function resolve(string $spec, int $seed, string $company, string $slug, string $phpVersion = ''): ?string
     {
         if (strpos($spec, 'sqli.') === 0) {
             return self::sqli($seed, substr($spec, 5), $slug);
@@ -133,8 +150,61 @@ final class AttackBodies
 
             return self::page($seed, $bits[1] ?? '', $bits[0], $company);
         }
+        if (strpos($spec, 'fpd.') === 0) {
+            return self::fpd($seed, substr($spec, 4), $slug, $phpVersion);
+        }
 
         return null;
+    }
+
+    /**
+     * FP-0428: a Full Path Disclosure error frame (sqlmap docroot provocation). Rooted at the SAME
+     * /var/www/<slug>/ docroot as the SQLi frame + phpinfo (one deploy, one docroot) so sqlmap's
+     * extracted path matches what it later targets for INTO OUTFILE. Served at status 200 by the
+     * template (never a real 500 — invariant #2); carries no attacker byte (every field is seeded).
+     * The line number is 2-digit (10..99) so it can never form the `\b9\d{5}\b` denylist run.
+     *
+     *   warning          the array-parameter-pollution PHP Warning (wording keyed to the deploy PHP major)
+     *   fatal:content    Uncaught Error fatal for GET /wp-content/wp-db.php
+     *   fatal:includes   Uncaught Error fatal for GET /wp-includes/wp-db.php
+     */
+    public static function fpd(int $seed, string $spec, string $slug, string $phpVersion): ?string
+    {
+        if (!in_array($spec, self::FPD_FORMS, true)) {
+            return null;
+        }
+        $slugSegment = self::slugSafe($slug) ? $slug . '/' : ''; // hostile/empty slug -> /var/www/<path>
+        if ($spec === 'fatal:content' || $spec === 'fatal:includes') {
+            $sub = $spec === 'fatal:includes' ? 'wp-includes' : 'wp-content';
+            $path = '/var/www/' . $slugSegment . $sub . '/wp-db.php';
+            $fn = SubSeed::pick(self::FPD_WPFUNCS, $seed, SubSeed::NS_ATTACK, 'fpd|wpfunc');
+            $line = 10 + SubSeed::index($seed, SubSeed::NS_ATTACK, 'fpd|fline', 90); // 10..99
+
+            return "<br />\n<b>Fatal error</b>:  Uncaught Error: Call to undefined function " . $fn
+                . '() in <b>' . $path . '</b>:' . $line . "\nStack trace:\n#0 {main}\n  thrown in <b>"
+                . $path . '</b> on line <b>' . $line . '</b>';
+        }
+        // warning (array-parameter pollution): the shape is PHP-major specific (verified vs PHP 8.4.10).
+        // PHP 7 raises a WARNING ("expects parameter 1 to be string"); PHP 8 raises a FATAL TypeError
+        // ("Argument #1 ($x) must be of type string, array given") — a Warning carrying the PHP-8 wording
+        // is an impossible shape, so we emit the real frame for each major. Both bold the path + line for
+        // sqlmap extraction; both are served at status 200 (never a real 500 — invariant #2).
+        $pair = SubSeed::pick(self::FPD_BUILTINS, $seed, SubSeed::NS_ATTACK, 'fpd|func');
+        $parts = explode('|', $pair, 2);
+        $fn = $parts[0];
+        $arg = $parts[1] ?? '$string';
+        $dir = SubSeed::pick(self::DIR_POOL, $seed, SubSeed::NS_ATTACK, 'fpd|dir');
+        $file = SubSeed::pick(self::FILE_POOL, $seed, SubSeed::NS_ATTACK, 'fpd|file');
+        $line = 10 + SubSeed::index($seed, SubSeed::NS_ATTACK, 'fpd|line', 90); // 10..99
+        $path = '/var/www/' . $slugSegment . $dir . $file;
+        if (strpos($phpVersion, '7.') === 0) {
+            return "<br />\n<b>Warning</b>:  " . $fn . '() expects parameter 1 to be string, array given in <b>'
+                . $path . '</b> on line <b>' . $line . '</b><br />';
+        }
+
+        return "<br />\n<b>Fatal error</b>:  Uncaught TypeError: " . $fn . '(): Argument #1 (' . $arg
+            . ') must be of type string, array given in <b>' . $path . '</b>:' . $line
+            . "\nStack trace:\n#0 {main}\n  thrown in <b>" . $path . '</b> on line <b>' . $line . '</b>';
     }
 
     /**
@@ -207,6 +277,9 @@ final class AttackBodies
 
             return in_array($bits[0], self::PAGE_SLOTS, true)
                 && isset($bits[1]) && in_array($bits[1], self::PAGE_KINDS, true);
+        }
+        if (strpos($spec, 'fpd.') === 0) {
+            return in_array(substr($spec, 4), self::FPD_FORMS, true);
         }
 
         return false;

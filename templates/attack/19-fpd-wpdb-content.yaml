@@ -1,0 +1,20 @@
+id: attack-fpd-wpdb-content
+severity: high
+priority: 19
+tags: [attack, fpd, wordpress, path-disclosure, cve-2024-fpd]
+# FP-0428: Full Path Disclosure via the sqlmap wp-db core-DB probe. A direct GET /wp-content/wp-db.php
+# (the file is included by WordPress, never requested standalone) raises an "Uncaught Error: Call to
+# undefined function ..." naming the absolute docroot. We answer it as an AUTHORED 200 body (never a real
+# 500 — invariant #2), rooted at the SAME /var/www/<slug>/ docroot as the SQLi frame + phpinfo (one deploy,
+# one docroot), so sqlmap extracts the exact path it will later target for INTO OUTFILE / its file stager.
+# Priority 19 (path-anchored) sorts ahead of the broad in:request injection archetypes (40-86). INERT:
+# seeded body, no request byte reflected. Store hits win first, so this only fires on the would-be-404.
+match:
+  - in: path
+    regex: '(?:^|/)wp-content/wp-db\.php$'
+    ci: true
+response:
+  headers:
+    Content-Type: "text/html; charset=utf-8"
+  body: "{{attack.fpd.fatal:content}}"
+expect: ["Call to undefined function", "wp-content/wp-db.php"]
