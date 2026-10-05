@@ -1,0 +1,39 @@
+id: route-go-mod
+priority: 289
+# FP-0542: the Go module manifest at /go.mod, paired with /go.sum (288). Unlike go.sum, /go.mod is
+# ALREADY a corpus route key (the nuclei `go-mod-disclosure` bundle, pid `go`, bw module/go/require),
+# so a new_page would only add a SECOND co-located bundle and PersonaSelector would pick one per deploy
+# seed -> ~half the deploys serve the bare corpus stub (the FP-0556 multi-persona coverage trap). Instead
+# ENRICH the existing corpus bundle: template_needle pins `go-mod-disclosure` and the route_key guard
+# confines the override to GET /go.mod, so EVERY deploy that lands on that bundle serves this rich body.
+# The body keeps the bundle's bw (module / go / require) and pins the SAME real OSV-flagged vulnerable
+# versions as go.sum (one coherent project) -> osv-scanner / govulncheck resolve (module, version) -> CVE:
+#   jwt-go v3.2.0+incompatible (CVE-2020-26160), gin v1.6.0 (CVE-2020-28483),
+#   gorilla/websocket v1.4.0 (CVE-2020-27813), yaml.v2 v2.2.2 (CVE-2019-11254).
+# Module path derives from the persona (per-deploy coherent); versions are FIXED literals. Go comments
+# are `//`, so the line taunt opens with `//` and the file stays a parseable go.mod. INERT: static bytes.
+match:
+  template_needle: [go-mod-disclosure]
+  route_key: ['GET /go.mod']
+response:
+  headers:
+    Content-Type: "text/plain; charset=utf-8"
+  body: |
+    module github.com/{{persona.company.slug}}/{{pick:api,platform,service,core,web}}
+
+    go 1.16
+
+    require (
+    	github.com/dgrijalva/jwt-go v3.2.0+incompatible
+    	github.com/gin-gonic/gin v1.6.0
+    	github.com/gorilla/websocket v1.4.0
+    	gopkg.in/yaml.v2 v2.2.2
+    )
+
+    require github.com/stretchr/testify v1.7.0 // indirect
+taunt: { mode: line, open: '//' }
+expect:
+  - 'module github.com/'
+  - 'github.com/gin-gonic/gin v1.6.0'
+  - 'github.com/gorilla/websocket v1.4.0'
+  - 'gopkg.in/yaml.v2 v2.2.2'

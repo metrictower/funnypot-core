@@ -69,6 +69,9 @@ final class VulnerableLockfileDecoyTest extends TestCase
             '/pnpm-lock.yaml'    => [['lockfileVersion: 5.4', 'lodash: 4.17.11', 'axios: 0.21.1'], false, 'text/plain'],
             // FP-0542: Ruby Gemfile with OSV-verified vulnerable gem pins (rack/nokogiri/actionpack).
             '/Gemfile'           => [["source 'https://rubygems.org'", "gem 'rack', '2.0.6'", "gem 'nokogiri', '1.10.4'", "gem 'actionpack', '5.2.0'"], false, 'text/plain'],
+            // FP-0542: Go module files with OSV-verified vulnerable module pins (gin/websocket/yaml.v2/jwt-go).
+            '/go.sum'            => [['github.com/gin-gonic/gin v1.6.0 h1:', 'github.com/gorilla/websocket v1.4.0 h1:', 'gopkg.in/yaml.v2 v2.2.2 h1:', 'github.com/dgrijalva/jwt-go v3.2.0+incompatible h1:'], false, 'text/plain'],
+            '/go.mod'            => [['module github.com/', 'github.com/gin-gonic/gin v1.6.0', 'github.com/gorilla/websocket v1.4.0', 'gopkg.in/yaml.v2 v2.2.2'], false, 'text/plain'],
         ];
     }
 
@@ -117,7 +120,7 @@ final class VulnerableLockfileDecoyTest extends TestCase
     public function test_fingerprint_safe_across_seeds(): void
     {
         // Seeded integrity/hash/reference fields must never form the denylist's bare 6-digit run.
-        $paths = ['/package-lock.json', '/yarn.lock', '/composer.lock', '/Pipfile.lock'];
+        $paths = ['/package-lock.json', '/yarn.lock', '/composer.lock', '/Pipfile.lock', '/go.sum'];
         for ($s = 0; $s < 1200; $s++) {
             foreach ($paths as $p) {
                 $b = $this->body($this->resp($p, (string) $s));

@@ -13,11 +13,11 @@ return array (
     'license' => 'MIT (c) 2025 ProjectDiscovery, Inc.',
     'upstream_tag' => '2ec914123864439c3618e7e9ae72d32d0eb56df7',
     'upstream_sha' => '2ec914123864439c3618e7e9ae72d32d0eb56df7',
-    'source_tree' => '8402e0e0ac46c32bdcc7b4314ce066d04238f8790c76101f067d5f229fe8e481',
+    'source_tree' => 'bfb13665be76aa849760aed6e844b716849a4ac699193c139be88b57b8d4feec',
     'templates_seen' => 11196,
     'templates_in' => 6363,
-    'templates_indexed' => 6515,
-    'route_keys' => 5375,
+    'templates_indexed' => 6516,
+    'route_keys' => 5376,
     'multi_bundle_keys' => 277,
     'largest_bundle_count' => 1324,
     'persona_cap' => 
@@ -84929,6 +84929,17 @@ return array (
         2 => 'secrets',
       ),
       'name' => 'Exposed environment file (.env.dev)',
+    ),
+    'route-go-sum' => 
+    array (
+      'sev' => 'high',
+      'tags' => 
+      array (
+        0 => 'exposure',
+        1 => 'dependency-disclosure',
+        2 => 'vulnerable-dependency',
+      ),
+      'name' => 'Exposed Go checksum file (go.sum) with vulnerable modules',
     ),
     'route-wp-debug-log' => 
     array (
@@ -309962,6 +309973,31 @@ a</title>',
           't' => 
           array (
             0 => 'route-envfile-devlean',
+          ),
+        ),
+      ),
+    ),
+    'GET /go.sum' => 
+    array (
+      'b' => 
+      array (
+        0 => 
+        array (
+          's' => 200,
+          'bw' => 
+          array (
+            0 => 'h1:',
+          ),
+          'nf' => 
+          array (
+          ),
+          'pid' => 'route-go-sum',
+          'sev' => 'high',
+          'sig' => 0,
+          'amb' => 0,
+          't' => 
+          array (
+            0 => 'route-go-sum',
           ),
         ),
       ),
