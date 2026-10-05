@@ -1,0 +1,25 @@
+id: attack-nexus-traversal
+severity: high
+priority: 7
+tags: [attack, lfi, traversal, nexus, cve-2024-4956, cve-2024-23334]
+# FP-0457: path-based URL-encoded traversal that reaches /etc/passwd — Sonatype Nexus CVE-2024-4956
+# (the `/%2f%2f…%2e%2e%2f…/etc/passwd` root form and the `/service/rest/…/..%2f..%2fetc/passwd` form)
+# and aiohttp CVE-2024-23334 (the `/static/%2e%2e%2f…/etc/passwd` encoded-slash form). Unlike the
+# generic reflected LFI (attack-lfi-unix, priority 31, text/plain), a file-DOWNLOAD path bypass returns
+# the raw file, so the real products answer application/octet-stream — which is exactly what the
+# Nettacker Nexus check validates. Two in:path conditions (AND) read the RAW, still-encoded path: an
+# encoded slash is present (the bypass signature) AND the /etc/passwd target. in:path never sees query
+# bytes, so a `?file=…/etc/passwd` reflected LFI and a bare /etc/passwd keep their existing semantics
+# via lower-priority rules — this octet-stream upgrade fires ONLY for path-based encoded traversals.
+# Priority 7 is consulted before the whole LFI family (28/30/31). Never reads a real file; the body is
+# the shared inert canned passwd. Content-Type is app-chosen (invariant #5).
+match:
+  - in: path
+    regex: '%2f'
+  - in: path
+    regex: 'etc(?:/|%2f)passwd'
+response:
+  headers:
+    Content-Type: application/octet-stream
+  body: "{{canned.passwd}}"
+expect: ["root:x:0:0"]

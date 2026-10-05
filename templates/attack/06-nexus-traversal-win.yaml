@@ -1,0 +1,18 @@
+id: attack-nexus-traversal-win
+severity: high
+priority: 6
+tags: [attack, lfi, traversal, nexus, windows, cve-2024-4956]
+# FP-0457: Windows parity of attack-nexus-traversal. A path-based encoded traversal reaching win.ini
+# returns the raw file as application/octet-stream (vs attack-lfi-windows text/plain for the generic
+# reflected case). Same discriminator as the unix rule: encoded slash present AND the win.ini target,
+# both read from the RAW path. Priority 6 is consulted before 30-lfi-windows. Inert canned body.
+match:
+  - in: path
+    regex: '%2f'
+  - in: path
+    regex: 'win(?:\.|%2e)ini'
+response:
+  headers:
+    Content-Type: application/octet-stream
+  body: "{{canned.winini}}"
+expect: ["[extensions]"]
