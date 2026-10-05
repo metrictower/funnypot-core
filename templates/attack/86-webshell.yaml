@@ -53,4 +53,25 @@ branch:
           <html><head><title>b374k</title></head><body bgcolor="black" text="green">
           <b>b374k shell</b><br><pre>uid=33(www-data) gid=33(www-data) groups=33(www-data)</pre>
           </body></html>
+    # Uploaded test file (fuxploider et al. POST a phpinfo payload, then GET the returned
+    # /wp-content/uploads/<name>.php and confirm on a FIXED regex: `<title>phpinfo()</title> … <h2>PHP
+    # License</h2>` — see FP-0443). A generic uploaded .php (no known-shell name) serves that phpinfo
+    # confirmation page, which ALSO carries the uid=33 id-output line a dropped multifunction webshell
+    # prints (so the existing /wp-content/uploads webshell-grep confirmation holds too). Inert static
+    # HTML; PHP version is the persona's; no uploaded byte is parsed or reflected.
+    - when: { in: path, regex: '(?:^|/)wp-content/uploads/.*\.php/*$', ci: true }
+      response:
+        headers: { Content-Type: "text/html; charset=utf-8" }
+        body: |
+          <!DOCTYPE html>
+          <html><head><title>phpinfo()</title></head><body>
+          <pre>uid=33(www-data) gid=33(www-data) groups=33(www-data)</pre>
+          <h1 class="p">PHP Version {{persona.php.version}}</h1>
+          <table>
+          <tr><td class="e">System</td><td class="v">Linux web01 5.15.0-generic x86_64</td></tr>
+          <tr><td class="e">Server API</td><td class="v">FPM/FastCGI</td></tr>
+          </table>
+          <h2>PHP License</h2>
+          <p class="l">This program is free software; you can redistribute it and/or modify it under the terms of the PHP License as published by the PHP Group and included in the distribution in the file: LICENSE</p>
+          </body></html>
 expect: ['uid=33(www-data)']
