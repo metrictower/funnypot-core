@@ -45,6 +45,9 @@ response:
     GITHUB_TOKEN={{persona.cloud.github.pat}}
     GITLAB_TOKEN={{persona.cloud.gitlab.pat}}
     CIRCLE_TOKEN={{persona.cloud.circleci.token}}
+    SLACK_BOT_TOKEN={{persona.cloud.slack.botToken}}
+    NPM_TOKEN={{persona.cloud.npm.token}}
+    PYPI_TOKEN={{persona.cloud.pypi.token}}
 taunt: { mode: line, open: '#' }
 expect:
   - 'AWS_ACCESS_KEY_ID=AKIA'
@@ -53,3 +56,6 @@ expect:
   - 'SENDGRID_API_KEY=SG.'
   - 'OPENAI_API_KEY=sk-proj-'
   - 'GITHUB_TOKEN=ghp_'
+  - 'SLACK_BOT_TOKEN=xoxb-'
+  - 'NPM_TOKEN=npm_'
+  - 'PYPI_TOKEN=pypi-'

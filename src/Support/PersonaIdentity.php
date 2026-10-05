@@ -41,6 +41,9 @@ final class PersonaIdentity
         'cloud.openai.projectKey', 'cloud.huggingface.token', 'cloud.groq.apiKey',
         'cloud.buildkite.token', 'cloud.circleci.token', 'cloud.github.pat',
         'cloud.github.fineGrainedPat', 'cloud.gitlab.pat', 'cloud.slack.botToken',
+        // FP-0558: vendor-EXACT honeytoken shapes so self-hosted gitleaks/trufflehog (not just Caido's
+        // loose regexes) emit real findings over the loot. Each is a seeded, inert canary; see the builder.
+        'cloud.npm.token', 'cloud.pypi.token', 'cloud.openai.serviceAccountKey', 'payment.cardNumber',
         'secret.jwt',
         'php.version',
         'phpmyadmin.version',
@@ -276,8 +279,22 @@ final class PersonaIdentity
             'cloud.github.fineGrainedPat' => 'github_pat_' . self::base62($seed, 'ghpat_k', 82),
             // GitLab PAT: 'glpat-' + 20 [A-Za-z0-9_-].
             'cloud.gitlab.pat' => self::guardedB64Key($seed, 'glpat_k', 'glpat-', 20),
-            // Slack bot token: 'xoxb-' + 40 [0-9A-Za-z-] (Caido xox[baprs]-[0-9A-Za-z-]{10,48}).
-            'cloud.slack.botToken' => 'xoxb-' . self::base62($seed, 'slack_k', 40),
+            // Slack bot token, VENDOR-EXACT: 'xoxb-' + {11 digits} '-' {12 digits} '-' {24 [A-Za-z0-9]}
+            // (gitleaks/trufflehog `xoxb-\d{10,13}-\d{10,13}-[a-zA-Z0-9]{24}`; also matches Caido's looser
+            // rule). A \b9\d{5}\b run cannot form: each digit group is one \w run of >=11 digits, so the only
+            // word boundaries are at its ends — a leading 9 is followed by >5 digits with no interior \b.
+            'cloud.slack.botToken' => 'xoxb-' . self::digits($seed, 'slack_g1', 11) . '-'
+                . self::digits($seed, 'slack_g2', 12) . '-' . self::base62($seed, 'slack_s', 24),
+            // npm automation token: 'npm_' + 36 [A-Za-z0-9] (gitleaks `npm_[a-z0-9]{36}` is case-insensitive).
+            'cloud.npm.token' => self::guardedAlnumKey($seed, 'npm_k', 'npm_', 36),
+            // PyPI upload token: 'pypi-' + the constant macaroon prefix gitleaks/trufflehog require, then a
+            // url-safe-base64 body. 'AgEIcHlwaS5vcmc' is base64 of the literal "\x02\x01\x08pypi.org" header.
+            'cloud.pypi.token' => self::pypiToken($seed),
+            // OpenAI service-account key: 'sk-svcacct-' + body + the 'T3BlbkFJ' infix gitleaks requires + body.
+            'cloud.openai.serviceAccountKey' => self::openaiPrefixedKey($seed, 'sk-svcacct-', 'openai_svc'),
+            // Luhn-valid 16-digit card canary (payments config leak). Seeded, inert, never a well-known test
+            // number. One contiguous 16-digit run => no interior \b, so \b9\d{5}\b cannot match (asserted).
+            'payment.cardNumber' => self::luhnCard($seed, 'card_k'),
 
             'secret.jwt' => substr(self::h($seed, 'jwt_secret'), 0, 64),
 
@@ -828,6 +845,123 @@ final class PersonaIdentity
                 return $value;
             }
         }
+    }
+
+    /** FP-0558: `len` decimal digits from the seed, first digit non-zero (a numeric id never leads with 0). */
+    private static function digits(int $seed, string $field, int $len): string
+    {
+        $hex = self::h($seed, $field);
+        $round = 1;
+        while (strlen($hex) < $len * 2) {
+            $hex .= self::h($seed, $field . $round);
+            $round++;
+        }
+        $out = '';
+        for ($i = 0; $i < $len; $i++) {
+            $d = (int) hexdec(substr($hex, $i * 2, 2)) % 10;
+            if ($i === 0 && $d === 0) {
+                $d = 1 + ((int) hexdec(substr($hex, 0, 2)) % 9);
+            }
+            $out .= (string) $d;
+        }
+
+        return $out;
+    }
+
+    /** FP-0558: `prefix` + `len` [A-Za-z0-9] from the seed, re-rolled past the denied bare-6-digit run. */
+    private static function guardedAlnumKey(int $seed, string $field, string $prefix, int $len): string
+    {
+        for ($round = 0; ; $round++) {
+            $f = $round === 0 ? $field : $field . '|r' . $round;
+            $value = $prefix . self::base62($seed, $f, $len);
+            if (!self::hitsDeniedDigits($value)) {
+                return $value;
+            }
+        }
+    }
+
+    /**
+     * FP-0558: PyPI upload token — 'pypi-' + the constant macaroon prefix 'AgEIcHlwaS5vcmc' (base64 of the
+     * literal "\x02\x01\x08pypi.org" header that gitleaks/trufflehog's pypi rule requires) + a url-safe-base64
+     * body. Re-rolled past a trailing '-' (would break a \b-anchored rule) and the denied digit run.
+     */
+    private static function pypiToken(int $seed): string
+    {
+        for ($round = 0; ; $round++) {
+            $s = $round === 0 ? '' : '|r' . $round;
+            $body = substr(self::base64url((string) hex2bin(
+                self::h($seed, 'pypi_a' . $s) . self::h($seed, 'pypi_a2' . $s) . self::h($seed, 'pypi_a3' . $s) . self::h($seed, 'pypi_a4' . $s)
+            )), 0, 130);
+            $value = 'pypi-AgEIcHlwaS5vcmc' . $body;
+            if (substr($body, -1) !== '-' && !self::hitsDeniedDigits($value)) {
+                return $value;
+            }
+        }
+    }
+
+    /**
+     * FP-0558: an OpenAI-family key with a parameterized prefix (e.g. 'sk-svcacct-') carrying the 'T3BlbkFJ'
+     * infix gitleaks/trufflehog require. Mirrors openaiProjectKey; re-rolled past a trailing '-' and the run.
+     */
+    private static function openaiPrefixedKey(int $seed, string $prefix, string $tag): string
+    {
+        for ($round = 0; ; $round++) {
+            $s = $round === 0 ? '' : '|r' . $round;
+            $a = substr(self::base64url((string) hex2bin(
+                self::h($seed, $tag . '_a' . $s) . self::h($seed, $tag . '_a2' . $s) . self::h($seed, $tag . '_a3' . $s)
+            )), 0, 74);
+            $b = substr(self::base64url((string) hex2bin(
+                self::h($seed, $tag . '_b' . $s) . self::h($seed, $tag . '_b2' . $s) . self::h($seed, $tag . '_b3' . $s)
+            )), 0, 74);
+            $value = $prefix . $a . 'T3BlbkFJ' . $b;
+            if (substr($b, -1) !== '-' && !self::hitsDeniedDigits($value)) {
+                return $value;
+            }
+        }
+    }
+
+    /**
+     * FP-0558: a Luhn-valid 16-digit Visa-range card canary (for a payments-config leak). Seeded + inert +
+     * per-deploy; the '45' lead keeps it in a real Visa range while avoiding the well-known 42xx/41xx/40xx
+     * test BINs, so it is never a recognisable test number. One contiguous 16-digit run has no interior word
+     * boundary, so \b9\d{5}\b can never match (re-roll guard kept for symmetry; asserted in tests).
+     */
+    private static function luhnCard(int $seed, string $field): string
+    {
+        for ($round = 0; ; $round++) {
+            $f = $round === 0 ? $field : $field . '|r' . $round;
+            $hex = self::h($seed, $f) . self::h($seed, $f . '2');
+            $body = '45';
+            for ($i = 0; strlen($body) < 15; $i++) {
+                $body .= (string) ((int) hexdec(substr($hex, $i * 2, 2)) % 10);
+            }
+            $body = substr($body, 0, 15);
+            $pan = $body . self::luhnCheckDigit($body);
+            if (!self::hitsDeniedDigits($pan)) {
+                return $pan;
+            }
+        }
+    }
+
+    /** The Luhn check digit for `$digits` when it is appended as the rightmost digit of the full number. */
+    private static function luhnCheckDigit(string $digits): string
+    {
+        $sum = 0;
+        $len = strlen($digits);
+        for ($i = 0; $i < $len; $i++) {
+            $d = (int) $digits[$i];
+            // After the check digit is appended, $digits[$i] sits at position (len+1-i) from the right; it is
+            // doubled when that position is even, i.e. when $i is even for a 15-digit body.
+            if (($len - $i) % 2 === 1) {
+                $d *= 2;
+                if ($d > 9) {
+                    $d -= 9;
+                }
+            }
+            $sum += $d;
+        }
+
+        return (string) ((10 - ($sum % 10)) % 10);
     }
 
     /** FP-0419: `len` letters ([A-Za-z]) from the seed — a digitless run (no 6-digit-run risk), for the
