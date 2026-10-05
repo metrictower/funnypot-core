@@ -6,6 +6,7 @@ namespace Funnypot\Core;
 
 use Funnypot\Core\Compiler\Crs\FingerprintGuard;
 use Funnypot\Core\Contracts\CompiledStore;
+use Funnypot\Core\Reaction\AntiWafProbe;
 use Funnypot\Core\Reaction\ParamIntent;
 use Funnypot\Core\Reaction\ParamReactionDecorator;
 use Funnypot\Core\Reaction\ParamMiningProbe;
@@ -258,7 +259,13 @@ final class Honeypot implements Engine
             return Verdict::clean();
         }
 
-        $verdict = $this->classifyContent($r, $profile);
+        // FP-0425 (anti-WAF blinder): recognise sqlmap's fixed WAF-check polyglot so classifyContent
+        // suppresses the attack overrides and serves the route baseline (sqlmap's checkWaf ratio ≥0.5 →
+        // stays in default mode). Gated on attackEmulation so a non-emulation build is byte/verdict-
+        // identical. The recognition also drives a signal-only telemetry fold below.
+        $wafCheck = $this->config->attackEmulation && AntiWafProbe::isWafCheckPolyglot($r);
+
+        $verdict = $this->classifyContent($r, $profile, $wafCheck);
 
         // OOB signal-probe registry (FP-0256): every registered signal-only probe (OAST/SSRF
         // collaborator zones, Log4Shell/JNDI) is pure string matching — no DNS, no fetch — and
@@ -276,6 +283,29 @@ final class Honeypot implements Engine
         $decoyKey = (string) ($this->config->decoySessionKey ?? '');
         if ($decoyKey !== '' && DecoySessionProbe::authenticated($r, $decoyKey, $this->deploySeed)) {
             $verdict = $this->foldHoneytoken($verdict);
+        }
+
+        // FP-0425: fold a signal-only telemetry match for sqlmap's recon probes so the app learns a
+        // sqlmap audit is in progress (goal 2's per-IP confidence counter is app-deferred). foldOob leaves
+        // fakeHandle + serve-gating untouched (the baseline still serves) and only enriches the Detection,
+        // so the response stays byte-identical while safeOnDetection carries the tag to the observer — even
+        // on a store-miss, where the fold bumps the null-handle CLEAN to SCANNER_PROBE so onDetection fires.
+        if ($this->config->attackEmulation) {
+            if ($wafCheck) {
+                $verdict = $this->foldOob($verdict, new TemplateMatch(
+                    'sqlmap-waf-check',
+                    'info',
+                    ['tool.sqlmap.wafcheck', 'recon', 'scanner-blinded'],
+                    'sqlmap WAF-check polyglot — served the route baseline to keep sqlmap in default mode'
+                ));
+            } elseif (AntiWafProbe::isHeuristicAlphabet($r)) {
+                $verdict = $this->foldOob($verdict, new TemplateMatch(
+                    'sqlmap-heuristic',
+                    'info',
+                    ['tool.sqlmap.heuristic', 'recon', 'scanner'],
+                    'sqlmap heuristic-alphabet probe'
+                ));
+            }
         }
 
         // decode_path telemetry (FP-0356): record which decoders transformed the request surface when
@@ -382,7 +412,17 @@ final class Honeypot implements Engine
      * change). classify() is the public seam and folds the OAST signal on top of this; every return
      * path below is unchanged.
      */
-    private function classifyContent(RequestContext $r, SiteProfile $profile): Verdict
+    /**
+     * FP-0425: when $wafCheck is true (the request is sqlmap's fixed WAF-check polyglot), SUPPRESS every
+     * attack override that would return a page DIFFERENT from the route's own baseline — the real-route
+     * payload scan, the owns_path override, the store-HIT expr-eval oracle, and the store-MISS linear scan
+     * — so the verdict falls through to the benign resolution (the route's 200 bundle on a hit, or CLEAN
+     * null → the host/app 404 on a miss). That keeps sqlmap's checkWaf ratio ≥0.5 and leaves it "blinded".
+     * The param-route tier (matchParamRoute) is deliberately NOT suppressed: the differential decoys
+     * resolve this polyglot through their own branch (its leading `AND 1=1` tautology hits the TRUE case →
+     * the baseline page), so suppressing it would turn a baseline serve into a 404 and BREAK the blind.
+     */
+    private function classifyContent(RequestContext $r, SiteProfile $profile, bool $wafCheck = false): Verdict
     {
         $signals = $this->botSignals($r);
         $anomaly = $signals->weight;
@@ -403,7 +443,7 @@ final class Honeypot implements Engine
                 // subset add no path-driven false positive, and serving stays gated on attackEmulation
                 // (buildAttackFake), so a payloadInspection-only build reaches the verdict but serves
                 // nothing.
-                if ($isRealRoute) {
+                if ($isRealRoute && !$wafCheck) {
                     $pv = $this->payloadVerdict($r, $anomaly, $signals);
                     if ($pv !== null) {
                         return $pv;
@@ -430,7 +470,10 @@ final class Honeypot implements Engine
                 $ov = $this->attackEmulator->matchOnOwnedPath($r, function (array $rule) use ($r): bool {
                     return $this->personaGateAllows($rule, $r);
                 });
-                if ($ov !== null) {
+                // FP-0425: treat the WAF-check polyglot as if no owned rule matched (skip only this
+                // ATTACK return, not the auth-success-witness guard or the route fall-through below), so
+                // it resolves to the SAME baseline the unmarked request would on this owned path.
+                if ($ov !== null && !$wafCheck) {
                     $rule = $ov['rule'];
                     $detection = TemplateAttackEmulator::detectionForRule($rule);
                     $handle = FakeHandle::attack((string) ($rule['id'] ?? 'attack'), $ov['captures']);
@@ -479,7 +522,7 @@ final class Honeypot implements Engine
             // entry itself resolves to an HTML Content-Type — else serving the oracle would mismatch the
             // path's normal type (a tell). Many corpus keys are non-HTML (JSON API roots, text/plain
             // exposed-file paths), so this gates on the entry's own resolved CT, not a path-extension guess.
-            if ($this->bundlesServeHtml($bundles)) {
+            if ($this->bundlesServeHtml($bundles) && !$wafCheck) {
                 $pv = $this->payloadVerdict($r, $anomaly, $signals, true);
                 if ($pv !== null) {
                     return $pv;
@@ -556,7 +599,9 @@ final class Honeypot implements Engine
             // the gate via this branch. A closed gate falls through to the CLEAN verdict below (the app
             // serves its own 404). Ungated rules hit the isset() early-out in personaGateAllows() and
             // are unaffected — behaviour for every existing rule is byte-identical.
-            if ($matched !== null && $this->personaGateAllows($matched['rule'], $r)) {
+            // FP-0425: the WAF-check polyglot skips the linear-scan ATTACK match so a store-miss resolves
+            // to the same CLEAN null → host/app 404 the unmarked request gets (keeps sqlmap blinded).
+            if ($matched !== null && !$wafCheck && $this->personaGateAllows($matched['rule'], $r)) {
                 $rule = $matched['rule'];
                 $detection = TemplateAttackEmulator::detectionForRule($rule);
                 $handle = FakeHandle::attack((string) ($rule['id'] ?? 'attack'), $matched['captures']);
