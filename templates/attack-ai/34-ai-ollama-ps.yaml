@@ -13,8 +13,8 @@ status: 200
 match:
   -
     in: path
-    regex: '^/api/ps/?$'
-    ci: false
+    regex: '^/api/ps/*$'
+    ci: true
   -
     in: method
     regex: ^GET$

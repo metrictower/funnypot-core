@@ -13,8 +13,8 @@ status: 404
 match:
   -
     in: path
-    regex: '^/api/show/?$'
-    ci: false
+    regex: '^/api/show/*$'
+    ci: true
   -
     in: method
     regex: ^POST$

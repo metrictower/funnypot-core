@@ -13,8 +13,8 @@ status: 200
 match:
   -
     in: path
-    regex: '^/v1/chat/completions/?$'
-    ci: false
+    regex: '^/v1/chat/completions/*$'
+    ci: true
   -
     in: method
     regex: ^POST$

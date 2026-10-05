@@ -13,8 +13,8 @@ status: 200
 match:
   -
     in: path
-    regex: '^/api/chat/?$'
-    ci: false
+    regex: '^/api/chat/*$'
+    ci: true
   -
     in: method
     regex: ^POST$

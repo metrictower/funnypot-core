@@ -13,8 +13,8 @@ status: 200
 match:
   -
     in: path
-    regex: '^/api/generate/?$'
-    ci: false
+    regex: '^/api/generate/*$'
+    ci: true
   -
     in: method
     regex: ^POST$
