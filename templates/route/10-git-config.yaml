@@ -2,7 +2,11 @@ id: route-git-config
 priority: 10
 # Exposed .git/config — believable git config, decoy remote on the persona domain, no credentials.
 match:
-  template_needle: [git-config, git]
+  # FP-0557: needle is `git-config` ONLY. The bare `git` needle substring-matched any bundle whose pid/id
+  # merely CONTAINS "git" — github-gemfile-files (/Gemfile, /Gemfile.lock), gitlab-* (/.gitlab-ci.yml), etc. —
+  # dressing those unrelated surfaces with a .git/config body (an incoherent tell). The real /.git/config
+  # bundle's needle IS `git-config`, so it still binds; other /.git/* surfaces are not this config decoy.
+  template_needle: [git-config]
 response:
   headers:
     Content-Type: "text/plain; charset=utf-8"
