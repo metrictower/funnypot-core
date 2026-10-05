@@ -93,6 +93,14 @@ final class PersonaIdentity
         'citrix.lastModified',
         'ivanti.version',
         'ivanti.lastModified',
+        // FP-0588: two more Nettacker *_lastpatcheddate recon targets, same BUILDS-index pattern. CrushFTP
+        // (/WebInterface/CrushTunnel.jar, CVE-2025-31161 patched ~2025-03-21; pairs with 55-crushftp) and
+        // Ivanti CSA (/allowed/ivanti-logo.png, CVE-2024-8190/-2024-8963 patched ~2024-09-10) — distinct
+        // from Ivanti Connect Secure above (different product, version scheme, CVE).
+        'crushftp.version',
+        'crushftp.lastModified',
+        'ivcsa.version',
+        'ivcsa.lastModified',
         // The WooCommerce core + payment-plugin versions this host claims — one source of truth for
         // every store surface (the storefront generator meta, the readme `Stable tag:`, the wc-augmented
         // REST index). paymentsVersion and stripeVersion are held on the vulnerable side of their CVEs so
@@ -362,6 +370,10 @@ final class PersonaIdentity
             'citrix.lastModified' => gmdate('D, d M Y H:i:s', self::citrixBuild($slug, $domain)['epoch']) . ' GMT',
             'ivanti.version' => self::ivantiBuild($slug, $domain)['version'],
             'ivanti.lastModified' => gmdate('D, d M Y H:i:s', self::ivantiBuild($slug, $domain)['epoch']) . ' GMT',
+            'crushftp.version' => self::crushftpBuild($slug, $domain)['version'],
+            'crushftp.lastModified' => gmdate('D, d M Y H:i:s', self::crushftpBuild($slug, $domain)['epoch']) . ' GMT',
+            'ivcsa.version' => self::ivcsaBuild($slug, $domain)['version'],
+            'ivcsa.lastModified' => gmdate('D, d M Y H:i:s', self::ivcsaBuild($slug, $domain)['epoch']) . ' GMT',
 
             // The WooCommerce core + payment-plugin versions this host claims — the single source of
             // truth for every store surface. Derived like php.version so field() and productVersion()
@@ -722,6 +734,52 @@ final class PersonaIdentity
         $idx = (int) (hexdec(substr(hash('sha256', $slug . '|' . $domain . '|ivanti-build'), 0, 8)) % count(self::IVANTI_BUILDS));
 
         return self::IVANTI_BUILDS[$idx];
+    }
+
+    /**
+     * FP-0588: real vulnerable CrushFTP builds — all BEFORE the CVE-2025-31161 fix (10.8.4 / 11.3.1,
+     * ~2025-03-21). Serves the /WebInterface/CrushTunnel.jar Last-Modified; pairs with 55-crushftp.
+     *
+     * @var non-empty-list<array{version:string,epoch:int}>
+     */
+    private const CRUSHFTP_BUILDS = [
+        ['version' => '10.8.3', 'epoch' => 1734000000],  // 2024-12-12
+        ['version' => '11.3.0', 'epoch' => 1738022400],  // 2025-01-28
+    ];
+
+    /**
+     * FP-0588: real vulnerable Ivanti CSA (Cloud Services Appliance) builds — all BEFORE the
+     * CVE-2024-8190 / CVE-2024-8963 fix (CSA 4.6-519 / 5.0.2, ~2024-09-10). Serves /allowed/ivanti-logo.png.
+     *
+     * @var non-empty-list<array{version:string,epoch:int}>
+     */
+    private const IVCSA_BUILDS = [
+        ['version' => '4.6.511', 'epoch' => 1712707200],  // 2024-04-10
+        ['version' => '5.0.1',   'epoch' => 1722470400],  // 2024-08-01
+    ];
+
+    /**
+     * One CRUSHFTP_BUILDS entry for this deploy (version+date together, deploy-stable).
+     *
+     * @return array{version:string,epoch:int}
+     */
+    private static function crushftpBuild(string $slug, string $domain): array
+    {
+        $idx = (int) (hexdec(substr(hash('sha256', $slug . '|' . $domain . '|crushftp-build'), 0, 8)) % count(self::CRUSHFTP_BUILDS));
+
+        return self::CRUSHFTP_BUILDS[$idx];
+    }
+
+    /**
+     * One IVCSA_BUILDS entry for this deploy (version+date together, deploy-stable).
+     *
+     * @return array{version:string,epoch:int}
+     */
+    private static function ivcsaBuild(string $slug, string $domain): array
+    {
+        $idx = (int) (hexdec(substr(hash('sha256', $slug . '|' . $domain . '|ivcsa-build'), 0, 8)) % count(self::IVCSA_BUILDS));
+
+        return self::IVCSA_BUILDS[$idx];
     }
 
     /**

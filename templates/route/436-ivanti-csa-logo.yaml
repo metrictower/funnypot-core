@@ -1,0 +1,21 @@
+id: route-ivanti-csa-logo
+priority: 436
+# FP-0588: Ivanti CSA (Cloud Services Appliance) logo — the OWASP Nettacker `ivanti_csa_lastpatcheddate`
+# recon path (HEAD /allowed/ivanti-logo.png, reads Last-Modified). We serve a PRE-patch build date
+# ({{persona.ivcsa.lastModified}}, a vulnerable 4.6.511 / 5.0.1 build BEFORE the CVE-2024-8190 /
+# CVE-2024-8963 fix 4.6-519 / 5.0.2 of ~2024-09-10) so a scanner declares the host unpatched. Standalone
+# recon-intel + poly-stack breadth bait. Distinct from Ivanti Connect Secure (different product/CVE).
+# Self-generated INERT 1x1 PNG — NO real Ivanti artwork (golden rule).
+new_page:
+  method: GET
+  paths: ['/allowed/ivanti-logo.png']
+  sig: 0
+  status: 200
+  severity: info
+  tags: [ivanti, csa, version-oracle, exposure]
+  name: 'Ivanti CSA logo'
+response:
+  headers:
+    Content-Type: "image/png"
+    Last-Modified: "{{persona.ivcsa.lastModified}}"
+  body_b64: 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg=='
