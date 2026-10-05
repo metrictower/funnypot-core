@@ -31,8 +31,9 @@ funnypot-core-held signing secret. This scaffold is only the distribution repo's
    bash dist/funnypot-rules/keygen.sh 2026-01-channels  # channels role (signs the channels pointer)
    ```
 
-   Each prints a PUBLIC key (stdout) and a SECRET key (stderr). Save the public keys to
-   `funnypot-rules/keys/` (base64, one line each) for the canary and manual verification.
+   Each prints a PUBLIC key (stdout) and a SECRET key (stderr). Save the public keys (base64, one
+   line each) to `funnypot-rules/keys/ed25519-release.pub` and `funnypot-rules/keys/ed25519-channels.pub`
+   for the canary and manual verification.
 
 3. **Store the secrets + vars** as Actions secrets/variables on **funnypot-core**:
    - `FUNNYPOT_RULES_SIGNING_KEY` = the release base64 secret key. Never commit it.

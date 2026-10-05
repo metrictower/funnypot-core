@@ -199,8 +199,9 @@ The updater itself only ever creates the data dir `0755` (never `0777`).
 
 ## Publishing (maintainer)
 
-`funnypot-core`'s `.github/workflows/publish-rules.yml` fires on a push to `main` touching
-`resources/compiled/**` — i.e. only after a human merges the refresh PR. It re-runs the two security
+`funnypot-core`'s `.github/workflows/publish-rules.yml` runs on `workflow_dispatch` (the push-to-`main`
+trigger on `resources/compiled/**` is paused since FP-0039; when re-enabled it publishes with
+`promote=none` — a push never moves a pointer). It re-runs the two security
 gates on the merged commit, then `scripts/ci/publish-rules-release.php` packages `resources/compiled`
 into `engine/*` and builds + signs the schema-2 manifest (release key, manifest context). TTLs are
 overridable via `FUNNYPOT_RULES_MANIFEST_TTL_DAYS` / `FUNNYPOT_RULES_CHANNELS_TTL_DAYS`.
@@ -213,7 +214,10 @@ overridable via `FUNNYPOT_RULES_MANIFEST_TTL_DAYS` / `FUNNYPOT_RULES_CHANNELS_TT
   `revoked` list forward from a VERIFIED base (`--channels-in=DIR`; the base `channels.json` is checked
   against the channels public key — `FUNNYPOT_RULES_CHANNELS_PUBKEY` / `--channels-pubkey=` — before it
   is trusted). `stable` may only ever be moved to the version `latest` already holds (stable never
-  leads latest). Needs the channels secret `FUNNYPOT_RULES_CHANNELS_SIGNING_KEY` to re-sign the pointer.
+  leads latest). `latest` itself may be moved freely, including *backward* to an older non-revoked
+  version (a deliberate operator rollback); the tool does not auto-adjust `stable`, so after a latest
+  rollback use `--expect-latest=`/`--expect-stable=` and move `stable` explicitly if it must follow.
+  Needs the channels secret `FUNNYPOT_RULES_CHANNELS_SIGNING_KEY` to re-sign the pointer.
 - `--promote-only=VERSION` — move a pointer over an already-published version **without repackaging**:
   verify `<VERSION>.manifest.json` with the release public key (`FUNNYPOT_RULES_PUBKEY` /
   `--release-pubkey=`), then carry the base forward. Needs no release *secret* (only the release

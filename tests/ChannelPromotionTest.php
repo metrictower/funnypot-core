@@ -250,6 +250,16 @@ final class ChannelPromotionTest extends TestCase
         self::assertSame('v2', $new['latest']);
     }
 
+    public function test_expect_stable_mismatch_throws(): void
+    {
+        $f = $this->factory();
+        [$json, $sig] = $this->signedBase($f, $this->channelsDoc('v1', 'v0'));
+
+        $this->expectException(RulesUpdateException::class);
+        // base stable is v0, but caller expected v9 → the base changed under us; refuse.
+        $this->promoter($f)->carryForward($json, $sig, 'latest', 'v2', 1700000000, 7, 'v1', 'v9');
+    }
+
     // --- verifyManifestVersion (promote-only guard) ---------------------------------------------
 
     /** @return array{0:string,1:string} [manifestJson, raw sig] signed by the release key */

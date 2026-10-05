@@ -37,9 +37,13 @@ on:
   workflow_dispatch:
     inputs:
       promote:
-        description: 'Move a channel pointer to the published version (none = publish only, no pointer moved)'
+        # Only `latest` is offered here: every dispatch repackages a brand-new version, and `stable`
+        # may never lead `latest`, so a fresh-publish stable promotion can never succeed. Moving
+        # `stable` is a promote-only action over an already-published version (operator CLI:
+        # publish-rules-release.php --promote-only=VERSION --promote=stable), not this workflow.
+        description: 'Move latest to the published version (none = publish only, no pointer moved)'
         type: choice
-        options: [none, latest, stable]
+        options: [none, latest]
         default: none
       bootstrap:
         description: 'FIRST-EVER channels doc only: mint latest=stable=version, revoked=[]. Refuses if a base pointer already exists.'
@@ -60,6 +64,14 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+
+      # bootstrap mints the FIRST channels pointer; it is meaningless without a promote target (and
+      # the CLI rejects the combo). Fail loudly rather than silently publishing a no-op version.
+      - name: Validate dispatch inputs
+        if: ${{ inputs.bootstrap && inputs.promote == 'none' }}
+        run: |
+          echo "::error::bootstrap=true requires promote=latest (it mints the first channels pointer)."
+          exit 1
 
       - name: Setup PHP
         uses: shivammathur/setup-php@v2
