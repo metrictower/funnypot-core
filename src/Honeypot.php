@@ -289,6 +289,95 @@ final class Honeypot implements Engine
     }
 
     /**
+     * The PATH-STRIPPED payload scan shared by the real-route M2 guard (FP-0086) and the corpus-keyed
+     * store-HIT path (FP-0544). Returns an ATTACK_CLASS verdict for a gate-open, payload-eligible match,
+     * else null. Classification is gated on `payloadInspection`; SERVING stays gated on `attackEmulation`
+     * inside buildAttackFake, so a payloadInspection-only build reaches the verdict but serves nothing.
+     * A byte-echoing (`reflects_input`) rule is additionally reflector-gated on the serve path, exactly as
+     * on a store-MISS request — so reaching this scan on a corpus key adds no new reflection surface.
+     */
+    /**
+     * Does the corpus entry serve text/html on EVERY bundle? The FP-0544 corpus-key expr-eval oracle emits
+     * text/html, but a multi-bundle entry serves a SEED-SELECTED bundle and corpus bundles carry mixed,
+     * seed-variable Content-Types — so there is no single "this path serves HTML" fact for a mixed entry.
+     * The only provably-coherent gate (Security Invariant #5): fire the oracle only when ALL bundles
+     * resolve to text/html, so whichever bundle the serve path selects, the benign Content-Type still
+     * matches the oracle's text/html. A mixed or non-HTML entry (JSON API, text/plain file, or a page that
+     * is HTML on some seeds and plain on others) is skipped — it serves its static bundle. Per the full
+     * corpus this fires on ~537 non-owned keys. Content-Type resolution mirrors ResponseSynthesizer's
+     * precedence exactly: explicit `h` Content-Type → typed `th` Content-Type → first MIME word in `hw` →
+     * text/plain default.
+     *
+     * @param array<int,array<string,mixed>> $bundles
+     */
+    private function bundlesServeHtml(array $bundles): bool
+    {
+        if ($bundles === []) {
+            return false;
+        }
+        foreach ($bundles as $bundle) {
+            if (!is_array($bundle) || stripos($this->bundleContentType($bundle), 'text/html') !== 0) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    /**
+     * The Content-Type ResponseSynthesizer::buildHeaders() would assign this bundle: explicit `h`
+     * Content-Type, else a typed `th` Content-Type, else the first MIME-looking `hw` word, else text/plain.
+     *
+     * @param array<string,mixed> $bundle
+     */
+    private function bundleContentType(array $bundle): string
+    {
+        foreach ((array) ($bundle['h'] ?? []) as $name => $value) {
+            if (strcasecmp((string) $name, 'Content-Type') === 0) {
+                return (string) $value;
+            }
+        }
+        foreach ((array) ($bundle['th'] ?? []) as $name => $subs) {
+            if (strcasecmp((string) $name, 'Content-Type') === 0) {
+                foreach ((array) $subs as $sub) {
+                    return (string) $sub;
+                }
+            }
+        }
+        foreach ((array) ($bundle['hw'] ?? []) as $word) {
+            $word = (string) $word;
+            if (preg_match('#^[a-z0-9.+-]+/[a-z0-9.+-]+$#i', $word) === 1) {
+                return $word;
+            }
+        }
+
+        return 'text/plain';
+    }
+
+    private function payloadVerdict(RequestContext $r, int $anomaly, BotSignalSet $signals, bool $exprEvalOnly = false): ?Verdict
+    {
+        if (!$this->config->payloadInspection || $this->attackEmulator === null) {
+            return null;
+        }
+        $pm = $this->attackEmulator->matchPayload($r, $exprEvalOnly);
+        if ($pm === null || !$this->personaGateAllows($pm['rule'], $r)) {
+            return null;
+        }
+        $rule = $pm['rule'];
+        $detection = TemplateAttackEmulator::detectionForRule($rule);
+        $handle = FakeHandle::attack((string) ($rule['id'] ?? 'attack'), $pm['captures']);
+
+        return new Verdict(
+            Verdict::ATTACK_CLASS,
+            $detection,
+            $detection->highestSeverity,
+            $anomaly,
+            $signals,
+            $handle
+        );
+    }
+
+    /**
      * The content classifier proper — the pre-OAST body of classify(), moved verbatim (no logic
      * change). classify() is the public seam and folds the OAST signal on top of this; every return
      * path below is unchanged.
@@ -314,21 +403,10 @@ final class Honeypot implements Engine
                 // subset add no path-driven false positive, and serving stays gated on attackEmulation
                 // (buildAttackFake), so a payloadInspection-only build reaches the verdict but serves
                 // nothing.
-                if ($isRealRoute && $this->config->payloadInspection && $this->attackEmulator !== null) {
-                    $pm = $this->attackEmulator->matchPayload($r);
-                    if ($pm !== null && $this->personaGateAllows($pm['rule'], $r)) {
-                        $rule = $pm['rule'];
-                        $detection = TemplateAttackEmulator::detectionForRule($rule);
-                        $handle = FakeHandle::attack((string) ($rule['id'] ?? 'attack'), $pm['captures']);
-
-                        return new Verdict(
-                            Verdict::ATTACK_CLASS,
-                            $detection,
-                            $detection->highestSeverity,
-                            $anomaly,
-                            $signals,
-                            $handle
-                        );
+                if ($isRealRoute) {
+                    $pv = $this->payloadVerdict($r, $anomaly, $signals);
+                    if ($pv !== null) {
+                        return $pv;
                     }
                 }
 
@@ -380,6 +458,31 @@ final class Honeypot implements Engine
                 // entry (a login page, no witness) still falls through to the static route verdict.
                 if (!$this->isRootEntry($bundles) && $this->hasAuthSuccessWitness($bundles)) {
                     return new Verdict(Verdict::CLEAN, Detection::none(), '', $anomaly, $signals, null);
+                }
+            }
+
+            // FP-0544: a corpus-keyed store HIT (bundles, not a real route) served its static bundle and
+            // never ran the payload scan, so the arithmetic/SSTI expression oracles missed the crawled app
+            // pages scanners inject into most (/, /index.php, /search). Run the shared scan here — placed
+            // AFTER the whole owns_path block (so the auth-success-witness CLEAN guard above wins first and
+            // an owned login-success decoy is never re-exposed by a payload) and BEFORE the static route
+            // verdict. Serving stays gated on attackEmulation (buildAttackFake).
+            //
+            // B-NARROW (FP-0544 review): unlike the real-route M2 scan, restrict this to the `expr-eval`
+            // arithmetic/SSTI oracles — the full payload-eligible set false-positives on benign params of
+            // real-user corpus keys (e.g. an SSO redirect_uri, a `tags[]=` filter), which is unacceptable
+            // on the embedded/core-first hosts where corpus keys ARE served to users. The expr-eval oracles
+            // match only an actual arithmetic/template expression, so their benign base rate is ~0. The
+            // broader payload-oracle FPs are a separate ruleset-quality track (FP-0581/FP-0582).
+            //
+            // Security Invariant #5: the expr-eval oracle emits text/html, so fire it ONLY where the corpus
+            // entry itself resolves to an HTML Content-Type — else serving the oracle would mismatch the
+            // path's normal type (a tell). Many corpus keys are non-HTML (JSON API roots, text/plain
+            // exposed-file paths), so this gates on the entry's own resolved CT, not a path-extension guess.
+            if ($this->bundlesServeHtml($bundles)) {
+                $pv = $this->payloadVerdict($r, $anomaly, $signals, true);
+                if ($pv !== null) {
+                    return $pv;
                 }
             }
 

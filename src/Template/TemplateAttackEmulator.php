@@ -402,7 +402,7 @@ final class TemplateAttackEmulator
      *
      * @return array{rule:array<string,mixed>,captures:array<int|string,string>}|null
      */
-    public function matchPayload(RequestContext $r): ?array
+    public function matchPayload(RequestContext $r, bool $exprEvalOnly = false): ?array
     {
         if (!BoundedInspection::targetAccepted($r)) {
             return null;
@@ -413,6 +413,13 @@ final class TemplateAttackEmulator
         }
         $stripped = $this->pathStripped($r);
         foreach ($this->payloadEligibleRules() as $rule) {
+            // FP-0544 (corpus-keyed store-HIT scan): restrict to the arithmetic/SSTI expression oracles
+            // (`behavior: expr-eval`), whose match IS the probe (an arithmetic/template expression in a
+            // param) and so carries a near-zero benign base rate — the broad payload-eligible set is NOT
+            // safe to run on corpus keys that real users browse. The real-route M2 scan passes false.
+            if ($exprEvalOnly && (($rule['behavior'] ?? null) !== 'expr-eval')) {
+                continue;
+            }
             if ($this->disabled !== [] && isset($this->disabled[(string) ($rule['id'] ?? '')])) {
                 continue;
             }
