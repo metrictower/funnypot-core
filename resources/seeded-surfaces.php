@@ -21,6 +21,12 @@ declare(strict_types=1);
  * the regression baseline the siblings build on. The gate's fleet-constant inventory (informational)
  * is the counterpart: the shrinking list of surfaces still identical at every grid point.
  *
+ * A REVERSE conversion (per-deploy -> fleet-constant) instead REMOVES an entry: FP-0517 made the
+ * phpMyAdmin login a byte-faithful clone of the real page (fleet-constant like the real one),
+ * dropping FP-0276's class-prefix/version variance, so `attack:attack-phpmyadmin-login` left this
+ * list and now shows up in the fleet-constant inventory. The append-only note covers the common
+ * direction only.
+ *
  * @return array<string,string>
  */
 return [
@@ -32,8 +38,8 @@ return [
     'route:route-dotenv' => 'FP-0276 persona-derived .env credentials (FP-0284: name/url/db-story/region/bucket)',
     // phpinfo surface carries the deploy persona (company/domain/versions).
     'route:route-phpinfo' => 'FP-0276 persona-derived phpinfo identity',
-    // The phpMyAdmin login shell renders {{persona.classPrefix}} + {{persona.phpmyadmin.version}}.
-    'attack:attack-phpmyadmin-login' => 'FP-0276 persona-derived phpMyAdmin login identity',
+    // (FP-0517 removed attack:attack-phpmyadmin-login from this list: the login page is now a
+    // byte-faithful fleet-constant clone of the real pMA page — see the reverse-conversion note above.)
     // --- FP-0277: canned fleet-constant surfaces converted to per-deploy seeded ---
     // {{canned.passwd}} — the service-account tail (set/order/shells) varies; root:x:0:0 head verbatim.
     'attack:attack-lfi-unix' => 'FP-0277 seed-varied /etc/passwd service-account tail',
