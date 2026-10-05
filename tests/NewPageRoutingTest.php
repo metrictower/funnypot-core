@@ -299,6 +299,8 @@ final class NewPageRoutingTest extends TestCase
             'openapi/swagger doc'   => ['/swagger.json', 200, '"securitySchemes"', 'application/json'],
             'swagger 2.0 apidocs'   => ['/v2/api-docs', 200, '"securityDefinitions"', 'application/json'],
             'openapi yaml'          => ['/openapi.yaml', 200, 'bearerFormat: JWT', 'text/yaml; charset=utf-8'],
+            'api swagger.yaml alias' => ['/api/swagger.yaml', 200, 'bearerFormat: JWT', 'text/yaml; charset=utf-8'], // FP-0482
+
             'swagger-ui html'       => ['/swagger-ui.html', 200, 'deepLinking', 'text/html; charset=utf-8'],
             'wp-json rest index'    => ['/wp-json', 200, 'wp-site-health', 'application/json'],
 

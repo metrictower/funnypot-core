@@ -13,11 +13,11 @@ return array (
     'license' => 'MIT (c) 2025 ProjectDiscovery, Inc.',
     'upstream_tag' => '2ec914123864439c3618e7e9ae72d32d0eb56df7',
     'upstream_sha' => '2ec914123864439c3618e7e9ae72d32d0eb56df7',
-    'source_tree' => '6f5e496b9252a199772cc880e7e670c7c230137eb5d56fc1bde5ad9ffc16bea1',
+    'source_tree' => '2ff03ae615b945564b134528110264660c14ab61a5f11840d353d2f16095c365',
     'templates_seen' => 11196,
     'templates_in' => 6363,
     'templates_indexed' => 6524,
-    'route_keys' => 5389,
+    'route_keys' => 5390,
     'multi_bundle_keys' => 277,
     'largest_bundle_count' => 1324,
     'persona_cap' => 
@@ -311205,6 +311205,32 @@ a</title>',
       ),
     ),
     'GET /openapi.yaml' => 
+    array (
+      'b' => 
+      array (
+        0 => 
+        array (
+          's' => 200,
+          'bw' => 
+          array (
+            0 => 'openapi:',
+            1 => 'paths:',
+          ),
+          'nf' => 
+          array (
+          ),
+          'pid' => 'route-swagger-yaml-doc',
+          'sev' => 'info',
+          'sig' => 0,
+          'amb' => 0,
+          't' => 
+          array (
+            0 => 'route-swagger-yaml-doc',
+          ),
+        ),
+      ),
+    ),
+    'GET /api/swagger.yaml' => 
     array (
       'b' => 
       array (

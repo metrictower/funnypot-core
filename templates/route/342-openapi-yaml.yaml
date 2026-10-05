@@ -10,7 +10,7 @@ priority: 342
 # never trip that guard.
 new_page:
   method: GET
-  paths: ['/openapi.yaml']
+  paths: ['/openapi.yaml', '/api/swagger.yaml']
   sig: 0
   status: 200
   severity: info
