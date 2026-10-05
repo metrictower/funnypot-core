@@ -14,6 +14,7 @@ use Funnypot\Core\Contracts\EphemeralStore;
 use Funnypot\Core\Detection;
 use Funnypot\Core\RequestContext;
 use Funnypot\Core\Response\EmulatedContent;
+use Funnypot\Core\Response\NtlmChallengeBuilder;
 use Funnypot\Core\Rules\RulesLocator;
 use Funnypot\Core\Support\BoundedInspection;
 use Funnypot\Core\Support\Chrome\Esc;
@@ -23,7 +24,9 @@ use Funnypot\Core\Support\Chrome\WordpressSkin;
 use Funnypot\Core\Support\Fake\FakeRecords;
 use Funnypot\Core\Support\Fake\FakeSecrets;
 use Funnypot\Core\Support\PathNormalizer;
+use Funnypot\Core\Support\PersonaIdentity;
 use Funnypot\Core\Support\SafeArithmetic;
+use Funnypot\Core\Support\SubSeed;
 use Funnypot\Core\Support\VisualPersona;
 use Funnypot\Core\SynthesizedResponse;
 use Funnypot\Core\TemplateMatch;
@@ -173,6 +176,13 @@ final class TemplateAttackEmulator
             // for the full invariant list (fail-closed key check, no open redirect, etc).
             'decoy-session' => function (array $config, array $captures, ?RequestContext $r, int $seed, Clock $clock, EphemeralStore $store): ?EmulatedContent {
                 return $this->handleDecoySession($config, $captures, $r, $seed);
+            },
+            // Stateless NTLM-over-HTTP info-leak. A Type-1 (Negotiate) on an Exchange/IIS path is
+            // answered with a 401 carrying a Type-2 whose AV_PAIRs leak the deploy's canary AD names;
+            // any other request declines (-> the base bare-401). Needs $r for the Authorization header;
+            // null $r (the position-blind port) declines. clock/store/config/captures are unused.
+            'ntlm-challenge' => function (array $config, array $captures, ?RequestContext $r, int $seed, Clock $clock, EphemeralStore $store): ?EmulatedContent {
+                return $this->handleNtlmChallenge($r);
             },
         ];
     }
@@ -1742,6 +1752,76 @@ final class TemplateAttackEmulator
      * @param array<string,mixed>      $config   the rule's `traversal-read` config (`allow` + optional `default`)
      * @param array<int|string,string> $captures reflected capture groups (uses only `path`)
      */
+    /**
+     * The `ntlm-challenge` behavior: a stateless NTLM-over-HTTP information-leak.
+     *
+     * A request carrying an NTLM Type-1 (Negotiate) token on a claimed Exchange/IIS path is answered
+     * with a 401 + `WWW-Authenticate: NTLM <base64 Type-2>` whose Target-Info AV_PAIRs disclose the
+     * deploy's synthetic canary Active-Directory names (NetBIOS + DNS domain/computer/forest). The
+     * names are the per-deploy persona's, so the leak is coherent with the rest of the host and stable
+     * across a re-scan. The server challenge nonce is never remembered — a scanner reads only the
+     * AV_PAIRs — so the exchange is one stateless request->response holding no credential state.
+     *
+     * Only-upgrade-a-404: anything that is not a Type-1 (a bare probe, a Type-3 credential submission,
+     * junk) returns null so renderRule serves the base bare-401; a null request (the position-blind
+     * synthesize port), an unseeded persona, an exhausted re-roll, or any build fault likewise degrade
+     * to the bare 401 — never a 5xx, never a session, never an authenticated response.
+     *
+     * Fingerprint-safe: the persona AD region is ASCII + digit-safe by construction, but the 8-byte
+     * nonce is free entropy, so the full header value is re-rolled (seed|path|round) until it carries
+     * no denied digit run; if the bounded loop cannot clear it the handler declines to the bare 401.
+     */
+    private function handleNtlmChallenge(?RequestContext $r): ?EmulatedContent
+    {
+        if ($r === null) {
+            return null;
+        }
+
+        // Type-1 magic: `NTLM ` + base64 of a token starting "NTLMSSP\0" + type byte 0x01, which
+        // base64-encodes to the fixed prefix `TlRMTVNTUAAB`. A bare probe / Type-3 / other declines.
+        $auth = BoundedInspection::headerValue($r->headers, 'Authorization');
+        if (preg_match('/^NTLM\s+TlRMTVNTUAAB/i', $auth) !== 1) {
+            return null;
+        }
+
+        $ps = $this->personaSeed;
+        if ($ps === null) {
+            return null;
+        }
+
+        try {
+            $persona = PersonaIdentity::fromSeed($ps);
+            $osBuild = explode('.', (string) $persona->field('windows.osBuild'));
+            $names = [
+                'nbDomain' => (string) $persona->field('windows.netbiosDomain'),
+                'nbComputer' => (string) $persona->field('windows.netbiosComputer'),
+                'dnsDomain' => (string) $persona->field('windows.dnsDomain'),
+                'dnsComputer' => (string) $persona->field('windows.dnsComputer'),
+                'dnsTree' => (string) $persona->field('windows.dnsForest'),
+                'osMajor' => (int) ($osBuild[0] ?? 10),
+                'osMinor' => (int) ($osBuild[1] ?? 0),
+                'osBuild' => (int) ($osBuild[2] ?? 0),
+            ];
+
+            $path = $r->path;
+            for ($round = 0; $round <= self::NTLM_NONCE_MAX_ROUNDS; $round++) {
+                $nonce8 = substr(hash('sha256', $ps . '|ntlm|' . $path . '|' . $round, true), 0, 8);
+                $header = NtlmChallengeBuilder::headerValue($names, $nonce8);
+                if (!SubSeed::hitsDeniedDigits($header)) {
+                    return new EmulatedContent(
+                        '',
+                        ['Content-Type' => 'text/html; charset=utf-8', 'WWW-Authenticate' => $header],
+                        401
+                    );
+                }
+            }
+
+            return null; // bounded re-roll exhausted (unclearable fixed region): degrade to the bare-401
+        } catch (\Throwable $e) {
+            return null;
+        }
+    }
+
     private function handleTraversalRead(array $config, array $captures, int $seed): ?EmulatedContent
     {
         $raw = (string) ($captures['path'] ?? '');
@@ -1904,6 +1984,9 @@ final class TemplateAttackEmulator
 
     /** Hard ceiling on decoy-session gate table rows, enforced regardless of the authored count. */
     private const MAX_DECOY_ROWS = 100;
+
+    /** Bound on the NTLM Type-2 nonce re-roll; on exhaustion the handler degrades to the base bare-401. */
+    private const NTLM_NONCE_MAX_ROUNDS = 64;
 
     /**
      * The literal pre-filter test for matchRule(): is the rule's required literal absent from the

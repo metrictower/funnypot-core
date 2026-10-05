@@ -101,6 +101,13 @@ final class PersonaIdentity
         'wordpress.user.3.slug', 'wordpress.user.3.name', 'wordpress.user.3.avatar',
         'wordpress.user.4.slug', 'wordpress.user.4.name', 'wordpress.user.4.avatar',
         'wordpress.user.5.slug', 'wordpress.user.5.name', 'wordpress.user.5.avatar',
+        // FP-0389: the Windows/Active-Directory identity leaked by the NTLM-over-HTTP Type-2 challenge
+        // on the Exchange/IIS paths. The canary AD names for funnypot-mainnet correlation — synthetic,
+        // deploy-stable, and coherent with the rest of the host (derived from company.slug/domain). All
+        // ASCII and digit-safe by construction (the Type-2 packs them verbatim; osBuild is dotted into
+        // <=5-digit runs so no entry carries the denied bare 6-digit token).
+        'windows.netbiosDomain', 'windows.netbiosComputer', 'windows.dnsDomain',
+        'windows.dnsComputer', 'windows.dnsForest', 'windows.osBuild',
     ];
 
     /**
@@ -331,6 +338,26 @@ final class PersonaIdentity
             // /wp-admin gate resolve one identical cookie name for a deployment.
             'wordpress.cookieHash' => md5(self::h($seed, 'wp_cookiehash')),
         ];
+
+        // The Windows/AD identity (FP-0389), derived from the SAME slug/domain as the rest of the host
+        // so the leaked domain is coherent with the persona, deploy-stable, and distinct per deploy.
+        // NetBIOS names are [A-Z0-9], <=15 chars; the DNS names and the dotted osBuild carry no bare
+        // 6-digit run, so the NTLM Type-2 that packs them is denylist-safe by construction.
+        $winNetbiosDomain = substr((string) preg_replace('/[^A-Z0-9]/', '', strtoupper($slug)), 0, 15);
+        $winComputer = substr(
+            self::pick(['EXCH', 'MAIL', 'CAS'], $seed, 'win_computer_role')
+            . sprintf('%02d', SubSeed::index($seed, SubSeed::NS_PERSONA, 'win_computer_idx', 99) + 1),
+            0,
+            15
+        );
+        $winDnsDomain = self::pick(['corp.' . $domain, $slug . '.internal'], $seed, 'win_dns_domain');
+        $fields['windows.netbiosDomain'] = $winNetbiosDomain;
+        $fields['windows.netbiosComputer'] = $winComputer;
+        $fields['windows.dnsDomain'] = $winDnsDomain;
+        $fields['windows.dnsComputer'] = strtolower($winComputer) . '.' . $winDnsDomain;
+        $fields['windows.dnsForest'] = self::registrableParent($winDnsDomain);
+        // A small pool of Windows Server builds, each dotted into <=5-digit runs (no bare 9ddddd token).
+        $fields['windows.osBuild'] = self::pick(['10.0.17763', '10.0.20348', '10.0.14393'], $seed, 'win_os_build');
 
         // The canonical WP author set, flattened onto $fields as wordpress.user.N.{slug,name,avatar}.
         foreach (self::wpUsers($seed, $adminUser) as $i => $u) {
@@ -865,6 +892,23 @@ final class PersonaIdentity
     private static function base64url(string $bytes): string
     {
         return rtrim(strtr(base64_encode($bytes), '+/', '-_'), '=');
+    }
+
+    /**
+     * The forest/tree root a single-domain AD advertises for $dnsDomain: drop the leftmost label when a
+     * dotted parent remains (corp.acme.com -> acme.com), else keep the domain itself (acme.internal is
+     * already its own forest root). A forest is never rooted at a bare TLD label, so the parent is only
+     * taken when it still has a dot.
+     */
+    private static function registrableParent(string $dnsDomain): string
+    {
+        $dot = strpos($dnsDomain, '.');
+        if ($dot === false) {
+            return $dnsDomain;
+        }
+        $parent = substr($dnsDomain, $dot + 1);
+
+        return strpos($parent, '.') === false ? $dnsDomain : $parent;
     }
 
     /** Replicated from Compiler\ProductIdentity::slug — kept local so Support never depends on Compiler. */

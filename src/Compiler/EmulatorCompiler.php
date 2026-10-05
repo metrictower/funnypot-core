@@ -192,8 +192,8 @@ final class EmulatorCompiler
 
         // An optional named behavior primitive. The base `response` above stays the ultimate
         // fallback; the behavior only picks the content when it fires. Unknown names are a build
-        // failure — this build knows branch, arith-eval, expr-eval, iterate, and decoy-session
-        // (other primitives are deferred).
+        // failure — this build knows branch, arith-eval, expr-eval, ssti-render, iterate,
+        // decoy-session, and ntlm-challenge (other primitives are deferred).
         if (isset($doc['behavior'])) {
             $behavior = (string) $doc['behavior'];
             switch ($behavior) {
@@ -221,8 +221,13 @@ final class EmulatorCompiler
                     $rule['behavior'] = 'decoy-session';
                     $rule['decoy-session'] = $this->normalizeDecoySession((array) ($doc['decoy-session'] ?? []), $file);
                     break;
+                case 'ntlm-challenge':
+                    // No sub-config: the handler reads only the request's Authorization header and the
+                    // deploy persona. The base `response` stays the Shape-A (bare 401) fallback.
+                    $rule['behavior'] = 'ntlm-challenge';
+                    break;
                 default:
-                    throw new RuntimeException("Template {$file}: unknown behavior '{$behavior}'. This build knows 'branch', 'arith-eval', 'expr-eval', 'ssti-render', 'iterate', 'decoy-session'.");
+                    throw new RuntimeException("Template {$file}: unknown behavior '{$behavior}'. This build knows 'branch', 'arith-eval', 'expr-eval', 'ssti-render', 'iterate', 'decoy-session', 'ntlm-challenge'.");
             }
         }
 
