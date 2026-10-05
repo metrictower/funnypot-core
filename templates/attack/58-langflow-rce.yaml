@@ -1,6 +1,6 @@
 id: attack-langflow-cve-2025-3248
 severity: high
-priority: 3
+priority: 58
 tags: [attack, rce, langflow, cve-2025-3248, ai]
 # FP-0455: Langflow unauthenticated code-execution decoy (CVE-2025-3248, CISA KEV, Flodrix botnet). The
 # exploit POSTs attacker Python to /api/v1/validate/code, which vulnerable Langflow validates by COMPILING
@@ -9,13 +9,13 @@ tags: [attack, rce, langflow, cve-2025-3248, ai]
 # regex; OWASP Nettacker runs `id` and matches `uid=`. We serve the command output inside the REAL Langflow
 # validate/code envelope — `function.errors[]` (NOT an invented key) — so both scanners confirm.
 #
-# priority 3 (BELOW the whole LFI band 21-31 AND cmdi 40/41): the Langflow exploit BODY is file-read/
-# command code (e.g. open("/etc/passwd"), subprocess cat), so it collides with every generic injection rule;
-# the owns_path override.s matchRule() picks the LOWEST priority match, and 31-lfi-unix (text/plain passwd)
-# would win + fail the scanner.s application/json check. A priority below the band makes THIS rule win. Safe:
-# the match is the EXACT owns_path (/api/v1/validate/code) + POST, so a low global priority never over-matches
-# another path. (A general fix — owns_path owner wins on its owned path — is filed separately.) The match is the EXACT owns_path + POST, so a low priority causes
-# no over-match elsewhere. INERT: the submitted code is NEVER compiled/executed; only the canned envelope is
+# The Langflow exploit BODY is file-read/command code (e.g. open("/etc/passwd"), subprocess cat), so it
+# collides with every generic injection rule (31-lfi-unix would otherwise win the owns_path override and fail
+# the scanner's application/json check with a text/plain passwd). This no longer needs a priority hack:
+# /api/v1/validate/code is a corpus route key, so the owns_path override runs through matchOnOwnedPath
+# (FP-0547), where a path-conditioned/owns_path rule (this one, Tier 1) beats a path-agnostic generic
+# (31-lfi, Tier 2) regardless of priority number. So this carries a normal CVE-decoy priority (58). INERT:
+# the submitted code is NEVER compiled/executed; only the canned envelope is
 # served, no request byte reflected. The passwd/uid lines are product-intrinsic command output (like
 # 41-cmdi-unix / 90-imds), not scanner matcher strings. severity high -> serves at the embedder ceiling.
 # Detecting reuse of any leaked value is stateful -> app follow-up.
