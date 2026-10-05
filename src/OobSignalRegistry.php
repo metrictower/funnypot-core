@@ -54,6 +54,18 @@ final class OobSignalRegistry
             );
         }
 
+        // FP-0415: attribute a Waymap v8 scan from its unique probe markers — telemetry only, baseline
+        // serves byte-identical (foldOob leaves fakeHandle untouched). `info` severity (attribution,
+        // not a served decoy); the dotted `scanner.fingerprint.waymap` tag is the telemetry event.
+        if (WaymapProbe::detect($r)) {
+            $out[] = new TemplateMatch(
+                'waymap-fingerprint',
+                'info',
+                ['scanner.fingerprint.waymap', 'waymap', 'recon', 'scanner'],
+                'Waymap v8 scanner fingerprint probe'
+            );
+        }
+
         return $out;
     }
 }
