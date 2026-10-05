@@ -100,4 +100,24 @@ final class HnapSoapActionRceTest extends TestCase
         $r = $this->serve('POST', ['SOAPAction' => 'http://purenetworks.com/HNAP1/GetDeviceSettings'], null);
         self::assertNull($r, 'a benign metachar-free POST must not trigger the RCE decoy');
     }
+
+    public function test_trailing_segment_without_shell_metachar_declines(): void
+    {
+        // Pins the shell-metachar requirement specifically: a trailing path segment that carries NO
+        // shell metacharacter must NOT match (deleting the `[`$;|&]` class would make this match).
+        $r = $this->serve('POST', ['SOAPAction' => 'http://purenetworks.com/HNAP1/GetDeviceSettings/benignpath'], null);
+        self::assertNull($r, 'a trailing segment without a shell metachar is not an injection');
+    }
+
+    public function test_rce_wins_over_login_oracle_when_action_body_present(): void
+    {
+        // Pins priority 56 < 96: a RCE POST that also carries an <Action> body must serve the RCE
+        // envelope, not the login oracle's FAILED (a priority flip 56->97 would let 96 win here).
+        $soapAction = 'http://purenetworks.com/HNAP1/GetDeviceSettings/`echo ' . self::CANARY . '`';
+        $r = $this->serve('POST', ['SOAPAction' => $soapAction], '<Action>GetDeviceSettings</Action>');
+        self::assertNotNull($r);
+        self::assertStringContainsString('DIR-850L', $r->body, 'the RCE rule wins over the login oracle');
+        self::assertStringNotContainsString('FAILED', $r->body, 'must not fall through to the login oracle');
+        self::assertStringNotContainsString(self::CANARY, $r->body, 'still no reflection of the injected command');
+    }
 }
