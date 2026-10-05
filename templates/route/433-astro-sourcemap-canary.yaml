@@ -1,0 +1,32 @@
+id: route-astro-sourcemap
+priority: 433
+# FP-0403 (Parts 1-4): enrich the Astro source-map disclosure bundle (CVE-2024-56159 — keys
+# /index.astro.mjs.map, /pages/index.astro.mjs.map). The corpus serves a 46-byte invalid-JSON stub
+# (.astro\n"version":\n"sourcesContent":\n"sources":), so a frontend recon tool (sourcemapper/jsluice/
+# mantra via reconftw jschecks) parses nothing. Dress it into a valid Source Map v3 whose sourcesContent
+# reconstructs frontend TS files seeded with the deploy-stable canary catalog (AWS/Stripe/OpenAI/JWT — the
+# SAME creds /.env + /secrets.json leak, so one credential story per deploy). A recon tool scrapes the
+# secrets and chases dead canaries. Needle CVE-2024-56159 is unique to the 2 astro keys. Valid JSON: each
+# sourcesContent entry is a single JSON string with \n-escaped source newlines; the lone `{` first line
+# lets the inline_field _comment taunt inject while staying parseable. `.astro` source path keeps the
+# bundle's body-word. persona.* (not fake.*) so the canary is deploy-stable + correlatable; all already
+# re-rolled past the \b9\d{5}\b denylist. No request byte reflected.
+match:
+  template_needle: [CVE-2024-56159]
+response:
+  headers:
+    Content-Type: "application/json"
+  body: |
+    {
+    "version": 3,
+    "file": "index.astro.mjs",
+    "sources": ["astro://src/pages/index.astro", "astro://src/config/aws.ts", "astro://src/services/auth.service.ts"],
+    "sourcesContent": ["---\nimport { apiClient } from '../config/aws';\n---\n<html><body><slot /></body></html>\n", "export const AWS_ACCESS_KEY_ID = \"{{persona.cloud.aws.accessKeyId}}\";\nexport const AWS_SECRET_ACCESS_KEY = \"{{persona.cloud.aws.secretKey}}\";\nexport const AWS_REGION = \"{{persona.cloud.aws.region}}\";\nexport const STRIPE_SECRET = \"{{persona.cloud.stripe.secretKey}}\";\n", "export const OPENAI_KEY = \"{{persona.cloud.openai.projectKey}}\";\nexport const JWT_SECRET = \"{{persona.secret.jwt}}\";\nexport const API_BASE = \"https://{{persona.company.domain}}/api/v1/internal/ops\";\n"],
+    "names": [],
+    "mappings": ""
+    }
+taunt: { mode: inline_field, key: '_comment' }
+expect:
+  - '"sourcesContent"'
+  - 'AWS_SECRET_ACCESS_KEY'
+  - '.astro'

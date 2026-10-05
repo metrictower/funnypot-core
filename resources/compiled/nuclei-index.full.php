@@ -13,11 +13,11 @@ return array (
     'license' => 'MIT (c) 2025 ProjectDiscovery, Inc.',
     'upstream_tag' => '2ec914123864439c3618e7e9ae72d32d0eb56df7',
     'upstream_sha' => '2ec914123864439c3618e7e9ae72d32d0eb56df7',
-    'source_tree' => '31c97e21ae5e4a4fd671ca6e3085033f96ccf54750037bd41ede493d0260c1b3',
+    'source_tree' => '0798f56bce431c6aaf616abf72aa977a27115e8663ce24cb98d41569d5fd3ae7',
     'templates_seen' => 11196,
     'templates_in' => 6363,
-    'templates_indexed' => 6521,
-    'route_keys' => 5381,
+    'templates_indexed' => 6522,
+    'route_keys' => 5387,
     'multi_bundle_keys' => 277,
     'largest_bundle_count' => 1324,
     'persona_cap' => 
@@ -85948,6 +85948,18 @@ return array (
         4 => 'exposure',
       ),
       'name' => 'GlobalProtect portal background',
+    ),
+    'route-js-sourcemap' => 
+    array (
+      'sev' => 'info',
+      'tags' => 
+      array (
+        0 => 'exposure',
+        1 => 'sourcemap',
+        2 => 'config-disclosure',
+        3 => 'canarytokens',
+      ),
+      'name' => 'Exposed JavaScript source map',
     ),
     'route-phpinfo' => 
     array (
@@ -314293,6 +314305,156 @@ a</title>',
             0 => 'route-panos-bg-png',
           ),
           'bin' => 1,
+        ),
+      ),
+    ),
+    'GET /static/js/main.js.map' => 
+    array (
+      'b' => 
+      array (
+        0 => 
+        array (
+          's' => 200,
+          'bw' => 
+          array (
+            0 => 'sourcesContent',
+          ),
+          'nf' => 
+          array (
+          ),
+          'pid' => 'route-js-sourcemap',
+          'sev' => 'info',
+          'sig' => 0,
+          'amb' => 0,
+          't' => 
+          array (
+            0 => 'route-js-sourcemap',
+          ),
+        ),
+      ),
+    ),
+    'GET /assets/index.js.map' => 
+    array (
+      'b' => 
+      array (
+        0 => 
+        array (
+          's' => 200,
+          'bw' => 
+          array (
+            0 => 'sourcesContent',
+          ),
+          'nf' => 
+          array (
+          ),
+          'pid' => 'route-js-sourcemap',
+          'sev' => 'info',
+          'sig' => 0,
+          'amb' => 0,
+          't' => 
+          array (
+            0 => 'route-js-sourcemap',
+          ),
+        ),
+      ),
+    ),
+    'GET /js/app.js.map' => 
+    array (
+      'b' => 
+      array (
+        0 => 
+        array (
+          's' => 200,
+          'bw' => 
+          array (
+            0 => 'sourcesContent',
+          ),
+          'nf' => 
+          array (
+          ),
+          'pid' => 'route-js-sourcemap',
+          'sev' => 'info',
+          'sig' => 0,
+          'amb' => 0,
+          't' => 
+          array (
+            0 => 'route-js-sourcemap',
+          ),
+        ),
+      ),
+    ),
+    'GET /bundle.js.map' => 
+    array (
+      'b' => 
+      array (
+        0 => 
+        array (
+          's' => 200,
+          'bw' => 
+          array (
+            0 => 'sourcesContent',
+          ),
+          'nf' => 
+          array (
+          ),
+          'pid' => 'route-js-sourcemap',
+          'sev' => 'info',
+          'sig' => 0,
+          'amb' => 0,
+          't' => 
+          array (
+            0 => 'route-js-sourcemap',
+          ),
+        ),
+      ),
+    ),
+    'GET /main.js.map' => 
+    array (
+      'b' => 
+      array (
+        0 => 
+        array (
+          's' => 200,
+          'bw' => 
+          array (
+            0 => 'sourcesContent',
+          ),
+          'nf' => 
+          array (
+          ),
+          'pid' => 'route-js-sourcemap',
+          'sev' => 'info',
+          'sig' => 0,
+          'amb' => 0,
+          't' => 
+          array (
+            0 => 'route-js-sourcemap',
+          ),
+        ),
+      ),
+    ),
+    'GET /js/app.bundle.js.map' => 
+    array (
+      'b' => 
+      array (
+        0 => 
+        array (
+          's' => 200,
+          'bw' => 
+          array (
+            0 => 'sourcesContent',
+          ),
+          'nf' => 
+          array (
+          ),
+          'pid' => 'route-js-sourcemap',
+          'sev' => 'info',
+          'sig' => 0,
+          'amb' => 0,
+          't' => 
+          array (
+            0 => 'route-js-sourcemap',
+          ),
         ),
       ),
     ),
