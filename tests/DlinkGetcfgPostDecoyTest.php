@@ -39,6 +39,14 @@ final class DlinkGetcfgPostDecoyTest extends TestCase
             ['Content-Type' => 'application/x-www-form-urlencoded'], 'SERVICES=DEVICE.ACCOUNT', 'x.test'));
     }
 
+    private function getcfgHost(string $host): string
+    {
+        $r = $this->engine()->respond(new RequestContext('POST', '/getcfg.php', '',
+            ['Content-Type' => 'application/x-www-form-urlencoded'], 'SERVICES=DEVICE.ACCOUNT', $host));
+
+        return $r !== null ? (string) $r->body : '';
+    }
+
     public function test_post_getcfg_discloses_credentials(): void
     {
         $r = $this->getcfg('POST');
@@ -46,15 +54,27 @@ final class DlinkGetcfgPostDecoyTest extends TestCase
         self::assertSame(200, $r->status);
         self::assertStringContainsString('text/xml', (string) ($r->headers['Content-Type'] ?? ''));
         $b = (string) $r->body;
-        self::assertStringContainsString('<name>admin</name>', $b, 'RouterSploit dir_645_password_disclosure witness');
+        self::assertStringContainsString('<name>Admin</name>', $b, 'RouterSploit dir_645_password_disclosure witness');
         self::assertStringContainsString('<password>', $b);
+    }
+
+    public function test_post_discloses_on_every_persona_seed(): void
+    {
+        // POST /getcfg.php has four co-located D-Link creds bundles (cve2024 / dir-610 / dir-868l-b1 /
+        // dir-605l); the persona lottery picks one per deploy seed. The enrich's pid list covers all four,
+        // so the disclosure serves regardless of which seed/host the deploy lands on (not just ~25%).
+        foreach (['x.test', 'admin.metrictower.com', '', 'a.example', 'host2.net', 'deploy7.io', 'router.lan'] as $host) {
+            $b = $this->getcfgHost($host);
+            self::assertStringContainsString('<name>Admin</name>', $b, "disclosure must serve for seed host '{$host}'");
+            self::assertStringContainsString('<password>', $b, "password must serve for seed host '{$host}'");
+        }
     }
 
     public function test_get_getcfg_still_discloses_credentials(): void
     {
-        // The pre-existing GET enrich (364-dlink-getcfg) must stay intact.
+        // The pre-existing GET enrich (364-dlink-getcfg) must stay intact (it uses lowercase <name>admin>).
         $b = (string) ($this->getcfg('GET')->body ?? '');
-        self::assertStringContainsString('<name>admin</name>', $b);
+        self::assertMatchesRegularExpression('~<name>[Aa]dmin</name>~', $b);
         self::assertStringContainsString('<password>', $b);
     }
 
@@ -63,7 +83,7 @@ final class DlinkGetcfgPostDecoyTest extends TestCase
         $r = $this->engine()->respond(new RequestContext('POST', '/getcfg.php', '',
             ['Content-Type' => 'application/x-www-form-urlencoded'], 'SERVICES=DEVICE.ACCOUNT&x=Zgetcfgsentinel33Z', 'x.test'));
         $b = $r !== null ? (string) $r->body : '';
-        self::assertStringContainsString('<name>admin</name>', $b);
+        self::assertStringContainsString('<name>Admin</name>', $b);
         self::assertStringNotContainsString('Zgetcfgsentinel33Z', $b);
     }
 }

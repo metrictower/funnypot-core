@@ -4,14 +4,23 @@ priority: 426
 # pid cve2025) but the POST /getcfg.php bundle (pid cve2024 — the DIR-645 dir_645_password_disclosure
 # shape, bw <name>/<password>/<account>) was undressed and minimal-synthed to a bare stub. The REAL
 # exploit and RouterSploit's dlink/dir_645_password_disclosure POST `SERVICES=DEVICE.ACCOUNT`, so the
-# disclosure must answer on POST too. This enrich dresses the POST bundle: pid:[cve2024] selects it and
-# the route_key guard pins ONLY `POST /getcfg.php` (every other cve2024 bundle is untouched). Body is the
-# real DEVICE.ACCOUNT postxml carrying the bundle's bw (<name>/<password>/<account>); `admin` is the real
-# default account, the password is {{fake.*}} seed-derived and number-safe (continuous hex, no digit run).
+# disclosure must answer on POST too. This enrich dresses the POST bundle(s): the pid list selects the
+# D-Link getcfg personas and the route_key guard pins ONLY `POST /getcfg.php` (those pids on other routes are
+# untouched). Body is the real DEVICE.ACCOUNT postxml carrying the bundles' bw; `Admin` is the real
+# default account; the password is a {{fake.*}} seed-derived continuous alnum-hex token (no BARE standalone
+# digit run — any digits are embedded in the token; the same generator 364 uses in prod).
 # Content-Type EXACTLY text/xml (the bundle's typed header witness). INERT: static XML, no request byte
 # reflected, no exec/fs.
+#
+# POST /getcfg.php carries FOUR co-located D-Link DEVICE.ACCOUNT disclosure bundles (CVE-2024-57045 cve2024,
+# CVE-2020-9376 dir-610, CVE-2019-17506 dir-868l-b1, CVE-2021-40655 dir-605l) and the persona lottery picks
+# ONE per deploy seed — so the pid list must cover all four or the disclosure only serves on the seeds that
+# pick cve2024. The body carries every bundle's bw: `<name>Admin</name>` (dir-610 needs that EXACT capital-A
+# string; the other bundles' `<name>` is a substring of it), `<password>`/`</password>`, `</usrid>`,
+# `<account>`, and `DEVICE.ACCOUNT` — so no bundle drops to minimal synth or gets a mismatched appended tag.
+# The route_key guard keeps all four pids scoped to POST /getcfg.php only (they recur on other D-Link routes).
 match:
-  pid: [cve2024]
+  pid: [cve2024, dir-610-firmware, dir-868l-b1-firmware, dir-605l-firmware]
   route_key: ['POST /getcfg.php']
 response:
   headers:
@@ -28,7 +37,7 @@ response:
     <count>1</count>
     <entry>
     <uid>USR-</uid>
-    <name>admin</name>
+    <name>Admin</name>
     <usrid></usrid>
     <password>{{fake.dlink_getcfg_post_pw:hex:16}}</password>
     <group>0</group>
@@ -37,4 +46,4 @@ response:
     </device>
     </module>
     </postxml>
-expect: ['<name>admin</name>', '<password>']
+expect: ['<name>Admin</name>', '<password>']
