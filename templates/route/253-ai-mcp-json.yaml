@@ -2,7 +2,8 @@ id: route-ai-mcp-json
 priority: 253
 # Brand-new page: an editor MCP config exposed at the project root — Cursor (.cursor/mcp.json) and
 # VS Code (.vscode/mcp.json) share the byte-identical body, so they group onto one bundle. Carries
-# the Anthropic API key in an MCP server's env.
+# the Anthropic / OpenAI / Groq API keys in each MCP server's env (FP-0539: full canary catalog, so
+# a scanner scraping the file gets the whole provider spread, all seeded + inert).
 new_page:
   method: GET
   paths: ['/.cursor/mcp.json', '/.vscode/mcp.json']
@@ -23,6 +24,16 @@ response:
         "args": ["-y", "@anthropic-ai/mcp-server"],
         "env": { "ANTHROPIC_API_KEY": "{{persona.cloud.anthropic.apiKey}}" }
       },
+      "openai": {
+        "command": "npx",
+        "args": ["-y", "mcp-openai"],
+        "env": { "OPENAI_API_KEY": "{{persona.cloud.openai.projectKey}}" }
+      },
+      "groq": {
+        "command": "npx",
+        "args": ["-y", "mcp-groq"],
+        "env": { "GROQ_API_KEY": "{{persona.cloud.groq.apiKey}}" }
+      },
       "filesystem": {
         "command": "npx",
         "args": ["-y", "@modelcontextprotocol/server-filesystem", "/srv/app"]
@@ -30,4 +41,4 @@ response:
     }
     }
 taunt: { mode: inline_field, key: '_comment' }
-expect: ['sk-ant-api03-', 'ANTHROPIC_API_KEY', 'mcpServers']
+expect: ['sk-ant-api03-', 'ANTHROPIC_API_KEY', 'mcpServers', 'OPENAI_API_KEY', 'sk-proj-', 'GROQ_API_KEY']
