@@ -1,0 +1,19 @@
+id: attack-sqli-error-probe
+severity: high
+priority: 59
+tags: [attack, sqli, error-based, differential]
+# FP-0388: Artemis's error-based SQLi probe is the mixed-quote `'"` (or `"'`) — which the generic
+# 50-sqli.yaml (keyed on ` or 1=1`/union/sleep) does NOT match, so the honeypot shows Artemis no
+# error-based SQLi. Answer the `'"` probe in the query/body with the SAME believable MySQL 1064 error
+# frame 50-sqli serves (reused via {{attack.sqli.*}}), at status 200. The `-1` baseline carries no quote,
+# so it does not match -> clean fall-through -> Artemis's differential (error vs clean) fires. One dialect
+# (MySQL), coherent with the shipped SQLi surfaces; multi-dialect + the pgsql/MySQL persona reconciliation
+# are a follow-up. Never 500 (Artemis discards 500). No attacker byte reflected (the frame is seeded/canned).
+match:
+  - in: request
+    regex: "'\"|\"'"
+response:
+  headers:
+    Content-Type: "text/html; charset=utf-8"
+  body: "{{attack.sqli.prefix}}You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '{{attack.sqli.near}}' at line 1{{attack.sqli.suffix}}\n"
+expect: ["SQL syntax"]

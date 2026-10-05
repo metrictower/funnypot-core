@@ -1,0 +1,17 @@
+id: attack-sqli-header-probe
+severity: high
+priority: 61
+tags: [attack, sqli, error-based, header-injection]
+# FP-0388: header-borne SQLi. Artemis fuzzes the `'"` error probe across 50+ HTTP headers (X-Forwarded-For,
+# X-Real-IP, User-Agent, Cookie, ...), but in:request only folds path+query+body, so header-borne SQLi is
+# uncovered. in:headers concatenates all header VALUES, so one condition covers the whole fuzzed header set
+# AND Artemis's minimize-to-one-header loop. Same MySQL 1064 frame @200 as 59/50-sqli. Gated on the `'"`
+# probe shape so a benign Cookie/User-Agent never fires it. Never 500; no attacker byte reflected.
+match:
+  - in: headers
+    regex: "'\"|\"'"
+response:
+  headers:
+    Content-Type: "text/html; charset=utf-8"
+  body: "{{attack.sqli.prefix}}You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '{{attack.sqli.near}}' at line 1{{attack.sqli.suffix}}\n"
+expect: ["SQL syntax"]
