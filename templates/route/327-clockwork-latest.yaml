@@ -1,0 +1,41 @@
+id: route-clockwork-latest
+priority: 327
+# FP-0420: enrich the corpus `clockwork-dashboard-exposure` bundle (key /__clockwork/latest). Minimal
+# synth emits the bare body words (invalid JSON); here we serve the real Clockwork latest-request log —
+# incl. mock database queries against the persona DB (the ticket's "mock database query logs"). Valid
+# JSON; inline_field taunt keeps it parseable. The id/time are fixed timestamp-shaped literals chosen to
+# avoid a bare 6-digit run; db connection is persona-coherent.
+match:
+  template_needle: [clockwork-dashboard-exposure]
+response:
+  headers:
+    Content-Type: "application/json"
+  body: |
+    {
+      "id": "1727000000.0000-0",
+      "version": "5.1.12",
+      "method": "GET",
+      "uri": "/",
+      "url": "https://{{persona.company.domain}}/",
+      "time": 1727000000.0,
+      "controller": "App\\Http\\Controllers\\HomeController@index",
+      "databaseQueries": [
+        {
+          "query": "select * from users where email = ?",
+          "duration": 1.24,
+          "connection": "{{persona.db.name}}"
+        },
+        {
+          "query": "select * from sessions where user_id = ?",
+          "duration": 0.81,
+          "connection": "{{persona.db.name}}"
+        }
+      ]
+    }
+taunt: { mode: inline_field, key: '_comment' }
+expect:
+  - '"id":'
+  - '"version":'
+  - '"method":'
+  - '"url":'
+  - '"time":'

@@ -1,0 +1,25 @@
+id: route-clockwork
+priority: 326
+# FP-0420: enrich the corpus `laravel-clockwork-exposure` bundle (key /__clockwork). Minimal synth
+# emits the bare body words `"__meta":`/`"toolbar":` (invalid JSON); here we serve the real Clockwork
+# metadata payload a scanner reads to confirm an exposed, unauthenticated Clockwork profiler. Valid
+# JSON; inline_field taunt keeps it parseable. PHP version is persona-coherent; Clockwork version is a
+# fixed safe literal.
+match:
+  template_needle: [laravel-clockwork-exposure]
+response:
+  headers:
+    Content-Type: "application/json"
+  body: |
+    {
+      "__meta": {
+        "version": "5.1.12",
+        "framework": "laravel",
+        "phpVersion": "{{persona.php.version}}"
+      },
+      "toolbar": true
+    }
+taunt: { mode: inline_field, key: '_comment' }
+expect:
+  - '"__meta":'
+  - '"toolbar":'

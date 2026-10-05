@@ -1,0 +1,43 @@
+id: route-springboot-gateway
+priority: 325
+# FP-0420: enrich the corpus `springboot-gateway` bundle (keys /actuator/gateway/routes AND
+# /gateway/routes — the needle fans to both; findRule is global). Minimal synth emits the bare body
+# words `route_id`/`predicate` (invalid JSON); here we serve the real Spring Cloud Gateway route list
+# — the unauthenticated recon surface a scanner reads before the CVE-2022-22947 SpEL POST (that
+# stateful exploit chain is deferred to funnypot-app; core serves the static GET recon only). One
+# route leaks an internal admin target. Persona-coherent service names. All numbers are fixed safe
+# literals (no bare 6-digit run). taunt is `block` (an inline_field key would corrupt a JSON ARRAY;
+# block defaces only in taunt style, realistic stays valid JSON).
+match:
+  template_needle: [springboot-gateway]
+response:
+  headers:
+    Content-Type: "application/json"
+  body: |
+    [
+      {
+        "predicate": "Paths: [/api/**], match trailing slash: true",
+        "route_id": "{{persona.company.slug}}-api",
+        "filters": ["[[StripPrefix parts = 1]]"],
+        "uri": "lb://{{persona.company.slug}}-api-service",
+        "order": 0
+      },
+      {
+        "predicate": "Paths: [/internal/admin/**], match trailing slash: true",
+        "route_id": "admin-internal",
+        "filters": ["[[AddRequestHeader X-Internal = true]]"],
+        "uri": "http://10.0.0.12:8080",
+        "order": 1
+      },
+      {
+        "predicate": "Paths: [/actuator/**], match trailing slash: true",
+        "route_id": "actuator-proxy",
+        "filters": [],
+        "uri": "lb://{{persona.company.slug}}-admin",
+        "order": 2
+      }
+    ]
+taunt: { mode: block, open: '<!--', close: '-->' }
+expect:
+  - '"route_id"'
+  - '"predicate"'
