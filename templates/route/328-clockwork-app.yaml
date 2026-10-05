@@ -1,0 +1,35 @@
+id: route-clockwork-app
+priority: 328
+# FP-0420: enrich the corpus `clockwork-php-page` bundle (key /__clockwork/app). Minimal synth emits the
+# bare `<title>Clockwork</title>` as text/plain (a tell — the real page is HTML); here we serve the real
+# Clockwork dashboard SPA shell as text/html (fixing the Content-Type) — the page a scanner recognises as
+# an exposed, unauthenticated Clockwork UI. Modelled on the Telescope shell (314). CSRF token is
+# fake.*:hex (letters break any digit run). taunt is `block` (a valid HTML comment).
+match:
+  template_needle: [clockwork-php-page]
+response:
+  headers:
+    Content-Type: "text/html; charset=utf-8"
+  body: |
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+      <meta charset="utf-8">
+      <meta name="csrf-token" content="{{fake.clockworkcsrf:hex:40}}">
+      <title>Clockwork</title>
+    </head>
+    <body>
+      <div id="clockwork">
+        <nav class="clockwork-nav">
+          <ul>
+            <li><a href="/__clockwork/latest">Requests</a></li>
+            <li><a href="/__clockwork/app">Dashboard</a></li>
+          </ul>
+        </nav>
+      </div>
+    </body>
+    </html>
+taunt: { mode: block, open: '<!--', close: '-->' }
+expect:
+  - '<title>Clockwork</title>'
+  - '<div id="clockwork">'

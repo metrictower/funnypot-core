@@ -283,6 +283,13 @@ final class NewPageRoutingTest extends TestCase
             'actuator /loggers'     => ['/actuator/loggers', 200, 'effectiveLevel', 'application/json'],
             'actuator /threaddump'  => ['/actuator/threaddump', 200, 'RUNNABLE', 'application/json'],
             'actuator /configprops' => ['/actuator/configprops', 200, 'org.postgresql.Driver', 'application/json'],
+            // FP-0420: Spring Cloud Gateway recon + Clockwork profiler (enrich). Markers are authored
+            // strings (not bare body words), proving the dressed body served, not a minimal synth.
+            'spring gateway routes' => ['/actuator/gateway/routes', 200, 'admin-internal', 'application/json'],
+            'spring gateway bare'   => ['/gateway/routes', 200, 'admin-internal', 'application/json'],
+            'clockwork metadata'    => ['/__clockwork', 200, '"framework": "laravel"', 'application/json'],
+            'clockwork latest'      => ['/__clockwork/latest', 200, 'databaseQueries', 'application/json'],
+            'clockwork app shell'   => ['/__clockwork/app', 200, '<div id="clockwork">', 'text/html; charset=utf-8'],
 
             // API-recon / API-docs disclosure pack. Each marker is a distinctive authored string that
             // is NOT one of the bundle's body words, so its presence proves the authored (enrich or

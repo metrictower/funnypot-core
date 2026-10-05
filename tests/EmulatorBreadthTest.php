@@ -128,6 +128,11 @@ final class EmulatorBreadthTest extends TestCase
             'actuator /loggers enrich'         => ['GET /actuator/loggers', 0, 'route-actuator-loggers'],
             'actuator /threaddump enrich'      => ['GET /actuator/threaddump', 0, 'route-actuator-threaddump'],
             'actuator /configprops enrich'     => ['GET /actuator/configprops', 0, 'route-actuator-configprops'],
+            // FP-0420: Spring Cloud Gateway routes recon + Clockwork profiler endpoints.
+            'spring gateway routes enrich'     => ['GET /actuator/gateway/routes', 0, 'route-springboot-gateway'],
+            'clockwork metadata enrich'        => ['GET /__clockwork', 0, 'route-clockwork'],
+            'clockwork latest enrich'          => ['GET /__clockwork/latest', 0, 'route-clockwork-latest'],
+            'clockwork app shell enrich'       => ['GET /__clockwork/app', 0, 'route-clockwork-app'],
 
             // IoT / appliance HTTP disclosure pack — each dresses a device-info/config bundle the
             // corpus already routes to (a fake camera / router / NAS / printer / DVR endpoint a
@@ -429,6 +434,8 @@ final class EmulatorBreadthTest extends TestCase
             'werkzeug-debugger-detect', 'laravel-telescope', 'springboot-env', 'springboot-health',
             'springboot-mappings', 'springboot-info', 'springboot-beans', 'springboot-loggers',
             'springboot-threaddump', 'springboot-configprops',
+            // FP-0420 (springboot-gateway fans to 2 keys but one distinct bundle id; clockwork needles each 1).
+            'springboot-gateway', 'laravel-clockwork-exposure', 'clockwork-dashboard-exposure', 'clockwork-php-page',
         ];
         foreach ($needles as $needle) {
             self::assertCount(1, $distinctIds($needle), "needle '{$needle}' must resolve to exactly one bundle id (else findRule shadows another route)");
