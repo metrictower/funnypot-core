@@ -1,0 +1,42 @@
+id: route-go-sum
+priority: 288
+# FP-0542: vulnerable Go module checksum file at /go.sum (extends the FP-0399 lockfile suite to the
+# Go ecosystem). go.sum is NOT a corpus route key, so this is a new_page decoy. osv-scanner / govulncheck
+# resolve (module, version) pairs from go.sum lines -> verifiable GHSA/CVE findings. The pinned versions
+# are REAL OSV-flagged vulnerable releases (verified 2026-10-05 via OSV/GHSA/NVD):
+#   github.com/dgrijalva/jwt-go v3.2.0+incompatible  CVE-2020-26160 (GHSA-w73w-5m7g-f7qc, auth bypass; unmaintained)
+#   github.com/gin-gonic/gin v1.6.0                  CVE-2020-28483 (GHSA-h395-qcrw-5vmq, IP spoof; fix >= 1.7.0)
+#   github.com/gorilla/websocket v1.4.0              CVE-2020-27813 (GHSA-jf24-p9p9-4rjh, OOM DoS; fix >= 1.4.1)
+#   gopkg.in/yaml.v2 v2.2.2                          CVE-2019-11254 (GHSA-wxc4-f4m6-wwqv, DoS; fix >= 2.2.8)
+# testify v1.7.0 is a benign filler for a realistic dep spread. Versions are FIXED literals (the payload);
+# the h1: dirhashes are seeded per-deploy (anti-correlation) and authenticate nothing. The file stays a
+# valid go.sum (hash lines only, no comment syntax -> NO taunt, which would corrupt the parse). INERT:
+# static bytes, no request byte reflected. Coherent with /go.mod (289), which requires the same versions.
+new_page:
+  method: GET
+  paths: ['/go.sum']
+  sig: 0
+  status: 200
+  severity: high
+  tags: [exposure, dependency-disclosure, vulnerable-dependency]
+  name: 'Exposed Go checksum file (go.sum) with vulnerable modules'
+  body_words: ['h1:']
+response:
+  headers:
+    Content-Type: "text/plain; charset=utf-8"
+  body: |
+    github.com/dgrijalva/jwt-go v3.2.0+incompatible h1:{{fake.gs_jwt_z:b64:43}}=
+    github.com/dgrijalva/jwt-go v3.2.0+incompatible/go.mod h1:{{fake.gs_jwt_m:b64:43}}=
+    github.com/gin-gonic/gin v1.6.0 h1:{{fake.gs_gin_z:b64:43}}=
+    github.com/gin-gonic/gin v1.6.0/go.mod h1:{{fake.gs_gin_m:b64:43}}=
+    github.com/gorilla/websocket v1.4.0 h1:{{fake.gs_ws_z:b64:43}}=
+    github.com/gorilla/websocket v1.4.0/go.mod h1:{{fake.gs_ws_m:b64:43}}=
+    github.com/stretchr/testify v1.7.0 h1:{{fake.gs_test_z:b64:43}}=
+    github.com/stretchr/testify v1.7.0/go.mod h1:{{fake.gs_test_m:b64:43}}=
+    gopkg.in/yaml.v2 v2.2.2 h1:{{fake.gs_yaml_z:b64:43}}=
+    gopkg.in/yaml.v2 v2.2.2/go.mod h1:{{fake.gs_yaml_m:b64:43}}=
+expect:
+  - 'github.com/gin-gonic/gin v1.6.0 h1:'
+  - 'github.com/gorilla/websocket v1.4.0 h1:'
+  - 'gopkg.in/yaml.v2 v2.2.2 h1:'
+  - 'github.com/dgrijalva/jwt-go v3.2.0+incompatible h1:'
