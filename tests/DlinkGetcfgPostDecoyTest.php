@@ -26,8 +26,10 @@ final class DlinkGetcfgPostDecoyTest extends TestCase
         if (self::$idx === null) {
             self::$idx = require __DIR__ . '/../resources/compiled/nuclei-index.full.php';
         }
+        // Seed derives from the request host so the multi-seed coverage test actually exercises distinct
+        // persona picks across the four co-located POST /getcfg.php bundles (a constant seed would hit one).
         $cfg = new Config('respond', static function (RequestContext $r): bool { return true; }, 'matched-only',
-            static function (RequestContext $r): string { return 'fixed'; }, 'coherent', Style::REALISTIC, 'critical', 65536, 0, 0, false);
+            static function (RequestContext $r): string { return $r->host; }, 'coherent', Style::REALISTIC, 'critical', 65536, 0, 0, false);
         $cfg->attackEmulation = true;
 
         return new Honeypot(new PhpArrayStore(self::$idx), $cfg);
