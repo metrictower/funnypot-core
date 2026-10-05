@@ -4,7 +4,7 @@
 > The manifest is the sole inventory authority; friendly names, categories and behavior
 > prose live in the README taxonomy, not here.
 
-Manifest schema 1. Authored records: 426 across 109 families. Corpus: 2611 families / 5134 route keys (summarized, not enumerated). Enrichers: 286.
+Manifest schema 1. Authored records: 427 across 109 families. Corpus: 2611 families / 5134 route keys (summarized, not enumerated). Enrichers: 286.
 
 ```mermaid
 mindmap
@@ -36,7 +36,7 @@ mindmap
     fam0025["dlink: 2"]
     fam0026["dotnet: 1"]
     fam0027["ds-store: 1"]
-    fam0028["error-based: 2"]
+    fam0028["error-based: 3"]
     fam0029["error-oracle: 1"]
     fam0030["etcd: 2"]
     fam0031["f5: 1"]
@@ -151,7 +151,7 @@ mindmap
 | dlink | 2 | attack:2 | 2 | 0 | high | &mdash; |
 | dotnet | 1 | new-page:1 | 1 | 0 | medium | &mdash; |
 | ds-store | 1 | new-page:1 | 1 | 0 | medium | &mdash; |
-| error-based | 2 | attack:2 | 0 | 0 | high | &mdash; |
+| error-based | 3 | attack:3 | 0 | 0 | high | &mdash; |
 | error-oracle | 1 | attack:1 | 0 | 0 | medium | &mdash; |
 | etcd | 2 | attack:2 | 3 | 0 | high | info |
 | f5 | 1 | attack:1 | 0 | 0 | critical | &mdash; |
