@@ -13,11 +13,11 @@ return array (
     'license' => 'MIT (c) 2025 ProjectDiscovery, Inc.',
     'upstream_tag' => '2ec914123864439c3618e7e9ae72d32d0eb56df7',
     'upstream_sha' => '2ec914123864439c3618e7e9ae72d32d0eb56df7',
-    'source_tree' => '2ff03ae615b945564b134528110264660c14ab61a5f11840d353d2f16095c365',
+    'source_tree' => 'c697153b2e47ded3cec31b825c0127ede477fcfe601ec0b50e8dfd8445f8a047',
     'templates_seen' => 11196,
     'templates_in' => 6363,
-    'templates_indexed' => 6524,
-    'route_keys' => 5390,
+    'templates_indexed' => 6525,
+    'route_keys' => 5391,
     'multi_bundle_keys' => 277,
     'largest_bundle_count' => 1324,
     'persona_cap' => 
@@ -84396,6 +84396,18 @@ return array (
         4 => 'credentials',
       ),
       'name' => 'Exposed wp-config.php backup copy',
+    ),
+    'route-ds-store' => 
+    array (
+      'sev' => 'medium',
+      'tags' => 
+      array (
+        0 => 'exposure',
+        1 => 'disclosure',
+        2 => 'ds-store',
+        3 => 'binary',
+      ),
+      'name' => 'Exposed .DS_Store',
     ),
     'route-basic-auth' => 
     array (
@@ -308485,6 +308497,31 @@ a</title>',
           array (
             0 => 'route-wpcfg-backup',
           ),
+        ),
+      ),
+    ),
+    'GET /.DS_Store' => 
+    array (
+      'b' => 
+      array (
+        0 => 
+        array (
+          's' => 200,
+          'bw' => 
+          array (
+          ),
+          'nf' => 
+          array (
+          ),
+          'pid' => 'route-ds-store',
+          'sev' => 'medium',
+          'sig' => 0,
+          'amb' => 0,
+          't' => 
+          array (
+            0 => 'route-ds-store',
+          ),
+          'bin' => 1,
         ),
       ),
     ),
