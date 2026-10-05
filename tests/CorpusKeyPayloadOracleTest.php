@@ -44,44 +44,58 @@ final class CorpusKeyPayloadOracleTest extends TestCase
         return $hp->respond(new RequestContext('GET', $path, $query, [], null, 'x.test'));
     }
 
-    public function test_ssti_arithmetic_reflects_on_a_corpus_keyed_path(): void
+    /** A non-owned corpus key whose every bundle resolves to text/html (so the oracle may fire coherently). */
+    private const HTML_KEY = '/Admin/frmWelcome.aspx';
+    /** A non-owned corpus key with mixed/seed-variable bundles (serves non-HTML on some seeds). */
+    private const MIXED_KEY = '/index.php';
+
+    public function test_ssti_arithmetic_reflects_on_an_all_html_corpus_key(): void
     {
-        // /index.php is a store HIT (corpus key with bundles) and not a declared real route, so it used
-        // to serve its static bundle and never reach the SSTI numeric oracle.
-        $r = $this->get($this->engine(), '/index.php', 'q=' . rawurlencode('{{1234*5678}}'));
+        // An all-bundles-HTML corpus key (bundlesServeHtml true) may fire the expr-eval oracle — it used to
+        // serve its static bundle. The benign request and the payload request serve the SAME Content-Type
+        // (text/html), so the oracle introduces no mismatch (Security Invariant #5).
+        $benign = $this->get($this->engine(), self::HTML_KEY);
+        $r = $this->get($this->engine(), self::HTML_KEY, 'q=' . rawurlencode('{{1234*5678}}'));
         self::assertNotNull($r);
         self::assertSame(200, $r->status);
         self::assertSame('attack-ssti-numeric', $r->servedBy->ruleId ?? null);
         self::assertStringContainsString('7006652', (string) $r->body, '1234*5678 rendered');
+        // Invariant #5: benign CT == payload CT (both text/html) — the fix the review demanded.
+        self::assertNotNull($benign);
+        self::assertStringStartsWith('text/html', strtolower((string) ($benign->headers['Content-Type'] ?? '')));
+        self::assertStringStartsWith('text/html', strtolower((string) ($r->headers['Content-Type'] ?? '')));
     }
 
-    public function test_homepage_payload_reflects_and_stays_content_type_coherent(): void
+    public function test_mixed_or_non_html_corpus_keys_do_not_serve_the_oracle(): void
     {
-        // The most visible corpus key. Security Invariant #5: the served oracle's Content-Type matches a
-        // GET (text/html family), status app-chosen 200 — reflecting a payload on / must not emit a
-        // mismatched type.
-        $r = $this->get($this->engine(), '/', 'q=' . rawurlencode('{{1234*5678}}'));
-        self::assertNotNull($r);
-        self::assertSame('attack-ssti-numeric', $r->servedBy->ruleId ?? null);
-        self::assertStringContainsString('7006652', (string) $r->body);
-        self::assertStringStartsWith('text/html', strtolower((string) ($r->headers['Content-Type'] ?? '')));
+        // Security Invariant #5 (the fix for the FP-0544 review findings): the oracle fires ONLY when EVERY
+        // bundle resolves to text/html. A MIXED key (/index.php — HTML on some seeds, text/plain on others)
+        // and the extensionless non-HTML scanner-bait keys the reviewer flagged all serve their static
+        // bundle, never the text/html oracle — so the served Content-Type can never mismatch, whichever
+        // bundle the serve path seed-selects. (Owned paths serve injection rules via the pre-existing
+        // owns_path/FP-0547 override, a separate code path not governed by this Branch-B gate.)
+        foreach ([self::MIXED_KEY, '/search', '/(download)/etc/passwd', '/%c0', '/%00'] as $path) {
+            $r = $this->get($this->engine(), $path, 'q=' . rawurlencode('{{1234*5678}}'));
+            self::assertNotNull($r, $path);
+            self::assertNotSame('attack-ssti-numeric', $r->servedBy->ruleId ?? null, "no text/html oracle on a non-all-HTML key: {$path}");
+            self::assertStringNotContainsString('7006652', (string) $r->body, $path);
+        }
     }
 
     public function test_benign_corpus_key_still_serves_its_static_bundle(): void
     {
-        // Regression guard: no payload ⇒ matchPayload returns null ⇒ the static corpus bundle serves,
-        // byte-for-byte as before. The oracle marker must be absent.
-        $r = $this->get($this->engine(), '/index.php');
+        // Regression guard: no payload ⇒ matchPayload returns null ⇒ the static corpus bundle serves.
+        $r = $this->get($this->engine(), self::HTML_KEY);
         self::assertNotNull($r);
-        self::assertSame('GET /index.php', $r->servedBy->key ?? null, 'the static corpus bundle serves');
+        self::assertSame('GET ' . self::HTML_KEY, $r->servedBy->key ?? null, 'the static corpus bundle serves');
         self::assertStringNotContainsString('7006652', (string) $r->body);
     }
 
     public function test_payload_inspection_off_serves_the_static_bundle_not_the_oracle(): void
     {
-        // Classification is gated on payloadInspection — with it off, the corpus key serves its static
-        // bundle even under a payload (no new behaviour on a build that did not opt in).
-        $r = $this->get($this->engine(false), '/index.php', 'q=' . rawurlencode('{{1234*5678}}'));
+        // Classification is gated on payloadInspection — with it off, an all-HTML corpus key serves its
+        // static bundle even under a payload (no new behaviour on a build that did not opt in).
+        $r = $this->get($this->engine(false), self::HTML_KEY, 'q=' . rawurlencode('{{1234*5678}}'));
         self::assertNotNull($r);
         self::assertNotSame('attack-ssti-numeric', $r->servedBy->ruleId ?? null, 'no oracle without payloadInspection');
         self::assertStringNotContainsString('7006652', (string) $r->body);
@@ -91,8 +105,7 @@ final class CorpusKeyPayloadOracleTest extends TestCase
     {
         // payloadInspection ON, attackEmulation OFF: classifyContent reaches the ATTACK_CLASS verdict, but
         // buildAttackFake does not serve the oracle — the serve path stays gated on attackEmulation.
-        $hp = $this->engine(true, false);
-        $r = $this->get($hp, '/index.php', 'q=' . rawurlencode('{{1234*5678}}'));
+        $r = $this->get($this->engine(true, false), self::HTML_KEY, 'q=' . rawurlencode('{{1234*5678}}'));
         if ($r !== null) {
             self::assertStringNotContainsString('7006652', (string) $r->body, 'no oracle served without attackEmulation');
         } else {
@@ -100,15 +113,48 @@ final class CorpusKeyPayloadOracleTest extends TestCase
         }
     }
 
-    public function test_byte_echoing_oracle_on_a_corpus_key_is_reflector_gated(): void
+    public function test_non_expr_eval_payloads_on_an_html_corpus_key_serve_the_static_bundle(): void
     {
-        // A reflects_input oracle (attack-xss) reached on a corpus key must stay behind serveReflector:
-        // the default engine is NOT an isolated origin with an authorizer, so a full-tag payload must NOT
-        // echo the attacker bytes — corpus keys gain no reflection surface a store-miss path lacks.
-        $payload = '<script>alert(1)</script>';
-        $r = $this->get($this->engine(), '/index.php', 'q=' . rawurlencode($payload));
+        // B-NARROW on an all-HTML key (so the HTML gate passes and Branch B runs): the scan runs ONLY the
+        // expr-eval arithmetic/SSTI oracles. The broad payload-eligible rules that false-positive on benign
+        // params of real-user corpus keys (XSS full tags, cmdi, sqli, SSO open-redirect, PHP array filters)
+        // must NOT classify an attack here — they serve the static bundle. (Their genuine detection on
+        // store-MISS paths and declared real routes is unchanged; this only scopes the corpus-key scan.)
+        foreach ([
+            'q=' . rawurlencode('<script>alert(1)</script>'),
+            'q=' . rawurlencode(';id'),
+            "q=' OR '1'='1",
+            'redirect_uri=' . rawurlencode('//evil.test/'),
+            'tags[]=books',
+        ] as $query) {
+            $r = $this->get($this->engine(), self::HTML_KEY, $query);
+            self::assertNotNull($r, $query);
+            self::assertSame('GET ' . self::HTML_KEY, $r->servedBy->key ?? null, "static bundle serves, not an attack: {$query}");
+        }
+    }
+
+    public function test_branch_b_gated_on_all_bundles_html_content_type(): void
+    {
+        // Security Invariant #5 pin: the Branch-B oracle is gated on the entry resolving to text/html on
+        // EVERY bundle (bundlesServeHtml mirrors ResponseSynthesizer's h→th→hw→text/plain precedence),
+        // NOT a path-extension heuristic and NOT a single-bundle check. A mixed-CT entry (served CT is
+        // seed-selected) is skipped, so the oracle's text/html can never mismatch the served bundle.
+        $src = file_get_contents(__DIR__ . '/../src/Honeypot.php');
+        self::assertNotFalse($src);
+        self::assertStringContainsString('$this->bundlesServeHtml($bundles)', $src, 'Branch-B CT gate present');
+        self::assertStringNotContainsString('js|mjs|css|json|map|svg', $src, 'the brittle extension heuristic is gone');
+        // The gate iterates ALL bundles and bails on the first non-HTML (no bundles[0]-only shortcut).
+        self::assertStringContainsString('foreach ($bundles as $bundle)', $src, 'gate checks every bundle');
+    }
+
+    public function test_expr_eval_reflecting_oracle_stays_reflector_gated_on_a_corpus_key(): void
+    {
+        // An expr-eval oracle that REFLECTS (attack-cmdi-arith, reflects_input) is still behind
+        // serveReflector: on the default NON-isolated engine the computed result must never be echoed —
+        // B-narrow adds no reflection surface a store-miss path lacks.
+        $r = $this->get($this->engine(), self::HTML_KEY, 'q=' . rawurlencode('$((9471+2))'));
         if ($r !== null) {
-            self::assertStringNotContainsString($payload, (string) $r->body, 'raw attacker bytes must not be reflected on a non-isolated origin');
+            self::assertStringNotContainsString('9473', (string) $r->body, 'computed cmdi-arith result must not reflect on a non-isolated origin');
         } else {
             self::assertNull($r);
         }
@@ -134,7 +180,7 @@ final class CorpusKeyPayloadOracleTest extends TestCase
         // single payloadVerdict() helper, so their verdict shape cannot diverge.
         $src = file_get_contents(__DIR__ . '/../src/Honeypot.php');
         self::assertNotFalse($src);
-        self::assertSame(2, substr_count($src, '$this->payloadVerdict($r, $anomaly, $signals)'),
-            'both Branch A and Branch B call payloadVerdict');
+        self::assertSame(2, substr_count($src, '$this->payloadVerdict($r, $anomaly, $signals'),
+            'both Branch A and Branch B call payloadVerdict (A full scan, B expr-eval-only)');
     }
 }
