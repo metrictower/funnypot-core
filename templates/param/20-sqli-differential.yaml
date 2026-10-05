@@ -15,20 +15,27 @@ tags: [param, sqli, behavioral]
 # untouched as the generic error-based path for unrouted SQLi payloads.
 #
 # ZERO EXECUTION. `branch` selects a CANNED response by matching the request STRUCTURE with a
-# regex — no query is run, no arithmetic is evaluated, nothing is eval'd. The numerical channel is
-# shape-matching (`N-0` vs `N-1`), not an evaluator. Bodies use ONLY closed persona/fake directives
-# and NEVER `{{match.*}}` — attacker bytes are never reflected, so no `reflects_input` is set and
-# the decoy serves inline. The slug is captured by the path but never echoed.
+# regex — no query is run, nothing is eval'd. The equality channel (C2/C3) is pure shape-matching
+# (`1=1` tautology vs `N-1` decrement). The inequality/range/set channel (C4/C5, FP-0429) routes on
+# a regex but decides TRUE/FALSE with Support\SafeComparison — a zero-execution evaluator over STATIC
+# integer/arithmetic operands only (a column/function operand is INDETERMINATE → baseline). No eval,
+# no query, no reflection. Bodies use ONLY closed persona/fake directives and NEVER `{{match.*}}` —
+# attacker bytes are never reflected, so no `reflects_input` is set and the decoy serves inline. The
+# slug is captured by the path but never echoed.
 #
 # CASE ORDER (load-bearing). handleBranch is first-match-wins. The ONE hard invariant (spec §3) is
 # TRUE-before-FALSE: `1=1` matches both the tautology and the general comparison, so the TRUE case
 # must be evaluated first or a real TRUE probe would be mis-served as FALSE. Cases are ordered
-# TRUE, FALSE, BREAKER: the breaker (a LONE unbalanced quote/backslash) is LAST so that a quote
-# which is actually part of a tautology (e.g. the canonical `1' OR '1'='1`) or a fixer (`''`) is
-# consumed by the TRUE case first, and only a truly lone quote falls through to the 500 breaker.
-# (This is a deliberate, documented refinement of the ticket's C1/C2/C3 label order — putting the
-# breaker first mis-classifies `1' OR '1'='1` as a 500; TRUE-first is strictly more correct and
-# keeps the breaker/fixer differential intact. See tests/SqliDifferentialTest.php.)
+# C2 TRUE, C3 FALSE (equality), C4 TRUE, C5 FALSE (inequality/range/set), C1 BREAKER. The comparison
+# pair (C4/C5) sits AFTER the equality pair — their lookahead excludes bare `=`, so C2/C3 own the
+# tautology/decrement forms — and BEFORE the breaker, so a boundary probe that also drags a stray
+# quote (`id=10' AND 2>1`) is served its comparison page rather than the lone-quote 500. The breaker
+# (a LONE unbalanced quote/backslash) is LAST so that a quote which is actually part of a tautology
+# (e.g. the canonical `1' OR '1'='1`) or a fixer (`''`) is consumed by a TRUE case first, and only a
+# truly lone quote falls through to the 500. (This is a deliberate, documented refinement of the
+# ticket's C1/C2/C3 label order — putting the breaker first mis-classifies `1' OR '1'='1` as a 500;
+# TRUE-first is strictly more correct and keeps the breaker/fixer differential intact. See
+# tests/SqliDifferentialTest.php.)
 param: { method: GET, path: '/catalog/{slug}' }
 status: 200
 behavior: branch
@@ -43,7 +50,7 @@ branch:
     #                   randomized constants (`AND 1234=1234`) and the quoted `' OR '1'='1` form —
     #                   NOT a hardcoded `1=1`.
     - when: { in: request, regex: "''|\\\\\\\\|[-+]\\s*0\\b|\\b(?:and|or)\\s+'?(\\w+)'?\\s*=\\s*'?\\1\\b" }
-      response:
+      response: &pResp
         headers: { Content-Type: "text/html; charset=utf-8" }
         body: |
           <!doctype html>
@@ -72,7 +79,7 @@ branch:
     #   A slug has no `=<digits>-` before the dash, so it now serves the baseline P. (The and/or
     #   alternative already required an `=`, so it was never path-reachable.)
     - when: { in: request, regex: "\\b(?:and|or)\\s+'?\\w+'?\\s*=\\s*'?\\w+|=\\s*\\d+\\s*-\\s*[1-9]" }
-      response:
+      response: &peResp
         headers: { Content-Type: "text/html; charset=utf-8" }
         body: |
           <!doctype html>
@@ -83,6 +90,26 @@ branch:
           <p>No products found in this category.</p>
           </body>
           </html>
+    # C4/C5 INEQUALITY / RANGE / SET differential (FP-0429)  ->  extends the boolean-blind confirm beyond
+    #   the bare `1=1`/`1=2` of C2/C3 to the operators sqlmap's WAF-bypass vectors use (`>`,`<`,`>=`,`<=`,
+    #   `<>`,`!=`, BETWEEN, IN). Each case names a `cmp` group holding the clause after a LOGICAL `and`/`or`;
+    #   handleBranch hands `cmp` to Support\SafeComparison (zero-exec, static integer/arith operands only) and
+    #   selects the case iff the STATIC truth equals the `compare:` polarity. These are PURELY ROUTING — no
+    #   query runs, nothing is reflected, the response is the SAME &pResp/&peResp page as C2/C3 so the TRUE
+    #   differential is byte-identical to the baseline P and the FALSE one is byte-identical to C3's P_empty.
+    #   PLACEMENT (load-bearing). AFTER C2/C3 so the equality forms they own are consumed first (the lookahead
+    #   excludes bare `=`), and BEFORE C1 so a boundary probe that also carries a stray quote
+    #   (`id=10' AND 2>1`) is served its comparison page, not the lone-quote 500. INDETERMINATE (a
+    #   function/column operand like `ORD(MID(x,1,1))>65` → SafeComparison null) matches NEITHER case and
+    #   falls through to the baseline P — an extraction probe is never handed the FALSE page.
+    # C4 TRUE comparison  ->  P (rows), byte-identical to the C2/baseline body.
+    - when: { in: request, regex: "\\b(?:and|or)\\s+(?=[^&]*(?:<=|>=|<>|!=|<|>|\\bbetween\\b|\\bin\\b))(?P<cmp>[^&]+)" }
+      compare: true
+      response: *pResp
+    # C5 FALSE comparison  ->  P_empty (no rows), byte-identical to C3.
+    - when: { in: request, regex: "\\b(?:and|or)\\s+(?=[^&]*(?:<=|>=|<>|!=|<|>|\\bbetween\\b|\\bin\\b))(?P<cmp>[^&]+)" }
+      compare: false
+      response: *peResp
     # C1 BREAKER (LAST)  ->  a LONE unbalanced quote/backslash breaks the (fake) string literal: a
     #   500 dialect syntax error. `\w['\\](?=\s|$)` = a word char then a single quote or backslash
     #   at a token boundary; a balanced `''`/`\\` never matches (the second char fails the boundary),

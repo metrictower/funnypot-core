@@ -258,10 +258,17 @@ final class ParamRouteCompiler
             if (!is_array($case) || !isset($case['response'])) {
                 throw new RuntimeException("Param template {$file}: each branch case must be a mapping with 'when' + 'response'.");
             }
-            $cases[] = [
+            $compiled = [
                 'when' => $this->normalizeCondition((array) ($case['when'] ?? []), $file),
                 'response' => $this->normalizeBehaviorResponse((array) $case['response'], $file),
             ];
+            // FP-0429: a comparison-routed case carries `compare: true|false`. handleBranch reads it to
+            // select the case by SafeComparison's static truth (zero-exec) rather than a bare regex match;
+            // without it the case degrades to a plain regex match and the TRUE/FALSE differential collapses.
+            if (array_key_exists('compare', $case)) {
+                $compiled['compare'] = (bool) $case['compare'];
+            }
+            $cases[] = $compiled;
         }
         if ($cases === []) {
             throw new RuntimeException("Param template {$file}: behavior 'branch' needs at least one entry in 'branch.cases'.");

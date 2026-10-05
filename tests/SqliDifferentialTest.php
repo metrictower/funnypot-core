@@ -223,4 +223,164 @@ final class SqliDifferentialTest extends TestCase
         self::assertSame($p, $this->serve('id=10 AND 1=1')->body);
         self::assertNotSame($p, $this->serve('id=10 AND 1=2')->body);
     }
+
+    // ---- FP-0429: inequality / range / set operator differential (SafeComparison-routed) ----
+
+    /**
+     * Every TRUE inequality clause (`>`,`<`,`>=`,`<=`,`<>`,`!=`) must serve the baseline P byte-identically
+     * — sqlmap's WAF-bypass vectors swap `1=1` for these, and the confirm test needs TRUE ≈ baseline.
+     *
+     * @dataProvider trueComparisons
+     */
+    public function testInequalityTrueEqualsBaseline(string $clause): void
+    {
+        $p = $this->baseline();
+        $resp = $this->serve('id=10 AND ' . $clause);
+        self::assertNotNull($resp, "served for TRUE clause: $clause");
+        self::assertSame(200, $resp->status, "TRUE $clause stays 200");
+        self::assertSame($p, $resp->body, "TRUE comparison '$clause' must be byte-identical to baseline P");
+    }
+
+    /** @return array<string,array{0:string}> */
+    public function trueComparisons(): array
+    {
+        return [
+            'gt' => ['2>1'], 'lt' => ['1<2'], 'ge-strict' => ['3>=1'], 'ge-eq' => ['2>=2'],
+            'le-strict' => ['1<=3'], 'le-eq' => ['2<=2'], 'ne-anglebrackets' => ['3<>4'], 'ne-bang' => ['3!=4'],
+            'arith-operand' => ['3*2>5'], 'encoded' => ['2%3E1'],
+        ];
+    }
+
+    /** The logical prefix is `(?:and|or)` — an OR-prefixed comparison routes identically to an AND one. */
+    public function testOrPrefixedComparisonRoutes(): void
+    {
+        $p = $this->baseline();
+        $empty = $this->serve('id=10 AND 1=2')->body;
+        self::assertSame($p, $this->serve('id=10 OR 2>1')->body, 'OR + TRUE comparison -> baseline P');
+        self::assertSame($empty, $this->serve('id=10 OR 1>2')->body, 'OR + FALSE comparison -> P_empty');
+    }
+
+    /**
+     * Every FALSE inequality clause must serve the P_empty page (byte-identical to the C3 `1=2` FALSE),
+     * materially shorter than the baseline. Proves C5 reuses C3's empty response and the polarity flips.
+     *
+     * @dataProvider falseComparisons
+     */
+    public function testInequalityFalseEqualsEmptyPage(string $clause): void
+    {
+        $p = $this->baseline();
+        $empty = $this->serve('id=10 AND 1=2')->body; // the canonical C3 FALSE page
+        $resp = $this->serve('id=10 AND ' . $clause);
+        self::assertNotNull($resp, "served for FALSE clause: $clause");
+        self::assertSame(200, $resp->status, "FALSE $clause stays 200 (changed page, not an error)");
+        self::assertNotSame($p, $resp->body, "FALSE comparison '$clause' must differ from baseline");
+        self::assertSame($empty, $resp->body, "FALSE comparison '$clause' must render the same P_empty as C3");
+        self::assertLessThan(strlen($p) * 0.8, strlen($resp->body), "FALSE $clause stays materially shorter");
+    }
+
+    /** @return array<string,array{0:string}> */
+    public function falseComparisons(): array
+    {
+        return [
+            'gt' => ['1>2'], 'lt' => ['2<1'], 'ge' => ['1>=2'], 'le' => ['3<=1'],
+            'ne-eq-anglebrackets' => ['5<>5'], 'ne-eq-bang' => ['5!=5'], 'arith-operand' => ['2*2>9'],
+        ];
+    }
+
+    /** Range (BETWEEN / NOT BETWEEN) and set (IN / NOT IN) clauses split TRUE->P / FALSE->P_empty. */
+    public function testRangeAndSetDifferential(): void
+    {
+        $p = $this->baseline();
+        $empty = $this->serve('id=10 AND 1=2')->body;
+
+        // TRUE forms -> baseline P
+        self::assertSame($p, $this->serve('id=10 AND 5 BETWEEN 1 AND 9')->body, 'in-range BETWEEN is TRUE');
+        self::assertSame($p, $this->serve('id=10 AND 11 NOT BETWEEN 0 AND 9')->body, 'out-of-range NOT BETWEEN is TRUE');
+        self::assertSame($p, $this->serve('id=10 AND 7 IN (6,7,8)')->body, 'member IN is TRUE');
+        self::assertSame($p, $this->serve('id=10 AND 9 NOT IN (6,7,8)')->body, 'non-member NOT IN is TRUE');
+
+        // FALSE forms -> P_empty
+        self::assertSame($empty, $this->serve('id=10 AND 11 BETWEEN 0 AND 9')->body, 'out-of-range BETWEEN is FALSE');
+        self::assertSame($empty, $this->serve('id=10 AND 5 NOT BETWEEN 1 AND 9')->body, 'in-range NOT BETWEEN is FALSE');
+        self::assertSame($empty, $this->serve('id=10 AND 9 IN (6,7,8)')->body, 'non-member IN is FALSE');
+        self::assertSame($empty, $this->serve('id=10 AND 7 NOT IN (6,7,8)')->body, 'member NOT IN is FALSE');
+    }
+
+    /**
+     * INDETERMINATE contract: a function/column operand (the shape a data-extraction probe uses) is not a
+     * static literal, so SafeComparison returns null, NO comparison case matches, and the decoy serves the
+     * baseline P — never the FALSE page, never a 5xx. An extraction oracle gets a coherent, non-leaking page.
+     */
+    public function testIndeterminateComparisonServesBaseline(): void
+    {
+        $p = $this->baseline();
+        foreach ([
+            'id=10 AND ORD(MID(username,1,1))>65',
+            'id=10 AND ASCII(SUBSTRING(password,1,1))<97',
+            'id=10 AND LENGTH(database())>=4',
+            'id=10 AND col BETWEEN 1 AND 9',
+            'id=10 AND salary IN (100,200)',
+        ] as $query) {
+            $resp = $this->serve($query);
+            self::assertNotNull($resp, "served for: $query");
+            self::assertSame(200, $resp->status, "indeterminate clause must stay 200 (never 5xx): $query");
+            self::assertSame($p, $resp->body, "indeterminate clause must serve baseline P: $query");
+        }
+    }
+
+    /**
+     * Boundary probe: a comparison clause that ALSO drags a stray quote (`id=10' AND 2>1`) must be served
+     * its comparison page (here TRUE -> P, 200), NOT the lone-quote 500 breaker — the comparison pair is
+     * ordered before C1 so the boolean channel wins over the string-break channel when both are present.
+     * A truly lone quote with no comparison still breaks (guards that the shift didn't disable C1).
+     */
+    public function testQuotePlusComparisonTakesComparisonChannelNotBreaker(): void
+    {
+        $p = $this->baseline();
+        $empty = $this->serve('id=10 AND 1=2')->body;
+
+        $trueBoundary = $this->serve("id=10' AND 2>1");
+        self::assertNotNull($trueBoundary);
+        self::assertSame(200, $trueBoundary->status, "quote + TRUE comparison must serve 200, not the 500 breaker");
+        self::assertSame($p, $trueBoundary->body, "quote + TRUE comparison must serve the baseline P");
+
+        $falseBoundary = $this->serve("id=10' AND 1>2");
+        self::assertNotNull($falseBoundary);
+        self::assertSame(200, $falseBoundary->status, "quote + FALSE comparison stays a 200 changed page");
+        self::assertSame($empty, $falseBoundary->body, "quote + FALSE comparison must serve P_empty");
+
+        // A lone quote with NO comparison clause still breaks (C1 intact).
+        self::assertSame(500, $this->serve("id=10'")->status, "a bare lone quote must still 500");
+    }
+
+    /** Benign text carrying `and`/`or` but no comparison operator must serve the baseline P, never P_empty. */
+    public function testBenignBooleanProseServesBaseline(): void
+    {
+        $p = $this->baseline();
+        foreach ([
+            'q=cats and dogs or small birds',
+            'note=buy 2 apples and 3 oranges',
+            'q=in stock and on sale',
+        ] as $query) {
+            $resp = $this->serve($query);
+            self::assertNotNull($resp, "served for benign prose: $query");
+            self::assertSame(200, $resp->status);
+            self::assertSame($p, $resp->body, "benign and/or prose must serve baseline P: $query");
+        }
+    }
+
+    /** Attacker bytes in a comparison clause are never reflected (TRUE, FALSE, and INDETERMINATE arms). */
+    public function testComparisonNeverReflectsAttackerBytes(): void
+    {
+        $canary = 'ZZCMPZZ';
+        foreach ([
+            "id=10 AND 2>1&note=$canary",         // TRUE comparison, canary in a sibling param -> P
+            "id=10 AND 1>2&note=$canary",         // FALSE comparison, canary in a sibling param -> P_empty
+            "id=10 AND ORD($canary)>65",          // INDETERMINATE (function operand) -> baseline P
+        ] as $query) {
+            $resp = $this->serve($query);
+            self::assertNotNull($resp, "served for: $query");
+            self::assertStringNotContainsString($canary, $resp->body, "must not reflect the canary for: $query");
+        }
+    }
 }

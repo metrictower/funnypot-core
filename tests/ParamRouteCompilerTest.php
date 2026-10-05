@@ -261,6 +261,29 @@ final class ParamRouteCompilerTest extends TestCase
         self::assertTrue((new PhpLiteralValidator())->isValid($php), 'compiled traversal-read entry must be a pure array literal');
     }
 
+    public function test_branch_case_preserves_the_compare_polarity(): void
+    {
+        // FP-0429: a comparison-routed case carries `compare: true|false`; the compiler must thread it
+        // into the runtime shape (dropping it silently collapses the TRUE/FALSE differential to a bare
+        // regex match). A plain case without `compare` must NOT gain the key.
+        $out = $this->compile([$this->doc('param-cmp', '/catalog/{slug}', [
+            'behavior' => 'branch',
+            'branch' => [
+                'cases' => [
+                    ['when' => ['in' => 'request', 'regex' => 'x'], 'response' => ['body' => 'plain']],
+                    ['when' => ['in' => 'request', 'regex' => '(?P<cmp>.+)'], 'compare' => true, 'response' => ['body' => 'T']],
+                    ['when' => ['in' => 'request', 'regex' => '(?P<cmp>.+)'], 'compare' => false, 'response' => ['body' => 'F']],
+                ],
+                'default' => ['response' => ['body' => 'base']],
+            ],
+        ])]);
+
+        $cases = $out['buckets']['catalog'][0]['branch']['cases'];
+        self::assertArrayNotHasKey('compare', $cases[0], 'a plain case keeps no compare key');
+        self::assertTrue($cases[1]['compare'], 'compare:true is preserved');
+        self::assertFalse($cases[2]['compare'], 'compare:false is preserved');
+    }
+
     public function test_traversal_read_empty_allow_is_rejected(): void
     {
         $this->expectException(RuntimeException::class);

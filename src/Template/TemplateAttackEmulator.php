@@ -26,6 +26,7 @@ use Funnypot\Core\Support\Fake\FakeSecrets;
 use Funnypot\Core\Support\PathNormalizer;
 use Funnypot\Core\Support\PersonaIdentity;
 use Funnypot\Core\Support\SafeArithmetic;
+use Funnypot\Core\Support\SafeComparison;
 use Funnypot\Core\Support\SubSeed;
 use Funnypot\Core\Support\VisualPersona;
 use Funnypot\Core\SynthesizedResponse;
@@ -672,6 +673,18 @@ final class TemplateAttackEmulator
                 if (!isset($case['when'])) {
                     continue;
                 }
+                // FP-0429: a comparison-routed case carries `compare: true|false`. Its `when` regex names a
+                // `cmp` group holding the boolean clause (e.g. `2>1`, `5 NOT BETWEEN 0 AND 3`); the case is
+                // selected iff SafeComparison's STATIC truth equals the polarity. An INDETERMINATE clause (a
+                // column/function operand → SafeComparison null) selects NO case → falls through to the
+                // baseline, so function-side extraction probes and benign non-numeric text are never routed
+                // to the FALSE page and never 5xx. Zero execution; nothing reflected.
+                if (isset($case['compare'])) {
+                    if ($this->comparisonCaseMatches((array) $case['when'], (bool) $case['compare'], $r)) {
+                        return $this->renderCaseResponse((array) ($case['response'] ?? []), $captures, $seed);
+                    }
+                    continue;
+                }
                 // The top-level captures are visible to a case `when` via the `match.N` surface,
                 // so a branch can dispatch on the ONE parsed method the rule captured rather than
                 // re-scanning the whole body (which a planted secondary token could steer).
@@ -699,6 +712,38 @@ final class TemplateAttackEmulator
         $status = isset($response['status']) ? (int) $response['status'] : null;
 
         return $this->renderResponse($response, $captures, $seed, $status);
+    }
+
+    /**
+     * FP-0429: test a comparison-routed branch case. The `when` regex matches the FOLDED request surface
+     * (so a percent/entity-encoded comparison is decoded first) and MUST name a `cmp` group holding the
+     * boolean clause. Returns true iff `cmp` is a STATIC comparison (via SafeComparison, zero-exec) whose
+     * truth equals $wantTrue. A non-literal/indeterminate clause (SafeComparison null) or any PCRE fault
+     * returns false → the case is skipped → the scan falls through to the baseline (never the FALSE page,
+     * never a 5xx). Nothing is reflected.
+     *
+     * @param array<string,mixed> $when
+     */
+    private function comparisonCaseMatches(array $when, bool $wantTrue, RequestContext $r): bool
+    {
+        if (!isset($when['regex'])) {
+            return false;
+        }
+        $in = isset($when['in']) ? (string) $when['in'] : 'request';
+        $flags = (($when['ci'] ?? true) !== false ? 'i' : '') . (($when['dotall'] ?? false) ? 's' : '');
+        foreach (BoundedInspection::surfaces($r, $in) as $surface) {
+            $res = preg_match('~' . $when['regex'] . '~' . $flags, $surface, $m);
+            if ($res === false || preg_last_error() !== PREG_NO_ERROR) {
+                return false;
+            }
+            if ($res === 1 && isset($m['cmp']) && $m['cmp'] !== '') {
+                $truth = SafeComparison::evaluate((string) $m['cmp']);
+
+                return $truth !== null && $truth === $wantTrue;
+            }
+        }
+
+        return false;
     }
 
     /**
