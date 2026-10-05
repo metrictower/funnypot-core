@@ -163,6 +163,22 @@ final class SqliDifferentialTest extends TestCase
         self::assertLessThan(strlen($p) * 0.8, strlen($inject->body), 'the injected decrement page stays materially shorter');
     }
 
+    /**
+     * FP-0586: the decrement anchor must span the WHOLE value, so a benign value that merely STARTS with
+     * a decrement-looking `N-M` but carries trailing text (a note, a dashed range) serves the baseline P,
+     * not the empty page — while a bare injected `id=10-1` still serves P_empty.
+     */
+    public function testBenignDecrementLikeValueServesBaseline(): void
+    {
+        $p = $this->baseline();
+        // Still FALSE on the bare injected decrement.
+        self::assertNotSame($p, $this->serve('id=10-1')->body, 'bare id=10-1 still serves the empty page');
+        // Benign values whose decrement-looking prefix is followed by text -> baseline P.
+        self::assertSame($p, $this->serve('note=' . rawurlencode('10-2 off this week'))->body, 'a benign note with 10-2 off -> baseline');
+        self::assertSame($p, $this->serve('label=' . rawurlencode('10-2 pack'))->body, 'a benign dashed label -> baseline');
+        self::assertSame($p, $this->serve('q=' . rawurlencode('size 10-2 adapter'))->body, 'benign product text -> baseline');
+    }
+
     /** Breaker/fixer (Backslash-powered): a lone `'` breaks (500), a balanced `''` restores (200 == P). */
     public function testBreakerFixerChannel(): void
     {
