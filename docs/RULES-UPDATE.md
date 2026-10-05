@@ -199,14 +199,39 @@ The updater itself only ever creates the data dir `0755` (never `0777`).
 
 ## Publishing (maintainer)
 
-`funnypot-core`'s `.github/workflows/publish-rules.yml` fires on a push to `main` touching
-`resources/compiled/**` — i.e. only after a human merges the refresh PR. It re-runs the two security
+`funnypot-core`'s `.github/workflows/publish-rules.yml` runs on `workflow_dispatch` (the push-to-`main`
+trigger on `resources/compiled/**` is paused since FP-0039; when re-enabled it publishes with
+`promote=none` — a push never moves a pointer). It re-runs the two security
 gates on the merged commit, then `scripts/ci/publish-rules-release.php` packages `resources/compiled`
-into `engine/*`, builds + signs the schema-2 manifest (release key, manifest context) and the
-`channels` pointer (channels key, channels context), and uploads both to `funnypot-rules`. It needs
-**both** CI secrets — `FUNNYPOT_RULES_SIGNING_KEY` (release) and `FUNNYPOT_RULES_CHANNELS_SIGNING_KEY`
-(channels) — and fails loudly if either is unset (no silent single-key fallback). TTLs are overridable
-via `FUNNYPOT_RULES_MANIFEST_TTL_DAYS` / `FUNNYPOT_RULES_CHANNELS_TTL_DAYS`.
+into `engine/*` and builds + signs the schema-2 manifest (release key, manifest context). TTLs are
+overridable via `FUNNYPOT_RULES_MANIFEST_TTL_DAYS` / `FUNNYPOT_RULES_CHANNELS_TTL_DAYS`.
+
+**Publish ≠ promote (FP-0331).** Publishing a version does **not** move a live pointer unless asked:
+
+- `--promote=none` (default) — write only the version's manifest + tarball; **no `channels.json`**.
+  Needs only the release secret `FUNNYPOT_RULES_SIGNING_KEY`; the channels secret is **not** required.
+- `--promote=latest|stable` — also move that one pointer, carrying the **other** pointer and the
+  `revoked` list forward from a VERIFIED base (`--channels-in=DIR`; the base `channels.json` is checked
+  against the channels public key — `FUNNYPOT_RULES_CHANNELS_PUBKEY` / `--channels-pubkey=` — before it
+  is trusted). `stable` may only ever be moved to the version `latest` already holds (stable never
+  leads latest). `latest` itself may be moved freely, including *backward* to an older non-revoked
+  version (a deliberate operator rollback); the tool does not auto-adjust `stable`, so after a latest
+  rollback use `--expect-latest=`/`--expect-stable=` and move `stable` explicitly if it must follow.
+  Needs the channels secret `FUNNYPOT_RULES_CHANNELS_SIGNING_KEY` to re-sign the pointer.
+- `--promote-only=VERSION` — move a pointer over an already-published version **without repackaging**:
+  verify `<VERSION>.manifest.json` with the release public key (`FUNNYPOT_RULES_PUBKEY` /
+  `--release-pubkey=`), then carry the base forward. Needs no release *secret* (only the release
+  pubkey) plus the channels secret + channels pubkey.
+- `--bootstrap` — first-ever `channels.json` only (`latest = stable = version`, `revoked = []`). Refuses
+  if a base is supplied; requires an explicit `--promote`.
+- `--expect-latest=` / `--expect-stable=` — compare-and-swap guards: refuse unless the base pointer
+  equals the expected value (so two concurrent promotions can't silently clobber each other). CI also
+  serialises promotions with a `concurrency` group.
+
+**Fail-closed.** A missing, forged, or signature-failing base (`--channels-in`) is a hard error — the
+tool never degrades to an empty-`revoked` reset or a fabricated pointer. `revoked` is only ever carried
+forward; this tool never adds a revocation (revoking a version is a separate, deliberate edit). The
+pure channel-pointer logic lives in — and is unit-tested via — `Funnypot\Core\Rules\ChannelPromotion`.
 
 **Channels re-sign cadence is a hard prerequisite.** Because the `channels.json` TTL is short (7 days),
 a scheduled job in funnypot-rules CI **must** re-sign `channels.json` (channels key only) at least

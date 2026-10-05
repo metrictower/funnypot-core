@@ -12,19 +12,49 @@ name: publish-rules
 # between "what the PR validated" and "what actually landed"). Signing is the last step, so the
 # signature attests those gates passed on this exact commit.
 #
+# PUBLISH ≠ PROMOTE (FP-0331): a push/dispatch publishes a VERSION without moving a live pointer
+# (promote=none, the default). Moving `latest`/`stable` is a deliberate, separate dispatch
+# (promote=latest|stable), which downloads the current signed channels pointer, VERIFIES it, and
+# carries `revoked` + the untouched pointer forward. The `concurrency` group serialises pointer
+# moves so two runs can't clobber each other's pointer/revocation.
+#
 # Manual setup (see dist/funnypot-rules/SETUP.md): create the metrictower/funnypot-rules repo,
-# run keygen.sh, store the private key as the FUNNYPOT_RULES_SIGNING_KEY secret, a
-# contents:write PAT to funnypot-rules as FUNNYPOT_RULES_RELEASE_TOKEN, and commit the public
-# key into resources/rules-signing-keys.php.
+# run keygen.sh for BOTH roles, store the private keys as the FUNNYPOT_RULES_SIGNING_KEY (release)
+# and FUNNYPOT_RULES_CHANNELS_SIGNING_KEY (channels) secrets, the channels PUBLIC key as the
+# FUNNYPOT_RULES_CHANNELS_PUBKEY var (used to verify the base pointer before carrying it forward),
+# a contents:write PAT to funnypot-rules as FUNNYPOT_RULES_RELEASE_TOKEN, and commit the public
+# keys into resources/rules-signing-keys.php.
 
 on:
   # Auto-trigger PAUSED 2026-08-24 (FP-0039) — workflow_dispatch-only. Dormant regardless until
   # the funnypot-rules repo + signing keys exist. Re-enable the push trigger once funnypot-rules
-  # is set up and we want auto-publish on merges to main that touch resources/compiled/**.
+  # is set up and we want auto-publish on merges to main that touch resources/compiled/**. NOTE a
+  # re-enabled push trigger MUST keep promote=none (push publishes a version; it never moves a
+  # pointer) — only a manual dispatch promotes.
   # push:
   #   branches: [main]
   #   paths: ['resources/compiled/**']
   workflow_dispatch:
+    inputs:
+      promote:
+        # Only `latest` is offered here: every dispatch repackages a brand-new version, and `stable`
+        # may never lead `latest`, so a fresh-publish stable promotion can never succeed. Moving
+        # `stable` is a promote-only action over an already-published version (operator CLI:
+        # publish-rules-release.php --promote-only=VERSION --promote=stable), not this workflow.
+        description: 'Move latest to the published version (none = publish only, no pointer moved)'
+        type: choice
+        options: [none, latest]
+        default: none
+      bootstrap:
+        description: 'FIRST-EVER channels doc only: mint latest=stable=version, revoked=[]. Refuses if a base pointer already exists.'
+        type: boolean
+        default: false
+
+# Serialise pointer moves: a second publish/promote waits for the running one rather than racing it
+# (two promotions built from the same base could otherwise clobber each other's pointer/revocation).
+concurrency:
+  group: funnypot-rules-publish
+  cancel-in-progress: false
 
 permissions:
   contents: read
@@ -34,6 +64,14 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+
+      # bootstrap mints the FIRST channels pointer; it is meaningless without a promote target (and
+      # the CLI rejects the combo). Fail loudly rather than silently publishing a no-op version.
+      - name: Validate dispatch inputs
+        if: ${{ inputs.bootstrap && inputs.promote == 'none' }}
+        run: |
+          echo "::error::bootstrap=true requires promote=latest (it mints the first channels pointer)."
+          exit 1
 
       - name: Setup PHP
         uses: shivammathur/setup-php@v2
@@ -58,15 +96,44 @@ jobs:
         # ^ license text is already vendored under resources/upstream-licenses/; this is a
         #   best-effort re-assert. The authoritative gate ran pre-merge in update-templates.yml.
 
+      # When moving a pointer, carry forward the CURRENT signed channels doc. Fail the job on ANY
+      # fetch error or empty asset — never tolerate a missing base (that would re-introduce the
+      # silent revoked=[] reset this ticket removed). Skipped for promote=none and for bootstrap.
+      - name: Download the current channels pointer (base to carry forward)
+        if: ${{ inputs.promote != 'none' && !inputs.bootstrap }}
+        env:
+          GH_TOKEN: ${{ secrets.FUNNYPOT_RULES_RELEASE_TOKEN }}
+        run: |
+          set -euo pipefail
+          mkdir -p channels-base
+          gh release download channels --repo metrictower/funnypot-rules \
+            --pattern 'channels.json' --pattern 'channels.json.sig' --dir channels-base
+          test -s channels-base/channels.json
+          test -s channels-base/channels.json.sig
+
       - name: Package + sign the release
         id: pkg
         env:
           FUNNYPOT_RULES_SIGNING_KEY: ${{ secrets.FUNNYPOT_RULES_SIGNING_KEY }}
+          FUNNYPOT_RULES_CHANNELS_SIGNING_KEY: ${{ secrets.FUNNYPOT_RULES_CHANNELS_SIGNING_KEY }}
+          FUNNYPOT_RULES_CHANNELS_PUBKEY: ${{ vars.FUNNYPOT_RULES_CHANNELS_PUBKEY }}
           FUNNYPOT_RULES_KEY_ID: ${{ vars.FUNNYPOT_RULES_KEY_ID }}
+          PROMOTE: ${{ inputs.promote }}
+          BOOTSTRAP: ${{ inputs.bootstrap }}
         run: |
-          php -d memory_limit=2G scripts/ci/publish-rules-release.php --out=dist-release | tee /tmp/pkg.out
+          set -euo pipefail
+          ARGS=(--out=dist-release "--promote=${PROMOTE}")
+          if [ "$PROMOTE" != "none" ]; then
+            if [ "$BOOTSTRAP" = "true" ]; then
+              ARGS+=(--bootstrap)
+            else
+              ARGS+=(--channels-in=channels-base)
+            fi
+          fi
+          php -d memory_limit=2G scripts/ci/publish-rules-release.php "${ARGS[@]}" | tee /tmp/pkg.out
           echo "version=$(grep '^version=' /tmp/pkg.out | cut -d= -f2)" >> "$GITHUB_OUTPUT"
           echo "tarball=$(grep '^tarball=' /tmp/pkg.out | cut -d= -f2)" >> "$GITHUB_OUTPUT"
+          echo "channels_written=$(grep '^channels_written=' /tmp/pkg.out | cut -d= -f2)" >> "$GITHUB_OUTPUT"
 
       - name: Create the versioned release on funnypot-rules
         uses: softprops/action-gh-release@v2
@@ -82,7 +149,9 @@ jobs:
 
       # The channels pointer lives on its own rolling `channels` release so "which version is
       # current" (tiny, changes every release) stays separate from the immutable version release.
+      # Uploaded ONLY when the publisher actually wrote a channels doc (promote != none / bootstrap).
       - name: Update the channels pointer
+        if: ${{ steps.pkg.outputs.channels_written == '1' }}
         uses: softprops/action-gh-release@v2
         with:
           repository: metrictower/funnypot-rules
