@@ -1,0 +1,57 @@
+id: attack-sqli-error-extraction
+severity: high
+priority: 49
+status: 200
+tags: [attack, sqli, error-based, extraction, oracle, deception]
+# FP-0431: error-based SQLi EXTRACTION oracle (MySQL). Where 50-sqli answers a syntax breaker and
+# 59-sqli-error-probe answers the mixed-quote probe, this answers the function-based extraction vectors
+# sqlmap/Artemis use — EXTRACTVALUE/UPDATEXML/GTID_SUBSET/JSON_KEYS/EXP(~…)/(x*1E308) — with the authentic
+# MySQL `XPATH syntax error: '~<value>~'` frame (the real 0x7e-delimited runtime error), embedding
+# persona-coherent SYNTHETIC schema so the tool "confirms" error-based SQLi and extracts a FAKE database
+# forever. CANNED/seeded: no attacker byte is reflected — the `~` delimiter is the literal MySQL emits, and
+# the value is persona.db.*/a fixed fake catalog, truncated like the real 32-char XPATH limit. Never 500
+# (a 5xx is discarded by Artemis and is itself a tell). The branch keys on WHAT the sub-select targets so
+# the extracted element is coherent (asking for the version returns a version; for a user, a user; etc);
+# the base case returns the current database (the usual first extraction, `SELECT database()`).
+match:
+  - in: request
+    ci: true
+    regex: '(?:extractvalue|updatexml|gtid_subset|json_keys)\s*\(|exp\s*\(\s*\~|\(\s*select\s*\(?\s*[0-9.]+\s*\*\s*1e308'
+response:
+  headers:
+    Content-Type: "text/html; charset=utf-8"
+  body: "{{attack.sqli.prefix}}XPATH syntax error: '~{{persona.db.name}}'{{attack.sqli.suffix}}\n"
+expect: ["XPATH syntax error"]
+behavior: branch
+branch:
+  cases:
+    # @@version / version() -> a believable MySQL server version banner.
+    - when: { in: request, regex: '@@\s*(?:global\.)?version|\bversion\s*\(\s*\)', ci: true }
+      response:
+        headers: { Content-Type: "text/html; charset=utf-8" }
+        body: "{{attack.sqli.prefix}}XPATH syntax error: '~{{pick:8.0.36,8.0.35,8.4.3,8.0.37}}-0ubuntu0.22.04.1'{{attack.sqli.suffix}}\n"
+    # current_user / user() / system_user -> the persona DB login.
+    - when: { in: request, regex: 'current_user|system_user|session_user|\buser\s*\(\s*\)', ci: true }
+      response:
+        headers: { Content-Type: "text/html; charset=utf-8" }
+        body: "{{attack.sqli.prefix}}XPATH syntax error: '~{{persona.db.user}}@localhost'{{attack.sqli.suffix}}\n"
+    # information_schema column enumeration -> a plausible column name.
+    - when: { in: request, regex: 'column_name|information_schema\.columns', ci: true }
+      response:
+        headers: { Content-Type: "text/html; charset=utf-8" }
+        body: "{{attack.sqli.prefix}}XPATH syntax error: '~{{pick:id,username,password_hash,email,auth_token,created_at}}'{{attack.sqli.suffix}}\n"
+    # information_schema table enumeration -> a plausible table name.
+    - when: { in: request, regex: 'table_name|information_schema\.tables', ci: true }
+      response:
+        headers: { Content-Type: "text/html; charset=utf-8" }
+        body: "{{attack.sqli.prefix}}XPATH syntax error: '~{{pick:users,accounts,sessions,api_keys,orders,transactions}}'{{attack.sqli.suffix}}\n"
+    # a count() enumeration step -> a small plausible row/column count.
+    - when: { in: request, regex: '\bcount\s*\(', ci: true }
+      response:
+        headers: { Content-Type: "text/html; charset=utf-8" }
+        body: "{{attack.sqli.prefix}}XPATH syntax error: '~{{pick:3,5,6,7,11}}'{{attack.sqli.suffix}}\n"
+    # a credential/data select -> a believable MySQL password-hash shape (*40HEX, shown truncated by XPATH).
+    - when: { in: request, regex: 'password|passwd|\bpwd\b|secret|auth_token|\bhash\b', ci: true }
+      response:
+        headers: { Content-Type: "text/html; charset=utf-8" }
+        body: "{{attack.sqli.prefix}}XPATH syntax error: '~*{{fake.mysqlpwhash:hex:40}}'{{attack.sqli.suffix}}\n"
