@@ -125,13 +125,19 @@ final class SafeComparison
      * end-of-string (MySQL rule), so a bare `10--5` stays arithmetic. Pure string surgery, no execution.
      *
      * A MySQL VERSIONED conditional comment `/*!NNNNN … *\/` (whose body MySQL actually executes) is
-     * stripped as if inert, so a probe that wraps the whole comparison in one degrades safe-direction to
-     * the baseline rather than splitting. That is an uncommon tamper and a believability gap, not a safety
-     * hole — unwrapping it to keep the inner clause live is tracked separately (see FP-0585).
+     * UNWRAPPED to its inner clause (kept live), not stripped, so a `versionedkeywords` tamper that wraps
+     * the comparison still splits TRUE/FALSE (FP-0585). A plain inert `/* … *\/` is still stripped.
      */
     private static function stripSqlComments(string $expr): string
     {
+        // MySQL VERSIONED conditional comment /*!NNNNN sql *\/ — MySQL EXECUTES its body, so UNWRAP it to
+        // the inner clause (keep it live) BEFORE stripping plain comments, so a sqlmap `versionedkeywords`
+        // tamper that wraps the whole comparison still splits TRUE/FALSE. Done first because the plain-block
+        // strip below would otherwise swallow it as inert.
+        $expr = (string) preg_replace('~/\*!(?:\d{5,6})?\s*(.*?)\*/~s', ' $1 ', $expr);
+        // Plain inert inline block comment -> whitespace.
         $expr = (string) preg_replace('~/\*.*?\*/~s', ' ', $expr);
+        // Trailing line comment: -- only when followed by whitespace/EOL (MySQL rule), or # to EOL.
         $expr = (string) preg_replace('~\s*(?:--(?=\s|$).*|#.*)$~s', '', $expr);
 
         return trim($expr);
