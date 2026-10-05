@@ -77,4 +77,50 @@ final class PanOsZtpGateDecoyTest extends TestCase
         self::assertStringContainsString('Zero Touch Provisioning', $b);
         self::assertStringNotContainsString('Zpanossentinel88Z', $b);
     }
+
+    // --- FP-0564: one coherent PAN-OS identity (ztp-gate reads {{persona.panos.version}}) ---------
+
+    private function ztpVersion(string $deploySeed, string $requestSeed = 'req'): string
+    {
+        if (self::$idx === null) {
+            self::$idx = require __DIR__ . '/../resources/compiled/nuclei-index.full.php';
+        }
+        $cfg = new Config(
+            mode: 'respond',
+            gate: static function (RequestContext $r): bool { return true; },
+            personaSeed: static function (RequestContext $r) use ($requestSeed): string { return $requestSeed; },
+            severityCeiling: 'critical',
+            attackEmulation: true,
+            deploySeed: $deploySeed,
+        );
+        $hp = new Honeypot(new PhpArrayStore(self::$idx), $cfg);
+        $b = (string) ($hp->respond(new RequestContext('GET', self::ZTP_PATH, '', [], null, 'x.test'))->body ?? '');
+        self::assertSame(1, preg_match('/PAN-OS (\S+)</', $b, $m), "ztp-gate must advertise a PAN-OS version: {$b}");
+
+        return $m[1];
+    }
+
+    public function test_ztp_version_is_persona_derived_and_cve_2025_0108_affected(): void
+    {
+        // Every entry in PANOS_BUILDS is on the affected side of CVE-2025-0108 (the ztp-gate's own CVE), so
+        // the one shared persona version is always a believable unpatched target for this exact decoy.
+        $affected = ['10.1.0', '10.2.0', '11.0.0', '11.1.0'];
+        $seen = [];
+        for ($s = 0; $s < 60; $s++) {
+            $v = $this->ztpVersion('box' . $s);
+            self::assertContains($v, $affected, "deploy {$s}: ztp version {$v} must be CVE-2025-0108-affected");
+            $seen[$v] = true;
+        }
+        self::assertGreaterThan(1, count($seen), 'the version must vary across deploys (not a fleet constant)');
+    }
+
+    public function test_ztp_version_is_deploy_stable_not_per_source(): void
+    {
+        // The pre-FP-0564 ztp-gate picked per-source-IP (per request); the persona version is deploy-stable,
+        // so two different request seeds on ONE deploy now see the SAME version (the coherence this closes).
+        self::assertSame($this->ztpVersion('box-X', 'req-A'), $this->ztpVersion('box-X', 'req-B'),
+            'ztp version must be stable across requests within a deploy');
+        // ...and it is deterministic per deploy.
+        self::assertSame($this->ztpVersion('box-Y'), $this->ztpVersion('box-Y'));
+    }
 }

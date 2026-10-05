@@ -628,13 +628,15 @@ final class PersonaIdentity
      * approximate documented GA date (UTC midnight) of a real GA version; `panos.etag`/`panos.lastModified`
      * are both derived from the SAME entry so the asset ETag's hex epoch decodes back to this build date and
      * a version fingerprinter (panos-scanner / Wapiti mod_paloalto) reads one coherent version. The set is
-     * co-generational with the FP-0460 ztp-gate pool (10.1/10.2/11.0/11.1) and spans the affected side of
-     * the marquee PAN-OS CVEs (CVE-2024-3400, CVE-2020-2021) for N-day baiting. Every rendered value
-     * (8-hex etag, dotted version, 4-digit-year RFC-1123 date) is free of the denied bare 6-digit run.
+     * co-generational with the FP-0460 ztp-gate pool (10.1/10.2/11.0/11.1): FP-0564 makes the ztp-gate read
+     * {{persona.panos.version}}, so one deploy shows ONE PAN-OS version across the ztp-gate, the login.esp
+     * portal and the four asset ETags. Every entry is on the affected side of CVE-2025-0108 (the ztp-gate's
+     * own auth-bypass CVE) AND the marquee GlobalProtect RCE CVE-2024-3400 (10.2/11.0/11.1; 10.1 is the one
+     * ztp-only build). The older 8.1/9.1 builds (CVE-2020-2021-only) were dropped — a single shared version
+     * on a CVE-2025-0108 ztp-gate must itself be CVE-2025-0108-affected. Every rendered value (8-hex etag,
+     * dotted version, 4-digit-year RFC-1123 date) is free of the denied bare 6-digit run.
      */
     private const PANOS_BUILDS = [
-        ['version' => '8.1.0', 'epoch' => 1520294400],   // 2018-03-06
-        ['version' => '9.1.0', 'epoch' => 1579132800],   // 2020-01-16
         ['version' => '10.1.0', 'epoch' => 1618876800],  // 2021-04-20
         ['version' => '10.2.0', 'epoch' => 1637107200],  // 2021-11-17
         ['version' => '11.0.0', 'epoch' => 1668470400],  // 2022-11-15

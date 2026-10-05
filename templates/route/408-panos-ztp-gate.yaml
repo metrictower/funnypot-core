@@ -36,7 +36,7 @@ response:
     <body>
     <div id="ztp-status">
     <h1>Zero Touch Provisioning</h1>
-    <p>Palo Alto Networks PAN-OS {{pick:panos-version:11.1.4-h7,11.2.3,10.2.9-h1,10.1.12}}</p>
+    <p>Palo Alto Networks PAN-OS {{persona.panos.version}}</p>
     <p>This device has not yet been provisioned. Awaiting configuration from the Zero Touch Provisioning service.</p>
     </div>
     </body>
