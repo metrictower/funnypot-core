@@ -60,6 +60,17 @@ final class SplunkPostgresRecoveryDecoyTest extends TestCase
         self::assertStringContainsString('"type":"ERROR"', (string) $r->body);
     }
 
+    public function test_splunk_wins_its_path_over_generic_lfi(): void
+    {
+        // Priority 20 (below the injection band) so the Splunk rule wins its own path even against a
+        // traversal/etc-passwd-laced backupFile — a Splunk endpoint must return a Splunk envelope, not a
+        // generic passwd body (the store-miss precedence closed by the low priority; FP-0554 = structural).
+        $r = $this->post('/en-US/splunkd/__raw/v1/postgres/recovery/backup', '{"backupFile":"../../../../etc/passwd"}');
+        self::assertNotNull($r);
+        self::assertStringContainsString('"type":"ERROR"', (string) $r->body, 'Splunk envelope wins its path');
+        self::assertStringNotContainsString('root:x:0:0', (string) $r->body, 'the generic LFI decoy must not win on the Splunk path');
+    }
+
     public function test_get_does_not_serve(): void
     {
         $r = $this->engine()->respond(new RequestContext('GET', '/en-US/splunkd/__raw/v1/postgres/recovery/backup', '', [], null, 'x.test'));

@@ -1,6 +1,6 @@
 id: attack-splunk-postgres-recovery
 severity: high
-priority: 56
+priority: 20
 tags: [attack, splunk, auth-bypass, cve-2026-20253, postgres-sidecar]
 # FP-0382: Splunk Enterprise PostgreSQL recovery sidecar auth-bypass decoy (CVE-2026-20253, CISA KEV).
 # The sidecar backup/restore controller is reachable UNAUTHENTICATED (CWE-306): POST
@@ -8,12 +8,15 @@ tags: [attack, splunk, auth-bypass, cve-2026-20253, postgres-sidecar]
 # create/truncate -> RCE. The decoy answers the endpoint without auth (the bypass) and returns the authentic
 # Splunkd REST validation-error envelope, so a scanner confirms "reachable unauthenticated" without the file
 # ever being written. INERT: never touches Postgres/fs, never reads the body. Match on path+POST only (do
-# NOT require Authorization — answering unauthenticated is the whole point). Store-miss path -> matches via
-# the linear scan; the canonical exploit body (../tmp/poc) triggers no generic rule (31-lfi keys on
-# etc/passwd, not a bare ../), so there is no shadow and no owns_path is needed. (Edge: a NON-canonical
-# etc/passwd-laced backupFile is answered by the LFI decoy instead — acceptable: CVE-2026-20253 is a file-
-# WRITE primitive so a passwd-READ target is not a realistic payload, and the LFI page is still attack-class;
-# the scanner's /tmp/poc probe gets the Splunk envelope.) The
+# NOT require Authorization — answering unauthenticated is the whole point). Store-MISS path (not a corpus
+# key) -> matches via the linear attack scan, where PRIORITY is the only precedence tool (owns_path /
+# matchOnOwnedPath run only on a store-HIT path, so owns_path would be a no-op here). Priority 20 is below the
+# whole injection-generic band (LFI 21-31, cmdi/ssti/sqli higher), so this path-specific Splunk rule wins its
+# own path even against a traversal/injection-laced backupFile (e.g. an etc/passwd write target) — a Splunk
+# endpoint must return a Splunk envelope, not a generic passwd/cmdi body. It only matches
+# /en-US/splunkd/.../recovery/ + POST, so the low priority has no collateral. (A general engine fix making
+# path-conditioned rules beat path-agnostic ones in the store-miss linear scan — obsoleting this per-decoy
+# priority tactic — is tracked as FP-0554.) The
 # `{"messages":[{"type":"ERROR",...}]}` envelope + `Server: Splunkd` are Splunk's OWN REST shape
 # (fingerprint-safe — product strings, not scanner/CRS literals). WITNESS CAVEAT: `backupFile is a required
 # field` is a plausible-but-unverified matcher string (the real Nettacker splunk_cve_2026_20253 text was not
