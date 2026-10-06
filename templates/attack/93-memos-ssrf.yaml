@@ -1,0 +1,86 @@
+id: attack-memos-ssrf
+severity: high
+priority: 93
+tags: [attack, ssrf, memos, cloud-metadata, imds]
+# FP-0384 — Memos knowledge-base SSRF decoy (CVE-2025-22952, usememos/memos <= 0.24.0; CVSS disputed:
+# GHSA-wfxg-v3j4-7qmj 6.9 Moderate / NVD 9.8 Critical). The real GetLinkMetadata API calls http.Get() on a
+# user-supplied `link` with no loopback/internal-host guard. This decoy matches that exact endpoint + param
+# and returns, by default, the Go gRPC-gateway connection-refused differential the CVE + the OWASP Nettacker
+# detector (memos_cve_2025_22952_ssrf) key on (status 500 + application/json + "...connect: connection
+# refused"). When the `link` targets the cloud metadata service it pivots into the existing IMDS honeytoken
+# bodies (90/91-imds), feeding DEAD seeded STS creds.
+#
+# ZERO-EGRESS (the sharp invariant): this NEVER issues an outbound request to 169.254.169.254, localhost, or
+# any attacker-named host — it only pattern-matches the `link` param and returns a canned body. The template
+# DSL has no http/socket/file primitive, so a real SSRF is structurally impossible (same posture as 90-imds's
+# "No outbound call is ever made"). The reflected host is a bounded, charset-limited capture off the RAW
+# (still-percent-encoded) query surface, so an attacker's bytes cannot break or inject the JSON.
+# owns_path: `/api/v1/markdown/link:metadata` is already a known `memos`-family corpus/route key, and the
+# exact-store lookup in classify() would otherwise preempt a generic attack rule. Declaring ownership routes
+# the path through matchOnOwnedPath (Tier 1), which runs BEFORE the store lookup, so THIS SSRF decoy serves.
+owns_path:
+  - '/api/v1/markdown/link:metadata'
+match:
+  - in: path
+    regex: '^/api/v1/markdown/link:metadata$'
+    ci: true
+  # Capture the target URL (1), host (2) and optional port (3) as numbered groups off the raw query surface.
+  # Bounded quantifiers (never +) so a huge query can't inflate the error body into a tell. Charset has no
+  # JSON-special char, so bare {{match.N}} reflection below is JSON-safe (NOT urldecode:, which would decode
+  # a `%22` into a `"` and break the JSON).
+  - in: query
+    capture: true
+    regex: 'link=((?:https?://)?([A-Za-z0-9._%-]{1,128})(?::([0-9]{1,5}))?[A-Za-z0-9._:/%-]{0,256})'
+    ci: true
+status: 500
+# Default (primary, high-fidelity): the Go gRPC-gateway (code 13 = INTERNAL) connection-refused error,
+# reflecting the attacker's exact target like the real Go error. Served when no branch case fires.
+response:
+  headers:
+    Content-Type: "application/json"
+  body: |
+    {"code":13,"message":"failed to get link metadata: Get \"{{match.1}}\": dial tcp {{match.2}}:{{match.3}}: connect: connection refused"}
+expect: ['connect: connection refused', 'dial tcp']
+behavior: branch
+branch:
+  cases:
+    # link -> AWS IMDS credential leaf: pivot to the dead STS blob (reused from 90-imds). status 200.
+    - when: { in: query, regex: '169\.254\.169\.254/latest/meta-data/iam/security-credentials/[^/&]', ci: true }
+      response:
+        status: 200
+        headers:
+          Content-Type: "application/json"
+        body: |
+          {
+            "Code" : "Success",
+            "LastUpdated" : "2024-11-14T09:37:22Z",
+            "Type" : "AWS-HMAC",
+            "AccessKeyId" : "ASIA{{fake.imdsak:hexupper:16}}",
+            "SecretAccessKey" : "{{fake.imdssecret:b64:40}}",
+            "Token" : "{{fake.imdstoken:b64:100}}",
+            "Expiration" : "2030-01-01T00:00:00Z"
+          }
+    # link -> AWS IMDS metadata tree (listing/leaf): the IMDSv1 category listing (reused from 91-imds). status 200.
+    - when: { in: query, regex: '169\.254\.169\.254/latest/meta-data', ci: true }
+      response:
+        status: 200
+        headers:
+          Content-Type: "text/plain"
+        body: |
+          ami-id
+          ami-launch-index
+          block-device-mapping/
+          hostname
+          iam/
+          instance-id
+          instance-type
+          local-hostname
+          local-ipv4
+          mac
+          metrics/
+          network/
+          placement/
+          public-hostname
+          public-ipv4
+          security-groups
+  # NO default: when no case matches, the top-level status 500 connection-refused response above is served.
