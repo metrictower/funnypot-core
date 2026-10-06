@@ -173,10 +173,37 @@ final class CannedDataTest extends TestCase
         self::assertSame(CannedData::sshPrivateKey($seed), CannedData::render('ssh_private_key', $seed));
         self::assertSame(CannedData::environ($seed), CannedData::render('environ', $seed));
         self::assertSame(CannedData::uid($seed), CannedData::render('uid', $seed));
+        self::assertSame(CannedData::pwd($seed), CannedData::render('pwd', $seed));
+        self::assertSame(CannedData::ls($seed), CannedData::render('ls', $seed));
+        self::assertSame(CannedData::ps($seed), CannedData::render('ps', $seed));
+        self::assertSame(CannedData::uname($seed), CannedData::render('uname', $seed));
+        self::assertSame(CannedData::uptime($seed), CannedData::render('uptime', $seed));
         self::assertSame(CannedData::WININI, CannedData::render('winini', $seed));
         self::assertSame(CannedData::K8S_SA_UNSIGNED, CannedData::render('k8s_sa_unsigned', $seed));
         // Unknown key -> null so the renderer's `|`-alternatives still cascade.
         self::assertNull(CannedData::render('nope', $seed));
+    }
+
+    public function test_recon_outputs_are_coherent_and_inert(): void
+    {
+        // FP-0578: the recon-command outputs the EL/cmdi oracles branch on must be command-appropriate —
+        // crucially NOT the uid=0 line (serving uid for `ls`/`ps` is the tell this fixes).
+        $seed = 7;
+        self::assertStringStartsWith('/var/www/', CannedData::pwd($seed));
+        $ls = CannedData::ls($seed);
+        self::assertStringNotContainsString('uid=0', $ls, 'ls must not print a uid line');
+        self::assertStringContainsString("\n", $ls);
+        $ps = CannedData::ps($seed);
+        self::assertStringContainsString('USER', $ps);
+        self::assertStringContainsString('php-fpm', $ps);
+        self::assertStringNotContainsString('uid=0', $ps);
+        $uname = CannedData::uname($seed);
+        self::assertStringStartsWith('Linux ', $uname);
+        self::assertStringContainsString('x86_64', $uname);
+        self::assertStringContainsString(rtrim(CannedData::hostname($seed), "\n"), $uname, 'uname carries the canned hostname');
+        self::assertMatchesRegularExpression('/load average:/', CannedData::uptime($seed));
+        // Seeded (deterministic per seed), so two renders at the same seed match.
+        self::assertSame(CannedData::ps($seed), CannedData::ps($seed));
     }
 
     /**
