@@ -1,0 +1,71 @@
+id: attack-spel-ognl-error
+severity: high
+priority: 51
+status: 500
+tags: [attack, ssti, spel, ognl, spring, struts, expression-language, error-oracle]
+# FP-0578 (bounded slice — part 3 of the ticket; the AST parser + VFS routing stay deferred): an
+# authentic Spring SpEL / Struts OGNL EXCEPTION oracle for EL-injection FAULT probes, the EL twin of
+# 52-ssti-engine-error (which covers only FreeMarker/Velocity/Twig). A scanner testing an EL-injection
+# point sends a malformed or non-exec EL expression; a real Spring/Struts app EVALUATES it and throws a
+# DISTINCTIVE exception (SpelParseException / SpelEvaluationException / ognl.OgnlException, surfaced via
+# the Whitelabel Error Page or the Struts Problem Report). Returning that confirms "this parameter is
+# evaluated as an expression language" and lures the scanner into deeper exploitation — while nothing is
+# evaluated here.
+#
+# PRECEDENCE: priority 51 sits BELOW the exec oracles (42b attack-spel-ognl-rce at 42, 05-confluence-ognl
+# at 5, 12-struts-ognl in the Content-Type header at 12) and BELOW 45-ssti-numeric (45), so a real exec
+# gadget `#{T(java.lang.Runtime).getRuntime().exec('id')}` -> uid (42b), and arithmetic `#{7*7}` -> 49
+# (45). Only the FAULT/non-exec EL that those miss (today a plain 404) reaches this rule. in:request =
+# body+query (12 already owns the Content-Type header surface).
+#
+# AUTHORED 500 (same posture as 52 / 47-verbose-error-volatile): a real Spring/Struts app returns HTTP 500
+# with the exception page for an EL fault — a 200 would be the tell. The exception class strings are
+# GENUINE product output (org.springframework.expression.spel.*, ognl.OgnlException, Whitelabel Error
+# Page, Struts Problem Report), NOT scanner-signature strings (invariant #1 OK, like 52's
+# freemarker.core.ParseException). NO reflection: the exception detail names a FIXED property, never the
+# submitted expression. Never evaluates anything; a genuine fault still degrades to 404 (invariant #2).
+match:
+  - in: request
+    ci: true
+    dotall: true
+    regex: '%\{[^}]{0,300}(?:#_memberAccess|#context|#request|#session|#application|#cmd|\(\s*#|@\w[\w.]*@)|\$\{\s*\(\s*#[a-z]|#\{[^}]{0,300}(?:T\s*\(|#(?:this|root|request|session)\b|system(?:properties|environment)\b|@\w[\w.]*@)'
+response:
+  headers:
+    Content-Type: "text/html;charset=UTF-8"
+  body: |
+    <!DOCTYPE html><html><head><title>Error</title><style type="text/css">body {font-family:Tahoma,Arial,sans-serif;} h1 {color:#525D76;}</style></head><body>
+    <h1>Whitelabel Error Page</h1>
+    <p>This application has no explicit mapping for /error, so you are seeing this as a fallback.</p>
+    <div id='created'>Tue Oct 06 00:00:00 UTC 2026</div>
+    <div>There was an unexpected error (type=Internal Server Error, status=500).</div>
+    <div>EL1008E: Property or field &#39;value&#39; cannot be found on object of type &#39;java.lang.String&#39; - maybe not public or not valid?</div>
+    </body></html>
+behavior: branch
+branch:
+  cases:
+    # Struts/OGNL fence (%{...} or ${(#...)}) -> the Struts dev-mode Problem Report with an OgnlException.
+    - when: { in: request, ci: true, regex: '%\{|\$\{\s*\(\s*#' }
+      response:
+        status: 500
+        headers:
+          Content-Type: "text/html;charset=UTF-8"
+        body: |
+          <!DOCTYPE html><html><head><title>Struts Problem Report</title></head><body>
+          <h2>Struts Problem Report</h2>
+          <p>Struts has detected an unhandled exception:</p>
+          <table border="1">
+          <tr><td>Messages:</td><td>ognl.OgnlException: target is null for setProperty(null, &quot;value&quot;, [Ljava.lang.String;)</td></tr>
+          <tr><td>File:</td><td>com/opensymphony/xwork2/ognl/OgnlValueStack.java</td></tr>
+          </table>
+          <pre>
+          ognl.OgnlException: target is null for setProperty(null, "value", [Ljava.lang.String;)
+              at ognl.OgnlRuntime.setProperty(OgnlRuntime.java)
+              at ognl.ASTProperty.setValueBody(ASTProperty.java)
+              at com.opensymphony.xwork2.ognl.OgnlValueStack.setValue(OgnlValueStack.java)
+          </pre>
+          <p>You are seeing this page because development mode is enabled.</p>
+          </body></html>
+expect:
+  - 'Whitelabel Error Page'
+  - 'EL1008E'
+  - 'status=500'
