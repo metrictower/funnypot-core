@@ -1,0 +1,28 @@
+id: route-vuln-angularjs-158
+priority: 442
+# FP-0397 Part 1: AngularJS 1.5.8 (retire.js/OSV-flagged — multiple sandbox-escape / XSS advisories) at
+# the canonical vendor paths. Genuine AngularJS license banner + the `angular.version` marker retire.js
+# reads. Product-intrinsic strings, application/javascript, short stub (library not vendored). See
+# 441-vuln-jquery for the pattern.
+new_page:
+  method: GET
+  paths: ['/js/angular.min.js', '/js/angular-1.5.8.min.js', '/assets/vendor/angular.min.js']
+  sig: 0
+  status: 200
+  severity: medium
+  tags: [exposure, javascript, vulnerable-library, retirejs, angularjs]
+  name: 'Vulnerable AngularJS 1.5.8 asset'
+  body_words: ['AngularJS v1.5.8', 'angularjs.org']
+response:
+  headers:
+    Content-Type: "application/javascript; charset=utf-8"
+  body: |
+    /*
+     AngularJS v1.5.8
+     (c) 2010-2016 Google, Inc. http://angularjs.org
+     License: MIT
+    */
+    (function(window,document){'use strict';var version={full:"1.5.8",major:1,minor:5,dot:8,codeName:"arbitrary-fallbacks"};function angularInit(e,t){}function bootstrap(e,t,n){}window.angular=window.angular||{};window.angular.version=version;window.angular.bootstrap=bootstrap;})(window,document);
+expect:
+  - 'AngularJS v1.5.8'
+  - 'full:"1.5.8"'

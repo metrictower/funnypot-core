@@ -1,0 +1,27 @@
+id: route-vuln-bootstrap-337
+priority: 444
+# FP-0397 Part 1: Bootstrap 3.3.7 (retire.js/OSV-flagged — CVE-2018-14041 / CVE-2019-8331 XSS in the
+# data-* attribute handlers) at the canonical vendor paths. Genuine Bootstrap license banner + version.
+# See 441-vuln-jquery for the pattern.
+new_page:
+  method: GET
+  paths: ['/js/bootstrap.min.js', '/js/bootstrap-3.3.7.min.js', '/assets/vendor/bootstrap.min.js']
+  sig: 0
+  status: 200
+  severity: medium
+  tags: [exposure, javascript, vulnerable-library, retirejs, bootstrap]
+  name: 'Vulnerable Bootstrap 3.3.7 asset'
+  body_words: ['Bootstrap v3.3.7', 'getbootstrap.com']
+response:
+  headers:
+    Content-Type: "application/javascript; charset=utf-8"
+  body: |
+    /*!
+     * Bootstrap v3.3.7 (http://getbootstrap.com)
+     * Copyright 2011-2016 Twitter, Inc.
+     * Licensed under the MIT license
+     */
+    if(typeof jQuery==="undefined"){throw new Error("Bootstrap's JavaScript requires jQuery")}+function(a){"use strict";var b=a.fn.jquery.split(" ")[0].split(".");if(b[0]<2&&b[1]<9||1==b[0]&&9==b[1]&&b[2]<1||b[0]>3){throw new Error("Bootstrap's JavaScript requires jQuery version 1.9.1 or higher, but lower than version 4")}}(jQuery);+function(a){"use strict";function b(b){return this.each(function(){var d=a(this);d.data("bs.alert")})}var c='[data-dismiss="alert"]';a.fn.alert=b}(jQuery);
+expect:
+  - 'Bootstrap v3.3.7'
+  - 'getbootstrap.com'

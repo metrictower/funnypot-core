@@ -13,11 +13,11 @@ return array (
     'license' => 'MIT (c) 2025 ProjectDiscovery, Inc.',
     'upstream_tag' => '2ec914123864439c3618e7e9ae72d32d0eb56df7',
     'upstream_sha' => '2ec914123864439c3618e7e9ae72d32d0eb56df7',
-    'source_tree' => '40a50e5d73c064c05f3484e3447d799763e3dd962188573515c6d275fb2dfbb8',
+    'source_tree' => '50c73ab6fc6c401cdc90f8343fc405d281cde9679f0d2631d0bea370854d7911',
     'templates_seen' => 11196,
     'templates_in' => 6363,
-    'templates_indexed' => 6531,
-    'route_keys' => 5397,
+    'templates_indexed' => 6535,
+    'route_keys' => 5409,
     'multi_bundle_keys' => 277,
     'largest_bundle_count' => 1324,
     'persona_cap' => 
@@ -86072,6 +86072,58 @@ return array (
         4 => 'exposure',
       ),
       'name' => 'AEM Granite login clientlib',
+    ),
+    'route-vuln-jquery-182' => 
+    array (
+      'sev' => 'medium',
+      'tags' => 
+      array (
+        0 => 'exposure',
+        1 => 'javascript',
+        2 => 'vulnerable-library',
+        3 => 'retirejs',
+        4 => 'jquery',
+      ),
+      'name' => 'Vulnerable jQuery 1.8.2 asset',
+    ),
+    'route-vuln-angularjs-158' => 
+    array (
+      'sev' => 'medium',
+      'tags' => 
+      array (
+        0 => 'exposure',
+        1 => 'javascript',
+        2 => 'vulnerable-library',
+        3 => 'retirejs',
+        4 => 'angularjs',
+      ),
+      'name' => 'Vulnerable AngularJS 1.5.8 asset',
+    ),
+    'route-vuln-lodash-4174' => 
+    array (
+      'sev' => 'medium',
+      'tags' => 
+      array (
+        0 => 'exposure',
+        1 => 'javascript',
+        2 => 'vulnerable-library',
+        3 => 'retirejs',
+        4 => 'lodash',
+      ),
+      'name' => 'Vulnerable Lodash 4.17.4 asset',
+    ),
+    'route-vuln-bootstrap-337' => 
+    array (
+      'sev' => 'medium',
+      'tags' => 
+      array (
+        0 => 'exposure',
+        1 => 'javascript',
+        2 => 'vulnerable-library',
+        3 => 'retirejs',
+        4 => 'bootstrap',
+      ),
+      'name' => 'Vulnerable Bootstrap 3.3.7 asset',
     ),
     'route-phpinfo' => 
     array (
@@ -314815,6 +314867,318 @@ a</title>',
           't' => 
           array (
             0 => 'route-aem-login-clientlib',
+          ),
+        ),
+      ),
+    ),
+    'GET /js/jquery-1.8.2.min.js' => 
+    array (
+      'b' => 
+      array (
+        0 => 
+        array (
+          's' => 200,
+          'bw' => 
+          array (
+            0 => 'jQuery v1.8.2',
+            1 => 'jquery.org/license',
+          ),
+          'nf' => 
+          array (
+          ),
+          'pid' => 'route-vuln-jquery-182',
+          'sev' => 'medium',
+          'sig' => 0,
+          'amb' => 0,
+          't' => 
+          array (
+            0 => 'route-vuln-jquery-182',
+          ),
+        ),
+      ),
+    ),
+    'GET /js/jquery.min.js' => 
+    array (
+      'b' => 
+      array (
+        0 => 
+        array (
+          's' => 200,
+          'bw' => 
+          array (
+            0 => 'jQuery v1.8.2',
+            1 => 'jquery.org/license',
+          ),
+          'nf' => 
+          array (
+          ),
+          'pid' => 'route-vuln-jquery-182',
+          'sev' => 'medium',
+          'sig' => 0,
+          'amb' => 0,
+          't' => 
+          array (
+            0 => 'route-vuln-jquery-182',
+          ),
+        ),
+      ),
+    ),
+    'GET /assets/vendor/jquery.min.js' => 
+    array (
+      'b' => 
+      array (
+        0 => 
+        array (
+          's' => 200,
+          'bw' => 
+          array (
+            0 => 'jQuery v1.8.2',
+            1 => 'jquery.org/license',
+          ),
+          'nf' => 
+          array (
+          ),
+          'pid' => 'route-vuln-jquery-182',
+          'sev' => 'medium',
+          'sig' => 0,
+          'amb' => 0,
+          't' => 
+          array (
+            0 => 'route-vuln-jquery-182',
+          ),
+        ),
+      ),
+    ),
+    'GET /js/angular.min.js' => 
+    array (
+      'b' => 
+      array (
+        0 => 
+        array (
+          's' => 200,
+          'bw' => 
+          array (
+            0 => 'AngularJS v1.5.8',
+            1 => 'angularjs.org',
+          ),
+          'nf' => 
+          array (
+          ),
+          'pid' => 'route-vuln-angularjs-158',
+          'sev' => 'medium',
+          'sig' => 0,
+          'amb' => 0,
+          't' => 
+          array (
+            0 => 'route-vuln-angularjs-158',
+          ),
+        ),
+      ),
+    ),
+    'GET /js/angular-1.5.8.min.js' => 
+    array (
+      'b' => 
+      array (
+        0 => 
+        array (
+          's' => 200,
+          'bw' => 
+          array (
+            0 => 'AngularJS v1.5.8',
+            1 => 'angularjs.org',
+          ),
+          'nf' => 
+          array (
+          ),
+          'pid' => 'route-vuln-angularjs-158',
+          'sev' => 'medium',
+          'sig' => 0,
+          'amb' => 0,
+          't' => 
+          array (
+            0 => 'route-vuln-angularjs-158',
+          ),
+        ),
+      ),
+    ),
+    'GET /assets/vendor/angular.min.js' => 
+    array (
+      'b' => 
+      array (
+        0 => 
+        array (
+          's' => 200,
+          'bw' => 
+          array (
+            0 => 'AngularJS v1.5.8',
+            1 => 'angularjs.org',
+          ),
+          'nf' => 
+          array (
+          ),
+          'pid' => 'route-vuln-angularjs-158',
+          'sev' => 'medium',
+          'sig' => 0,
+          'amb' => 0,
+          't' => 
+          array (
+            0 => 'route-vuln-angularjs-158',
+          ),
+        ),
+      ),
+    ),
+    'GET /js/lodash.min.js' => 
+    array (
+      'b' => 
+      array (
+        0 => 
+        array (
+          's' => 200,
+          'bw' => 
+          array (
+            0 => 'lodash',
+            1 => 'lodash.com/license',
+          ),
+          'nf' => 
+          array (
+          ),
+          'pid' => 'route-vuln-lodash-4174',
+          'sev' => 'medium',
+          'sig' => 0,
+          'amb' => 0,
+          't' => 
+          array (
+            0 => 'route-vuln-lodash-4174',
+          ),
+        ),
+      ),
+    ),
+    'GET /js/lodash-4.17.4.min.js' => 
+    array (
+      'b' => 
+      array (
+        0 => 
+        array (
+          's' => 200,
+          'bw' => 
+          array (
+            0 => 'lodash',
+            1 => 'lodash.com/license',
+          ),
+          'nf' => 
+          array (
+          ),
+          'pid' => 'route-vuln-lodash-4174',
+          'sev' => 'medium',
+          'sig' => 0,
+          'amb' => 0,
+          't' => 
+          array (
+            0 => 'route-vuln-lodash-4174',
+          ),
+        ),
+      ),
+    ),
+    'GET /assets/vendor/lodash.js' => 
+    array (
+      'b' => 
+      array (
+        0 => 
+        array (
+          's' => 200,
+          'bw' => 
+          array (
+            0 => 'lodash',
+            1 => 'lodash.com/license',
+          ),
+          'nf' => 
+          array (
+          ),
+          'pid' => 'route-vuln-lodash-4174',
+          'sev' => 'medium',
+          'sig' => 0,
+          'amb' => 0,
+          't' => 
+          array (
+            0 => 'route-vuln-lodash-4174',
+          ),
+        ),
+      ),
+    ),
+    'GET /js/bootstrap.min.js' => 
+    array (
+      'b' => 
+      array (
+        0 => 
+        array (
+          's' => 200,
+          'bw' => 
+          array (
+            0 => 'Bootstrap v3.3.7',
+            1 => 'getbootstrap.com',
+          ),
+          'nf' => 
+          array (
+          ),
+          'pid' => 'route-vuln-bootstrap-337',
+          'sev' => 'medium',
+          'sig' => 0,
+          'amb' => 0,
+          't' => 
+          array (
+            0 => 'route-vuln-bootstrap-337',
+          ),
+        ),
+      ),
+    ),
+    'GET /js/bootstrap-3.3.7.min.js' => 
+    array (
+      'b' => 
+      array (
+        0 => 
+        array (
+          's' => 200,
+          'bw' => 
+          array (
+            0 => 'Bootstrap v3.3.7',
+            1 => 'getbootstrap.com',
+          ),
+          'nf' => 
+          array (
+          ),
+          'pid' => 'route-vuln-bootstrap-337',
+          'sev' => 'medium',
+          'sig' => 0,
+          'amb' => 0,
+          't' => 
+          array (
+            0 => 'route-vuln-bootstrap-337',
+          ),
+        ),
+      ),
+    ),
+    'GET /assets/vendor/bootstrap.min.js' => 
+    array (
+      'b' => 
+      array (
+        0 => 
+        array (
+          's' => 200,
+          'bw' => 
+          array (
+            0 => 'Bootstrap v3.3.7',
+            1 => 'getbootstrap.com',
+          ),
+          'nf' => 
+          array (
+          ),
+          'pid' => 'route-vuln-bootstrap-337',
+          'sev' => 'medium',
+          'sig' => 0,
+          'amb' => 0,
+          't' => 
+          array (
+            0 => 'route-vuln-bootstrap-337',
           ),
         ),
       ),
