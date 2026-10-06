@@ -12,9 +12,41 @@ tags: [attack, rce, command-injection]
 # (`;cat passwd`, `;ls secret`) is still detected. FP-0581.
 match:
   - in: request
-    regex: '(?:[;|&\n`]|\$\(|%0a|%7c|%26)\s*(?:(?:id|whoami|uname|pwd|ifconfig)(?![=\w])|cat\s|ls\s)'
+    regex: '(?:[;|&\n`]|\$\(|%0a|%7c|%26)\s*(?:(?:id|whoami|uname|pwd|ifconfig|ps|uptime)(?![=\w])|cat\s|ls\s)'
 response:
   headers:
     Content-Type: "text/plain; charset=utf-8"
   body: "{{canned.uid}}"
+# FP-0597: branch the recon command to COHERENT seeded output (the shared CannedData set added in
+# v0.7.81 for 42b). Before, every matched command served uid=0 — so `;ls`/`;pwd`/`;uname`/`;ps` returned
+# a uid line, the same tell FP-0578 fixed on the SpEL/OGNL path. `id` and a bare injection keep uid=0 (the
+# RCE-confirm marker). `cat /etc/passwd` is answered by the LFI rule (attack-lfi-unix wins its path), so
+# it needs no branch here; `hostname` is owned by the generated CRS rule (out of scope — FP-0597 note).
+behavior: branch
+branch:
+  cases:
+    - when: { in: request, regex: '\bls\b', ci: true }
+      response:
+        headers: { Content-Type: "text/plain; charset=utf-8" }
+        body: "{{canned.ls}}"
+    - when: { in: request, regex: '\bps\b', ci: true }
+      response:
+        headers: { Content-Type: "text/plain; charset=utf-8" }
+        body: "{{canned.ps}}"
+    - when: { in: request, regex: '\bpwd\b', ci: true }
+      response:
+        headers: { Content-Type: "text/plain; charset=utf-8" }
+        body: "{{canned.pwd}}"
+    - when: { in: request, regex: '\buname\b', ci: true }
+      response:
+        headers: { Content-Type: "text/plain; charset=utf-8" }
+        body: "{{canned.uname}}"
+    - when: { in: request, regex: '\buptime\b', ci: true }
+      response:
+        headers: { Content-Type: "text/plain; charset=utf-8" }
+        body: "{{canned.uptime}}"
+    - when: { in: request, regex: '\bwhoami\b', ci: true }
+      response:
+        headers: { Content-Type: "text/plain; charset=utf-8" }
+        body: "root\n"
 expect: ["uid=0(root)"]
