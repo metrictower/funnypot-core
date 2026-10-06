@@ -53,6 +53,10 @@ branch:
       response:
         headers: { Content-Type: "text/plain; charset=utf-8" }
         body: "{{canned.uptime}}"
+    - when: { in: request, regex: '\benv\b', ci: true }
+      response:
+        headers: { Content-Type: "text/plain; charset=utf-8" }
+        body: "{{canned.env}}"
     - when: { in: request, regex: 'uname|os\.name|os\.version|getproperty\s*\(\s*.os', ci: true }
       response:
         headers: { Content-Type: "text/plain; charset=utf-8" }

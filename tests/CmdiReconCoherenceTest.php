@@ -74,6 +74,20 @@ final class CmdiReconCoherenceTest extends TestCase
         self::assertStringNotContainsString('uid=0', $b);
     }
 
+    public function test_env_returns_key_value_pairs_not_a_uid(): void
+    {
+        $b = $this->body('x=;env');
+        self::assertStringContainsString('PATH=', $b);
+        self::assertStringNotContainsString('uid=0', $b, 'env must not print a uid line');
+    }
+
+    public function test_benign_env_param_is_not_a_command(): void
+    {
+        // The (?![=\w]) guard: `&env=prod` is a param key, not a shell `;env`, so it must not fold an attack.
+        $r = $this->engine()->respond(new RequestContext('GET', '/a', 'a=1&env=prod', [], null, 'x.test'));
+        self::assertTrue($r === null || strpos((string) $r->body, 'PATH=') === false, 'a benign env= param must not serve env output');
+    }
+
     public function test_cat_passwd_is_still_answered_by_the_lfi_rule(): void
     {
         // Precedence unchanged: `;cat /etc/passwd` is owned by attack-lfi-unix, not the cmdi oracle.

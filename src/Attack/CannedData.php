@@ -97,6 +97,8 @@ final class CannedData
                 return self::uname($seed);
             case 'uptime':
                 return self::uptime($seed);
+            case 'env':
+                return self::env($seed);
             case 'windir':
                 return self::winDir($seed);
             case 'winsysteminfo':
@@ -251,6 +253,27 @@ final class CannedData
         }
 
         return $out;
+    }
+
+    /** `env` — the environment as the `env`/`printenv` COMMAND prints it (newline KEY=VAL), distinct from
+     *  {@see environ} which is the NUL-separated /proc/<pid>/environ file format. Seeded, inert. */
+    public static function env(int $seed): string
+    {
+        $leaf = SubSeed::pick(['html', 'public', 'current', 'htdocs', 'app', 'web'], $seed, SubSeed::NS_CANNED, 'env|pwd');
+        $vars = [
+            'USER=www-data',
+            'HOME=/var/www',
+            'PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin',
+            'PWD=/var/www/' . $leaf,
+            'SHELL=/usr/sbin/nologin',
+            'LANG=C.UTF-8',
+            'SHLVL=1',
+            'HOSTNAME=' . rtrim(self::hostname($seed), "\n"),
+        ];
+        /** @var list<string> $vars */
+        $vars = SubSeed::permute($vars, $seed, SubSeed::NS_CANNED, 'env|order');
+
+        return implode("\n", $vars) . "\n";
     }
 
     /** `pwd` — a plausible seeded webroot working directory. */

@@ -12,7 +12,7 @@ tags: [attack, rce, command-injection]
 # (`;cat passwd`, `;ls secret`) is still detected. FP-0581.
 match:
   - in: request
-    regex: '(?:[;|&\n`]|\$\(|%0a|%7c|%26)\s*(?:(?:id|whoami|uname|pwd|ifconfig|ps|uptime)(?![=\w])|cat\s|ls\s)'
+    regex: '(?:[;|&\n`]|\$\(|%0a|%7c|%26)\s*(?:(?:id|whoami|uname|pwd|ifconfig|ps|uptime|env)(?![=\w])|cat\s|ls\s)'
 response:
   headers:
     Content-Type: "text/plain; charset=utf-8"
@@ -45,6 +45,10 @@ branch:
       response:
         headers: { Content-Type: "text/plain; charset=utf-8" }
         body: "{{canned.uptime}}"
+    - when: { in: request, regex: '\benv\b', ci: true }
+      response:
+        headers: { Content-Type: "text/plain; charset=utf-8" }
+        body: "{{canned.env}}"
     - when: { in: request, regex: '\bwhoami\b', ci: true }
       response:
         headers: { Content-Type: "text/plain; charset=utf-8" }
