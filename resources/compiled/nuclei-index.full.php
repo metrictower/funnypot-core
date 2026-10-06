@@ -13,11 +13,11 @@ return array (
     'license' => 'MIT (c) 2025 ProjectDiscovery, Inc.',
     'upstream_tag' => '2ec914123864439c3618e7e9ae72d32d0eb56df7',
     'upstream_sha' => '2ec914123864439c3618e7e9ae72d32d0eb56df7',
-    'source_tree' => '50c73ab6fc6c401cdc90f8343fc405d281cde9679f0d2631d0bea370854d7911',
+    'source_tree' => '57195cf40bc1a4b9ee4e4422b19f8e920407b75e5511e08b0444fae79e5d9c2c',
     'templates_seen' => 11196,
     'templates_in' => 6363,
     'templates_indexed' => 6535,
-    'route_keys' => 5409,
+    'route_keys' => 5410,
     'multi_bundle_keys' => 277,
     'largest_bundle_count' => 1324,
     'persona_cap' => 
@@ -314186,6 +314186,33 @@ a</title>',
       ),
     ),
     'GET /auth/token' => 
+    array (
+      'b' => 
+      array (
+        0 => 
+        array (
+          's' => 401,
+          'bw' => 
+          array (
+            0 => '"title":',
+            1 => '"detail":',
+          ),
+          'nf' => 
+          array (
+          ),
+          'pid' => 'route-surface-auth',
+          'sev' => 'info',
+          'sig' => 0,
+          'amb' => 0,
+          't' => 
+          array (
+            0 => 'route-surface-auth',
+          ),
+          'w' => 100000,
+        ),
+      ),
+    ),
+    'GET /auth/userinfo' => 
     array (
       'b' => 
       array (

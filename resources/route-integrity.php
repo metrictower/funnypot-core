@@ -162,5 +162,19 @@ return array(
             'path' => '/wp-admin/css/install.min.css',
             'reason' => 'root-absolute versioned asset href — the version_by_css disclosure channel a scanner reads the version from; the honeypot serves no such asset so a follow-up GET 404s — correct link shape, owning the asset would be a separate decoy',
         ),
+        // FP-0379: /auth/userinfo has TWO intentional, priority-ordered claimants (a new_page shadow, not a
+        // corpus one). route-surface-auth (405, new_page) supplies the attackEmulation-OFF 401 problem+json
+        // BASELINE so the endpoint 395 advertises always resolves (the surface-graph no-partial-tree-tell gate
+        // runs with attack emulation off). attack-oidc-userinfo-accept (123) owns_path the same path, so when
+        // attack emulation is on it runs ahead of the new_page store (matchOnOwnedPath Tier-1) and UPGRADES a
+        // bearer-bearing request to the 200 almost-admin; a bearer-less request falls to the same 401. The two
+        // never disagree on the baseline, so the shadow is intentional (the FP-0407 priority-ordered-pair shape).
+        array(
+            'check' => 'shadow',
+            'a' => 'attack-oidc-userinfo-accept',
+            'b' => 'route-surface-auth',
+            'path' => '/auth/userinfo',
+            'reason' => 'intentional new_page shadow: route-surface-auth (405) is the attackEmulation-OFF 401 baseline so the 395-advertised /auth/userinfo always resolves; attack-oidc-userinfo-accept owns_path-upgrades a bearer request to the 200 almost-admin when attack emulation is on (owns_path precedes the store), bearer-less falls to the same 401',
+        ),
     ),
 );

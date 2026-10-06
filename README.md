@@ -662,12 +662,12 @@ at build time and not listed here. Every response stays **inert** (emulates outp
 
 | Metric | Count |
 |---|---|
-| Authored decoy records | 458 |
-| Authored families | 118 |
-| &nbsp;&nbsp;tier `attack` | 129 |
+| Authored decoy records | 460 |
+| Authored families | 119 |
+| &nbsp;&nbsp;tier `attack` | 130 |
 | &nbsp;&nbsp;tier `attack-ai` | 10 |
 | &nbsp;&nbsp;tier `attack-crs` | 4 |
-| &nbsp;&nbsp;tier `new-page` | 313 |
+| &nbsp;&nbsp;tier `new-page` | 314 |
 | &nbsp;&nbsp;tier `param` | 2 |
 | Corpus families (nuclei-inversion) | 2611 |
 | Corpus route keys | 5134 |

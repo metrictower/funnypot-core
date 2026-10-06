@@ -2,10 +2,14 @@ id: route-surface-auth
 priority: 405
 # Brand-new page (FP-0233): the auth archetype — an RFC 7807 problem+json 401, the shape the OIDC
 # discovery document (395) and the OpenAPI docs point their auth endpoints at. Maps to /auth,
-# /auth/login, /auth/token and /api/v2/auth/login (all GET here; the corpus already carries the
-# POST forms). /api/v2/auth/login stays COMPILED for harmless extra coverage, but since FP-0278 the
-# 345 /api/v2 index links /auth/login instead (no robots root covers /api/v2/auth/login), so nothing
-# advertises /api/v2/auth/login — it is reachable-if-guessed, never a linked-but-unadvertised tell.
+# /auth/login, /auth/token, /auth/userinfo and /api/v2/auth/login (all GET here; the corpus already
+# carries the POST forms). /api/v2/auth/login stays COMPILED for harmless extra coverage, but since
+# FP-0278 the 345 /api/v2 index links /auth/login instead (no robots root covers /api/v2/auth/login),
+# so nothing advertises /api/v2/auth/login — it is reachable-if-guessed, never a linked-but-unadvertised
+# tell. /auth/userinfo (FP-0379) is the OIDC userinfo endpoint 395 now advertises; this 401 is its
+# attackEmulation-OFF BASELINE so the advertised path always resolves (the surface-graph gate runs with
+# attack emulation off). When attack emulation is on, 123-oidc-userinfo-accept owns_path-UPGRADES a
+# bearer-bearing request to a 200 almost-admin; a bearer-less request falls back to this same 401.
 # Inert: GET, 401, no request byte reflected, fully persona-seeded (serves from any
 # origin). A 401 is the honest answer an unauthenticated GET of an auth endpoint gives — so the
 # discovery links resolve to a real inert decoy, not a 404 hole. Content-Type is the problem+json
@@ -13,7 +17,7 @@ priority: 405
 # taunt. The status value is a bare 3-digit code (no 6-digit run).
 new_page:
   method: GET
-  paths: ['/auth', '/auth/login', '/auth/token', '/api/v2/auth/login']
+  paths: ['/auth', '/auth/login', '/auth/token', '/auth/userinfo', '/api/v2/auth/login']
   sig: 0
   status: 401
   severity: info
