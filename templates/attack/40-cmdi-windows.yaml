@@ -22,4 +22,17 @@ response:
        IPv4 Address. . . . . . . . . . . : 192.0.2.15
        Subnet Mask . . . . . . . . . . . : 255.255.255.0
        Default Gateway . . . . . . . . . : 192.0.2.1
+# FP-0597: branch dir/systeminfo to their OWN coherent seeded output (before, every command served the
+# ipconfig body — `dir` returning "Windows IP Configuration" is a tell). ipconfig stays the base.
+behavior: branch
+branch:
+  cases:
+    - when: { in: request, regex: '\bdir\b', ci: true }
+      response:
+        headers: { Content-Type: "text/plain; charset=utf-8" }
+        body: "{{canned.windir}}"
+    - when: { in: request, regex: '\bsysteminfo\b', ci: true }
+      response:
+        headers: { Content-Type: "text/plain; charset=utf-8" }
+        body: "{{canned.winsysteminfo}}"
 expect: ["Windows IP Configuration"]
