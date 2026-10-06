@@ -1,0 +1,28 @@
+id: route-vuln-lodash-4174
+priority: 443
+# FP-0397 Part 1: Lodash 4.17.4 (retire.js/OSV-flagged — CVE-2019-10744 prototype pollution via
+# defaultsDeep) at the canonical vendor paths. Genuine lodash license banner + the `lodash.VERSION`
+# marker retire.js reads. See 441-vuln-jquery for the pattern.
+new_page:
+  method: GET
+  paths: ['/js/lodash.min.js', '/js/lodash-4.17.4.min.js', '/assets/vendor/lodash.js']
+  sig: 0
+  status: 200
+  severity: medium
+  tags: [exposure, javascript, vulnerable-library, retirejs, lodash]
+  name: 'Vulnerable Lodash 4.17.4 asset'
+  body_words: ['lodash', 'lodash.com/license']
+response:
+  headers:
+    Content-Type: "application/javascript; charset=utf-8"
+  body: |
+    /**
+     * @license
+     * Lodash <https://lodash.com/>
+     * Copyright OpenJS Foundation and other contributors <https://openjsf.org/>
+     * Released under MIT license <https://lodash.com/license>
+     */
+    ;(function(){var undefined;var VERSION="4.17.4";var root=typeof self=="object"&&self.self===self&&self||typeof global=="object"&&global.global===global&&global||this;function lodash(value){}lodash.VERSION=VERSION;if(typeof define=="function"&&typeof define.amd=="object"&&define.amd){root._=lodash;define(function(){return lodash})}else{(root.lodash=lodash)._=lodash}}.call(this));
+expect:
+  - 'lodash.com/license'
+  - 'VERSION="4.17.4"'

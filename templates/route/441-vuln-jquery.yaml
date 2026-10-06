@@ -1,0 +1,29 @@
+id: route-vuln-jquery-182
+priority: 441
+# FP-0397 Part 1: a vulnerable-JavaScript asset decoy. Serves jQuery 1.8.2 (an OSV/retire.js-flagged
+# version — CVE-2015-9251 cross-site scripting, CVE-2019-11358 prototype pollution) at the canonical
+# vendor paths so retire.js / OWASP ZAP / Burp confirm a vulnerable library. Exactly the shipped
+# vulnerable-lockfile pattern (FP-0399): the version is the REAL flagged literal (the payload) and the
+# header is the GENUINE jQuery license banner — a product-intrinsic string, NOT a scanner-invented
+# signature (invariant #1 OK). Content-Type application/javascript (invariant #5). A static, byte-identical
+# body is correct here: a real CDN jQuery is identical everywhere, so no per-deploy variance is wanted.
+# retire.js reads the header banner + the `jQuery.fn.jquery` version marker; it never executes the file,
+# so a short plausible minified stub suffices (the full library is not vendored — golden rule).
+new_page:
+  method: GET
+  paths: ['/js/jquery-1.8.2.min.js', '/js/jquery.min.js', '/assets/vendor/jquery.min.js']
+  sig: 0
+  status: 200
+  severity: medium
+  tags: [exposure, javascript, vulnerable-library, retirejs, jquery]
+  name: 'Vulnerable jQuery 1.8.2 asset'
+  body_words: ['jQuery v1.8.2', 'jquery.org/license']
+response:
+  headers:
+    Content-Type: "application/javascript; charset=utf-8"
+  body: |
+    /*! jQuery v1.8.2 jquery.com | jquery.org/license */
+    (function(e,t){var n,r,i=typeof t,o=e.location,a=e.document,s=a.documentElement,l=e.jQuery,u=e.$,c={},p=[],f="1.8.2",d=p.concat,h=p.push,g=p.slice,m=p.indexOf,y=c.toString,v=c.hasOwnProperty,b=f.trim,x=function(e,t){return new x.fn.init(e,t,r)};x.fn=x.prototype={jquery:"1.8.2",constructor:x,init:function(e,n,r){var i,o,a,s;if(!e)return this;if(e.nodeType){this.context=this[0]=e;this.length=1;return this}},length:0};x.fn.init.prototype=x.fn;e.jQuery=e.$=x;typeof define==="function"&&define.amd&&define("jquery",[],function(){return x})})(window);
+expect:
+  - 'jQuery v1.8.2'
+  - 'jquery:"1.8.2"'
