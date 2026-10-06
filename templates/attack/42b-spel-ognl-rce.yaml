@@ -22,6 +22,10 @@ response:
     Content-Type: "text/plain; charset=utf-8"
   body: "{{canned.uid}}"
 expect: ["uid=0(root)"]
+# FP-0578: branch the extracted recon command to COHERENT canned output. Before, every command but
+# cat-passwd/uname/whoami fell to the base uid=0 response — so `exec('ls')`/`ps`/`hostname`/`pwd` returned
+# a uid line, an obvious tell (ls never prints a uid). The shared CannedData recon outputs are seeded
+# (per-deploy) and inert. The base response (id / a bare gadget) stays uid=0 — the RCE-confirm marker.
 behavior: branch
 branch:
   cases:
@@ -29,10 +33,30 @@ branch:
       response:
         headers: { Content-Type: "text/plain; charset=utf-8" }
         body: "{{canned.passwd}}"
+    - when: { in: request, regex: '\bls\b', ci: true }
+      response:
+        headers: { Content-Type: "text/plain; charset=utf-8" }
+        body: "{{canned.ls}}"
+    - when: { in: request, regex: '\bps\b', ci: true }
+      response:
+        headers: { Content-Type: "text/plain; charset=utf-8" }
+        body: "{{canned.ps}}"
+    - when: { in: request, regex: '\bhostname\b', ci: true }
+      response:
+        headers: { Content-Type: "text/plain; charset=utf-8" }
+        body: "{{canned.hostname}}"
+    - when: { in: request, regex: '\bpwd\b', ci: true }
+      response:
+        headers: { Content-Type: "text/plain; charset=utf-8" }
+        body: "{{canned.pwd}}"
+    - when: { in: request, regex: '\buptime\b', ci: true }
+      response:
+        headers: { Content-Type: "text/plain; charset=utf-8" }
+        body: "{{canned.uptime}}"
     - when: { in: request, regex: 'uname|os\.name|os\.version|getproperty\s*\(\s*.os', ci: true }
       response:
         headers: { Content-Type: "text/plain; charset=utf-8" }
-        body: "Linux\n"
+        body: "{{canned.uname}}"
     - when: { in: request, regex: '\bwhoami\b', ci: true }
       response:
         headers: { Content-Type: "text/plain; charset=utf-8" }

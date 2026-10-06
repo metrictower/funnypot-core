@@ -64,6 +64,20 @@ final class SpelOgnlRceOracleTest extends TestCase
         }
     }
 
+    public function test_recon_commands_return_coherent_output_not_a_uid_tell(): void
+    {
+        // FP-0578: ls/ps/hostname/pwd/uptime must NOT return the uid=0 line (that tell is what this fixes).
+        $ls = (string) $this->probe("T(java.lang.Runtime).getRuntime().exec('ls')")->body;
+        self::assertStringNotContainsString('uid=0', $ls, 'ls must not print a uid line');
+        $ps = (string) $this->probe("T(java.lang.Runtime).getRuntime().exec('ps aux')")->body;
+        self::assertStringContainsString('USER', $ps);
+        self::assertStringNotContainsString('uid=0', $ps);
+        self::assertStringNotContainsString('uid=0', (string) $this->probe("T(java.lang.Runtime).getRuntime().exec('hostname')")->body);
+        self::assertStringStartsWith('/var/www/', (string) $this->probe("T(java.lang.Runtime).getRuntime().exec('pwd')")->body);
+        // uname -a is now a full line (hostname + kernel + arch), still carrying the 'Linux' witness.
+        self::assertStringContainsString('x86_64', (string) $this->probe("@java.lang.Runtime@getRuntime().exec('uname -a')")->body);
+    }
+
     public function test_command_branches(): void
     {
         self::assertStringContainsString('root', (string) $this->probe("T(java.lang.Runtime).getRuntime().exec('whoami')")->body);

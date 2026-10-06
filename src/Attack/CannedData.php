@@ -87,6 +87,16 @@ final class CannedData
                 return self::environ($seed);
             case 'uid':
                 return self::uid($seed);
+            case 'pwd':
+                return self::pwd($seed);
+            case 'ls':
+                return self::ls($seed);
+            case 'ps':
+                return self::ps($seed);
+            case 'uname':
+                return self::uname($seed);
+            case 'uptime':
+                return self::uptime($seed);
             case 'winini':
                 return self::winini($seed);
             case 'k8s_sa_unsigned':
@@ -237,6 +247,66 @@ final class CannedData
         }
 
         return $out;
+    }
+
+    /** `pwd` — a plausible seeded webroot working directory. */
+    public static function pwd(int $seed): string
+    {
+        $leaf = SubSeed::pick(['html', 'public', 'current', 'htdocs', 'app', 'web', 'sites/default', 'releases/current'], $seed, SubSeed::NS_CANNED, 'pwd|leaf');
+
+        return '/var/www/' . $leaf . "\n";
+    }
+
+    /** `ls` — a plausible seeded webroot listing (default columnar, space-joined), inert filenames only. */
+    public static function ls(int $seed): string
+    {
+        $pool = ['index.php', 'index.html', 'config.php', '.htaccess', 'wp-config.php', 'assets', 'uploads',
+            'includes', 'vendor', 'README.md', 'robots.txt', 'favicon.ico', 'css', 'js', 'images', 'api'];
+        $n = 5 + SubSeed::index($seed, SubSeed::NS_CANNED, 'ls|n', 4); // 5-8 entries
+        $items = SubSeed::subset($pool, $n, $seed, SubSeed::NS_CANNED, 'ls|items');
+
+        return implode('  ', $items) . "\n";
+    }
+
+    /** `ps aux` — a plausible seeded process table (web stack), inert, seeded PIDs. */
+    public static function ps(int $seed): string
+    {
+        $pid = static function (string $f) use ($seed): int {
+            return 100 + SubSeed::index($seed, SubSeed::NS_CANNED, 'ps|' . $f, 9000);
+        };
+        $rows = [
+            'root         1  0.0  0.1 168940 11600 ?        Ss   Jan01   0:14 /sbin/init',
+            'root      ' . sprintf('%6d', $pid('sshd')) . '  0.0  0.1  15852  9088 ?        Ss   Jan01   0:00 /usr/sbin/sshd -D',
+            'root      ' . sprintf('%6d', $pid('nginx')) . '  0.0  0.2 143172 14240 ?        Ss   Jan01   0:03 nginx: master process',
+            'www-data  ' . sprintf('%6d', $pid('nginxw')) . '  0.0  0.3 143600 24180 ?        S    Jan01   0:21 nginx: worker process',
+            'www-data  ' . sprintf('%6d', $pid('fpm')) . '  0.2  1.1 262144 93112 ?        S    Jan01   1:42 php-fpm: pool www',
+        ];
+
+        return "USER         PID %CPU %MEM    VSZ   RSS TTY      STAT START   TIME COMMAND\n" . implode("\n", $rows) . "\n";
+    }
+
+    /** `uname -a` — a full, plausible seeded kernel line (hostname from {@see hostname}). */
+    public static function uname(int $seed): string
+    {
+        $host = rtrim(self::hostname($seed), "\n");
+        $kernel = SubSeed::pick(['5.15.0-91-generic', '5.4.0-169-generic', '5.10.0-27-amd64', '6.1.0-17-amd64', '5.15.0-105-generic'], $seed, SubSeed::NS_CANNED, 'uname|kernel');
+        $build = 1 + SubSeed::index($seed, SubSeed::NS_CANNED, 'uname|build', 200);
+
+        return 'Linux ' . $host . ' ' . $kernel . ' #' . $build . '-Ubuntu SMP x86_64 x86_64 x86_64 GNU/Linux' . "\n";
+    }
+
+    /** `uptime` / `w` header — a plausible seeded load line. */
+    public static function uptime(int $seed): string
+    {
+        $days = 3 + SubSeed::index($seed, SubSeed::NS_CANNED, 'uptime|days', 400);
+        $h = SubSeed::index($seed, SubSeed::NS_CANNED, 'uptime|h', 24);
+        $m = SubSeed::index($seed, SubSeed::NS_CANNED, 'uptime|m', 60);
+        $la = static function (string $f) use ($seed): string {
+            return sprintf('0.%02d', SubSeed::index($seed, SubSeed::NS_CANNED, 'uptime|' . $f, 60));
+        };
+
+        return sprintf(" %02d:%02d:%02d up %d days, %2d:%02d,  1 user,  load average: %s, %s, %s\n",
+            $h, $m, SubSeed::index($seed, SubSeed::NS_CANNED, 'uptime|s', 60), $days, $h, $m, $la('1'), $la('5'), $la('15'));
     }
 
     /** win.ini — Windows, out of the ticket's field list; unchanged (the `[extensions]` marker). */
