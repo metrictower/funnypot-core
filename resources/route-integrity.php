@@ -141,6 +141,12 @@ return array(
             'path' => '/api/v1/validate/code',
             'reason' => 'owns_path override of the Langflow CVE-2025-3248 detection stub: serves the command output inside the real validate/code envelope (function.errors[] — passwd-style for the nuclei KEV probe, uid= for a whoami/id probe) the corpus stub lacks at the non-critical ceiling; classification carries the same CVE tag, only the served response is new',
         ),
+        array(
+            'a' => 'attack-memos-ssrf',
+            'b' => 'corpus:cve2025',
+            'path' => '/api/v1/markdown/link:metadata',
+            'reason' => 'owns_path override of the Memos CVE-2025-22952 detection stub (FP-0384): the corpus stub only classifies and 404s, so this adds the actual SSRF response — the Go gRPC connection-refused differential the Nettacker detector keys on, plus a behavior:branch that pivots a link targeting 169.254.169.254 into the dead-cred IMDS bodies. Classification carries the same CVE tag; only the served response is new.',
+        ),
         // FP-0394: the /?feed=rss2 responder and the Next.js RSC responder both own '/', so the lint
         // sees a same-tier collision. They are mutually exclusive by query (feed=rss2 vs _rsc=) and a
         // plain GET / matches neither, so matchRule (first full match wins) never double-serves. The

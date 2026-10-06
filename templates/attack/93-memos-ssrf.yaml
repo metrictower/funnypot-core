@@ -22,7 +22,7 @@ owns_path:
   - '/api/v1/markdown/link:metadata'
 match:
   - in: path
-    regex: '^/api/v1/markdown/link:metadata$'
+    regex: '^/api/v1/markdown/link:metadata/*$'
     ci: true
   # Capture the target URL (1), host (2) and optional port (3) as numbered groups off the raw query surface.
   # Bounded quantifiers (never +) so a huge query can't inflate the error body into a tell. Charset has no

@@ -190,7 +190,7 @@ mindmap
 | lfi | 5 | attack:4 attack-crs:1 | 0 | 0 | high | &mdash; |
 | llm | 1 | attack-ai:1 | 1 | 0 | high | accepted |
 | log-disclosure | 20 | new-page:20 | 20 | 0 | high | &mdash; |
-| memos | 1 | attack:1 | 1 | 0 | high | fail |
+| memos | 1 | attack:1 | 1 | 0 | high | accepted |
 | nagios | 1 | attack:1 | 1 | 0 | low | info |
 | netgear | 1 | attack:1 | 1 | 0 | critical | &mdash; |
 | nextjs | 2 | attack:1 new-page:1 | 2 | 0 | high | accepted, info |
