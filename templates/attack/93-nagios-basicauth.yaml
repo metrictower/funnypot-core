@@ -1,0 +1,43 @@
+id: attack-nagios-basicauth
+severity: low
+priority: 93
+tags: [attack, nagios, basic-auth, 401, panel, login, never-authenticate]
+# FP-0391: a never-validating HTTP Basic-auth challenge for Nagios' /nagios/ (the Basic-auth panel
+# deferred from WP-Phase-2b). A real Nagios front-end (Apache-protected) answers an uncredentialed OR
+# wrongly-credentialed request with `401 WWW-Authenticate: Basic realm="Nagios Access"` and the classic
+# Apache "Authorization Required" body. The corpus served a bare 401 there with NO WWW-Authenticate header
+# (incoherent — a 401 with no challenge tells a scanner the auth is faked). This owns_path rule serves the
+# authentic challenge.
+#
+# NEVER AUTHENTICATES: no accept path, no branch — any request (with or without an Authorization header,
+# any pair) gets the SAME 401 challenge, so it is not a differential oracle. No Set-Cookie, no redirect, no
+# auth-success witness. Zero execution, no reflection. owns_path claims /nagios; the path match tolerates
+# any trailing-slash count so a claimed variant never declines back onto the old bundle. Status is
+# template-chosen (the product's real answer); Content-Type is the Apache iso-8859-1 error page. The realm
+# string is Nagios' own, not a scanner signature.
+owns_path: [/nagios/]
+match:
+  - in: path
+    regex: '^/nagios/*$'
+    ci: true
+status: 401
+response:
+  headers:
+    Content-Type: "text/html; charset=iso-8859-1"
+    WWW-Authenticate: 'Basic realm="Nagios Access"'
+  body: |
+    <!DOCTYPE HTML PUBLIC "-//IETF//DTD HTML 2.0//EN">
+    <html><head>
+    <title>401 Authorization Required</title>
+    </head><body>
+    <h1>Authorization Required</h1>
+    <p>This server could not verify that you
+    are authorized to access the document
+    requested.  Either you supplied the wrong
+    credentials (e.g., bad password), or your
+    browser doesn't understand how to supply
+    the credentials required.</p>
+    </body></html>
+expect:
+  - 'Authorization Required'
+  - 'bad password'
