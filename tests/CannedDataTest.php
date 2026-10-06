@@ -178,6 +178,7 @@ final class CannedDataTest extends TestCase
         self::assertSame(CannedData::ps($seed), CannedData::render('ps', $seed));
         self::assertSame(CannedData::uname($seed), CannedData::render('uname', $seed));
         self::assertSame(CannedData::uptime($seed), CannedData::render('uptime', $seed));
+        self::assertSame(CannedData::env($seed), CannedData::render('env', $seed));
         self::assertSame(CannedData::WININI, CannedData::render('winini', $seed));
         self::assertSame(CannedData::K8S_SA_UNSIGNED, CannedData::render('k8s_sa_unsigned', $seed));
         // Unknown key -> null so the renderer's `|`-alternatives still cascade.
