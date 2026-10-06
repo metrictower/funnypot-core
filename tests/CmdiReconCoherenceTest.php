@@ -79,4 +79,26 @@ final class CmdiReconCoherenceTest extends TestCase
         // Precedence unchanged: `;cat /etc/passwd` is owned by attack-lfi-unix, not the cmdi oracle.
         self::assertStringContainsString('root:x:0:0:', $this->body('x=;cat%20/etc/passwd'));
     }
+
+    // --- Windows cmdi oracle (40-cmdi-windows): dir/systeminfo no longer serve the ipconfig body ---
+
+    public function test_windows_dir_returns_a_listing_not_ipconfig(): void
+    {
+        $b = $this->body('x=&dir');
+        self::assertStringContainsString('Directory of', $b);
+        self::assertStringNotContainsString('Windows IP Configuration', $b, 'dir must not return the ipconfig body');
+    }
+
+    public function test_windows_systeminfo_returns_a_host_summary(): void
+    {
+        $b = $this->body('x=&systeminfo');
+        self::assertStringContainsString('Host Name:', $b);
+        self::assertStringContainsString('OS Name:', $b);
+        self::assertStringNotContainsString('Windows IP Configuration', $b);
+    }
+
+    public function test_windows_ipconfig_still_returns_ipconfig(): void
+    {
+        self::assertStringContainsString('Windows IP Configuration', $this->body('x=&ipconfig'));
+    }
 }

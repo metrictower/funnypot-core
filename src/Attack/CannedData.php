@@ -97,6 +97,10 @@ final class CannedData
                 return self::uname($seed);
             case 'uptime':
                 return self::uptime($seed);
+            case 'windir':
+                return self::winDir($seed);
+            case 'winsysteminfo':
+                return self::winSysteminfo($seed);
             case 'winini':
                 return self::winini($seed);
             case 'k8s_sa_unsigned':
@@ -307,6 +311,46 @@ final class CannedData
 
         return sprintf(" %02d:%02d:%02d up %d days, %2d:%02d,  1 user,  load average: %s, %s, %s\n",
             $h, $m, SubSeed::index($seed, SubSeed::NS_CANNED, 'uptime|s', 60), $days, $h, $m, $la('1'), $la('5'), $la('15'));
+    }
+
+    /** Windows `dir` — a plausible seeded IIS webroot listing in the native `dir` format. */
+    public static function winDir(int $seed): string
+    {
+        $ser = strtoupper(SubSeed::chars($seed, SubSeed::NS_CANNED, 'windir|serial', '0123456789ABCDEF', 8));
+        $pool = ['web.config', 'index.html', 'global.asax', 'Default.aspx', 'bin', 'App_Data', 'Scripts', 'Content', 'uploads', 'favicon.ico'];
+        $n = 4 + SubSeed::index($seed, SubSeed::NS_CANNED, 'windir|n', 4);
+        $items = SubSeed::subset($pool, $n, $seed, SubSeed::NS_CANNED, 'windir|items');
+        $rows = " Volume in drive C has no label.\r\n Volume Serial Number is " . substr($ser, 0, 4) . '-' . substr($ser, 4, 4)
+            . "\r\n\r\n Directory of C:\\inetpub\\wwwroot\r\n\r\n"
+            . "01/15/2024  09:42 AM    <DIR>          .\r\n01/15/2024  09:42 AM    <DIR>          ..\r\n";
+        $files = 0;
+        foreach ($items as $it) {
+            if (strpos($it, '.') === false) {
+                $rows .= "01/15/2024  09:42 AM    <DIR>          " . $it . "\r\n";
+            } else {
+                $sz = 256 + SubSeed::index($seed, SubSeed::NS_CANNED, 'windir|sz|' . $it, 60000);
+                $rows .= sprintf("01/15/2024  09:42 AM    %10s %s\r\n", number_format($sz), $it);
+                $files++;
+            }
+        }
+
+        return $rows . sprintf("%15d File(s) %18s bytes\r\n%15d Dir(s)  %18s bytes free\r\n", $files, number_format(1024 * $files), 2, '15,728,640');
+    }
+
+    /** Windows `systeminfo` header — a plausible seeded host summary. */
+    public static function winSysteminfo(int $seed): string
+    {
+        $host = strtoupper(SubSeed::pick(['WEB01', 'APP02', 'IIS03', 'SRV04', 'WIN05'], $seed, SubSeed::NS_CANNED, 'winsi|host'));
+        $osv = SubSeed::pick(['10.0.17763 N/A Build 17763', '10.0.19042 N/A Build 19042', '10.0.14393 N/A Build 14393'], $seed, SubSeed::NS_CANNED, 'winsi|osv');
+        $osname = SubSeed::pick(['Microsoft Windows Server 2019 Datacenter', 'Microsoft Windows Server 2016 Standard', 'Microsoft Windows Server 2022 Datacenter'], $seed, SubSeed::NS_CANNED, 'winsi|osn');
+
+        return "Host Name:                 " . $host . "\r\n"
+            . "OS Name:                   " . $osname . "\r\n"
+            . "OS Version:                " . $osv . "\r\n"
+            . "OS Manufacturer:           Microsoft Corporation\r\n"
+            . "System Manufacturer:       VMware, Inc.\r\n"
+            . "System Type:               x64-based PC\r\n"
+            . "Total Physical Memory:     8,192 MB\r\n";
     }
 
     /** win.ini — Windows, out of the ticket's field list; unchanged (the `[extensions]` marker). */
