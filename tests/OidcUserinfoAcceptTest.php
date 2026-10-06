@@ -26,7 +26,7 @@ final class OidcUserinfoAcceptTest extends TestCase
         return require __DIR__ . '/../resources/compiled/nuclei-index.full.php';
     }
 
-    private function engine(bool $attackEmulation): Honeypot
+    private function engine(bool $attackEmulation, string $style = Style::REALISTIC, bool $promptInjectionSeeding = false): Honeypot
     {
         $cfg = new Config(
             'respond',
@@ -34,11 +34,12 @@ final class OidcUserinfoAcceptTest extends TestCase
             'matched-only',
             static fn (RequestContext $r): string => 'fixed',
             'coherent',
-            Style::REALISTIC,
+            $style,
             'high',
             65536, 0, 0, false, null, null, null, 'fixed'
         );
         $cfg->attackEmulation = $attackEmulation;
+        $cfg->promptInjectionSeeding = $promptInjectionSeeding;
 
         return new Honeypot(new PhpArrayStore(self::index()), $cfg);
     }
@@ -176,5 +177,41 @@ final class OidcUserinfoAcceptTest extends TestCase
             $r = $this->get($p, [], false);
             self::assertSame(401, $r->status ?? null, "{$p} stays the inert 401 baseline");
         }
+    }
+
+    /**
+     * Code-review M1 regression lock: a bearer-less /auth/userinfo must be served by the SAME 405 new_page
+     * baseline (via RouteTemplateEmulator) in every mode, so its taunt/injection carrier stays byte-coherent
+     * with its /auth/* siblings. The pre-fix bug (bearer in a branch, path-only top match) served the attack
+     * rule's own base 401 via TemplateAttackEmulator with NO carrier → a shorter, structurally odd body under
+     * promptInjectionSeeding or TAUNT, a fingerprint tell on the very endpoint 395 advertises.
+     *
+     * @dataProvider carrierModes
+     */
+    public function test_bearerless_userinfo_is_byte_coherent_with_siblings(string $style, bool $injection): void
+    {
+        $on = $this->engine(true, $style, $injection);
+        $off = $this->engine(false, $style, $injection);
+
+        $userinfoOn = (string) $on->respond(new RequestContext('GET', '/auth/userinfo', '', [], null, 'x.test'))->body;
+        $userinfoOff = (string) $off->respond(new RequestContext('GET', '/auth/userinfo', '', [], null, 'x.test'))->body;
+        $loginOn = (string) $on->respond(new RequestContext('GET', '/auth/login', '', [], null, 'x.test'))->body;
+
+        // The 200 upgrade must NOT be what a bearer-less request gets.
+        self::assertStringContainsString('"title": "Unauthorized"', $userinfoOn);
+        // Fix: bearer-less ON == bearer-less OFF (both the 405 baseline) — the pre-fix bug made these diverge.
+        self::assertSame($userinfoOff, $userinfoOn, "bearer-less /auth/userinfo must be identical ON vs OFF ({$style}, injection=" . ($injection ? '1' : '0') . ')');
+        // And it carries the same style treatment (length class) as a sibling served via the same emulator.
+        self::assertSame(strlen($loginOn), strlen($userinfoOn), 'bearer-less /auth/userinfo must get the same carrier bytes as /auth/login');
+    }
+
+    /** @return array<string,array{0:string,1:bool}> */
+    public static function carrierModes(): array
+    {
+        return [
+            'realistic+injection' => [Style::REALISTIC, true],
+            'taunt' => [Style::TAUNT, false],
+            'taunt+injection' => [Style::TAUNT, true],
+        ];
     }
 }

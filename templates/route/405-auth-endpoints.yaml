@@ -7,9 +7,11 @@ priority: 405
 # FP-0278 the 345 /api/v2 index links /auth/login instead (no robots root covers /api/v2/auth/login),
 # so nothing advertises /api/v2/auth/login — it is reachable-if-guessed, never a linked-but-unadvertised
 # tell. /auth/userinfo (FP-0379) is the OIDC userinfo endpoint 395 now advertises; this 401 is its
-# attackEmulation-OFF BASELINE so the advertised path always resolves (the surface-graph gate runs with
-# attack emulation off). When attack emulation is on, 123-oidc-userinfo-accept owns_path-UPGRADES a
-# bearer-bearing request to a 200 almost-admin; a bearer-less request falls back to this same 401.
+# canonical baseline for a bearer-less request in EVERY mode. With attack emulation off it is the only
+# claimant. With attack emulation on, 123-oidc-userinfo-accept owns_path and matches ONLY a bearer-bearing
+# request (serving the 200 almost-admin upgrade); a bearer-less request DECLINES that rule and falls through
+# to this same 401 baseline — served here via RouteTemplateEmulator, so its taunt/injection carrier stays
+# byte-coherent with /auth, /auth/login and /auth/token in every style (code-review M1).
 # Inert: GET, 401, no request byte reflected, fully persona-seeded (serves from any
 # origin). A 401 is the honest answer an unauthenticated GET of an auth endpoint gives — so the
 # discovery links resolve to a real inert decoy, not a 404 hole. Content-Type is the problem+json

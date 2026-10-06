@@ -18,64 +18,57 @@ tags: [attack, oidc, jwt, mock-auth, token-burn, cost-amplification]
 # public-only 396 surface; this grants only the fabricated dead-end JSON. Status is template-chosen (invariant
 # #5; no model-driven 3xx). Generic OIDC claims carry no scanner/matcher signature (invariant #1).
 #
-# TWO-CLAIMANT ARRANGEMENT (coherence gate, FP-0379 plan-review C1): the advertised /auth/userinfo must resolve
-# in BOTH attackEmulation modes. 405-auth-endpoints.yaml carries /auth/userinfo as a route-tier new_page 401
-# BASELINE (serves whether or not attack emulation is on — the surface-graph no-partial-tree-tell gate runs
-# with attackEmulation OFF). THIS attack template only UPGRADES: owns_path routes the path through
-# matchOnOwnedPath (Tier-1, before the new_page store lookup), so when attack emulation is on a bearer-bearing
-# request gets the 200 almost-admin and a bearer-less request falls to the SAME 401 as the baseline. The
-# new_page shadow (405 baseline + this owns_path upgrade on one path) is recorded in resources/route-integrity.php.
+# TWO-CLAIMANT ARRANGEMENT (coherence gate, FP-0379 plan-review C1 + code-review M1): the advertised
+# /auth/userinfo must resolve in BOTH attackEmulation modes, AND the bearer-less 401 must stay byte-coherent
+# with its /auth/* siblings under EVERY style (realistic / taunt / prompt-injection seeding). The 405
+# new_page owns the bearer-less 401 ENTIRELY: it is the attackEmulation-OFF baseline AND, when attack
+# emulation is on, THIS rule's top-level match requires the bearer, so a bearer-less request DECLINES the
+# owns_path rule and falls through (Honeypot::classifyContent — a declined owns_path rule is not a 404; it
+# resolves to the new_page store verdict) to that same 405 baseline, served via RouteTemplateEmulator with the
+# style's taunt/injection carrier applied — identically to /auth, /auth/login, /auth/token. This rule ONLY
+# supplies the bearer-bearing 200 upgrade (owns_path → matchOnOwnedPath Tier-1, before the store lookup). The
+# new_page shadow is recorded in resources/route-integrity.php.
 owns_path:
   - '/auth/userinfo'
+# Both conditions are ANDed: a request matches (and this rule serves the 200) ONLY when the path is
+# /auth/userinfo AND a JWT-shaped bearer is present. A bearer-less request fails the second condition, declines
+# the rule, and falls through to the 405 new_page 401 baseline (coherent in every style). The bearer test is a
+# PURE BOOLEAN GATE — no capture:true — so the 200 body below reflects ZERO attacker bytes.
 match:
-  # PATH-ONLY (ci, trailing-slash tolerant via PathNormalizer::ownershipKey). The bearer condition is NOT here
-  # — it lives in the branch below, so a bearer-less request still matches the path and falls to the 401 base.
+  # Path (ci, trailing-slash tolerant via PathNormalizer::ownershipKey — the owns_path variant-coverage rule).
   - in: path
     regex: '^/auth/userinfo/*$'
     ci: true
-status: 401
-# Base (bearer-less): the problem+json 401, byte-coherent with the 405 /auth/* baseline (type about:blank), so
-# an unauthenticated probe still looks correctly secured. Served when the branch case does not fire (NO default).
+  # ACCEPT-ANY-BEARER (the whole point): any JWT-shaped bearer — forged alg:none, wrong-key-signed, tampered —
+  # is accepted with NO signature/secret validation. ci so a lower-case `bearer` scheme still matches.
+  - in: header:authorization
+    regex: '^Bearer\s+[A-Za-z0-9._-]+'
+    ci: true
+status: 200
+# The "almost-admin" userinfo body: near-admin roles/scopes (billing-admin / reports:read) but never
+# super_admin or admin:*, plus _links into deeper decoy routes, so claim permutation always finds slightly
+# more. Every value is a persona/fake seeded constant — never a real identity, never a reflected attacker byte.
 response:
   headers:
-    Content-Type: "application/problem+json"
+    Content-Type: "application/json"
   body: |
     {
-    "type": "about:blank",
-    "title": "Unauthorized",
-    "status": 401,
-    "detail": "A valid bearer token is required to access this endpoint."
+      "sub": "{{fake.oidcsub:hex:32}}",
+      "name": "{{persona.user.admin.username}}",
+      "preferred_username": "{{persona.user.admin.username}}",
+      "email": "{{persona.user.admin.email}}",
+      "email_verified": true,
+      "org": "{{persona.company.name}}",
+      "roles": ["staff", "billing-admin", "reports-admin"],
+      "scope": "openid profile email reports:read billing:read",
+      "_links": {
+        "self": "https://{{persona.company.domain}}/auth/userinfo",
+        "admin_console": "https://{{persona.company.domain}}/admin",
+        "api_root": "https://{{persona.company.domain}}/api/v1",
+        "service_health": "https://{{persona.company.domain}}/api/health"
+      }
     }
-behavior: branch
-branch:
-  cases:
-    # ACCEPT-ANY-BEARER (the whole point): any JWT-shaped bearer — forged alg:none, wrong-key-signed, tampered —
-    # is accepted with NO signature/secret validation. Pure boolean gate (no capture): the 200 body below
-    # contains no reflected bytes. ci so a lower-case `bearer` scheme still matches.
-    - when: { in: header:authorization, regex: '^Bearer\s+[A-Za-z0-9._-]+', ci: true }
-      response:
-        status: 200
-        headers:
-          Content-Type: "application/json"
-        body: |
-          {
-            "sub": "{{fake.oidcsub:hex:32}}",
-            "name": "{{persona.user.admin.username}}",
-            "preferred_username": "{{persona.user.admin.username}}",
-            "email": "{{persona.user.admin.email}}",
-            "email_verified": true,
-            "org": "{{persona.company.name}}",
-            "roles": ["staff", "billing-admin", "reports-admin"],
-            "scope": "openid profile email reports:read billing:read",
-            "_links": {
-              "self": "https://{{persona.company.domain}}/auth/userinfo",
-              "admin_console": "https://{{persona.company.domain}}/admin",
-              "api_root": "https://{{persona.company.domain}}/api/v1",
-              "service_health": "https://{{persona.company.domain}}/api/health"
-            }
-          }
-# Acceptance witnesses are checked against the BASE (bearer-less 401) response; the 200 almost-admin case is
-# covered by the runtime render-corpus gate + OidcUserinfoAcceptTest. Never served verbatim.
+# Acceptance witnesses are checked against the rendered 200 response (the only response this rule serves).
 expect:
-  - '"title": "Unauthorized"'
-  - 'A valid bearer token is required'
+  - '"roles": ["staff", "billing-admin"'
+  - '"scope": "openid profile email reports:read'
