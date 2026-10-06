@@ -1,6 +1,6 @@
 id: attack-node-red
 severity: critical
-priority: 70
+priority: 39
 tags: [attack, rce, node-red, knock-knock, kk-purpose-rce]
 # Node-RED admin-API exploitation. Node-RED's flow editor lets a function node run arbitrary
 # JS (require('child_process')), so an unauthenticated deploy is RCE. We branch on the HTTP verb
@@ -8,6 +8,13 @@ tags: [attack, rce, node-red, knock-knock, kk-purpose-rce]
 # revision, and a GET recon of /nodes gets a small canned installed-modules listing. Both bodies
 # are static literals — nothing is executed and no request byte is reflected. The method is read
 # as a `branch` dispatch key only, exactly like the HNAP oracle's bounded capture.
+#
+# PRIORITY 39 (FP-0598), down from 70: this rule is PATH-scoped (in:path /red|/admin/flows|/nodes),
+# and a Node-RED deploy body carries `require('child_process')...` — which 47b-ssti-rce-escape (path-
+# agnostic, priority 47) otherwise matches first, stealing the /red/flows POST and serving the wrong
+# (SSTI) decoy. A Node-RED endpoint IS Node-RED whatever the payload, so the path-scoped rule must win
+# its own path over the path-agnostic RCE archetype — the same priority-below-the-archetype fix
+# 97-wp-login (39) and 98-cpsrvd-login (42) already use. Path-scoped, so it shadows nothing elsewhere.
 match:
   # Anchored to the admin-API root mount (default `/`, or `/red`/`/admin`) so a nested app path
   # that merely ends in `/nodes` (e.g. `/api/v1/nodes`) does NOT false-positive as Node-RED RCE.
