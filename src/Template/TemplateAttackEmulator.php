@@ -334,9 +334,13 @@ final class TemplateAttackEmulator
             return false;
         }
 
-        // Any ${…} up to its first closing brace (bounded). Not $(, not a backtick, not a metacharacter —
-        // so command substitution and shell-separator injection are never stripped.
-        $dollarExpr = '/\$\{[^}]{0,200}\}/';
+        // Any ${…} up to its first closing brace, ANY length — a real log4shell OOB payload (nested lookups
+        // + a long callback host) routinely exceeds a few hundred chars, and a bounded strip would leave
+        // those intact so the catch-all still served uid=0 (the exact tell this filter removes). Unbounded is
+        // safe: `[^}]` is a negated class (no catastrophic backtracking) and the surfaces are already
+        // length-capped upstream by BoundedInspection. Not $(, not a backtick, not a metacharacter — so
+        // command substitution and shell-separator injection are never stripped.
+        $dollarExpr = '/\$\{[^}]*\}/';
         $strip = static function (string $s) use ($dollarExpr): string {
             return (string) preg_replace($dollarExpr, '', $s);
         };
