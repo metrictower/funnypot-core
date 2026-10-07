@@ -412,13 +412,24 @@ final class EmulatorCompiler
     /** Hard ceiling on iterate fan-out items; a larger authored max_items is clamped down. */
     private const MAX_ITERATE_ITEMS = 64;
 
-    /** The closed decoy-session mode set: mint (the login POST), gate (the authed GET/HEAD), or
-     *  challenge (the 2FA code-entry GET shown between the mint and the authed gate). */
-    private const DECOY_SESSION_MODES = ['mint', 'gate', 'challenge'];
+    /** The closed decoy-session mode set: mint (the login POST), gate (the authed GET/HEAD), challenge
+     *  (the 2FA code-entry GET shown between the mint and the authed gate), or basic (an HTTP Basic
+     *  challenge/success front door — FP-0007 Tomcat Manager). */
+    private const DECOY_SESSION_MODES = ['mint', 'gate', 'challenge', 'basic'];
 
-    /** The closed authed-panel set a gate rule may render: the phpMyAdmin breached-DB browser (default,
-     *  legacy) or the WordPress admin dashboard. An unknown value is a build failure. */
-    private const DECOY_SESSION_PANELS = ['phpmyadmin', 'wordpress'];
+    /** The closed authed-panel set a gate/basic rule may render: the phpMyAdmin breached-DB browser
+     *  (default, legacy), the WordPress admin dashboard, the pgAdmin object browser, or the Tomcat
+     *  Manager list page (FP-0007). An unknown value is a build failure. */
+    private const DECOY_SESSION_PANELS = ['phpmyadmin', 'wordpress', 'pgadmin', 'tomcat'];
+
+    /** The closed SameSite attribute set for a decoy-session cookie: omit (the historical tail, no
+     *  SameSite — the default so legacy artifacts mint byte-identically), lax, or strict. */
+    private const DECOY_SESSION_SAME_SITE = ['omit', 'lax', 'strict'];
+
+    /** The closed credential-encoding set for a mint rule: raw (the submitted bytes are used as-is — the
+     *  legacy default so phpMyAdmin/WordPress stay byte-identical) or form (the already-regex-bounded
+     *  user/pass captures are urldecoded at the mint boundary only, for a normal `%40`-encoded email). */
+    private const DECOY_SESSION_CREDENTIAL_ENCODING = ['raw', 'form'];
 
     /** The default mint redirect Location — the phpMyAdmin panel, so an artifact authored before the
      *  `redirect` key (and any hand-built legacy rule) mints byte-identically to before. */
@@ -464,6 +475,15 @@ final class EmulatorCompiler
             'cookie_path' => $cookiePath,
         ];
 
+        // Closed SameSite attribute (all modes). Absent ⇒ 'omit' ⇒ the historical `; path=…; HttpOnly`
+        // tail, so every pre-ticket phpMyAdmin/WordPress artifact mints byte-identically. Stored as the
+        // runtime token: 'omit' maps to '' (no SameSite), 'lax'/'strict' pass through.
+        $sameSite = (string) ($config['cookie_same_site'] ?? 'omit');
+        if (!in_array($sameSite, self::DECOY_SESSION_SAME_SITE, true)) {
+            throw new RuntimeException("Template {$file}: decoy-session 'cookie_same_site' must be one of " . implode('|', self::DECOY_SESSION_SAME_SITE) . '.');
+        }
+        $out['cookie_same_site'] = $sameSite === 'omit' ? '' : $sameSite;
+
         if ($mode === 'mint') {
             // The 302 Location the mint sends. A STATIC rooted-relative literal only — never attacker-
             // or directive-shaped (the no-open-redirect invariant): non-empty, starts with a single '/'
@@ -472,6 +492,16 @@ final class EmulatorCompiler
             $redirect = isset($config['redirect']) ? (string) $config['redirect'] : self::DECOY_MINT_REDIRECT_DEFAULT;
             $this->assertStaticLocation($redirect, $file, "mint 'redirect'");
             $out['redirect'] = $redirect;
+
+            // Closed credential encoding (mint only). Absent ⇒ 'raw' ⇒ the submitted bytes are used as-is,
+            // so phpMyAdmin/WordPress stay byte-identical. 'form' urldecodes the already-regex-bounded
+            // user/pass captures at the mint boundary only (never parse_str, never globals, never reflected)
+            // — needed for a normal pgAdmin email submitted as `%40`-encoded form data.
+            $encoding = (string) ($config['credential_encoding'] ?? 'raw');
+            if (!in_array($encoding, self::DECOY_SESSION_CREDENTIAL_ENCODING, true)) {
+                throw new RuntimeException("Template {$file}: decoy-session mint 'credential_encoding' must be one of " . implode('|', self::DECOY_SESSION_CREDENTIAL_ENCODING) . '.');
+            }
+            $out['credential_encoding'] = $encoding;
 
             // FP-0561: opt-in NoSQL authentication-bypass mint. Absent (the default) ⇒ the scalar-credential
             // plausibility gate alone (unchanged). The single allowed value lets the mint fire on a NoSQL
@@ -536,6 +566,28 @@ final class EmulatorCompiler
             // trailing-slash form so the login page's relative form action resolves to an owned path.
             if (!empty($config['canonical_slash'])) {
                 $out['canonical_slash'] = true;
+            }
+        }
+
+        if ($mode === 'basic') {
+            // An HTTP Basic challenge/success front door (FP-0007 Tomcat Manager). A `panel` is REQUIRED
+            // (which authed shell to render on a valid Basic header); the rule's own base `response` is the
+            // 401 Basic challenge served on decline. basic mode permits NONE of the mint/gate-only keys —
+            // redirect, credential_encoding, domain, table_key, rows, canonical_slash, two_factor — so a
+            // mis-authored artifact fails compile rather than silently carrying a dead key.
+            if (!isset($config['panel'])) {
+                throw new RuntimeException("Template {$file}: behavior 'decoy-session' basic needs a 'panel'.");
+            }
+            $panel = (string) $config['panel'];
+            if (!in_array($panel, self::DECOY_SESSION_PANELS, true)) {
+                throw new RuntimeException("Template {$file}: behavior 'decoy-session' basic 'panel' must be one of " . implode('|', self::DECOY_SESSION_PANELS) . '.');
+            }
+            $out['panel'] = $panel;
+
+            foreach (['redirect', 'credential_encoding', 'domain', 'table_key', 'rows', 'canonical_slash', 'two_factor', 'form_action'] as $forbidden) {
+                if (isset($config[$forbidden])) {
+                    throw new RuntimeException("Template {$file}: behavior 'decoy-session' basic must not carry '{$forbidden}'.");
+                }
             }
         }
 

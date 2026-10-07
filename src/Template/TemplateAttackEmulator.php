@@ -17,6 +17,7 @@ use Funnypot\Core\Response\EmulatedContent;
 use Funnypot\Core\Response\NtlmChallengeBuilder;
 use Funnypot\Core\Rules\RulesLocator;
 use Funnypot\Core\Support\BoundedInspection;
+use Funnypot\Core\Support\Http\BasicCredentials;
 use Funnypot\Core\Support\Chrome\Esc;
 use Funnypot\Core\Support\Chrome\PageSlots;
 use Funnypot\Core\Support\Chrome\PhpMyAdminSkin;
@@ -1364,15 +1365,21 @@ final class TemplateAttackEmulator
         // POST and the panel GET — which can carry DIFFERENT render seeds — mint and gate the SAME
         // seeded payload text and the cookie round-trips. Unwired, it degrades to the render seed.
         $session = new DecoySession($this->decoySessionKey, $this->identitySeed($seed));
+        // Closed SameSite token ('', 'lax', 'strict'), already validated at compile time. '' keeps the
+        // historical cookie tail, so legacy artifacts mint byte-identically.
+        $sameSite = (string) ($config['cookie_same_site'] ?? '');
 
         if ($mode === 'mint') {
-            return $this->decoySessionMint($session, $config, $captures, $name, $path, $r);
+            return $this->decoySessionMint($session, $config, $captures, $name, $path, $sameSite, $r);
         }
         if ($mode === 'gate') {
             return $this->decoySessionGate($session, $config, $r, $name, $seed);
         }
         if ($mode === 'challenge') {
             return $this->decoySessionChallenge($session, $config, $r, $name, $seed);
+        }
+        if ($mode === 'basic') {
+            return $this->decoySessionBasic($session, $config, $r, $name, $path, $sameSite, $seed);
         }
 
         return null;
@@ -1403,7 +1410,7 @@ final class TemplateAttackEmulator
      * @param array<string,mixed>      $config
      * @param array<int|string,string> $captures
      */
-    private function decoySessionMint(DecoySession $session, array $config, array $captures, string $name, string $path, ?RequestContext $r): ?EmulatedContent
+    private function decoySessionMint(DecoySession $session, array $config, array $captures, string $name, string $path, string $sameSite, ?RequestContext $r): ?EmulatedContent
     {
         $twoFactor = !empty($config['two_factor']);
 
@@ -1418,7 +1425,7 @@ final class TemplateAttackEmulator
                 if (trim((string) ($captures['code'] ?? '')) === '') {
                     return null;
                 }
-                $cookie = $session->mintCookie($name, $path);
+                $cookie = $session->mintCookie($name, $path, $sameSite);
                 $location = (string) ($config['redirect'] ?? '/phpmyadmin/index.php');
 
                 return new EmulatedContent('', ['Set-Cookie' => $cookie, 'Location' => $location], 302);
@@ -1441,7 +1448,7 @@ final class TemplateAttackEmulator
             if (preg_match('~(?:\[\s*\$|"\s*\$)(?:ne|gte?|lte?|gt|lt|in|nin|regex|exists|where|expr|or|nor|not|all|elemMatch)\b~i', $bypass) !== 1) {
                 return null; // no NoSQL-operator evidence on the credential field ⇒ never mint
             }
-            $cookie = $session->mintCookie($name, $path);
+            $cookie = $session->mintCookie($name, $path, $sameSite);
             $location = (string) ($config['redirect'] ?? '/');
 
             return new EmulatedContent('', ['Set-Cookie' => $cookie, 'Location' => $location], 302);
@@ -1449,6 +1456,17 @@ final class TemplateAttackEmulator
 
         $user = (string) ($captures['user'] ?? '');
         $pass = (string) ($captures['pass'] ?? '');
+        // credential_encoding: form (opt-in) — urldecode the already-regex-bounded captures at the mint
+        // boundary ONLY so a normal `%40`-encoded pgAdmin email is accepted. The decoded values are used
+        // solely for the plausibility gate below (never reflected, stored, or woven into a header); raw
+        // (the default) leaves phpMyAdmin/WordPress bytes untouched. Post-decode bounds are re-checked.
+        if (($config['credential_encoding'] ?? 'raw') === 'form') {
+            $user = urldecode($user);
+            $pass = urldecode($pass);
+            if (strlen($user) > 64 || strlen($pass) > 128) {
+                return null;
+            }
+        }
         if (trim($user) === '' || trim($pass) === '') {
             return null;
         }
@@ -1459,13 +1477,13 @@ final class TemplateAttackEmulator
         // INITIAL login, 2FA on: password accepted, code not yet entered. Mint the strictly-separate
         // 2fa-pending marker (fails isAuthenticated() by construction) and 302 to the challenge page.
         if ($twoFactor) {
-            $pending = $session->mintPendingCookie($name, $path);
+            $pending = $session->mintPendingCookie($name, $path, $sameSite);
             $challenge = (string) ($config['two_factor_redirect'] ?? '/phpmyadmin/index.php');
 
             return new EmulatedContent('', ['Set-Cookie' => $pending, 'Location' => $challenge], 302);
         }
 
-        $cookie = $session->mintCookie($name, $path);
+        $cookie = $session->mintCookie($name, $path, $sameSite);
 
         // The redirect target is an authored STATIC literal (compiler-validated rooted-relative, never a
         // directive), defaulting to the phpMyAdmin panel so a legacy artifact mints byte-identically. It
@@ -1615,18 +1633,101 @@ final class TemplateAttackEmulator
     private function decoySessionAuthedBody(array $config, int $seed, ?RequestContext $r): ?EmulatedContent
     {
         $panel = (string) ($config['panel'] ?? 'phpmyadmin');
-        $html = $panel === 'wordpress'
-            ? $this->decoyWordpressAdminHtml($config, $seed, $r)
-            : $this->decoyPhpMyAdminHtml($config, $seed, $r);
 
-        // Verify-before-serve: a fabricated body carrying an upstream-detector signature, or a guard we
-        // could not load, fails closed to the login page rather than serving it or 500-ing.
+        return $this->guardServe(
+            $this->decoyPanelHtml($panel, $config, $seed, $r),
+            ['Content-Type' => 'text/html; charset=utf-8'],
+            200
+        );
+    }
+
+    /**
+     * Dispatch on the compiler-closed `panel` enum to the matching authed shell builder. An UNKNOWN
+     * runtime panel returns null → the caller declines → the base login page/challenge renders (never a
+     * 500). The explicit total switch replaces the old two-arm default-to-phpMyAdmin conditional; an
+     * artifact authored before a given panel still renders the default (phpMyAdmin) byte-identically.
+     *
+     * @param array<string,mixed> $config
+     */
+    private function decoyPanelHtml(string $panel, array $config, int $seed, ?RequestContext $r): ?string
+    {
+        switch ($panel) {
+            case 'phpmyadmin':
+                return $this->decoyPhpMyAdminHtml($config, $seed, $r);
+            case 'wordpress':
+                return $this->decoyWordpressAdminHtml($config, $seed, $r);
+            // pgadmin + tomcat builders land in FP-0007 Phases 2/3; until then an authored pgadmin/tomcat
+            // panel declines (null) rather than mis-rendering.
+            default:
+                return null;
+        }
+    }
+
+    /**
+     * The one shared verify-before-serve tail. A null body (an unknown panel) declines. Otherwise the
+     * runtime FingerprintGuard scans the body AND every header VALUE (FP-0007: the Basic path emits
+     * WWW-Authenticate/Set-Cookie that must also pass) before anything is served: any hit — or a guard
+     * that could not load — fails CLOSED to null (the base response renders), never serving an unverified
+     * body and never throwing (a 500 is itself a tell).
+     *
+     * @param array<string,string> $headers
+     */
+    private function guardServe(?string $html, array $headers, int $status): ?EmulatedContent
+    {
+        if ($html === null) {
+            return null;
+        }
         $guard = $this->fingerprintGuard();
         if ($guard === null || $guard->scan($html) !== []) {
             return null;
         }
+        foreach ($headers as $value) {
+            if ($guard->scan((string) $value) !== []) {
+                return null;
+            }
+        }
 
-        return new EmulatedContent($html, ['Content-Type' => 'text/html; charset=utf-8'], 200);
+        return new EmulatedContent($html, $headers, $status);
+    }
+
+    /**
+     * The `basic` mode (FP-0007 Tomcat Manager front door): an explicit Authorization header is
+     * authoritative — a well-formed plausible Basic credential (accept-any; the password is never compared
+     * with anything real) mints the signed authenticated cookie and renders the panel in the SAME 200; a
+     * malformed/empty explicit header declines to the rule's 401 challenge EVEN IF a cookie is present. With
+     * NO explicit Authorization, an already-verified product cookie may reopen the read-only page. Missing
+     * request/key/credentials/cookie all decline. Only Set-Cookie is merged into the fingerprint-scanned
+     * authed result; no credential/header byte reaches status, headers, HTML, detection, handle, seed or cache.
+     *
+     * @param array<string,mixed> $config
+     */
+    private function decoySessionBasic(DecoySession $session, array $config, ?RequestContext $r, string $name, string $path, string $sameSite, int $seed): ?EmulatedContent
+    {
+        $panel = (string) ($config['panel'] ?? 'phpmyadmin');
+        $contentType = ['Content-Type' => 'text/html; charset=utf-8'];
+
+        $authorization = BasicCredentials::authorization($r);
+        if ($authorization !== '') {
+            // Explicit header present ⇒ authoritative. Valid ⇒ mint + render; malformed ⇒ decline to 401.
+            if (BasicCredentials::parse($authorization) === null) {
+                return null;
+            }
+            $cookie = $session->mintCookie($name, $path, $sameSite);
+
+            return $this->guardServe(
+                $this->decoyPanelHtml($panel, $config, $seed, $r),
+                $contentType + ['Set-Cookie' => $cookie],
+                200
+            );
+        }
+
+        // No explicit Authorization: a verified authenticated cookie reopens the read-only page (no new cookie).
+        $cookieHeader = $r === null ? null : BoundedInspection::cookieHeader($r->headers);
+        if ($session->isAuthenticated($cookieHeader, $name)) {
+            return $this->guardServe($this->decoyPanelHtml($panel, $config, $seed, $r), $contentType, 200);
+        }
+
+        return null;
     }
 
     /**

@@ -40,22 +40,26 @@ final class DecoySession
         $this->deploySeed = $deploySeed ?? 0;
     }
 
-    /** The Set-Cookie value for an authenticated session. */
-    public function mintCookie(string $name, string $path): string
+    /**
+     * The Set-Cookie value for an authenticated session. $sameSite is a closed token ('', 'lax', 'strict')
+     * the caller has already validated; '' (the default) keeps the historical `; path=…; HttpOnly` tail
+     * byte-for-byte, so an artifact authored before the SameSite key mints identically.
+     */
+    public function mintCookie(string $name, string $path, string $sameSite = ''): string
     {
-        return $this->token->cookie($name, DecoySessionPayloads::authenticated($this->deploySeed), $path);
+        return $this->token->cookie($name, DecoySessionPayloads::authenticated($this->deploySeed), $path, $sameSite);
     }
 
     /** The Set-Cookie value for the pre-auth marker (visited the login page, not logged in). */
-    public function preAuthCookie(string $name, string $path): string
+    public function preAuthCookie(string $name, string $path, string $sameSite = ''): string
     {
-        return $this->token->cookie($name, DecoySessionPayloads::preAuth($this->deploySeed), $path);
+        return $this->token->cookie($name, DecoySessionPayloads::preAuth($this->deploySeed), $path, $sameSite);
     }
 
     /** The Set-Cookie value for the 2fa-pending marker (password accepted, code not yet entered). */
-    public function mintPendingCookie(string $name, string $path): string
+    public function mintPendingCookie(string $name, string $path, string $sameSite = ''): string
     {
-        return $this->token->cookie($name, DecoySessionPayloads::twoFactorPending($this->deploySeed), $path);
+        return $this->token->cookie($name, DecoySessionPayloads::twoFactorPending($this->deploySeed), $path, $sameSite);
     }
 
     /**

@@ -272,4 +272,118 @@ YAML;
         $this->expectException(RuntimeException::class);
         $this->compileOne($this->mintRule('  credential_bypass: anything-else'));
     }
+
+    // --- FP-0007: cookie_same_site (all modes), credential_encoding (mint), basic mode ------------
+
+    private function basicRule(string $extraLines): string
+    {
+        return <<<YAML
+id: decoy-basic-fixture
+priority: 69
+owns_path: [/manager/html]
+match:
+  - in: path
+    regex: '^/manager/html/*\$'
+    ci: true
+  - in: method
+    regex: '^(?:GET|HEAD)\$'
+    ci: true
+status: 401
+response:
+  headers:
+    WWW-Authenticate: Basic realm="Tomcat Manager Application"
+  body: auth-required
+behavior: decoy-session
+decoy-session:
+  mode: basic
+  cookie_name: JSESSIONID
+  cookie_path: /manager
+{$extraLines}
+YAML;
+    }
+
+    public function test_same_site_defaults_to_omit_empty_token(): void
+    {
+        $rules = $this->compileOne($this->mintRule(''));
+        self::assertSame('', $rules[0]['decoy-session']['cookie_same_site'], 'absent ⇒ omit ⇒ historical tail');
+    }
+
+    public function test_same_site_lax_and_strict_pass_through(): void
+    {
+        $lax = $this->compileOne($this->mintRule('  cookie_same_site: lax'));
+        self::assertSame('lax', $lax[0]['decoy-session']['cookie_same_site']);
+        $strict = $this->compileOne($this->mintRule('  cookie_same_site: strict'));
+        self::assertSame('strict', $strict[0]['decoy-session']['cookie_same_site']);
+    }
+
+    public function test_same_site_rejects_unknown_value(): void
+    {
+        $this->expectException(RuntimeException::class);
+        $this->compileOne($this->mintRule('  cookie_same_site: none'));
+    }
+
+    public function test_mint_credential_encoding_defaults_to_raw(): void
+    {
+        $rules = $this->compileOne($this->mintRule(''));
+        self::assertSame('raw', $rules[0]['decoy-session']['credential_encoding']);
+    }
+
+    public function test_mint_credential_encoding_accepts_form(): void
+    {
+        $rules = $this->compileOne($this->mintRule('  credential_encoding: form'));
+        self::assertSame('form', $rules[0]['decoy-session']['credential_encoding']);
+    }
+
+    public function test_mint_credential_encoding_rejects_unknown(): void
+    {
+        $this->expectException(RuntimeException::class);
+        $this->compileOne($this->mintRule('  credential_encoding: base64'));
+    }
+
+    public function test_basic_mode_compiles_with_a_panel(): void
+    {
+        $rules = $this->compileOne($this->basicRule('  panel: tomcat'));
+        self::assertSame('basic', $rules[0]['decoy-session']['mode']);
+        self::assertSame('tomcat', $rules[0]['decoy-session']['panel']);
+    }
+
+    public function test_basic_mode_accepts_pgadmin_panel(): void
+    {
+        $rules = $this->compileOne($this->basicRule('  panel: pgadmin'));
+        self::assertSame('pgadmin', $rules[0]['decoy-session']['panel']);
+    }
+
+    public function test_basic_mode_requires_a_panel(): void
+    {
+        $this->expectException(RuntimeException::class);
+        $this->compileOne($this->basicRule(''));
+    }
+
+    public function test_basic_mode_rejects_unknown_panel(): void
+    {
+        $this->expectException(RuntimeException::class);
+        $this->compileOne($this->basicRule('  panel: grafana'));
+    }
+
+    /** @dataProvider forbiddenBasicKeys */
+    public function test_basic_mode_rejects_wrong_mode_keys(string $line): void
+    {
+        $this->expectException(RuntimeException::class);
+        $this->compileOne($this->basicRule("  panel: tomcat\n{$line}"));
+    }
+
+    /** @return array<string,array{0:string}> */
+    public function forbiddenBasicKeys(): array
+    {
+        return [
+            'redirect'            => ['  redirect: /manager/html'],
+            'credential_encoding' => ['  credential_encoding: form'],
+            'domain'              => ['  domain: example.test'],
+            'table_key'           => ['  table_key: users'],
+            'rows'                => ['  rows: 5'],
+            'canonical_slash'     => ['  canonical_slash: true'],
+            'two_factor'          => ['  two_factor: true'],
+            'form_action'         => ['  form_action: /manager/html'],
+        ];
+    }
 }

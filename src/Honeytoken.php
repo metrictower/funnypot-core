@@ -30,10 +30,22 @@ final class Honeytoken
      * A `Set-Cookie` value planting the signed payload under an explicit name, scoped to the given path.
      * For the site-wide per-deploy bait cookie, use bait() (which seeds the whole envelope); this named
      * form is for callers that own a specific product-protocol cookie name (e.g. the decoy-session mint).
+     *
+     * $sameSite is a closed token the caller has already validated: '' (the default) emits the historical
+     * `; path=<path>; HttpOnly` tail byte-for-byte; 'lax'/'strict' append `; SameSite=Lax`/`; SameSite=Strict`.
+     * No Domain/Max-Age/Expires/Secure is ever emitted (a deployment may be plain HTTP, so a blind Secure
+     * would break the journey).
      */
-    public function cookie(string $name, string $payload, string $path = '/'): string
+    public function cookie(string $name, string $payload, string $path = '/', string $sameSite = ''): string
     {
-        return $name . '=' . rawurlencode($payload . '.' . $this->sign($payload)) . '; path=' . $path . '; HttpOnly';
+        $tail = '';
+        if ($sameSite === 'lax') {
+            $tail = '; SameSite=Lax';
+        } elseif ($sameSite === 'strict') {
+            $tail = '; SameSite=Strict';
+        }
+
+        return $name . '=' . rawurlencode($payload . '.' . $this->sign($payload)) . '; path=' . $path . '; HttpOnly' . $tail;
     }
 
     /**
