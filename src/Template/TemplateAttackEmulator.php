@@ -298,8 +298,77 @@ final class TemplateAttackEmulator
         if ($captures === null) {
             return null;
         }
+        if ($this->crsRceDollarExprFalsePositive($r, $rule)) {
+            return null;
+        }
 
         return ['rule' => $rule, 'captures' => $captures];
+    }
+
+    /**
+     * Suppress the broad CRS unix-command-injection archetype (`attack-crs-rce`) when its ONLY evidence is a
+     * `${...}` expression — a benign `${identifier}` template/variable reference OR a log4j/JNDI/resolver
+     * lookup (`${jndi:…}`, `${lower:…}`, `${env:…}`, nested `${${…}}`). The imported CRS 932130 alternation
+     * treats `$` followed by `{` as shell-variable interpolation, so any `${…}` trips it and the catch-all
+     * serves a `uid=0(root)` confirmation. But `${…}` is shell variable EXPANSION or a log4j lookup, not
+     * unix command EXECUTION — a real shell runs a command only via `$(…)`, backticks, or a metacharacter
+     * (`;`/`|`/`&`/newline) before a command. So a `${…}`-only match confirming root is a false positive
+     * (benign) or an incoherent tell (log4shell: funnypot flags the probe via Log4ShellProbe but never
+     * "responds vulnerable" — a reflect-only responder cannot fake the OOB JNDI callback). The CRS regex
+     * ships pre-compiled (re-derived only by the gated compile-crs step with the pinned CRS clone), so this
+     * is the sanctioned runtime post-filter rather than a regex edit.
+     *
+     * Precise by construction: strip `${…}` expressions and re-run the rule. If it then declines, the match
+     * depended solely on `${…}` → suppress (the request falls through to the plain 404; any Log4Shell
+     * detection still fires independently via OobSignalRegistry). A genuine command — `$(…)`, a backtick, or
+     * a shell-metacharacter command, none of which the strip removes — still matches after the strip and is
+     * never suppressed; and genuine `${IFS}`-obfuscated injection always carries such a metacharacter, so it
+     * is already owned by the higher-priority hand-authored cmdi/lfi tiers (first-match) before this
+     * catch-all is ever reached. Mirrors the FP-0190 LFI fix (the broad CRS tail must not serve the recognizable confirm).
+     *
+     * @param array<string,mixed> $rule
+     */
+    private function crsRceDollarExprFalsePositive(RequestContext $r, array $rule): bool
+    {
+        if (($rule['id'] ?? '') !== 'attack-crs-rce') {
+            return false;
+        }
+
+        // Any ${…} up to its first closing brace (bounded). Not $(, not a backtick, not a metacharacter —
+        // so command substitution and shell-separator injection are never stripped.
+        $dollarExpr = '/\$\{[^}]{0,200}\}/';
+        $strip = static function (string $s) use ($dollarExpr): string {
+            return (string) preg_replace($dollarExpr, '', $s);
+        };
+
+        // Cheap guard: no ${…} token anywhere ⇒ the match came from other (genuine) evidence.
+        $surfaces = $r->path . "\n" . $r->query . "\n" . ((string) ($r->rawBody ?? ''));
+        foreach ($r->headers as $value) {
+            if (is_string($value)) {
+                $surfaces .= "\n" . $value;
+            }
+        }
+        if (strpos($surfaces, '${') === false) {
+            return false;
+        }
+
+        $headers = [];
+        foreach ($r->headers as $name => $value) {
+            $headers[$name] = is_string($value) ? $strip($value) : $value;
+        }
+        $clean = new RequestContext(
+            $r->method,
+            $strip($r->path),
+            $strip($r->query),
+            $headers,
+            $r->rawBody === null ? null : $strip($r->rawBody),
+            $r->host,
+            $r->scheme,
+            $r->httpVersion,
+            $r->targetAdmitted
+        );
+
+        return $this->match($clean, $rule) === null;
     }
 
     /**
