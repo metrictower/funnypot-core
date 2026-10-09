@@ -6,6 +6,8 @@ namespace Funnypot\Core;
 
 use Funnypot\Core\Compiler\Crs\FingerprintGuard;
 use Funnypot\Core\Contracts\CompiledStore;
+use Funnypot\Core\Decoy\DecoyArchiveBuilder;
+use Funnypot\Core\Decoy\DecoyArchiveName;
 use Funnypot\Core\Reaction\AntiWafProbe;
 use Funnypot\Core\Reaction\ParamIntent;
 use Funnypot\Core\Reaction\ParamReactionDecorator;
@@ -16,6 +18,7 @@ use Funnypot\Core\Rules\ServedStringWalker;
 use Funnypot\Core\Store\PhpArrayStore;
 use Funnypot\Core\Support\BoundedInspection;
 use Funnypot\Core\Support\PathNormalizer;
+use Funnypot\Core\Support\PersonaIdentity;
 use Funnypot\Core\Support\PersonaSelector;
 use Funnypot\Core\Support\Severity;
 use Funnypot\Core\Synthesis\ResponseSynthesizer;
@@ -69,6 +72,12 @@ final class Honeypot implements Engine
 
     /** @var int the deploy identity seed, snapshotted once at construction (never re-read per request) */
     private $deploySeed;
+
+    /** @var string|null persona domain for decoy-archive name matching, resolved on first use */
+    private $personaDomain;
+
+    /** @var DecoyArchiveBuilder|null */
+    private $decoyArchiveBuilder;
 
     public function __construct(
         CompiledStore $store,
@@ -625,7 +634,80 @@ final class Honeypot implements Engine
             }
         }
 
+        // FP-0713: a backup-style archive name that nothing above claimed gets the decoy chain. Last,
+        // so every rule and the host's own routes win first; the WAF-check polyglot stays blinded.
+        if ($this->config->decoyArchives && !$wafCheck) {
+            $decoy = $this->decoyArchiveHandle($r, $profile);
+            if ($decoy !== null) {
+                return new Verdict(Verdict::CLEAN, Detection::none(), '', $anomaly, $signals, $decoy);
+            }
+        }
+
         return new Verdict(Verdict::CLEAN, Detection::none(), '', $anomaly, $signals, null);
+    }
+
+    /**
+     * The decoy-archive handle for an otherwise-unmatched GET/HEAD, or null. A host-declared route is
+     * never shadowed, and a format this host cannot write is never claimed (it stays the host 404).
+     */
+    private function decoyArchiveHandle(RequestContext $r, SiteProfile $profile): ?FakeHandle
+    {
+        $method = strtoupper($r->method);
+        if (($method !== 'GET' && $method !== 'HEAD') || $profile->hasRoute($r->method, PathNormalizer::normalize($r->path))) {
+            return null;
+        }
+        $match = DecoyArchiveName::match($r->path, $this->config->decoyArchiveAnyName, $this->personaDomain());
+        if ($match === null || !$this->decoyArchiveBuilder()->supports($match[0])) {
+            return null;
+        }
+
+        return FakeHandle::decoyArchive($match[0], $match[1]);
+    }
+
+    private function personaDomain(): string
+    {
+        if ($this->personaDomain === null) {
+            $this->personaDomain = (string) PersonaIdentity::fromSeed($this->deploySeed)->field('company.domain');
+        }
+
+        return $this->personaDomain;
+    }
+
+    private function decoyArchiveBuilder(): DecoyArchiveBuilder
+    {
+        if ($this->decoyArchiveBuilder === null) {
+            $this->decoyArchiveBuilder = new DecoyArchiveBuilder();
+        }
+
+        return $this->decoyArchiveBuilder;
+    }
+
+    /**
+     * Serve a decoy-archive handle. The key is re-validated (closed extension set, [a-z0-9._-] stem)
+     * so a forged handle selects nothing else. HEAD gets the headers and length with no body.
+     *
+     * @return array{r:?SynthesizedResponse,reason:string}
+     */
+    private function buildDecoyArchiveFake(FakeHandle $handle, ?RequestContext $r): array
+    {
+        $parts = explode('|', (string) $handle->key, 2);
+        if (count($parts) !== 2 || !in_array($parts[0], DecoyArchiveName::EXTENSIONS, true)
+            || !preg_match('/^[a-z0-9._-]{1,100}$/', $parts[1])) {
+            return ['r' => null, 'reason' => Outcome::UNSYNTHESIZABLE];
+        }
+        $built = $this->decoyArchiveBuilder()->build($parts[0], $parts[1], $this->deploySeed, $this->config->decoyArchiveMaxBytes);
+        if ($built === null) {
+            return ['r' => null, 'reason' => Outcome::UNSYNTHESIZABLE];
+        }
+
+        $headers = [
+            'Content-Type' => $built['type'],
+            'Content-Disposition' => 'attachment; filename="' . $built['filename'] . '"',
+            'Content-Length' => (string) strlen($built['body']),
+        ];
+        $body = ($r !== null && strtoupper($r->method) === 'HEAD') ? '' : $built['body'];
+
+        return ['r' => new SynthesizedResponse(200, $headers, $body, Detection::none()), 'reason' => Outcome::SERVED];
     }
 
     /**
@@ -1551,7 +1633,8 @@ final class Honeypot implements Engine
         }
 
         $handle = $verdict->fakeHandle;
-        if ($handle === null || ($handle->kind !== FakeHandle::KIND_ROUTE && $handle->kind !== FakeHandle::KIND_METHOD)) {
+        $isDecoyArchive = $handle !== null && $handle->kind === FakeHandle::KIND_DECOY_ARCHIVE;
+        if ($handle === null || ($handle->kind !== FakeHandle::KIND_ROUTE && $handle->kind !== FakeHandle::KIND_METHOD && !$isDecoyArchive)) {
             // A genuine miss / real route / empty entry: the app serves its own 404. Exception: a
             // signal-only probe (OAST/SSRF or Log4Shell/JNDI) folds a detection onto a null-handle
             // verdict (SCANNER_PROBE, nothing to serve). Surface it so the app can score the spray.
@@ -1565,8 +1648,10 @@ final class Honeypot implements Engine
         }
 
         // A routed probe. Detection covers EVERY routed template (the full 'd' id-list); signal
-        // the app before any serve decision.
-        $this->safeOnDetection($r, $verdict->detection);
+        // the app before any serve decision. A decoy archive carries no detection to signal.
+        if (!$isDecoyArchive) {
+            $this->safeOnDetection($r, $verdict->detection);
+        }
 
         if (!$this->config->gateOpen($r)) {
             return $this->declined($r, Outcome::GATE_CLOSED);
@@ -1719,6 +1804,8 @@ final class Honeypot implements Engine
             $built = $this->buildAttackFake($handle, $seed, $r);
         } elseif ($handle->kind === FakeHandle::KIND_METHOD) {
             $built = $this->buildMethodFake($handle, $profile);
+        } elseif ($handle->kind === FakeHandle::KIND_DECOY_ARCHIVE) {
+            $built = $this->buildDecoyArchiveFake($handle, $r);
         } else {
             // Unknown / llm kinds are host-injected synthesizers; core builds nothing.
             return ['r' => null, 'reason' => Outcome::UNSYNTHESIZABLE];

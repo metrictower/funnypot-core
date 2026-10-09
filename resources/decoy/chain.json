@@ -1,0 +1,37 @@
+{
+  "bytes": 1000735,
+  "claimed_parts": 1467,
+  "depth": 1218,
+  "file": "chain.7z",
+  "seed": 713,
+  "sha256": "c0d0cf73dd1d551cfa245c3c87082b64a3911f4811042251bf15c25587949eac",
+  "stats": {
+    "extracted_total": 605143582,
+    "formats": {
+      "7z": 366,
+      "cpio": 17,
+      "iso": 20,
+      "tar": 50,
+      "tbz2": 56,
+      "tgz": 130,
+      "tlz4": 30,
+      "txz": 52,
+      "tzst": 62,
+      "zip": 435
+    },
+    "hostile_names": 135,
+    "secrets": 125,
+    "stubs": 958,
+    "symlinks": 1,
+    "walls": 6
+  },
+  "tools": {
+    "7z": "7-Zip (z) 26.01 (arm64) : Copyright (c) 1999-2026 Igor Pavlov : 2026-04-27",
+    "iso": "hdiutil",
+    "lz4": "*** lz4 v1.10.0 64-bit multithread, by Yann Collet ***",
+    "python": "3.14.4",
+    "zip": "Copyright (c) 1990-2008 Info-ZIP - Type 'zip \"-L\"' for software license.",
+    "zstd": "*** Zstandard CLI (64-bit) v1.5.7, by Yann Collet ***"
+  },
+  "top_member": "set2-part50.tar.xz"
+}

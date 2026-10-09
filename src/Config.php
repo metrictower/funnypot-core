@@ -235,6 +235,26 @@ final class Config
      */
     public $runtimeFingerprintScan;
 
+    /**
+     * @var bool opt-in decoy backup archives (FP-0713). false (default) ⇒ archive probes fall through
+     * as before. true ⇒ an otherwise-unmatched GET/HEAD for a backup-style archive name (backup22.zip,
+     * www.tar.gz, site_old.7z …) is answered with a valid archive of that type wrapping the shipped
+     * deep nested decoy chain. Real host routes and every existing rule still win first.
+     */
+    public $decoyArchives;
+
+    /**
+     * @var bool widen decoyArchives from backup-style basenames to ANY basename with a servable archive
+     * extension (/anything.zip). false (default) keeps ordinary missing assets on the host 404.
+     */
+    public $decoyArchiveAnyName;
+
+    /**
+     * @var int byte ceiling for a decoy archive response. Separate from maxBodyBytes (which bounds text
+     * fakes): the chain is ~1 MB by design. A result above it declines to the host 404.
+     */
+    public $decoyArchiveMaxBytes;
+
     public function __construct(
         string $mode = 'detect',
         ?Closure $gate = null,
@@ -267,7 +287,10 @@ final class Config
         ?Closure $reflectorAuthorizer = null,
         bool $paramReactivity = false,
         bool $runtimeFingerprintScan = true,
-        bool $payloadInspection = false
+        bool $payloadInspection = false,
+        bool $decoyArchives = false,
+        bool $decoyArchiveAnyName = false,
+        int $decoyArchiveMaxBytes = 1310720
     ) {
         $this->mode = $mode;
         $this->gate = $gate;
@@ -301,6 +324,9 @@ final class Config
         $this->paramReactivity = $paramReactivity;
         $this->runtimeFingerprintScan = $runtimeFingerprintScan;
         $this->payloadInspection = $payloadInspection;
+        $this->decoyArchives = $decoyArchives;
+        $this->decoyArchiveAnyName = $decoyArchiveAnyName;
+        $this->decoyArchiveMaxBytes = $decoyArchiveMaxBytes;
     }
 
     public function respondEnabled(): bool

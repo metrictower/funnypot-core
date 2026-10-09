@@ -34,6 +34,7 @@ final class FakeHandle
     public const KIND_ATTACK = 'attack';
     public const KIND_METHOD = 'method';
     public const KIND_LLM = 'llm';
+    public const KIND_DECOY_ARCHIVE = 'decoy-archive';
 
     /** @var string one of the KIND_* constants */
     public $kind;
@@ -85,6 +86,16 @@ final class FakeHandle
     public static function method(string $key): self
     {
         return new self(self::KIND_METHOD, $key);
+    }
+
+    /**
+     * A backup-style archive probe answered from the shipped decoy chain. $key is
+     * '<canonical extension>|<sanitized stem>' (see DecoyArchiveName::match()); it is re-validated at
+     * synthesis, so a forged handle can only select a supported extension and a [a-z0-9._-] stem.
+     */
+    public static function decoyArchive(string $ext, string $stem): self
+    {
+        return new self(self::KIND_DECOY_ARCHIVE, $ext . '|' . $stem);
     }
 
     /**
