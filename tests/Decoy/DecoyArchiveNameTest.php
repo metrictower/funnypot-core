@@ -81,4 +81,17 @@ final class DecoyArchiveNameTest extends TestCase
         self::assertSame(1, preg_match('/^[a-z0-9._-]{1,100}$/', $m[1]));
         self::assertSame(['zip', 'evil_name'], DecoyArchiveName::match('/..evil;name.zip', true));
     }
+
+    public function test_long_digit_runs_fail_fast_without_a_pcre_error(): void
+    {
+        $start = microtime(true);
+        for ($i = 0; $i < 50; $i++) {
+            self::assertNull(DecoyArchiveName::match('/backup' . str_repeat('9', 240) . 'x.zip'));
+        }
+        self::assertSame(PREG_NO_ERROR, preg_last_error());
+        self::assertLessThan(0.25, microtime(true) - $start, '50 crafted names must not backtrack');
+        self::assertSame(['zip', substr('backup' . str_repeat('9', 240), 0, 100)], DecoyArchiveName::match('/backup' . str_repeat('9', 240) . '.zip'));
+        self::assertSame(['zip', 'backup2024-01-01_old'], DecoyArchiveName::match('/backup2024-01-01_old.zip'));
+        self::assertSame(['zip', 'backup20240101'], DecoyArchiveName::match('/backup20240101.zip'));
+    }
 }

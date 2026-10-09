@@ -422,6 +422,11 @@ $config->decoyArchiveMaxBytes = 1310720; // separate from maxBodyBytes — the c
 - **Never shadows the host.** It runs last on the miss path: a host-declared route, every compiled
   route and every attack rule win first. Off by default; responses are always `200` with a matching
   `Content-Type` and `Content-Disposition: attachment`.
+- **A scanner probe, not a silent 404.** A match classifies as `SCANNER_PROBE` with one low-severity
+  detection, `decoy-backup-archive`, so `onDetection` fires and policy embedders serve it under their
+  `scanner_probe` band (default `deceive`). Out-of-band signals on the same request (OAST, JNDI) fold
+  onto it as usual. `HEAD` gets the headers and `Content-Length` without the body when the request is
+  passed to `synthesize()`/`synthesizeFromHandle()` (`respond()` always passes it).
 
 Rebuilding the chain is an offline operator step (`python3 -I scripts/dev/decoy-chain/build-decoy-chain.py`,
 local `7zz`/`zip`/`zstd`/`lz4`/`hdiutil` or `xorriso`), verified with `peel-decoy-chain.py` and the Docker

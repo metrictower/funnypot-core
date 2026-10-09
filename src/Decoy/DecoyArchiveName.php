@@ -28,7 +28,9 @@ final class DecoyArchiveName
         'home', 'src', 'app', 'wordpress', 'wp', 'wp-content',
     ];
 
-    private const SUFFIX = '(?:[._-]?(?:\d{4}[-_]?\d{2}[-_]?\d{2}|\d{1,8}|old|new|bak|backup|full|final|latest|copy|prod|live|site|www|db|files))*';
+    // Atomic alternatives + possessive repeat: a long digit run is consumed one way only, so a
+    // crafted name like backup<300 digits>x.zip fails in linear time instead of backtracking.
+    private const SUFFIX = '(?:[._-]?(?>\d{4}[-_]?\d{2}[-_]?\d{2}|\d+|old|new|bak|backup|full|final|latest|copy|prod|live|site|www|db|files))*+';
 
     private const DATA_EXTENSIONS = ['sql', 'csv', 'txt', 'log', 'json', 'xml', 'tsv', 'dat', 'sqlite', 'db'];
 

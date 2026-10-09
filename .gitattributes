@@ -26,6 +26,7 @@ docs/DECOY-MAP.md text eol=lf
 /.gitignore         export-ignore
 /templates          export-ignore
 /examples           export-ignore
+/scripts/dev/decoy-chain export-ignore
 
 # FP-0713: the shipped decoy chain is opaque binary; its sha256 is pinned in chain.json.
 resources/decoy/chain.7z binary

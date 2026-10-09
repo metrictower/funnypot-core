@@ -635,11 +635,20 @@ final class Honeypot implements Engine
         }
 
         // FP-0713: a backup-style archive name that nothing above claimed gets the decoy chain. Last,
-        // so every rule and the host's own routes win first; the WAF-check polyglot stays blinded.
-        if ($this->config->decoyArchives && !$wafCheck) {
+        // so every rule and the host's own routes win first. It is a scanner probe (policy embedders
+        // serve it under their scanner_probe band). The decoy depends only on the path, so a WAF-check
+        // polyglot gets the same response as the plain request and stays blinded.
+        if ($this->config->decoyArchives) {
             $decoy = $this->decoyArchiveHandle($r, $profile);
             if ($decoy !== null) {
-                return new Verdict(Verdict::CLEAN, Detection::none(), '', $anomaly, $signals, $decoy);
+                $detection = new Detection(true, [new TemplateMatch(
+                    'decoy-backup-archive',
+                    'low',
+                    ['backup', 'exposure', 'decoy-archive'],
+                    'backup archive probe'
+                )], 'decoy-backup-archive', 'low');
+
+                return new Verdict(Verdict::SCANNER_PROBE, $detection, 'low', $anomaly, $signals, $decoy);
             }
         }
 
@@ -690,9 +699,12 @@ final class Honeypot implements Engine
      */
     private function buildDecoyArchiveFake(FakeHandle $handle, ?RequestContext $r): array
     {
+        // Gated on the flag here too, so a handle serialized before the operator turned it off serves
+        // nothing. The stem must not start with '.' or '-' ('..' would become a traversal member).
         $parts = explode('|', (string) $handle->key, 2);
-        if (count($parts) !== 2 || !in_array($parts[0], DecoyArchiveName::EXTENSIONS, true)
-            || !preg_match('/^[a-z0-9._-]{1,100}$/', $parts[1])) {
+        if (!$this->config->decoyArchives || count($parts) !== 2
+            || !in_array($parts[0], DecoyArchiveName::EXTENSIONS, true)
+            || !preg_match('/^[a-z0-9_][a-z0-9._-]{0,99}$/', $parts[1])) {
             return ['r' => null, 'reason' => Outcome::UNSYNTHESIZABLE];
         }
         $built = $this->decoyArchiveBuilder()->build($parts[0], $parts[1], $this->deploySeed, $this->config->decoyArchiveMaxBytes);
@@ -1648,10 +1660,8 @@ final class Honeypot implements Engine
         }
 
         // A routed probe. Detection covers EVERY routed template (the full 'd' id-list); signal
-        // the app before any serve decision. A decoy archive carries no detection to signal.
-        if (!$isDecoyArchive) {
-            $this->safeOnDetection($r, $verdict->detection);
-        }
+        // the app before any serve decision.
+        $this->safeOnDetection($r, $verdict->detection);
 
         if (!$this->config->gateOpen($r)) {
             return $this->declined($r, Outcome::GATE_CLOSED);

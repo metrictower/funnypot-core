@@ -40,8 +40,14 @@ final class DecoyArchiveBuilder
         'bz2' => 'application/x-bzip2',
     ];
 
-    /** @var array<string,array{bytes:string,claimed:int}|false> chain cache keyed by directory */
+    /** Built bodies kept per process, so repeat hits (and HEAD) skip re-wrapping; bz2 costs ~85 ms. */
+    private const MEMO_MAX = 6;
+
+    /** @var array<string,array{bytes:string,claimed:int}> verified chains keyed by directory */
     private static $chains = [];
+
+    /** @var array<string,string> built bodies keyed by dir|ext|stem|seed, oldest first */
+    private static $built = [];
 
     /** @var string */
     private $dir;
@@ -93,10 +99,21 @@ final class DecoyArchiveBuilder
             return null;
         }
 
-        try {
-            $body = $this->wrap($ext, $stem, $chain['bytes'], $chain['claimed'], $personaSeed);
-        } catch (\Throwable $e) {
-            return null;
+        $key = $this->dir . '|' . $ext . '|' . $stem . '|' . $personaSeed;
+        if (isset(self::$built[$key])) {
+            $body = self::$built[$key];
+        } else {
+            try {
+                $body = $this->wrap($ext, $stem, $chain['bytes'], $chain['claimed'], $personaSeed);
+            } catch (\Throwable $e) {
+                return null;
+            }
+            if (is_string($body) && $body !== '') {
+                if (count(self::$built) >= self::MEMO_MAX) {
+                    array_shift(self::$built);
+                }
+                self::$built[$key] = $body;
+            }
         }
         if ($body === null || $body === '' || strlen($body) > $maxBytes) {
             return null;
@@ -146,7 +163,7 @@ final class DecoyArchiveBuilder
     {
         $persona = PersonaIdentity::fromSeed($seed);
         $domain = (string) $persona->field('company.domain');
-        $base = self::WINDOW_START + SubSeed::int($seed, self::NS, 'mtime') % self::WINDOW_SECONDS;
+        $base = self::WINDOW_START + SubSeed::index($seed, self::NS, 'mtime', self::WINDOW_SECONDS);
         // ustar names cap at 100 bytes: keep folder + member well inside it.
         $inner = substr($stem, 0, 50) . '.7z';
         $dir = substr($stem, 0, 40) . '/';
@@ -214,12 +231,16 @@ final class DecoyArchiveBuilder
      */
     private function chain(): ?array
     {
-        if (!array_key_exists($this->dir, self::$chains)) {
-            self::$chains[$this->dir] = $this->loadChain();
+        // Only a verified chain is cached: a file missing mid-deploy is retried on the next request.
+        if (!isset(self::$chains[$this->dir])) {
+            $c = $this->loadChain();
+            if ($c === false) {
+                return null;
+            }
+            self::$chains[$this->dir] = $c;
         }
-        $c = self::$chains[$this->dir];
 
-        return $c === false ? null : $c;
+        return self::$chains[$this->dir];
     }
 
     /**
