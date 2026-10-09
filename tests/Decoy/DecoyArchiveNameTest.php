@@ -20,7 +20,6 @@ final class DecoyArchiveNameTest extends TestCase
             'date suffix' => ['/backup-2024-01-01.tar.gz', 'tar.gz', 'backup-2024-01-01'],
             'old suffix' => ['/site_old.tgz', 'tgz', 'site_old'],
             'directory ignored' => ['/old/www.zip', 'zip', 'www'],
-            'case-insensitive' => ['/WWW.ZIP', 'zip', 'www'],
             'stacked suffixes' => ['/db_backup_final.7z', '7z', 'db_backup_final'],
             'tar.bz2' => ['/public_html.tar.bz2', 'tar.bz2', 'public_html'],
             'bare gz of archive name' => ['/backup.gz', 'gz', 'backup'],
@@ -55,6 +54,8 @@ final class DecoyArchiveNameTest extends TestCase
             'directory only' => ['/backup/'],
             'bare extension' => ['/.zip'],
             'other domain' => ['/othersite.com.zip'],
+            'upper case (case-sensitive like Linux)' => ['/WWW.ZIP'],
+            'mixed case' => ['/Backup.zip'],
         ];
     }
 
@@ -66,10 +67,18 @@ final class DecoyArchiveNameTest extends TestCase
         self::assertNull(DecoyArchiveName::match($path, false, 'example.com'));
     }
 
+    public function test_request_host_names_match(): void
+    {
+        self::assertSame(['zip', 'shop.example.org'], DecoyArchiveName::match('/shop.example.org.zip', false, 'example.com', 'shop.example.org'));
+        self::assertSame(['zip', 'shop'], DecoyArchiveName::match('/shop.zip', false, '', 'www.shop.example.org'));
+        self::assertNull(DecoyArchiveName::match('/shop.zip', false, 'example.com', ''));
+    }
+
     public function test_any_name_widens_to_every_servable_basename(): void
     {
         self::assertSame(['zip', 'logo-pack'], DecoyArchiveName::match('/assets/logo-pack.zip', true));
         self::assertSame(['7z', 'whatever_123'], DecoyArchiveName::match('/x/whatever 123.7z', true));
+        self::assertNull(DecoyArchiveName::match('/x/Whatever.7z', true));
         self::assertNull(DecoyArchiveName::match('/backup.rar', true));
         self::assertNull(DecoyArchiveName::match('/dump.sql.gz', true));
     }

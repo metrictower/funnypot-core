@@ -665,7 +665,12 @@ final class Honeypot implements Engine
         if (($method !== 'GET' && $method !== 'HEAD') || $profile->hasRoute($r->method, PathNormalizer::normalize($r->path))) {
             return null;
         }
-        $match = DecoyArchiveName::match($r->path, $this->config->decoyArchiveAnyName, $this->personaDomain());
+        // The operator's usual filters apply to this detection too.
+        if (isset($this->ignoreTemplates['decoy-backup-archive']) || isset($this->ignoreTemplates['decoy-archive'])
+            || Severity::exceeds('low', $this->config->severityCeiling)) {
+            return null;
+        }
+        $match = DecoyArchiveName::match($r->path, $this->config->decoyArchiveAnyName, $this->personaDomain(), DecoyArchiveBuilder::hostName($r->host));
         if ($match === null || !$this->decoyArchiveBuilder()->supports($match[0])) {
             return null;
         }
@@ -707,19 +712,76 @@ final class Honeypot implements Engine
             || !preg_match('/^[a-z0-9_][a-z0-9._-]{0,99}$/', $parts[1])) {
             return ['r' => null, 'reason' => Outcome::UNSYNTHESIZABLE];
         }
-        $built = $this->decoyArchiveBuilder()->build($parts[0], $parts[1], $this->deploySeed, $this->config->decoyArchiveMaxBytes);
+        $host = $r !== null ? $r->host : '';
+        $built = $this->decoyArchiveBuilder()->build($parts[0], $parts[1], $this->deploySeed, $host, $this->config->decoyArchiveMaxBytes);
         if ($built === null) {
             return ['r' => null, 'reason' => Outcome::UNSYNTHESIZABLE];
         }
 
+        // Shaped like a static file from nginx (Last-Modified, ETag, byte ranges), except that it is
+        // never cacheable: CDNs cache archive extensions by default, and a cached decoy would answer
+        // later probes at the edge, hiding them from detection and from the kill switch.
+        $body = $built['body'];
+        $length = strlen($body);
         $headers = [
             'Content-Type' => $built['type'],
-            'Content-Disposition' => 'attachment; filename="' . $built['filename'] . '"',
-            'Content-Length' => (string) strlen($built['body']),
+            'Last-Modified' => gmdate('D, d M Y H:i:s', $built['mtime']) . ' GMT',
+            'ETag' => sprintf('"%x-%x"', $built['mtime'], $length),
+            'Accept-Ranges' => 'bytes',
+            'Cache-Control' => 'private, no-store',
         ];
-        $body = ($r !== null && strtoupper($r->method) === 'HEAD') ? '' : $built['body'];
+        $status = 200;
+        $range = $r !== null ? self::byteRange($r, $length) : null;
+        if ($range === false) {
+            $status = 416;
+            $headers['Content-Range'] = 'bytes */' . $length;
+            $body = '';
+        } elseif ($range !== null) {
+            $status = 206;
+            $headers['Content-Range'] = 'bytes ' . $range[0] . '-' . $range[1] . '/' . $length;
+            $body = substr($body, $range[0], $range[1] - $range[0] + 1);
+        }
+        $headers['Content-Length'] = (string) strlen($body);
+        if ($r !== null && strtoupper($r->method) === 'HEAD') {
+            $body = '';
+        }
 
-        return ['r' => new SynthesizedResponse(200, $headers, $body, Detection::none()), 'reason' => Outcome::SERVED];
+        return ['r' => new SynthesizedResponse($status, $headers, $body, Detection::none()), 'reason' => Outcome::SERVED];
+    }
+
+    /**
+     * A single "bytes=" range like nginx honours: [first, last] inclusive, null when absent or not a
+     * single simple range (served whole), false when unsatisfiable (416).
+     *
+     * @return array{0:int,1:int}|false|null
+     */
+    private static function byteRange(RequestContext $r, int $length)
+    {
+        $value = null;
+        foreach ($r->headers as $name => $v) {
+            if (strcasecmp((string) $name, 'Range') === 0) {
+                $value = trim((string) (is_array($v) ? reset($v) : $v));
+                break;
+            }
+        }
+        if ($value === null || !preg_match('/^bytes=(\d{0,15})-(\d{0,15})$/', $value, $m) || ($m[1] === '' && $m[2] === '')) {
+            return null;
+        }
+        if ($m[1] === '') {
+            $suffix = (int) $m[2];
+            if ($suffix === 0) {
+                return false;
+            }
+
+            return [max(0, $length - $suffix), $length - 1];
+        }
+        $first = (int) $m[1];
+        if ($first >= $length) {
+            return false;
+        }
+        $last = $m[2] === '' ? $length - 1 : min((int) $m[2], $length - 1);
+
+        return $last < $first ? null : [$first, $last];
     }
 
     /**
@@ -1826,6 +1888,10 @@ final class Honeypot implements Engine
         // this, attack fakes shipped no X-Request-Id and its absence marked the branch as canned.
         if ($built['r'] !== null) {
             $this->stampEnvelope($built['r']);
+            // nginx serves static files itself, so a PHP X-Powered-By on a backup download is a tell.
+            if ($handle->kind === FakeHandle::KIND_DECOY_ARCHIVE) {
+                unset($built['r']->headers['X-Powered-By']);
+            }
         }
 
         return $built;

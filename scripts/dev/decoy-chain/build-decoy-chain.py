@@ -85,7 +85,8 @@ def w_zip(members, mtime, nul_names=()):
     dt = _dostime(mtime)
     with zipfile.ZipFile(buf, 'w') as z:
         for m in members:
-            assert m.link is None, 'zip layers carry no symlinks'
+            if not (m.link is None):
+                raise SystemExit('build invariant failed: m.link is None')
             zi = zipfile.ZipInfo(m.name, dt)
             zi.compress_type = zipfile.ZIP_DEFLATED if m.text else zipfile.ZIP_STORED
             zi.external_attr = (0o100644 << 16)
@@ -94,7 +95,8 @@ def w_zip(members, mtime, nul_names=()):
     out = buf.getvalue()
     for placeholder, real in nul_names:
         pe, re_ = placeholder.encode('utf-8'), real.encode('utf-8', 'surrogatepass')
-        assert len(pe) == len(re_) and out.count(pe) == 2
+        if not (len(pe) == len(re_) and out.count(pe) == 2):
+            raise SystemExit('build invariant failed: len(pe) == len(re_) and out.count(pe) == 2')
         out = out.replace(pe, re_)
     return out
 
@@ -131,7 +133,8 @@ def w_cpio(members, mtime):
         ino += 1
 
     for m in members:
-        assert m.link is None
+        if not (m.link is None):
+            raise SystemExit('build invariant failed: m.link is None')
         rec(m.name, m.data, 0o100644)
     rec('TRAILER!!!', b'', 0)
     return out.getvalue()
@@ -144,7 +147,8 @@ def w_7z(members, work, compress_text=True):
     # Archives first (stored), text last (LZMA): 7-Zip keeps earlier folders as-is on append, while a
     # later -mx0 append would leave earlier text members stored.
     for m in sorted(members, key=lambda m: m.text):
-        assert m.link is None
+        if not (m.link is None):
+            raise SystemExit('build invariant failed: m.link is None')
         # LZMA1 for text: LZMA2 stores tiny inputs as raw chunks, which would leave text greppable.
         level = '-m0=LZMA' if (m.text and compress_text) else '-mx0'
         src = os.path.join(work, 'si.bin')

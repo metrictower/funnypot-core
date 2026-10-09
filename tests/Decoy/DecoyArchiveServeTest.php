@@ -38,6 +38,7 @@ final class DecoyArchiveServeTest extends TestCase
             $idx = self::$small;
         }
         $cfg = new Config('respond', static function (RequestContext $r): bool { return true; });
+        $cfg->poweredBy = 'PHP/8.2.12';
         $cfg->decoyArchives = $decoys;
         $cfg->decoyArchiveAnyName = $anyName;
         $cfg->attackEmulation = $attacks;
@@ -63,12 +64,70 @@ final class DecoyArchiveServeTest extends TestCase
         self::assertInstanceOf(SynthesizedResponse::class, $r);
         self::assertSame(200, $r->status);
         self::assertSame('application/zip', $r->headers['Content-Type']);
-        self::assertSame('attachment; filename="backup22.zip"', $r->headers['Content-Disposition']);
         self::assertSame((string) strlen($r->body), $r->headers['Content-Length']);
+        self::assertSame('bytes', $r->headers['Accept-Ranges']);
+        self::assertSame('private, no-store', $r->headers['Cache-Control'], 'CDNs must not cache a decoy');
+        self::assertSame(1, preg_match('/^"[0-9a-f]+-[0-9a-f]+"$/', $r->headers['ETag']));
+        self::assertSame(1, preg_match('/^[A-Z][a-z]{2}, \d{2} [A-Z][a-z]{2} \d{4} \d{2}:\d{2}:\d{2} GMT$/', $r->headers['Last-Modified']));
+        self::assertArrayNotHasKey('Content-Disposition', $r->headers);
+        self::assertArrayNotHasKey('X-Powered-By', $r->headers);
         self::assertSame("PK\x03\x04", substr($r->body, 0, 4));
         self::assertGreaterThan(900000, strlen($r->body));
         self::assertSame([Outcome::SERVED], $observer->outcomes);
         self::assertSame([['decoy-backup-archive']], $observer->detectionIds, 'a backup-archive fetch is a scanner probe');
+    }
+
+    public function test_byte_ranges_are_honoured_like_a_static_file(): void
+    {
+        $engine = $this->engine();
+        $full = $engine->respond($this->req('/backup.zip'));
+        $part = $engine->respond($this->req('/backup.zip', 'GET', '', ['Range' => 'bytes=0-99']));
+        self::assertSame(206, $part->status);
+        self::assertSame(substr($full->body, 0, 100), $part->body);
+        self::assertSame('bytes 0-99/' . strlen($full->body), $part->headers['Content-Range']);
+        self::assertSame('100', $part->headers['Content-Length']);
+
+        $tail = $engine->respond($this->req('/backup.zip', 'GET', '', ['range' => 'bytes=-10']));
+        self::assertSame(substr($full->body, -10), $tail->body);
+
+        $bad = $engine->respond($this->req('/backup.zip', 'GET', '', ['Range' => 'bytes=99999999-']));
+        self::assertSame(416, $bad->status);
+        self::assertSame('', $bad->body);
+
+        $multi = $engine->respond($this->req('/backup.zip', 'GET', '', ['Range' => 'bytes=0-1,5-6']));
+        self::assertSame(200, $multi->status);
+    }
+
+    public function test_names_built_from_the_request_host_match(): void
+    {
+        $engine = $this->engine();
+        foreach (['/shop.example.org.zip', '/www.shop.example.org.tar.gz', '/shop.zip'] as $path) {
+            $r = new RequestContext('GET', $path, '', [], null, 'shop.example.org');
+            self::assertNotNull($engine->respond($r), $path);
+        }
+        self::assertNull($engine->respond(new RequestContext('GET', '/other.zip', '', [], null, 'shop.example.org')));
+    }
+
+    public function test_matching_is_case_sensitive(): void
+    {
+        self::assertNull($this->engine()->respond($this->req('/Backup.ZIP')));
+        self::assertNull($this->engine()->respond($this->req('/BACKUP.zip')));
+    }
+
+    public function test_operator_filters_apply(): void
+    {
+        $engine = $this->engine();
+        $cfg = new Config('respond', static function (RequestContext $r): bool { return true; });
+        $cfg->decoyArchives = true;
+        $cfg->severityCeiling = 'info';
+        self::$small = self::$small ?? require __DIR__ . '/../../resources/compiled/nuclei-index.php';
+        self::assertNull((new Honeypot(new PhpArrayStore(self::$small), $cfg))->respond($this->req('/backup.zip')));
+
+        $cfg2 = new Config('respond', static function (RequestContext $r): bool { return true; });
+        $cfg2->decoyArchives = true;
+        $cfg2->ignoreTemplates = ['decoy-backup-archive'];
+        self::assertNull((new Honeypot(new PhpArrayStore(self::$small), $cfg2))->respond($this->req('/backup.zip')));
+        self::assertNotNull($engine->respond($this->req('/backup.zip')));
     }
 
     public function test_it_classifies_as_a_low_severity_scanner_probe(): void

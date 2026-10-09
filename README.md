@@ -397,7 +397,9 @@ still recorded) — no attacker bytes are ever served without an isolated origin
 Scanners and attack agents probe for forgotten backups: `/backup.zip`, `/www.tar.gz`, `/site_old.7z`,
 `/example.com.zip`. With `decoyArchives` on, an otherwise-unmatched `GET`/`HEAD` for a backup-style
 archive name is answered with a **valid archive of exactly that type** whose contents are a very deep
-nested "backup" built to waste the attacker's time:
+nested "backup" built to waste the attacker's time. Backup-style names include the usual stems
+(`backup`, `www`, `site`, `db`, …), the persona domain and the request host (`shop.example.org.zip`,
+`shop.tar.gz`), with digit/date/`_old` suffixes; matching is case-sensitive, like the Linux box it imitates:
 
 ```php
 $config->decoyArchives = true;          // backup-style names only (default list + the persona domain)
@@ -410,9 +412,10 @@ $config->decoyArchiveMaxBytes = 1310720; // separate from maxBodyBytes — the c
   `.7z` is served as-is; `.zip` and `.tar` are written in pure PHP, `.gz`/`.tar.gz`/`.tgz` need ext-zlib
   and `.bz2`/`.tar.bz2`/`.tbz2` need ext-bz2. A format this host cannot write (and `.rar`, `.xz`,
   `.zst`, `.iso`) stays the host 404.
-- **Per-deploy outer layer.** zip/tar-family responses add persona-seeded `wp-config.php`,
-  `backup.log`, `MANIFEST.sha256` and `RESTORE.txt`, so the served bytes differ per site. The inner
-  chain is the same everywhere — a known fingerprint trade-off for a one-file package.
+- **Different bytes and length on every deploy.** `.7z` gets seeded padding inside the container (still
+  a valid 7z); every other format wraps it with persona-seeded `wp-config.php`, `backup.log`,
+  `contents.txt`, `MANIFEST.sha256` and `RESTORE.txt`, so no response size or hash is shared across
+  sites. The nested layers inside are the same everywhere — a known trade-off for a one-file package.
 - **Annoying all the way down.** Every layer nests the next part under a deep folder path, so in-place
   extraction runs past PATH_MAX (Linux 4096 bytes, macOS 1024) within a couple of dozen layers;
   hostile-but-inert file names (quotes, newlines, glob characters, colour escapes, never-defined
@@ -420,8 +423,14 @@ $config->decoyArchiveMaxBytes = 1310720; // separate from maxBodyBytes — the c
   ends (password-protected zip, AES 7z with a discarded password, corrupt ISO, truncated tar.xz,
   orphan split volume). Nothing is greppable from the raw download: every text member is compressed.
 - **Never shadows the host.** It runs last on the miss path: a host-declared route, every compiled
-  route and every attack rule win first. Off by default; responses are always `200` with a matching
-  `Content-Type` and `Content-Disposition: attachment`.
+  route and every attack rule win first. `ignoreTemplates` (`decoy-backup-archive`) and
+  `severityCeiling` apply as for any detection.
+- **Looks like a static download, but never cached.** Matching `Content-Type`, `Last-Modified`, an
+  nginx-style `ETag`, `Accept-Ranges: bytes` with single-range `206`/`416`, no `X-Powered-By` — and
+  `Cache-Control: private, no-store`, because CDNs cache archive extensions by default and a cached
+  decoy would answer later probes at the edge, invisible to detection and the kill switch.
+- **Cost.** Each hit sends ~1 MB. Under PHP-FPM every hit rebuilds the outer layer (≈5–20 ms; `.bz2`
+  ≈80 ms); long-running runtimes reuse recent builds. Rate-limit these paths at the edge if exposed.
 - **A scanner probe, not a silent 404.** A match classifies as `SCANNER_PROBE` with one low-severity
   detection, `decoy-backup-archive`, so `onDetection` fires and policy embedders serve it under their
   `scanner_probe` band (default `deceive`). Out-of-band signals on the same request (OAST, JNDI) fold
