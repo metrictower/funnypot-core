@@ -68,6 +68,9 @@ final class DecoyArchiveBuilderTest extends TestCase
         self::assertSame(crc32(substr($body, 12, 20)) & 0xffffffff, unpack('V', substr($body, 8, 4))[1] & 0xffffffff);
         $h = unpack('Vlo', substr(self::$chain, 12, 4));
         self::assertSame(substr(self::$chain, 32, $h['lo']), substr($body, 32, $h['lo']));
+        // The rewritten NextHeaderOffset must land on the original end header (its CRC still matches).
+        $nh = unpack('Vlo/Vhi/Vsize/Vsizehi/Vcrc', substr($body, 12, 20));
+        self::assertSame($nh['crc'] & 0xffffffff, crc32(substr($body, 32 + $nh['lo'], $nh['size'])) & 0xffffffff);
         self::assertSame(substr(self::$chain, 32 + $h['lo']), substr($body, -(strlen(self::$chain) - 32 - $h['lo'])));
     }
 
@@ -99,11 +102,10 @@ final class DecoyArchiveBuilderTest extends TestCase
         }
     }
 
-    public function test_restore_notes_name_the_request_host_when_it_is_a_hostname(): void
+    public function test_host_names_are_parsed_for_matching_only(): void
     {
-        $b = new DecoyArchiveBuilder();
-        self::assertNotFalse(strpos($b->build('zip', 'backup', self::SEED, 'shop.example.org:8443')['body'], 'Restore notes - shop.example.org'));
-        self::assertFalse(strpos($b->build('zip', 'backup', self::SEED, '10.0.0.5')['body'], 'Restore notes - 10.0.0.5'));
+        self::assertSame('shop.example.org', DecoyArchiveBuilder::hostName('Shop.Example.org:8443'));
+        self::assertSame('', DecoyArchiveBuilder::hostName('10.0.0.5'));
         self::assertSame('', DecoyArchiveBuilder::hostName('[::1]:80'));
         self::assertSame('', DecoyArchiveBuilder::hostName('localhost'));
     }
@@ -179,7 +181,7 @@ final class DecoyArchiveBuilderTest extends TestCase
 
     public function test_over_cap_declines(): void
     {
-        self::assertNull((new DecoyArchiveBuilder())->build('zip', 'backup', self::SEED, '', 1000));
+        self::assertNull((new DecoyArchiveBuilder())->build('zip', 'backup', self::SEED, 1000));
     }
 
     public function test_every_canonical_extension_has_a_type(): void

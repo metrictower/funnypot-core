@@ -94,6 +94,9 @@ final class DecoyArchiveServeTest extends TestCase
         self::assertSame(416, $bad->status);
         self::assertSame('', $bad->body);
 
+        $spaced = $engine->respond($this->req('/backup.zip', 'GET', '', ['Range' => 'Bytes = 0-9']));
+        self::assertSame(206, $spaced->status);
+
         $multi = $engine->respond($this->req('/backup.zip', 'GET', '', ['Range' => 'bytes=0-1,5-6']));
         self::assertSame(200, $multi->status);
     }
@@ -106,6 +109,15 @@ final class DecoyArchiveServeTest extends TestCase
             self::assertNotNull($engine->respond($r), $path);
         }
         self::assertNull($engine->respond(new RequestContext('GET', '/other.zip', '', [], null, 'shop.example.org')));
+    }
+
+    public function test_the_request_host_never_changes_the_served_bytes(): void
+    {
+        $engine = $this->engine();
+        $a = $engine->respond(new RequestContext('GET', '/backup.zip', '', [], null, 'h1.example.org'));
+        $b = $engine->respond(new RequestContext('GET', '/backup.zip', '', [], null, 'h2.example.org'));
+        self::assertSame($a->body, $b->body);
+        self::assertSame($a->headers['ETag'], $b->headers['ETag']);
     }
 
     public function test_matching_is_case_sensitive(): void

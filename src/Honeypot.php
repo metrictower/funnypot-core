@@ -712,8 +712,7 @@ final class Honeypot implements Engine
             || !preg_match('/^[a-z0-9_][a-z0-9._-]{0,99}$/', $parts[1])) {
             return ['r' => null, 'reason' => Outcome::UNSYNTHESIZABLE];
         }
-        $host = $r !== null ? $r->host : '';
-        $built = $this->decoyArchiveBuilder()->build($parts[0], $parts[1], $this->deploySeed, $host, $this->config->decoyArchiveMaxBytes);
+        $built = $this->decoyArchiveBuilder()->build($parts[0], $parts[1], $this->deploySeed, $this->config->decoyArchiveMaxBytes);
         if ($built === null) {
             return ['r' => null, 'reason' => Outcome::UNSYNTHESIZABLE];
         }
@@ -764,7 +763,7 @@ final class Honeypot implements Engine
                 break;
             }
         }
-        if ($value === null || !preg_match('/^bytes=(\d{0,15})-(\d{0,15})$/', $value, $m) || ($m[1] === '' && $m[2] === '')) {
+        if ($value === null || !preg_match('/^bytes\s*=\s*(\d{0,15})\s*-\s*(\d{0,15})$/i', $value, $m) || ($m[1] === '' && $m[2] === '')) {
             return null;
         }
         if ($m[1] === '') {

@@ -91,11 +91,12 @@ final class DecoyArchiveBuilder
     }
 
     /**
-     * @param string $siteHost the request host (sanitized here); names the restore notes when it is a
-     *                         real hostname, else the persona domain is used
+     * Content depends only on (ext, stem, persona seed): request headers never reach the bytes, so the
+     * same path always serves the same file, like a static download.
+     *
      * @return array{body:string,type:string,mtime:int}|null
      */
-    public function build(string $ext, string $stem, int $personaSeed, string $siteHost = '', int $maxBytes = self::DEFAULT_MAX_BYTES): ?array
+    public function build(string $ext, string $stem, int $personaSeed, int $maxBytes = self::DEFAULT_MAX_BYTES): ?array
     {
         if (!$this->supports($ext)) {
             return null;
@@ -104,14 +105,12 @@ final class DecoyArchiveBuilder
         if ($chain === null) {
             return null;
         }
-        $host = self::hostName($siteHost);
-
-        $key = $this->dir . '|' . $ext . '|' . $stem . '|' . $personaSeed . '|' . $host;
+        $key = $this->dir . '|' . $ext . '|' . $stem . '|' . $personaSeed;
         if (isset(self::$built[$key])) {
             $body = self::$built[$key];
         } else {
             try {
-                $body = $this->wrap($ext, $stem, $chain['bytes'], $chain['claimed'], $personaSeed, $host);
+                $body = $this->wrap($ext, $stem, $chain['bytes'], $chain['claimed'], $personaSeed);
             } catch (\Throwable $e) {
                 return null;
             }
@@ -129,7 +128,7 @@ final class DecoyArchiveBuilder
         return ['body' => $body, 'type' => self::TYPES[$ext], 'mtime' => self::baseTime($personaSeed) + 75];
     }
 
-    /** A real hostname (lowercase, letters/digits/dots/hyphens, not an IP), or '' when there is none. */
+    /** A real hostname (lowercase, letters/digits/dots/hyphens, not an IP), or ''. Used for name matching only. */
     public static function hostName(string $host): string
     {
         $host = strtolower(trim($host));
@@ -150,7 +149,7 @@ final class DecoyArchiveBuilder
         return self::WINDOW_START + SubSeed::index($seed, self::NS, 'mtime', self::WINDOW_SECONDS);
     }
 
-    private function wrap(string $ext, string $stem, string $chain, int $claimed, int $seed, string $host): ?string
+    private function wrap(string $ext, string $stem, string $chain, int $claimed, int $seed): ?string
     {
         // Every format carries per-deploy bytes and length, so no response size or hash is shared
         // across sites: the 7z gets seeded padding, the others a persona-seeded outer layer.
@@ -162,7 +161,7 @@ final class DecoyArchiveBuilder
             return $chain;
         }
 
-        $members = $this->members($stem, $chain, $claimed, $seed, $host);
+        $members = $this->members($stem, $chain, $claimed, $seed);
         if ($ext === 'zip') {
             return DecoyArchiveWriter::zipStore($members);
         }
@@ -210,10 +209,10 @@ final class DecoyArchiveBuilder
     /**
      * @return list<array{0:string,1:string,2:int}>
      */
-    private function members(string $stem, string $chain, int $claimed, int $seed, string $host): array
+    private function members(string $stem, string $chain, int $claimed, int $seed): array
     {
         $persona = PersonaIdentity::fromSeed($seed);
-        $site = $host !== '' ? $host : (string) $persona->field('company.domain');
+        $site = (string) $persona->field('company.domain');
         $base = self::baseTime($seed);
         // ustar names cap at 100 bytes: keep folder + member well inside it.
         $inner = substr($stem, 0, 50) . '.7z';
