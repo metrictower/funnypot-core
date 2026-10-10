@@ -196,7 +196,7 @@ final class DecoyArchiveBuilder
         $len = 2048 + SubSeed::index($seed, self::NS, 'pad', 61440);
         $pad = '';
         for ($i = 0; strlen($pad) < $len; $i++) {
-            $pad .= hash('sha256', $seed . '|' . self::NS . '|pad|' . $i, true);
+            $pad .= (string) hex2bin(SubSeed::digest($seed, self::NS, 'pad|' . $i));
         }
         $pad = substr($pad, 0, $len);
         $at = 32 + $h['lo'];
@@ -238,7 +238,7 @@ final class DecoyArchiveBuilder
         $n = 150 + SubSeed::index($seed, self::NS, 'contents', 1350);
         $out = '';
         for ($i = 0; $i < $n; $i++) {
-            $d = hash('sha256', $seed . '|' . self::NS . '|contents|' . $i);
+            $d = SubSeed::digest($seed, self::NS, 'contents|' . $i);
             $year = 2019 + hexdec($d[0]) % 5;
             $month = 1 + hexdec($d[1]) % 12;
             $out .= $dirs[hexdec($d[2]) % count($dirs)]

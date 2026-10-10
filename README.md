@@ -829,8 +829,12 @@ regenerated-and-committed whenever the templates change — nothing serves them 
 
 ```bash
 composer build                     # recompile the in-repo artifacts (the funnypot build DAG)
-composer check                     # the LAW: recompile + drift gate + lint-routes + fingerprint (static + runtime render-corpus + WAF-lookalike scan) + namespace
+composer check                     # the LAW: recompile + drift gate + lint-routes + fingerprint (static + runtime render-corpus + WAF-lookalike scan) + namespace + PHP 7.3 syntax floor
 ```
+
+`scripts/ci/check-php73-syntax.php` keeps `src/` parseable on the PHP 7.3 floor: it tokenizes with
+the host PHP and fails on 7.4+ syntax (`??=`, `fn`, `match`, typed properties, union types, …) or
+post-7.3 functions (`str_contains` …), which an 8.x-only test run never notices.
 
 Run `composer check` before pushing. It runs the exact bytes CI's `artifact-law` workflow runs
 (both call `scripts/ci/check-drift.sh`), so local and CI cannot disagree: the script rebuilds, then
