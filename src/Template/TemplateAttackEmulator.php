@@ -1885,7 +1885,7 @@ final class TemplateAttackEmulator
 
             $path = $r->path;
             for ($round = 0; $round <= self::NTLM_NONCE_MAX_ROUNDS; $round++) {
-                $nonce8 = substr(hash('sha256', $ps . '|ntlm|' . $path . '|' . $round, true), 0, 8);
+                $nonce8 = substr((string) hex2bin(SubSeed::digest($ps, SubSeed::NS_NTLM, $path . '|' . $round)), 0, 8);
                 $header = NtlmChallengeBuilder::headerValue($names, $nonce8);
                 if (!SubSeed::hitsDeniedDigits($header)) {
                     return new EmulatedContent(

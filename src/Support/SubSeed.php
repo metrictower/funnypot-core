@@ -55,6 +55,7 @@ final class SubSeed
     public const NS_REACTION = 'reaction';  // FP-0157 (param-reaction closed-family cosmetics)
     public const NS_APP = 'app';            // FP-0129 app-owned persona fields
     public const NS_ARCHIVE = 'archive';    // FP-0713 decoy backup-archive outer files
+    public const NS_NTLM = 'ntlm';          // FP-0429 NTLM challenge nonce (existing bytes)
 
     private function __construct()
     {

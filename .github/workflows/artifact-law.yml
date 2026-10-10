@@ -67,6 +67,11 @@ jobs:
       - name: Namespace-collision gate
         run: php scripts/ci/check-namespace-collisions.php
 
+      # src/ must parse on core's PHP 7.3 floor; this job runs 8.3, so a 7.4+ construct is invisible
+      # to everything above.
+      - name: PHP 7.3 syntax-floor gate
+        run: php scripts/ci/check-php73-syntax.php
+
       # --- corpus reproducibility (the drift class check-drift structurally cannot see) ---------
       # Read the pin the committed index was compiled from.
       - name: Read corpus pin
