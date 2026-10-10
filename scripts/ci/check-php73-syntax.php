@@ -7,13 +7,14 @@ declare(strict_types=1);
  *
  * Core's floor is PHP 7.3 (WordPress hosts). A single 7.4+ construct in src/ is a ParseError on a
  * 7.3 host for every request that autoloads the file, yet the suite runs green on 8.x. This gate
- * tokenizes with the host PHP (any 8.x) and flags the newer constructs by token shape, so it runs
+ * tokenizes with the host PHP (8.1+; CI runs 8.3) and flags the newer constructs by token shape, so it runs
  * locally without a 7.3 binary. It is a guard, not a full 7.3 parser: the 7.3 leg of the test
  * matrix remains the authoritative check.
  *
  * Flagged: `??=`, arrow functions `fn`, `match`, nullsafe `?->`, `readonly`, `enum`, attributes
- * `#[`, typed or promoted properties, numeric literal separators, union / `mixed` / `static` /
- * `never` types in signatures, `catch` without a variable, first-class callables `f(...)`,
+ * `#[`, typed or promoted properties, typed class constants, numeric literal separators, `0o`
+ * octals, array unpacking `[...$a]`, union / intersection / `mixed` / `static` / `never` types and
+ * trailing commas in signatures, `catch` without a variable, first-class callables `f(...)`,
  * `$obj::class`, and calls to functions added after 7.3 (str_contains etc.).
  * Not covered: named arguments, `throw` as an expression, `new` in initializers.
  *
@@ -26,6 +27,7 @@ const POST_73_FUNCTIONS = [
     'array_is_list', 'fdiv', 'preg_last_error_msg', 'mb_str_split', 'enum_exists', 'array_find',
     'array_find_key', 'array_any', 'array_all', 'json_validate', 'mb_str_pad', 'str_increment',
     'str_decrement', 'get_mangled_object_vars', 'password_algos', 'mb_trim', 'mb_ltrim', 'mb_rtrim',
+    'mb_ucfirst', 'mb_lcfirst',
 ];
 
 const POST_73_TYPE_NAMES = ['mixed', 'never', 'static', 'null', 'false', 'true'];
@@ -101,22 +103,35 @@ function scanSignature(array $toks, int $open): array
 {
     $bad = [];
     $depth = 0;
+    $inDefault = false;
     $n = count($toks);
     $i = $open;
     for (; $i < $n; $i++) {
         $t = $toks[$i];
-        if ($t[0] === '(') {
+        if ($t[0] === '(' || $t[0] === '[') {
             $depth++;
+        } elseif ($t[0] === ']') {
+            $depth--;
         } elseif ($t[0] === ')') {
             $depth--;
             if ($depth === 0) {
                 break;
             }
-        } elseif ($depth === 1) {
+        } elseif ($depth === 1 && $t[0] === ',') {
+            $inDefault = false;
+            if (isset($toks[$i + 1]) && $toks[$i + 1][0] === ')') {
+                $bad[] = [$t[2], 'trailing comma in parameter list'];
+            }
+        } elseif ($depth === 1 && $t[0] === '=') {
+            // A default value is an expression: `|` and `&` there are bitwise operators.
+            $inDefault = true;
+        } elseif ($depth === 1 && !$inDefault) {
             $next = $toks[$i + 1] ?? null;
             if ($t[0] === '|' && $next !== null && isNameToken($next)) {
                 $bad[] = [$t[2], 'union type in parameter list'];
-            } elseif (isNameToken($t) && $next !== null && in_array($next[0], [T_VARIABLE, T_ELLIPSIS, '&'], true)
+            } elseif ($t[1] === '&' && $next !== null && isNameToken($next)) {
+                $bad[] = [$t[2], 'intersection type in parameter list'];
+            } elseif (isNameToken($t) && $next !== null && (in_array($next[0], [T_VARIABLE, T_ELLIPSIS], true) || $next[1] === '&')
                 && in_array(strtolower($t[1]), POST_73_TYPE_NAMES, true)) {
                 $bad[] = [$t[2], "parameter type '{$t[1]}'"];
             } elseif (in_array($t[0], [T_PUBLIC, T_PROTECTED, T_PRIVATE], true)) {
@@ -141,6 +156,8 @@ function scanSignature(array $toks, int $open): array
             $t = $toks[$i];
             if ($t[0] === '|') {
                 $bad[] = [$t[2], 'union return type'];
+            } elseif ($t[1] === '&') {
+                $bad[] = [$t[2], 'intersection return type'];
             } elseif (isNameToken($t) && in_array(strtolower($t[1]), POST_73_TYPE_NAMES, true)) {
                 $bad[] = [$t[2], "return type '{$t[1]}'"];
             }
@@ -164,10 +181,35 @@ function scanFile(string $src): array
         }
     }
 
+    // Open brackets; '[' or 'array(' marks an array literal, where `...` is 7.4 unpacking.
+    $stack = [];
     for ($i = 0; $i < $n; $i++) {
         $t = $toks[$i];
         $prev = $toks[$i - 1] ?? null;
         $next = $toks[$i + 1] ?? null;
+
+        if ($t[0] === '[') {
+            $stack[] = 'array';
+        } elseif ($t[0] === '(') {
+            $stack[] = $prev !== null && in_array($prev[0], [T_ARRAY, T_LIST], true) ? 'array' : 'paren';
+        } elseif ($t[0] === '{' || $t[0] === T_CURLY_OPEN || $t[0] === T_DOLLAR_OPEN_CURLY_BRACES) {
+            $stack[] = 'brace';
+        } elseif (in_array($t[0], [']', ')', '}'], true)) {
+            array_pop($stack);
+        } elseif ($t[0] === T_ELLIPSIS && end($stack) === 'array') {
+            $bad[] = [$t[2], 'array unpacking `[...$a]`'];
+            continue;
+        }
+
+        if ($t[0] === T_LNUMBER && preg_match('/^0[oO]/', $t[1])) {
+            $bad[] = [$t[2], 'explicit octal `0o`'];
+            continue;
+        }
+
+        if ($t[0] === T_CONST && $next !== null && isNameToken($next) && isset($toks[$i + 2]) && isNameToken($toks[$i + 2])) {
+            $bad[] = [$t[2], 'typed class constant'];
+            continue;
+        }
 
         if (isset($keywordTokens[$t[0]]) && !isMemberName($toks, $i)) {
             $bad[] = [$t[2], $keywordTokens[$t[0]]];
@@ -179,7 +221,8 @@ function scanFile(string $src): array
             continue;
         }
 
-        if (in_array($t[0], [T_PUBLIC, T_PROTECTED, T_PRIVATE, T_VAR], true) && $prev !== null && $prev[0] !== '(' && $prev[0] !== ',') {
+        // Skips promoted params (signature scan) and trait alias visibility (`f as protected`).
+        if (in_array($t[0], [T_PUBLIC, T_PROTECTED, T_PRIVATE, T_VAR], true) && $prev !== null && !in_array($prev[0], ['(', ',', T_AS], true)) {
             $j = $i + 1;
             while (isset($toks[$j]) && in_array($toks[$j][0], [T_STATIC, T_ABSTRACT, T_FINAL], true)) {
                 $j++;

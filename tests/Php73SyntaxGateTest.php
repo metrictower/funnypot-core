@@ -9,7 +9,7 @@ use PHPUnit\Framework\TestCase;
 /**
  * Executes scripts/ci/check-php73-syntax.php against the real src/ tree and against scratch
  * fixtures, proving each flagged construct trips the gate and that 7.3-valid look-alikes do not.
- * The gate reads newer token ids, so it runs on an 8.x host; on 7.3 the parser itself is the gate.
+ * The gate reads newer token ids, so it runs on an 8.1+ host; on 7.3 the parser itself is the gate.
  */
 final class Php73SyntaxGateTest extends TestCase
 {
@@ -20,8 +20,8 @@ final class Php73SyntaxGateTest extends TestCase
 
     protected function setUp(): void
     {
-        if (PHP_VERSION_ID < 80000) {
-            self::markTestSkipped('the gate tokenizes with 8.x token ids');
+        if (PHP_VERSION_ID < 80100) {
+            self::markTestSkipped('the gate tokenizes with 8.1+ token ids');
         }
     }
 
@@ -62,6 +62,12 @@ final class Php73SyntaxGateTest extends TestCase
             'object class' => ['$c = $o::class;'],
             'str_contains' => ['$b = str_contains($h, "x");'],
             'qualified str_starts_with' => ['$b = \str_starts_with($h, "x");'],
+            'array unpacking' => ['$a = [...$b];'],
+            'array() unpacking' => ['$a = array(1, ...$b);'],
+            'intersection param' => ['function f(A&B $x) {}'],
+            'trailing comma params' => ['function f($a, $b,) {}'],
+            'octal 0o' => ['$n = 0o17;'],
+            'typed class constant' => ['class A { const int X = 1; }'],
         ];
     }
 
@@ -84,7 +90,12 @@ final class Php73SyntaxGateTest extends TestCase
             '    public const C = 1;',
             '    final public static function match(?string $s, array $a = [], callable $c = null): ?self { return null; }',
             '    public function f(self $x, int ...$rest): void {}',
+            '    public function g($x = self::C | 2, array &$r = [], $m = E_ALL & ~E_NOTICE, $l = [1, 2]) {}',
+            '    use T, U { T::f as protected; U::f as private g; }',
             '}',
+            '$c = f($a, ...$rest);',
+            'function h(...$args) { return [$args, f(...$args)]; }',
+            '$n = 0777;',
             '$a = $a ?? 1;',
             '$m = A::match(null);',
             '$m = $o->match();',
