@@ -54,6 +54,7 @@ final class SubSeed
     public const NS_DECOY = 'decoy';        // FP-0282
     public const NS_REACTION = 'reaction';  // FP-0157 (param-reaction closed-family cosmetics)
     public const NS_APP = 'app';            // FP-0129 app-owned persona fields
+    public const NS_ARCHIVE = 'archive';    // FP-0713 decoy backup-archive outer files
 
     private function __construct()
     {

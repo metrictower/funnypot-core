@@ -6,6 +6,8 @@ namespace Funnypot\Core;
 
 use Funnypot\Core\Compiler\Crs\FingerprintGuard;
 use Funnypot\Core\Contracts\CompiledStore;
+use Funnypot\Core\Decoy\DecoyArchiveBuilder;
+use Funnypot\Core\Decoy\DecoyArchiveName;
 use Funnypot\Core\Reaction\AntiWafProbe;
 use Funnypot\Core\Reaction\ParamIntent;
 use Funnypot\Core\Reaction\ParamReactionDecorator;
@@ -16,6 +18,7 @@ use Funnypot\Core\Rules\ServedStringWalker;
 use Funnypot\Core\Store\PhpArrayStore;
 use Funnypot\Core\Support\BoundedInspection;
 use Funnypot\Core\Support\PathNormalizer;
+use Funnypot\Core\Support\PersonaIdentity;
 use Funnypot\Core\Support\PersonaSelector;
 use Funnypot\Core\Support\Severity;
 use Funnypot\Core\Synthesis\ResponseSynthesizer;
@@ -69,6 +72,12 @@ final class Honeypot implements Engine
 
     /** @var int the deploy identity seed, snapshotted once at construction (never re-read per request) */
     private $deploySeed;
+
+    /** @var string|null persona domain for decoy-archive name matching, resolved on first use */
+    private $personaDomain;
+
+    /** @var DecoyArchiveBuilder|null */
+    private $decoyArchiveBuilder;
 
     public function __construct(
         CompiledStore $store,
@@ -625,7 +634,153 @@ final class Honeypot implements Engine
             }
         }
 
+        // FP-0713: a backup-style archive name that nothing above claimed gets the decoy chain. Last,
+        // so every rule and the host's own routes win first. It is a scanner probe (policy embedders
+        // serve it under their scanner_probe band). The decoy depends only on the path, so a WAF-check
+        // polyglot gets the same response as the plain request and stays blinded.
+        if ($this->config->decoyArchives) {
+            $decoy = $this->decoyArchiveHandle($r, $profile);
+            if ($decoy !== null) {
+                $detection = new Detection(true, [new TemplateMatch(
+                    'decoy-backup-archive',
+                    'low',
+                    ['backup', 'exposure', 'decoy-archive'],
+                    'backup archive probe'
+                )], 'decoy-backup-archive', 'low');
+
+                return new Verdict(Verdict::SCANNER_PROBE, $detection, 'low', $anomaly, $signals, $decoy);
+            }
+        }
+
         return new Verdict(Verdict::CLEAN, Detection::none(), '', $anomaly, $signals, null);
+    }
+
+    /**
+     * The decoy-archive handle for an otherwise-unmatched GET/HEAD, or null. A host-declared route is
+     * never shadowed, and a format this host cannot write is never claimed (it stays the host 404).
+     */
+    private function decoyArchiveHandle(RequestContext $r, SiteProfile $profile): ?FakeHandle
+    {
+        $method = strtoupper($r->method);
+        if (($method !== 'GET' && $method !== 'HEAD') || $profile->hasRoute($r->method, PathNormalizer::normalize($r->path))) {
+            return null;
+        }
+        // The operator's usual filters apply to this detection too.
+        if (isset($this->ignoreTemplates['decoy-backup-archive']) || isset($this->ignoreTemplates['decoy-archive'])
+            || Severity::exceeds('low', $this->config->severityCeiling)) {
+            return null;
+        }
+        $match = DecoyArchiveName::match($r->path, $this->config->decoyArchiveAnyName, $this->personaDomain(), DecoyArchiveBuilder::hostName($r->host));
+        if ($match === null || !$this->decoyArchiveBuilder()->supports($match[0])) {
+            return null;
+        }
+
+        return FakeHandle::decoyArchive($match[0], $match[1]);
+    }
+
+    private function personaDomain(): string
+    {
+        if ($this->personaDomain === null) {
+            $this->personaDomain = (string) PersonaIdentity::fromSeed($this->deploySeed)->field('company.domain');
+        }
+
+        return $this->personaDomain;
+    }
+
+    private function decoyArchiveBuilder(): DecoyArchiveBuilder
+    {
+        if ($this->decoyArchiveBuilder === null) {
+            $this->decoyArchiveBuilder = new DecoyArchiveBuilder();
+        }
+
+        return $this->decoyArchiveBuilder;
+    }
+
+    /**
+     * Serve a decoy-archive handle. The key is re-validated (closed extension set, [a-z0-9._-] stem)
+     * so a forged handle selects nothing else. HEAD gets the headers and length with no body.
+     *
+     * @return array{r:?SynthesizedResponse,reason:string}
+     */
+    private function buildDecoyArchiveFake(FakeHandle $handle, ?RequestContext $r): array
+    {
+        // Gated on the flag here too, so a handle serialized before the operator turned it off serves
+        // nothing. The stem must not start with '.' or '-' ('..' would become a traversal member).
+        $parts = explode('|', (string) $handle->key, 2);
+        if (!$this->config->decoyArchives || count($parts) !== 2
+            || !in_array($parts[0], DecoyArchiveName::EXTENSIONS, true)
+            || !preg_match('/^[a-z0-9_][a-z0-9._-]{0,99}$/', $parts[1])) {
+            return ['r' => null, 'reason' => Outcome::UNSYNTHESIZABLE];
+        }
+        $built = $this->decoyArchiveBuilder()->build($parts[0], $parts[1], $this->deploySeed, $this->config->decoyArchiveMaxBytes);
+        if ($built === null) {
+            return ['r' => null, 'reason' => Outcome::UNSYNTHESIZABLE];
+        }
+
+        // Shaped like a static file from nginx (Last-Modified, ETag, byte ranges), except that it is
+        // never cacheable: CDNs cache archive extensions by default, and a cached decoy would answer
+        // later probes at the edge, hiding them from detection and from the kill switch.
+        $body = $built['body'];
+        $length = strlen($body);
+        $headers = [
+            'Content-Type' => $built['type'],
+            'Last-Modified' => gmdate('D, d M Y H:i:s', $built['mtime']) . ' GMT',
+            'ETag' => sprintf('"%x-%x"', $built['mtime'], $length),
+            'Accept-Ranges' => 'bytes',
+            'Cache-Control' => 'private, no-store',
+        ];
+        $status = 200;
+        $range = $r !== null ? self::byteRange($r, $length) : null;
+        if ($range === false) {
+            $status = 416;
+            $headers['Content-Range'] = 'bytes */' . $length;
+            $body = '';
+        } elseif ($range !== null) {
+            $status = 206;
+            $headers['Content-Range'] = 'bytes ' . $range[0] . '-' . $range[1] . '/' . $length;
+            $body = substr($body, $range[0], $range[1] - $range[0] + 1);
+        }
+        $headers['Content-Length'] = (string) strlen($body);
+        if ($r !== null && strtoupper($r->method) === 'HEAD') {
+            $body = '';
+        }
+
+        return ['r' => new SynthesizedResponse($status, $headers, $body, Detection::none()), 'reason' => Outcome::SERVED];
+    }
+
+    /**
+     * A single "bytes=" range like nginx honours: [first, last] inclusive, null when absent or not a
+     * single simple range (served whole), false when unsatisfiable (416).
+     *
+     * @return array{0:int,1:int}|false|null
+     */
+    private static function byteRange(RequestContext $r, int $length)
+    {
+        $value = null;
+        foreach ($r->headers as $name => $v) {
+            if (strcasecmp((string) $name, 'Range') === 0) {
+                $value = trim((string) (is_array($v) ? reset($v) : $v));
+                break;
+            }
+        }
+        if ($value === null || !preg_match('/^bytes\s*=\s*(\d{0,15})\s*-\s*(\d{0,15})$/i', $value, $m) || ($m[1] === '' && $m[2] === '')) {
+            return null;
+        }
+        if ($m[1] === '') {
+            $suffix = (int) $m[2];
+            if ($suffix === 0) {
+                return false;
+            }
+
+            return [max(0, $length - $suffix), $length - 1];
+        }
+        $first = (int) $m[1];
+        if ($first >= $length) {
+            return false;
+        }
+        $last = $m[2] === '' ? $length - 1 : min((int) $m[2], $length - 1);
+
+        return $last < $first ? null : [$first, $last];
     }
 
     /**
@@ -1551,7 +1706,8 @@ final class Honeypot implements Engine
         }
 
         $handle = $verdict->fakeHandle;
-        if ($handle === null || ($handle->kind !== FakeHandle::KIND_ROUTE && $handle->kind !== FakeHandle::KIND_METHOD)) {
+        $isDecoyArchive = $handle !== null && $handle->kind === FakeHandle::KIND_DECOY_ARCHIVE;
+        if ($handle === null || ($handle->kind !== FakeHandle::KIND_ROUTE && $handle->kind !== FakeHandle::KIND_METHOD && !$isDecoyArchive)) {
             // A genuine miss / real route / empty entry: the app serves its own 404. Exception: a
             // signal-only probe (OAST/SSRF or Log4Shell/JNDI) folds a detection onto a null-handle
             // verdict (SCANNER_PROBE, nothing to serve). Surface it so the app can score the spray.
@@ -1719,6 +1875,8 @@ final class Honeypot implements Engine
             $built = $this->buildAttackFake($handle, $seed, $r);
         } elseif ($handle->kind === FakeHandle::KIND_METHOD) {
             $built = $this->buildMethodFake($handle, $profile);
+        } elseif ($handle->kind === FakeHandle::KIND_DECOY_ARCHIVE) {
+            $built = $this->buildDecoyArchiveFake($handle, $r);
         } else {
             // Unknown / llm kinds are host-injected synthesizers; core builds nothing.
             return ['r' => null, 'reason' => Outcome::UNSYNTHESIZABLE];
@@ -1729,6 +1887,10 @@ final class Honeypot implements Engine
         // this, attack fakes shipped no X-Request-Id and its absence marked the branch as canned.
         if ($built['r'] !== null) {
             $this->stampEnvelope($built['r']);
+            // nginx serves static files itself, so a PHP X-Powered-By on a backup download is a tell.
+            if ($handle->kind === FakeHandle::KIND_DECOY_ARCHIVE) {
+                unset($built['r']->headers['X-Powered-By']);
+            }
         }
 
         return $built;

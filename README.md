@@ -392,6 +392,55 @@ still recorded) — no attacker bytes are ever served without an isolated origin
   use the ID opt-out above if the path collides with a real route. (Follow-up: consult the profile in
   the attack tier for store-miss paths.)
 
+### Decoy backup archives (opt-in)
+
+Scanners and attack agents probe for forgotten backups: `/backup.zip`, `/www.tar.gz`, `/site_old.7z`,
+`/example.com.zip`. With `decoyArchives` on, an otherwise-unmatched `GET`/`HEAD` for a backup-style
+archive name is answered with a **valid archive of exactly that type** whose contents are a very deep
+nested "backup" built to waste the attacker's time. Backup-style names include the usual stems
+(`backup`, `www`, `site`, `db`, …), the persona domain and the request host (`shop.example.org.zip`,
+`shop.tar.gz`), with digit/date/`_old` suffixes; matching is case-sensitive, like the Linux box it imitates:
+
+```php
+$config->decoyArchives = true;          // backup-style names only (default list + the persona domain)
+$config->decoyArchiveAnyName = false;   // true: any basename with a servable archive extension
+$config->decoyArchiveMaxBytes = 1310720; // separate from maxBodyBytes — the chain is ~1 MB by design
+```
+
+- **One shipped file, many formats.** Core ships one chain, `resources/decoy/chain.7z` (~1 MB, ~1,200
+  nested layers across zip / 7z / tar / tar.gz / tar.xz / tar.bz2 / tar.zst / tar.lz4 / cpio / iso).
+  `.7z` is served as-is; `.zip` and `.tar` are written in pure PHP, `.gz`/`.tar.gz`/`.tgz` need ext-zlib
+  and `.bz2`/`.tar.bz2`/`.tbz2` need ext-bz2. A format this host cannot write (and `.rar`, `.xz`,
+  `.zst`, `.iso`) stays the host 404.
+- **Different bytes and length on every deploy.** `.7z` gets seeded padding inside the container (still
+  a valid 7z); every other format wraps it with persona-seeded `wp-config.php`, `backup.log`,
+  `contents.txt`, `MANIFEST.sha256` and `RESTORE.txt`, so no response size or hash is shared across
+  sites. The nested layers inside are the same everywhere — a known trade-off for a one-file package.
+- **Annoying all the way down.** Every layer nests the next part under a deep folder path, so in-place
+  extraction runs past PATH_MAX (Linux 4096 bytes, macOS 1024) within a couple of dozen layers;
+  hostile-but-inert file names (quotes, newlines, glob characters, colour escapes, never-defined
+  `$VARS`); branching look-alike parts; fake credentials that never work; and a final set of dead
+  ends (password-protected zip, AES 7z with a discarded password, corrupt ISO, truncated tar.xz,
+  orphan split volume). Nothing is greppable from the raw download: every text member is compressed.
+- **Never shadows the host.** It runs last on the miss path: a host-declared route, every compiled
+  route and every attack rule win first. `ignoreTemplates` (`decoy-backup-archive`) and
+  `severityCeiling` apply as for any detection.
+- **Looks like a static download, but never cached.** Matching `Content-Type`, `Last-Modified`, an
+  nginx-style `ETag`, `Accept-Ranges: bytes` with single-range `206`/`416`, no `X-Powered-By` — and
+  `Cache-Control: private, no-store`, because CDNs cache archive extensions by default and a cached
+  decoy would answer later probes at the edge, invisible to detection and the kill switch.
+- **Cost.** Each hit sends ~1 MB. Under PHP-FPM every hit rebuilds the outer layer (≈5–20 ms; `.bz2`
+  ≈80 ms); long-running runtimes reuse recent builds. Rate-limit these paths at the edge if exposed.
+- **A scanner probe, not a silent 404.** A match classifies as `SCANNER_PROBE` with one low-severity
+  detection, `decoy-backup-archive`, so `onDetection` fires and policy embedders serve it under their
+  `scanner_probe` band (default `deceive`). Out-of-band signals on the same request (OAST, JNDI) fold
+  onto it as usual. `HEAD` gets the headers and `Content-Length` without the body when the request is
+  passed to `synthesize()`/`synthesizeFromHandle()` (`respond()` always passes it).
+
+Rebuilding the chain is an offline operator step (`python3 -I scripts/dev/decoy-chain/build-decoy-chain.py`,
+local `7zz`/`zip`/`zstd`/`lz4`/`hdiutil` or `xorriso`), verified with `peel-decoy-chain.py` and the Docker
+`unpack-matrix.sh` lab script; `chain.json` records the sha256 the runtime checks before serving.
+
 ### Using Laravel?
 
 Use **[funnypot-laravel](https://github.com/metrictower/funnypot-laravel)**
@@ -551,7 +600,9 @@ there reports the opcache-off numbers no matter how opcache is configured.
 2. **CRS-generic / attack-class (tier 2).** No route matched → `TemplateAttackEmulator` emulates a
    generic attack class (hand-authored rules first, then the CRS-broadened alternation) from a
    hand-authored response archetype.
-3. **LLM fake, then plain 404 (tiers 3–4, app layer).**
+3. **Decoy backup archive (opt-in, `decoyArchives`).** Still unmatched and a backup-style archive name →
+   the nested decoy chain in the requested format (see *Decoy backup archives*).
+4. **LLM fake, then plain 404 (app layer).**
 
 So a request matching BOTH a nuclei template AND a CRS attack class always gets the nuclei-exact
 response — **nuclei-exact beats CRS-generic**. CRS is a coverage multiplier for tier 2, never a
@@ -736,7 +787,11 @@ funnypot can only mislead an attacker, never help one.
 
 - **Emulate output, never execute input.** No `exec` / `eval`, no real filesystem, no outbound socket.
 - **Reflect, never harm.** No bombs, no retaliation, no outbound requests. All responses size-capped
-  (`maxBodyBytes`, default 64 KB).
+  (`maxBodyBytes`, default 64 KB; decoy archives `decoyArchiveMaxBytes`, default 1.25 MB). The decoy
+  chain wraps one archive per layer (no expansion ratio), has no path traversal or absolute names, and
+  its file names are validated so expanding or eval'ing them can never run a command. One deliberate,
+  documented exception: the chain's final set holds a single symlink entry pointing at `/dev/urandom`
+  (named like a dump) — reading it streams random bytes until the reader stops.
 - **Never reflects attacker input**, never deserializes a request body. Every synthesized header is
   CRLF/NUL-safe.
 - **Inert by default.** A fresh install is detect-only with the gate closed. A layered gate then
