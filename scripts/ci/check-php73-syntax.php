@@ -16,7 +16,9 @@ declare(strict_types=1);
  * octals, array unpacking `[...$a]`, union / intersection / `mixed` / `static` / `never` types and
  * trailing commas in signatures, `catch` without a variable, first-class callables `f(...)`,
  * `$obj::class`, and calls to functions added after 7.3 (str_contains etc.).
- * Not covered: named arguments, `throw` as an expression, `new` in initializers.
+ * Not covered: named arguments, `throw` as an expression, `new` in initializers, trailing commas in
+ * closure `use` lists, `final` class constants. A post-7.3 function call is flagged even behind a
+ * function_exists() guard; core ships no polyfills, so keep such calls out of src/.
  *
  * Usage: php scripts/ci/check-php73-syntax.php [path ...]   (default: src bin)
  * Exit 0 clean, 1 on any violation.
