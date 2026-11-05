@@ -50,7 +50,8 @@ new_page:
   status: 200
   severity: high         # the default ceiling is `high`; a `critical` page would never serve
   sig: 0                 # 1 = probe-gated root entry; 0 = always serves
-  weight: 20             # optional persona weight against corpus co-tenants
+  weight: 20             # optional persona weight: which real page a persona gets when several share a
+                         # path (in a rich style a real page always beats the path's bare corpus bait)
   tags: [...]
   name: '...'
   body_words: [...]      # what the synthesized bundle requires; [] for a binary page

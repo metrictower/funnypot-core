@@ -55,6 +55,14 @@ final class ResponseSynthesizer
      */
     private $lastRegexWitnesses = [];
 
+    /**
+     * Whether the last synthesize() call returned a rich emulator render (true) rather than minimal
+     * synthesis or null (false). Reset at the start of every call; never changes a served byte.
+     *
+     * @var bool
+     */
+    private $lastRenderedRich = false;
+
     /** @var EmulatorRegistry|null */
     private $emulators;
 
@@ -104,6 +112,7 @@ final class ResponseSynthesizer
     {
         $this->lastSkipReason = '';
         $this->lastRegexWitnesses = [];
+        $this->lastRenderedRich = false;
 
         // The per-deploy identity for every SynthScaffold derivation on this render (FP-0281); computed
         // once so the whole response shares one deploy identity. Fixed for a deploy, so re-scans are
@@ -130,6 +139,7 @@ final class ResponseSynthesizer
             $rich = $this->tryEmulator($bundle, $satisfies, $seed, $ident, $routeKey, $selectedWitnesses);
             if ($rich !== null) {
                 $this->lastRegexWitnesses = $selectedWitnesses;
+                $this->lastRenderedRich = true;
             }
 
             return $rich;
@@ -142,6 +152,7 @@ final class ResponseSynthesizer
             $rich = $this->tryEmulator($bundle, $satisfies, $seed, $ident, $routeKey, $selectedWitnesses);
             if ($rich !== null) {
                 $this->lastRegexWitnesses = $selectedWitnesses;
+                $this->lastRenderedRich = true;
 
                 return $rich;
             }
@@ -360,6 +371,18 @@ final class ResponseSynthesizer
     public function lastSkipReason(): string
     {
         return $this->lastSkipReason;
+    }
+
+    /** True when the last synthesize() call returned a rich emulator render, not minimal synthesis. */
+    public function lastRenderedRich(): bool
+    {
+        return $this->lastRenderedRich;
+    }
+
+    /** True when this synthesizer renders rich pages at all (a non-minimal style with emulators). */
+    public function prefersRich(): bool
+    {
+        return $this->style !== Style::MINIMAL && $this->emulators !== null;
     }
 
     /**

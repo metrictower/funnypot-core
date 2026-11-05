@@ -21,6 +21,8 @@ use Funnypot\Core\Compiler\Compiler;
 use Funnypot\Core\Compiler\Crs\CrsCompiler;
 use Funnypot\Core\Compiler\GeneratedPhp;
 use Funnypot\Core\Compiler\RouteIndexFold;
+use Funnypot\Core\Compiler\RichBundleStamp;
+use Funnypot\Core\Response\RouteTemplateSet;
 use Funnypot\Core\Compiler\SourceTreeStamp;
 use Funnypot\Core\Compiler\TemplateGlob;
 use Funnypot\Core\Manifest\ManifestBuilder;
@@ -1323,6 +1325,18 @@ function runMergeRoutes(string $root, array $argvv): int
     $index = $result['index'];
     $st = $result['stats'];
 
+    // Stamp the bundles that can render as a real page, against the route rules compiled beside the
+    // fragment (never RulesLocator, which may resolve a fetched data dir and make the build depend on the
+    // machine). A missing or empty rule set would silently strip every stamp, so it is an error.
+    $routesPath = dirname($fragPath) . '/funnypot-routes.php';
+    $routeRules = is_file($routesPath) ? require $routesPath : null;
+    if (!is_array($routeRules) || $routeRules === []) {
+        fwrite(STDERR, "error: route rules not found or empty: {$routesPath} (run compile-routes first)\n");
+        return 2;
+    }
+    $stamp = (new RichBundleStamp())->apply($index, new RouteTemplateSet($routeRules));
+    $index = $stamp['index'];
+
     // Reproducible provenance for the folded index (see the docblock). source_tree is stamped over
     // the in-repo fold inputs; upstream_tag/sha keep the corpus provenance.
     $sourceTree = stampFor([$root . '/templates/route', $root . '/templates/generated', $root . '/templates/generated-wp'], $root);
@@ -1356,13 +1370,14 @@ function runMergeRoutes(string $root, array $argvv): int
         . var_export($index, true) . ";\n";
     GeneratedPhp::atomicWrite($out, $php);
     fwrite(STDOUT, sprintf(
-        "%d new-page bundle(s) folded (%d replaced); stale removed: %d template / %d bundle(s) / %d detection(s); %d key(s) dropped -> %s\n",
+        "%d new-page bundle(s) folded (%d replaced); stale removed: %d template / %d bundle(s) / %d detection(s); %d key(s) dropped; %d rich-stamped key(s) -> %s\n",
         $st['folded'],
         $st['replaced_bundles'],
         $st['stale_templates'],
         $st['stale_bundles'],
         $st['stale_detections'],
         $st['dropped_keys'],
+        $stamp['stamped'],
         $out
     ));
 

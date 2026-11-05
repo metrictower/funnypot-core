@@ -191,6 +191,8 @@ final class CorpusGitMetadataTest extends TestCase
             $this->package . '/resources/compiled/funnypot-routes-index.php',
             "<?php\n\ndeclare(strict_types=1);\n\nreturn ['templates' => [], 'routes' => []];\n"
         );
+        // merge-routes stamps rich-page bundles against the route rules compiled beside the fragment.
+        copy(__DIR__ . '/../resources/compiled/funnypot-routes.php', $this->package . '/resources/compiled/funnypot-routes.php');
     }
 
     private function stageNucleiSource(): void

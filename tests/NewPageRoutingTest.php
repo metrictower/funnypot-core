@@ -2138,15 +2138,13 @@ final class NewPageRoutingTest extends TestCase
         self::assertGreaterThan(1, count($seen), 'the PHP version must vary across deployments, not collapse to one constant');
     }
 
-    public function test_info_php_serves_phpinfo_but_preserves_the_dlink_cve(): void
+    public function test_info_php_serves_phpinfo_and_keeps_the_dlink_cve_detected(): void
     {
         // /info.php is shared: a brand-new phpinfo page AND a niche D-Link DIR-816L XSS bundle already in
-        // the corpus. A real phpinfo at /info.php is far more common than that appliance, so phpinfo (the
-        // heavier tier) must be the persona MOST seeds serve — but the D-Link CVE must NOT be shadowed
-        // away: it keeps a minority slice of personas, and detection fires for EVERY seed (the weight
-        // biases which bundle is SERVED, never what is DETECTED).
-        $phpinfo = 0;
-        $dlink = 0;
+        // the corpus. In a rich style a real decoy page wins over bare matcher words, so every persona gets
+        // the phpinfo page. The D-Link CVE is still DETECTED for every seed, and it is still SERVED as bait
+        // in the minimal style, which keeps the full bundle set.
+        $dlinkInMinimal = false;
         for ($seed = 0; $seed < 90; $seed++) {
             $inv = $this->seededInverter((string) $seed, 'realistic');
 
@@ -2159,16 +2157,13 @@ final class NewPageRoutingTest extends TestCase
             self::assertNotNull($resp, "seed {$seed}: /info.php must serve a fake");
             self::assertSame(200, $resp->status, "seed {$seed}: /info.php status");
             self::assertStringContainsString('text/html', (string) ($resp->headers['Content-Type'] ?? ''), "seed {$seed}: /info.php Content-Type");
+            self::assertStringContainsString('phpinfo()', $resp->body, "seed {$seed}: the real phpinfo page must win in a rich style");
 
-            if (strpos($resp->body, 'phpinfo()') !== false) {
-                $phpinfo++;
-            } elseif (strpos($resp->body, 'DIR-816L') !== false) {
-                $dlink++;
-            } else {
-                self::fail("seed {$seed}: /info.php served neither the phpinfo page nor the D-Link body: " . $resp->body);
+            if (!$dlinkInMinimal) {
+                $min = $this->seededInverter((string) $seed, 'minimal')->respond(new RequestContext('GET', '/info.php'));
+                $dlinkInMinimal = $min !== null && strpos($min->body, 'DIR-816L') !== false;
             }
         }
-        self::assertGreaterThan($dlink, $phpinfo, 'phpinfo must be the more common persona at /info.php');
-        self::assertGreaterThan(0, $dlink, 'the D-Link CVE emulator must still serve for a minority of personas (not shadowed away)');
+        self::assertTrue($dlinkInMinimal, 'the D-Link CVE bundle must still be served as bait in the minimal style');
     }
 }

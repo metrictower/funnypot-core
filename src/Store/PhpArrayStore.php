@@ -35,7 +35,9 @@ use InvalidArgumentException;
  *
  * A bundle is a flat literal map: 's' status, 'bw'/'hw' body/header words, 'nf'/'hf' forbidden
  * substrings, 'sz' size, 'rx' canonical regex witnesses, 'h' invented headers, 'th' typed headers,
- * 'pid'/'sev'/'sig'/'amb'/'t' metadata, optional 'x' whole-body-exclusive. Optional (FP-0280) 'rxm'
+ * 'pid'/'sev'/'sig'/'amb'/'t' metadata, optional 'x' whole-body-exclusive. An entry may also carry
+ * 'rb' (merge-routes, mixed GET keys only): the indices of its bundles that can render as a real page,
+ * which the engine prefers over bare matcher words in a rich style; an old engine ignores the key. Optional (FP-0280) 'rxm'
  * is the per-deploy regex-witness menu: a SPARSE, integer-keyed map rxIndex => [alternate, …] of
  * alternates-only witnesses for that 'rx' slot. It is additive named data — schema stays 1: an old
  * engine ignores the unknown key and serves 'rx'; a new engine over an old artifact sees no 'rxm' and

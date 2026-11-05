@@ -213,6 +213,8 @@ final class ArtifactDeterminismTest extends TestCase
         ];
         file_put_contents($src . '/idx.php', "<?php\n\nreturn " . var_export($index, true) . ";\n");
         file_put_contents($src . '/empty.php', "<?php\n\nreturn " . var_export(['templates' => [], 'routes' => []], true) . ";\n");
+        // merge-routes stamps rich-page bundles against the route rules compiled beside the fragment.
+        copy(__DIR__ . '/../resources/compiled/funnypot-routes.php', $src . '/funnypot-routes.php');
 
         $out = $this->tmpDir('mout') . '/nuclei-index.full.php';
         $this->exec("php -d memory_limit=1G {$bin} merge-routes " . escapeshellarg($src . '/idx.php')

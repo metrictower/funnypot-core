@@ -14,6 +14,8 @@ cut. Realistic size after cap ≈ 4.5 MB (keep full detect).
 
 ## 1. Detect/respond split (schema change, backward-compatible)
 `routes[key]` becomes `['d' => [full template ids], 'b' => [capped bundles], 'w' => [weights]]`.
+`merge-routes` later adds `'rb'` on mixed GET keys: the indices of the bundles that can render as a real
+page (see §4).
 - `'d'` (flat full id-list) is emitted only for capped paths; elsewhere detect derives from
   `union(b[*].t)`. So `detect()` keeps FULL coverage while `respond()` is capped.
 - `Honeypot::detectionFor` reads `entry['d'] ?? union(b[*].t)`, a one-line change, and it
@@ -62,6 +64,10 @@ seed = crc32(personaSeed(r) . seedSalt)          # unchanged
 pick = seed % sum(w over candidates)             # candidates already severity/exclude-filtered
 walk cumulative w -> bundle
 ```
+Then, in a rich style (`realistic`/`taunt`) on a GET key other than `GET /`: if the pick rendered as
+bare matcher words and the key carries `'rb'`, re-run the same weighted pick over the `'rb'` bundles
+(still severity/exclude-filtered) and serve the first one that renders as a real page and fits the egress
+screen and body cap; if none does, serve the original pick. `GET /` and `minimal` keep the plain pick.
 Uniform-over-40 would make the host "equally likely anything", itself anomalous in aggregate
 scan datasets. Weighted = least-anomalous population distribution. When no `'w'` present (Phase-1
 fixture, uncapped singletons), fall back to uniform `crc32(seed) % count`.

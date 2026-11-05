@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Funnypot\Core;
 
 use Funnypot\Core\Compiler\Crs\FingerprintGuard;
+use Funnypot\Core\Compiler\RichBundleStamp;
 use Funnypot\Core\Contracts\CompiledStore;
 use Funnypot\Core\Decoy\DecoyArchiveBuilder;
 use Funnypot\Core\Decoy\DecoyArchiveName;
@@ -1055,6 +1056,8 @@ final class Honeypot implements Engine
             return false;
         }
 
+        // Same candidates and pick as the served homepage: buildRouteFake never applies its rich-page
+        // preference to GET / (see preferRichPage), which keeps this gate and the homepage in step.
         $candidates = $this->candidates($resolved[1]['b'] ?? []);
         if ($candidates === []) {
             return false;
@@ -2023,6 +2026,16 @@ final class Honeypot implements Engine
         // (path-aware directory listings). The key is the handle's, never request-derived, so facade
         // and position-blind port stay byte-equivalent.
         $response = $this->synthesizer->synthesize($bundle, $satisfies, $seed, $key);
+
+        // A real decoy page wins over bare matcher words: when this pick rendered minimal, try the
+        // bundles the build stamped as able to render a real page. A pick that already rendered rich is
+        // kept as-is, so a visitor who gets a real page today keeps exactly that page.
+        if ($response === null || !$this->synthesizer->lastRenderedRich()) {
+            $rich = $this->preferRichPage($entry, $key, $bundle, $seed);
+            if ($rich !== null) {
+                list($bundle, $satisfies, $response) = $rich;
+            }
+        }
         if ($response === null) {
             return ['r' => null, 'reason' => Outcome::UNSYNTHESIZABLE];
         }
@@ -2049,6 +2062,64 @@ final class Honeypot implements Engine
         }
 
         return ['r' => $response, 'reason' => Outcome::SERVED];
+    }
+
+    /**
+     * A rich render of one of the entry's stamped bundles (see Compiler\RichBundleStamp), or null.
+     *
+     * Only GET keys other than `GET /` are eligible, and only when the synthesizer renders rich pages at
+     * all (never `minimal`). `GET /` stays out because personaGateAllows() re-picks over GET /'s full
+     * candidate set; exempting it here keeps the served homepage and the persona gate in step. Stamped
+     * bundles still pass candidates() (exclude + severity ceiling). Each try is chosen by the same persona
+     * pick over the remaining stamped bundles; a try counts only if it really rendered rich and would not
+     * be declined later (egress screen, body cap), so it never replaces a stub that fits. A failed try is
+     * dropped and the pick re-runs; when none succeeds the caller keeps today's pick.
+     *
+     * @param array<string,mixed>|null $entry
+     * @param array<string,mixed>      $picked the bundle today's pick chose (never retried)
+     * @return array{0: array<string,mixed>, 1: Detection, 2: SynthesizedResponse}|null
+     */
+    private function preferRichPage(?array $entry, string $key, array $picked, string $seed): ?array
+    {
+        if ($entry === null || !isset($entry[RichBundleStamp::KEY])
+            || $key === 'GET /' || strncmp($key, 'GET ', 4) !== 0
+            || !$this->synthesizer->prefersRich()) {
+            return null;
+        }
+
+        $bundles = array_values((array) ($entry['b'] ?? []));
+        $indices = [];
+        foreach ((array) $entry[RichBundleStamp::KEY] as $i) {
+            $i = (int) $i;
+            if (isset($bundles[$i]) && $bundles[$i] !== $picked && $this->candidates([$bundles[$i]]) !== []) {
+                $indices[] = $i;
+            }
+        }
+
+        while ($indices !== []) {
+            $pool = [];
+            foreach ($indices as $i) {
+                $pool[] = $bundles[$i];
+            }
+            $try = PersonaSelector::pick($pool, $seed);
+            if ($try === null) {
+                return null;
+            }
+            $pos = array_search($try, $pool, true);
+            $index = $indices[$pos === false ? 0 : (int) $pos];
+
+            $satisfies = $this->detectionFor($key, $try['t'] ?? []);
+            $response = $this->synthesizer->synthesize($try, $satisfies, $seed, $key);
+            if ($response !== null && $this->synthesizer->lastRenderedRich()
+                && $this->egressClean($response, null)
+                && strlen($response->body) <= $this->config->maxBodyBytes) {
+                return [$try, $satisfies, $response];
+            }
+
+            $indices = array_values(array_diff($indices, [$index]));
+        }
+
+        return null;
     }
 
     /**
