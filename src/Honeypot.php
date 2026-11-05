@@ -2053,7 +2053,9 @@ final class Honeypot implements Engine
         // Egress fingerprint screen on the BASE synthesized response (route synthesis never resolves
         // request bytes, so it is non-reflecting and always scannable). The reflecting param reaction
         // appended below carries its own guard, so it is deliberately screened there, not here.
-        if (!$this->egressClean($response, null)) {
+        // A page accepted by preferRichPage() already passed this exact screen; scanning it again would
+        // make those hosts slower than the rest of the key.
+        if ($rich === null && !$this->egressClean($response, null)) {
             return ['r' => null, 'reason' => Outcome::FINGERPRINT_LEAK];
         }
 
@@ -2081,8 +2083,10 @@ final class Honeypot implements Engine
      * Only GET keys other than `GET /` are eligible, and only when the synthesizer renders rich pages at
      * all (never `minimal`). `GET /` stays out because personaGateAllows() re-picks over GET /'s full
      * candidate set; exempting it here keeps the served homepage and the persona gate in step. The stamp
-     * comes from a (possibly fetched) artifact, so indices are de-duplicated, range-checked and capped at
-     * the bundle count; stamped bundles still pass candidates() (exclude + severity ceiling).
+     * comes from a (possibly fetched) artifact, so indices are de-duplicated, range-checked, capped at the
+     * bundle count and re-checked as preferable; stamped bundles still pass candidates() (exclude +
+     * severity ceiling). The stamp must come from the same build as the route rules: buildRouteFake relies
+     * on every preferable rule-matching bundle being stamped.
      *
      * @param array<string,mixed>|null $entry
      * @return list<int>
@@ -2098,7 +2102,8 @@ final class Honeypot implements Engine
         $bundles = array_values((array) ($entry['b'] ?? []));
         $indices = [];
         foreach ($entry[RichBundleStamp::KEY] as $i) {
-            if (!is_int($i) || !isset($bundles[$i]) || !is_array($bundles[$i]) || isset($indices[$i])) {
+            if (!is_int($i) || !isset($bundles[$i]) || !is_array($bundles[$i]) || isset($indices[$i])
+                || !RichBundleStamp::preferable($bundles[$i])) {
                 continue;
             }
             if ($this->candidates([$bundles[$i]]) !== []) {

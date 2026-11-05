@@ -25,9 +25,10 @@ revision, the compiler record, the sha256 and the route-key delta (`before -> af
 
 **`merge-routes` also stamps `'rb'`** on every mixed GET key except `GET /`: the indices of the bundles
 that match a rich route rule and are neither binary (one fixed hash) nor a 5xx page, computed against the
-`funnypot-routes.php` compiled beside the fragment (`compile-routes` writes it first). The stamp is stripped and recomputed on every run, so it
-is idempotent; a missing or empty `funnypot-routes.php` fails `merge-routes` (exit 2) rather than silently
-dropping every stamp. The engine uses it to serve a real page over bare matcher words in a rich style.
+`funnypot-routes.php` compiled beside the fragment (`compile-routes` writes it first). The stamp is
+stripped and recomputed on every run, so it is idempotent; a missing or empty `funnypot-routes.php` fails
+`merge-routes` (exit 2) rather than silently dropping every stamp. The engine uses it to serve a real page
+over bare matcher words in a rich style.
 
 **Editing `resources/ambient-paths.php` needs a full `build-corpus`, not just `build`.** The
 ambient stamp (`amb=1`, the AMBIENT classification) is written on BOTH halves from that one list
