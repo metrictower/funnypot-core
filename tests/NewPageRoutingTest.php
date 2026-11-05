@@ -2148,10 +2148,9 @@ final class NewPageRoutingTest extends TestCase
         for ($seed = 0; $seed < 90; $seed++) {
             $inv = $this->seededInverter((string) $seed, 'realistic');
 
-            self::assertTrue(
-                $inv->detect(new RequestContext('GET', '/info.php'))->matched,
-                "seed {$seed}: /info.php must still be detected"
-            );
+            $detected = $inv->detect(new RequestContext('GET', '/info.php'));
+            self::assertTrue($detected->matched, "seed {$seed}: /info.php must still be detected");
+            self::assertContains('CVE-2020-15895', $detected->templateIds(), "seed {$seed}: the D-Link CVE must still be detected");
 
             $resp = $inv->respond(new RequestContext('GET', '/info.php'));
             self::assertNotNull($resp, "seed {$seed}: /info.php must serve a fake");

@@ -4,7 +4,7 @@
     "license": "MIT (c) 2025 ProjectDiscovery, Inc.",
     "upstream_tag": "2ec914123864439c3618e7e9ae72d32d0eb56df7",
     "upstream_sha": "2ec914123864439c3618e7e9ae72d32d0eb56df7",
-    "source_tree": "50c73ab6fc6c401cdc90f8343fc405d281cde9679f0d2631d0bea370854d7911",
+    "source_tree": "cb10c4c8e4c99df4100985065b51acfacc96869132c8c6b1c172e2a50d7103ac",
     "templates_seen": 11196,
     "templates_in": 6363,
     "templates_indexed": 6535,
@@ -39,7 +39,7 @@
     "built_at": "2026-08-16T03:20:40+00:00",
     "core_commit": "f5f15f27d19b5e7ba9235f61c03dc77d9b227ec6",
     "php_version": "8.4.10",
-    "sha256": "5670d03df1a7051e1cd483cc75a5e7879a12517107a839d53e498877c8811981",
+    "sha256": "81f95ff9516ff1724ad5732872f349c55b2ac83dfa8544e67e263d5cba445792",
     "skipped_count": 4833,
     "artifact_bytes": 6471929
 }

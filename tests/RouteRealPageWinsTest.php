@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Funnypot\Core\Tests;
 
+use Funnypot\Core\Compiler\Crs\FingerprintGuard;
 use Funnypot\Core\Compiler\RichBundleStamp;
 use Funnypot\Core\Config;
 use Funnypot\Core\Detection;
@@ -261,6 +262,7 @@ final class RouteRealPageWinsTest extends TestCase
         $config = self::config();
         $engine = self::engine($config);
         $entry = self::index()['routes']['GET /admin/index.php'];
+        self::assertArrayHasKey(RichBundleStamp::KEY, $entry, 'the key must stay stamped for this test to mean anything');
 
         foreach (self::hosts(25) as $host) {
             $today = self::todaysRender($engine, $config, 'GET /admin/index.php', $entry, $host);
@@ -336,7 +338,8 @@ final class RouteRealPageWinsTest extends TestCase
         }
     }
 
-    public function test_drop_and_repick_with_a_fixture_store(): void
+    /** @return array<string,array<string,mixed>> */
+    private static function fixtureBundles(): array
     {
         $login = ['pid' => 'wordpress', 'sev' => 'info', 'sig' => 0, 'amb' => 0, 't' => ['wordpress-login'], 's' => 200,
             'bw' => [], 'hw' => [], 'nf' => [], 'sz' => null, 'rx' => [], 'h' => []];
@@ -345,37 +348,88 @@ final class RouteRealPageWinsTest extends TestCase
         $bad['th'] = ['Content-Type' => ['application/json']];
         $stub = ['pid' => 'fixture', 'sev' => 'info', 'sig' => 0, 'amb' => 0, 't' => ['fixture-stub'], 's' => 200,
             'bw' => ['zz-fixture-stub-zz'], 'hw' => [], 'nf' => [], 'sz' => null, 'rx' => [], 'h' => []];
-        $templates = [
+
+        return ['login' => $login, 'bad' => $bad, 'stub' => $stub];
+    }
+
+    /** @param array<string,array<string,mixed>> $routes */
+    private static function fixtureEngine(array $routes): Honeypot
+    {
+        $index = ['schema' => 1, 'manifest' => [], 'routes' => $routes, 'templates' => [
             'wordpress-login' => ['sev' => 'info', 'tags' => ['panel', 'wordpress'], 'name' => 'login'],
             'fixture-stub' => ['sev' => 'info', 'tags' => ['fixture'], 'name' => 'stub'],
-        ];
-        $make = function (array $rb) use ($bad, $login, $stub, $templates): Honeypot {
-            $index = ['schema' => 1, 'manifest' => [], 'templates' => $templates, 'routes' => [
-                'GET /wp-login.php' => ['b' => [$bad, $login, $stub], RichBundleStamp::KEY => $rb],
-            ]];
+        ]];
 
-            return new Honeypot(new PhpArrayStore($index), self::config());
-        };
+        return new Honeypot(new PhpArrayStore($index), self::config());
+    }
 
-        $engine = $make([0, 1]);
+    /**
+     * A host whose pick over $first lands on $want, and (when given) whose pick over $second lands on
+     * $want2, so the path under test is really exercised.
+     */
+    private static function hostPicking(array $first, array $want, array $second = [], array $want2 = []): string
+    {
         $config = self::config();
-        $stubHost = null;
-        foreach (self::hosts(200) as $host) {
+        foreach (self::hosts(500) as $host) {
             $seed = $config->seedFor(self::request('/wp-login.php', $host));
-            if (PersonaSelector::pick([$bad, $login, $stub], $seed) === $stub) {
-                $stubHost = $host;
-                break;
+            if (PersonaSelector::pick($first, $seed) !== $want) {
+                continue;
             }
-        }
-        self::assertNotNull($stubHost, 'some host picks the stub');
+            if ($second !== [] && PersonaSelector::pick($second, $seed) !== $want2) {
+                continue;
+            }
 
-        $served = $engine->respond(self::request('/wp-login.php', $stubHost));
+            return $host;
+        }
+        self::fail('no host in the grid picks the wanted bundles');
+    }
+
+    public function test_drop_and_repick_with_a_fixture_store(): void
+    {
+        $f = self::fixtureBundles();
+        $routes = ['GET /wp-login.php' => ['b' => [$f['bad'], $f['login'], $f['stub']], RichBundleStamp::KEY => [0, 1]]];
+        // Today's pick is the stub and the first stamped try is the failing bundle.
+        $host = self::hostPicking([$f['bad'], $f['login'], $f['stub']], $f['stub'], [$f['bad'], $f['login']], $f['bad']);
+        $engine = self::fixtureEngine($routes);
+
+        $served = $engine->respond(self::request('/wp-login.php', $host));
         self::assertNotNull($served);
         self::assertStringContainsString('<form', $served->body, 'the failing bundle is skipped for the good one');
-        self::assertSame(self::bodyAndType($served), self::bodyAndType($engine->respond(self::request('/wp-login.php', $stubHost))));
+        self::assertSame(self::bodyAndType($served), self::bodyAndType($engine->respond(self::request('/wp-login.php', $host))));
 
-        $allFail = $make([0])->respond(self::request('/wp-login.php', $stubHost));
+        $routes['GET /wp-login.php'][RichBundleStamp::KEY] = [0];
+        $allFail = self::fixtureEngine($routes)->respond(self::request('/wp-login.php', $host));
         self::assertNotNull($allFail);
         self::assertStringContainsString('zz-fixture-stub-zz', $allFail->body, 'an all-fail stamp keeps today\'s pick');
+    }
+
+    public function test_a_rich_page_the_egress_screen_would_decline_never_replaces_the_stub(): void
+    {
+        $f = self::fixtureBundles();
+        $host = self::hostPicking([$f['login'], $f['stub']], $f['stub']);
+        $engine = self::fixtureEngine(['GET /wp-login.php' => ['b' => [$f['login'], $f['stub']], RichBundleStamp::KEY => [0]]]);
+        $engine->setFingerprintGuardForTesting(new FingerprintGuard(['<form'], []));
+
+        $served = $engine->respond(self::request('/wp-login.php', $host));
+        self::assertNotNull($served, 'a declined rich page must not leave the visitor with nothing');
+        self::assertStringContainsString('zz-fixture-stub-zz', $served->body);
+    }
+
+    public function test_root_and_non_get_keys_ignore_a_stamp(): void
+    {
+        $f = self::fixtureBundles();
+        $config = self::config();
+        $engine = self::fixtureEngine([
+            'GET /' => ['b' => [$f['login'], $f['stub']], RichBundleStamp::KEY => [0]],
+            'POST /wp-login.php' => ['b' => [$f['login'], $f['stub']], RichBundleStamp::KEY => [0]],
+        ]);
+        $host = self::hostPicking([$f['login'], $f['stub']], $f['stub']);
+        $seed = $config->seedFor(self::request('/wp-login.php', $host));
+
+        foreach (['GET /', 'POST /wp-login.php'] as $key) {
+            $served = $engine->synthesizeFromHandle(FakeHandle::route($key), SiteProfile::empty(), $seed);
+            self::assertNotNull($served, $key);
+            self::assertStringContainsString('zz-fixture-stub-zz', $served->body, "{$key} keeps today's pick despite a stamp");
+        }
     }
 }

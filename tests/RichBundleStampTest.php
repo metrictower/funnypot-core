@@ -87,14 +87,30 @@ final class RichBundleStampTest extends TestCase
         $base = "php -d memory_limit=1G {$bin} merge-routes " . escapeshellarg($dir . '/idx.php')
             . ' --fragment=' . escapeshellarg($dir . '/frag.php') . ' --out=' . escapeshellarg($dir . '/out.php');
 
-        $code = 0;
-        $out = [];
-        exec($base . ' 2>&1', $out, $code);
-        self::assertSame(2, $code, 'a missing routes file must fail: ' . implode("\n", $out));
+        try {
+            $code = 0;
+            $out = [];
+            exec($base . ' 2>&1', $out, $code);
+            self::assertSame(2, $code, 'a missing routes file must fail: ' . implode("\n", $out));
+            self::assertStringContainsString('route rules', implode("\n", $out));
 
-        file_put_contents($dir . '/funnypot-routes.php', "<?php\n\nreturn [];\n");
-        exec($base . ' 2>&1', $out, $code);
-        self::assertSame(2, $code, 'an empty routes file must fail');
-        self::assertFileDoesNotExist($dir . '/out.php');
+            file_put_contents($dir . '/funnypot-routes.php', "<?php\n\nreturn [];\n");
+            $out = [];
+            exec($base . ' 2>&1', $out, $code);
+            self::assertSame(2, $code, 'an empty routes file must fail');
+            self::assertStringContainsString('route rules', implode("\n", $out));
+            self::assertFileDoesNotExist($dir . '/out.php');
+
+            copy(__DIR__ . '/../resources/compiled/funnypot-routes.php', $dir . '/funnypot-routes.php');
+            $out = [];
+            exec($base . ' 2>&1', $out, $code);
+            self::assertSame(0, $code, 'with the routes file beside the fragment merge-routes succeeds: ' . implode("\n", $out));
+            self::assertFileExists($dir . '/out.php');
+        } finally {
+            foreach (glob($dir . '/*') ?: [] as $file) {
+                unlink($file);
+            }
+            rmdir($dir);
+        }
     }
 }

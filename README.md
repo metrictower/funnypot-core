@@ -486,7 +486,7 @@ Set at init with `responseStyle`:
 | Style | What the attacker gets |
 |---|---|
 | `minimal` | Just the tokens the matcher needs. Smallest. Every bundle on a path stays servable as bare bait. |
-| `realistic` | A believable fake: a full `.git/config`, a plausible `.env`, a real XML-RPC `methodResponse`. All values inert. Where a path has a real decoy page (e.g. `/wp-login.php`, `/login`), every visitor gets a real page, never that path's bare matcher words. **The default.** |
+| `realistic` | A believable fake: a full `.git/config`, a plausible `.env`, a real XML-RPC `methodResponse`. All values inert. Where a GET path has a real decoy page (e.g. `/wp-login.php`, `/login`), a visitor gets a real page rather than that path's bare matcher words whenever one renders; the homepage `/` keeps its persona lottery. **The default.** |
 | `taunt` | Still satisfies the scanner, and carries a visible "honeypot, your scan was logged" marker. |
 
 Rich content is validated against the matcher before use. If a richer body would not satisfy the
@@ -669,7 +669,7 @@ scanner extracts a version its `compare_versions()` bound accepts and records a 
 vulnerable install. `bin/funnypot compile-wp` regenerates one `new_page` route per curated slug into
 `templates/generated-wp/` (its own dir, so `compile-ai` clearing `templates/generated` never erases
 it); a slug that already has a corpus readme key gets the versioned bundle appended with a heavy
-`weight`, so it is the real page most personas get (in a rich style a real page always beats that
+`weight`, so it is the real page most personas get (in a rich style a real page that renders beats that
 key's bare corpus bait; the weight decides between real pages). Re-run after a catalog change, then `composer build`.
 `VulnCatalog::has()` is the curated-set (CVE-tag) hint — not a serve gate: the corpus long tail
 still serves its generic 200.

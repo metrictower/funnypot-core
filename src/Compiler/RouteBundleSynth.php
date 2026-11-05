@@ -90,9 +90,9 @@ final class RouteBundleSynth
             ];
             // Optional persona weight: when a brand-new path also carries niche corpus detections,
             // a heavier tier makes THIS persona the one the seeded pick lands on far more often, so
-            // the page reads coherently to most scanners. (In a rich style a real page also beats the
-            // path's bare corpus bait outright — Honeypot::preferRichPage; the weight still decides
-            // between real pages.) Uncapped keys keep the weight the synth
+            // the page reads coherently to most scanners. In a rich style a real page also beats the
+            // path's bare corpus bait (Honeypot::preferRichPage); the weight still decides between
+            // real pages. Uncapped keys keep the weight the synth
             // sets (merge-routes only re-tiers capped keys). Detection of the co-located templates is
             // unaffected — this biases which bundle is SERVED, never what is detected.
             if (isset($np['weight'])) {

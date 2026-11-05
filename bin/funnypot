@@ -20,14 +20,14 @@ use Funnypot\Core\Compiler\ArtifactWriter;
 use Funnypot\Core\Compiler\Compiler;
 use Funnypot\Core\Compiler\Crs\CrsCompiler;
 use Funnypot\Core\Compiler\GeneratedPhp;
-use Funnypot\Core\Compiler\RouteIndexFold;
 use Funnypot\Core\Compiler\RichBundleStamp;
-use Funnypot\Core\Response\RouteTemplateSet;
+use Funnypot\Core\Compiler\RouteIndexFold;
 use Funnypot\Core\Compiler\SourceTreeStamp;
 use Funnypot\Core\Compiler\TemplateGlob;
 use Funnypot\Core\Manifest\ManifestBuilder;
 use Funnypot\Core\Manifest\MapRenderer;
 use Funnypot\Core\Manifest\RouteIntegrity;
+use Funnypot\Core\Response\RouteTemplateSet;
 use Symfony\Component\Yaml\Yaml;
 
 $root = dirname(__DIR__);
@@ -732,7 +732,7 @@ fwrite(STDERR, "       funnypot compile-routes [<route-template-dir>] [--out=PAT
 fwrite(STDERR, "       funnypot compile-ai [--out=<generated-dir>]  (route + owns_path attack templates)\n");
 fwrite(STDERR, "       funnypot compile-wp [--out=<generated-dir>]  (curated WP plugin/theme readme/style decoy routes)\n");
 fwrite(STDERR, "       funnypot compile-params [<param-template-dir>] [--out=PATH]\n");
-fwrite(STDERR, "       funnypot merge-routes [<index>] [--fragment=PATH] [--out=PATH]\n");
+fwrite(STDERR, "       funnypot merge-routes [<index>] [--fragment=PATH] [--out=PATH]  (needs funnypot-routes.php beside the fragment)\n");
 fwrite(STDERR, "       funnypot compile-crs <coreruleset-rules-dir> [--out=PATH] [--pl=N]\n");
 fwrite(STDERR, "       funnypot build-manifest [--out=PATH]  (derive the two-band decoy registry)\n");
 fwrite(STDERR, "       funnypot map [--format=md|mermaid] [--family=NAME]  (decoy map: no args = write docs/DECOY-MAP.md + README block; any option = stdout preview)\n");
@@ -1279,6 +1279,9 @@ function runCompileParams(string $root, array $argvv): int
  *     "fingerprint" of the index actually verifies (it was orphaned — merge-routes rewrote the
  *     index without touching the sidecar). built_at + skipped_count are preserved from the sidecar.
  *
+ * It also stamps `rb` on mixed GET keys (Compiler\RichBundleStamp) against the funnypot-routes.php
+ * that sits beside the fragment; a missing or empty routes file is an error (exit 2).
+ *
  * @param string[] $argvv
  */
 function runMergeRoutes(string $root, array $argvv): int
@@ -1332,6 +1335,7 @@ function runMergeRoutes(string $root, array $argvv): int
     $routeRules = is_file($routesPath) ? require $routesPath : null;
     if (!is_array($routeRules) || $routeRules === []) {
         fwrite(STDERR, "error: route rules not found or empty: {$routesPath} (run compile-routes first)\n");
+
         return 2;
     }
     $stamp = (new RichBundleStamp())->apply($index, new RouteTemplateSet($routeRules));

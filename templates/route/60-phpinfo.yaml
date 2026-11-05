@@ -16,10 +16,10 @@ new_page:
   name: 'PHP info page disclosure'
   body_words: ['phpinfo()', 'PHP Version']
   # /info.php is also a niche D-Link DIR-816L XSS bundle in the corpus. A real phpinfo at /info.php is
-  # far more common than that appliance, so a heavy tier makes phpinfo the persona most seeds serve
-  # there; the D-Link bundle keeps a minority slice and full detection (weight biases SERVING, never
-  # detection). /phpinfo.php and /phpinfo are brand-new single-bundle keys, so the weight is inert
-  # there.
+  # far more common than that appliance. In a rich style the phpinfo page is served to every persona
+  # (a real page beats bare matcher words); the minimal style keeps the D-Link bundle as bait, and it
+  # is detected in every style. /phpinfo.php and /phpinfo are brand-new single-bundle keys, so the
+  # weight is inert there.
   weight: 8
 match:
   # template_needle keeps dressing any upstream nuclei template whose needle is phpinfo/php-info.

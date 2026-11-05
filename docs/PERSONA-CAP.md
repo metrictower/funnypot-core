@@ -14,7 +14,7 @@ cut. Realistic size after cap ≈ 4.5 MB (keep full detect).
 
 ## 1. Detect/respond split (schema change, backward-compatible)
 `routes[key]` becomes `['d' => [full template ids], 'b' => [capped bundles], 'w' => [weights]]`.
-`merge-routes` later adds `'rb'` on mixed GET keys: the indices of the bundles that can render as a real
+`merge-routes` later adds `'rb'` on mixed GET keys other than `GET /`: the indices of the bundles that can render as a real
 page (see §4).
 - `'d'` (flat full id-list) is emitted only for capped paths; elsewhere detect derives from
   `union(b[*].t)`. So `detect()` keeps FULL coverage while `respond()` is capped.
