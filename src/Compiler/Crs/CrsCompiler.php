@@ -246,6 +246,12 @@ final class CrsCompiler
             ],
             'response' => $archetype['response'],
         ];
+        // The LFI catch-all answers a file read that failed. That is a believable reply to a parameter
+        // naming a file, not to a bare request for a restricted path, so it is served only when the query
+        // or body carries the match; detection still covers the whole request.
+        if ($class === 'lfi') {
+            $template['serve_on'] = 'payload';
+        }
         if ($archetype['expect'] !== []) {
             $template['expect'] = $archetype['expect'];
         }

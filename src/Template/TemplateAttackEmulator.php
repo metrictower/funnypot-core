@@ -436,6 +436,23 @@ final class TemplateAttackEmulator
         return null;
     }
 
+    /**
+     * Whether a matched rule may be served for this request. A rule marked `serve_on: payload` is detected
+     * on the whole request but served only when its match also holds without the path — i.e. the query
+     * or body carries it. A catch-all read error for a file path is a plausible answer to a parameter
+     * that names a file, never to a bare request for that file. `emulate()` does not apply this check.
+     *
+     * @param array<string,mixed> $rule
+     */
+    public function servesFor(array $rule, RequestContext $r): bool
+    {
+        if (($rule['serve_on'] ?? null) !== 'payload') {
+            return true;
+        }
+
+        return $this->match($this->pathStripped($r), $rule) !== null;
+    }
+
     /** A request clone with the path removed, so the `request`/`path` surfaces carry only query+body. */
     private function pathStripped(RequestContext $r): RequestContext
     {

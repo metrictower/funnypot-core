@@ -190,6 +190,15 @@ final class EmulatorCompiler
             $rule['persona_gate'] = (string) $doc['persona_gate'];
         }
 
+        // Optional serve predicate: `payload` serves the rule only when its match holds on the query or
+        // body, not on the path alone (detection is unaffected). Any other value is a build failure.
+        if (isset($doc['serve_on'])) {
+            if ($doc['serve_on'] !== 'payload') {
+                throw new RuntimeException("Template {$file}: serve_on must be 'payload'.");
+            }
+            $rule['serve_on'] = 'payload';
+        }
+
         // An optional named behavior primitive. The base `response` above stays the ultimate
         // fallback; the behavior only picks the content when it fires. Unknown names are a build
         // failure — this build knows branch, arith-eval, expr-eval, ssti-render, iterate,

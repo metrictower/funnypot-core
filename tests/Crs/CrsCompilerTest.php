@@ -6,6 +6,7 @@ namespace Funnypot\Core\Tests\Crs;
 
 use Funnypot\Core\Compiler\Crs\CrsCompiler;
 use PHPUnit\Framework\TestCase;
+use Symfony\Component\Yaml\Yaml;
 
 /**
  * Compiles the committed CRS fixture sample into funnypot attack templates and asserts the
@@ -116,5 +117,30 @@ final class CrsCompilerTest extends TestCase
         self::assertSame('coreruleset', $manifest['source']);
         self::assertSame(1, $manifest['paranoia_level_max']);
         self::assertSame(4, $manifest['rules_kept']);
+    }
+
+    public function test_only_the_lfi_catch_all_is_served_on_payload(): void
+    {
+        foreach ($this->templates() as $id => $t) {
+            if ($id === 'attack-crs-lfi') {
+                self::assertSame('payload', $t['serve_on'] ?? null, $id);
+            } else {
+                self::assertArrayNotHasKey('serve_on', $t, $id);
+            }
+        }
+    }
+
+    /** The committed generated template must be what the next `compile-crs` run writes, apart from the regex. */
+    public function test_committed_lfi_template_matches_the_compiler_output(): void
+    {
+        $normalize = static function (string $yaml): string {
+            $yaml = (string) preg_replace('/^#.*\n/m', '', $yaml);
+
+            return (string) preg_replace('/^(\s*regex: ).*$/m', '$1<regex>', $yaml);
+        };
+        $compiled = Yaml::dump($this->templates()['attack-crs-lfi'], 6, 2);
+        $committed = (string) file_get_contents(dirname(__DIR__, 2) . '/templates/attack-crs/952-crs-lfi.yaml');
+
+        self::assertSame($normalize($committed), $normalize($compiled));
     }
 }

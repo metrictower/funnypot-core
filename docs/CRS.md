@@ -127,6 +127,12 @@ never removes a raw match, while a match can never span the layer joiner (the si
 on the `Verdict` (telemetry; additive). The CRS aggregates all match `in: request`, so they get the
 folded view for free; `path` and `header` surfaces stay raw by design.
 
+**Serving vs detection (`serve_on`).** The **lfi** aggregate carries `serve_on: payload`: it is detected
+on the whole request (CRS 930130 restricted-file names live in the path), but its "failed to open stream"
+archetype is served only when the match also holds on the query or body (the path-stripped request). A
+bare restricted path stays `attack-class` with the same detection and no fake handle, so the host's 404
+answers it. `compile-crs` emits the key; an older core ignores it and keeps serving the archetype.
+
 **Residual limitation.** Per-rule CRS `t:` chains are not yet applied individually (the compiler
 fuses each class into one broadened alternation, so there is no per-branch surface to transform) —
 capturing them as provenance is a separate follow-up. Obfuscation beyond the bounded decoder set or

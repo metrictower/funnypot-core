@@ -235,6 +235,9 @@ final class WpLoginOracleTest extends TestCase
         return [
             'HEAD double trailing slash' => ['HEAD', '/wp-login.php//', ''],
             'HEAD triple trailing slash' => ['HEAD', '/wp-login.php///', ''],
+            // A hostile query that the attack tier declines falls back to what the bare request gets.
+            'HEAD with an xss query' => ['HEAD', '/wp-login.php', 'id=%3Cscript%3Ealert(1)%3C%2Fscript%3E'],
+            'HEAD double slash with an svg query' => ['HEAD', '/wp-login.php//', 'x=%3Csvg%20onload%3Dalert(1)%3E'],
         ];
     }
 

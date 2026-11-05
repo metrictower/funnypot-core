@@ -37,6 +37,7 @@ final class ServedStringWalker
         'suffix' => true,              // param-route matcher
         'basename' => true,            // param-route matcher
         'method' => true,              // method matcher
+        'serve_on' => true,            // serve predicate keyword, not served bytes
         'template_needle' => true,     // route-rule match field (future top-level use stays skipped)
         'body_word_contains' => true,  // route-rule match field (future top-level use stays skipped)
         'id' => true,                  // identifier

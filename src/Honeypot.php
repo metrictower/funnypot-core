@@ -405,7 +405,7 @@ final class Honeypot implements Engine
         }
         $rule = $pm['rule'];
         $detection = TemplateAttackEmulator::detectionForRule($rule);
-        $handle = FakeHandle::attack((string) ($rule['id'] ?? 'attack'), $pm['captures']);
+        $handle = $this->attackHandle($rule, $pm['captures'], $r);
 
         return new Verdict(
             Verdict::ATTACK_CLASS,
@@ -494,7 +494,7 @@ final class Honeypot implements Engine
                 if ($ov !== null) {
                     $rule = $ov['rule'];
                     $detection = TemplateAttackEmulator::detectionForRule($rule);
-                    $handle = FakeHandle::attack((string) ($rule['id'] ?? 'attack'), $ov['captures']);
+                    $handle = $this->attackHandle($rule, $ov['captures'], $r);
 
                     return new Verdict(
                         Verdict::ATTACK_CLASS,
@@ -599,7 +599,7 @@ final class Honeypot implements Engine
             if ($pm !== null) {
                 $rule = $pm['rule'];
                 $detection = TemplateAttackEmulator::detectionForRule($rule);
-                $handle = FakeHandle::attack((string) ($rule['id'] ?? 'attack'), $pm['captures']);
+                $handle = $this->attackHandle($rule, $pm['captures'], $r);
 
                 return new Verdict(
                     Verdict::ATTACK_CLASS,
@@ -622,7 +622,7 @@ final class Honeypot implements Engine
             if ($matched !== null && !$wafCheck && $this->personaGateAllows($matched['rule'], $r)) {
                 $rule = $matched['rule'];
                 $detection = TemplateAttackEmulator::detectionForRule($rule);
-                $handle = FakeHandle::attack((string) ($rule['id'] ?? 'attack'), $matched['captures']);
+                $handle = $this->attackHandle($rule, $matched['captures'], $r);
 
                 return new Verdict(
                     Verdict::ATTACK_CLASS,
@@ -799,17 +799,7 @@ final class Honeypot implements Engine
         if ($this->attackEmulator === null) {
             return null;
         }
-        $neutral = new RequestContext(
-            $r->method,
-            $r->path,
-            '',
-            $r->headers,
-            null,
-            $r->host,
-            $r->scheme,
-            $r->httpVersion,
-            $r->targetAdmitted
-        );
+        $neutral = $this->neutralClone($r);
 
         return $this->attackEmulator->matchOnOwnedPath($neutral, function (array $rule) use ($neutral): bool {
             return $this->personaGateAllows($rule, $neutral);
@@ -1727,6 +1717,31 @@ final class Honeypot implements Engine
         // the app before any serve decision.
         $this->safeOnDetection($r, $verdict->detection);
 
+        return $this->serveRoutedVerdict($r, $verdict, $seed, $r, $verdict->detection);
+    }
+
+    /**
+     * The guarded serve sequence for a routed verdict: gate, probe signature for a clean route, the fake,
+     * the app's veto, then the outcome. Records exactly one outcome. Detection is the caller's job.
+     *
+     * $r is the real request (the gate, probe-signature and veto predicates always see it); $render is the
+     * request the fake is rendered for, which is a payload-free clone when a declined attack falls back
+     * to its path's decoy. $vetoDetection goes to the veto; $satisfies, when given, replaces the served
+     * response's detection so consumers still see the attack that was detected.
+     */
+    private function serveRoutedVerdict(
+        RequestContext $r,
+        Verdict $verdict,
+        string $seed,
+        RequestContext $render,
+        Detection $vetoDetection,
+        ?Detection $satisfies = null
+    ): ?SynthesizedResponse {
+        $handle = $verdict->fakeHandle;
+        if ($handle === null) {
+            return $this->declined($r, Outcome::NO_CANDIDATE);
+        }
+
         if (!$this->config->gateOpen($r)) {
             return $this->declined($r, Outcome::GATE_CLOSED);
         }
@@ -1741,13 +1756,17 @@ final class Honeypot implements Engine
             return $this->declined($r, Outcome::NO_SIGNATURE);
         }
 
-        $built = $this->buildFake($verdict->fakeHandle, SiteProfile::empty(), $seed, $r);
+        $built = $this->buildFake($handle, SiteProfile::empty(), $seed, $render);
         if ($built['r'] === null) {
             return $this->declined($r, $built['reason']);
         }
 
-        if (!$this->safeShouldRespond($r, $verdict->detection)) {
+        if (!$this->safeShouldRespond($r, $vetoDetection)) {
             return $this->declined($r, Outcome::VETOED);
+        }
+
+        if ($satisfies !== null) {
+            $built['r']->satisfies = $satisfies;
         }
 
         // Surface the winning handle to the app (debug tooling). Inert: never emitted (see
@@ -1774,7 +1793,7 @@ final class Honeypot implements Engine
 
         $built = $this->buildFake($verdict->fakeHandle, SiteProfile::empty(), $seed, $r);
         if ($built['r'] === null) {
-            return $this->declined($r, $built['reason']);
+            return $this->servePayloadFree($r, $verdict, $seed, $built['reason']);
         }
 
         // Surface the winning handle to the app (debug tooling). Inert: never emitted (see
@@ -1786,6 +1805,86 @@ final class Honeypot implements Engine
         $this->safeOnOutcome($r, $built['r'], Outcome::SERVED);
 
         return $built['r'];
+    }
+
+    /**
+     * A declined attack on a path serves exactly what the same request without its payload gets, so a
+     * hostile parameter never turns the path's decoy into a 404 (a real app ignores a parameter it does
+     * not use). The payload-free clone is classified and served through the same guarded sequence as any
+     * routed probe; detection already fired for the attack, so it is not fired again, and the served
+     * response carries the attack's detection. A clone that is itself an attack serves that rule's fake
+     * when it is a different rule (e.g. a path whose own decoy is an attack-tier rule); otherwise the
+     * attack's decline stands. Exactly one outcome is recorded.
+     */
+    private function servePayloadFree(RequestContext $r, Verdict $attack, string $seed, string $reason): ?SynthesizedResponse
+    {
+        if ($r->query === '' && ($r->rawBody === null || $r->rawBody === '')) {
+            return $this->declined($r, $reason); // already payload-free: nothing different to serve
+        }
+
+        $neutral = $this->neutralClone($r);
+        $base = $this->classify($neutral, SiteProfile::empty());
+        $handle = $base->fakeHandle;
+        if ($handle === null) {
+            return $this->declined($r, $reason);
+        }
+
+        if ($base->classification !== Verdict::ATTACK_CLASS) {
+            if ($handle->kind !== FakeHandle::KIND_ROUTE && $handle->kind !== FakeHandle::KIND_METHOD
+                && $handle->kind !== FakeHandle::KIND_DECOY_ARCHIVE) {
+                return $this->declined($r, $reason);
+            }
+
+            return $this->serveRoutedVerdict($r, $base, $seed, $neutral, $attack->detection, $attack->detection);
+        }
+
+        $declinedRule = $attack->fakeHandle !== null ? $attack->fakeHandle->ruleId : null;
+        if ($handle->kind !== FakeHandle::KIND_ATTACK || $handle->ruleId === $declinedRule) {
+            return $this->declined($r, $reason);
+        }
+        $built = $this->buildFake($handle, SiteProfile::empty(), $seed, $neutral);
+        if ($built['r'] === null) {
+            return $this->declined($r, $reason);
+        }
+        $built['r']->satisfies = $attack->detection;
+        $built['r']->servedBy = $handle;
+        $built['r']->delayMicros = $this->config->serveDelayMicros();
+        $this->safeOnOutcome($r, $built['r'], Outcome::SERVED);
+
+        return $built['r'];
+    }
+
+    /**
+     * The fake handle for a matched attack rule, or null when the rule is detected but must not be
+     * served for this request (see TemplateAttackEmulator::servesFor). The verdict keeps its class and
+     * detection either way.
+     *
+     * @param array<string,mixed>      $rule
+     * @param array<int|string,string> $captures
+     */
+    private function attackHandle(array $rule, array $captures, RequestContext $r): ?FakeHandle
+    {
+        if ($this->attackEmulator !== null && !$this->attackEmulator->servesFor($rule, $r)) {
+            return null;
+        }
+
+        return FakeHandle::attack((string) ($rule['id'] ?? 'attack'), $captures);
+    }
+
+    /** The same request with its query and body removed: what a visitor without the payload sends. */
+    private function neutralClone(RequestContext $r): RequestContext
+    {
+        return new RequestContext(
+            $r->method,
+            $r->path,
+            '',
+            $r->headers,
+            null,
+            $r->host,
+            $r->scheme,
+            $r->httpVersion,
+            $r->targetAdmitted
+        );
     }
 
     /**
