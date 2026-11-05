@@ -42,6 +42,8 @@ final class RichBundleStampTest extends TestCase
             'GET /' => ['b' => [$stub, $login]],
             'POST /wp-login.php' => ['b' => [$stub, $login]],
             'GET /stale' => ['b' => [$stub, $stub], RichBundleStamp::KEY => [0]],
+            'GET /icon' => ['b' => [self::bundle('fixture', 'fixture-icon', true), $stub]],
+            'GET /error-page' => ['b' => [array_merge($login, ['s' => 500]), $stub]],
         ]];
     }
 
@@ -52,7 +54,7 @@ final class RichBundleStampTest extends TestCase
 
         self::assertSame([1], $routes['GET /wp-login.php'][RichBundleStamp::KEY]);
         self::assertSame(1, $out['stamped']);
-        foreach (['GET /all-rich', 'GET /bait-only', 'GET /', 'POST /wp-login.php', 'GET /stale'] as $key) {
+        foreach (['GET /all-rich', 'GET /bait-only', 'GET /', 'POST /wp-login.php', 'GET /stale', 'GET /icon', 'GET /error-page'] as $key) {
             self::assertArrayNotHasKey(RichBundleStamp::KEY, $routes[$key], $key);
         }
     }

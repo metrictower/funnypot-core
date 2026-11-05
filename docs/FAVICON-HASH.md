@@ -67,8 +67,10 @@ uses the sibling `response.binary_generator` arm — a closed built-in writer ru
   (Shodan does) gets a hash-matching, deterministic icon. Shipped for **Grafana, phpMyAdmin, Jenkins,
   Tomcat**.
 - **Neutral bare-root.** `GET /favicon.ico` serves a neutral icon whose hash is not any known-product
-  signature — corroborates nothing, contradicts nothing (removes the old JSON/HTML tell). In a rich style
-  every visitor gets an icon there (a real page beats the key's bare text bait); `minimal` keeps the bait.
+  signature — corroborates nothing, contradicts nothing (removes the old JSON/HTML tell). It is one fixed
+  hash, so it is deliberately not preferred over the key's text bait (binary bundles are never stamped
+  `rb`): serving it to every host would make one fleet-wide favicon hash. Seeding it per deploy is a
+  follow-up; until then the key keeps its per-host mix.
 - **Deferred (residual tell, do not over-claim).** Making the bare-root `/favicon.ico` hash-match the
   `/`-lottery persona needs the global per-attacker family selector deferred in **PERSONA-CAP.md §6**
   (`PersonaSelector::pick` chooses independently per path). A follow-up can couple both once that

@@ -173,10 +173,12 @@ final class RouteRealPageWinsTest extends TestCase
     {
         $stamped = self::stampedEntries();
         self::assertGreaterThanOrEqual(50, count($stamped), 'the build must stamp the mixed GET keys');
-        foreach (['GET /wp-login.php', 'GET /login', 'GET /favicon.ico'] as $key) {
+        foreach (['GET /wp-login.php', 'GET /login', 'GET /console'] as $key) {
             self::assertArrayHasKey($key, $stamped, $key);
         }
         self::assertArrayNotHasKey('GET /', $stamped, 'the persona root is never stamped');
+        self::assertArrayNotHasKey('GET /favicon.ico', $stamped, 'a binary page is one fleet-wide hash: never preferred');
+        self::assertArrayNotHasKey('GET /index.jsp', $stamped, 'a 5xx error page is never preferred');
     }
 
     public function test_stamped_keys_serve_a_rich_render_in_realistic_style(): void

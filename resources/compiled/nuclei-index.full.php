@@ -168050,10 +168050,6 @@ a</title>',
           'bin' => 1,
         ),
       ),
-      'rb' => 
-      array (
-        0 => 24,
-      ),
     ),
     'GET /fcgi-bin/echo' => 
     array (
@@ -180322,10 +180318,6 @@ a</title>',
             0 => 'CVE-2020-9484',
           ),
         ),
-      ),
-      'rb' => 
-      array (
-        0 => 1,
       ),
     ),
     'GET /index.php' => 

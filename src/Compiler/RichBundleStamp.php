@@ -7,17 +7,20 @@ namespace Funnypot\Core\Compiler;
 use Funnypot\Core\Response\RouteTemplateSet;
 
 /**
- * Stamps each mixed GET route entry with the indices of its bundles that can render as a real page.
+ * Stamps each mixed GET route entry with the indices of the bundles the engine should prefer as a real
+ * page: those with a rich route rule that are neither binary nor a 5xx error page.
  *
- * A route key can carry several bundles, and only some of them have a rich route rule (or are binary).
- * At serve time the engine prefers a real page over bare matcher words (Honeypot::buildRouteFake), but
- * scanning every route rule per request is too slow, so the build records the candidates once as
- * `$entry['rb']` — a list of indices into `$entry['b']`.
+ * A route key can carry several bundles, and only some of them have a rich route rule. At serve time the
+ * engine prefers a real page over bare matcher words (Honeypot::buildRouteFake), but scanning every route
+ * rule per request is too slow, so the build records the candidates once as `$entry['rb']` — a list of
+ * indices into `$entry['b']`.
  *
  * Only mixed GET keys are stamped: all-rich and bait-only keys stay byte-identical, and `GET /` is the
  * persona root (Honeypot::personaGateAllows re-picks over its full candidate set), so it is never
- * stamped. The pass strips every existing stamp first, so it is idempotent and an index folded in place
- * never keeps a stale one (RouteIndexFold re-indexes `b`).
+ * stamped. Binary bundles stay out: a favicon or image is one fixed hash, so preferring it would serve
+ * the same bytes on every host. A 5xx page stays out too: an error is not a real page for a plain request.
+ * The pass strips every existing stamp first, so it is idempotent and an index folded in place never
+ * keeps a stale one (RouteIndexFold re-indexes `b`).
  */
 final class RichBundleStamp
 {
@@ -44,7 +47,7 @@ final class RichBundleStamp
                     if (!is_array($bundle)) {
                         continue;
                     }
-                    if (!empty($bundle['bin']) || $routes->findRule($bundle, $key) !== null) {
+                    if (self::preferable($bundle) && $routes->findRule($bundle, $key) !== null) {
                         $rich[] = $i;
                     }
                 }
@@ -58,5 +61,16 @@ final class RichBundleStamp
         }
 
         return ['index' => $index, 'stamped' => $stamped];
+    }
+
+    /**
+     * Whether a bundle may be preferred as a real page at all: not binary, not a 5xx error. The engine uses
+     * the same test to know that a bundle outside the stamp can never render as a real page.
+     *
+     * @param array<string,mixed> $bundle
+     */
+    public static function preferable(array $bundle): bool
+    {
+        return empty($bundle['bin']) && (int) ($bundle['s'] ?? 200) < 500;
     }
 }

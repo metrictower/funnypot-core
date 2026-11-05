@@ -2021,19 +2021,29 @@ final class Honeypot implements Engine
             return ['r' => null, 'reason' => Outcome::NO_CANDIDATE];
         }
 
-        $satisfies = $this->detectionFor($key, $bundle['t'] ?? []);
-        // Thread the resolved store key so a route-key-guarded template dresses only its own route
-        // (path-aware directory listings). The key is the handle's, never request-derived, so facade
-        // and position-blind port stay byte-equivalent.
-        $response = $this->synthesizer->synthesize($bundle, $satisfies, $seed, $key);
+        // A real decoy page wins over bare matcher words: when this pick does not render as a real page,
+        // try the bundles the build stamped as preferable real pages. A pick that renders rich is kept
+        // as-is, so a visitor who gets a real page today keeps exactly that page. A preferable pick outside
+        // the stamp has no rich rule, so it can never render rich: it is rendered only if every stamped
+        // try fails, which keeps the cost (and the latency) the same for every host on the key.
+        $stamped = $this->stampedRichIndices($entry, $key);
+        $pickIndex = $stamped === [] ? false : array_search($bundle, array_values((array) $entry['b']), true);
+        $pickNeverRich = $stamped !== [] && !in_array($pickIndex, $stamped, true) && RichBundleStamp::preferable($bundle);
 
-        // A real decoy page wins over bare matcher words: when this pick rendered minimal, try the
-        // bundles the build stamped as able to render a real page. A pick that already rendered rich is
-        // kept as-is, so a visitor who gets a real page today keeps exactly that page.
-        if ($response === null || !$this->synthesizer->lastRenderedRich()) {
-            $rich = $this->preferRichPage($entry, $key, $bundle, $seed);
-            if ($rich !== null) {
-                list($bundle, $satisfies, $response) = $rich;
+        $rich = $pickNeverRich ? $this->preferRichPage($entry, $key, $stamped, $seed) : null;
+        if ($rich !== null) {
+            list($bundle, $satisfies, $response) = $rich;
+        } else {
+            $satisfies = $this->detectionFor($key, $bundle['t'] ?? []);
+            // Thread the resolved store key so a route-key-guarded template dresses only its own route
+            // (path-aware directory listings). The key is the handle's, never request-derived, so facade
+            // and position-blind port stay byte-equivalent.
+            $response = $this->synthesizer->synthesize($bundle, $satisfies, $seed, $key);
+            if (!$pickNeverRich && $stamped !== [] && ($response === null || !$this->synthesizer->lastRenderedRich())) {
+                $rich = $this->preferRichPage($entry, $key, array_values(array_diff($stamped, [$pickIndex])), $seed);
+                if ($rich !== null) {
+                    list($bundle, $satisfies, $response) = $rich;
+                }
             }
         }
         if ($response === null) {
@@ -2065,37 +2075,58 @@ final class Honeypot implements Engine
     }
 
     /**
-     * A rich render of one of the entry's stamped bundles (see Compiler\RichBundleStamp), or null.
+     * The entry's stamped bundle indices that may be tried as a real page (see Compiler\RichBundleStamp),
+     * or [] when the key is not eligible.
      *
      * Only GET keys other than `GET /` are eligible, and only when the synthesizer renders rich pages at
      * all (never `minimal`). `GET /` stays out because personaGateAllows() re-picks over GET /'s full
-     * candidate set; exempting it here keeps the served homepage and the persona gate in step. Stamped
-     * bundles still pass candidates() (exclude + severity ceiling). Each try is chosen by the same persona
-     * pick over the remaining stamped bundles; a try counts only if it really rendered rich and would not
-     * be declined later (egress screen, body cap), so it never replaces a stub that fits. A failed try is
-     * dropped and the pick re-runs; when none succeeds the caller keeps today's pick.
+     * candidate set; exempting it here keeps the served homepage and the persona gate in step. The stamp
+     * comes from a (possibly fetched) artifact, so indices are de-duplicated, range-checked and capped at
+     * the bundle count; stamped bundles still pass candidates() (exclude + severity ceiling).
      *
      * @param array<string,mixed>|null $entry
-     * @param array<string,mixed>      $picked the bundle today's pick chose (never retried)
-     * @return array{0: array<string,mixed>, 1: Detection, 2: SynthesizedResponse}|null
+     * @return list<int>
      */
-    private function preferRichPage(?array $entry, string $key, array $picked, string $seed): ?array
+    private function stampedRichIndices(?array $entry, string $key): array
     {
-        if ($entry === null || !isset($entry[RichBundleStamp::KEY])
+        if ($entry === null || !isset($entry[RichBundleStamp::KEY]) || !is_array($entry[RichBundleStamp::KEY])
             || $key === 'GET /' || strncmp($key, 'GET ', 4) !== 0
             || !$this->synthesizer->prefersRich()) {
-            return null;
+            return [];
         }
 
         $bundles = array_values((array) ($entry['b'] ?? []));
         $indices = [];
-        foreach ((array) $entry[RichBundleStamp::KEY] as $i) {
-            $i = (int) $i;
-            if (isset($bundles[$i]) && $bundles[$i] !== $picked && $this->candidates([$bundles[$i]]) !== []) {
-                $indices[] = $i;
+        foreach ($entry[RichBundleStamp::KEY] as $i) {
+            if (!is_int($i) || !isset($bundles[$i]) || !is_array($bundles[$i]) || isset($indices[$i])) {
+                continue;
+            }
+            if ($this->candidates([$bundles[$i]]) !== []) {
+                $indices[$i] = $i;
+            }
+            if (count($indices) >= count($bundles)) {
+                break;
             }
         }
 
+        return array_values($indices);
+    }
+
+    /**
+     * A rich render of one of the given stamped bundles, or null.
+     *
+     * Each try is chosen by the same persona pick over the remaining stamped bundles; a try counts only if
+     * it really rendered rich and would not be declined later (egress screen, body cap), so it never
+     * replaces a stub that fits. A failed try is dropped and the pick re-runs. The synthesizer's
+     * diagnostics then describe the last try, not necessarily the response served.
+     *
+     * @param array<string,mixed> $entry
+     * @param list<int>           $indices
+     * @return array{0: array<string,mixed>, 1: Detection, 2: SynthesizedResponse}|null
+     */
+    private function preferRichPage(array $entry, string $key, array $indices, string $seed): ?array
+    {
+        $bundles = array_values((array) ($entry['b'] ?? []));
         while ($indices !== []) {
             $pool = [];
             foreach ($indices as $i) {

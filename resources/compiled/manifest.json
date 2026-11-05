@@ -39,7 +39,7 @@
     "built_at": "2026-08-16T03:20:40+00:00",
     "core_commit": "f5f15f27d19b5e7ba9235f61c03dc77d9b227ec6",
     "php_version": "8.4.10",
-    "sha256": "81f95ff9516ff1724ad5732872f349c55b2ac83dfa8544e67e263d5cba445792",
+    "sha256": "a11fbb699cf6b9f7913f8b16685791fc6e384ba081cfacb75c63f728af106b0d",
     "skipped_count": 4833,
-    "artifact_bytes": 6471929
+    "artifact_bytes": 6471820
 }
