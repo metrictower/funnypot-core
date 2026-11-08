@@ -71,8 +71,7 @@ final class CrsLfiServeOnPayloadTest extends TestCase
         self::assertContains('attack-crs-lfi', $verdict->detection->templateIds(), $path);
         self::assertNull($verdict->fakeHandle, $path);
 
-        $r = $engine->respond(self::request($path));
-        self::assertTrue($r === null || strpos($r->body, self::WARNING) === false, $path);
+        self::assertNull($engine->respond(self::request($path)), $path);
     }
 
     /** @return array<string,array{0:string,1:string}> */

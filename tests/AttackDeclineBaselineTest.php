@@ -66,19 +66,23 @@ final class AttackDeclineBaselineTest extends TestCase
         return $r === null ? null : [$r->status, $r->headers['Content-Type'] ?? null, $r->body];
     }
 
-    private static function counter(bool $allow = true): Observer
+    /** @param string|null $vetoId veto only when the detection carries this template id */
+    private static function counter(bool $allow = true, ?string $vetoId = null): Observer
     {
-        return new class ($allow) implements Observer {
+        return new class ($allow, $vetoId) implements Observer {
             /** @var bool */
             private $allow;
+            /** @var string|null */
+            private $vetoId;
             /** @var int */
             public $detections = 0;
             /** @var int */
             public $outcomes = 0;
 
-            public function __construct(bool $allow)
+            public function __construct(bool $allow, ?string $vetoId)
             {
                 $this->allow = $allow;
+                $this->vetoId = $vetoId;
             }
 
             public function onDetection(RequestContext $r, Detection $detection): void
@@ -88,6 +92,10 @@ final class AttackDeclineBaselineTest extends TestCase
 
             public function shouldRespond(RequestContext $r, Detection $detection): bool
             {
+                if ($this->vetoId !== null) {
+                    return !in_array($this->vetoId, $detection->templateIds(), true);
+                }
+
                 return $this->allow;
             }
 
@@ -140,6 +148,17 @@ final class AttackDeclineBaselineTest extends TestCase
     {
         self::assertNull(self::engine(null, false)->respond(self::request('GET', '/wp-login.php', self::XSS)));
         self::assertNull(self::engine(self::counter(false))->respond(self::request('GET', '/wp-login.php', self::XSS)));
+        // The veto judges the attack that was detected, not the payload-free route.
+        self::assertNull(self::engine(self::counter(true, 'attack-xss'))->respond(self::request('GET', '/wp-login.php', self::XSS)));
+    }
+
+    public function test_a_path_whose_own_decoy_is_an_attack_rule_reports_the_attack(): void
+    {
+        $r = self::engine()->respond(self::request('GET', '/wp-admin', 'q=%3Cscript%3Ex%3C%2Fscript%3E'));
+
+        self::assertNotNull($r);
+        self::assertSame('attack-wp-admin-redirect', $r->servedBy->ruleId);
+        self::assertContains('attack-xss', $r->satisfies->templateIds(), 'consumers still see the attack');
     }
 
     /** @return array<string,array{0:string,1:string,2:string}> */

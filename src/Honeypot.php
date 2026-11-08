@@ -405,7 +405,8 @@ final class Honeypot implements Engine
         }
         $rule = $pm['rule'];
         $detection = TemplateAttackEmulator::detectionForRule($rule);
-        $handle = $this->attackHandle($rule, $pm['captures'], $r);
+        // matchPayload() already matched the path-stripped request, so the serve predicate holds.
+        $handle = FakeHandle::attack((string) ($rule['id'] ?? 'attack'), $pm['captures']);
 
         return new Verdict(
             Verdict::ATTACK_CLASS,
@@ -494,7 +495,9 @@ final class Honeypot implements Engine
                 if ($ov !== null) {
                     $rule = $ov['rule'];
                     $detection = TemplateAttackEmulator::detectionForRule($rule);
-                    $handle = $this->attackHandle($rule, $ov['captures'], $r);
+                    // A WAF-check polyglot is answered as its payload-free baseline, so serving is judged
+                    // on that baseline too, never on the polyglot's own query.
+                    $handle = $this->attackHandle($rule, $ov['captures'], $wafCheck ? $this->neutralClone($r) : $r);
 
                     return new Verdict(
                         Verdict::ATTACK_CLASS,

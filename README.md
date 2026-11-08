@@ -620,12 +620,12 @@ how bare `/xmlrpc.php` and the credential oracles serve request-aware responses 
 decoy also keys those paths.
 
 **A declined attack serves what the payload-free request gets.** When the attack tier matches but serves
-nothing (a detection-only class such as XSS, a reflector suppressed on an embedded host, a rule above the
-severity ceiling), `respond()` classifies the same request without its query and body and serves that —
-through the same gate, probe-signature, auth-success and veto guards as any routed probe — so a hostile
-parameter never turns a path's decoy into a 404 and never unlocks something the bare request would not
-get. The response still carries the attack's detection, which fires once. The two-phase
-`classify()`/`synthesize()` API is unchanged: an embedder on it keeps its own 404 for a declined attack.
+nothing (a reflector such as XSS withheld on an embedded host, a rule above the severity ceiling),
+`respond()` classifies the same request without its query and body and serves that — with the same
+guards the bare request gets — so a hostile parameter never turns a path's decoy into a 404 and never
+unlocks something the bare request would not get. The response still carries the attack's detection,
+which fires once. The two-phase `classify()`/`synthesize()` API does not add this fallback: an embedder on
+it keeps its own 404 for a declined attack.
 The CRS LFI catch-all is detected on the whole request but served only when the query or body names the
 file (`serve_on: payload`), so a bare `GET /wp-config.php` is detected and gets the host's 404, not a fake
 include warning.

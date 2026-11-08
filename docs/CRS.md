@@ -48,6 +48,12 @@ template per CRS rule id and never invents a per-rule response.
 - **Severity.** CRS `CRITICAL → high`, `ERROR → medium`, `WARNING/NOTICE → low` (respects
   funnypot's default `severityCeiling: high`). Each class also carries an archetype severity
   floor, so fake RCE stays `critical` = **gated by default**, matching funnypot's own posture.
+- **Serving vs detection (`serve_on`).** The **lfi** aggregate carries `serve_on: payload`: it is
+  detected on the whole request (CRS 930130 restricted-file names live in the path), but its "failed
+  to open stream" archetype is served only when the match also holds on the query or body (the
+  path-stripped request). A bare restricted path stays `attack-class` with the same detection and no
+  fake handle, so the host's 404 answers it. `compile-crs` emits the key; an older core ignores it and
+  keeps serving the archetype.
 - **Priority.** CRS templates get a high `priority` (950+) so first-match-wins keeps the specific
   hand-authored rules (priority 31–90) ahead of the broad CRS alternation — CRS only widens the
   tail.
@@ -126,12 +132,6 @@ never removes a raw match, while a match can never span the layer joiner (the si
 `foldLayers()` string survives only for the literal pre-filter and the `decode_path` telemetry). The decoders that fired are recorded as `decode_path`
 on the `Verdict` (telemetry; additive). The CRS aggregates all match `in: request`, so they get the
 folded view for free; `path` and `header` surfaces stay raw by design.
-
-**Serving vs detection (`serve_on`).** The **lfi** aggregate carries `serve_on: payload`: it is detected
-on the whole request (CRS 930130 restricted-file names live in the path), but its "failed to open stream"
-archetype is served only when the match also holds on the query or body (the path-stripped request). A
-bare restricted path stays `attack-class` with the same detection and no fake handle, so the host's 404
-answers it. `compile-crs` emits the key; an older core ignores it and keeps serving the archetype.
 
 **Residual limitation.** Per-rule CRS `t:` chains are not yet applied individually (the compiler
 fuses each class into one broadened alternation, so there is no per-branch surface to transform) —

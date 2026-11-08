@@ -238,6 +238,7 @@ final class TemplateAttackEmulator
         return $this;
     }
 
+    /** Match and render in one step. It does not apply a rule's `serve_on` predicate (see servesFor()). */
     public function emulate(RequestContext $r, int $seed = 0): ?SynthesizedResponse
     {
         if (!BoundedInspection::targetAccepted($r)) {
@@ -440,7 +441,7 @@ final class TemplateAttackEmulator
      * Whether a matched rule may be served for this request. A rule marked `serve_on: payload` is detected
      * on the whole request but served only when its match also holds without the path — i.e. the query
      * or body carries it. A catch-all read error for a file path is a plausible answer to a parameter
-     * that names a file, never to a bare request for that file. `emulate()` does not apply this check.
+     * that names a file, never to a bare request for that file.
      *
      * @param array<string,mixed> $rule
      */

@@ -37,7 +37,6 @@ final class ServedStringWalker
         'suffix' => true,              // param-route matcher
         'basename' => true,            // param-route matcher
         'method' => true,              // method matcher
-        'serve_on' => true,            // serve predicate keyword, not served bytes
         'template_needle' => true,     // route-rule match field (future top-level use stays skipped)
         'body_word_contains' => true,  // route-rule match field (future top-level use stays skipped)
         'id' => true,                  // identifier
@@ -67,7 +66,7 @@ final class ServedStringWalker
     /** Grounded top-level rule keys (advisory: a top-level key outside this ∪ the skip set is flagged). */
     private const KNOWN_RULE_KEYS = [
         'behavior' => true, 'branch' => true, 'decoy-session' => true, 'expr-eval' => true,
-        'arith-eval' => true, 'iterate' => true, 'persona_gate' => true, 'reflect_class' => true,
+        'arith-eval' => true, 'iterate' => true, 'persona_gate' => true, 'reflect_class' => true, 'serve_on' => true,
         'reflects_input' => true, 'response' => true, 'severity' => true, 'ssti-render' => true,
         'status' => true, 'bin' => true, 'binary_generator' => true, 'body' => true,
         'headers' => true, 'set_cookie' => true, 'taunt' => true, 'traversal-read' => true,
