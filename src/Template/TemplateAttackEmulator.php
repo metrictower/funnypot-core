@@ -194,15 +194,15 @@ final class TemplateAttackEmulator
             'decoy-session' => function (array $config, array $captures, ?RequestContext $r, int $seed, Clock $clock, EphemeralStore $store): ?EmulatedContent {
                 return $this->handleDecoySession($config, $captures, $r, $seed);
             },
-            // Stateless NTLM-over-HTTP info-leak. A Type-1 (Negotiate) on an Exchange/IIS path is
-            // answered with a 401 carrying a Type-2 whose AV_PAIRs leak the deploy's canary AD names;
-            // any other request declines (-> the base bare-401). Needs $r for the Authorization header;
-            // null $r (the position-blind port) declines. clock/store/config/captures are unused.
             // Answers the GraphQL document in the request from a fixed synthetic dataset. Needs $r for the
             // query, so the position-blind port declines to the base response.
             'graphql-select' => function (array $config, array $captures, ?RequestContext $r, int $seed, Clock $clock, EphemeralStore $store): ?EmulatedContent {
                 return $this->handleGraphQlSelect($config, $r, $seed);
             },
+            // Stateless NTLM-over-HTTP info-leak. A Type-1 (Negotiate) on an Exchange/IIS path is
+            // answered with a 401 carrying a Type-2 whose AV_PAIRs leak the deploy's canary AD names;
+            // any other request declines (-> the base bare-401). Needs $r for the Authorization header;
+            // null $r (the position-blind port) declines. clock/store/config/captures are unused.
             'ntlm-challenge' => function (array $config, array $captures, ?RequestContext $r, int $seed, Clock $clock, EphemeralStore $store): ?EmulatedContent {
                 return $this->handleNtlmChallenge($r);
             },

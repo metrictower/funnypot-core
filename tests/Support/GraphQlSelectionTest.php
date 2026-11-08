@@ -174,6 +174,11 @@ final class GraphQlSelectionTest extends TestCase
         self::assertTrue($users['directives']);
         self::assertSame(['spread', 'inline'], array_column($users['children'], 'kind'));
         self::assertSame('F', $users['children'][0]['fragment']);
+        self::assertSame([false, false], array_column($users['children'], 'directives'));
+
+        $marked = GraphQlSelection::parse('{ ...F @include(if: false) ... @skip(if: true) { a } } fragment F on Query @x { a } fragment G on Query { a }');
+        self::assertSame([true, true], array_column($marked->operations[0]['selection'], 'directives'));
+        self::assertSame(['F' => true, 'G' => false], $marked->fragmentDirectives);
     }
 
     /** @return array<string,array{0:string,1:string,2:int,3:int}> */

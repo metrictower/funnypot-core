@@ -268,6 +268,44 @@ final class BehaviorGraphqlSelectTest extends TestCase
         self::assertSame(self::base(), self::get($engine, '{ ...Missing }')->body, 'an unknown fragment declines');
     }
 
+    public function test_directives_on_fragments_and_introspection_decline(): void
+    {
+        $engine = self::engine();
+        foreach ([
+            '{ ... @skip(if: true) { users { id } } }',
+            'query { ...F @include(if: false) } fragment F on Query { systemConfig { awsSecretKey } }',
+            'query { ...F } fragment F on Query @foo { users { id } }',
+            '{ __schema @skip(if: true) { types { name } } }',
+        ] as $q) {
+            self::assertSame(self::base(), self::postRaw($engine, $q, 'application/graphql')->body, $q);
+        }
+    }
+
+    public function test_same_key_selections_are_merged(): void
+    {
+        $engine = self::engine();
+        $rows = self::json(self::get($engine, '{users{id} users{email}}'))['data']['users'];
+        self::assertSame(['id', 'email'], array_keys($rows[0]));
+
+        $codegen = 'query { users { id } ...F } fragment F on Query { users { email } }';
+        self::assertSame(['id', 'email'], array_keys(self::json(self::post($engine, ['query' => $codegen]))['data']['users'][0]));
+
+        self::assertSame(self::base(), self::get($engine, '{users{a: id} users{a: email}}')->body, 'a conflicting merge declines');
+    }
+
+    public function test_a_reused_large_fragment_declines_before_it_is_walked(): void
+    {
+        $fields = '';
+        for ($i = 0; $i < 65; $i++) {
+            $fields .= " a{$i}: __typename";
+        }
+        $q = 'query { ' . str_repeat('...F ', 16) . '} fragment F on Query {' . $fields . ' }';
+        self::assertSame(self::base(), self::postRaw(self::engine(), $q, 'application/graphql')->body);
+
+        $small = 'query { ...F ...F } fragment F on Query { __typename }';
+        self::assertSame(['__typename' => 'Query'], self::json(self::postRaw(self::engine(), $small, 'application/graphql'))['data']);
+    }
+
     public function test_aliased_introspection_stays_within_the_body_cap(): void
     {
         $aliased = static function (int $n): string {
@@ -333,9 +371,12 @@ final class BehaviorGraphqlSelectTest extends TestCase
             $slot->setAccessible(true);
             $slot->setValue($e, $guard);
         };
-        // A token only the dataset carries, and one only the schema carries: either declines everything,
-        // including queries that never select it.
-        foreach (['stripeSecretKey', 'MutationResult', 'UNAUTHENTICATED'] as $token) {
+        // One token from each part the scan covers: a dataset value, a message, the schema, an error code.
+        // Any of them declines everything, including queries that never reach it.
+        $yaml = (string) file_get_contents(self::TEMPLATE);
+        self::assertSame(1, substr_count($yaml, 'subscriber'), 'only a dataset value carries it');
+        self::assertSame(1, substr_count($yaml, 'logged in'), 'only a message carries it');
+        foreach (['subscriber', 'logged in', 'MutationResult', 'UNAUTHENTICATED'] as $token) {
             $flagged = TemplateAttackEmulator::fromFile(__DIR__ . '/../resources/compiled/funnypot-attack.php');
             $setGuard($flagged, new FingerprintGuard([$token], []));
             foreach (['{users{id}}', '{__typename}', '{foo}', '{'] as $q) {

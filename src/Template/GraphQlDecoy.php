@@ -79,14 +79,14 @@ final class GraphQlDecoy
         }
         $rootType = $op['type'] === 'mutation' ? (string) ($this->config['roots']['mutation'] ?? 'Mutation')
             : (string) ($this->config['roots']['query'] ?? 'Query');
-        $selection = self::expandRoot($op['selection'], $doc->fragments);
+        $selection = self::expandRoot($op['selection'], $doc);
         if ($selection === null) {
             return null;
         }
 
         $data = [];
         foreach ($selection as $node) {
-            if ($node['alias'] !== null && preg_match(self::NAME, $node['alias']) !== 1) {
+            if ($node['directives'] || ($node['alias'] !== null && preg_match(self::NAME, $node['alias']) !== 1)) {
                 return null;
             }
             if ($op['type'] === 'query' && ($node['name'] === '__schema' || $node['name'] === '__type')) {
@@ -141,25 +141,35 @@ final class GraphQlDecoy
 
     /**
      * The root selection with fragment spreads and inline fragments replaced by their fields, one level
-     * deep. Null declines: an unknown fragment, a spread inside a spread, or too many spreads.
+     * deep. Null declines: an unknown fragment, a directive on a spread or fragment, a spread inside a
+     * spread, too many spreads, or more fields expanded from named fragments than MAX_FIELDS (counted
+     * before anything walks them, so reusing one large fragment cannot multiply the work).
      *
-     * @param list<array<string,mixed>>                $selection
-     * @param array<string,list<array<string,mixed>>> $fragments
+     * @param list<array<string,mixed>> $selection
      * @return list<array<string,mixed>>|null
      */
-    private static function expandRoot(array $selection, array $fragments): ?array
+    private static function expandRoot(array $selection, GraphQlSelection $doc): ?array
     {
         $out = [];
         $spreads = 0;
+        $expanded = 0;
         foreach ($selection as $node) {
             if ($node['kind'] === 'field') {
                 $out[] = $node;
                 continue;
             }
-            if (++$spreads > self::MAX_ROOT_SPREADS) {
+            if (++$spreads > self::MAX_ROOT_SPREADS || $node['directives']) {
                 return null;
             }
-            $inner = $node['kind'] === 'inline' ? $node['children'] : ($fragments[(string) ($node['fragment'] ?? '')] ?? null);
+            if ($node['kind'] === 'inline') {
+                $inner = $node['children'];
+            } else {
+                $name = (string) ($node['fragment'] ?? '');
+                $inner = $doc->fragments[$name] ?? null;
+                if (!empty($doc->fragmentDirectives[$name])) {
+                    return null;
+                }
+            }
             if (!is_array($inner)) {
                 return null;
             }
@@ -167,11 +177,44 @@ final class GraphQlDecoy
                 if ($child['kind'] !== 'field') {
                     return null;
                 }
+                if ($node['kind'] === 'spread') {
+                    $expanded += self::fieldsUpTo([$child], self::MAX_FIELDS - $expanded + 1);
+                    if ($expanded > self::MAX_FIELDS) {
+                        return null;
+                    }
+                }
                 $out[] = $child;
             }
         }
 
         return $out;
+    }
+
+    /**
+     * Fields in these nodes and their selections, counted with an explicit stack and stopping once the
+     * count passes $limit. Introspection subtrees are not counted.
+     *
+     * @param list<array<string,mixed>> $nodes
+     */
+    private static function fieldsUpTo(array $nodes, int $limit): int
+    {
+        $count = 0;
+        $stack = [$nodes];
+        while ($stack !== []) {
+            foreach (array_pop($stack) as $node) {
+                if ($node['kind'] === 'field' && ($node['name'] === '__schema' || $node['name'] === '__type')) {
+                    continue;
+                }
+                if (++$count > $limit) {
+                    return $count;
+                }
+                if (is_array($node['children'])) {
+                    $stack[] = $node['children'];
+                }
+            }
+        }
+
+        return $count;
     }
 
     // --- operation selection -------------------------------------------------------------------------
@@ -270,8 +313,13 @@ final class GraphQlDecoy
                 return false;
             }
             $seen[$key] = $node['name'];
-            if ($deep && is_array($node['children']) && !self::keysAreConsistent($node['children'], true)) {
-                return false;
+        }
+        if ($deep) {
+            // Same-key selections are merged before projection, so check them together.
+            foreach (self::mergeByKey($selection) as $node) {
+                if (is_array($node['children']) && !self::keysAreConsistent($node['children'], true)) {
+                    return false;
+                }
             }
         }
 
@@ -362,7 +410,7 @@ final class GraphQlDecoy
     {
         $data = [];
         $spent = 0;
-        foreach ($selection as $node) {
+        foreach (self::mergeByKey($selection) as $node) {
             $key = (string) ($node['alias'] ?? $node['name']);
             if (array_key_exists($key, $data)) {
                 continue;
@@ -388,6 +436,28 @@ final class GraphQlDecoy
         }
 
         return ['status' => 200, 'body' => ['data' => $data === [] ? new \stdClass() : $data]];
+    }
+
+    /**
+     * Fields that share a response key, merged into one whose selection is all of theirs, as graphql-js
+     * collects them. keysAreConsistent has already ensured they are the same field.
+     *
+     * @param list<array<string,mixed>> $nodes
+     * @return list<array<string,mixed>>
+     */
+    private static function mergeByKey(array $nodes): array
+    {
+        $out = [];
+        foreach ($nodes as $node) {
+            $key = (string) ($node['alias'] ?? $node['name']);
+            if (!isset($out[$key])) {
+                $out[$key] = $node;
+            } elseif (is_array($out[$key]['children']) && is_array($node['children'])) {
+                $out[$key]['children'] = array_merge($out[$key]['children'], $node['children']);
+            }
+        }
+
+        return array_values($out);
     }
 
     private function schemaBytes(): int
@@ -475,7 +545,7 @@ final class GraphQlDecoy
     private function projectObject(array $children, string $type, array $row)
     {
         $out = [];
-        foreach ($children as $child) {
+        foreach (self::mergeByKey($children) as $child) {
             $key = (string) ($child['alias'] ?? $child['name']);
             if (array_key_exists($key, $out)) {
                 continue;

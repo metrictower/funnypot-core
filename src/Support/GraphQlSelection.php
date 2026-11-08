@@ -18,7 +18,7 @@ namespace Funnypot\Core\Support;
  * 'children' => list<node>|null (null when it has no selection set), 'braceLine' => int, 'braceColumn' =>
  * int, 'directives' => bool, 'typeArg' => ?string (the string `name:` argument, read for `__type` only)].
  * Fragment spreads and inline fragments are ['kind' => 'spread'|'inline', 'line' => int, 'column' => int,
- * 'children' => list<node>|null, 'fragment' => ?string (the spread fragment's name)].
+ * 'children' => list<node>|null, 'directives' => bool, 'fragment' => ?string (the spread fragment's name)].
  */
 final class GraphQlSelection
 {
@@ -50,6 +50,9 @@ final class GraphQlSelection
 
     /** @var array<string,list<array<string,mixed>>> fragment name => selection */
     public $fragments = [];
+
+    /** @var array<string,bool> fragment name => whether its definition carries a directive */
+    public $fragmentDirectives = [];
 
     /** @var list<array{0:string,1:string,2:int,3:int}> kind, value, line, column */
     private $tokens = [];
@@ -305,7 +308,11 @@ final class GraphQlSelection
 
                     return;
                 }
-                if ($this->expectName() === null || $this->skipDirectives() === null) {
+                if ($this->expectName() === null) {
+                    return;
+                }
+                $directives = $this->skipDirectives();
+                if ($directives === null) {
                     return;
                 }
                 if (!$this->isPunct('{')) {
@@ -318,6 +325,7 @@ final class GraphQlSelection
                     return;
                 }
                 $this->fragments[$fragment] = $selection;
+                $this->fragmentDirectives[$fragment] = $directives;
                 continue;
             }
 
@@ -367,13 +375,15 @@ final class GraphQlSelection
             if ($t[0] === 'punct' && $t[1] === '...') {
                 $this->at++;
                 $next = $this->peek();
-                $node = ['kind' => 'spread', 'line' => $t[2], 'column' => $t[3], 'children' => null, 'fragment' => null];
+                $node = ['kind' => 'spread', 'line' => $t[2], 'column' => $t[3], 'children' => null, 'directives' => false, 'fragment' => null];
                 if ($next[0] === 'name' && $next[1] !== 'on') {
                     $this->at++;
                     $node['fragment'] = $next[1];
-                    if ($this->skipDirectives() === null) {
+                    $directives = $this->skipDirectives();
+                    if ($directives === null) {
                         return null;
                     }
+                    $node['directives'] = $directives;
                     $stack[$depth][0][] = $node;
                     continue;
                 }
@@ -383,9 +393,11 @@ final class GraphQlSelection
                         return null;
                     }
                 }
-                if ($this->skipDirectives() === null) {
+                $directives = $this->skipDirectives();
+                if ($directives === null) {
                     return null;
                 }
+                $node['directives'] = $directives;
                 if (!$this->isPunct('{')) {
                     $this->decline();
 
