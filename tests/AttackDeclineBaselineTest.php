@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace Funnypot\Core\Tests;
 
+use Funnypot\Core\Compiler\Crs\FingerprintGuard;
 use Funnypot\Core\Config;
+use Funnypot\Core\Outcome;
 use Funnypot\Core\Detection;
 use Funnypot\Core\FakeHandle;
 use Funnypot\Core\Honeypot;
@@ -78,6 +80,8 @@ final class AttackDeclineBaselineTest extends TestCase
             public $detections = 0;
             /** @var int */
             public $outcomes = 0;
+            /** @var string */
+            public $reason = '';
 
             public function __construct(bool $allow, ?string $vetoId)
             {
@@ -102,6 +106,7 @@ final class AttackDeclineBaselineTest extends TestCase
             public function onOutcome(RequestContext $r, ?SynthesizedResponse $response, string $reason): void
             {
                 $this->outcomes++;
+                $this->reason = $reason;
             }
         };
     }
@@ -182,6 +187,18 @@ final class AttackDeclineBaselineTest extends TestCase
 
         self::assertSame(1, $observer->detections, 'onDetection');
         self::assertSame(1, $observer->outcomes, 'onOutcome');
+    }
+
+    public function test_a_fingerprint_leak_decline_is_not_hidden_by_the_fallback(): void
+    {
+        $observer = self::counter();
+        $engine = self::engine($observer);
+        // Flag the command-injection fake's own bytes, as a leaking rule would be flagged.
+        $engine->setFingerprintGuardForTesting(new FingerprintGuard(['uid='], []));
+
+        self::assertNotNull($engine->respond(self::request('GET', '/login')), 'the path has a decoy of its own');
+        self::assertNull($engine->respond(self::request('GET', '/login', 'cmd=;id')));
+        self::assertSame(Outcome::FINGERPRINT_LEAK, $observer->reason);
     }
 
     public function test_an_attack_served_by_its_own_rule_is_unchanged(): void

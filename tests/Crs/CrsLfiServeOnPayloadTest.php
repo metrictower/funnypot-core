@@ -92,6 +92,35 @@ final class CrsLfiServeOnPayloadTest extends TestCase
         self::assertStringContainsString(self::WARNING, $r->body);
     }
 
+    public function test_an_archive_name_with_a_restricted_token_still_gets_the_archive_decoy(): void
+    {
+        $config = new Config(
+            'respond',
+            static function (RequestContext $r): bool {
+                return true;
+            },
+            'matched-only',
+            null,
+            'coherent',
+            Style::REALISTIC,
+            'critical',
+            2000000,
+            0,
+            0,
+            true
+        );
+        $config->decoyArchives = true;
+        $config->decoyArchiveAnyName = true;
+        $engine = Honeypot::default($config);
+
+        $verdict = $engine->classify(self::request('/wp-config.php.zip'), SiteProfile::empty());
+        self::assertContains('attack-crs-lfi', $verdict->detection->templateIds(), 'the restricted token is still detected');
+
+        $r = $engine->respond(self::request('/wp-config.php.zip'));
+        self::assertNotNull($r, 'a detected-but-not-served match must not hide the archive decoy');
+        self::assertSame('application/zip', $r->headers['Content-Type'] ?? null);
+    }
+
     public function test_payload_inspection_on_a_real_route_still_classifies_the_catch_all(): void
     {
         $profile = new SiteProfile([], static function (): bool {

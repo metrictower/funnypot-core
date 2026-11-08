@@ -76,7 +76,7 @@ final class RenderDeterminismTest extends TestCase
     public function test_facade_respond_is_byte_identical_on_rescan_modulo_x_request_id(): void
     {
         $h = $this->inverter();
-        foreach ([['GET', '/wp/xmlrpc.php', 'rsd'], ['GET', '/.env', ''], ['GET', '/config.json', '']] as $probe) {
+        foreach ([['GET', '/wp/xmlrpc.php', 'rsd'], ['GET', '/viewfile.php', 'file=../../../../var/www/nothing'], ['GET', '/zz-unrouted', 'page=../../../../var/www/nothing']] as $probe) {
             $r1 = $h->respond(new RequestContext($probe[0], $probe[1], $probe[2], [], null, 'vic.example'));
             $r2 = $h->respond(new RequestContext($probe[0], $probe[1], $probe[2], [], null, 'vic.example'));
             self::assertNotNull($r1, "{$probe[1]} should serve");

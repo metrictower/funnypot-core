@@ -602,7 +602,8 @@ final class Honeypot implements Engine
             if ($pm !== null) {
                 $rule = $pm['rule'];
                 $detection = TemplateAttackEmulator::detectionForRule($rule);
-                $handle = $this->attackHandle($rule, $pm['captures'], $r);
+                // Param routes never carry a serve predicate.
+                $handle = FakeHandle::attack((string) ($rule['id'] ?? 'attack'), $pm['captures']);
 
                 return new Verdict(
                     Verdict::ATTACK_CLASS,
@@ -626,6 +627,11 @@ final class Honeypot implements Engine
                 $rule = $matched['rule'];
                 $detection = TemplateAttackEmulator::detectionForRule($rule);
                 $handle = $this->attackHandle($rule, $matched['captures'], $r);
+                // A match that is detected but not served must not hide the path's own decoy: a
+                // backup-style archive name carrying a restricted-file token still gets the archive.
+                if ($handle === null && $this->config->decoyArchives) {
+                    $handle = $this->decoyArchiveHandle($r, $profile);
+                }
 
                 return new Verdict(
                     Verdict::ATTACK_CLASS,
@@ -1788,7 +1794,8 @@ final class Honeypot implements Engine
     /**
      * The attack-class branch of the facade. Emulation bypasses the app-suspicion gate (an
      * injection payload is its own signal), exactly as the legacy path did; kill-switch / mode /
-     * trusted are already applied above.
+     * trusted are already applied above. A decline falls back to the payload-free request's decoy,
+     * which does go through the routed-probe guards (see servePayloadFree).
      */
     private function respondAttack(RequestContext $r, Verdict $verdict, string $seed): ?SynthesizedResponse
     {
@@ -1823,6 +1830,11 @@ final class Honeypot implements Engine
     {
         if ($r->query === '' && ($r->rawBody === null || $r->rawBody === '')) {
             return $this->declined($r, $reason); // already payload-free: nothing different to serve
+        }
+        // A fingerprint-leak decline is the only runtime sign that a rule renders a signature; serving
+        // a fallback in its place would hide it, so it stands.
+        if ($reason === Outcome::FINGERPRINT_LEAK) {
+            return $this->declined($r, $reason);
         }
 
         $neutral = $this->neutralClone($r);

@@ -624,11 +624,14 @@ nothing (a reflector such as XSS withheld on an embedded host, a rule above the 
 `respond()` classifies the same request without its query and body and serves that — with the same
 guards the bare request gets — so a hostile parameter never turns a path's decoy into a 404 and never
 unlocks something the bare request would not get. The response still carries the attack's detection,
-which fires once. The two-phase `classify()`/`synthesize()` API does not add this fallback: an embedder on
-it keeps its own 404 for a declined attack.
+which fires once. A fallback that itself declines reports its own reason (e.g. `gate-closed`), and a
+fingerprint-leak decline never falls back, so a leaking rule stays visible. The two-phase
+`classify()`/`synthesize()` API does not add this fallback: an embedder on it answers a declined attack
+with its own degrade response.
 The CRS LFI catch-all is detected on the whole request but served only when the query or body names the
 file (`serve_on: payload`), so a bare `GET /wp-config.php` is detected and gets the host's 404, not a fake
-include warning.
+include warning; a backup-style archive name carrying such a token (`/wp-config.php.zip`) still gets the
+decoy archive when archives are on.
 
 ### AI-API recon surface
 

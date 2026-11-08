@@ -322,9 +322,18 @@ final class FiberhomeLoginFollowthroughTest extends TestCase
         $smallBody->maxBodyBytes = 32;
         self::assertNull(Honeypot::default($smallBody)->respond($this->request()));
 
+        // Above the ceiling the RCE fake is withheld; the request then gets what the same POST without
+        // its body gets (the login failure page), and still reports the critical detection.
         $lowCeiling = $this->config();
         $lowCeiling->severityCeiling = 'low';
-        self::assertNull(Honeypot::default($lowCeiling)->respond($this->request('POST', self::PATH, 'username=x;telnetd&psd=y')));
+        $engine = Honeypot::default($lowCeiling);
+        $capped = $engine->respond($this->request('POST', self::PATH, 'username=x;telnetd&psd=y'));
+        $bare = $engine->respond($this->request('POST', self::PATH, null));
+        self::assertNotNull($capped);
+        self::assertNotNull($bare);
+        self::assertSame($bare->body, $capped->body, 'the capped RCE fake is replaced by the payload-free page');
+        self::assertStringNotContainsString('telnetd', $capped->body);
+        self::assertContains(self::CRITICAL_ID, $capped->satisfies->templateIds());
     }
 
     /** @dataProvider supportedProfileAliases */

@@ -196,6 +196,18 @@ final class EmulatorCompiler
             if ($doc['serve_on'] !== 'payload') {
                 throw new RuntimeException("Template {$file}: serve_on must be 'payload'.");
             }
+            // A rule with no condition that can see the query or body could never serve.
+            $payloadSurfaces = ['request', 'query', 'body', 'fields', 'fields.filename'];
+            $seesPayload = false;
+            foreach ((array) ($rule['match'] ?? []) as $cond) {
+                if (in_array((string) ($cond['in'] ?? 'request'), $payloadSurfaces, true)) {
+                    $seesPayload = true;
+                    break;
+                }
+            }
+            if (!$seesPayload) {
+                throw new RuntimeException("Template {$file}: serve_on: payload needs a query, body or request condition.");
+            }
             $rule['serve_on'] = 'payload';
         }
 
