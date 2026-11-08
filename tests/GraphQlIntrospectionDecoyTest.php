@@ -12,11 +12,10 @@ use Funnypot\Core\Store\PhpArrayStore;
 use PHPUnit\Framework\TestCase;
 
 /**
- * FP-0453: default-serving, request-aware GraphQL introspection + schema-fuzzing decoy
- * (attack/39-graphql-introspection). Every assertion runs at the DEFAULT `high` severity ceiling —
- * that is the point of the re-scope: route/335 is `critical` and dropped by default, so this `high`
- * attack rule is what actually serves a schema on a normal deploy. INERT: no cookie, no auth witness,
- * no reflection of attacker-submitted field names; always 200 JSON.
+ * The default-serving GraphQL decoy (attack/39-graphql-introspection) as the introspection scanners see
+ * it. Every assertion runs at the DEFAULT `high` severity ceiling, where this attack rule (not the
+ * `critical` route/335 bundle) serves the schema. INERT: no cookie, no auth witness, and on an embedded
+ * host no attacker-submitted field name in any message.
  */
 final class GraphQlIntrospectionDecoyTest extends TestCase
 {
@@ -38,9 +37,11 @@ final class GraphQlIntrospectionDecoyTest extends TestCase
     {
         return new Honeypot(
             new PhpArrayStore($this->index()),
-            new Config('respond', static fn (RequestContext $r): bool => true, 'matched-only',
-                static fn (RequestContext $r): string => 'fixed', 'coherent', Style::REALISTIC, 'high',
-                65536, 0, 0, true, null, null, null, 'fixed')
+            new Config('respond', static function (RequestContext $r): bool {
+                return true;
+            }, 'matched-only', static function (RequestContext $r): string {
+                return 'fixed';
+            }, 'coherent', Style::REALISTIC, 'high', 65536, 0, 0, true, null, null, null, 'fixed')
         );
     }
 
@@ -69,8 +70,9 @@ final class GraphQlIntrospectionDecoyTest extends TestCase
         $r = $this->post('/graphql', '{__schema{types{name}}}');
         self::assertNotNull($r);
         self::assertSame(200, $r->status);
-        self::assertStringContainsString('"types": [', $r->body);
-        self::assertStringContainsString('"name": "Query"', $r->body);
+        $types = json_decode($r->body, true)['data']['__schema']['types'] ?? [];
+        self::assertNotEmpty($types);
+        self::assertContains('Query', array_column($types, 'name'));
     }
 
     public function test_schema_is_json_parseable_and_shaped(): void
@@ -86,21 +88,25 @@ final class GraphQlIntrospectionDecoyTest extends TestCase
 
     public function test_bait_data_query_leaks_a_persona_honeytoken_no_cookie(): void
     {
-        $r = $this->post('/graphql', 'query { viewer { email apiKey } systemConfig { awsSecretKey } }');
+        $r = $this->post('/graphql', 'query { viewer { email apiKey } systemConfig { awsAccessKeyId awsSecretKey } }');
         self::assertNotNull($r);
         self::assertSame(200, $r->status);
+        $data = json_decode($r->body, true)['data'];
+        self::assertNull($data['viewer'], 'an anonymous viewer is null');
         // A tracked deploy-stable AWS canary (AKIA… id), coherent with /.env — never a real key.
-        self::assertMatchesRegularExpression('/AKIA[0-9A-Z]{16}/', $r->body, 'a bait query leaks a synthetic AWS canary');
+        self::assertMatchesRegularExpression('/\AAKIA[0-9A-Z]{16}\z/', $data['systemConfig']['awsAccessKeyId'], 'the open config leaks a synthetic AWS canary');
         self::assertArrayNotHasKey('Set-Cookie', $r->headers, 'a data query mints no session');
     }
 
-    public function test_mutation_returns_fabricated_success_not_fabricated_auth(): void
+    public function test_mutation_is_refused_as_unauthenticated(): void
     {
-        $r = $this->post('/graphql', 'mutation { updateUserRole(userId: 1, role: \\"admin\\") { success } }');
+        $r = $this->post('/graphql', 'mutation { updateUserRole(userId: 1, role: "admin") { success } }');
         self::assertNotNull($r);
         self::assertSame(200, $r->status);
-        self::assertStringContainsString('"success":true', $r->body);
-        // Fabricated DATA is allowed; fabricated AUTH is not — no cookie, no auth-success witness line.
+        $decoded = json_decode($r->body, true);
+        self::assertSame('UNAUTHENTICATED', $decoded['errors'][0]['extensions']['code']);
+        self::assertNull($decoded['data']['updateUserRole']);
+        self::assertStringNotContainsString('"success":true', $r->body, 'a write never claims to succeed');
         self::assertArrayNotHasKey('Set-Cookie', $r->headers);
         self::assertStringNotContainsString('Location', implode(' ', array_keys($r->headers)));
     }
@@ -109,9 +115,9 @@ final class GraphQlIntrospectionDecoyTest extends TestCase
     {
         $r = $this->post('/graphql', 'query { secretBackdoorField_CANARY { token } }');
         self::assertNotNull($r);
-        self::assertSame(200, $r->status);
+        self::assertSame(400, $r->status);
         self::assertStringContainsString('GRAPHQL_VALIDATION_FAILED', $r->body);
-        // No capture reflection: the attacker's submitted field name is never echoed back.
+        // An embedded host has no reflect authorization: the submitted field name is never echoed back.
         self::assertStringNotContainsString('secretBackdoorField_CANARY', $r->body,
             'the submitted field name must not be reflected');
     }

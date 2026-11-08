@@ -409,6 +409,52 @@ foreach ($attackRules as $rule) {
 }
 
 // ---------------------------------------------------------------------------------------------------
+// GRAPHQL leg. A `graphql-select` rule answers the document in the request, so the position-blind attack
+// loop above only ever renders its base response. This leg renders it WITH requests — a data query, an
+// unknown field, a mutation and the standard introspection query — at every grid point, so G1/G3 see the
+// projected dataset, the validation messages and the introspection body.
+//   G-graphql servability — each request must get a real answer, not the base response.
+// ---------------------------------------------------------------------------------------------------
+$graphqlRenders = 0;
+$graphqlIntrospection = 'query IntrospectionQuery { __schema { queryType { name } mutationType { name } types { ...T } } }'
+    . ' fragment T on __Type { kind name fields { name type { kind name ofType { kind name ofType { kind name } } } } }';
+foreach ($attackRules as $rule) {
+    if (!is_array($rule) || (string) ($rule['behavior'] ?? '') !== 'graphql-select') {
+        continue;
+    }
+    $id = (string) ($rule['id'] ?? '?');
+    $owned = array_values(array_filter((array) ($rule['owns_path'] ?? []), 'is_string'));
+    $path = $owned[0] ?? '/graphql';
+    $requests = [
+        'users' => new RequestContext('GET', $path, 'query=' . rawurlencode('{users{id email username apiKey roles isActive} systemConfig{awsAccessKeyId awsSecretKey stripeSecretKey}}')),
+        'unknown-field' => new RequestContext('GET', $path, 'query=' . rawurlencode('{viewr{id}}')),
+        'mutation' => new RequestContext('POST', $path, '', ['Content-Type' => 'application/json'], (string) json_encode(['query' => 'mutation{updateUserRole(userId:"1",role:"x"){success}}'])),
+        'introspection' => new RequestContext('POST', $path, '', ['Content-Type' => 'application/json'], (string) json_encode(['query' => $graphqlIntrospection])),
+    ];
+    foreach ($materials as $material) {
+        $emu = $makeAttack($deploySeeds[$material]);
+        foreach ($renderSeeds as $rlabel => $renderSeed) {
+            $base = $canon($emu->renderRule($rule, [], $renderSeed, null));
+            foreach ($requests as $label => $r) {
+                $where = "graphql {$id} {$label} [m={$material},{$rlabel}]";
+                $c1 = $canon($emu->renderRule($rule, [], $renderSeed, $r));
+                $c2 = $canon($emu->renderRule($rule, [], $renderSeed, $r));
+                $rendered += 2;
+                $graphqlRenders += 2;
+                if ($c1 !== $c2) {
+                    $fail[] = "G3 nondeterministic render: {$where} (" . firstDiff($c1, $c2) . ')';
+                }
+                if ($c1 === null || $c1 === $base) {
+                    $fail[] = "G-graphql: '{$id}' served its base response at {$where} (self-scan hit or decline)";
+                }
+                $scanLeaves($c1, $id, $where);
+            }
+        }
+    }
+}
+fwrite(STDOUT, "INFO: graphql leg rendered {$graphqlRenders} request-driven responses\n");
+
+// ---------------------------------------------------------------------------------------------------
 // ROUTE rules render through RouteTemplateEmulator with a synthetic bundle built from the rule's own
 // selector. First-match priority means the set can pick a HIGHER-priority rule than the one the bundle
 // was built from (a priority shadow); RouteTemplateEmulator then serves THAT selected rule's bytes. So

@@ -407,6 +407,12 @@ final class ManifestBuilder
                 }
             }
         }
+        if (isset($rule['graphql-select']['introspection']) && is_string($rule['graphql-select']['introspection'])) {
+            $shapes[] = array(
+                'headers' => array('Content-Type' => 'application/json'),
+                'body' => $rule['graphql-select']['introspection'],
+            );
+        }
 
         return $shapes;
     }

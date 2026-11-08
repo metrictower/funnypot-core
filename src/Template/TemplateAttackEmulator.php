@@ -23,6 +23,7 @@ use Funnypot\Core\Support\Chrome\PhpMyAdminSkin;
 use Funnypot\Core\Support\Chrome\WordpressSkin;
 use Funnypot\Core\Support\Fake\FakeRecords;
 use Funnypot\Core\Support\Fake\FakeSecrets;
+use Funnypot\Core\Support\GraphQlSelection;
 use Funnypot\Core\Support\PathNormalizer;
 use Funnypot\Core\Support\PersonaIdentity;
 use Funnypot\Core\Support\SafeArithmetic;
@@ -84,6 +85,18 @@ final class TemplateAttackEmulator
 
     /** @var int|null per-deploy identity seed, for behaviors that need cross-tier coherence (e.g. decoy-session's FakeRecords) */
     private $personaSeed;
+
+    /**
+     * @var \Closure|null function(string $class, RequestContext $r): bool — whether a reflect class may echo
+     *      request bytes for this request; null ⇒ never
+     */
+    private $reflectorGate;
+
+    /** @var array<int,bool> per-seed result of the GraphQL decoy's self-scan, bounded */
+    private $graphQlClean = [];
+
+    /** @var array<string,array<string,mixed>> decoded GraphQL introspection bodies by hash */
+    private $graphQlSchemas = [];
 
     /** @var string|null signing key for the decoy-session behavior; null/'' ⇒ that behavior is disabled */
     private $decoySessionKey;
@@ -182,6 +195,11 @@ final class TemplateAttackEmulator
             // answered with a 401 carrying a Type-2 whose AV_PAIRs leak the deploy's canary AD names;
             // any other request declines (-> the base bare-401). Needs $r for the Authorization header;
             // null $r (the position-blind port) declines. clock/store/config/captures are unused.
+            // Answers the GraphQL document in the request from a fixed synthetic dataset. Needs $r for the
+            // query, so the position-blind port declines to the base response.
+            'graphql-select' => function (array $config, array $captures, ?RequestContext $r, int $seed, Clock $clock, EphemeralStore $store): ?EmulatedContent {
+                return $this->handleGraphQlSelect($config, $r, $seed);
+            },
             'ntlm-challenge' => function (array $config, array $captures, ?RequestContext $r, int $seed, Clock $clock, EphemeralStore $store): ?EmulatedContent {
                 return $this->handleNtlmChallenge($r);
             },
@@ -221,6 +239,17 @@ final class TemplateAttackEmulator
     public static function fromPackage(array $canary = [], ?int $personaSeed = null, ?string $decoySessionKey = null, bool $volatileProof = false, bool $promptInjectionSeeding = false): self
     {
         return self::fromFile(RulesLocator::resolve('funnypot-attack.php'), $canary, $personaSeed, $decoySessionKey, $volatileProof, $promptInjectionSeeding);
+    }
+
+    /**
+     * Set the predicate that decides whether a reflect class may echo request bytes (normally
+     * Config::serveReflector). Without it, nothing is ever echoed.
+     */
+    public function setReflectorGate(\Closure $gate): self
+    {
+        $this->reflectorGate = $gate;
+
+        return $this;
     }
 
     /**
@@ -1826,6 +1855,150 @@ final class TemplateAttackEmulator
      * The load failure is cached (fingerprintGuardLoaded) so it isn't retried on every request, and the
      * try/catch keeps a missing/broken denylist from escaping as a 500 on the hot path.
      */
+    /**
+     * The `graphql-select` behavior: read the GraphQL document from the request (GET `query` parameter,
+     * POST JSON body or `application/graphql` text), then answer it with GraphQlDecoy. Any fault, an
+     * unreadable request or a failed self-scan declines to the rule's base response.
+     *
+     * Attacker-chosen names reach an error message only when the reflector gate allows the
+     * `graphql-name` class for this request. The rule is treated as reflecting, so the runtime egress scan
+     * never sees an echoed name; instead the decoy's own bytes (the dataset rendered for this seed, the
+     * introspection body and every message template) are scanned once per seed, the same way for every
+     * query, so no request can steer what is declined.
+     *
+     * @param array<string,mixed> $config
+     */
+    private function handleGraphQlSelect(array $config, ?RequestContext $r, int $seed): ?EmulatedContent
+    {
+        if ($r === null) {
+            return null;
+        }
+        try {
+            $input = self::graphQlInput($r);
+            if ($input === null) {
+                return null;
+            }
+            $schema = $this->graphQlSchema((string) ($config['introspection'] ?? ''));
+            if ($schema === null || !$this->graphQlSelfScanClean($config, $seed)) {
+                return null;
+            }
+
+            $render = function (string $template) use ($seed): string {
+                return $this->renderer->render($template, [], $seed, $this->canary);
+            };
+            $echo = false;
+            if ($this->reflectorGate !== null) {
+                $echo = ($this->reflectorGate)('graphql-name', $r) === true;
+            }
+
+            $answer = (new GraphQlDecoy($config, $schema, $render))
+                ->answer(GraphQlSelection::parse($input['query']), $input['operationName'], $input['get'], $echo);
+            if ($answer === null) {
+                return null;
+            }
+            $body = json_encode($answer['body'], JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+            if ($body === false) {
+                return null;
+            }
+
+            return new EmulatedContent($body, ['Content-Type' => 'application/json'] + ($answer['headers'] ?? []), $answer['status']);
+        } catch (\Throwable $e) {
+            return null;
+        }
+    }
+
+    /**
+     * The GraphQL query text and operation name in a request, or null when there is none to answer.
+     *
+     * @return array{query:string, operationName:?string, get:bool}|null
+     */
+    private static function graphQlInput(RequestContext $r): ?array
+    {
+        $method = strtoupper($r->method);
+        if ($method === 'GET' || $method === 'HEAD') {
+            $params = [];
+            parse_str($r->query, $params);
+            $query = $params['query'] ?? null;
+            $name = $params['operationName'] ?? null;
+            $get = true;
+        } elseif ($method === 'POST') {
+            $raw = (string) ($r->rawBody ?? '');
+            if (strlen($raw) > GraphQlSelection::MAX_BYTES) {
+                return null;
+            }
+            $type = strtolower(trim(explode(';', BoundedInspection::headerValue($r->headers, 'Content-Type'))[0]));
+            if ($type === 'application/graphql') {
+                $query = $raw;
+                $name = null;
+            } else {
+                $json = json_decode($raw, true, 32);
+                // A list is a batch, which this decoy does not answer.
+                if (!is_array($json) || ($json !== [] && array_keys($json) === range(0, count($json) - 1))) {
+                    return null;
+                }
+                $query = $json['query'] ?? null;
+                $name = $json['operationName'] ?? null;
+            }
+            $get = false;
+        } else {
+            return null;
+        }
+
+        if (!is_string($query) || $query === '' || ($name !== null && !is_string($name))) {
+            return null;
+        }
+
+        return ['query' => $query, 'operationName' => $name, 'get' => $get];
+    }
+
+    /** @return array<string,mixed>|null the decoded introspection `__schema` object */
+    private function graphQlSchema(string $json): ?array
+    {
+        $key = sha1($json);
+        if (!isset($this->graphQlSchemas[$key])) {
+            $decoded = json_decode($json, true);
+            if (!is_array($decoded)) {
+                return null;
+            }
+            $this->graphQlSchemas[$key] = $decoded;
+        }
+
+        return $this->graphQlSchemas[$key];
+    }
+
+    /**
+     * Whether the decoy's own bytes for this seed carry no detector signature. Computed once per seed from
+     * the config alone, never from the request.
+     *
+     * @param array<string,mixed> $config
+     */
+    private function graphQlSelfScanClean(array $config, int $seed): bool
+    {
+        if (isset($this->graphQlClean[$seed])) {
+            return $this->graphQlClean[$seed];
+        }
+        $guard = $this->fingerprintGuard();
+        $clean = false;
+        if ($guard !== null) {
+            $parts = [(string) ($config['introspection'] ?? '')];
+            foreach ((array) ($config['messages'] ?? []) as $message) {
+                $parts[] = (string) preg_replace('/%[a-z_]+%/', '', (string) $message);
+            }
+            $data = (array) ($config['data'] ?? []);
+            array_walk_recursive($data, function ($leaf) use (&$parts, $seed): void {
+                if (is_string($leaf)) {
+                    $parts[] = $this->renderer->render($leaf, [], $seed, $this->canary);
+                }
+            });
+            $clean = $guard->scan(implode("\n", $parts)) === [];
+        }
+        if (count($this->graphQlClean) >= 64) {
+            $this->graphQlClean = [];
+        }
+
+        return $this->graphQlClean[$seed] = $clean;
+    }
+
     private function fingerprintGuard(): ?FingerprintGuard
     {
         if (!$this->fingerprintGuardLoaded) {

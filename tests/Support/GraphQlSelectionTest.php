@@ -234,6 +234,20 @@ final class GraphQlSelectionTest extends TestCase
         self::assertNull($doc->failure);
     }
 
+    public function test_non_ascii_bytes_decline_under_a_utf8_locale(): void
+    {
+        // ctype_* would call these bytes letters under a UTF-8 locale; the reader must still decline.
+        $previous = setlocale(LC_CTYPE, '0');
+        setlocale(LC_CTYPE, 'C.UTF-8', 'en_US.UTF-8', 'C');
+        try {
+            self::assertSame('decline', GraphQlSelection::parse("{ \xC3\xA9 }")->failure);
+            self::assertSame('decline', GraphQlSelection::parse("{ a\xC3\xA9 }")->failure);
+            self::assertSame('decline', GraphQlSelection::parse("{ a: 1\xC3 }")->failure);
+        } finally {
+            setlocale(LC_CTYPE, (string) $previous);
+        }
+    }
+
     public function test_columns_count_utf16_units(): void
     {
         self::assertSame(2, GraphQlSelection::utf16Units("a\xC3\xA9"));       // a + é

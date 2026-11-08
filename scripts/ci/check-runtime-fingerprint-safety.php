@@ -149,6 +149,7 @@ $classes = [
     'Funnypot\\Core\\Support\\Chrome\\PageSlots',
     'Funnypot\\Core\\Support\\SurfaceGraph',
     'Funnypot\\Core\\Attack\\CannedData',
+    'Funnypot\\Core\\Support\\GraphQlSelection',
 ];
 $classesScanned = 0;
 $tableStrings = 0;

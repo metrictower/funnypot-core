@@ -213,7 +213,7 @@ final class EmulatorCompiler
 
         // An optional named behavior primitive. The base `response` above stays the ultimate
         // fallback; the behavior only picks the content when it fires. Unknown names are a build
-        // failure — this build knows branch, arith-eval, expr-eval, ssti-render, iterate,
+        // failure — this build knows branch, graphql-select, arith-eval, expr-eval, ssti-render, iterate,
         // decoy-session, and ntlm-challenge (other primitives are deferred).
         if (isset($doc['behavior'])) {
             $behavior = (string) $doc['behavior'];
@@ -242,13 +242,17 @@ final class EmulatorCompiler
                     $rule['behavior'] = 'decoy-session';
                     $rule['decoy-session'] = $this->normalizeDecoySession((array) ($doc['decoy-session'] ?? []), $file);
                     break;
+                case 'graphql-select':
+                    $rule['behavior'] = 'graphql-select';
+                    $rule['graphql-select'] = $this->normalizeGraphQlSelect((array) ($doc['graphql-select'] ?? []), $file);
+                    break;
                 case 'ntlm-challenge':
                     // No sub-config: the handler reads only the request's Authorization header and the
                     // deploy persona. The base `response` stays the Shape-A (bare 401) fallback.
                     $rule['behavior'] = 'ntlm-challenge';
                     break;
                 default:
-                    throw new RuntimeException("Template {$file}: unknown behavior '{$behavior}'. This build knows 'branch', 'arith-eval', 'expr-eval', 'ssti-render', 'iterate', 'decoy-session', 'ntlm-challenge'.");
+                    throw new RuntimeException("Template {$file}: unknown behavior '{$behavior}'. This build knows 'branch', 'graphql-select', 'arith-eval', 'expr-eval', 'ssti-render', 'iterate', 'decoy-session', 'ntlm-challenge'.");
             }
         }
 
@@ -373,6 +377,129 @@ final class EmulatorCompiler
         }
 
         return $one;
+    }
+
+    private const GRAPHQL_KEYS = ['roots', 'types', 'data', 'messages', 'introspection'];
+    private const GRAPHQL_MESSAGES = [
+        'cannot_query', 'cannot_query_anonymous', 'did_you_mean', 'must_have_subfields', 'must_not_have_selection',
+        'multiple_operations', 'unknown_operation', 'depth', 'get_mutation', 'unauthenticated',
+    ];
+
+    /**
+     * Validate the `graphql-select` config: the type map, the dataset, every message and the introspection
+     * body. The projected schema must agree with the introspection body (every type and field it serves is
+     * advertised, and every type the body refers to is declared), so a schema-walking client never sees a
+     * field it was not told about or a dangling type.
+     *
+     * @param array<string,mixed> $config
+     * @return array<string,mixed>
+     */
+    private function normalizeGraphQlSelect(array $config, string $file): array
+    {
+        foreach (array_keys($config) as $key) {
+            if (!in_array($key, self::GRAPHQL_KEYS, true)) {
+                throw new RuntimeException("Template {$file}: graphql-select has unknown key '{$key}'.");
+            }
+        }
+        $fail = static function (string $why) use ($file): void {
+            throw new RuntimeException("Template {$file}: graphql-select {$why}.");
+        };
+
+        $roots = (array) ($config['roots'] ?? []);
+        $types = (array) ($config['types'] ?? []);
+        foreach (['query', 'mutation'] as $root) {
+            if (!isset($roots[$root]) || !isset($types[(string) $roots[$root]])) {
+                $fail("root '{$root}' must name a declared type");
+            }
+        }
+        foreach ($types as $type => $fields) {
+            foreach ((array) $fields as $field => $def) {
+                if (is_array($def)) {
+                    $target = (string) ($def['object'] ?? $def['list'] ?? '');
+                    if (count($def) !== 1 || !isset($types[$target])) {
+                        $fail("field {$type}.{$field} must be {object: T} or {list: T} of a declared type");
+                    }
+                } elseif (!is_string($def) || preg_match('/\A\[?(ID|String|Boolean|Int)\]?!?\z/', $def) !== 1) {
+                    $fail("field {$type}.{$field} must be a scalar type");
+                }
+            }
+        }
+
+        $data = (array) ($config['data'] ?? []);
+        foreach (array_keys($data) as $root) {
+            if (!isset($types[(string) $roots['query']][$root])) {
+                $fail("data root '{$root}' is not a field of the query type");
+            }
+        }
+        array_walk_recursive($data, function ($leaf) use ($file): void {
+            if (is_string($leaf)) {
+                $this->assertKnownDirectives($leaf, $file);
+            }
+        });
+
+        $messages = (array) ($config['messages'] ?? []);
+        foreach (self::GRAPHQL_MESSAGES as $key) {
+            if (!isset($messages[$key]) || !is_string($messages[$key]) || $messages[$key] === '') {
+                $fail("needs message '{$key}'");
+            }
+            $this->assertKnownDirectives($messages[$key], $file);
+        }
+
+        $introspection = (string) ($config['introspection'] ?? '');
+        $this->assertKnownDirectives($introspection, $file);
+        $schema = json_decode($introspection, true);
+        if (!is_array($schema) || !isset($schema['types']) || !is_array($schema['types'])) {
+            $fail('introspection must be a JSON __schema object with types');
+        }
+        $advertised = [];
+        foreach ($schema['types'] as $t) {
+            $advertised[(string) ($t['name'] ?? '')] = array_column((array) ($t['fields'] ?? []), 'name');
+        }
+        foreach ($types as $type => $fields) {
+            if (!isset($advertised[$type])) {
+                $fail("type '{$type}' is not in the introspection body");
+            }
+            foreach (array_keys((array) $fields) as $field) {
+                if (!in_array($field, $advertised[$type], true)) {
+                    $fail("field {$type}.{$field} is not in the introspection body");
+                }
+            }
+        }
+        $this->assertNoDanglingTypes($schema, array_keys($advertised), $fail);
+
+        return [
+            'roots' => $roots,
+            'types' => $types,
+            'data' => $data,
+            'messages' => $messages,
+            'introspection' => $introspection,
+        ];
+    }
+
+    /**
+     * Every `type` / `ofType` reference in an introspection body names a declared type.
+     *
+     * @param array<string,mixed> $schema
+     * @param list<string>        $declared
+     */
+    private function assertNoDanglingTypes(array $schema, array $declared, callable $fail): void
+    {
+        $stack = [$schema];
+        while ($stack !== []) {
+            $node = array_pop($stack);
+            foreach ($node as $key => $value) {
+                if (!is_array($value)) {
+                    continue;
+                }
+                if (($key === 'type' || $key === 'ofType') && isset($value['kind'])) {
+                    $name = $value['name'] ?? null;
+                    if (is_string($name) && !in_array($name, $declared, true)) {
+                        $fail("introspection refers to undeclared type '{$name}'");
+                    }
+                }
+                $stack[] = $value;
+            }
+        }
     }
 
     /**

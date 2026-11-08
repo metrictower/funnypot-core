@@ -65,7 +65,7 @@ final class ServedStringWalker
 
     /** Grounded top-level rule keys (advisory: a top-level key outside this ∪ the skip set is flagged). */
     private const KNOWN_RULE_KEYS = [
-        'behavior' => true, 'branch' => true, 'decoy-session' => true, 'expr-eval' => true,
+        'behavior' => true, 'branch' => true, 'decoy-session' => true, 'expr-eval' => true, 'graphql-select' => true,
         'arith-eval' => true, 'iterate' => true, 'persona_gate' => true, 'reflect_class' => true, 'serve_on' => true,
         'reflects_input' => true, 'response' => true, 'severity' => true, 'ssti-render' => true,
         'status' => true, 'bin' => true, 'binary_generator' => true, 'body' => true,
@@ -181,13 +181,15 @@ final class ServedStringWalker
      * True when rule $rule copies attacker capture bytes into served output — so the runtime egress
      * guard must NOT scan it (scanning reflected bytes would turn the guard into a two-request
      * oracle: `?q=912345` → decline, `?q=812345` → serve). Fail-safe: any rule carrying a
-     * `{{…match.…}}` directive anywhere, or the `reflects_input` flag, is treated as a reflector.
+     * `{{…match.…}}` directive anywhere, or the `reflects_input` flag, is treated as a reflector. So is
+     * the `graphql-select` behavior, which can echo request names into its error messages; it scans its
+     * own bytes instead (TemplateAttackEmulator::graphQlSelfScanClean).
      *
      * @param array<string,mixed> $rule
      */
     public static function reflectsCaptures(array $rule): bool
     {
-        if (!empty($rule['reflects_input'])) {
+        if (!empty($rule['reflects_input']) || ($rule['behavior'] ?? null) === 'graphql-select') {
             return true;
         }
 

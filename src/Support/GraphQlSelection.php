@@ -23,6 +23,12 @@ final class GraphQlSelection
 {
     public const MAX_BYTES = 8192;
 
+    /** The only syntax messages ever served; a punctuator is the only thing they name. */
+    public const UNEXPECTED_EOF = 'Syntax Error: Unexpected <EOF>.';
+    public const EXPECTED_NAME_EOF = 'Syntax Error: Expected Name, found <EOF>.';
+    public const EXPECTED_NAME_PUNCTUATOR = 'Syntax Error: Expected Name, found "%s".';
+    public const UNTERMINATED_STRING = 'Syntax Error: Unterminated string.';
+
     private const PUNCTUATORS = '!$&()[]{}:=@|';
     private const NAME_CHARS = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_';
 
@@ -141,18 +147,19 @@ final class GraphQlSelection
                 $pos += 3;
                 continue;
             }
-            if ($c === '_' || ctype_alpha($c)) {
+            // Byte ranges, not ctype_*: those follow the process locale and can accept non-ASCII bytes.
+            if ($c === '_' || ($c >= 'a' && $c <= 'z') || ($c >= 'A' && $c <= 'Z')) {
                 $n = strspn($src, self::NAME_CHARS, $pos);
                 $this->tokens[] = ['name', substr($src, $pos, $n), $line, $column];
                 $pos += $n;
                 continue;
             }
-            if ($c === '-' || ctype_digit($c)) {
+            if ($c === '-' || ($c >= '0' && $c <= '9')) {
                 if (preg_match('/\G-?(?:0|[1-9][0-9]*)(?:\.[0-9]+)?(?:[eE][+-]?[0-9]+)?/', $src, $m, 0, $pos) !== 1) {
                     return $this->decline();
                 }
                 $end = $pos + strlen($m[0]);
-                if ($end < $len && ($src[$end] === '.' || $src[$end] === '_' || ctype_alnum($src[$end]))) {
+                if ($end < $len && ($src[$end] === '.' || strpos(self::NAME_CHARS, $src[$end]) !== false)) {
                     return $this->decline();
                 }
                 $this->tokens[] = ['number', $m[0], $line, $column];
@@ -181,7 +188,7 @@ final class GraphQlSelection
                         $i++;
                     }
                     if (!$closed) {
-                        return $this->syntaxAtEnd($src, $line, $lineStart, 'Syntax Error: Unterminated string.');
+                        return $this->syntaxAtEnd($src, $line, $lineStart, self::UNTERMINATED_STRING);
                     }
                     $this->tokens[] = ['string', '', $startLine, $column];
                     $pos = $i;
@@ -192,11 +199,11 @@ final class GraphQlSelection
                 $value = '';
                 while (true) {
                     if ($i >= $len) {
-                        return $this->syntaxAtEnd($src, $line, $lineStart, 'Syntax Error: Unterminated string.');
+                        return $this->syntaxAtEnd($src, $line, $lineStart, self::UNTERMINATED_STRING);
                     }
                     $ch = $src[$i];
                     if ($ch === "\n" || $ch === "\r") {
-                        return $this->syntax('Syntax Error: Unterminated string.', $line, 1 + self::utf16Units(substr($src, $lineStart, $i - $lineStart)));
+                        return $this->syntax(self::UNTERMINATED_STRING, $line, 1 + self::utf16Units(substr($src, $lineStart, $i - $lineStart)));
                     }
                     if ($ch === '"') {
                         $i++;
@@ -236,7 +243,7 @@ final class GraphQlSelection
     private function parseDocument(): void
     {
         if ($this->peek()[0] === 'eof') {
-            $this->syntaxAt('Syntax Error: Unexpected <EOF>.', $this->peek());
+            $this->syntaxAt(self::UNEXPECTED_EOF, $this->peek());
 
             return;
         }
@@ -324,7 +331,7 @@ final class GraphQlSelection
         while (true) {
             $t = $this->peek();
             if ($t[0] === 'eof') {
-                $this->syntaxAt('Syntax Error: Expected Name, found <EOF>.', $t);
+                $this->syntaxAt(self::EXPECTED_NAME_EOF, $t);
 
                 return null;
             }
@@ -332,7 +339,7 @@ final class GraphQlSelection
             $depth = count($stack) - 1;
             if ($t[0] === 'punct' && $t[1] === '}') {
                 if ($stack[$depth][0] === []) {
-                    $this->syntaxAt('Syntax Error: Expected Name, found "}".', $t);
+                    $this->syntaxAt(sprintf(self::EXPECTED_NAME_PUNCTUATOR, '}'), $t);
 
                     return null;
                 }
@@ -418,7 +425,7 @@ final class GraphQlSelection
             }
 
             if ($t[0] === 'punct') {
-                $this->syntaxAt('Syntax Error: Expected Name, found "' . $t[1] . '".', $t);
+                $this->syntaxAt(sprintf(self::EXPECTED_NAME_PUNCTUATOR, $t[1]), $t);
 
                 return null;
             }
@@ -451,7 +458,7 @@ final class GraphQlSelection
         while ($depth > 0) {
             $t = $this->next();
             if ($t[0] === 'eof') {
-                $this->syntaxAt('Syntax Error: Unexpected <EOF>.', $t);
+                $this->syntaxAt(self::UNEXPECTED_EOF, $t);
 
                 return false;
             }
@@ -490,9 +497,9 @@ final class GraphQlSelection
             return $t[1];
         }
         if ($t[0] === 'eof') {
-            $this->syntaxAt('Syntax Error: Expected Name, found <EOF>.', $t);
+            $this->syntaxAt(self::EXPECTED_NAME_EOF, $t);
         } elseif ($t[0] === 'punct') {
-            $this->syntaxAt('Syntax Error: Expected Name, found "' . $t[1] . '".', $t);
+            $this->syntaxAt(sprintf(self::EXPECTED_NAME_PUNCTUATOR, $t[1]), $t);
         } else {
             $this->decline();
         }

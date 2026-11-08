@@ -166,7 +166,9 @@ final class Honeypot implements Engine
         // buildAttackFake stays gated on attackEmulation, so a payloadInspection-only build serves
         // nothing (detect-mode changes no bytes).
         $this->attackEmulator = ($this->config->attackEmulation || $this->config->payloadInspection)
-            ? TemplateAttackEmulator::fromPackage([], $personaSeed, $this->config->decoySessionKey, $this->config->volatileProof, $this->config->promptInjectionSeeding)->disable($this->config->exclude)
+            ? TemplateAttackEmulator::fromPackage([], $personaSeed, $this->config->decoySessionKey, $this->config->volatileProof, $this->config->promptInjectionSeeding)
+                ->disable($this->config->exclude)
+                ->setReflectorGate(\Closure::fromCallable([$this->config, 'serveReflector']))
             : null;
     }
 

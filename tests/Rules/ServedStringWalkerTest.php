@@ -157,4 +157,24 @@ final class ServedStringWalkerTest extends TestCase
         // A non-reflecting decoy must NOT be treated as a reflector (else the egress guard skips it).
         self::assertNotContains('attack-wp-admin-redirect', $reflecting);
     }
+
+    public function test_the_graphql_decoy_is_a_reflector_whose_config_strings_are_scanned(): void
+    {
+        $rule = [
+            'id' => 'g',
+            'behavior' => 'graphql-select',
+            'response' => ['body' => 'BASE'],
+            'graphql-select' => [
+                'data' => ['users' => [['email' => 'ROW-EMAIL']]],
+                'messages' => ['cannot_query' => 'MESSAGE-TEXT'],
+                'introspection' => 'SCHEMA-JSON',
+            ],
+        ];
+
+        self::assertTrue(ServedStringWalker::reflectsCaptures($rule), 'echoed names must never reach the egress scan');
+        $values = array_values((new ServedStringWalker())->ruleLeaves($rule, 'g'));
+        foreach (['BASE', 'ROW-EMAIL', 'MESSAGE-TEXT', 'SCHEMA-JSON'] as $leaf) {
+            self::assertContains($leaf, $values, "{$leaf} must be scanned by the static gate");
+        }
+    }
 }
