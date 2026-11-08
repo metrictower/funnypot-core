@@ -302,9 +302,21 @@ final class BehaviorGraphqlSelectTest extends TestCase
         foreach (['__schema { a }', '__type(name: "User") { name }'] as $field) {
             self::assertSame(self::base(), self::postRaw($engine, $roots($field, 65), 'application/graphql')->body, $field);
         }
-        // Deep under a data field, a field named like introspection is counted like any other.
-        $hidden = 'query { ' . str_repeat('...F ', 16) . '} fragment F on Query { users { __schema {' . str_repeat(' a', 70) . ' } } }';
+        // Deep under a data field, a field named like introspection is counted like any other, so the
+        // expansion bound declines before the depth check could report the deep branch.
+        $hidden = 'query { ' . str_repeat('...F ', 16) . '} fragment F on Query { users { __schema {'
+            . str_repeat(' a', 70) . ' b { c { d { e { f { g { h } } } } } } } } }';
         self::assertSame(self::base(), self::postRaw($engine, $hidden, 'application/graphql')->body);
+
+        // A root introspection field counts once: its selection plus 63 data fields still fits.
+        $fields = '';
+        for ($i = 0; $i < 63; $i++) {
+            $fields .= " a{$i}: __typename";
+        }
+        $fits = 'query { ...F } fragment F on Query { __schema { types { name kind fields { name } } }' . $fields . ' }';
+        $answer = self::json(self::postRaw($engine, $fits, 'application/graphql'));
+        self::assertArrayHasKey('__schema', $answer['data']);
+        self::assertCount(64, $answer['data']);
     }
 
     public function test_a_reused_large_fragment_declines_before_it_is_walked(): void
