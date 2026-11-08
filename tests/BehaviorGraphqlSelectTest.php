@@ -10,7 +10,9 @@ use Funnypot\Core\Honeypot;
 use Funnypot\Core\RequestContext;
 use Funnypot\Core\Response\Style;
 use Funnypot\Core\SiteProfile;
+use Funnypot\Core\Compiler\Crs\FingerprintGuard;
 use Funnypot\Core\SynthesizedResponse;
+use Funnypot\Core\Template\TemplateAttackEmulator;
 use Funnypot\Core\Tests\Support\GraphQlSelectionTest;
 use PHPUnit\Framework\TestCase;
 use RuntimeException;
@@ -25,7 +27,7 @@ final class BehaviorGraphqlSelectTest extends TestCase
 {
     private const TEMPLATE = __DIR__ . '/../templates/attack/39-graphql-introspection.yaml';
 
-    private static function engine(bool $box = false): Honeypot
+    private static function engine(bool $box = false, int $maxBodyBytes = 65536): Honeypot
     {
         $config = new Config(
             'respond',
@@ -37,7 +39,7 @@ final class BehaviorGraphqlSelectTest extends TestCase
             'coherent',
             Style::REALISTIC,
             'high',
-            65536,
+            $maxBodyBytes,
             0,
             0,
             true
@@ -198,6 +200,9 @@ final class BehaviorGraphqlSelectTest extends TestCase
         self::assertSame(['updateUserRole' => null], $body['data']);
         self::assertSame(['message', 'locations', 'path', 'extensions'], array_keys($body['errors'][0]));
 
+        $typename = self::json(self::post($engine, ['query' => 'mutation{__typename}']));
+        self::assertSame(['data' => ['__typename' => 'Mutation']], $typename, 'no errors key when nothing failed');
+
         $bare = self::json(self::post($engine, ['query' => 'mutation{updateUserRole(userId:"999999",role:"x")}']));
         self::assertStringContainsString('of type "MutationResult" must have a selection of subfields', $bare['errors'][0]['message']);
 
@@ -246,6 +251,101 @@ final class BehaviorGraphqlSelectTest extends TestCase
             '__typename inside a data query is projected, not the schema');
         self::assertSame('User', self::json(self::get($engine, '{__type(name:"User"){name}}'))['data']['__type']['name']);
         self::assertNull(self::json(self::get($engine, '{__type(name:"Nope"){name}}'))['data']['__type']);
+
+        self::assertSame(
+            'Field "__schema" of type "__Schema!" must have a selection of subfields. Did you mean "__schema { ... }"?',
+            self::json(self::get($engine, '{__schema}'))['errors'][0]['message']
+        );
+        self::assertSame(400, self::get($engine, '{__type(name:"User")}')->status);
+    }
+
+    public function test_root_fragments_are_expanded(): void
+    {
+        $engine = self::engine();
+        $named = self::json(self::post($engine, ['query' => 'query { ...Root } fragment Root on Query { __typename users { id } }']));
+        self::assertSame(['__typename', 'users'], array_keys($named['data']));
+        self::assertSame(['__typename' => 'Query'], self::json(self::get($engine, '{ ... on Query { __typename } }'))['data']);
+        self::assertSame(self::base(), self::get($engine, '{ ...Missing }')->body, 'an unknown fragment declines');
+    }
+
+    public function test_aliased_introspection_stays_within_the_body_cap(): void
+    {
+        $aliased = static function (int $n): string {
+            $fields = '';
+            for ($i = 0; $i < $n; $i++) {
+                $fields .= " a{$i}: __schema { types { name } }";
+            }
+
+            return '{' . $fields . ' }';
+        };
+        $engine = self::engine();
+        self::assertSame(200, self::postRaw($engine, $aliased(2), 'application/graphql')->status);
+        foreach ([13, 40] as $n) {
+            $r = self::postRaw($engine, $aliased($n), 'application/graphql');
+            self::assertSame(self::base(), $r->body, "{$n} aliased schemas decline to the rule's own base");
+        }
+
+        $small = self::engine(false, 8192);
+        self::assertSame(200, self::postRaw($small, $aliased(1), 'application/graphql')->status);
+        self::assertSame(self::base(), self::postRaw($small, $aliased(2), 'application/graphql')->body);
+    }
+
+    public function test_alias_names_are_bounded(): void
+    {
+        $engine = self::engine();
+        $ok = str_repeat('a', 64);
+        $long = str_repeat('a', 65);
+        self::assertSame([$ok], array_keys(self::json(self::get($engine, '{' . $ok . ': __typename}'))['data']));
+        self::assertSame(self::base(), self::get($engine, '{' . $long . ': __typename}')->body);
+        self::assertSame(self::base(), self::get($engine, '{users{' . $long . ': id}}')->body);
+    }
+
+    public function test_answers_end_with_a_newline_like_the_base(): void
+    {
+        $engine = self::engine();
+        self::assertStringEndsWith("}\n", self::base());
+        foreach (['{users{id}}', '{foo}', 'mutation{updateUserRole{success}}', '{'] as $q) {
+            self::assertStringEndsWith("}\n", self::get($engine, $q)->body, $q);
+        }
+    }
+
+    public function test_the_self_scan_declines_every_query_for_a_flagged_config(): void
+    {
+        $emulator = TemplateAttackEmulator::fromFile(__DIR__ . '/../resources/compiled/funnypot-attack.php');
+        $rule = $emulator->ruleById('attack-graphql-introspection');
+        self::assertNotNull($rule);
+        $request = static function (string $query): RequestContext {
+            return new RequestContext('GET', '/graphql', 'query=' . rawurlencode($query), ['host' => 'gq.example'], null, 'gq.example', 'http');
+        };
+        $serve = static function (TemplateAttackEmulator $e, string $query) use ($rule, $request): string {
+            $r = $e->renderRule($rule, [], 7, $request($query));
+            self::assertNotNull($r);
+
+            return $r->body;
+        };
+        self::assertNotSame(self::base(), $serve($emulator, '{users{id}}'), 'the real guard passes the dataset');
+
+        $setGuard = static function (TemplateAttackEmulator $e, ?FingerprintGuard $guard): void {
+            $loaded = new \ReflectionProperty(TemplateAttackEmulator::class, 'fingerprintGuardLoaded');
+            $loaded->setAccessible(true);
+            $loaded->setValue($e, true);
+            $slot = new \ReflectionProperty(TemplateAttackEmulator::class, 'fingerprintGuard');
+            $slot->setAccessible(true);
+            $slot->setValue($e, $guard);
+        };
+        // A token only the dataset carries, and one only the schema carries: either declines everything,
+        // including queries that never select it.
+        foreach (['stripeSecretKey', 'MutationResult', 'UNAUTHENTICATED'] as $token) {
+            $flagged = TemplateAttackEmulator::fromFile(__DIR__ . '/../resources/compiled/funnypot-attack.php');
+            $setGuard($flagged, new FingerprintGuard([$token], []));
+            foreach (['{users{id}}', '{__typename}', '{foo}', '{'] as $q) {
+                self::assertSame(self::base(), $serve($flagged, $q), "{$token} / {$q}");
+            }
+        }
+
+        $unverifiable = TemplateAttackEmulator::fromFile(__DIR__ . '/../resources/compiled/funnypot-attack.php');
+        $setGuard($unverifiable, null);
+        self::assertSame(self::base(), $serve($unverifiable, '{users{id}}'), 'no guard fails closed');
     }
 
     // --- 7: input forms and bounds ----------------------------------------------------------------
@@ -293,6 +393,11 @@ final class BehaviorGraphqlSelectTest extends TestCase
 
         $deepArgs = '{users(f: ' . str_repeat('(', 1000) . str_repeat(')', 1000) . '){id}}';
         self::assertSame(200, self::postRaw($engine, $deepArgs, 'application/graphql')->status);
+        self::assertSame(self::base(), self::postRaw($engine, '{users(}{{{ ]] ) {id}}', 'application/graphql')->body, 'mismatched brackets decline');
+
+        $manyPairs = str_repeat('a&', 1010) . 'query=' . rawurlencode('{users{id}}');
+        $r = $engine->respond(new RequestContext('GET', '/graphql', $manyPairs, ['host' => 'gq.example'], null, 'gq.example', 'http'));
+        self::assertSame(self::base(), $r->body, 'too many query pairs decline without an input-limit warning');
         self::assertSame('Syntax Error: Unterminated string.', self::json(self::postRaw($engine, '{users(f: "x', 'application/graphql'))['errors'][0]['message']);
         self::assertSame('Syntax Error: Unterminated string.', self::json(self::postRaw($engine, '{users(f: """x', 'application/graphql'))['errors'][0]['message']);
     }
@@ -327,6 +432,8 @@ final class BehaviorGraphqlSelectTest extends TestCase
             'unknown key' => ["graphql-select:\n", "graphql-select:\n  extra: 1\n", 'unknown key'],
             'dangling type' => ['"name":"MutationResult","ofType":null', '"name":"Missing","ofType":null', 'undeclared type'],
             'field missing from the introspection body' => ["      newRole: String\n", "      newRole: String\n      secret: String\n", 'not in the introspection body'],
+            'list under a scalar field' => ["        isActive: false\n", "        isActive: [false]\n", 'must match its declared type'],
+            'unknown dataset field' => ["        isActive: false\n", "        isActive: false\n        password: x\n", 'is not a field of User'],
         ];
     }
 

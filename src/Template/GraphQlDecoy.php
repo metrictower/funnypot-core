@@ -20,8 +20,11 @@ final class GraphQlDecoy
     public const MAX_FIELDS = 64;
     public const MAX_NODES = 500;
     public const MAX_ROWS = 5;
+    /** Error codes, as Apollo Server names them. */
+    public const CODES = ['GRAPHQL_PARSE_FAILED', 'GRAPHQL_VALIDATION_FAILED', 'OPERATION_RESOLUTION_FAILURE', 'BAD_REQUEST', 'UNAUTHENTICATED'];
     private const NAME = '/\A[_A-Za-z][_0-9A-Za-z]{0,63}\z/';
     private const MAX_SUGGESTIONS = 5;
+    private const MAX_ROOT_SPREADS = 16;
 
     /** @var array<string,mixed> */
     private $config;
@@ -35,15 +38,23 @@ final class GraphQlDecoy
     /** @var int */
     private $nodes = 0;
 
+    /** @var int byte budget for introspection answers in one response */
+    private $maxBytes;
+
+    /** @var int|null encoded size of the `__schema` answer, computed on first use */
+    private $schemaBytes;
+
     /**
-     * @param array<string,mixed> $config the compiled `graphql-select` config
-     * @param array<string,mixed> $schema the decoded introspection `__schema` object
+     * @param array<string,mixed> $config   the compiled `graphql-select` config
+     * @param array<string,mixed> $schema   the decoded introspection `__schema` object
+     * @param int                 $maxBytes the largest body the caller may serve
      */
-    public function __construct(array $config, array $schema, callable $render)
+    public function __construct(array $config, array $schema, callable $render, int $maxBytes = 65536)
     {
         $this->config = $config;
         $this->schema = $schema;
         $this->render = $render;
+        $this->maxBytes = $maxBytes;
     }
 
     /**
@@ -68,10 +79,14 @@ final class GraphQlDecoy
         }
         $rootType = $op['type'] === 'mutation' ? (string) ($this->config['roots']['mutation'] ?? 'Mutation')
             : (string) ($this->config['roots']['query'] ?? 'Query');
+        $selection = self::expandRoot($op['selection'], $doc->fragments);
+        if ($selection === null) {
+            return null;
+        }
 
         $data = [];
-        foreach ($op['selection'] as $node) {
-            if ($node['kind'] !== 'field') {
+        foreach ($selection as $node) {
+            if ($node['alias'] !== null && preg_match(self::NAME, $node['alias']) !== 1) {
                 return null;
             }
             if ($op['type'] === 'query' && ($node['name'] === '__schema' || $node['name'] === '__type')) {
@@ -104,21 +119,59 @@ final class GraphQlDecoy
             return null;
         }
 
-        foreach ($op['selection'] as $node) {
+        foreach ($selection as $node) {
             if (in_array($node, $data, true)) {
                 $invalid = $this->validate($node, $rootType, $echo);
-                if ($invalid !== null) {
-                    return $invalid;
-                }
-            } elseif ($node['name'] === '__type' && $node['typeArg'] === null) {
+            } else {
+                $invalid = $this->validateIntrospection($node);
+            }
+            if ($invalid !== null) {
+                return $invalid;
+            }
+            if ($node['name'] === '__type' && $node['typeArg'] === null) {
                 return null;
             }
         }
-        if (!self::keysAreConsistent($op['selection'], false) || !self::keysAreConsistent($data, true)) {
+        if (!self::keysAreConsistent($selection, false) || !self::keysAreConsistent($data, true)) {
             return null;
         }
 
-        return $op['type'] === 'mutation' ? $this->mutation($op['selection'], $isGet) : $this->query($op['selection'], $rootType);
+        return $op['type'] === 'mutation' ? $this->mutation($selection, $isGet) : $this->query($selection, $rootType);
+    }
+
+    /**
+     * The root selection with fragment spreads and inline fragments replaced by their fields, one level
+     * deep. Null declines: an unknown fragment, a spread inside a spread, or too many spreads.
+     *
+     * @param list<array<string,mixed>>                $selection
+     * @param array<string,list<array<string,mixed>>> $fragments
+     * @return list<array<string,mixed>>|null
+     */
+    private static function expandRoot(array $selection, array $fragments): ?array
+    {
+        $out = [];
+        $spreads = 0;
+        foreach ($selection as $node) {
+            if ($node['kind'] === 'field') {
+                $out[] = $node;
+                continue;
+            }
+            if (++$spreads > self::MAX_ROOT_SPREADS) {
+                return null;
+            }
+            $inner = $node['kind'] === 'inline' ? $node['children'] : ($fragments[(string) ($node['fragment'] ?? '')] ?? null);
+            if (!is_array($inner)) {
+                return null;
+            }
+            foreach ($inner as $child) {
+                if ($child['kind'] !== 'field') {
+                    return null;
+                }
+                $out[] = $child;
+            }
+        }
+
+        return $out;
     }
 
     // --- operation selection -------------------------------------------------------------------------
@@ -153,7 +206,8 @@ final class GraphQlDecoy
     /** @param array<string,mixed> $node */
     private static function plain(array $node): bool
     {
-        if ($node['kind'] !== 'field' || $node['directives']) {
+        if ($node['kind'] !== 'field' || $node['directives']
+            || ($node['alias'] !== null && preg_match(self::NAME, $node['alias']) !== 1)) {
             return false;
         }
         foreach ((array) $node['children'] as $child) {
@@ -281,6 +335,23 @@ final class GraphQlDecoy
         return null;
     }
 
+    /**
+     * `__schema` and `__type` need a selection of subfields, as any object field does.
+     *
+     * @param array<string,mixed> $node
+     * @return array{status:int, body:array<string,mixed>}|null
+     */
+    private function validateIntrospection(array $node): ?array
+    {
+        if ($node['children'] !== null) {
+            return null;
+        }
+        $type = $node['name'] === '__schema' ? '__Schema!' : '__Type';
+
+        return $this->error(400, $this->message('must_have_subfields', ['field' => (string) $node['name'], 'type' => $type]),
+            'GRAPHQL_VALIDATION_FAILED', $node['line'], $node['column']);
+    }
+
     // --- answers -------------------------------------------------------------------------------------
 
     /**
@@ -290,6 +361,7 @@ final class GraphQlDecoy
     private function query(array $selection, string $rootType): ?array
     {
         $data = [];
+        $spent = 0;
         foreach ($selection as $node) {
             $key = (string) ($node['alias'] ?? $node['name']);
             if (array_key_exists($key, $data)) {
@@ -297,8 +369,10 @@ final class GraphQlDecoy
             }
             if ($node['name'] === '__schema') {
                 $data[$key] = $this->schema;
+                $spent += $this->schemaBytes();
             } elseif ($node['name'] === '__type') {
                 $data[$key] = $this->lookupType((string) $node['typeArg']);
+                $spent += strlen((string) json_encode($data[$key]));
             } elseif ($node['name'] === '__typename') {
                 $data[$key] = $rootType;
             } else {
@@ -306,12 +380,23 @@ final class GraphQlDecoy
                 $value = $this->config['data'][$node['name']] ?? null;
                 $data[$key] = $this->project($node, $def, $value);
             }
-            if ($this->nodes > self::MAX_NODES) {
+            // Aliased introspection repeats a large answer; past the budget the decoy declines rather than
+            // build a body it could not serve.
+            if ($this->nodes > self::MAX_NODES || $spent > $this->maxBytes) {
                 return null;
             }
         }
 
         return ['status' => 200, 'body' => ['data' => $data === [] ? new \stdClass() : $data]];
+    }
+
+    private function schemaBytes(): int
+    {
+        if ($this->schemaBytes === null) {
+            $this->schemaBytes = strlen((string) json_encode($this->schema, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE));
+        }
+
+        return $this->schemaBytes;
     }
 
     /**
@@ -351,7 +436,7 @@ final class GraphQlDecoy
             $data[$key] = null;
         }
 
-        return ['status' => 200, 'body' => ['errors' => $errors, 'data' => $data]];
+        return ['status' => 200, 'body' => $errors === [] ? ['data' => $data] : ['errors' => $errors, 'data' => $data]];
     }
 
     /**
@@ -430,8 +515,12 @@ final class GraphQlDecoy
         if ($base === 'Boolean') {
             return (bool) $value;
         }
+        $text = ($this->render)((string) $value);
+        if ($base === 'Int') {
+            return preg_match('/\A-?(?:0|[1-9][0-9]{0,8})\z/', $text) === 1 ? (int) $text : null;
+        }
 
-        return ($this->render)((string) $value);
+        return $text;
     }
 
     /** @return array<string,mixed>|null */

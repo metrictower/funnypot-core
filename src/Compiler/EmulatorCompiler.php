@@ -436,6 +436,9 @@ final class EmulatorCompiler
                 $this->assertKnownDirectives($leaf, $file);
             }
         });
+        foreach ($data as $root => $value) {
+            self::assertGraphQlValue($types, $types[(string) $roots['query']][$root], $value, (string) $root, $fail);
+        }
 
         $messages = (array) ($config['messages'] ?? []);
         foreach (self::GRAPHQL_MESSAGES as $key) {
@@ -474,6 +477,51 @@ final class EmulatorCompiler
             'messages' => $messages,
             'introspection' => $introspection,
         ];
+    }
+
+    /**
+     * A dataset value has the shape its field declares: a scalar (or a list of scalars) for a scalar
+     * field, a mapping of declared fields for an object, a list of such mappings for a list. Null is
+     * always allowed.
+     *
+     * @param array<string,array<string,mixed>> $types
+     * @param string|array<string,string>       $def
+     * @param mixed                             $value
+     */
+    private static function assertGraphQlValue(array $types, $def, $value, string $path, callable $fail): void
+    {
+        if ($value === null) {
+            return;
+        }
+        $isScalar = static function ($v): bool {
+            return is_string($v) || is_int($v) || is_bool($v);
+        };
+        if (!is_array($def)) {
+            $ok = $def[0] === '['
+                ? is_array($value) && array_values($value) === $value && count(array_filter($value, $isScalar)) === count($value)
+                : $isScalar($value);
+            if (!$ok) {
+                $fail("data '{$path}' must match its declared type {$def}");
+            }
+
+            return;
+        }
+        $type = (string) ($def['object'] ?? $def['list']);
+        $rows = isset($def['list']) ? $value : [$value];
+        if (!is_array($rows) || (isset($def['list']) && array_values($rows) !== $rows)) {
+            $fail("data '{$path}' must be a list of {$type}");
+        }
+        foreach ($rows as $row) {
+            if (!is_array($row) || ($row !== [] && array_values($row) === $row)) {
+                $fail("data '{$path}' must hold {$type} mappings");
+            }
+            foreach ($row as $field => $v) {
+                if (!isset($types[$type][$field])) {
+                    $fail("data '{$path}.{$field}' is not a field of {$type}");
+                }
+                self::assertGraphQlValue($types, $types[$type][$field], $v, $path . '.' . $field, $fail);
+            }
+        }
     }
 
     /**

@@ -169,6 +169,7 @@ final class Honeypot implements Engine
             ? TemplateAttackEmulator::fromPackage([], $personaSeed, $this->config->decoySessionKey, $this->config->volatileProof, $this->config->promptInjectionSeeding)
                 ->disable($this->config->exclude)
                 ->setReflectorGate(\Closure::fromCallable([$this->config, 'serveReflector']))
+                ->setMaxBodyBytes($this->config->maxBodyBytes)
             : null;
     }
 

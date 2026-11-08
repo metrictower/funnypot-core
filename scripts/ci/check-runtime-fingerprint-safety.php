@@ -150,6 +150,7 @@ $classes = [
     'Funnypot\\Core\\Support\\SurfaceGraph',
     'Funnypot\\Core\\Attack\\CannedData',
     'Funnypot\\Core\\Support\\GraphQlSelection',
+    'Funnypot\\Core\\Template\\GraphQlDecoy',
 ];
 $classesScanned = 0;
 $tableStrings = 0;

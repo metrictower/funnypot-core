@@ -10,14 +10,15 @@ namespace Funnypot\Core\Support;
  * syntax error from a closed vocabulary (only punctuators or <EOF> are ever named, never request bytes) or a
  * decline (anything it does not model).
  *
- * Nesting is tracked with an explicit stack and argument lists are skipped with a counter, so hostile input
- * cannot recurse. Columns count UTF-16 code units, as graphql-js does.
+ * Nesting is tracked with an explicit stack and argument lists are skipped with a bracket stack, so hostile
+ * input cannot recurse. Columns count UTF-16 code units, as graphql-js does, and are tracked as the scan
+ * advances so the cost stays linear in the input.
  *
  * A field node is ['kind' => 'field', 'alias' => ?string, 'name' => string, 'line' => int, 'column' => int,
  * 'children' => list<node>|null (null when it has no selection set), 'braceLine' => int, 'braceColumn' =>
  * int, 'directives' => bool, 'typeArg' => ?string (the string `name:` argument, read for `__type` only)].
  * Fragment spreads and inline fragments are ['kind' => 'spread'|'inline', 'line' => int, 'column' => int,
- * 'children' => list<node>|null].
+ * 'children' => list<node>|null, 'fragment' => ?string (the spread fragment's name)].
  */
 final class GraphQlSelection
 {
@@ -95,6 +96,10 @@ final class GraphQlSelection
         $pos = 0;
         $line = 1;
         $lineStart = 0;
+        // UTF-16 units from $lineStart up to $colAt, carried forward so each byte is counted once.
+        $colLine = 0;
+        $colAt = 0;
+        $colUnits = 0;
 
         while (true) {
             while ($pos < $len) {
@@ -117,16 +122,21 @@ final class GraphQlSelection
                         $pos++;
                     }
                 } elseif ($c === "\xEF" && substr($src, $pos, 3) === "\xEF\xBB\xBF") {
+                    // A byte-order mark is ignored like whitespace but still takes a column, as in graphql-js.
                     $pos += 3;
-                    if ($lineStart === $pos - 3) {
-                        $lineStart = $pos;
-                    }
                 } else {
                     break;
                 }
             }
 
-            $column = 1 + self::utf16Units(substr($src, $lineStart, $pos - $lineStart));
+            if ($colLine !== $lineStart || $colAt < $lineStart) {
+                $colLine = $lineStart;
+                $colAt = $lineStart;
+                $colUnits = 0;
+            }
+            $colUnits += self::utf16Units(substr($src, $colAt, $pos - $colAt));
+            $colAt = $pos;
+            $column = 1 + $colUnits;
             if ($pos >= $len) {
                 $this->tokens[] = ['eof', '', $line, $column];
 
@@ -357,9 +367,10 @@ final class GraphQlSelection
             if ($t[0] === 'punct' && $t[1] === '...') {
                 $this->at++;
                 $next = $this->peek();
-                $node = ['kind' => 'spread', 'line' => $t[2], 'column' => $t[3], 'children' => null];
+                $node = ['kind' => 'spread', 'line' => $t[2], 'column' => $t[3], 'children' => null, 'fragment' => null];
                 if ($next[0] === 'name' && $next[1] !== 'on') {
                     $this->at++;
+                    $node['fragment'] = $next[1];
                     if ($this->skipDirectives() === null) {
                         return null;
                     }
@@ -450,22 +461,31 @@ final class GraphQlSelection
         return null;
     }
 
-    /** Skip a balanced `( … )` group at the current token. */
+    /**
+     * Skip the `( … )` group at the current token. Brackets inside it must pair up; a mismatched one is
+     * outside what this reader models, so it declines.
+     */
     private function skipBalanced(): bool
     {
+        $closers = ['(' => ')', '[' => ']', '{' => '}'];
         $this->at++;
-        $depth = 1;
-        while ($depth > 0) {
+        $expect = [')'];
+        while ($expect !== []) {
             $t = $this->next();
             if ($t[0] === 'eof') {
                 $this->syntaxAt(self::UNEXPECTED_EOF, $t);
 
                 return false;
             }
-            if ($t[0] === 'punct' && $t[1] === '(') {
-                $depth++;
-            } elseif ($t[0] === 'punct' && $t[1] === ')') {
-                $depth--;
+            if ($t[0] !== 'punct') {
+                continue;
+            }
+            if (isset($closers[$t[1]])) {
+                $expect[] = $closers[$t[1]];
+            } elseif ($t[1] === ')' || $t[1] === ']' || $t[1] === '}') {
+                if (array_pop($expect) !== $t[1]) {
+                    return $this->decline();
+                }
             }
         }
 

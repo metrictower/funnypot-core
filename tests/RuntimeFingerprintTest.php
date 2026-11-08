@@ -156,7 +156,7 @@ final class RuntimeFingerprintTest extends TestCase
     {
         [$code, $out] = $this->runRuntimeGate([]);
         self::assertSame(0, $code, implode("\n", $out));
-        self::assertStringContainsString('across 14 classes', implode("\n", $out));
+        self::assertStringContainsString('across 15 classes', implode("\n", $out));
     }
 
     public function test_render_corpus_gate_is_non_vacuous(): void

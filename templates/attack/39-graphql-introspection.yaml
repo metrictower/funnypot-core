@@ -17,10 +17,11 @@ tags: [attack, graphql, introspection, schema, api, exposure, info-disclosure, h
 # with an authorizer); everywhere else the message is the name-less form. Aliases are response keys, as
 # on any GraphQL server. The rule is treated as reflecting, so the runtime egress scan never sees an
 # echoed name; instead the decoy scans its own bytes once per seed (the rendered dataset, this body and
-# every message), the same way for every query, and declines on a hit. Anything it does not model
-# (fragments in a data query, directives, batching, subscriptions, over-wide queries) gets the base
-# response below. Status is always chosen here, never by the request. A bare GET /graphql with no query
-# fails the request match and falls through to route/404-graphql-get.
+# every message, the error codes), the same way for every query, and declines on a hit. Anything it does
+# not model (fragments in a data query, directives, batching, subscriptions, over-wide queries,
+# introspection repeated past the body cap) gets the base response below. Status is always chosen here,
+# never by the request. A bare GET /graphql with no query fails the request match and falls through to
+# route/404-graphql-get.
 owns_path:
   - /graphql
   - /api/graphql

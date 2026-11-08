@@ -133,7 +133,7 @@ final class GraphQlSelectionTest extends TestCase
         $doc = GraphQlSelection::parse("\xEF\xBB\xBF{ users { id } }");
 
         self::assertNull($doc->failure);
-        self::assertSame(3, $doc->operations[0]['selection'][0]['column']);
+        self::assertSame(4, $doc->operations[0]['selection'][0]['column'], 'the mark takes a column, as in graphql-js');
     }
 
     public function test_multiple_operations_and_fragments(): void
@@ -173,6 +173,7 @@ final class GraphQlSelectionTest extends TestCase
         $users = $doc->operations[0]['selection'][0];
         self::assertTrue($users['directives']);
         self::assertSame(['spread', 'inline'], array_column($users['children'], 'kind'));
+        self::assertSame('F', $users['children'][0]['fragment']);
     }
 
     /** @return array<string,array{0:string,1:string,2:int,3:int}> */
@@ -207,6 +208,8 @@ final class GraphQlSelectionTest extends TestCase
             'unexpected character' => ['{ a<b }'],
             'number where a name is expected' => ['{ a: 5 }'],
             'bad escape' => ['{ a(b: "\\q") }'],
+            'mismatched argument brackets' => ['{ a(b: {c: [1}) }'],
+            'stray closer in arguments' => ['{ a(b: ]) }'],
             'over the byte cap' => ['{ ' . str_repeat('a ', GraphQlSelection::MAX_BYTES) . '}'],
         ];
     }
@@ -254,5 +257,24 @@ final class GraphQlSelectionTest extends TestCase
         self::assertSame(3, GraphQlSelection::utf16Units("a\xF0\x9F\x98\x80")); // a + an astral char
         $doc = GraphQlSelection::parse("{ a(b: \"\xF0\x9F\x98\x80\") c }");
         self::assertSame(14, $doc->operations[0]['selection'][1]['column']);
+
+        $later = GraphQlSelection::parse("{ a(b: \"\xF0\x9F\x98\x80\xC3\xA9\") c d\n  e f(g: \"\"\"x\ny\"\"\") h }");
+        self::assertNull($later->failure);
+        $nodes = $later->operations[0]['selection'];
+        self::assertSame([[1, 15], [1, 17], [2, 3], [2, 5], [3, 7]], array_map(static function (array $n): array {
+            return [$n['line'], $n['column']];
+        }, array_slice($nodes, 1)));
+    }
+
+    public function test_a_long_line_parses_in_linear_time(): void
+    {
+        $emoji = str_repeat("\xF0\x9F\x98\x80", 1000);
+        $src = '{a(x:"' . $emoji . '")' . str_repeat(' b', (GraphQlSelection::MAX_BYTES - 4020) / 2) . '}';
+        $start = microtime(true);
+        $doc = GraphQlSelection::parse($src);
+        $elapsed = microtime(true) - $start;
+
+        self::assertNull($doc->failure);
+        self::assertLessThan(0.2, $elapsed, 'columns are carried forward, not recounted per token');
     }
 }

@@ -92,8 +92,11 @@ final class TemplateAttackEmulator
      */
     private $reflectorGate;
 
-    /** @var array<int,bool> per-seed result of the GraphQL decoy's self-scan, bounded */
+    /** @var array<string,bool> the GraphQL decoy's self-scan result per config and seed, bounded */
     private $graphQlClean = [];
+
+    /** @var int the largest body a request-driven behavior may build; the host refuses anything larger */
+    private $maxBodyBytes = 65536;
 
     /** @var array<string,array<string,mixed>> decoded GraphQL introspection bodies by hash */
     private $graphQlSchemas = [];
@@ -248,6 +251,14 @@ final class TemplateAttackEmulator
     public function setReflectorGate(\Closure $gate): self
     {
         $this->reflectorGate = $gate;
+
+        return $this;
+    }
+
+    /** Set the host's body cap (normally Config::$maxBodyBytes), so a behavior declines instead of overflowing it. */
+    public function setMaxBodyBytes(int $bytes): self
+    {
+        $this->maxBodyBytes = $bytes;
 
         return $this;
     }
@@ -1850,12 +1861,6 @@ final class TemplateAttackEmulator
     }
 
     /**
-     * The runtime fingerprint-safety gate, lazily loaded once from the package denylist. Returns null
-     * if the artifact can't be loaded — the caller treats that as "cannot verify" and fails closed.
-     * The load failure is cached (fingerprintGuardLoaded) so it isn't retried on every request, and the
-     * try/catch keeps a missing/broken denylist from escaping as a 500 on the hot path.
-     */
-    /**
      * The `graphql-select` behavior: read the GraphQL document from the request (GET `query` parameter,
      * POST JSON body or `application/graphql` text), then answer it with GraphQlDecoy. Any fault, an
      * unreadable request or a failed self-scan declines to the rule's base response.
@@ -1879,7 +1884,7 @@ final class TemplateAttackEmulator
                 return null;
             }
             $schema = $this->graphQlSchema((string) ($config['introspection'] ?? ''));
-            if ($schema === null || !$this->graphQlSelfScanClean($config, $seed)) {
+            if ($schema === null || !$this->graphQlSelfScanClean($config, $schema, $seed)) {
                 return null;
             }
 
@@ -1891,15 +1896,17 @@ final class TemplateAttackEmulator
                 $echo = ($this->reflectorGate)('graphql-name', $r) === true;
             }
 
-            $answer = (new GraphQlDecoy($config, $schema, $render))
+            $answer = (new GraphQlDecoy($config, $schema, $render, $this->maxBodyBytes))
                 ->answer(GraphQlSelection::parse($input['query']), $input['operationName'], $input['get'], $echo);
             if ($answer === null) {
                 return null;
             }
             $body = json_encode($answer['body'], JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
-            if ($body === false) {
+            // Apollo Server ends every JSON body with a newline, as the base response does.
+            if ($body === false || strlen($body) + 1 > $this->maxBodyBytes) {
                 return null;
             }
+            $body .= "\n";
 
             return new EmulatedContent($body, ['Content-Type' => 'application/json'] + ($answer['headers'] ?? []), $answer['status']);
         } catch (\Throwable $e) {
@@ -1916,8 +1923,10 @@ final class TemplateAttackEmulator
     {
         $method = strtoupper($r->method);
         if ($method === 'GET' || $method === 'HEAD') {
-            $params = [];
-            parse_str($r->query, $params);
+            $params = self::graphQlQueryParams($r->query);
+            if ($params === null) {
+                return null;
+            }
             $query = $params['query'] ?? null;
             $name = $params['operationName'] ?? null;
             $get = true;
@@ -1951,6 +1960,34 @@ final class TemplateAttackEmulator
         return ['query' => $query, 'operationName' => $name, 'get' => $get];
     }
 
+    /**
+     * The `query` and `operationName` parameters of a query string; the last copy of a repeated name wins,
+     * as with parse_str. Read by hand so a long query string cannot raise an input-limit warning. Null when
+     * the query string is too long or has too many pairs.
+     *
+     * @return array<string,string>|null
+     */
+    private static function graphQlQueryParams(string $queryString): ?array
+    {
+        if (strlen($queryString) > 3 * GraphQlSelection::MAX_BYTES) {
+            return null;
+        }
+        $pairs = explode('&', $queryString, 65);
+        if (count($pairs) > 64) {
+            return null;
+        }
+        $out = [];
+        foreach ($pairs as $pair) {
+            $eq = strpos($pair, '=');
+            $key = urldecode($eq === false ? $pair : substr($pair, 0, $eq));
+            if ($key === 'query' || $key === 'operationName') {
+                $out[$key] = $eq === false ? '' : urldecode(substr($pair, $eq + 1));
+            }
+        }
+
+        return $out;
+    }
+
     /** @return array<string,mixed>|null the decoded introspection `__schema` object */
     private function graphQlSchema(string $json): ?array
     {
@@ -1967,20 +2004,24 @@ final class TemplateAttackEmulator
     }
 
     /**
-     * Whether the decoy's own bytes for this seed carry no detector signature. Computed once per seed from
-     * the config alone, never from the request.
+     * Whether the decoy's own bytes for this config and seed carry no detector signature: the schema as it
+     * is served, every message, the error codes and the rendered dataset. Computed once per config and seed,
+     * never from the request.
      *
      * @param array<string,mixed> $config
+     * @param array<string,mixed> $schema the decoded introspection `__schema` object
      */
-    private function graphQlSelfScanClean(array $config, int $seed): bool
+    private function graphQlSelfScanClean(array $config, array $schema, int $seed): bool
     {
-        if (isset($this->graphQlClean[$seed])) {
-            return $this->graphQlClean[$seed];
+        $key = sha1(serialize($config)) . ':' . $seed;
+        if (isset($this->graphQlClean[$key])) {
+            return $this->graphQlClean[$key];
         }
         $guard = $this->fingerprintGuard();
         $clean = false;
         if ($guard !== null) {
-            $parts = [(string) ($config['introspection'] ?? '')];
+            $parts = [(string) json_encode($schema, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE)];
+            $parts = array_merge($parts, GraphQlDecoy::CODES);
             foreach ((array) ($config['messages'] ?? []) as $message) {
                 $parts[] = (string) preg_replace('/%[a-z_]+%/', '', (string) $message);
             }
@@ -1996,9 +2037,15 @@ final class TemplateAttackEmulator
             $this->graphQlClean = [];
         }
 
-        return $this->graphQlClean[$seed] = $clean;
+        return $this->graphQlClean[$key] = $clean;
     }
 
+    /**
+     * The runtime fingerprint-safety gate, lazily loaded once from the package denylist. Returns null
+     * if the artifact can't be loaded — the caller treats that as "cannot verify" and fails closed.
+     * The load failure is cached (fingerprintGuardLoaded) so it isn't retried on every request, and the
+     * try/catch keeps a missing/broken denylist from escaping as a 500 on the hot path.
+     */
     private function fingerprintGuard(): ?FingerprintGuard
     {
         if (!$this->fingerprintGuardLoaded) {
