@@ -293,6 +293,20 @@ final class BehaviorGraphqlSelectTest extends TestCase
         self::assertSame(self::base(), self::get($engine, '{users{a: id} users{a: email}}')->body, 'a conflicting merge declines');
     }
 
+    public function test_repeated_introspection_through_fragments_is_bounded(): void
+    {
+        $roots = static function (string $field, int $n): string {
+            return 'query { ' . str_repeat('...F ', 16) . '} fragment F on Query {' . str_repeat(' ' . $field, $n) . ' }';
+        };
+        $engine = self::engine();
+        foreach (['__schema { a }', '__type(name: "User") { name }'] as $field) {
+            self::assertSame(self::base(), self::postRaw($engine, $roots($field, 65), 'application/graphql')->body, $field);
+        }
+        // Deep under a data field, a field named like introspection is counted like any other.
+        $hidden = 'query { ' . str_repeat('...F ', 16) . '} fragment F on Query { users { __schema {' . str_repeat(' a', 70) . ' } } }';
+        self::assertSame(self::base(), self::postRaw($engine, $hidden, 'application/graphql')->body);
+    }
+
     public function test_a_reused_large_fragment_declines_before_it_is_walked(): void
     {
         $fields = '';
@@ -371,12 +385,17 @@ final class BehaviorGraphqlSelectTest extends TestCase
             $slot->setAccessible(true);
             $slot->setValue($e, $guard);
         };
-        // One token from each part the scan covers: a dataset value, a message, the schema, an error code.
-        // Any of them declines everything, including queries that never reach it.
+        // One token from each part the scan covers: a dataset value, a value that exists only once rendered
+        // for this seed, a message, the schema, an error code. Any of them declines everything, including
+        // queries that never reach it.
         $yaml = (string) file_get_contents(self::TEMPLATE);
         self::assertSame(1, substr_count($yaml, 'subscriber'), 'only a dataset value carries it');
         self::assertSame(1, substr_count($yaml, 'logged in'), 'only a message carries it');
-        foreach (['subscriber', 'logged in', 'MutationResult', 'UNAUTHENTICATED'] as $token) {
+        $rows = json_decode($serve($emulator, '{users{email}}'), true)['data']['users'];
+        $rendered = substr((string) strrchr((string) $rows[1]['email'], '@'), 1);
+        self::assertNotSame('', $rendered);
+        self::assertStringNotContainsString($rendered, $yaml, 'only the rendered dataset carries it');
+        foreach (['subscriber', $rendered, 'logged in', 'MutationResult', 'UNAUTHENTICATED'] as $token) {
             $flagged = TemplateAttackEmulator::fromFile(__DIR__ . '/../resources/compiled/funnypot-attack.php');
             $setGuard($flagged, new FingerprintGuard([$token], []));
             foreach (['{users{id}}', '{__typename}', '{foo}', '{'] as $q) {

@@ -142,8 +142,9 @@ final class GraphQlDecoy
     /**
      * The root selection with fragment spreads and inline fragments replaced by their fields, one level
      * deep. Null declines: an unknown fragment, a directive on a spread or fragment, a spread inside a
-     * spread, too many spreads, or more fields expanded from named fragments than MAX_FIELDS (counted
-     * before anything walks them, so reusing one large fragment cannot multiply the work).
+     * spread, too many spreads, or more fields expanded from named fragments than MAX_FIELDS. That count
+     * runs during expansion, so a reused fragment never grows the selection past the bound; a query over
+     * both this bound and the depth bound therefore gets the base response, not the depth error.
      *
      * @param list<array<string,mixed>> $selection
      * @return list<array<string,mixed>>|null
@@ -191,20 +192,26 @@ final class GraphQlDecoy
     }
 
     /**
-     * Fields in these nodes and their selections, counted with an explicit stack and stopping once the
-     * count passes $limit. Introspection subtrees are not counted.
+     * Fields in these root nodes and their selections, counted with an explicit stack and stopping once
+     * the count passes $limit. A root `__schema` / `__type` counts once; its selection is not walked.
      *
      * @param list<array<string,mixed>> $nodes
      */
     private static function fieldsUpTo(array $nodes, int $limit): int
     {
         $count = 0;
-        $stack = [$nodes];
+        $stack = [];
+        foreach ($nodes as $node) {
+            if (++$count > $limit) {
+                return $count;
+            }
+            $introspection = $node['kind'] === 'field' && ($node['name'] === '__schema' || $node['name'] === '__type');
+            if (!$introspection && is_array($node['children'])) {
+                $stack[] = $node['children'];
+            }
+        }
         while ($stack !== []) {
             foreach (array_pop($stack) as $node) {
-                if ($node['kind'] === 'field' && ($node['name'] === '__schema' || $node['name'] === '__type')) {
-                    continue;
-                }
                 if (++$count > $limit) {
                     return $count;
                 }
@@ -452,8 +459,15 @@ final class GraphQlDecoy
             $key = (string) ($node['alias'] ?? $node['name']);
             if (!isset($out[$key])) {
                 $out[$key] = $node;
-            } elseif (is_array($out[$key]['children']) && is_array($node['children'])) {
-                $out[$key]['children'] = array_merge($out[$key]['children'], $node['children']);
+                continue;
+            }
+            // Introspection answers ignore their selection, so there is nothing to merge.
+            if ($node['name'] === '__schema' || $node['name'] === '__type'
+                || !is_array($out[$key]['children']) || !is_array($node['children'])) {
+                continue;
+            }
+            foreach ($node['children'] as $child) {
+                $out[$key]['children'][] = $child;
             }
         }
 
