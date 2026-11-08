@@ -1704,6 +1704,14 @@ final class Honeypot implements Engine
         $seed = $this->config->seedFor($r);
 
         if ($verdict->classification === Verdict::ATTACK_CLASS) {
+            // A detected-only match on a backup-style archive name carries the archive decoy: it is served
+            // like any other archive, through the routed guards, with the attack's detection.
+            if ($verdict->fakeHandle !== null && $verdict->fakeHandle->kind === FakeHandle::KIND_DECOY_ARCHIVE) {
+                $this->safeOnDetection($r, $verdict->detection);
+
+                return $this->serveRoutedVerdict($r, $verdict, $seed, $r, $verdict->detection, $verdict->detection);
+            }
+
             return $this->respondAttack($r, $verdict, $seed);
         }
 
@@ -1853,13 +1861,17 @@ final class Honeypot implements Engine
             return $this->serveRoutedVerdict($r, $base, $seed, $neutral, $attack->detection, $attack->detection);
         }
 
+        if ($handle->kind === FakeHandle::KIND_DECOY_ARCHIVE) {
+            return $this->serveRoutedVerdict($r, $base, $seed, $neutral, $attack->detection, $attack->detection);
+        }
         $declinedRule = $attack->fakeHandle !== null ? $attack->fakeHandle->ruleId : null;
         if ($handle->kind !== FakeHandle::KIND_ATTACK || $handle->ruleId === $declinedRule) {
             return $this->declined($r, $reason);
         }
         $built = $this->buildFake($handle, SiteProfile::empty(), $seed, $neutral);
         if ($built['r'] === null) {
-            return $this->declined($r, $reason);
+            // A leak in the payload-free rule's own render is reported as such, not hidden.
+            return $this->declined($r, $built['reason'] === Outcome::FINGERPRINT_LEAK ? $built['reason'] : $reason);
         }
         $built['r']->satisfies = $attack->detection;
         $built['r']->servedBy = $handle;

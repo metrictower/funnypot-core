@@ -631,7 +631,7 @@ with its own degrade response.
 The CRS LFI catch-all is detected on the whole request but served only when the query or body names the
 file (`serve_on: payload`), so a bare `GET /wp-config.php` is detected and gets the host's 404, not a fake
 include warning; a backup-style archive name carrying such a token (`/wp-config.php.zip`) still gets the
-decoy archive when archives are on.
+decoy archive when archives are on, through the same gate and veto as any other archive.
 
 ### AI-API recon surface
 

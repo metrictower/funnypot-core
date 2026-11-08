@@ -5,10 +5,13 @@ declare(strict_types=1);
 namespace Funnypot\Core\Tests\Crs;
 
 use Funnypot\Core\Config;
+use Funnypot\Core\Detection;
 use Funnypot\Core\Honeypot;
+use Funnypot\Core\Observer;
 use Funnypot\Core\RequestContext;
 use Funnypot\Core\Response\Style;
 use Funnypot\Core\SiteProfile;
+use Funnypot\Core\SynthesizedResponse;
 use Funnypot\Core\Verdict;
 use PHPUnit\Framework\TestCase;
 
@@ -92,13 +95,13 @@ final class CrsLfiServeOnPayloadTest extends TestCase
         self::assertStringContainsString(self::WARNING, $r->body);
     }
 
-    public function test_an_archive_name_with_a_restricted_token_still_gets_the_archive_decoy(): void
+    private static function archiveEngine(bool $gateOpen = true, ?Observer $observer = null): Honeypot
     {
         $config = new Config(
             'respond',
-            static function (RequestContext $r): bool {
+            $gateOpen ? static function (RequestContext $r): bool {
                 return true;
-            },
+            } : null,
             'matched-only',
             null,
             'coherent',
@@ -111,14 +114,51 @@ final class CrsLfiServeOnPayloadTest extends TestCase
         );
         $config->decoyArchives = true;
         $config->decoyArchiveAnyName = true;
-        $engine = Honeypot::default($config);
+
+        return Honeypot::default($config, $observer);
+    }
+
+    private static function vetoAll(): Observer
+    {
+        return new class implements Observer {
+            public function onDetection(RequestContext $r, Detection $detection): void
+            {
+            }
+
+            public function shouldRespond(RequestContext $r, Detection $detection): bool
+            {
+                return false;
+            }
+
+            public function onOutcome(RequestContext $r, ?SynthesizedResponse $response, string $reason): void
+            {
+            }
+        };
+    }
+
+    public function test_an_archive_name_with_a_restricted_token_still_gets_the_archive_decoy(): void
+    {
+        $engine = self::archiveEngine();
 
         $verdict = $engine->classify(self::request('/wp-config.php.zip'), SiteProfile::empty());
         self::assertContains('attack-crs-lfi', $verdict->detection->templateIds(), 'the restricted token is still detected');
 
-        $r = $engine->respond(self::request('/wp-config.php.zip'));
-        self::assertNotNull($r, 'a detected-but-not-served match must not hide the archive decoy');
-        self::assertSame('application/zip', $r->headers['Content-Type'] ?? null);
+        $bare = $engine->respond(self::request('/wp-config.php.zip'));
+        self::assertNotNull($bare, 'a detected-but-not-served match must not hide the archive decoy');
+        self::assertSame('application/zip', $bare->headers['Content-Type'] ?? null);
+        self::assertContains('attack-crs-lfi', $bare->satisfies->templateIds(), 'the response carries the detection');
+
+        $withPayload = $engine->respond(self::request('/wp-config.php.zip', 'id=%3Cscript%3Ex%3C%2Fscript%3E'));
+        self::assertNotNull($withPayload, 'a declined payload gets what the bare request gets');
+        self::assertSame(md5($bare->body), md5($withPayload->body));
+    }
+
+    public function test_the_archive_decoy_for_a_restricted_name_keeps_the_gate_and_veto(): void
+    {
+        foreach (['/wp-config.php.zip', '/.env.zip', '/wp-config.zip'] as $path) {
+            self::assertNull(self::archiveEngine(false)->respond(self::request($path)), "{$path}: closed gate");
+            self::assertNull(self::archiveEngine(true, self::vetoAll())->respond(self::request($path)), "{$path}: veto");
+        }
     }
 
     public function test_payload_inspection_on_a_real_route_still_classifies_the_catch_all(): void
